@@ -1,0 +1,1972 @@
+{
+  "metadata": {
+    "scan_timestamp": "2025-09-20T16:19:20.949676",
+    "scanner": "duplicate_finder",
+    "scanner_version": "1.1.0",
+    "output_format_version": "2.0.0",
+    "duration_seconds": 0.22,
+    "stats": {
+      "total_duplicates": 0,
+      "migration_pending": 0,
+      "fully_migrated": 0,
+      "migration_progress_percent": 0,
+      "section_matching": true,
+      "similarity_threshold": 0.7
+    }
+  },
+  "data": {
+    "content_duplicates": [],
+    "partial_duplicates": [
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "modular_file": "templates/matrices/index.md",
+        "similarity": 0.362
+      }
+    ],
+    "monolithic_files": {
+      "templates/REGISTRY.md": {
+        "line_count": 816,
+        "section_count": 18,
+        "sections": [
+          "header",
+          "\ud83d\udcda Essential Documentation",
+          "\ud83c\udfaf Quick Navigation",
+          "\ud83e\udde0 ULTRATHINK Resolution {#ultrathink-resolution}",
+          "\ud83d\udd0d Navigation Keywords",
+          "Intent Handlers (63 existing + 6 to add = 69 total)",
+          "Behavioral Templates (6 total)",
+          "Meta-Routing Patterns (13 total)",
+          "Behavioral Hooks (9 categories)",
+          "Decision Matrices (5 total)",
+          "Special Files",
+          "Common Commands",
+          "Tool Selection Matrix",
+          "Statistics",
+          "Registry Maintenance",
+          "Key Improvements in This Registry",
+          "Usage Guide",
+          "Summary: Why This Registry is Better"
+        ],
+        "content_hash": "fe3fd21ca5ccfffe3f906de881e43591"
+      },
+      "templates/WORKFLOWS.md": {
+        "line_count": 78,
+        "section_count": 5,
+        "sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\ude80 Quick Start",
+          "\ud83d\udd0d Finding Specific Workflows",
+          "\ud83d\udcda See Also"
+        ],
+        "content_hash": "ca56cceebe9eb47ba972f3df787f1749"
+      },
+      "templates/PATTERNS.md": {
+        "line_count": 103,
+        "section_count": 6,
+        "sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udd17 Shared Patterns",
+          "\ud83d\udcda Quick Reference",
+          "\ud83d\ude80 Handler Migration Notice",
+          "\ud83d\udcd6 Using This Library"
+        ],
+        "content_hash": "78226af214ce24edf7af4af7fa572adb"
+      },
+      "templates/HANDLERS.md": {
+        "line_count": 253,
+        "section_count": 8,
+        "sections": [
+          "header",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "\ud83d\udccd Handler Registry {#handler-registry}",
+          "\ud83d\udd04 Disambiguation Guide {#disambiguation-guide}",
+          "\ud83c\udfaf Common Patterns & Examples {#common-patterns}",
+          "\ud83d\udd0d Search Tips {#search-tips}",
+          "\ud83d\udcca Coverage Matrix {#coverage-matrix}",
+          "\ud83d\udd17 Adding New Handlers {#adding-new-handlers}"
+        ],
+        "content_hash": "cb6a9d2c87dfe340b3c7467c1de946ff"
+      },
+      "templates/CONVENTIONS.md": {
+        "line_count": 89,
+        "section_count": 6,
+        "sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udea8 Critical Rules",
+          "Quick Command Reference",
+          "Handler Migration Notice",
+          "See Also"
+        ],
+        "content_hash": "9e26cdf85785642c9b935d13349b321e"
+      },
+      "templates/BEHAVIORS.md": {
+        "line_count": 515,
+        "section_count": 18,
+        "sections": [
+          "header",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "ULTRATHINK Integration {#ultrathink-integration}",
+          "ULTRATHINK Enforcement {#ultrathink-enforcement}",
+          "Work Tracking {#work-tracking}",
+          "File Operations {#file-operations}",
+          "Development Work {#development-work}",
+          "Tool Selection {#tool-selection}",
+          "Evidence & Claims {#evidence-claims}",
+          "Task Management {#task-management}",
+          "Session Management {#session-management}",
+          "\ud83d\udce6 Session End / Compaction Ready {#session-end-compaction}",
+          "Git Operations {#git-operations}",
+          "Testing & Validation {#testing-validation}",
+          "Special Behaviors {#special-behaviors}",
+          "Cross-Reference Map {#cross-reference-map}",
+          "Integration with CLAUDE.md {#integration-claude}",
+          "Adding New Behaviors {#adding-new-behaviors}"
+        ],
+        "content_hash": "a95721802654e257c7dcf3a5d4f846c3"
+      },
+      "templates/MATRICES.md": {
+        "line_count": 235,
+        "section_count": 12,
+        "sections": [
+          "header",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "ULTRATHINK Integration {#ultrathink-integration}",
+          "Request Type \u2192 Handler Matrix {#request-type-handler-matrix}",
+          "File Type \u2192 Convention Matrix {#file-type-convention-matrix}",
+          "Problem Type \u2192 Solution Matrix {#problem-type-solution-matrix}",
+          "Context \u2192 Mode Matrix {#context-mode-matrix}",
+          "Error \u2192 Recovery Matrix {#error-recovery-matrix}",
+          "Behavior \u2192 Workflow Coverage Matrix {#behavior-workflow-matrix}",
+          "Matrix Usage Patterns {#matrix-usage-patterns}",
+          "Integration Points {#integration-points}",
+          "Common Matrix Queries {#common-matrix-queries}"
+        ],
+        "content_hash": "8cb429b685a72fb9e88b0d956584468d"
+      },
+      "templates/TOOLS.md": {
+        "line_count": 87,
+        "section_count": 6,
+        "sections": [
+          "header",
+          "\ud83d\udea6 Decision Router",
+          "Built-in Tools",
+          "Evidence Expectations",
+          "Anti-Patterns",
+          "Quick Reference"
+        ],
+        "content_hash": "013bfc817ca5511ca55fa60f311480b6"
+      }
+    },
+    "migration_status": {
+      "templates/REGISTRY.md": {
+        "total_sections": 18,
+        "migrated_sections": 1,
+        "migration_percentage": 5.6,
+        "migrated_section_names": [
+          "\ud83d\udd0d Navigation Keywords"
+        ],
+        "related_modular_files": [
+          "templates/registry/navigation/keywords.md"
+        ],
+        "related_file_count": 1,
+        "status": "PARTIALLY_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/WORKFLOWS.md": {
+        "total_sections": 5,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/PATTERNS.md": {
+        "total_sections": 6,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/HANDLERS.md": {
+        "total_sections": 8,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/CONVENTIONS.md": {
+        "total_sections": 6,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/BEHAVIORS.md": {
+        "total_sections": 18,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/MATRICES.md": {
+        "total_sections": 12,
+        "migrated_sections": 8,
+        "migration_percentage": 66.7,
+        "migrated_section_names": [
+          "header",
+          "Integration Points {#integration-points}",
+          "Common Matrix Queries {#common-matrix-queries}",
+          "Context \u2192 Mode Matrix {#context-mode-matrix}",
+          "Problem Type \u2192 Solution Matrix {#problem-type-solution-matrix}",
+          "File Type \u2192 Convention Matrix {#file-type-convention-matrix}",
+          "Error \u2192 Recovery Matrix {#error-recovery-matrix}",
+          "Matrix Usage Patterns {#matrix-usage-patterns}"
+        ],
+        "related_modular_files": [
+          "templates/matrices/selection/tool-selection.md",
+          "templates/matrices/index.md",
+          "templates/matrices/recovery/error-to-recovery.md",
+          "templates/matrices/selection/file-to-convention.md",
+          "templates/matrices/routing/context-to-mode.md"
+        ],
+        "related_file_count": 5,
+        "status": "PARTIALLY_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/TOOLS.md": {
+        "total_sections": 6,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      }
+    },
+    "content_hashes": {
+      "696bcc4e016508cbf402132ca9c530e1": [
+        {
+          "file": "templates/PROJECT-BLOG.md",
+          "line_count": 445,
+          "type": "other"
+        }
+      ],
+      "cc1b9c83a4114a2bb3e957f4256a45b1": [
+        {
+          "file": "templates/USER-GUIDE.md",
+          "line_count": 1207,
+          "type": "guide"
+        }
+      ],
+      "0778fd260c854b83c6e47f0be47a7263": [
+        {
+          "file": "templates/BUILDING-BETTER.md",
+          "line_count": 654,
+          "type": "workflow"
+        }
+      ],
+      "4409d998183caa37b0719331d938c933": [
+        {
+          "file": "templates/coordination/session-integration-collaboration.md",
+          "line_count": 60,
+          "type": "integration"
+        }
+      ],
+      "cf4b319a990566e231a393430c2a7f55": [
+        {
+          "file": "templates/coordination/enforcement-enhancement-session.md",
+          "line_count": 347,
+          "type": "other"
+        }
+      ],
+      "1830153ec4efa7f6e41a5e0775778307": [
+        {
+          "file": "templates/coordination/session-swhe-integration.md",
+          "line_count": 572,
+          "type": "integration"
+        }
+      ],
+      "6ef98588be73c2ebaf7ec60e7babdb5f": [
+        {
+          "file": "templates/coordination/specialist-collaboration-session.md",
+          "line_count": 543,
+          "type": "other"
+        }
+      ],
+      "efd8e95d0c6e6b0735052790c4eef5a0": [
+        {
+          "file": "templates/guides/token-optimization.md",
+          "line_count": 222,
+          "type": "guide"
+        }
+      ],
+      "7ed4f87cdcd875aa932987fd0f409fe2": [
+        {
+          "file": "templates/guides/index.md",
+          "line_count": 120,
+          "type": "guide"
+        }
+      ],
+      "55c0914bed1d6d1d53b273600607dd76": [
+        {
+          "file": "templates/tools/index.md",
+          "line_count": 93,
+          "type": "workflow"
+        }
+      ],
+      "62c2243dc025805c4de0843ae3de2dd2": [
+        {
+          "file": "templates/behaviors/index.md",
+          "line_count": 137,
+          "type": "behavior"
+        }
+      ],
+      "a146275482616d3900810323b0ff1422": [
+        {
+          "file": "templates/engine/MODULARIZATION-COMPLETE.md",
+          "line_count": 114,
+          "type": "engine"
+        }
+      ],
+      "d6b4d6e584c46e2aadfeea2446be66d3": [
+        {
+          "file": "templates/engine/README.md",
+          "line_count": 127,
+          "type": "engine"
+        }
+      ],
+      "b7eaef02a1555d12f618dbb3a21f032f": [
+        {
+          "file": "templates/prompts/subagent-blind-test-prompt.md",
+          "line_count": 115,
+          "type": "agent"
+        }
+      ],
+      "ebb57b9213bdfb2b89c21841eef65298": [
+        {
+          "file": "templates/prompts/claude-md-specialist-collab-prompt.md",
+          "line_count": 81,
+          "type": "prompt"
+        }
+      ],
+      "d53430b54c1baf0bdfa9ed8a6e5f5f5e": [
+        {
+          "file": "templates/prompts/zero-context-system-test-prompt.md",
+          "line_count": 162,
+          "type": "prompt"
+        }
+      ],
+      "3a1a5c41cf3c004d3a863dbd982684bb": [
+        {
+          "file": "templates/prompts/session-integration-scanner-specialist.md",
+          "line_count": 123,
+          "type": "prompt"
+        }
+      ],
+      "15e974cc0f1949c6e1008eeeba69400d": [
+        {
+          "file": "templates/prompts/hook-specialist-collab-prompt.md",
+          "line_count": 95,
+          "type": "hook"
+        }
+      ],
+      "b9e7602b6c2cec4ccc9d4a6078cd7aae": [
+        {
+          "file": "templates/prompts/session-integration-claude-specialist.md",
+          "line_count": 93,
+          "type": "prompt"
+        }
+      ],
+      "a889a501a18ebf7f9345fbc690242564": [
+        {
+          "file": "templates/prompts/session-integration-coordinator-prompt.md",
+          "line_count": 147,
+          "type": "prompt"
+        }
+      ],
+      "3eb77053c4ad81479992759186afcddb": [
+        {
+          "file": "templates/prompts/ultrathink-discovery-test-prompt.md",
+          "line_count": 169,
+          "type": "prompt"
+        }
+      ],
+      "a8fec56871748991634dce91d9e485f0": [
+        {
+          "file": "templates/registry/index.md",
+          "line_count": 60,
+          "type": "registry"
+        }
+      ],
+      "3b5862da8abff462d36bc7ca6c4eb63e": [
+        {
+          "file": "templates/registry/MIGRATION-REPORT.md",
+          "line_count": 159,
+          "type": "registry"
+        }
+      ],
+      "4cf483e75260b7d0b247cb8bf202d21c": [
+        {
+          "file": "templates/matrices/index.md",
+          "line_count": 110,
+          "type": "matrix"
+        }
+      ],
+      "13acd2958bec5513ea7ea3ab2ee4df63": [
+        {
+          "file": "templates/workflows/patterns/multi-agent-orchestration.md",
+          "line_count": 258,
+          "type": "workflow"
+        }
+      ],
+      "882a78101f157c2f674f2c2cdfe4c0bc": [
+        {
+          "file": "templates/workflows/patterns/task-management.md",
+          "line_count": 146,
+          "type": "workflow"
+        }
+      ],
+      "3852243fb419c8be49f13390414927bb": [
+        {
+          "file": "templates/workflows/session/lifecycle.md",
+          "line_count": 191,
+          "type": "workflow"
+        }
+      ],
+      "7523c2985abd0e27b13e00e80c2763c6": [
+        {
+          "file": "templates/workflows/session/compaction.md",
+          "line_count": 165,
+          "type": "workflow"
+        }
+      ],
+      "2e85ec821891d269f3f71705cbdf2b42": [
+        {
+          "file": "templates/workflows/guides/common-mistakes.md",
+          "line_count": 295,
+          "type": "workflow"
+        }
+      ],
+      "70e6d5b8a4cf94906db155b25b53533f": [
+        {
+          "file": "templates/workflows/templates/behavioral-templates.md",
+          "line_count": 350,
+          "type": "workflow"
+        }
+      ],
+      "480bbef7f0b590b2013e8f092cda024e": [
+        {
+          "file": "templates/workflows/handlers/intent-handlers.md",
+          "line_count": 529,
+          "type": "handler"
+        }
+      ],
+      "cef978afd3181b01b4831c2f43960a53": [
+        {
+          "file": "templates/workflows/memory/serena-patterns.md",
+          "line_count": 183,
+          "type": "workflow"
+        }
+      ],
+      "9ceeedd577044b2f01373424dab8897c": [
+        {
+          "file": "templates/workflows/examples/common-workflows.md",
+          "line_count": 281,
+          "type": "workflow"
+        }
+      ],
+      "7339019c10cbf5b48beb2847fc3db6b8": [
+        {
+          "file": "templates/workflows/testing/subagent-simulation.md",
+          "line_count": 252,
+          "type": "workflow"
+        }
+      ],
+      "3d54bc7b7d37464193bd532ab4bbbf90": [
+        {
+          "file": "templates/workflows/testing/simulation-testing.md",
+          "line_count": 258,
+          "type": "workflow"
+        }
+      ],
+      "0b3f51a08b39b41d599cd7beef43eb5f": [
+        {
+          "file": "templates/workflows/testing/test-checkpoints.md",
+          "line_count": 190,
+          "type": "workflow"
+        }
+      ],
+      "71dcd74b86a9dfb4096aa4fd73ac9b60": [
+        {
+          "file": "templates/workflows/protocols/universal-flight.md",
+          "line_count": 79,
+          "type": "workflow"
+        }
+      ],
+      "eb5384bb80ee30e451936e3e06a76415": [
+        {
+          "file": "templates/workflows/core/ultrathink-reference.md",
+          "line_count": 105,
+          "type": "workflow"
+        }
+      ],
+      "01ad4bd640ed3164712b149bb20f34fc": [
+        {
+          "file": "templates/workflows/analysis/evidence-gathering.md",
+          "line_count": 225,
+          "type": "workflow"
+        }
+      ],
+      "715ebe271eeb00d597de5f9e27440b86": [
+        {
+          "file": "templates/patterns/session/continuation-patterns.md",
+          "line_count": 401,
+          "type": "pattern"
+        }
+      ],
+      "93b6462f6a830c003f77c5c1de323751": [
+        {
+          "file": "templates/patterns/session/session-patterns.md",
+          "line_count": 373,
+          "type": "pattern"
+        }
+      ],
+      "6759aa8428858dfdd046213b913d60f2": [
+        {
+          "file": "templates/patterns/session/state-patterns.md",
+          "line_count": 363,
+          "type": "pattern"
+        }
+      ],
+      "dc03be13fe80fd4f2a7c4faedc142423": [
+        {
+          "file": "templates/patterns/evidence/validation-patterns.md",
+          "line_count": 311,
+          "type": "pattern"
+        }
+      ],
+      "3be9c095c6236285c08ee84d079b95bb": [
+        {
+          "file": "templates/patterns/evidence/proof-patterns.md",
+          "line_count": 313,
+          "type": "pattern"
+        }
+      ],
+      "cc726fad2f1bb37f87e29a5d42dbdd72": [
+        {
+          "file": "templates/patterns/evidence/evidence-patterns.md",
+          "line_count": 274,
+          "type": "pattern"
+        }
+      ],
+      "626572458f3df4098b4a764ac4d48b63": [
+        {
+          "file": "templates/patterns/selection/handler-selection.md",
+          "line_count": 176,
+          "type": "handler"
+        }
+      ],
+      "f5e7d8dccbcb5448142721105a744cc3": [
+        {
+          "file": "templates/patterns/selection/tool-selection.md",
+          "line_count": 164,
+          "type": "pattern"
+        }
+      ],
+      "9c99a98cba8018c8801f580d6b342e3c": [
+        {
+          "file": "templates/patterns/selection/agent-selection.md",
+          "line_count": 249,
+          "type": "pattern"
+        }
+      ],
+      "2b8f5d24be9ae19cec9c8bf24bca8287": [
+        {
+          "file": "templates/patterns/integration/composition.md",
+          "line_count": 455,
+          "type": "pattern"
+        }
+      ],
+      "da24e9d61a7c4c25b67119262535ea68": [
+        {
+          "file": "templates/patterns/integration/cross-system.md",
+          "line_count": 455,
+          "type": "pattern"
+        }
+      ],
+      "9c6f22b09c725eade2a1539c3bfa84b0": [
+        {
+          "file": "templates/patterns/work-tracking/progress-patterns.md",
+          "line_count": 335,
+          "type": "pattern"
+        }
+      ],
+      "887158876fb8c5ccfd8fa15962d30733": [
+        {
+          "file": "templates/patterns/work-tracking/work-patterns.md",
+          "line_count": 324,
+          "type": "pattern"
+        }
+      ],
+      "5fb64e4606fb6c311a6d7de53487bb3c": [
+        {
+          "file": "templates/patterns/work-tracking/documentation-patterns.md",
+          "line_count": 410,
+          "type": "pattern"
+        }
+      ],
+      "4beada5ab60bf68a7ffd6f513ea993c7": [
+        {
+          "file": "templates/patterns/routing/request-analysis.md",
+          "line_count": 129,
+          "type": "pattern"
+        }
+      ],
+      "3df07f24aa802c5af31c784570aa783a": [
+        {
+          "file": "templates/patterns/routing/intent-detection.md",
+          "line_count": 160,
+          "type": "pattern"
+        }
+      ],
+      "ee5cd3c5df2efab61b16a89e5cf05cb0": [
+        {
+          "file": "templates/patterns/routing/meta-routing.md",
+          "line_count": 105,
+          "type": "pattern"
+        }
+      ],
+      "79faa72dd97a73d180cd266dcc3815e1": [
+        {
+          "file": "templates/guides/troubleshooting/issues.md",
+          "line_count": 492,
+          "type": "guide"
+        }
+      ],
+      "feb3d2ed2002e81cfbad7e90a2b1c804": [
+        {
+          "file": "templates/guides/workflows/common.md",
+          "line_count": 365,
+          "type": "workflow"
+        }
+      ],
+      "313871468f34507abd66404cef5cda32": [
+        {
+          "file": "templates/guides/reference/triggers.md",
+          "line_count": 360,
+          "type": "guide"
+        }
+      ],
+      "c16369ba87650581ea3e247eac1e1461": [
+        {
+          "file": "templates/guides/ultrathink/understanding.md",
+          "line_count": 281,
+          "type": "guide"
+        }
+      ],
+      "b4fd548458194053f579c8a64cc62325": [
+        {
+          "file": "templates/guides/quickstart/getting-started.md",
+          "line_count": 235,
+          "type": "guide"
+        }
+      ],
+      "177c03f8928d5adb9bcc90365e38dcdd": [
+        {
+          "file": "templates/conventions/files/special-files.md",
+          "line_count": 234,
+          "type": "convention"
+        }
+      ],
+      "f67e5cd78da59ccea18d7d80ef55799d": [
+        {
+          "file": "templates/conventions/files/directory-structure.md",
+          "line_count": 204,
+          "type": "convention"
+        }
+      ],
+      "6da516faf8dfe31a78728e8486d92204": [
+        {
+          "file": "templates/conventions/files/organization.md",
+          "line_count": 203,
+          "type": "convention"
+        }
+      ],
+      "bffdabb7a58a3e7c5e191cb2cede3c55": [
+        {
+          "file": "templates/conventions/work-tracking/folder-structure.md",
+          "line_count": 345,
+          "type": "convention"
+        }
+      ],
+      "981f096b4503c9ae9a75bccdbb0ae311": [
+        {
+          "file": "templates/conventions/work-tracking/handoff-format.md",
+          "line_count": 281,
+          "type": "convention"
+        }
+      ],
+      "28edd1050fbb28bf29613b2df3e785e7": [
+        {
+          "file": "templates/conventions/work-tracking/tracker-format.md",
+          "line_count": 275,
+          "type": "convention"
+        }
+      ],
+      "7404262930259b31bd7bb36ffbffd7f7": [
+        {
+          "file": "templates/conventions/git/commit-format.md",
+          "line_count": 209,
+          "type": "convention"
+        }
+      ],
+      "07dcc12bf7342df58741ab26d89fe37a": [
+        {
+          "file": "templates/conventions/git/pr-conventions.md",
+          "line_count": 239,
+          "type": "convention"
+        }
+      ],
+      "028a056f0e37e5a5e849c7f200f72e47": [
+        {
+          "file": "templates/conventions/git/branch-naming.md",
+          "line_count": 225,
+          "type": "convention"
+        }
+      ],
+      "89e8160fbc5664dce5f770743ecaafa2": [
+        {
+          "file": "templates/conventions/naming/variables.md",
+          "line_count": 157,
+          "type": "convention"
+        }
+      ],
+      "4f0f8e7d1abe7bf40ca9a04ebcf038e9": [
+        {
+          "file": "templates/conventions/naming/functions.md",
+          "line_count": 182,
+          "type": "convention"
+        }
+      ],
+      "3d82582288fb9836973450569bc7121d": [
+        {
+          "file": "templates/conventions/naming/files.md",
+          "line_count": 132,
+          "type": "convention"
+        }
+      ],
+      "9f941a176069d60c994822dc14299ee5": [
+        {
+          "file": "templates/conventions/testing/test-naming.md",
+          "line_count": 256,
+          "type": "convention"
+        }
+      ],
+      "ce2a00c0ea3bac9ae9bc1fcdd247a55f": [
+        {
+          "file": "templates/conventions/testing/test-structure.md",
+          "line_count": 369,
+          "type": "convention"
+        }
+      ],
+      "59a1934de400ab25d537d1df108ec324": [
+        {
+          "file": "templates/conventions/docs/readme-format.md",
+          "line_count": 383,
+          "type": "convention"
+        }
+      ],
+      "76fc1b21748ccaa6eb736964b84e12a7": [
+        {
+          "file": "templates/conventions/docs/comment-format.md",
+          "line_count": 307,
+          "type": "convention"
+        }
+      ],
+      "020defdc8a58562da7afbd1caa463aa8": [
+        {
+          "file": "templates/conventions/docs/documentation-standards.md",
+          "line_count": 326,
+          "type": "convention"
+        }
+      ],
+      "baf8c57c55832f0425b9859136f49af0": [
+        {
+          "file": "templates/conventions/timestamps/usage-patterns.md",
+          "line_count": 319,
+          "type": "pattern"
+        }
+      ],
+      "66bee6940b84dd5ad82477107dcd5b69": [
+        {
+          "file": "templates/conventions/timestamps/format-rules.md",
+          "line_count": 320,
+          "type": "convention"
+        }
+      ],
+      "648dbb3225908ab269b8d4dd638b2a31": [
+        {
+          "file": "templates/conventions/code-style/typescript.md",
+          "line_count": 351,
+          "type": "convention"
+        }
+      ],
+      "25315eedf87714aff5d663f62a4c8357": [
+        {
+          "file": "templates/conventions/code-style/javascript.md",
+          "line_count": 307,
+          "type": "convention"
+        }
+      ],
+      "8e30000163757b894803120bab35d89a": [
+        {
+          "file": "templates/conventions/code-style/general.md",
+          "line_count": 352,
+          "type": "convention"
+        }
+      ],
+      "5e17c93c45c67c64f178c57bfb9ba847": [
+        {
+          "file": "templates/tools/file/multi-edit.md",
+          "line_count": 299,
+          "type": "other"
+        }
+      ],
+      "803c936bd50bad6cbfe6c757c7cfb86b": [
+        {
+          "file": "templates/tools/file/edit-strategies.md",
+          "line_count": 264,
+          "type": "other"
+        }
+      ],
+      "a094d20efa75f7ae846a024072418d6b": [
+        {
+          "file": "templates/tools/git/commands.md",
+          "line_count": 344,
+          "type": "command"
+        }
+      ],
+      "a1c4a8796a30e132b1d558895ef8dfb9": [
+        {
+          "file": "templates/tools/search/grep-patterns.md",
+          "line_count": 248,
+          "type": "pattern"
+        }
+      ],
+      "feca928fae5ba5d2590af578dcf77737": [
+        {
+          "file": "templates/tools/search/serena-guide.md",
+          "line_count": 167,
+          "type": "guide"
+        }
+      ],
+      "5670a5e9c4a67f2d997e0f22c6aca210": [
+        {
+          "file": "templates/tools/task/agent-usage.md",
+          "line_count": 342,
+          "type": "agent"
+        }
+      ],
+      "fb05e5d747ed18e824f4187986e4b6bc": [
+        {
+          "file": "templates/integration/guides/extending-templates.md",
+          "line_count": 385,
+          "type": "guide"
+        }
+      ],
+      "52adeae125997efb13bc6bd286747b06": [
+        {
+          "file": "templates/integration/guides/system-integration.md",
+          "line_count": 454,
+          "type": "guide"
+        }
+      ],
+      "de6be1118e04746763d5372534b0ba4c": [
+        {
+          "file": "templates/integration/guides/adding-agents.md",
+          "line_count": 447,
+          "type": "agent"
+        }
+      ],
+      "3a61dfaff109ebe7eb0a918c7683993f": [
+        {
+          "file": "templates/integration/guides/creating-handlers.md",
+          "line_count": 369,
+          "type": "handler"
+        }
+      ],
+      "116544b3e596163bd4f4f1d038dcde4a": [
+        {
+          "file": "templates/integration/architecture/template-architecture.md",
+          "line_count": 588,
+          "type": "integration"
+        }
+      ],
+      "0619466850e21fb80944fd2a8bc5da63": [
+        {
+          "file": "templates/integration/architecture/system-architecture.md",
+          "line_count": 531,
+          "type": "integration"
+        }
+      ],
+      "0dfbe9f71c9f12c40944809c299d6d46": [
+        {
+          "file": "templates/integration/architecture/handler-architecture.md",
+          "line_count": 634,
+          "type": "handler"
+        }
+      ],
+      "0793bc0999e82bc1c4cb84d083fd9cc4": [
+        {
+          "file": "templates/integration/cross-system/agent-coordination.md",
+          "line_count": 500,
+          "type": "agent"
+        }
+      ],
+      "e32defc39dc7e14abdea442811eea291": [
+        {
+          "file": "templates/integration/cross-system/tool-integration.md",
+          "line_count": 462,
+          "type": "integration"
+        }
+      ],
+      "495a9d370d3c38cf8cca18bac83dcfcc": [
+        {
+          "file": "templates/integration/cross-system/mcp-integration.md",
+          "line_count": 489,
+          "type": "integration"
+        }
+      ],
+      "b8782de319f6ab053c0e582444dacaa9": [
+        {
+          "file": "templates/integration/composition/handler-chaining.md",
+          "line_count": 625,
+          "type": "handler"
+        }
+      ],
+      "8ab5f8a54e8a91bf73ef66166ec5273c": [
+        {
+          "file": "templates/integration/composition/workflow-composition.md",
+          "line_count": 563,
+          "type": "workflow"
+        }
+      ],
+      "a574662fc096139d4382fbd9db722344": [
+        {
+          "file": "templates/integration/composition/pattern-composition.md",
+          "line_count": 544,
+          "type": "pattern"
+        }
+      ],
+      "143871fb79370ae7e4cbe2bf847ed1a3": [
+        {
+          "file": "templates/integration/best-practices/integration-patterns.md",
+          "line_count": 685,
+          "type": "pattern"
+        }
+      ],
+      "846a9050983cb5c8afcdc2c7c9c97056": [
+        {
+          "file": "templates/integration/best-practices/template-design.md",
+          "line_count": 601,
+          "type": "integration"
+        }
+      ],
+      "ff2e378a17f968f607cdfe81320c80e4": [
+        {
+          "file": "templates/integration/best-practices/handler-design.md",
+          "line_count": 569,
+          "type": "handler"
+        }
+      ],
+      "c094219148bbd2021983a7d38c4dae21": [
+        {
+          "file": "templates/behaviors/file-operations/before-edit.md",
+          "line_count": 74,
+          "type": "behavior"
+        }
+      ],
+      "2de7f21afea99eda480bbc5276c8dde3": [
+        {
+          "file": "templates/behaviors/file-operations/before-create.md",
+          "line_count": 130,
+          "type": "behavior"
+        }
+      ],
+      "9ce0ea4d08dc20c78c5bc87553e57a8a": [
+        {
+          "file": "templates/behaviors/session/compaction-detection.md",
+          "line_count": 244,
+          "type": "behavior"
+        }
+      ],
+      "9645c478f8825576f359a1a598ec48d8": [
+        {
+          "file": "templates/behaviors/session/session-end.md",
+          "line_count": 215,
+          "type": "behavior"
+        }
+      ],
+      "4bccf6d86f31101c2d65f17dd5566002": [
+        {
+          "file": "templates/behaviors/session/compaction-preparation.md",
+          "line_count": 135,
+          "type": "behavior"
+        }
+      ],
+      "c83628606d71970bba0b64549c911a21": [
+        {
+          "file": "templates/behaviors/task-management/todo-write.md",
+          "line_count": 255,
+          "type": "behavior"
+        }
+      ],
+      "ee3319d1f9f8dc5e0e877be2f384d2b5": [
+        {
+          "file": "templates/behaviors/work-tracking/update-tracker.md",
+          "line_count": 255,
+          "type": "behavior"
+        }
+      ],
+      "8376dc097ec1d5b3d49ea14b1831449f": [
+        {
+          "file": "templates/behaviors/git/before-commit.md",
+          "line_count": 174,
+          "type": "behavior"
+        }
+      ],
+      "7c7c735b8977980e0fe687ec569d7a22": [
+        {
+          "file": "templates/behaviors/validation/evidence-claims.md",
+          "line_count": 215,
+          "type": "behavior"
+        }
+      ],
+      "846699127cee73771eb31e9872ca06f4": [
+        {
+          "file": "templates/behaviors/timestamps/before-adding.md",
+          "line_count": 147,
+          "type": "behavior"
+        }
+      ],
+      "3237855fef23d9f384a77cb8d9b3666e": [
+        {
+          "file": "templates/handlers/orchestrators/tool-selection.md",
+          "line_count": 39,
+          "type": "orchestrator"
+        }
+      ],
+      "89b0eda9159bf844018fde08738313f2": [
+        {
+          "file": "templates/handlers/orchestrators/resolve-session-void.md",
+          "line_count": 43,
+          "type": "orchestrator"
+        }
+      ],
+      "19a1501010963e89d26e20c46f0c1de6": [
+        {
+          "file": "templates/handlers/orchestrators/file-operation.md",
+          "line_count": 35,
+          "type": "orchestrator"
+        }
+      ],
+      "e51117f54ae2bf9f110e3c2f912cbe1e": [
+        {
+          "file": "templates/handlers/orchestrators/check-conventions-first.md",
+          "line_count": 36,
+          "type": "orchestrator"
+        }
+      ],
+      "0f71c1461f45716d7a74c27fb9edb508": [
+        {
+          "file": "templates/handlers/orchestrators/switch-context.md",
+          "line_count": 34,
+          "type": "orchestrator"
+        }
+      ],
+      "9b69e19e610028922e34ce9f6eda18a3": [
+        {
+          "file": "templates/handlers/orchestrators/convention-to-workflow.md",
+          "line_count": 32,
+          "type": "orchestrator"
+        }
+      ],
+      "4e5e17f084414dbbe832f83847b6e63b": [
+        {
+          "file": "templates/handlers/orchestrators/multi-step-request.md",
+          "line_count": 28,
+          "type": "orchestrator"
+        }
+      ],
+      "f0a995582de1dbd0766e143e04215696": [
+        {
+          "file": "templates/handlers/orchestrators/file-creation.md",
+          "line_count": 30,
+          "type": "orchestrator"
+        }
+      ],
+      "eda781549dfe017c464235b755ebfc27": [
+        {
+          "file": "templates/handlers/orchestrators/execute-ultrathink.md",
+          "line_count": 52,
+          "type": "orchestrator"
+        }
+      ],
+      "2fac311a6dee129453c94108104c6fc4": [
+        {
+          "file": "templates/handlers/orchestrators/architecture-claim.md",
+          "line_count": 28,
+          "type": "orchestrator"
+        }
+      ],
+      "b0a81e0341634516c22668a96b142ee9": [
+        {
+          "file": "templates/handlers/orchestrators/work-continuation.md",
+          "line_count": 31,
+          "type": "orchestrator"
+        }
+      ],
+      "1da075c4d565f1878ae9e83467f45bf0": [
+        {
+          "file": "templates/handlers/orchestrators/tool-to-convention.md",
+          "line_count": 30,
+          "type": "orchestrator"
+        }
+      ],
+      "d7a2e3b26d513e8b3adbe6f1213b712c": [
+        {
+          "file": "templates/handlers/orchestrators/session-start.md",
+          "line_count": 116,
+          "type": "orchestrator"
+        }
+      ],
+      "2f3864811690746a360146a293d0595c": [
+        {
+          "file": "templates/handlers/orchestrators/system-improvement.md",
+          "line_count": 28,
+          "type": "orchestrator"
+        }
+      ],
+      "9bc7a487d97e192456a39d865b6e0792": [
+        {
+          "file": "templates/handlers/orchestrators/orchestrate-complex.md",
+          "line_count": 34,
+          "type": "orchestrator"
+        }
+      ],
+      "67c853d562343ef15b0c82eaa8c770b7": [
+        {
+          "file": "templates/handlers/orchestrators/evidence-check.md",
+          "line_count": 30,
+          "type": "orchestrator"
+        }
+      ],
+      "0e28ed4cc4fb4a8e59f48ed6bb618cb7": [
+        {
+          "file": "templates/handlers/orchestrators/workflow-to-tool.md",
+          "line_count": 32,
+          "type": "orchestrator"
+        }
+      ],
+      "971e107d79d75b7bec3113ffd3586ff0": [
+        {
+          "file": "templates/handlers/orchestrators/work-activity.md",
+          "line_count": 38,
+          "type": "orchestrator"
+        }
+      ],
+      "8e05c59c1d82cea9c426cce70f6f2983": [
+        {
+          "file": "templates/handlers/orchestrators/lost-context.md",
+          "line_count": 30,
+          "type": "orchestrator"
+        }
+      ],
+      "95a910cf75fc424c4d3227c916b4dead": [
+        {
+          "file": "templates/handlers/orchestrators/enforce-pre-flight.md",
+          "line_count": 38,
+          "type": "orchestrator"
+        }
+      ],
+      "08ef6b0904436890106b27563e6c0688": [
+        {
+          "file": "templates/handlers/orchestrators/code-creation.md",
+          "line_count": 31,
+          "type": "orchestrator"
+        }
+      ],
+      "2114a641d6b3a5a66b3e00930b45e121": [
+        {
+          "file": "templates/handlers/orchestrators/standard-dev-workflow.md",
+          "line_count": 35,
+          "type": "orchestrator"
+        }
+      ],
+      "3b627998714c7715ad88129ae6af99b2": [
+        {
+          "file": "templates/handlers/orchestrators/ambiguous-request.md",
+          "line_count": 29,
+          "type": "orchestrator"
+        }
+      ],
+      "0c6e5eb24e2740f77211a47816abe6f7": [
+        {
+          "file": "templates/handlers/operators/workflow/resolve-work-void.md",
+          "line_count": 53,
+          "type": "operator"
+        }
+      ],
+      "d0bf9a4d2df811bd417176d8d0238ac0": [
+        {
+          "file": "templates/handlers/operators/workflow/resolve-handler-void.md",
+          "line_count": 68,
+          "type": "operator"
+        }
+      ],
+      "b75729f1237d2bd75f0d6b05d0abcb83": [
+        {
+          "file": "templates/handlers/operators/workflow/create-work-folder.md",
+          "line_count": 39,
+          "type": "operator"
+        }
+      ],
+      "bb4278f8ce75bce0b4dbb8942c9fd583": [
+        {
+          "file": "templates/handlers/operators/file/validate-path.md",
+          "line_count": 36,
+          "type": "operator"
+        }
+      ],
+      "2ae6b1832a874242a882c0fd74b40945": [
+        {
+          "file": "templates/handlers/operators/session/restore-context.md",
+          "line_count": 32,
+          "type": "operator"
+        }
+      ],
+      "fa166d60d33d55bf7a21dfe2c73c990b": [
+        {
+          "file": "templates/handlers/operators/session/save-context.md",
+          "line_count": 33,
+          "type": "operator"
+        }
+      ],
+      "d4014c4b9628dfb42fa8f8b63c8d23e6": [
+        {
+          "file": "templates/handlers/operators/session/checkpoint-session.md",
+          "line_count": 75,
+          "type": "operator"
+        }
+      ],
+      "2918aa50efaf2c8371d8204d9c80db1c": [
+        {
+          "file": "templates/handlers/operators/development/check-style.md",
+          "line_count": 37,
+          "type": "operator"
+        }
+      ],
+      "b5e0ec43c67f8b3f83a1870aa3460603": [
+        {
+          "file": "templates/handlers/operators/development/review-patterns.md",
+          "line_count": 36,
+          "type": "operator"
+        }
+      ],
+      "ffecdb1548ccd6f7401373e8008ace17": [
+        {
+          "file": "templates/handlers/operators/development/suggest-name.md",
+          "line_count": 37,
+          "type": "operator"
+        }
+      ],
+      "bd6e20b63cfbb5a230953affb7148eff": [
+        {
+          "file": "templates/handlers/operators/development/edit-file.md",
+          "line_count": 90,
+          "type": "operator"
+        }
+      ],
+      "1bd36553617f502c61e1c3d0f1229886": [
+        {
+          "file": "templates/handlers/operators/development/check-naming.md",
+          "line_count": 40,
+          "type": "operator"
+        }
+      ],
+      "61c5034c3c0ad3eaa221d8aa8c97ea53": [
+        {
+          "file": "templates/handlers/operators/development/format-code.md",
+          "line_count": 38,
+          "type": "operator"
+        }
+      ],
+      "78c1eccf0f71a7235d0fb15ba471ccdc": [
+        {
+          "file": "templates/handlers/operators/external/time-capture.md",
+          "line_count": 30,
+          "type": "operator"
+        }
+      ],
+      "3335e0167c4fe654c16d1207cc009dae": [
+        {
+          "file": "templates/handlers/operators/git/suggest-commit-type.md",
+          "line_count": 38,
+          "type": "operator"
+        }
+      ],
+      "52b92b5eb011ff33dd13174900f84585": [
+        {
+          "file": "templates/handlers/operators/git/check-commit-msg.md",
+          "line_count": 36,
+          "type": "operator"
+        }
+      ],
+      "1d4de3504bbc65d23a31a66e93652681": [
+        {
+          "file": "templates/handlers/operators/docs/validate-comments.md",
+          "line_count": 39,
+          "type": "operator"
+        }
+      ],
+      "a5c839043108984f3bc61794fb7f4b29": [
+        {
+          "file": "templates/handlers/operators/docs/check-docs-needed.md",
+          "line_count": 40,
+          "type": "operator"
+        }
+      ],
+      "04edc21c3f8bccddf1f554731ebeb536": [
+        {
+          "file": "templates/handlers/operators/analysis/verify-claim.md",
+          "line_count": 36,
+          "type": "operator"
+        }
+      ],
+      "4e311effd6f0c2ba8ff325be9a4f4802": [
+        {
+          "file": "templates/handlers/operators/analysis/gather-evidence.md",
+          "line_count": 40,
+          "type": "operator"
+        }
+      ],
+      "2ca12bc043f00f03f3ce798567216588": [
+        {
+          "file": "templates/handlers/operators/analysis/cite-source.md",
+          "line_count": 37,
+          "type": "operator"
+        }
+      ],
+      "a3fab159eea9ec4d9fd03bd908966183": [
+        {
+          "file": "templates/handlers/tools/external/consult-gpt5.md",
+          "line_count": 122,
+          "type": "handler"
+        }
+      ],
+      "abc77775a2e66813863db43867df16b4": [
+        {
+          "file": "templates/handlers/triggers/workflow/update-tracker.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "5681eb29b228dc57edb37cc0b08eb761": [
+        {
+          "file": "templates/handlers/triggers/workflow/check-progress.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "691ada053c5e81976b51c03da592b2a5": [
+        {
+          "file": "templates/handlers/triggers/workflow/continue-work.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "d79ea81b785a9d860e901eae61a1b734": [
+        {
+          "file": "templates/handlers/triggers/workflow/create-todos.md",
+          "line_count": 34,
+          "type": "trigger"
+        }
+      ],
+      "c6db1fd7b383b8d31e9da90d5fe7f5d4": [
+        {
+          "file": "templates/handlers/triggers/workflow/update-todos.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "596aa5cb3920444989c779c6d5ca0d01": [
+        {
+          "file": "templates/handlers/triggers/session/start-session.md",
+          "line_count": 244,
+          "type": "trigger"
+        }
+      ],
+      "79ddd37076349d1e0eef223d2bd8f4bf": [
+        {
+          "file": "templates/handlers/triggers/session/update-session.md",
+          "line_count": 73,
+          "type": "trigger"
+        }
+      ],
+      "6de2a30510809097fee2547c1cb316e7": [
+        {
+          "file": "templates/handlers/triggers/session/end-session.md",
+          "line_count": 108,
+          "type": "trigger"
+        }
+      ],
+      "e3023d158e0fd9589475f7bcc98697cc": [
+        {
+          "file": "templates/handlers/triggers/session/prepare-compaction.md",
+          "line_count": 130,
+          "type": "trigger"
+        }
+      ],
+      "6da37768e18e870082f3aff9088d094e": [
+        {
+          "file": "templates/handlers/triggers/session/show-capabilities.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "1d4d24e4885d4896e2645ba96da268f6": [
+        {
+          "file": "templates/handlers/triggers/development/start-new-work.md",
+          "line_count": 120,
+          "type": "trigger"
+        }
+      ],
+      "a81bce4c3b76cfc3e182a81ff0b48fdf": [
+        {
+          "file": "templates/handlers/triggers/development/refactor-code.md",
+          "line_count": 35,
+          "type": "trigger"
+        }
+      ],
+      "d3e9665d616558fae30d4f6bfc882cbc": [
+        {
+          "file": "templates/handlers/triggers/development/optimize-code.md",
+          "line_count": 121,
+          "type": "trigger"
+        }
+      ],
+      "759a93fa7bd8c4ddb6f21a0625dfa9a8": [
+        {
+          "file": "templates/handlers/triggers/development/create-component.md",
+          "line_count": 35,
+          "type": "trigger"
+        }
+      ],
+      "71d181e606d4c458aaf5c8daea1cef15": [
+        {
+          "file": "templates/handlers/triggers/test/create-test-checkpoint.md",
+          "line_count": 35,
+          "type": "trigger"
+        }
+      ],
+      "7a640f50c1b6de4f00bd9c3fc92a1087": [
+        {
+          "file": "templates/handlers/triggers/test/simulation-test.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "612475104f283ae893fdab205f4edcfa": [
+        {
+          "file": "templates/handlers/triggers/test/validate-changes.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "d3cde74cbefd3b41f7f7c8be056932b5": [
+        {
+          "file": "templates/handlers/triggers/debug/debug-issue.md",
+          "line_count": 125,
+          "type": "trigger"
+        }
+      ],
+      "818b8b488c93a08535e7173ce2c5b15d": [
+        {
+          "file": "templates/handlers/triggers/debug/fix-bug.md",
+          "line_count": 119,
+          "type": "trigger"
+        }
+      ],
+      "3609b0d4873c52928f5861dce82fdc75": [
+        {
+          "file": "templates/handlers/triggers/docs/create-docs.md",
+          "line_count": 55,
+          "type": "trigger"
+        }
+      ],
+      "20cea02a758bd2dc57562b61d98c6756": [
+        {
+          "file": "templates/handlers/triggers/docs/document-findings.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "dda325f2ad43c0852e1616c9b22055a6": [
+        {
+          "file": "templates/handlers/triggers/docs/record-decision.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "ac4ccb21ffd0435047654a481e62ec73": [
+        {
+          "file": "templates/handlers/triggers/analysis/deploy-ultrathink.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "dd5ff5cfd287d601385d0d8671851cfb": [
+        {
+          "file": "templates/handlers/triggers/analysis/explain-code.md",
+          "line_count": 137,
+          "type": "trigger"
+        }
+      ],
+      "32ca3dd661f7d545ebd51cbf1bf31cac": [
+        {
+          "file": "templates/handlers/triggers/analysis/code-review.md",
+          "line_count": 125,
+          "type": "trigger"
+        }
+      ],
+      "a52898bcaea4ecc8799459299d49b292": [
+        {
+          "file": "templates/handlers/triggers/analysis/deploy-specialist.md",
+          "line_count": 33,
+          "type": "trigger"
+        }
+      ],
+      "f69aea6ce66146645514b3b07f145b27": [
+        {
+          "file": "templates/engine/activation/context-aware.md",
+          "line_count": 57,
+          "type": "engine"
+        }
+      ],
+      "935b77e0c160ba6ad52891216a4d2349": [
+        {
+          "file": "templates/engine/execution/swhe-format.md",
+          "line_count": 121,
+          "type": "engine"
+        }
+      ],
+      "bc41d815e211fc632d78311a58ee19c4": [
+        {
+          "file": "templates/engine/fallbacks/error-handling.md",
+          "line_count": 168,
+          "type": "engine"
+        }
+      ],
+      "c743e30077923082f1cf02364485a9e9": [
+        {
+          "file": "templates/engine/validation/validation-framework.md",
+          "line_count": 435,
+          "type": "engine"
+        }
+      ],
+      "c72b23e4ab5a0d4265ca0b568a5cc2fc": [
+        {
+          "file": "templates/engine/validation/ENFORCEMENT-SUMMARY.md",
+          "line_count": 250,
+          "type": "engine"
+        }
+      ],
+      "909c0add63aee53bf19f6631b5f92e35": [
+        {
+          "file": "templates/engine/validation/integration-guide.md",
+          "line_count": 516,
+          "type": "engine"
+        }
+      ],
+      "bebb475461dce635a62be72566698795": [
+        {
+          "file": "templates/engine/navigation/common-flows.md",
+          "line_count": 54,
+          "type": "engine"
+        }
+      ],
+      "de6a8d678ccfa626dad261dfd6175b51": [
+        {
+          "file": "templates/engine/navigation/template-protocol.md",
+          "line_count": 135,
+          "type": "engine"
+        }
+      ],
+      "cf653e0f170581989332f3fe960a4e6d": [
+        {
+          "file": "templates/engine/examples/practical.md",
+          "line_count": 60,
+          "type": "engine"
+        }
+      ],
+      "296788ed160a40103674a0097414dd2b": [
+        {
+          "file": "templates/engine/debugging/system-debug.md",
+          "line_count": 218,
+          "type": "engine"
+        }
+      ],
+      "6ba9642d29d3baf015e3195983392d5d": [
+        {
+          "file": "templates/engine/core/codex-readiness.md",
+          "line_count": 34,
+          "type": "engine"
+        }
+      ],
+      "765ec2b3366617252aaa5e161e3ce715": [
+        {
+          "file": "templates/engine/core/enforcement-check.md",
+          "line_count": 49,
+          "type": "engine"
+        }
+      ],
+      "2bd8b358358eda919dc855bfb810eb64": [
+        {
+          "file": "templates/engine/core/session-resolver.md",
+          "line_count": 231,
+          "type": "engine"
+        }
+      ],
+      "b368b102317926e04315463c86c5f63c": [
+        {
+          "file": "templates/engine/core/ultrathink-protocol.md",
+          "line_count": 48,
+          "type": "engine"
+        }
+      ],
+      "39d5b6e2004dda9eb9574e9005f60cdb": [
+        {
+          "file": "templates/engine/core/pre-ultrathink.md",
+          "line_count": 65,
+          "type": "engine"
+        }
+      ],
+      "1f199715d07336b00a0e101315f3bb81": [
+        {
+          "file": "templates/engine/structure/template-system.md",
+          "line_count": 65,
+          "type": "engine"
+        }
+      ],
+      "c512e181843fb905940a01ffb3896423": [
+        {
+          "file": "templates/engine/enforcement/cannot-proceed.md",
+          "line_count": 84,
+          "type": "engine"
+        }
+      ],
+      "b4633be8a466579f2c9fd5d1fa96c9dd": [
+        {
+          "file": "templates/engine/enforcement/behavioral-hooks.md",
+          "line_count": 66,
+          "type": "behavior"
+        }
+      ],
+      "411d136699cf4f3a26037b157136a31d": [
+        {
+          "file": "templates/registry/patterns/meta-routing.md",
+          "line_count": 224,
+          "type": "pattern"
+        }
+      ],
+      "795b516a92a1332e1d481879c13fa24e": [
+        {
+          "file": "templates/registry/conventions/special-files.md",
+          "line_count": 213,
+          "type": "convention"
+        }
+      ],
+      "009450612b9924c7d73cb80d6d7cd6ba": [
+        {
+          "file": "templates/registry/handlers/triggers-registry.md",
+          "line_count": 194,
+          "type": "trigger"
+        }
+      ],
+      "a8678a73519b0b43700a2ef2f0588441": [
+        {
+          "file": "templates/registry/handlers/operators-registry.md",
+          "line_count": 232,
+          "type": "operator"
+        }
+      ],
+      "70dd84f194f962a55551aa261df3ba7c": [
+        {
+          "file": "templates/registry/handlers/orchestrators-registry.md",
+          "line_count": 89,
+          "type": "orchestrator"
+        }
+      ],
+      "c2ab57bd3f2ccc3d762cad1143dd205a": [
+        {
+          "file": "templates/registry/navigation/keywords.md",
+          "line_count": 149,
+          "type": "registry"
+        }
+      ],
+      "713533d4d29fb7ba1f676de379816953": [
+        {
+          "file": "templates/registry/matrices/decision-matrices.md",
+          "line_count": 186,
+          "type": "matrix"
+        }
+      ],
+      "2d800d623c23c7ff8c8187b81226477e": [
+        {
+          "file": "templates/registry/behavioral/hooks.md",
+          "line_count": 243,
+          "type": "behavior"
+        }
+      ],
+      "fb2da1bea5465efd78635969643016cf": [
+        {
+          "file": "templates/registry/behavioral/templates.md",
+          "line_count": 140,
+          "type": "behavior"
+        }
+      ],
+      "95855d5659ce6e981d1c52fd56549318": [
+        {
+          "file": "templates/matrices/recovery/error-to-recovery.md",
+          "line_count": 148,
+          "type": "matrix"
+        }
+      ],
+      "7969accfb7136c672e93dbc5a2c12139": [
+        {
+          "file": "templates/matrices/mapping/keyword-to-handler.md",
+          "line_count": 163,
+          "type": "handler"
+        }
+      ],
+      "f6364f4e12caf477c0c942e1f17d8144": [
+        {
+          "file": "templates/matrices/mapping/trigger-to-action.md",
+          "line_count": 123,
+          "type": "matrix"
+        }
+      ],
+      "bcdb8e33a2779b681217cbbdb61e2065": [
+        {
+          "file": "templates/matrices/selection/tool-selection.md",
+          "line_count": 101,
+          "type": "matrix"
+        }
+      ],
+      "4e7c18492e793d5a3e504830331fa054": [
+        {
+          "file": "templates/matrices/selection/file-to-convention.md",
+          "line_count": 112,
+          "type": "convention"
+        }
+      ],
+      "082089ea40400781e7c28a68dd675800": [
+        {
+          "file": "templates/matrices/routing/context-to-mode.md",
+          "line_count": 83,
+          "type": "matrix"
+        }
+      ],
+      "144aca8dd7dca0e0c6bde244aca9c2bc": [
+        {
+          "file": "templates/matrices/routing/request-to-handler.md",
+          "line_count": 60,
+          "type": "handler"
+        }
+      ],
+      "17e8d487b4b7ba03eb8149e4b18efba8": [
+        {
+          "file": "templates/shared/patterns/ultrathink-format.md",
+          "line_count": 177,
+          "type": "pattern"
+        }
+      ],
+      "1c725c1679f225243039fc38ba34cded": [
+        {
+          "file": "templates/shared/reports/claude-analysis-report.md",
+          "line_count": 169,
+          "type": "other"
+        }
+      ],
+      "a652315e751deb7838cfbd8a389e5a3b": [
+        {
+          "file": "templates/shared/tools/tool-selection-matrix.md",
+          "line_count": 171,
+          "type": "matrix"
+        }
+      ],
+      "075b3e97b75bab370a878395db9b805f": [
+        {
+          "file": "templates/registry/index.json",
+          "line_count": 948,
+          "type": "registry"
+        }
+      ],
+      "f1bd3ac0d7817e3558456519871b4b34": [
+        {
+          "file": "templates/metadata/workflow-guards.json",
+          "line_count": 1105,
+          "type": "workflow"
+        }
+      ],
+      "cfa2f15225d8f906cceaad02cdc15721": [
+        {
+          "file": "templates/metadata/handler-rules.json",
+          "line_count": 80,
+          "type": "handler"
+        }
+      ],
+      "392713ec33b60d9190cb97505828e60a": [
+        {
+          "file": "templates/shared/reports/claude-analysis.json",
+          "line_count": 451,
+          "type": "json-config"
+        }
+      ],
+      "0b04180fb44a3a9ad44272f486edc5a5": [
+        {
+          "file": ".codex/auth.json",
+          "line_count": 10,
+          "type": "json-config"
+        }
+      ],
+      "b35e1309f8777974ff0b128ea2cca581": [
+        {
+          "file": ".codex/version.json",
+          "line_count": 1,
+          "type": "json-config"
+        }
+      ]
+    },
+    "section_mapping": [
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "header",
+        "modular_file": "templates/matrices/index.md",
+        "modular_section": "header",
+        "similarity": 1.0,
+        "monolithic_lines": 3,
+        "modular_lines": 3,
+        "diff_snippet": "No differences in first 5 lines"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "Error \u2192 Recovery Matrix {#error-recovery-matrix}",
+        "modular_file": "templates/matrices/recovery/error-to-recovery.md",
+        "modular_section": "Matrix",
+        "similarity": 0.913,
+        "monolithic_lines": 24,
+        "modular_lines": 24,
+        "diff_snippet": "--- \n+++ \n@@ -1,5 +1,5 @@\n-## Error \u2192 Recovery Matrix {#error-recovery-matrix}\n+## Matrix\n \n | Error Pattern | Immediate Action | Recovery Path | Prevention |\n |--------------|------------------|---------------|------------|\n-| Handler not found | Search broader terms | Check PATTERNS.md | Update registry |\n+| Handler not found | Search broader terms | Check templates/patterns/ | Update registry |"
+      },
+      {
+        "monolithic_file": "templates/REGISTRY.md",
+        "monolithic_section": "\ud83d\udd0d Navigation Keywords",
+        "modular_file": "templates/registry/navigation/keywords.md",
+        "modular_section": "Action Keywords \u2192 Handlers",
+        "similarity": 0.909,
+        "monolithic_lines": 25,
+        "modular_lines": 22,
+        "diff_snippet": "--- \n+++ \n@@ -1,5 +1,5 @@\n-## \ud83d\udd0d Navigation Keywords\n+## Action Keywords \u2192 Handlers\n \n-Quick keyword lookup for finding handlers based on natural language.\n-\n-### Action Keywords \u2192 Handlers\n+| Keywords | Primary Handler | Secondary Options | Location |\n... (truncated)"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "File Type \u2192 Convention Matrix {#file-type-convention-matrix}",
+        "modular_file": "templates/matrices/selection/file-to-convention.md",
+        "modular_section": "Matrix",
+        "similarity": 0.829,
+        "monolithic_lines": 19,
+        "modular_lines": 24,
+        "diff_snippet": "--- \n+++ \n@@ -1,3 +1,3 @@\n-## File Type \u2192 Convention Matrix {#file-type-convention-matrix}\n+## Matrix\n \n | File Type | Key Conventions | Handler | Special Rules |"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "Context \u2192 Mode Matrix {#context-mode-matrix}",
+        "modular_file": "templates/matrices/routing/context-to-mode.md",
+        "modular_section": "Matrix",
+        "similarity": 0.829,
+        "monolithic_lines": 19,
+        "modular_lines": 24,
+        "diff_snippet": "--- \n+++ \n@@ -1,3 +1,3 @@\n-## Context \u2192 Mode Matrix {#context-mode-matrix}\n+## Matrix\n \n | Context Signals | Mode | Behavior | Examples |"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "Matrix Usage Patterns {#matrix-usage-patterns}",
+        "modular_file": "templates/matrices/index.md",
+        "modular_section": "Matrix Usage Patterns",
+        "similarity": 0.789,
+        "monolithic_lines": 22,
+        "modular_lines": 22,
+        "diff_snippet": "--- \n+++ \n@@ -1,5 +1,5 @@\n-## Matrix Usage Patterns {#matrix-usage-patterns}\n+## Matrix Usage Patterns\n \n-### Quick Decision Flow {#quick-decision-flow}\n+### Quick Decision Flow\n 1. Identify request type \u2192 Find handler\n 2. Check file type \u2192 Apply conventions"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "Problem Type \u2192 Solution Matrix {#problem-type-solution-matrix}",
+        "modular_file": "templates/matrices/selection/tool-selection.md",
+        "modular_section": "Problem Type \u2192 Solution Matrix",
+        "similarity": 0.78,
+        "monolithic_lines": 19,
+        "modular_lines": 24,
+        "diff_snippet": "--- \n+++ \n@@ -1,3 +1,3 @@\n-## Problem Type \u2192 Solution Matrix {#problem-type-solution-matrix}\n+## Problem Type \u2192 Solution Matrix\n \n | Problem | Primary Solution | Fallback | Tools |"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "Integration Points {#integration-points}",
+        "modular_file": "templates/matrices/index.md",
+        "modular_section": "Integration Points",
+        "similarity": 0.75,
+        "monolithic_lines": 19,
+        "modular_lines": 19,
+        "diff_snippet": "--- \n+++ \n@@ -1,5 +1,5 @@\n-## Integration Points {#integration-points}\n+## Integration Points\n \n-### With CLAUDE.md {#with-claude-md}\n+### With CLAUDE.md\n - Matrices inform behavioral hooks\n - Support \"cannot proceed\" gates"
+      },
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "monolithic_section": "Common Matrix Queries {#common-matrix-queries}",
+        "modular_file": "templates/matrices/index.md",
+        "modular_section": "Common Matrix Queries",
+        "similarity": 0.741,
+        "monolithic_lines": 33,
+        "modular_lines": 33,
+        "diff_snippet": "--- \n+++ \n@@ -1,5 +1,5 @@\n-## Common Matrix Queries {#common-matrix-queries}\n+## Common Matrix Queries\n \n-### \"What should I use for...\" {#what-should-i-use}\n+### \"What should I use for...\"\n 1. Check Request Type matrix\n 2. Find matching pattern"
+      }
+    ],
+    "statistics": {
+      "total_files_scanned": 237,
+      "monolithic_files": 8,
+      "modular_files": 229,
+      "exact_duplicate_groups": 0,
+      "partial_duplicate_pairs": 1,
+      "section_mappings": 9,
+      "overall_migration_percentage": 9.0,
+      "files_with_duplicates": 0
+    }
+  }
+}

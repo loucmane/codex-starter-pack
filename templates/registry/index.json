@@ -1,0 +1,948 @@
+[
+  {
+    "id": "engine-MODULARIZATION-COMPLETE",
+    "path": "templates/engine/MODULARIZATION-COMPLETE.md",
+    "tags": [
+      "engine",
+      "MODULARIZATION-COMPLETE"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-README",
+    "path": "templates/engine/README.md",
+    "tags": [
+      "engine",
+      "README"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-activation-context-aware",
+    "path": "templates/engine/activation/context-aware.md",
+    "tags": [
+      "engine",
+      "activation",
+      "context-aware"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-core-enforcement-check",
+    "path": "templates/engine/core/enforcement-check.md",
+    "tags": [
+      "engine",
+      "core",
+      "enforcement-check"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-core-pre-ultrathink",
+    "path": "templates/engine/core/pre-ultrathink.md",
+    "tags": [
+      "engine",
+      "core",
+      "pre-ultrathink"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-core-session-resolver",
+    "path": "templates/engine/core/session-resolver.md",
+    "tags": [
+      "engine",
+      "core",
+      "session-resolver"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-core-ultrathink-protocol",
+    "path": "templates/engine/core/ultrathink-protocol.md",
+    "tags": [
+      "engine",
+      "core",
+      "ultrathink-protocol"
+    ],
+    "goodFirstHandler": true
+  },
+  {
+    "id": "engine-debugging-system-debug",
+    "path": "templates/engine/debugging/system-debug.md",
+    "tags": [
+      "engine",
+      "debugging",
+      "system-debug"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-enforcement-behavioral-hooks",
+    "path": "templates/engine/enforcement/behavioral-hooks.md",
+    "tags": [
+      "engine",
+      "enforcement",
+      "behavioral-hooks"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-enforcement-cannot-proceed",
+    "path": "templates/engine/enforcement/cannot-proceed.md",
+    "tags": [
+      "engine",
+      "enforcement",
+      "cannot-proceed"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-examples-practical",
+    "path": "templates/engine/examples/practical.md",
+    "tags": [
+      "engine",
+      "examples",
+      "practical"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-execution-swhe-format",
+    "path": "templates/engine/execution/swhe-format.md",
+    "tags": [
+      "engine",
+      "execution",
+      "swhe-format"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-fallbacks-error-handling",
+    "path": "templates/engine/fallbacks/error-handling.md",
+    "tags": [
+      "engine",
+      "fallbacks",
+      "error-handling"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-navigation-common-flows",
+    "path": "templates/engine/navigation/common-flows.md",
+    "tags": [
+      "engine",
+      "navigation",
+      "common-flows"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-navigation-template-protocol",
+    "path": "templates/engine/navigation/template-protocol.md",
+    "tags": [
+      "engine",
+      "navigation",
+      "template-protocol"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-structure-template-system",
+    "path": "templates/engine/structure/template-system.md",
+    "tags": [
+      "engine",
+      "structure",
+      "template-system"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-validation-ENFORCEMENT-SUMMARY",
+    "path": "templates/engine/validation/ENFORCEMENT-SUMMARY.md",
+    "tags": [
+      "engine",
+      "validation",
+      "ENFORCEMENT-SUMMARY"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-validation-integration-guide",
+    "path": "templates/engine/validation/integration-guide.md",
+    "tags": [
+      "engine",
+      "validation",
+      "integration-guide"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-validation-validation-framework",
+    "path": "templates/engine/validation/validation-framework.md",
+    "tags": [
+      "engine",
+      "validation",
+      "validation-framework"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-analysis-cite-source",
+    "path": "templates/handlers/operators/analysis/cite-source.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "analysis",
+      "cite-source"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-analysis-gather-evidence",
+    "path": "templates/handlers/operators/analysis/gather-evidence.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "analysis",
+      "gather-evidence"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-analysis-verify-claim",
+    "path": "templates/handlers/operators/analysis/verify-claim.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "analysis",
+      "verify-claim"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-development-check-naming",
+    "path": "templates/handlers/operators/development/check-naming.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "development",
+      "check-naming"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-development-check-style",
+    "path": "templates/handlers/operators/development/check-style.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "development",
+      "check-style"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-development-edit-file",
+    "path": "templates/handlers/operators/development/edit-file.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "development",
+      "edit-file"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-development-format-code",
+    "path": "templates/handlers/operators/development/format-code.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "development",
+      "format-code"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-development-review-patterns",
+    "path": "templates/handlers/operators/development/review-patterns.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "development",
+      "review-patterns"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-development-suggest-name",
+    "path": "templates/handlers/operators/development/suggest-name.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "development",
+      "suggest-name"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-docs-check-docs-needed",
+    "path": "templates/handlers/operators/docs/check-docs-needed.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "docs",
+      "check-docs-needed"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-docs-validate-comments",
+    "path": "templates/handlers/operators/docs/validate-comments.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "docs",
+      "validate-comments"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-external-time-capture",
+    "path": "templates/handlers/operators/external/time-capture.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "external",
+      "time-capture"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-file-validate-path",
+    "path": "templates/handlers/operators/file/validate-path.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "file",
+      "validate-path"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-git-check-commit-msg",
+    "path": "templates/handlers/operators/git/check-commit-msg.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "git",
+      "check-commit-msg"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-git-suggest-commit-type",
+    "path": "templates/handlers/operators/git/suggest-commit-type.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "git",
+      "suggest-commit-type"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-session-checkpoint-session",
+    "path": "templates/handlers/operators/session/checkpoint-session.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "session",
+      "checkpoint-session"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-session-restore-context",
+    "path": "templates/handlers/operators/session/restore-context.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "session",
+      "restore-context"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-session-save-context",
+    "path": "templates/handlers/operators/session/save-context.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "session",
+      "save-context"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-workflow-create-work-folder",
+    "path": "templates/handlers/operators/workflow/create-work-folder.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "workflow",
+      "create-work-folder"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-operators-workflow-resolve-handler-void",
+    "path": "templates/handlers/operators/workflow/resolve-handler-void.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "workflow",
+      "resolve-handler-void"
+    ],
+    "goodFirstHandler": true
+  },
+  {
+    "id": "handlers-operators-workflow-resolve-work-void",
+    "path": "templates/handlers/operators/workflow/resolve-work-void.md",
+    "tags": [
+      "handlers",
+      "operators",
+      "workflow",
+      "resolve-work-void"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-ambiguous-request",
+    "path": "templates/handlers/orchestrators/ambiguous-request.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "ambiguous-request"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-architecture-claim",
+    "path": "templates/handlers/orchestrators/architecture-claim.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "architecture-claim"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-check-conventions-first",
+    "path": "templates/handlers/orchestrators/check-conventions-first.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "check-conventions-first"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-code-creation",
+    "path": "templates/handlers/orchestrators/code-creation.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "code-creation"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-convention-to-workflow",
+    "path": "templates/handlers/orchestrators/convention-to-workflow.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "convention-to-workflow"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-enforce-pre-flight",
+    "path": "templates/handlers/orchestrators/enforce-pre-flight.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "enforce-pre-flight"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-evidence-check",
+    "path": "templates/handlers/orchestrators/evidence-check.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "evidence-check"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-execute-ultrathink",
+    "path": "templates/handlers/orchestrators/execute-ultrathink.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "execute-ultrathink"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-file-creation",
+    "path": "templates/handlers/orchestrators/file-creation.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "file-creation"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-file-operation",
+    "path": "templates/handlers/orchestrators/file-operation.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "file-operation"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-lost-context",
+    "path": "templates/handlers/orchestrators/lost-context.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "lost-context"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-multi-step-request",
+    "path": "templates/handlers/orchestrators/multi-step-request.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "multi-step-request"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-orchestrate-complex",
+    "path": "templates/handlers/orchestrators/orchestrate-complex.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "orchestrate-complex"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-resolve-session-void",
+    "path": "templates/handlers/orchestrators/resolve-session-void.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "resolve-session-void"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-session-start",
+    "path": "templates/handlers/orchestrators/session-start.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "session-start"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-standard-dev-workflow",
+    "path": "templates/handlers/orchestrators/standard-dev-workflow.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "standard-dev-workflow"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-switch-context",
+    "path": "templates/handlers/orchestrators/switch-context.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "switch-context"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-system-improvement",
+    "path": "templates/handlers/orchestrators/system-improvement.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "system-improvement"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-tool-selection",
+    "path": "templates/handlers/orchestrators/tool-selection.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "tool-selection"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-tool-to-convention",
+    "path": "templates/handlers/orchestrators/tool-to-convention.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "tool-to-convention"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-work-activity",
+    "path": "templates/handlers/orchestrators/work-activity.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "work-activity"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-work-continuation",
+    "path": "templates/handlers/orchestrators/work-continuation.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "work-continuation"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-orchestrators-workflow-to-tool",
+    "path": "templates/handlers/orchestrators/workflow-to-tool.md",
+    "tags": [
+      "handlers",
+      "orchestrators",
+      "workflow-to-tool"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-tools-external-consult-gpt5",
+    "path": "templates/handlers/tools/external/consult-gpt5.md",
+    "tags": [
+      "handlers",
+      "tools",
+      "external",
+      "consult-gpt5"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-analysis-code-review",
+    "path": "templates/handlers/triggers/analysis/code-review.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "analysis",
+      "code-review"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-analysis-deploy-specialist",
+    "path": "templates/handlers/triggers/analysis/deploy-specialist.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "analysis",
+      "deploy-specialist"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-analysis-deploy-ultrathink",
+    "path": "templates/handlers/triggers/analysis/deploy-ultrathink.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "analysis",
+      "deploy-ultrathink"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-analysis-explain-code",
+    "path": "templates/handlers/triggers/analysis/explain-code.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "analysis",
+      "explain-code"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-debug-debug-issue",
+    "path": "templates/handlers/triggers/debug/debug-issue.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "debug",
+      "debug-issue"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-debug-fix-bug",
+    "path": "templates/handlers/triggers/debug/fix-bug.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "debug",
+      "fix-bug"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-development-create-component",
+    "path": "templates/handlers/triggers/development/create-component.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "development",
+      "create-component"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-development-optimize-code",
+    "path": "templates/handlers/triggers/development/optimize-code.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "development",
+      "optimize-code"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-development-refactor-code",
+    "path": "templates/handlers/triggers/development/refactor-code.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "development",
+      "refactor-code"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-development-start-new-work",
+    "path": "templates/handlers/triggers/development/start-new-work.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "development",
+      "start-new-work"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-docs-create-docs",
+    "path": "templates/handlers/triggers/docs/create-docs.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "docs",
+      "create-docs"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-docs-document-findings",
+    "path": "templates/handlers/triggers/docs/document-findings.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "docs",
+      "document-findings"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-docs-record-decision",
+    "path": "templates/handlers/triggers/docs/record-decision.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "docs",
+      "record-decision"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-session-end-session",
+    "path": "templates/handlers/triggers/session/end-session.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "session",
+      "end-session"
+    ],
+    "goodFirstHandler": true
+  },
+  {
+    "id": "handlers-triggers-session-prepare-compaction",
+    "path": "templates/handlers/triggers/session/prepare-compaction.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "session",
+      "prepare-compaction"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-session-show-capabilities",
+    "path": "templates/handlers/triggers/session/show-capabilities.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "session",
+      "show-capabilities"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-session-start-session",
+    "path": "templates/handlers/triggers/session/start-session.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "session",
+      "start-session"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-session-update-session",
+    "path": "templates/handlers/triggers/session/update-session.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "session",
+      "update-session"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-test-create-test-checkpoint",
+    "path": "templates/handlers/triggers/test/create-test-checkpoint.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "test",
+      "create-test-checkpoint"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-test-simulation-test",
+    "path": "templates/handlers/triggers/test/simulation-test.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "test",
+      "simulation-test"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-test-validate-changes",
+    "path": "templates/handlers/triggers/test/validate-changes.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "test",
+      "validate-changes"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-workflow-check-progress",
+    "path": "templates/handlers/triggers/workflow/check-progress.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "workflow",
+      "check-progress"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-workflow-continue-work",
+    "path": "templates/handlers/triggers/workflow/continue-work.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "workflow",
+      "continue-work"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-workflow-create-todos",
+    "path": "templates/handlers/triggers/workflow/create-todos.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "workflow",
+      "create-todos"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-workflow-update-todos",
+    "path": "templates/handlers/triggers/workflow/update-todos.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "workflow",
+      "update-todos"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "handlers-triggers-workflow-update-tracker",
+    "path": "templates/handlers/triggers/workflow/update-tracker.md",
+    "tags": [
+      "handlers",
+      "triggers",
+      "workflow",
+      "update-tracker"
+    ],
+    "goodFirstHandler": false
+  }
+]

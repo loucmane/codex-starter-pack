@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-01-09",
+  "handlers": {
+    "engine/core/ultrathink-protocol": {
+      "enforcement": {
+        "bypass_ultrathink": true,
+        "description": "This handler IS the ULTRATHINK protocol itself",
+        "required_tools_sequence": ["Grep", "Read"],
+        "blocked_until_complete": ["Edit", "Write", "MultiEdit", "Bash", "Task"]
+      }
+    },
+    "engine/core/pre-ultrathink": {
+      "enforcement": {
+        "bypass_ultrathink": true,
+        "description": "Pre-ULTRATHINK handler that sets up the protocol",
+        "soft_warning": true
+      }
+    },
+    "implementation/basic": {
+      "enforcement": {
+        "requires_ultrathink": true,
+        "minimum_evidence": 2,
+        "allowed_patterns": ["implement", "build", "create"],
+        "blocked_tools": ["Edit", "Write", "MultiEdit"]
+      }
+    },
+    "debugging/investigation": {
+      "enforcement": {
+        "requires_ultrathink": false,
+        "soft_warning": true,
+        "timeout_override": 60,
+        "description": "Debugging might be urgent - soft enforcement only"
+      }
+    },
+    "testing/unit-tests": {
+      "enforcement": {
+        "requires_ultrathink": true,
+        "allowed_tools": ["Read", "Grep", "Bash"],
+        "blocked_tools": ["Write", "Edit"],
+        "minimum_evidence": 1
+      }
+    },
+    "refactoring/code-improvement": {
+      "enforcement": {
+        "requires_ultrathink": true,
+        "minimum_evidence": 3,
+        "description": "Refactoring requires careful planning"
+      }
+    }
+  },
+  "global_rules": {
+    "development_triggers": [
+      "implement", "build", "create", "fix", "refactor",
+      "work on", "test", "optimize", "enhance", "add feature",
+      "modify", "update code", "change", "improve"
+    ],
+    "emergency_keywords": [
+      "urgent", "critical", "emergency", "hotfix", "asap",
+      "immediately", "breaking", "production down"
+    ],
+    "escape_conditions": {
+      "max_search_attempts": 3,
+      "timeout_seconds": 300,
+      "emergency_override_enabled": true
+    }
+  },
+  "metrics": {
+    "enforcement_stats": {
+      "total_prompts": 0,
+      "ultrathink_completed": 0,
+      "tools_blocked": 0,
+      "escapes_used": 0,
+      "last_reset": "2025-01-09T00:00:00Z"
+    },
+    "handler_usage": {},
+    "violation_types": {},
+    "success_rate": 0.0
+  }
+}

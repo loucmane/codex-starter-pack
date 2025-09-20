@@ -1,0 +1,451 @@
+{
+  "scan_timestamp": "2025-01-30T14:00:00Z",
+  "file": "CLAUDE.md",
+  "total_lines": 446,
+  "target_lines_after_extraction": 50,
+  "sections_identified": 16,
+  "critical_sections_for_root": 3,
+  "extractable_sections": 13,
+  "high_risk_extractions": 2,
+  
+  "logical_sections": [
+    {
+      "section_id": "critical-header",
+      "name": "CRITICAL: THIS IS YOUR OPERATING SYSTEM",
+      "lines": "1-7",
+      "line_count": 7,
+      "purpose": "Critical system announcement and interrupt handler declaration",
+      "can_extract": false,
+      "must_remain_in_root": true,
+      "target_location": "CLAUDE.md (root)",
+      "dependencies": [],
+      "risk_level": "NONE",
+      "risk_reason": "Must remain as first thing AI sees",
+      "migration_notes": "This MUST be the first content in CLAUDE.md to function as interrupt handler"
+    },
+    {
+      "section_id": "enforcement-check",
+      "name": "ENFORCEMENT CHECK - DO THIS NOW",
+      "lines": "9-17",
+      "line_count": 9,
+      "purpose": "Pre-execution enforcement of ULTRATHINK protocol",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/core/enforcement-check.md",
+      "dependencies": ["ultrathink-protocol"],
+      "risk_level": "HIGH",
+      "risk_reason": "Critical enforcement mechanism - extraction may reduce compliance",
+      "migration_notes": "Keep reference in root with clear pointer to full enforcement rules"
+    },
+    {
+      "section_id": "ultrathink-protocol",
+      "name": "ULTRATHINK: MANDATORY THINKING MODE",
+      "lines": "19-46",
+      "line_count": 28,
+      "purpose": "Deep thinking protocol with S:W:H:E format definition",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/core/ultrathink-protocol.md",
+      "dependencies": ["template-navigation", "handler-validation"],
+      "risk_level": "MEDIUM",
+      "risk_reason": "Core protocol - needs strong reference from root",
+      "migration_notes": "Include summary and import statement in root"
+    },
+    {
+      "section_id": "pre-ultrathink",
+      "name": "PRE-ULTRATHINK PROTOCOL",
+      "lines": "37-46",
+      "line_count": 10,
+      "purpose": "Prevents false compliance by requiring handler search first",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/core/pre-ultrathink.md",
+      "dependencies": ["ultrathink-protocol", "handler-validation"],
+      "risk_level": "HIGH",
+      "risk_reason": "Anti-pattern prevention - critical for proper execution",
+      "migration_notes": "Part of ultrathink-protocol.md, should be kept together"
+    },
+    {
+      "section_id": "context-aware-activation",
+      "name": "CONTEXT-AWARE ACTIVATION",
+      "lines": "48-93",
+      "line_count": 46,
+      "purpose": "Mode detection and trigger classification system",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/activation/context-aware.md",
+      "dependencies": ["registry", "patterns"],
+      "risk_level": "LOW",
+      "risk_reason": "Well-defined module with clear interfaces",
+      "migration_notes": "Can be fully extracted with import reference"
+    },
+    {
+      "section_id": "development-mode-execution",
+      "name": "DEVELOPMENT MODE EXECUTION",
+      "lines": "95-135",
+      "line_count": 41,
+      "purpose": "S:W:H:E format execution and validation rules",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/execution/swhe-format.md",
+      "dependencies": ["ultrathink-protocol", "handler-validation"],
+      "risk_level": "LOW",
+      "risk_reason": "Implementation details that can be referenced",
+      "migration_notes": "Works well as standalone module"
+    },
+    {
+      "section_id": "documentation-hub",
+      "name": "Documentation Hub",
+      "lines": "138-156",
+      "line_count": 19,
+      "purpose": "Central documentation reference links",
+      "can_extract": false,
+      "must_remain_in_root": true,
+      "target_location": "CLAUDE.md (root)",
+      "dependencies": ["all-templates"],
+      "risk_level": "NONE",
+      "risk_reason": "Navigation hub should stay in root for discoverability",
+      "migration_notes": "Keep as quick reference in root file"
+    },
+    {
+      "section_id": "template-navigation",
+      "name": "MY TEMPLATE NAVIGATION PROTOCOL",
+      "lines": "159-195",
+      "line_count": 37,
+      "purpose": "Handler search and loading protocol",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/navigation/template-protocol.md",
+      "dependencies": ["registry", "handlers"],
+      "risk_level": "LOW",
+      "risk_reason": "Clear navigation logic that can be modularized",
+      "migration_notes": "Core navigation logic, safe to extract"
+    },
+    {
+      "section_id": "behavioral-hooks",
+      "name": "BEHAVIORAL HOOKS",
+      "lines": "197-216",
+      "line_count": 20,
+      "purpose": "Automatic behavioral enforcement gates",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/enforcement/behavioral-hooks.md",
+      "dependencies": ["behaviors-template"],
+      "risk_level": "MEDIUM",
+      "risk_reason": "Enforcement mechanism - needs visibility",
+      "migration_notes": "Extract but keep summary in root"
+    },
+    {
+      "section_id": "common-request-flows",
+      "name": "COMMON REQUEST FLOWS",
+      "lines": "218-256",
+      "line_count": 39,
+      "purpose": "Example flows for common request patterns",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/navigation/common-flows.md",
+      "dependencies": ["registry", "handlers"],
+      "risk_level": "LOW",
+      "risk_reason": "Examples that can be referenced",
+      "migration_notes": "Good candidate for extraction"
+    },
+    {
+      "section_id": "template-system-structure",
+      "name": "TEMPLATE SYSTEM STRUCTURE",
+      "lines": "258-307",
+      "line_count": 50,
+      "purpose": "Description of all template files and their purposes",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/structure/template-system.md",
+      "dependencies": ["all-templates"],
+      "risk_level": "LOW",
+      "risk_reason": "Reference documentation",
+      "migration_notes": "Can be fully extracted"
+    },
+    {
+      "section_id": "enforcement-mechanisms",
+      "name": "ENFORCEMENT MECHANISMS",
+      "lines": "308-319",
+      "line_count": 12,
+      "purpose": "Cannot proceed without gates",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/enforcement/cannot-proceed.md",
+      "dependencies": ["behavioral-hooks"],
+      "risk_level": "MEDIUM",
+      "risk_reason": "Core enforcement logic",
+      "migration_notes": "Keep summary in root with import"
+    },
+    {
+      "section_id": "practical-examples",
+      "name": "PRACTICAL EXAMPLES",
+      "lines": "321-362",
+      "line_count": 42,
+      "purpose": "Real-world execution examples",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/examples/practical.md",
+      "dependencies": ["all-handlers"],
+      "risk_level": "LOW",
+      "risk_reason": "Documentation examples",
+      "migration_notes": "Perfect for extraction"
+    },
+    {
+      "section_id": "key-operating-principles",
+      "name": "KEY OPERATING PRINCIPLES",
+      "lines": "364-378",
+      "line_count": 15,
+      "purpose": "Core system principles",
+      "can_extract": false,
+      "must_remain_in_root": true,
+      "target_location": "CLAUDE.md (root)",
+      "dependencies": [],
+      "risk_level": "NONE",
+      "risk_reason": "Core principles should be immediately visible",
+      "migration_notes": "Keep in root for immediate reference"
+    },
+    {
+      "section_id": "error-handling",
+      "name": "ERROR HANDLING & FALLBACKS",
+      "lines": "380-417",
+      "line_count": 38,
+      "purpose": "Error recovery and fallback procedures",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/fallbacks/error-handling.md",
+      "dependencies": ["registry", "patterns"],
+      "risk_level": "LOW",
+      "risk_reason": "Error handling logic can be modularized",
+      "migration_notes": "Extract completely"
+    },
+    {
+      "section_id": "debugging-system",
+      "name": "DEBUGGING THE SYSTEM",
+      "lines": "419-435",
+      "line_count": 17,
+      "purpose": "System debugging procedures",
+      "can_extract": true,
+      "must_remain_in_root": false,
+      "target_location": "engine/debugging/system-debug.md",
+      "dependencies": ["registry", "conventions"],
+      "risk_level": "LOW",
+      "risk_reason": "Debugging procedures can be referenced",
+      "migration_notes": "Safe to extract"
+    },
+    {
+      "section_id": "remember-section",
+      "name": "REMEMBER",
+      "lines": "437-446",
+      "line_count": 10,
+      "purpose": "Final reminders and core truths",
+      "can_extract": false,
+      "must_remain_in_root": true,
+      "target_location": "CLAUDE.md (root)",
+      "dependencies": [],
+      "risk_level": "NONE",
+      "risk_reason": "Core reminders should stay visible",
+      "migration_notes": "Keep as closing section in root"
+    }
+  ],
+  
+  "dependencies_map": {
+    "ultrathink-protocol": {
+      "depends_on": ["template-navigation", "handler-validation", "registry"],
+      "depended_by": ["enforcement-check", "pre-ultrathink", "development-mode-execution"]
+    },
+    "template-navigation": {
+      "depends_on": ["registry", "handlers"],
+      "depended_by": ["ultrathink-protocol", "common-request-flows"]
+    },
+    "enforcement-mechanisms": {
+      "depends_on": ["behavioral-hooks", "behaviors-template"],
+      "depended_by": ["natural-execution"]
+    },
+    "context-aware-activation": {
+      "depends_on": ["registry", "patterns"],
+      "depended_by": ["development-mode-execution"]
+    },
+    "error-handling": {
+      "depends_on": ["registry", "patterns", "matrices"],
+      "depended_by": []
+    }
+  },
+  
+  "risk_assessment": {
+    "high_risk_extractions": [
+      {
+        "section": "enforcement-check",
+        "risk": "HIGH",
+        "reason": "Critical enforcement mechanism that ensures ULTRATHINK compliance",
+        "mitigation": "Keep strong reference in root with clear 'MUST CHECK' directive"
+      },
+      {
+        "section": "pre-ultrathink",
+        "risk": "HIGH",
+        "reason": "Prevents false compliance - critical anti-pattern prevention",
+        "mitigation": "Bundle with ultrathink-protocol.md, keep reference in root"
+      }
+    ],
+    "medium_risk_extractions": [
+      {
+        "section": "ultrathink-protocol",
+        "risk": "MEDIUM",
+        "reason": "Core thinking protocol that drives all development work",
+        "mitigation": "Keep summary and format example in root"
+      },
+      {
+        "section": "behavioral-hooks",
+        "risk": "MEDIUM",
+        "reason": "Enforcement gates that ensure proper execution",
+        "mitigation": "List key hooks in root with pointer to full list"
+      },
+      {
+        "section": "enforcement-mechanisms",
+        "risk": "MEDIUM",
+        "reason": "Cannot-proceed-without gates are critical",
+        "mitigation": "Keep list of gates in root as reminder"
+      }
+    ],
+    "low_risk_extractions": [
+      "context-aware-activation",
+      "development-mode-execution",
+      "template-navigation",
+      "common-request-flows",
+      "template-system-structure",
+      "practical-examples",
+      "error-handling",
+      "debugging-system"
+    ]
+  },
+  
+  "extraction_plan": {
+    "phase_1_safe_extractions": [
+      "practical-examples",
+      "common-request-flows",
+      "template-system-structure",
+      "error-handling",
+      "debugging-system"
+    ],
+    "phase_2_careful_extractions": [
+      "context-aware-activation",
+      "development-mode-execution",
+      "template-navigation",
+      "behavioral-hooks",
+      "enforcement-mechanisms"
+    ],
+    "phase_3_critical_extractions": [
+      "ultrathink-protocol",
+      "pre-ultrathink",
+      "enforcement-check"
+    ],
+    "must_remain_in_root": [
+      "critical-header",
+      "documentation-hub",
+      "key-operating-principles",
+      "remember-section"
+    ]
+  },
+  
+  "proposed_root_structure": {
+    "line_count_estimate": 65,
+    "sections": [
+      {
+        "name": "Critical Header",
+        "lines": 7,
+        "content": "Operating system declaration and interrupt handler"
+      },
+      {
+        "name": "Quick Start",
+        "lines": 10,
+        "content": "ULTRATHINK format example and enforcement pointer"
+      },
+      {
+        "name": "Core Components Import",
+        "lines": 8,
+        "content": "Import statements for all engine modules"
+      },
+      {
+        "name": "Documentation Hub",
+        "lines": 15,
+        "content": "Quick reference to all documentation"
+      },
+      {
+        "name": "Key Operating Principles",
+        "lines": 10,
+        "content": "Core principles that never change"
+      },
+      {
+        "name": "Critical Gates",
+        "lines": 5,
+        "content": "List of cannot-proceed-without checks"
+      },
+      {
+        "name": "Remember Section",
+        "lines": 10,
+        "content": "Final reminders and truths"
+      }
+    ]
+  },
+  
+  "migration_benefits": {
+    "maintainability": "Each module can be updated independently",
+    "clarity": "Single responsibility for each file",
+    "reusability": "Modules can be imported by other systems",
+    "testability": "Individual modules easier to validate",
+    "performance": "Faster loading of specific modules when needed",
+    "organization": "Clear hierarchy in engine/ directory"
+  },
+  
+  "migration_risks": {
+    "visibility": "Critical sections may be overlooked if not in root",
+    "compliance": "ULTRATHINK enforcement may weaken without immediate visibility",
+    "navigation": "More files to navigate may slow initial understanding",
+    "dependencies": "Complex inter-module dependencies need careful management",
+    "adoption": "AI may default to old patterns without strong root directives"
+  },
+  
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "action": "Keep enforcement and interrupt handler content highly visible in root"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Bundle related sections together (e.g., ultrathink + pre-ultrathink)"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Create strong import mechanism with clear module loading directives"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Add module status tracking to ensure all components load correctly"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Include fallback to monolithic file if module loading fails"
+    },
+    {
+      "priority": "LOW",
+      "action": "Consider creating visualization of module dependencies"
+    }
+  ],
+  
+  "validation_criteria": {
+    "success_metrics": [
+      "Root file under 100 lines",
+      "All critical enforcement visible in root",
+      "No broken dependencies",
+      "ULTRATHINK compliance maintained",
+      "Handler loading time unchanged"
+    ],
+    "test_scenarios": [
+      "Verify ULTRATHINK triggers on development requests",
+      "Check enforcement gates still block invalid operations",
+      "Confirm handler search and loading works",
+      "Test error handling with missing modules",
+      "Validate natural conversation mode unaffected"
+    ]
+  }
+}

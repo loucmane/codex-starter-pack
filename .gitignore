@@ -1,0 +1,17 @@
+# Python virtual environments
+.venv/
+
+# Codex runtime artifacts
+.codex/log/
+.codex/sessions/
+.codex/history.jsonl
+.codex/version.json
+.codex/auth.json
+
+# Serena runtime artifacts
+.serena/memories/*.tmp
+
+# Scanner generated scripts/reports can be regenerated but kept (no ignore)
+
+# OS/editor junk
+.DS_Store

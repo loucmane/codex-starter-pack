@@ -1,0 +1,82 @@
+# Codex Execution Engine
+
+## ⚠️ CRITICAL: READ BEFORE RESPONDING ⚠️
+- This file **is the operating system** for Codex-based sessions.
+- Run it **before any substantive reasoning or tool use**.
+- Treat every section as an executable checklist, not passive docs.
+
+## 🚦 CODEx READINESS CHECK
+**[`templates/engine/core/codex-readiness.md`](templates/engine/core/codex-readiness.md)**
+- Confirm the session launched with the expected profile (`/status` → workspace-write, on-request).
+- Verify tools available in this shell-only sandbox (`shell`, `update_plan`, optional `web_search`).
+- If network or MCP access is disabled, note it before planning work.
+
+## 🧠 STRUCTURED REASONING PROTOCOL
+**[`templates/engine/core/ultrathink-protocol.md`](templates/engine/core/ultrathink-protocol.md)**  
+**[`templates/engine/core/pre-ultrathink.md`](templates/engine/core/pre-ultrathink.md)**
+- Begin deep-work tasks with the codex-tuned ULTRATHINK loop.
+- For casual chat, acknowledge the request and skip formal protocols.
+
+## 🧭 CORE MODULES
+
+### Execution Engine
+- **Activation**: [`templates/engine/activation/context-aware.md`](templates/engine/activation/context-aware.md)
+- **Execution Loop**: [`templates/engine/execution/swhe-format.md`](templates/engine/execution/swhe-format.md)
+- **Navigation**: [`templates/engine/navigation/template-protocol.md`](templates/engine/navigation/template-protocol.md)
+- **Common Flows**: [`templates/engine/navigation/common-flows.md`](templates/engine/navigation/common-flows.md)
+
+### Enforcement & Safeguards
+- **Behavioral Hooks**: [`templates/engine/enforcement/behavioral-hooks.md`](templates/engine/enforcement/behavioral-hooks.md)
+- **Cannot Proceed**: [`templates/engine/enforcement/cannot-proceed.md`](templates/engine/enforcement/cannot-proceed.md)
+
+### Support Systems
+- **Template Anatomy**: [`templates/engine/structure/template-system.md`](templates/engine/structure/template-system.md)
+- **Error Recovery**: [`templates/engine/fallbacks/error-handling.md`](templates/engine/fallbacks/error-handling.md)
+- **Debug Aids**: [`templates/engine/debugging/system-debug.md`](templates/engine/debugging/system-debug.md)
+- **Examples**: [`templates/engine/examples/practical.md`](templates/engine/examples/practical.md)
+
+---
+
+## 📚 DOCUMENTATION HUB
+
+**For Users**
+- **User Guide**: [`templates/USER-GUIDE.md`](templates/USER-GUIDE.md)
+- **Quick Reference**: Phrase-to-handler map inside the user guide.
+- **Common Patterns**: [`templates/WORKFLOWS.md#common-workflows`](templates/WORKFLOWS.md#common-workflows)
+- **Troubleshooting**: `templates/USER-GUIDE.md#troubleshooting`
+
+**For Development**
+- **Handler Registry**: [`templates/registry/`](templates/registry/) — search via `rg` before loading.
+- **Workflows**: [`templates/WORKFLOWS.md`](templates/WORKFLOWS.md)
+- **Conventions**: [`templates/CONVENTIONS.md`](templates/CONVENTIONS.md)
+
+**For Extending**
+- **Creating Handlers**: [`templates/BUILDING-BETTER.md#creating-handlers`](templates/BUILDING-BETTER.md#creating-handlers)
+- **Documentation Standard**: [`templates/BUILDING-BETTER.md#handler-documentation-standard`](templates/BUILDING-BETTER.md#handler-documentation-standard)
+- **Improvement Playbook**: [`templates/BUILDING-BETTER.md`](templates/BUILDING-BETTER.md)
+
+---
+
+## 🔑 OPERATING PRINCIPLES (CODEX EDITION)
+
+1. **Registry-first discovery** – Use `rg`, `find`, or MCP search tools (if configured) over the `templates/registry/` tree before improvising.
+2. **Load on demand** – Only open handlers when needed; follow them through end-of-handler confirmation steps.
+3. **Evidence or it didn’t happen** – Capture proofs from files, command output, or MCP responses.
+4. **Tool discipline** – Prefer built-in shell tools (`rg`, `sed`, `python3`) and documented MCP servers; escalate/ask before leaving constraints.
+5. **Profile awareness** – Know whether you’re in `deep-work` or `fast-iterate`; reasoning depth changes expectations.
+6. **Conversation context** – For small-talk or non-work queries, acknowledge and respond without invoking the full engine.
+
+---
+
+## 🧩 REMINDERS
+- Templates are executable programs, not references.
+- `templates/registry` is the index — search it first.
+- Handlers ship complete workflows — run them fully.
+- Respect configured sandboxes, approval modes, and network policies.
+- When blocked, state the blocker and request guidance; don’t guess.
+
+---
+
+## 🤝 TASK MASTER INTEGRATION
+**Import Task Master’s development workflow commands and guidelines** (works with Codex when the MCP server is enabled). Treat the contents as part of this engine.
+@./.taskmaster/CLAUDE.md

@@ -1,0 +1,1269 @@
+{
+  "metadata": {
+    "scan_timestamp": "2025-09-20T16:43:41.414490",
+    "scanner": "fix_generator",
+    "scanner_version": "1.1.0",
+    "output_format_version": "2.0.0",
+    "duration_seconds": 0.0,
+    "stats": {
+      "broken_references_to_fix": 181,
+      "duplicates_to_remove": 0,
+      "files_to_move": 0,
+      "content_updates_needed": 8,
+      "total_fixes": 181,
+      "recommendations_count": 4
+    },
+    "previous_scan": "2025-09-20T16:20:26.728446",
+    "changes_from_previous": {
+      "no_changes": true
+    }
+  },
+  "data": {
+    "timestamp": "2025-09-20T16:43:41.343180",
+    "broken_references": [
+      {
+        "file": "templates/BEHAVIORS.md",
+        "old_reference": "CONVENTIONS.md#resolve-session-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/BEHAVIORS.md",
+        "old_reference": "WORKFLOWS.md#resolve-work-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/BEHAVIORS.md",
+        "old_reference": "registry/index.md#resolve-handler-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/BUILDING-BETTER.md",
+        "old_reference": "../../agent-outputs/template-migrator/migration-mapping.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/BUILDING-BETTER.md",
+        "old_reference": "CONVENTIONS.md#resolve-session-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/BUILDING-BETTER.md",
+        "old_reference": "WORKFLOWS.md#resolve-work-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-start-new-work",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-continue-work",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-standard-dev-workflow",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-create-component",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-refactor-code",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-fix-problem",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "TOOLS.md#handler-debug",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "TOOLS.md#handler-search-code",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "TOOLS.md#handler-find-symbol",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "TOOLS.md#handler-read-file",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "TOOLS.md#handler-edit-file",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "TOOLS.md#handler-commit-changes",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-create-commit-message",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "CONVENTIONS.md#handler-verify-claim",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "CONVENTIONS.md#handler-check-naming",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "CONVENTIONS.md#handler-check-commit-msg",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "CONVENTIONS.md#handler-check-conventions-first",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "CONVENTIONS.md#handler-enforce-pre-flight",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "WORKFLOWS.md#handler-show-capabilities",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "old_reference": "CLAUDE.md#protocol-exceptions",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/MATRICES.md",
+        "old_reference": "CONVENTIONS.md#resolve-session-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/MATRICES.md",
+        "old_reference": "WORKFLOWS.md#resolve-work-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/PROJECT-BLOG.md",
+        "old_reference": "CLAUDE-NEW.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/PROJECT-BLOG.md",
+        "old_reference": "/docs/ai/shared-context/standards/performance.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/PROJECT-BLOG.md",
+        "old_reference": "/docs/ai/shared-context/philosophies/content-sensitivity.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/PROJECT-BLOG.md",
+        "old_reference": "/docs/ai/shared-context/themes/four-themes.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/PROJECT-BLOG.md",
+        "old_reference": "/docs/ai/shared-context/patterns/monorepo-structure.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/REGISTRY.md",
+        "old_reference": "WORKFLOWS.md#common-workflows",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/USER-GUIDE.md",
+        "old_reference": "WORKFLOWS.md#common-workflows",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/WORKFLOWS.md",
+        "old_reference": "workflows/handlers/intent-handlers.md#start-new-work",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/WORKFLOWS.md",
+        "old_reference": "CLAUDE-NEW.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/behaviors/file-operations/before-create.md",
+        "old_reference": "before-edit.md",
+        "suggested_fix": "templates/behaviors/file-operations/before-edit.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/file-operations/before-edit.md",
+        "old_reference": "before-create.md",
+        "suggested_fix": "templates/behaviors/file-operations/before-create.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/git/before-commit.md",
+        "old_reference": "../../templates/TOOLS.md",
+        "suggested_fix": "templates/TOOLS.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "file-operations/before-edit.md",
+        "suggested_fix": "templates/behaviors/file-operations/before-edit.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "file-operations/before-create.md",
+        "suggested_fix": "templates/behaviors/file-operations/before-create.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "timestamps/before-adding.md",
+        "suggested_fix": "templates/behaviors/timestamps/before-adding.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "git/before-commit.md",
+        "suggested_fix": "templates/behaviors/git/before-commit.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "work-tracking/update-tracker.md",
+        "suggested_fix": "templates/behaviors/work-tracking/update-tracker.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "validation/evidence-claims.md",
+        "suggested_fix": "templates/behaviors/validation/evidence-claims.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "task-management/todo-write.md",
+        "suggested_fix": "templates/behaviors/task-management/todo-write.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "session/session-end.md",
+        "suggested_fix": "templates/behaviors/session/session-end.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "session/compaction-preparation.md",
+        "suggested_fix": "templates/behaviors/session/compaction-preparation.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "session/compaction-detection.md",
+        "suggested_fix": "templates/behaviors/session/compaction-detection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/index.md",
+        "old_reference": "../templates/shared/patterns/ultrathink-format.md",
+        "suggested_fix": "templates/shared/patterns/ultrathink-format.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/session/compaction-detection.md",
+        "old_reference": "compaction-preparation.md",
+        "suggested_fix": "templates/behaviors/session/compaction-preparation.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/session/compaction-detection.md",
+        "old_reference": "session-end.md",
+        "suggested_fix": "templates/behaviors/session/session-end.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/session/session-end.md",
+        "old_reference": "compaction-preparation.md",
+        "suggested_fix": "templates/behaviors/session/compaction-preparation.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/behaviors/validation/evidence-claims.md",
+        "old_reference": "../../templates/TOOLS.md",
+        "suggested_fix": "templates/TOOLS.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/conventions/docs/documentation-standards.md",
+        "old_reference": "CONTRIBUTING.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/conventions/docs/readme-format.md",
+        "old_reference": "CONTRIBUTING.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/conventions/docs/readme-format.md",
+        "old_reference": "CODE_OF_CONDUCT.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/coordination/session-swhe-integration.md",
+        "old_reference": "templates/handlers/*/session/*.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/engine/README.md",
+        "old_reference": "templates/engine/path/to/module.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/engine/navigation/common-flows.md",
+        "old_reference": "handlers/operators/git/commit-changes.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "quickstart/getting-started.md",
+        "suggested_fix": "templates/guides/quickstart/getting-started.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "ultrathink/understanding.md",
+        "suggested_fix": "templates/guides/ultrathink/understanding.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "workflows/common.md",
+        "suggested_fix": "templates/guides/workflows/common.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "workflows/patterns.md",
+        "suggested_fix": "templates/PATTERNS.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "reference/triggers.md",
+        "suggested_fix": "templates/guides/reference/triggers.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "reference/patterns.md",
+        "suggested_fix": "templates/PATTERNS.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "reference/quick-actions.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "troubleshooting/issues.md",
+        "suggested_fix": "templates/guides/troubleshooting/issues.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "troubleshooting/errors.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "troubleshooting/performance.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "quickstart/first-request.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "workflows/advanced.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "advanced/creating-handlers.md",
+        "suggested_fix": "templates/integration/guides/creating-handlers.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "advanced/extending-system.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/guides/index.md",
+        "old_reference": "..templates/REGISTRY.md",
+        "suggested_fix": "templates/REGISTRY.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/handlers/tools/external/consult-gpt5.md",
+        "old_reference": "../analysis/analyze-code.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/handlers/tools/external/consult-gpt5.md",
+        "old_reference": "../debugging/debug-issue.md",
+        "suggested_fix": "templates/handlers/triggers/debug/debug-issue.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/handlers/tools/external/consult-gpt5.md",
+        "old_reference": "../optimization/optimize-performance.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/architecture/handler-architecture.md",
+        "old_reference": "system-architecture.md",
+        "suggested_fix": "templates/integration/architecture/system-architecture.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/architecture/handler-architecture.md",
+        "old_reference": "template-architecture.md",
+        "suggested_fix": "templates/integration/architecture/template-architecture.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/architecture/system-architecture.md",
+        "old_reference": "handler-architecture.md",
+        "suggested_fix": "templates/integration/architecture/handler-architecture.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/architecture/system-architecture.md",
+        "old_reference": "template-architecture.md",
+        "suggested_fix": "templates/integration/architecture/template-architecture.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/architecture/template-architecture.md",
+        "old_reference": "system-architecture.md",
+        "suggested_fix": "templates/integration/architecture/system-architecture.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/architecture/template-architecture.md",
+        "old_reference": "handler-architecture.md",
+        "suggested_fix": "templates/integration/architecture/handler-architecture.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/best-practices/handler-design.md",
+        "old_reference": "template-design.md",
+        "suggested_fix": "templates/integration/best-practices/template-design.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/best-practices/handler-design.md",
+        "old_reference": "integration-patterns.md",
+        "suggested_fix": "templates/integration/best-practices/integration-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/best-practices/integration-patterns.md",
+        "old_reference": "handler-design.md",
+        "suggested_fix": "templates/integration/best-practices/handler-design.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/best-practices/integration-patterns.md",
+        "old_reference": "template-design.md",
+        "suggested_fix": "templates/integration/best-practices/template-design.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/best-practices/template-design.md",
+        "old_reference": "new-template.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/best-practices/template-design.md",
+        "old_reference": "handler-design.md",
+        "suggested_fix": "templates/integration/best-practices/handler-design.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/best-practices/template-design.md",
+        "old_reference": "integration-patterns.md",
+        "suggested_fix": "templates/integration/best-practices/integration-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/composition/handler-chaining.md",
+        "old_reference": "workflow-composition.md",
+        "suggested_fix": "templates/integration/composition/workflow-composition.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/composition/handler-chaining.md",
+        "old_reference": "pattern-composition.md",
+        "suggested_fix": "templates/integration/composition/pattern-composition.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/composition/pattern-composition.md",
+        "old_reference": "workflow-composition.md",
+        "suggested_fix": "templates/integration/composition/workflow-composition.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/composition/pattern-composition.md",
+        "old_reference": "handler-chaining.md",
+        "suggested_fix": "templates/integration/composition/handler-chaining.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/composition/workflow-composition.md",
+        "old_reference": "handler-chaining.md",
+        "suggested_fix": "templates/integration/composition/handler-chaining.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/composition/workflow-composition.md",
+        "old_reference": "pattern-composition.md",
+        "suggested_fix": "templates/integration/composition/pattern-composition.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/cross-system/mcp-integration.md",
+        "old_reference": "tool-integration.md",
+        "suggested_fix": "templates/integration/cross-system/tool-integration.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/cross-system/mcp-integration.md",
+        "old_reference": "agent-coordination.md",
+        "suggested_fix": "templates/integration/cross-system/agent-coordination.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/cross-system/tool-integration.md",
+        "old_reference": "mcp-integration.md",
+        "suggested_fix": "templates/integration/cross-system/mcp-integration.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/adding-agents.md",
+        "old_reference": ".claude/agents/api-doc-generator.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/guides/adding-agents.md",
+        "old_reference": "system-integration.md",
+        "suggested_fix": "templates/integration/guides/system-integration.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/adding-agents.md",
+        "old_reference": "creating-handlers.md",
+        "suggested_fix": "templates/integration/guides/creating-handlers.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/creating-handlers.md",
+        "old_reference": "templates/handlers/triggers/[domain]/[handler-id].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/guides/creating-handlers.md",
+        "old_reference": "templates/handlers/orchestrators/[handler-id].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/guides/creating-handlers.md",
+        "old_reference": "templates/handlers/operators/[domain]/[handler-id].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/guides/creating-handlers.md",
+        "old_reference": "templates/handlers/triggers/development/implement-feature.md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/integration/guides/creating-handlers.md",
+        "old_reference": "system-integration.md",
+        "suggested_fix": "templates/integration/guides/system-integration.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/extending-templates.md",
+        "old_reference": "creating-handlers.md",
+        "suggested_fix": "templates/integration/guides/creating-handlers.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/system-integration.md",
+        "old_reference": "creating-handlers.md",
+        "suggested_fix": "templates/integration/guides/creating-handlers.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/system-integration.md",
+        "old_reference": "extending-templates.md",
+        "suggested_fix": "templates/integration/guides/extending-templates.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/integration/guides/system-integration.md",
+        "old_reference": "adding-agents.md",
+        "suggested_fix": "templates/integration/guides/adding-agents.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "routing/request-to-handler.md",
+        "suggested_fix": "templates/matrices/routing/request-to-handler.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "routing/context-to-mode.md",
+        "suggested_fix": "templates/matrices/routing/context-to-mode.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "selection/tool-selection.md",
+        "suggested_fix": "templates/patterns/selection/tool-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "selection/file-to-convention.md",
+        "suggested_fix": "templates/matrices/selection/file-to-convention.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "recovery/error-to-recovery.md",
+        "suggested_fix": "templates/matrices/recovery/error-to-recovery.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "mapping/trigger-to-action.md",
+        "suggested_fix": "templates/matrices/mapping/trigger-to-action.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "mapping/keyword-to-handler.md",
+        "suggested_fix": "templates/matrices/mapping/keyword-to-handler.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/matrices/index.md",
+        "old_reference": "../templates/registry/index.md#resolve-handler-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/patterns/evidence/evidence-patterns.md",
+        "old_reference": "validation-patterns.md",
+        "suggested_fix": "templates/patterns/evidence/validation-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/evidence/evidence-patterns.md",
+        "old_reference": "proof-patterns.md",
+        "suggested_fix": "templates/patterns/evidence/proof-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/evidence/proof-patterns.md",
+        "old_reference": "evidence-patterns.md",
+        "suggested_fix": "templates/patterns/evidence/evidence-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/evidence/proof-patterns.md",
+        "old_reference": "validation-patterns.md",
+        "suggested_fix": "templates/patterns/evidence/validation-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/evidence/validation-patterns.md",
+        "old_reference": "evidence-patterns.md",
+        "suggested_fix": "templates/patterns/evidence/evidence-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/evidence/validation-patterns.md",
+        "old_reference": "proof-patterns.md",
+        "suggested_fix": "templates/patterns/evidence/proof-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/integration/composition.md",
+        "old_reference": "cross-system.md",
+        "suggested_fix": "templates/patterns/integration/cross-system.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/integration/cross-system.md",
+        "old_reference": "composition.md",
+        "suggested_fix": "templates/patterns/integration/composition.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/routing/intent-detection.md",
+        "old_reference": "request-analysis.md",
+        "suggested_fix": "templates/patterns/routing/request-analysis.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/routing/intent-detection.md",
+        "old_reference": "meta-routing.md",
+        "suggested_fix": "templates/patterns/routing/meta-routing.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/routing/meta-routing.md",
+        "old_reference": "request-analysis.md",
+        "suggested_fix": "templates/patterns/routing/request-analysis.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/routing/meta-routing.md",
+        "old_reference": "intent-detection.md",
+        "suggested_fix": "templates/patterns/routing/intent-detection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/routing/request-analysis.md",
+        "old_reference": "meta-routing.md",
+        "suggested_fix": "templates/patterns/routing/meta-routing.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/routing/request-analysis.md",
+        "old_reference": "intent-detection.md",
+        "suggested_fix": "templates/patterns/routing/intent-detection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/agent-selection.md",
+        "old_reference": "handler-selection.md",
+        "suggested_fix": "templates/patterns/selection/handler-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/agent-selection.md",
+        "old_reference": "tool-selection.md",
+        "suggested_fix": "templates/patterns/selection/tool-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/handler-selection.md",
+        "old_reference": "tool-selection.md",
+        "suggested_fix": "templates/patterns/selection/tool-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/handler-selection.md",
+        "old_reference": "agent-selection.md",
+        "suggested_fix": "templates/patterns/selection/agent-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/tool-selection.md",
+        "old_reference": "handler-selection.md",
+        "suggested_fix": "templates/patterns/selection/handler-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/tool-selection.md",
+        "old_reference": "agent-selection.md",
+        "suggested_fix": "templates/patterns/selection/agent-selection.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/selection/tool-selection.md",
+        "old_reference": "../integration/code-creation.md",
+        "suggested_fix": "templates/handlers/orchestrators/code-creation.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/session/continuation-patterns.md",
+        "old_reference": "session-patterns.md",
+        "suggested_fix": "templates/patterns/session/session-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/session/continuation-patterns.md",
+        "old_reference": "state-patterns.md",
+        "suggested_fix": "templates/patterns/session/state-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/session/session-patterns.md",
+        "old_reference": "state-patterns.md",
+        "suggested_fix": "templates/patterns/session/state-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/session/session-patterns.md",
+        "old_reference": "continuation-patterns.md",
+        "suggested_fix": "templates/patterns/session/continuation-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/session/state-patterns.md",
+        "old_reference": "session-patterns.md",
+        "suggested_fix": "templates/patterns/session/session-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/session/state-patterns.md",
+        "old_reference": "continuation-patterns.md",
+        "suggested_fix": "templates/patterns/session/continuation-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/work-tracking/documentation-patterns.md",
+        "old_reference": "work-patterns.md",
+        "suggested_fix": "templates/patterns/work-tracking/work-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/work-tracking/documentation-patterns.md",
+        "old_reference": "progress-patterns.md",
+        "suggested_fix": "templates/patterns/work-tracking/progress-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/work-tracking/progress-patterns.md",
+        "old_reference": "work-patterns.md",
+        "suggested_fix": "templates/patterns/work-tracking/work-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/work-tracking/progress-patterns.md",
+        "old_reference": "documentation-patterns.md",
+        "suggested_fix": "templates/patterns/work-tracking/documentation-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/work-tracking/work-patterns.md",
+        "old_reference": "progress-patterns.md",
+        "suggested_fix": "templates/patterns/work-tracking/progress-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/patterns/work-tracking/work-patterns.md",
+        "old_reference": "documentation-patterns.md",
+        "suggested_fix": "templates/patterns/work-tracking/documentation-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/MIGRATION-REPORT.md",
+        "old_reference": ".claude/registry/[component].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/registry/handlers/operators-registry.md",
+        "old_reference": "templates/handlers/operators/[domain]/[handler].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/registry/handlers/orchestrators-registry.md",
+        "old_reference": "templates/handlers/orchestrators/[handler].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/registry/handlers/triggers-registry.md",
+        "old_reference": "templates/handlers/triggers/[domain]/[handler].md",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "../templates/USER-GUIDE.md",
+        "suggested_fix": "templates/USER-GUIDE.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "../templates/USER-GUIDE.md#troubleshooting-guide",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "handlers/triggers-registry.md",
+        "suggested_fix": "templates/registry/handlers/triggers-registry.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "handlers/orchestrators-registry.md",
+        "suggested_fix": "templates/registry/handlers/orchestrators-registry.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "handlers/operators-registry.md",
+        "suggested_fix": "templates/registry/handlers/operators-registry.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "navigation/keywords.md",
+        "suggested_fix": "templates/registry/navigation/keywords.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "behavioral/templates.md",
+        "suggested_fix": "templates/registry/behavioral/templates.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "patterns/meta-routing.md",
+        "suggested_fix": "templates/patterns/routing/meta-routing.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "behavioral/hooks.md",
+        "suggested_fix": "templates/registry/behavioral/hooks.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "matrices/decision-matrices.md",
+        "suggested_fix": "templates/registry/matrices/decision-matrices.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "conventions/special-files.md",
+        "suggested_fix": "templates/conventions/files/special-files.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "../templates/handlers/orchestrators/resolve-session-void.md",
+        "suggested_fix": "templates/handlers/orchestrators/resolve-session-void.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/registry/index.md",
+        "old_reference": "../templates/handlers/operators/workflow/resolve-work-void.md",
+        "suggested_fix": "templates/handlers/operators/workflow/resolve-work-void.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "search/serena-guide.md",
+        "suggested_fix": "templates/tools/search/serena-guide.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "search/grep-patterns.md",
+        "suggested_fix": "templates/tools/search/grep-patterns.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "file/edit-strategies.md",
+        "suggested_fix": "templates/tools/file/edit-strategies.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "file/multi-edit.md",
+        "suggested_fix": "templates/tools/file/multi-edit.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "git/commands.md",
+        "suggested_fix": "templates/tools/git/commands.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "task/agent-usage.md",
+        "suggested_fix": "templates/tools/task/agent-usage.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "../templates/REGISTRY.md#resolve-handler-void",
+        "suggested_fix": null,
+        "action": "manual_review"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "../templates/REGISTRY.md",
+        "suggested_fix": "templates/REGISTRY.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/tools/index.md",
+        "old_reference": "../templates/PROJECT-BLOG.md",
+        "suggested_fix": "templates/PROJECT-BLOG.md",
+        "action": "update_reference"
+      },
+      {
+        "file": "templates/workflows/protocols/universal-flight.md",
+        "old_reference": "../../TOOLS.md#mandatory-tool-selection-router---check-before-every-tool-use",
+        "suggested_fix": null,
+        "action": "manual_review"
+      }
+    ],
+    "duplicate_removals": [],
+    "file_moves": [],
+    "content_updates": [
+      {
+        "file": "templates/REGISTRY.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "Behavioral Hooks (9 categories)",
+          "Behavioral Templates (6 total)",
+          "Common Commands",
+          "Decision Matrices (5 total)",
+          "Intent Handlers (63 existing + 6 to add = 69 total)",
+          "Key Improvements in This Registry",
+          "Meta-Routing Patterns (13 total)",
+          "Registry Maintenance",
+          "Special Files",
+          "Statistics"
+        ],
+        "migration_percentage": 5.6,
+        "recommendation": "Migrate remaining 17 sections to modular files"
+      },
+      {
+        "file": "templates/WORKFLOWS.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udcda See Also",
+          "\ud83d\udd0d Finding Specific Workflows",
+          "\ud83d\ude80 Quick Start"
+        ],
+        "migration_percentage": 0.0,
+        "recommendation": "Migrate remaining 5 sections to modular files"
+      },
+      {
+        "file": "templates/PATTERNS.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udcd6 Using This Library",
+          "\ud83d\udcda Quick Reference",
+          "\ud83d\udd17 Shared Patterns",
+          "\ud83d\ude80 Handler Migration Notice"
+        ],
+        "migration_percentage": 0.0,
+        "recommendation": "Migrate remaining 6 sections to modular files"
+      },
+      {
+        "file": "templates/HANDLERS.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "header",
+          "\ud83c\udfaf Common Patterns & Examples {#common-patterns}",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "\ud83d\udcca Coverage Matrix {#coverage-matrix}",
+          "\ud83d\udccd Handler Registry {#handler-registry}",
+          "\ud83d\udd04 Disambiguation Guide {#disambiguation-guide}",
+          "\ud83d\udd0d Search Tips {#search-tips}",
+          "\ud83d\udd17 Adding New Handlers {#adding-new-handlers}"
+        ],
+        "migration_percentage": 0.0,
+        "recommendation": "Migrate remaining 8 sections to modular files"
+      },
+      {
+        "file": "templates/CONVENTIONS.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "Handler Migration Notice",
+          "Quick Command Reference",
+          "See Also",
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udea8 Critical Rules"
+        ],
+        "migration_percentage": 0.0,
+        "recommendation": "Migrate remaining 6 sections to modular files"
+      },
+      {
+        "file": "templates/BEHAVIORS.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "Adding New Behaviors {#adding-new-behaviors}",
+          "Cross-Reference Map {#cross-reference-map}",
+          "Development Work {#development-work}",
+          "Evidence & Claims {#evidence-claims}",
+          "File Operations {#file-operations}",
+          "Git Operations {#git-operations}",
+          "Integration with CLAUDE.md {#integration-claude}",
+          "Session Management {#session-management}",
+          "Special Behaviors {#special-behaviors}",
+          "Task Management {#task-management}"
+        ],
+        "migration_percentage": 0.0,
+        "recommendation": "Migrate remaining 18 sections to modular files"
+      },
+      {
+        "file": "templates/MATRICES.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "Behavior \u2192 Workflow Coverage Matrix {#behavior-workflow-matrix}",
+          "Request Type \u2192 Handler Matrix {#request-type-handler-matrix}",
+          "ULTRATHINK Integration {#ultrathink-integration}",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}"
+        ],
+        "migration_percentage": 66.7,
+        "recommendation": "Migrate remaining 4 sections to modular files"
+      },
+      {
+        "file": "templates/TOOLS.md",
+        "action": "complete_migration",
+        "unmigrated_sections": [
+          "Anti-Patterns",
+          "Built-in Tools",
+          "Evidence Expectations",
+          "Quick Reference",
+          "header",
+          "\ud83d\udea6 Decision Router"
+        ],
+        "migration_percentage": 0.0,
+        "recommendation": "Migrate remaining 6 sections to modular files"
+      }
+    ],
+    "recommendations": [
+      {
+        "priority": "high",
+        "category": "broken_references",
+        "issue": "181 broken references found",
+        "action": "Run python3 apply_reference_fixes.py to update references"
+      },
+      {
+        "priority": "high",
+        "category": "circular_dependencies",
+        "issue": "10 circular dependencies found",
+        "action": "Refactor to remove circular dependencies"
+      },
+      {
+        "priority": "medium",
+        "category": "migration",
+        "issue": "Migration 9.0% complete",
+        "action": "Complete migration from monolithic to modular files"
+      },
+      {
+        "priority": "low",
+        "category": "orphaned_files",
+        "issue": "118 orphaned files found",
+        "action": "Review orphaned files and add references or remove"
+      }
+    ],
+    "statistics": {
+      "broken_references_to_fix": 181,
+      "duplicates_to_remove": 0,
+      "files_to_move": 0,
+      "content_updates_needed": 8,
+      "total_fixes": 181,
+      "recommendations_count": 4
+    }
+  }
+}

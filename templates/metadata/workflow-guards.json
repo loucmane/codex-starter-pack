@@ -1,0 +1,1105 @@
+[
+  {
+    "name": "general",
+    "keywords": [
+      "general"
+    ],
+    "requires": [
+      "templates/conventions/code-style/general.md"
+    ]
+  },
+  {
+    "name": "javascript",
+    "keywords": [
+      "javascript"
+    ],
+    "requires": [
+      "templates/conventions/code-style/javascript.md"
+    ]
+  },
+  {
+    "name": "typescript",
+    "keywords": [
+      "typescript"
+    ],
+    "requires": [
+      "templates/conventions/code-style/typescript.md"
+    ]
+  },
+  {
+    "name": "comment-format",
+    "keywords": [
+      "comment",
+      "comment format",
+      "comment-format",
+      "format"
+    ],
+    "requires": [
+      "templates/conventions/docs/comment-format.md"
+    ]
+  },
+  {
+    "name": "documentation-standards",
+    "keywords": [
+      "documentation",
+      "documentation standards",
+      "documentation-standards",
+      "standards"
+    ],
+    "requires": [
+      "templates/conventions/docs/documentation-standards.md"
+    ]
+  },
+  {
+    "name": "readme-format",
+    "keywords": [
+      "format"
+    ],
+    "requires": [
+      "templates/conventions/docs/readme-format.md"
+    ]
+  },
+  {
+    "name": "directory-structure",
+    "keywords": [
+      "directory",
+      "directory structure",
+      "directory-structure",
+      "structure"
+    ],
+    "requires": [
+      "templates/conventions/files/directory-structure.md"
+    ]
+  },
+  {
+    "name": "organization",
+    "keywords": [
+      "organization"
+    ],
+    "requires": [
+      "templates/conventions/files/organization.md"
+    ]
+  },
+  {
+    "name": "special-files",
+    "keywords": [
+      "files",
+      "special",
+      "special files",
+      "special-files"
+    ],
+    "requires": [
+      "templates/conventions/files/special-files.md"
+    ]
+  },
+  {
+    "name": "branch-naming",
+    "keywords": [
+      "branch",
+      "branch naming",
+      "branch-naming",
+      "naming"
+    ],
+    "requires": [
+      "templates/conventions/git/branch-naming.md"
+    ]
+  },
+  {
+    "name": "commit-format",
+    "keywords": [
+      "gac",
+      "commit message",
+      "commit-format"
+    ],
+    "requires": [
+      "templates/conventions/git/commit-format.md"
+    ]
+  },
+  {
+    "name": "pr-conventions",
+    "keywords": [
+      "conventions",
+      "pr conventions",
+      "pr-conventions"
+    ],
+    "requires": [
+      "templates/conventions/git/pr-conventions.md"
+    ]
+  },
+  {
+    "name": "files",
+    "keywords": [
+      "files"
+    ],
+    "requires": [
+      "templates/conventions/naming/files.md"
+    ]
+  },
+  {
+    "name": "functions",
+    "keywords": [
+      "functions"
+    ],
+    "requires": [
+      "templates/conventions/naming/functions.md"
+    ]
+  },
+  {
+    "name": "variables",
+    "keywords": [
+      "variables"
+    ],
+    "requires": [
+      "templates/conventions/naming/variables.md"
+    ]
+  },
+  {
+    "name": "test-naming",
+    "keywords": [
+      "naming",
+      "test",
+      "test naming",
+      "test-naming"
+    ],
+    "requires": [
+      "templates/conventions/testing/test-naming.md"
+    ]
+  },
+  {
+    "name": "test-structure",
+    "keywords": [
+      "structure",
+      "test",
+      "test structure",
+      "test-structure"
+    ],
+    "requires": [
+      "templates/conventions/testing/test-structure.md"
+    ]
+  },
+  {
+    "name": "format-rules",
+    "keywords": [
+      "format",
+      "format rules",
+      "format-rules",
+      "rules"
+    ],
+    "requires": [
+      "templates/conventions/timestamps/format-rules.md"
+    ]
+  },
+  {
+    "name": "usage-patterns",
+    "keywords": [
+      "patterns",
+      "usage",
+      "usage patterns",
+      "usage-patterns"
+    ],
+    "requires": [
+      "templates/conventions/timestamps/usage-patterns.md"
+    ]
+  },
+  {
+    "name": "folder-structure",
+    "keywords": [
+      "folder",
+      "folder structure",
+      "folder-structure",
+      "structure"
+    ],
+    "requires": [
+      "templates/conventions/work-tracking/folder-structure.md"
+    ]
+  },
+  {
+    "name": "handoff-format",
+    "keywords": [
+      "format",
+      "handoff",
+      "handoff format",
+      "handoff-format"
+    ],
+    "requires": [
+      "templates/conventions/work-tracking/handoff-format.md"
+    ]
+  },
+  {
+    "name": "tracker-format",
+    "keywords": [
+      "format",
+      "tracker",
+      "tracker format",
+      "tracker-format"
+    ],
+    "requires": [
+      "templates/conventions/work-tracking/tracker-format.md"
+    ]
+  },
+  {
+    "name": "cite-source",
+    "keywords": [
+      "cite",
+      "cite source",
+      "cite-source",
+      "source"
+    ],
+    "requires": [
+      "templates/handlers/operators/analysis/cite-source.md"
+    ]
+  },
+  {
+    "name": "gather-evidence",
+    "keywords": [
+      "evidence",
+      "gather",
+      "gather evidence",
+      "gather-evidence"
+    ],
+    "requires": [
+      "templates/handlers/operators/analysis/gather-evidence.md"
+    ]
+  },
+  {
+    "name": "verify-claim",
+    "keywords": [
+      "claim",
+      "verify",
+      "verify claim",
+      "verify-claim"
+    ],
+    "requires": [
+      "templates/handlers/operators/analysis/verify-claim.md"
+    ]
+  },
+  {
+    "name": "check-naming",
+    "keywords": [
+      "check",
+      "check naming",
+      "check-naming",
+      "naming"
+    ],
+    "requires": [
+      "templates/handlers/operators/development/check-naming.md"
+    ]
+  },
+  {
+    "name": "check-style",
+    "keywords": [
+      "check",
+      "check style",
+      "check-style",
+      "style"
+    ],
+    "requires": [
+      "templates/handlers/operators/development/check-style.md"
+    ]
+  },
+  {
+    "name": "edit-file",
+    "keywords": [
+      "edit",
+      "edit file",
+      "edit-file",
+      "file"
+    ],
+    "requires": [
+      "templates/handlers/operators/development/edit-file.md"
+    ]
+  },
+  {
+    "name": "format-code",
+    "keywords": [
+      "code",
+      "format",
+      "format code",
+      "format-code"
+    ],
+    "requires": [
+      "templates/handlers/operators/development/format-code.md"
+    ]
+  },
+  {
+    "name": "review-patterns",
+    "keywords": [
+      "patterns",
+      "review",
+      "review patterns",
+      "review-patterns"
+    ],
+    "requires": [
+      "templates/handlers/operators/development/review-patterns.md"
+    ]
+  },
+  {
+    "name": "suggest-name",
+    "keywords": [
+      "name",
+      "suggest",
+      "suggest name",
+      "suggest-name"
+    ],
+    "requires": [
+      "templates/handlers/operators/development/suggest-name.md"
+    ]
+  },
+  {
+    "name": "check-docs-needed",
+    "keywords": [
+      "check",
+      "check docs needed",
+      "check-docs-needed",
+      "docs",
+      "needed"
+    ],
+    "requires": [
+      "templates/handlers/operators/docs/check-docs-needed.md"
+    ]
+  },
+  {
+    "name": "validate-comments",
+    "keywords": [
+      "comments",
+      "validate",
+      "validate comments",
+      "validate-comments"
+    ],
+    "requires": [
+      "templates/handlers/operators/docs/validate-comments.md"
+    ]
+  },
+  {
+    "name": "time-capture",
+    "keywords": [
+      "capture",
+      "time",
+      "time capture",
+      "time-capture"
+    ],
+    "requires": [
+      "templates/handlers/operators/external/time-capture.md"
+    ]
+  },
+  {
+    "name": "validate-path",
+    "keywords": [
+      "path",
+      "validate",
+      "validate path",
+      "validate-path"
+    ],
+    "requires": [
+      "templates/handlers/operators/file/validate-path.md"
+    ]
+  },
+  {
+    "name": "check-commit-msg",
+    "keywords": [
+      "check",
+      "check commit msg",
+      "check-commit-msg",
+      "commit",
+      "msg"
+    ],
+    "requires": [
+      "templates/handlers/operators/git/check-commit-msg.md"
+    ]
+  },
+  {
+    "name": "suggest-commit-type",
+    "keywords": [
+      "commit",
+      "suggest",
+      "suggest commit type",
+      "suggest-commit-type",
+      "type"
+    ],
+    "requires": [
+      "templates/handlers/operators/git/suggest-commit-type.md"
+    ]
+  },
+  {
+    "name": "checkpoint-session",
+    "keywords": [
+      "checkpoint",
+      "checkpoint session",
+      "checkpoint-session",
+      "session"
+    ],
+    "requires": [
+      "templates/handlers/operators/session/checkpoint-session.md"
+    ]
+  },
+  {
+    "name": "restore-context",
+    "keywords": [
+      "context",
+      "restore",
+      "restore context",
+      "restore-context"
+    ],
+    "requires": [
+      "templates/handlers/operators/session/restore-context.md"
+    ]
+  },
+  {
+    "name": "save-context",
+    "keywords": [
+      "context",
+      "save",
+      "save context",
+      "save-context"
+    ],
+    "requires": [
+      "templates/handlers/operators/session/save-context.md"
+    ]
+  },
+  {
+    "name": "create-work-folder",
+    "keywords": [
+      "create",
+      "create work folder",
+      "create-work-folder",
+      "folder",
+      "work"
+    ],
+    "requires": [
+      "templates/handlers/operators/workflow/create-work-folder.md"
+    ]
+  },
+  {
+    "name": "resolve-handler-void",
+    "keywords": [
+      "handler",
+      "resolve",
+      "resolve handler void",
+      "resolve-handler-void",
+      "void"
+    ],
+    "requires": [
+      "templates/handlers/operators/workflow/resolve-handler-void.md"
+    ]
+  },
+  {
+    "name": "resolve-work-void",
+    "keywords": [
+      "resolve",
+      "resolve work void",
+      "resolve-work-void",
+      "void",
+      "work"
+    ],
+    "requires": [
+      "templates/handlers/operators/workflow/resolve-work-void.md"
+    ]
+  },
+  {
+    "name": "ambiguous-request",
+    "keywords": [
+      "ambiguous",
+      "ambiguous request",
+      "ambiguous-request",
+      "request"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/ambiguous-request.md"
+    ]
+  },
+  {
+    "name": "architecture-claim",
+    "keywords": [
+      "architecture",
+      "architecture claim",
+      "architecture-claim",
+      "claim"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/architecture-claim.md"
+    ]
+  },
+  {
+    "name": "check-conventions-first",
+    "keywords": [
+      "check",
+      "check conventions first",
+      "check-conventions-first",
+      "conventions",
+      "first"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/check-conventions-first.md"
+    ]
+  },
+  {
+    "name": "code-creation",
+    "keywords": [
+      "code",
+      "code creation",
+      "code-creation",
+      "creation"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/code-creation.md"
+    ]
+  },
+  {
+    "name": "convention-to-workflow",
+    "keywords": [
+      "convention",
+      "convention to workflow",
+      "convention-to-workflow",
+      "workflow"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/convention-to-workflow.md"
+    ]
+  },
+  {
+    "name": "enforce-pre-flight",
+    "keywords": [
+      "enforce",
+      "enforce pre flight",
+      "enforce-pre-flight",
+      "flight",
+      "pre"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/enforce-pre-flight.md"
+    ]
+  },
+  {
+    "name": "evidence-check",
+    "keywords": [
+      "check",
+      "evidence",
+      "evidence check",
+      "evidence-check"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/evidence-check.md"
+    ]
+  },
+  {
+    "name": "execute-ultrathink",
+    "keywords": [
+      "execute",
+      "execute ultrathink",
+      "execute-ultrathink",
+      "ultrathink"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/execute-ultrathink.md"
+    ]
+  },
+  {
+    "name": "file-creation",
+    "keywords": [
+      "creation",
+      "file",
+      "file creation",
+      "file-creation"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/file-creation.md"
+    ]
+  },
+  {
+    "name": "file-operation",
+    "keywords": [
+      "file",
+      "file operation",
+      "file-operation",
+      "operation"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/file-operation.md"
+    ]
+  },
+  {
+    "name": "lost-context",
+    "keywords": [
+      "context",
+      "lost",
+      "lost context",
+      "lost-context"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/lost-context.md"
+    ]
+  },
+  {
+    "name": "multi-step-request",
+    "keywords": [
+      "multi",
+      "multi step request",
+      "multi-step-request",
+      "request",
+      "step"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/multi-step-request.md"
+    ]
+  },
+  {
+    "name": "orchestrate-complex",
+    "keywords": [
+      "complex",
+      "orchestrate",
+      "orchestrate complex",
+      "orchestrate-complex"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/orchestrate-complex.md"
+    ]
+  },
+  {
+    "name": "resolve-session-void",
+    "keywords": [
+      "resolve",
+      "resolve session void",
+      "resolve-session-void",
+      "session",
+      "void"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/resolve-session-void.md"
+    ]
+  },
+  {
+    "name": "session-start",
+    "keywords": [
+      "session",
+      "session start",
+      "session-start",
+      "start"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/session-start.md"
+    ]
+  },
+  {
+    "name": "standard-dev-workflow",
+    "keywords": [
+      "dev",
+      "standard",
+      "standard dev workflow",
+      "standard-dev-workflow",
+      "workflow"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/standard-dev-workflow.md"
+    ]
+  },
+  {
+    "name": "switch-context",
+    "keywords": [
+      "context",
+      "switch",
+      "switch context",
+      "switch-context"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/switch-context.md"
+    ]
+  },
+  {
+    "name": "system-improvement",
+    "keywords": [
+      "improvement",
+      "system",
+      "system improvement",
+      "system-improvement"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/system-improvement.md"
+    ]
+  },
+  {
+    "name": "tool-selection",
+    "keywords": [
+      "selection",
+      "tool",
+      "tool selection",
+      "tool-selection"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/tool-selection.md"
+    ]
+  },
+  {
+    "name": "tool-to-convention",
+    "keywords": [
+      "convention",
+      "tool",
+      "tool to convention",
+      "tool-to-convention"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/tool-to-convention.md"
+    ]
+  },
+  {
+    "name": "work-activity",
+    "keywords": [
+      "activity",
+      "work",
+      "work activity",
+      "work-activity"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/work-activity.md"
+    ]
+  },
+  {
+    "name": "work-continuation",
+    "keywords": [
+      "continuation",
+      "work",
+      "work continuation",
+      "work-continuation"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/work-continuation.md"
+    ]
+  },
+  {
+    "name": "workflow-to-tool",
+    "keywords": [
+      "tool",
+      "workflow",
+      "workflow to tool",
+      "workflow-to-tool"
+    ],
+    "requires": [
+      "templates/handlers/orchestrators/workflow-to-tool.md"
+    ]
+  },
+  {
+    "name": "consult-gpt5",
+    "keywords": [
+      "consult",
+      "consult gpt5",
+      "consult-gpt5",
+      "gpt5"
+    ],
+    "requires": [
+      "templates/handlers/tools/external/consult-gpt5.md"
+    ]
+  },
+  {
+    "name": "code-review",
+    "keywords": [
+      "code",
+      "code review",
+      "code-review",
+      "review"
+    ],
+    "requires": [
+      "templates/handlers/triggers/analysis/code-review.md"
+    ]
+  },
+  {
+    "name": "deploy-specialist",
+    "keywords": [
+      "deploy",
+      "deploy specialist",
+      "deploy-specialist",
+      "specialist"
+    ],
+    "requires": [
+      "templates/handlers/triggers/analysis/deploy-specialist.md"
+    ]
+  },
+  {
+    "name": "deploy-ultrathink",
+    "keywords": [
+      "deploy",
+      "deploy ultrathink",
+      "deploy-ultrathink",
+      "ultrathink"
+    ],
+    "requires": [
+      "templates/handlers/triggers/analysis/deploy-ultrathink.md"
+    ]
+  },
+  {
+    "name": "explain-code",
+    "keywords": [
+      "code",
+      "explain",
+      "explain code",
+      "explain-code"
+    ],
+    "requires": [
+      "templates/handlers/triggers/analysis/explain-code.md"
+    ]
+  },
+  {
+    "name": "debug-issue",
+    "keywords": [
+      "debug",
+      "debug issue",
+      "debug-issue",
+      "issue"
+    ],
+    "requires": [
+      "templates/handlers/triggers/debug/debug-issue.md"
+    ]
+  },
+  {
+    "name": "fix-bug",
+    "keywords": [
+      "bug",
+      "fix",
+      "fix bug",
+      "fix-bug"
+    ],
+    "requires": [
+      "templates/handlers/triggers/debug/fix-bug.md"
+    ]
+  },
+  {
+    "name": "create-component",
+    "keywords": [
+      "component",
+      "create",
+      "create component",
+      "create-component"
+    ],
+    "requires": [
+      "templates/handlers/triggers/development/create-component.md"
+    ]
+  },
+  {
+    "name": "optimize-code",
+    "keywords": [
+      "code",
+      "optimize",
+      "optimize code",
+      "optimize-code"
+    ],
+    "requires": [
+      "templates/handlers/triggers/development/optimize-code.md"
+    ]
+  },
+  {
+    "name": "refactor-code",
+    "keywords": [
+      "code",
+      "refactor",
+      "refactor code",
+      "refactor-code"
+    ],
+    "requires": [
+      "templates/handlers/triggers/development/refactor-code.md"
+    ]
+  },
+  {
+    "name": "start-new-work",
+    "keywords": [
+      "new",
+      "start",
+      "start new work",
+      "start-new-work",
+      "work"
+    ],
+    "requires": [
+      "templates/handlers/triggers/development/start-new-work.md"
+    ]
+  },
+  {
+    "name": "create-docs",
+    "keywords": [
+      "create",
+      "create docs",
+      "create-docs",
+      "docs"
+    ],
+    "requires": [
+      "templates/handlers/triggers/docs/create-docs.md"
+    ]
+  },
+  {
+    "name": "document-findings",
+    "keywords": [
+      "document",
+      "document findings",
+      "document-findings",
+      "findings"
+    ],
+    "requires": [
+      "templates/handlers/triggers/docs/document-findings.md"
+    ]
+  },
+  {
+    "name": "record-decision",
+    "keywords": [
+      "decision",
+      "record",
+      "record decision",
+      "record-decision"
+    ],
+    "requires": [
+      "templates/handlers/triggers/docs/record-decision.md"
+    ]
+  },
+  {
+    "name": "end-session",
+    "keywords": [
+      "end-session",
+      "wrap up",
+      "finish session",
+      "end for today"
+    ],
+    "requires": [
+      "templates/handlers/triggers/session/end-session.md"
+    ]
+  },
+  {
+    "name": "prepare-compaction",
+    "keywords": [
+      "compaction",
+      "prepare",
+      "prepare compaction",
+      "prepare-compaction"
+    ],
+    "requires": [
+      "templates/handlers/triggers/session/prepare-compaction.md"
+    ]
+  },
+  {
+    "name": "show-capabilities",
+    "keywords": [
+      "capabilities",
+      "show",
+      "show capabilities",
+      "show-capabilities"
+    ],
+    "requires": [
+      "templates/handlers/triggers/session/show-capabilities.md"
+    ]
+  },
+  {
+    "name": "start-session",
+    "keywords": [
+      "start-session",
+      "start a session",
+      "new session",
+      "begin work"
+    ],
+    "requires": [
+      "templates/handlers/triggers/session/start-session.md"
+    ]
+  },
+  {
+    "name": "update-session",
+    "keywords": [
+      "session",
+      "update",
+      "update session",
+      "update-session"
+    ],
+    "requires": [
+      "templates/handlers/triggers/session/update-session.md"
+    ]
+  },
+  {
+    "name": "create-test-checkpoint",
+    "keywords": [
+      "checkpoint",
+      "create",
+      "create test checkpoint",
+      "create-test-checkpoint",
+      "test"
+    ],
+    "requires": [
+      "templates/handlers/triggers/test/create-test-checkpoint.md"
+    ]
+  },
+  {
+    "name": "simulation-test",
+    "keywords": [
+      "simulation",
+      "simulation test",
+      "simulation-test",
+      "test"
+    ],
+    "requires": [
+      "templates/handlers/triggers/test/simulation-test.md"
+    ]
+  },
+  {
+    "name": "validate-changes",
+    "keywords": [
+      "changes",
+      "validate",
+      "validate changes",
+      "validate-changes"
+    ],
+    "requires": [
+      "templates/handlers/triggers/test/validate-changes.md"
+    ]
+  },
+  {
+    "name": "check-progress",
+    "keywords": [
+      "check",
+      "check progress",
+      "check-progress",
+      "progress"
+    ],
+    "requires": [
+      "templates/handlers/triggers/workflow/check-progress.md"
+    ]
+  },
+  {
+    "name": "continue-work",
+    "keywords": [
+      "continue",
+      "continue work",
+      "continue-work",
+      "work"
+    ],
+    "requires": [
+      "templates/handlers/triggers/workflow/continue-work.md"
+    ]
+  },
+  {
+    "name": "create-todos",
+    "keywords": [
+      "create",
+      "create todos",
+      "create-todos",
+      "todos"
+    ],
+    "requires": [
+      "templates/handlers/triggers/workflow/create-todos.md"
+    ]
+  },
+  {
+    "name": "update-todos",
+    "keywords": [
+      "todos",
+      "update",
+      "update todos",
+      "update-todos"
+    ],
+    "requires": [
+      "templates/handlers/triggers/workflow/update-todos.md"
+    ]
+  },
+  {
+    "name": "update-tracker",
+    "keywords": [
+      "tracker",
+      "update",
+      "update tracker",
+      "update-tracker"
+    ],
+    "requires": [
+      "templates/handlers/triggers/workflow/update-tracker.md"
+    ]
+  }
+]

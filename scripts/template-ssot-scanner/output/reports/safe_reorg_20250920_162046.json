@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-09-20T16:20:46.425239",
+  "mode": "dry_run",
+  "safety_level": "strict",
+  "statistics": {
+    "total_files": 0,
+    "proposed_moves": 0,
+    "affected_references": 0,
+    "immovable_files": 0
+  },
+  "moves": []
+}
