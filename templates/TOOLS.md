@@ -61,6 +61,20 @@ Lightweight structured plan tracker. Use it to:
 - Update after each completed step.
 - Close the plan at the end (status `completed`).
 
+### `scripts/codex-task`
+Local CLI for S:W:H:E scaffolding. Subcommands:
+- `sessions update` – append to active session progress log.
+- `work-tracking update` – append to ACTIVE docs (default `TRACKER`).
+- `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
+Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
+
+### `scripts/codex-guard`
+Run `scripts/codex-guard validate [--include-untracked]` before handoff/compaction. Confirms:
+- S:W:H:E fields populated (no placeholders).
+- Handler paths resolve into `templates/` (when referenced).
+- Evidence fields not left `pending`.
+Roadmap: `--auto-fix` skeletons (document TODOs in work-tracking).
+
 ### `view_image`
 Limited to image previews. Document file path and purpose.
 

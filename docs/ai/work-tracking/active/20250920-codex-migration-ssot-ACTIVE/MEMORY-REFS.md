@@ -14,3 +14,6 @@
 ## Lessons Learned
 - Follow the seven-file convention before making changes.
 - Always run scanner scripts with `--dry-run` options first when available.
+
+## Current Memories
+- enforcement_2025-09-20_codex_helpers (Serena) — codex-task/codex-guard implementation state + follow-up tasks.

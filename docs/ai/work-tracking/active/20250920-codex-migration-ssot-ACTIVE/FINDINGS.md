@@ -11,6 +11,7 @@
 - `python3 scripts/template-ssot-scanner/migration_detector.py` ✅ (migration_status.json confirms 4 fully migrated files, etc.).
 - `python3 scripts/template-ssot-scanner/generate_fixes.py` ✅ (fix_recommendations.json + scripts in `output/scripts/`).
 - `python3 scripts/template-ssot-scanner/safe_reorganize.py` ✅ (dry-run; no moves proposed; report in `scripts/template-ssot-scanner/output/reports/`).
+- `./scripts/codex-guard validate --include-untracked` ✅ (session/work-tracking S:W:H:E compliance check).
 
 ## Performance Observations
 - Scanner run inside Codex repo completed in ~0.2s (thanks to limited file set and local execution).
@@ -19,14 +20,8 @@
 - Optional packages for sequential thinking/fpl MCP still need manual installation; tracked separately.
 - Migration status reports show majority of monolithic files still partially/not migrated (needs remediation via generated scripts).
 
-## Proposed Solution: codex-task + Diff-Aware Guard (2025-09-20 15:27)
-- Build `codex-task <workflow>` helpers that:
-  - Run Serena registry lookup for the appropriate handler.
-  - Display handler checklist + copy relevant snippet.
-  - Scaffold S:W:H:E entries in session/work-tracking docs with real timestamps.
-  - Invoke `codex-guard --validate` on completion.
-- `codex-guard` responsibilities:
-  - Diff-aware checks for handler references, template structure, evidence (file:line / command output), timestamp/branch accuracy.
-  - Uses Serena to confirm handler IDs exist in the registry.
-  - Supports `--auto-fix` to insert skeleton blocks when safe and surfaces remediation tips.
-- Integration plan: expose commands locally, optionally add pre-commit/CI hooks once stable.
+## Enforcement Helper Status (2025-09-20 20:18)
+- `scripts/codex-task` now scaffolds S:W:H:E entries for sessions and work-tracking; `scanner run` can log executions post-command.
+- `scripts/codex-guard validate` parses git changes and enforces handler/evidence compliance (supports `--include-untracked`).
+- Documentation updates pending (CODEX.md, templates/TOOLS.md) to publicize workflow usage.
+- TODO: add guard auto-fix skeleton support and CI/pre-commit integration.

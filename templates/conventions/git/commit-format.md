@@ -14,7 +14,7 @@ status: stable
 # Git Commit Format (gac)
 
 ## Convention
-All commits must use the `gac` alias with proper format and SINGLE QUOTES inside messages when quoting.
+All commits must use the `gac` alias with double-quoted messages. Use single quotes only when you are quoting a literal string, command, or title inside the message; avoid them when they are not needed.
 
 ## The gac Alias
 
@@ -23,8 +23,8 @@ All commits must use the `gac` alias with proper format and SINGLE QUOTES inside
 gac='git add . && git commit -m'
 ```
 
-### Critical Quote Rule
-**⚠️ IMPORTANT: Use SINGLE QUOTES (') inside commit messages, NEVER double quotes (")**
+### Quote Discipline
+**⚠️ IMPORTANT: Enclose the entire commit message in double quotes. Only use single quotes inside the message when you must quote a literal string or command. Skip unnecessary quoting.**
 
 ## Commit Message Format
 
@@ -123,11 +123,12 @@ gac "FEAT: uppercase type"                 # Types are lowercase
 ## Multi-line Commit Format (Codex Default)
 
 ### For Complex Changes
-Use a short subject line followed by a bulleted body. Two leading spaces keep the bullet indentation intact inside the commit message. Remember to convert inner double quotes to single quotes.
+Use a short subject line followed by a `Summary:` block (two leading spaces) and bullet points. Maintain two leading spaces for indentation so the body renders correctly. Only quote strings with single quotes when they represent literal code, commands, or titles.
 
 ```bash
 gac "type(scope): concise summary of change
 
+  Summary:
   - Major accomplishment or change
   - Supporting detail or impacted files
   - Additional context, measurements, or follow-up actions
@@ -139,6 +140,7 @@ gac "type(scope): concise summary of change
 ```bash
 gac "chore: bootstrap codex ssot migration
 
+  Summary:
   - Imported template system, scanner suite, and work-tracking scaffold
   - Ported Serena/agents configuration into `.codex/`
   - Captured baseline scanner outputs for references, duplicates, migration

@@ -35,3 +35,7 @@ Implement helper + validator that enforces handler-driven workflow and evidence 
 - `codex-guard --validate` passes on a clean tree and blocks tasks that skip handler/evidence requirements.
 - Documentation updated (`CODEX.md`, HANDOFF, CHANGELOG) with usage examples.
 - Remaining SSOT remediation work uses this workflow.
+
+## Status (2025-09-20 20:18)
+- `scripts/codex-task` implemented with sessions/work-tracking/scanner commands; docs pending polish.
+- `scripts/codex-guard validate` available; auto-fix + CI integration remain TODO.

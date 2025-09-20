@@ -1,26 +1,28 @@
 # Handoff Document
 
-**Last Session**: 2025-09-20 13:05
+**Last Session**: 2025-09-20 20:18
 **Last Worked By**: loucmane + Codex agent
-**Current State**: Work-tracking scaffolding created, scanner suite ported, initial scans complete.
+**Current State**: Codex-task helper and codex-guard validator implemented and validated locally; remediation planning from scanner outputs still outstanding.
 
 ## What Was Done
 - Seeded the Codex work-tracking structure and documented initial plan/decisions.
 - Ran `scanner.py`, `analyze_references.py`, `find_duplicates.py`, `migration_detector.py`, `generate_fixes.py`, and `safe_reorganize.py` locally with `.codex` integration (outputs under `output/data/` and `scripts/template-ssot-scanner/output/`).
 - Updated tooling documentation to highlight Serena MCP usage in Codex.
 - Drafted enforcement plan (`codex-task` helper + diff-aware guard with optional auto-fix).
+- Implemented `scripts/codex-task` (sessions/work-tracking scaffolds) and `scripts/codex-guard` (diff-aware validator); local guard run passing.
+- Logged compaction checkpoint (session log, Serena memory `compaction_2025-09-20_codex_migration`, git status clean).
 
 ## Current Issues/Blockers
-- Remaining scanner scripts (`find_duplicates.py`, `migration_detector.py`, `generate_fixes.py`, `safe_reorganize.py --dry-run`).
-- `codex-task` helper + guard need implementation wiring.
+- Remediation roadmap from scanner outputs still pending (reports + prioritized fixes).
+- Guard auto-fix/CI integration not yet scoped.
 - Reference fixes and modularization updates remain pending triage from new outputs.
 
 ## Next Steps
-1. Implement `codex-task` helper + diff-aware guard (with optional auto-fix).
-2. Execute remaining SSOT scanners and capture outputs in `reports/`.
-3. Summarize findings (broken refs, circular deps) in `FINDINGS.md` and draft remediation plan in `plans/`.
+1. Synthesize scanner findings into a remediation roadmap and prioritize fix application.
+2. Plan guard auto-fix/CI integration follow-ups (document tasks).
+3. Apply generated reference-fix scripts; address circular dependencies/orphaned files.
 
 ## How to Continue
 - Stay inside the work folder (`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/`).
-- Once ready, use `codex-task` workflows (Serena-driven) to scaffold session entries; meanwhile run scanners via `python3 scripts/template-ssot-scanner/<tool>.py --dry-run` before applying changes.
+- Use `scripts/codex-task` to scaffold session/work-tracking entries and `scripts/codex-guard validate` to enforce S:W:H:E before finishing tasks.
 - Document results in `reports/` and update TRACKER/CHANGELOG after each major step.

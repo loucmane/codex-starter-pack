@@ -46,5 +46,6 @@ Option 2. `codex-task <workflow>` drives Serena handler lookup, scaffolds S:W:H:
 
 ### Consequences
 - Provides strong enforcement with explicit commands and immediate feedback.
-- Validator can suggest auto-fixes (skeleton entries) when safe.
+- Validator can suggest auto-fixes (skeleton entries) when safe (roadmap item).
 - Keeps wrapper lightweight while still enabling mandatory compliance.
+- Implementation: `scripts/codex-task` (scaffolds logs) + `scripts/codex-guard` (validates S:W:H:E).

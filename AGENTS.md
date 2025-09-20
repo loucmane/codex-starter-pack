@@ -7,6 +7,7 @@
 - **Tools**:
   - Built-ins: `shell`, `update_plan`, `view_image`.
   - MCP Servers: `serena`, `taskmaster-ai`, `context7-mcp`, `sequential-thinking`, `firecrawl-mcp`, `elevenlabs-mcp`, `fpl-mcp` (optional install).
+  - Local Utilities: `scripts/codex-task`, `scripts/codex-guard` (Codex enforcement helpers).
 - **Protocols**: ULTRATHINK handshake (Codex edition), handler search prechecks, registry-first discovery.
 - **Documentation**: see `templates/TOOLS.md` for tool routing and `templates/engine/` for execution protocols.
 

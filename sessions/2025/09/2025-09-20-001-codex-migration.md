@@ -36,15 +36,21 @@ New Codex repository without work-tracking docs, agents catalog, or SSOT outputs
 - **[16:22]** — [S:20250920|W:codex-migration|H:templates/workflows/analysis/evidence-gathering|E:command`python3 scripts/template-ssot-scanner/migration_detector.py`] Generated migration status report (`output/data/migration_status.json`).
 - **[16:23]** — [S:20250920|W:codex-migration|H:templates/workflows/analysis/evidence-gathering|E:command`python3 scripts/template-ssot-scanner/generate_fixes.py`] Produced fix recommendations & scripts (`output/data/fix_recommendations.json`, `output/scripts/`).
 - **[16:24]** — [S:20250920|W:codex-migration|H:templates/workflows/analysis/evidence-gathering|E:command`python3 scripts/template-ssot-scanner/safe_reorganize.py`] Ran safe reorganization simulation (no moves proposed; report in `scripts/template-ssot-scanner/output/reports/`).
+- **[17:29]** — [S:20250920|W:codex-migration|H:templates/workflows/session/compaction|E:note`context approaching limit`] ⚠️ Context approaching limit—preparing for compaction checkpoint.
+- **[17:30]** — [S:20250920|W:codex-migration|H:templates/workflows/session/compaction|E:note`work saved`] Completed scanner documentation + enforcement notes; all changes committed and saved.
+- **[17:30]** — [S:20250920|W:codex-migration|H:templates/workflows/session/compaction|E:note`ready for new chat`] Ready for new context handoff.
+- **[20:16]** — [S:20250920|W:codex-migration|H:templates/coordination/session-swhe-integration|E:files`scripts/codex-task`] Implemented codex-task helper for session/work-tracking scaffolding.
+- **[20:17]** — [S:20250920|W:codex-migration|H:templates/coordination/enforcement-enhancement-session|E:files`scripts/codex-guard`] Built codex-guard validator for diff-aware S:W:H:E compliance and ran local passes.
+- **[20:37]** — [S:20250920|W:codex-migration|H:templates/handlers/triggers/docs/create-docs|E:files`CODEX.md; AGENTS.md; templates/TOOLS.md`] Documented codex-task/codex-guard workflows in top-level guidance.
 
 ### Current Status
-Work-tracking, sessions, and agents catalog aligned with Codex repo. Baseline + follow-up scanner outputs (duplicates, migration status, fix scripts, safe reorg) captured; enforcement helper/guard implementation and remediation execution still pending.
+Work-tracking, sessions, and agents catalog aligned with Codex repo. `codex-task` helper and `codex-guard` validator now live under `scripts/` with local validations passing; remediation planning from the new scanner outputs remains outstanding.
 
 ### 🔄 Progress Summary (in-session)
-- **Completed so far**: Work-tracking scaffold, baseline + follow-up scanner outputs, Serena/AGENTS updates, enforcement plan documented.
-- **Outstanding**: Summarize new scanner reports, implement `codex-task` helper + guard, apply fix scripts.
+- **Completed so far**: Work-tracking scaffold, baseline + follow-up scanner outputs, Serena/AGENTS updates, enforcement helper (`codex-task`) & guard (`codex-guard`), and documentation refresh across CODEX/AGENTS/TOOLS.
+- **Outstanding**: Publish remediation roadmap from scanner outputs, plan guard auto-fix/CI path, and execute fix scripts for modularization cleanup.
 
 ### Next Actions (while session active)
-1. Implement `codex-task` helper + diff-aware guard (with optional auto-fix).
-2. Write up scanner findings in `reports/` and update FINDINGS/CHANGELOG.
-3. Prioritize remediation using generated scripts.
+1. Synthesize scanner outputs into a remediation roadmap (reports + FINDINGS/CHANGELOG updates).
+2. Scope guard auto-fix/CI integration approach and capture follow-up tasks.
+3. Apply generated reference-fix scripts and address circular dependencies/orphaned files.

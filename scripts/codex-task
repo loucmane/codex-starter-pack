@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""Codex task helper for session/work-tracking scaffolding and scanner orchestration."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SESSIONS_DIR = REPO_ROOT / "sessions"
+WORK_TRACKING_BASE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
+PROGRESS_HEADING_SESSION = "### 📝 Progress Log"
+PROGRESS_HEADING_TRACKER = "## Progress Log"
+DEFAULT_TIME_FORMAT_SESSION = "%H:%M"
+DEFAULT_TIME_FORMAT_TRACKER = "%Y-%m-%d %H:%M"
+SCANNER_PATH = REPO_ROOT / "scripts" / "template-ssot-scanner"
+
+class TaskError(Exception):
+    """Custom exception for predictable task failures."""
+
+
+def _load_file_lines(path: Path) -> List[str]:
+    text = path.read_text(encoding="utf-8")
+    # `splitlines()` keeps consistent handling regardless of trailing newline.
+    return text.splitlines()
+
+
+def _write_file_lines(path: Path, lines: Iterable[str]) -> None:
+    content = "\n".join(lines) + "\n"
+    path.write_text(content, encoding="utf-8")
+
+
+def _parse_front_matter(path: Path) -> Dict[str, str]:
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return {}
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    front_matter = parts[1]
+    data: Dict[str, str] = {}
+    for raw_line in front_matter.strip().splitlines():
+        if not raw_line.strip() or raw_line.strip().startswith("#"):
+            continue
+        if ":" not in raw_line:
+            continue
+        key, value = raw_line.split(":", 1)
+        data[key.strip()] = value.strip()
+    return data
+
+
+def _resolve_current_session(explicit: Optional[str] = None) -> Path:
+    if explicit:
+        candidate = (REPO_ROOT / explicit).resolve()
+        if not candidate.exists():
+            raise TaskError(f"Specified session file not found: {candidate}")
+        return candidate
+
+    current_link = SESSIONS_DIR / "current"
+    if current_link.exists():
+        return current_link.resolve()
+
+    # Fallback: find most recent session markdown in sessions directory.
+    candidates = sorted(SESSIONS_DIR.glob("**/*.md"))
+    if not candidates:
+        raise TaskError("No session files located under sessions/.")
+    return candidates[-1]
+
+
+def _resolve_active_work_tracking(explicit: Optional[str] = None) -> Path:
+    if explicit:
+        target = (WORK_TRACKING_BASE / explicit).resolve()
+        if not target.exists():
+            raise TaskError(f"Work-tracking folder not found: {target}")
+        return target
+
+    candidates = [p for p in WORK_TRACKING_BASE.iterdir() if p.is_dir() and p.name.endswith("-ACTIVE")]
+    if not candidates:
+        raise TaskError("No ACTIVE work-tracking folder found under docs/ai/work-tracking/active/.")
+    if len(candidates) > 1:
+        names = ", ".join(p.name for p in candidates)
+        raise TaskError(f"Multiple ACTIVE work-tracking folders found ({names}); specify one via --folder.")
+    return candidates[0]
+
+
+def _derive_session_value(meta: Dict[str, str]) -> str:
+    if "session_id" in meta:
+        session_id = meta["session_id"].strip()
+        if session_id:
+            parts = session_id.split("-")
+            if len(parts) >= 3:
+                return "".join(parts[:3])
+            return session_id.replace("-", "")
+    if "date" in meta:
+        return meta["date"].replace("-", "")
+    raise TaskError("Unable to derive session value from metadata; ensure front matter includes session_id or date.")
+
+
+def _insert_progress_entry(lines: List[str], heading: str, entry_line: str) -> List[str]:
+    try:
+        heading_index = next(idx for idx, line in enumerate(lines) if line.strip() == heading)
+    except StopIteration as exc:
+        raise TaskError(f"Heading '{heading}' not found in target document.") from exc
+
+    last_entry_index: Optional[int] = None
+    for idx in range(heading_index + 1, len(lines)):
+        line = lines[idx]
+        if line.startswith("##") or line.startswith("###"):
+            break
+        if line.startswith("- "):
+            last_entry_index = idx
+
+    insert_at = heading_index + 1 if last_entry_index is None else last_entry_index + 1
+    lines.insert(insert_at, entry_line)
+    return lines
+
+
+def handle_sessions_update(args: argparse.Namespace) -> None:
+    session_path = _resolve_current_session(args.session_file)
+    metadata = _parse_front_matter(session_path)
+    session_value = args.session or _derive_session_value(metadata)
+
+    timestamp = args.time or datetime.now().strftime(DEFAULT_TIME_FORMAT_SESSION)
+    work = args.work
+    handler = args.handler
+    evidence = args.evidence
+    note = args.note
+
+    swhe = f"[S:{session_value}|W:{work}|H:{handler}|E:{evidence}]"
+    entry = f"- **[{timestamp}]** — {swhe} {note}"
+
+    if args.dry_run:
+        print(entry)
+        return
+
+    lines = _load_file_lines(session_path)
+    updated = _insert_progress_entry(lines, PROGRESS_HEADING_SESSION, entry)
+    _write_file_lines(session_path, updated)
+    print(f"Updated session log: {session_path}")
+
+
+def handle_work_tracking_update(args: argparse.Namespace) -> None:
+    work_folder = _resolve_active_work_tracking(args.folder)
+    target_name = args.document if args.document.endswith(".md") else f"{args.document}.md"
+    target_path = work_folder / target_name
+    if not target_path.exists():
+        raise TaskError(f"Work-tracking document not found: {target_path}")
+
+    session_path = _resolve_current_session(args.session_file)
+    metadata = _parse_front_matter(session_path)
+    session_value = args.session or _derive_session_value(metadata)
+
+    timestamp = args.time or datetime.now().strftime(DEFAULT_TIME_FORMAT_TRACKER)
+    swhe = f"[S:{session_value}|W:{args.work}|H:{args.handler}|E:{args.evidence}]"
+    entry = f"- **{timestamp}** — {swhe} {args.note}"
+
+    if args.dry_run:
+        print(entry)
+        return
+
+    lines = _load_file_lines(target_path)
+    updated = _insert_progress_entry(lines, PROGRESS_HEADING_TRACKER, entry)
+    _write_file_lines(target_path, updated)
+    print(f"Updated work-tracking log: {target_path}")
+
+
+def _resolve_scanner(tool: str) -> Path:
+    mapping = {
+        "scanner": SCANNER_PATH / "scanner.py",
+        "analyze": SCANNER_PATH / "analyze_references.py",
+        "duplicates": SCANNER_PATH / "find_duplicates.py",
+        "migration": SCANNER_PATH / "migration_detector.py",
+        "fixes": SCANNER_PATH / "generate_fixes.py",
+        "safe-reorg": SCANNER_PATH / "safe_reorganize.py",
+    }
+    if tool not in mapping:
+        valid = ", ".join(sorted(mapping.keys()))
+        raise TaskError(f"Unknown scanner tool '{tool}'. Valid options: {valid}")
+    target = mapping[tool]
+    if not target.exists():
+        raise TaskError(f"Scanner script not found at {target}")
+    return target
+
+
+def handle_scanner_run(args: argparse.Namespace) -> None:
+    script_path = _resolve_scanner(args.tool)
+    extra_args = getattr(args, "scanner_args", [])
+    cmd = [sys.executable, str(script_path)] + extra_args
+    print("Running:", " ".join(cmd))
+    result = subprocess.run(cmd, cwd=str(REPO_ROOT))
+    if result.returncode != 0:
+        raise TaskError(f"Scanner command failed with exit code {result.returncode}")
+
+    if args.log_note:
+        log_kwargs = {
+            "work": args.work,
+            "handler": args.handler,
+            "evidence": args.evidence,
+            "note": args.log_note,
+            "session_file": args.session_file,
+            "session": args.session,
+            "time": args.time,
+            "dry_run": args.dry_run,
+        }
+        handle_sessions_update(argparse.Namespace(**log_kwargs))
+        handle_work_tracking_update(argparse.Namespace(
+            work=args.work,
+            handler=args.handler,
+            evidence=args.evidence,
+            note=args.log_note,
+            folder=args.folder,
+            document=args.document,
+            session_file=args.session_file,
+            session=args.session,
+            time=args.time,
+            dry_run=args.dry_run,
+        ))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Codex task helper")
+    parser.add_argument("--session", help="Override S field session value", default=None)
+    parser.add_argument("--session-file", help="Path to specific session markdown", default=None)
+    parser.add_argument("--time", help="Override timestamp")
+    parser.add_argument("--dry-run", action="store_true", help="Print output without writing to files")
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    sessions_parser = subparsers.add_parser("sessions", help="Session log operations")
+    sessions_sub = sessions_parser.add_subparsers(dest="subcommand", required=True)
+    sessions_update = sessions_sub.add_parser("update", help="Append entry to current session progress log")
+    sessions_update.add_argument("--work", required=True, help="W field value")
+    sessions_update.add_argument("--handler", required=True, help="H field value")
+    sessions_update.add_argument("--evidence", required=True, help="E field value")
+    sessions_update.add_argument("--note", required=True, help="Log note")
+    sessions_update.set_defaults(func=handle_sessions_update)
+
+    work_parser = subparsers.add_parser("work-tracking", help="Work-tracking document operations")
+    work_sub = work_parser.add_subparsers(dest="subcommand", required=True)
+    work_update = work_sub.add_parser("update", help="Append entry to work-tracking progress log")
+    work_update.add_argument("--work", required=True, help="W field value")
+    work_update.add_argument("--handler", required=True, help="H field value")
+    work_update.add_argument("--evidence", required=True, help="E field value")
+    work_update.add_argument("--note", required=True, help="Log note")
+    work_update.add_argument("--document", default="TRACKER", help="Work-tracking markdown name (default TRACKER)")
+    work_update.add_argument("--folder", help="Specific ACTIVE folder relative name")
+    work_update.set_defaults(func=handle_work_tracking_update)
+
+    scanner_parser = subparsers.add_parser("scanner", help="SSOT scanner operations")
+    scanner_sub = scanner_parser.add_subparsers(dest="subcommand", required=True)
+    scanner_run = scanner_sub.add_parser("run", help="Run a scanner tool and optionally log results")
+    scanner_run.add_argument("tool", help="Scanner tool key (scanner, analyze, duplicates, migration, fixes, safe-reorg)")
+    scanner_run.add_argument("--work", required=True, help="W field value for logging")
+    scanner_run.add_argument("--handler", required=True, help="H field value for logging")
+    scanner_run.add_argument("--evidence", required=True, help="E field value for logging")
+    scanner_run.add_argument("--log-note", help="Log note to append after successful run")
+    scanner_run.add_argument("--folder", help="Work-tracking folder override")
+    scanner_run.add_argument("--document", default="TRACKER", help="Work-tracking markdown name for logging")
+    scanner_run.set_defaults(func=handle_scanner_run)
+
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = build_parser()
+    args, unknown = parser.parse_known_args(argv)
+
+    if unknown:
+        if getattr(args, "command", None) == "scanner" and getattr(args, "subcommand", None) == "run":
+            setattr(args, "scanner_args", unknown)
+        else:
+            parser.error(f"unrecognized arguments: {' '.join(unknown)}")
+
+    try:
+        args.func(args)
+    except TaskError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        print("Interrupted", file=sys.stderr)
+        return 130
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Codex diff-aware guard for S:W:H:E validation and workflow enforcement."""
+
+from __future__ import annotations
+
+import argparse
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SESSIONS_PREFIX = Path("sessions")
+WORK_TRACKING_PREFIX = Path("docs/ai/work-tracking/active")
+GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
+SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
+PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
+PLACEHOLDER_HANDLERS_LOWER = {value.lower() for value in PLACEHOLDER_HANDLERS}
+
+@dataclass
+class ValidationIssue:
+    path: Path
+    message: str
+    entry: Optional[str] = None
+
+    def render(self) -> str:
+        prefix = f"{self.path.as_posix()}: {self.message}"
+        if self.entry:
+            return f"{prefix} | entry: {self.entry}"
+        return prefix
+
+
+def run_git_status(include_untracked: bool) -> List[Path]:
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(REPO_ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"git status failed: {exc}")
+
+    changed: List[Path] = []
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        status = line[:2]
+        path_fragment = line[3:]
+        if "->" in path_fragment:
+            path_fragment = path_fragment.split("->", 1)[1].strip()
+        if status == "??" and not include_untracked:
+            continue
+        if status.strip() == "D":
+            # Deleted file; no validation required
+            continue
+        changed.append((REPO_ROOT / path_fragment).resolve())
+    return sorted(set(changed))
+
+
+def parse_front_matter_text(text: str) -> Dict[str, str]:
+    if not text.startswith("---"):
+        return {}
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    front_matter = parts[1]
+    data: Dict[str, str] = {}
+    for raw_line in front_matter.strip().splitlines():
+        if not raw_line.strip() or raw_line.strip().startswith("#"):
+            continue
+        if ":" not in raw_line:
+            continue
+        key, value = raw_line.split(":", 1)
+        data[key.strip()] = value.strip()
+    return data
+
+
+def derive_expected_session(meta: Dict[str, str]) -> Optional[str]:
+    if "session_id" in meta:
+        parts = meta["session_id"].split("-")
+        if len(parts) >= 3:
+            return "".join(parts[:3])
+        return meta["session_id"].replace("-", "")
+    if "date" in meta:
+        return meta["date"].replace("-", "")
+    return None
+
+
+def handler_path_exists(handler_value: str) -> bool:
+    handler_value = handler_value.strip()
+    if handler_value.startswith("templates/"):
+        relative = Path(handler_value)
+        candidates = [REPO_ROOT / relative, REPO_ROOT / (relative.with_suffix(".md"))]
+        for candidate in candidates:
+            if candidate.exists():
+                return True
+        return False
+    # Non-template handlers (e.g., H:searching) handled separately
+    return True
+
+
+def validate_swhe_entries(path: Path, text: str, expected_session: Optional[str]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    matches = list(SWHE_PATTERN.finditer(text))
+    if not matches:
+        issues.append(ValidationIssue(path, "No S:W:H:E entries detected"))
+        return issues
+
+    for match in matches:
+        entry_text = match.group(0)
+        s_val = match.group("S").strip()
+        w_val = match.group("W").strip()
+        h_val = match.group("H").strip()
+        e_val = match.group("E").strip()
+
+        if not s_val:
+            issues.append(ValidationIssue(path, "Empty S field", entry_text))
+        if not w_val:
+            issues.append(ValidationIssue(path, "Empty W field", entry_text))
+        if not h_val:
+            issues.append(ValidationIssue(path, "Empty H field", entry_text))
+        if not e_val:
+            issues.append(ValidationIssue(path, "Empty E field", entry_text))
+
+        if expected_session and s_val not in {expected_session, "current"} and not s_val.startswith("VOID"):
+            issues.append(ValidationIssue(path, f"S field '{s_val}' does not match session '{expected_session}'", entry_text))
+
+        handler_key = h_val.lower()
+        if handler_key in PLACEHOLDER_HANDLERS_LOWER:
+            issues.append(ValidationIssue(path, "Handler still in placeholder state", entry_text))
+        elif h_val.startswith("templates/") and not handler_path_exists(h_val):
+            issues.append(ValidationIssue(path, "Referenced handler path not found", entry_text))
+
+        if e_val.lower() in {"pending", "searching"}:
+            issues.append(ValidationIssue(path, "Evidence still marked as pending/searching", entry_text))
+
+    return issues
+
+
+def evaluate_file(path: Path) -> List[ValidationIssue]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return []
+
+    metadata = {}
+    if path.relative_to(REPO_ROOT).parts[0] == "sessions":
+        metadata = parse_front_matter_text(text)
+    expected_session = derive_expected_session(metadata)
+    issues = validate_swhe_entries(path.relative_to(REPO_ROOT), text, expected_session)
+    return issues
+
+
+def guard_validate(args: argparse.Namespace) -> int:
+    changed_files = run_git_status(args.include_untracked)
+    relevant: List[Path] = []
+    for file_path in changed_files:
+        try:
+            relative = file_path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if relative.suffix != ".md":
+            continue
+        if relative.parts[0] == "sessions":
+            relevant.append(file_path)
+        elif (relative.parts[:len(WORK_TRACKING_PREFIX.parts)] == WORK_TRACKING_PREFIX.parts
+              and relative.name in GUARDED_WORKTRACKING_FILES):
+            relevant.append(file_path)
+
+    if not relevant:
+        print("No relevant markdown files changed; guard passes by default.")
+        return 0
+
+    all_issues: List[ValidationIssue] = []
+    for candidate in relevant:
+        all_issues.extend(evaluate_file(candidate))
+
+    if all_issues:
+        print("Guard validation failed:")
+        for issue in all_issues:
+            print(f"  - {issue.render()}")
+        return 1
+
+    print("Guard validation passed: all S:W:H:E entries look compliant.")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Codex diff-aware guard")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    validate_parser = subparsers.add_parser("validate", help="Validate S:W:H:E compliance in changed files")
+    validate_parser.add_argument("--include-untracked", action="store_true", help="Include untracked markdown files")
+    validate_parser.set_defaults(func=guard_validate)
+
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

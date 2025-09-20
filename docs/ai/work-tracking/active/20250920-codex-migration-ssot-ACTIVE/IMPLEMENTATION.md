@@ -18,10 +18,10 @@ Codex-first migration of the Claude template system. We need a clean Single Sour
 6. Plan and apply modular template fixes (post-scanner) with `--dry-run` validation.
 7. Document outcomes in FINDINGS/CHANGELOG and update TRACKER/HANDOFF.
 8. Implement `codex-task` helper + diff-aware guard (see Plans section):
-   - `codex-task <workflow>` invokes Serena to locate the handler, scaffolds S:W:H:E entries, and runs a validator.
-   - Validator (diff-aware) ensures handler references, template compliance, evidence (file:line / command output), and `date`/`git` accuracy before allowing completion.
-   - Provide optional `--auto-fix` mode to insert skeleton sections when safe; failures output remediation guidance.
-   - Document usage in CODEX.md and wire optional pre-commit/CI hooks.
+   - `scripts/codex-task` provides `sessions update`, `work-tracking update`, and `scanner run` subcommands that auto-scaffold S:W:H:E entries.
+   - `scripts/codex-guard validate` inspects changed session/work-tracking files for handler/evidence compliance (supports `--include-untracked`).
+   - Document usage in CODEX.md, AGENTS.md, and templates/TOOLS.md; keep optional pre-commit/CI wiring on the roadmap.
+   - TODO: extend guard with auto-fix skeletons when safe (tracked in plans).
 
 ## Success Criteria
 - Work-tracking structure exists with populated files and subfolders.

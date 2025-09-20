@@ -66,6 +66,14 @@
 5. **Profile awareness** – Know whether you’re in `deep-work` or `fast-iterate`; reasoning depth changes expectations.
 6. **Conversation context** – For small-talk or non-work queries, acknowledge and respond without invoking the full engine.
 
+## 🛡️ Codex Enforcement Utilities
+- `scripts/codex-task sessions update --work <W> --handler <H> --evidence <E> --note <text>` appends S:W:H:E entries to the active session progress log.
+- `scripts/codex-task work-tracking update --document TRACKER --work <W> --handler <H> --evidence <E> --note <text>` mirrors the entry in the ACTIVE work-tracking docs.
+- `scripts/codex-task scanner run <tool> --work <W> --handler <H> --evidence <E> --log-note <text>` runs SSOT scanners and (optionally) logs the result.
+- `scripts/codex-guard validate [--include-untracked]` ensures changed session/work-tracking files carry valid handler/evidence data before completion.
+- Run the guard prior to handoff/compaction; auto-fix support remains on the roadmap (log TODOs in work-tracking).
+
+
 ---
 
 ## 🧩 REMINDERS
