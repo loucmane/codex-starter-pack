@@ -22,10 +22,10 @@ This behavior fires whenever:
 CRITICAL CHECKLIST - MUST VERIFY ALL:
 □ NO double quotes inside message (would break gac)
 □ Has type prefix (feat/fix/docs/chore/style/refactor/test)
-□ Follows format: "type: description"
+□ Subject line fits "type(scope): summary" format
+□ Multi-line body (when present) uses two-space bullet list
 □ Any internal quotes use single quotes (')
-□ Message provided raw (no code blocks)
-□ No extra text or formatting
+□ Message provided raw (no code blocks / wrappers)
 ```
 
 ### Step-by-Step Process
@@ -108,13 +108,13 @@ AI: docs: update README with installation steps
 ## Multi-line Commit Format
 When user needs detailed commit:
 ```
-type: one-line summary
+type(scope): concise summary of change
 
-- First bullet point
-- Second bullet point  
-- Third bullet point
+  - Primary outcome or change
+  - Supporting detail (files, counts, measurements)
+  - Follow-up actions or context (tests, docs, plans)
 
-Additional context if needed
+  Work tracking: YYYYMMDD-work-folder-ACTIVE
 ```
 
 ## Special gac Considerations

@@ -120,29 +120,31 @@ gac "FEAT: uppercase type"                 # Types are lowercase
 - **Issue references**: `Closes #123`, `Fixes #456`
 - **Co-authors**: `Co-authored-by: Name <email>`
 
-## Multi-line Commit Format
+## Multi-line Commit Format (Codex Default)
 
 ### For Complex Changes
+Use a short subject line followed by a bulleted body. Two leading spaces keep the bullet indentation intact inside the commit message. Remember to convert inner double quotes to single quotes.
+
 ```bash
-gac "type: comprehensive one-line summary
+gac "type(scope): concise summary of change
 
-- Major accomplishment or change
-- Another significant update
-- Key feature or fix
-- Important refactor or cleanup
+  - Major accomplishment or change
+  - Supporting detail or impacted files
+  - Additional context, measurements, or follow-up actions
 
-Work tracking: folder-name-ACTIVE"
+  Work tracking: YYYYMMDD-folder-ACTIVE"
 ```
 
 ### Real Example
 ```bash
-gac "feat: add 'Development Mode' checkpoint to execution engine
+gac "chore: bootstrap codex ssot migration
 
-- Added checkpoint with 'trigger detection' phase
-- Implemented 'handler lookup' verification
-- Created 'ERROR' state for non-compliance
+  - Imported template system, scanner suite, and work-tracking scaffold
+  - Ported Serena/agents configuration into `.codex/`
+  - Captured baseline scanner outputs for references, duplicates, migration
+  - Documented enforcement plan for codex-task + diff-aware guard
 
-Work tracking: 20250718-checkpoint-implementation-ACTIVE"
+  Work tracking: 20250920-codex-migration-ssot-ACTIVE"
 ```
 
 ## When User Asks for Commit Message
