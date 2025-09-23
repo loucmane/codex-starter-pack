@@ -559,7 +559,7 @@
           {
             "id": 4,
             "title": "Implement Boundary Validation Logic",
-            "description": "Define and enforce rules for mocking boundaries (e.g., service layer → infrastructure, domain → external) and flag violations.",
+            "description": "Define and enforce rules for mocking boundaries (e.g., service layer \u2192 infrastructure, domain \u2192 external) and flag violations.",
             "dependencies": [
               "6.3"
             ],
@@ -742,7 +742,7 @@
         "id": 8,
         "title": "Create Template Registry System",
         "description": "Build centralized registry for template discovery and management",
-        "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular → compatibility map → legacy → Serena → error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
+        "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular \u2192 compatibility map \u2192 legacy \u2192 Serena \u2192 error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
         "testStrategy": "Benchmark discovery time (<50ms), test fallback chain order, verify cache invalidation, test search functionality, ensure thread-safety",
         "priority": "high",
         "dependencies": [
@@ -785,7 +785,7 @@
           {
             "id": 4,
             "title": "Develop Fallback Chain Logic",
-            "description": "Create fallback chain logic in `src/codex/registry/fallback.py` to resolve templates in the order: modular → compatibility map → legacy → Serena → error.",
+            "description": "Create fallback chain logic in `src/codex/registry/fallback.py` to resolve templates in the order: modular \u2192 compatibility map \u2192 legacy \u2192 Serena \u2192 error.",
             "dependencies": [
               "8.1",
               "8.2",
@@ -1073,7 +1073,7 @@
         "id": 11,
         "title": "Create Migration Roadmap Generator",
         "description": "Build tool to generate prioritized migration plan from scanner outputs",
-        "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) → high (monolith refs) → medium (duplicates) → low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
+        "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) \u2192 high (monolith refs) \u2192 medium (duplicates) \u2192 low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
         "testStrategy": "Verify roadmap covers all scanner findings, test priority ordering logic, validate Taskmaster format compatibility, ensure estimates are reasonable",
         "priority": "medium",
         "dependencies": [
@@ -1487,10 +1487,10 @@
       },
       {
         "id": 15,
-        "title": "Implement Serena MCP Integration",
-        "description": "Configure Serena for semantic search and memory management",
-        "details": "Install Serena MCP server (version >=0.23). Configure connection in .mcp.json. Implement SerenaClient wrapper class. Add memory storage for migration checkpoints. Create search indices for templates. Implement regex and symbol analysis features. Add memory compaction support. Configure retention policies (180 days active).",
-        "testStrategy": "Test Serena connectivity, verify memory storage and retrieval, test search functionality, validate compaction process",
+        "title": "Enforce Serena Integration for Template System",
+        "description": "Guarantee that template discovery, analysis, and evidence gathering are always routed through Serena MCP, with enforcement across docs, guard, and workflows.",
+        "details": "Update documentation, guard rules, and work-tracking flows so Serena is the mandatory entry point for template discovery and evidence gathering. Provide reference queries, ensure memories (scanner baselines, compaction checkpoints) are maintained, and remove manual workarounds.",
+        "testStrategy": "Run an end-to-end template change using Serena queries, guard validation, and recorded evidence across sessions/work-tracking.",
         "priority": "medium",
         "dependencies": [
           12
@@ -1499,87 +1499,95 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Create Phase 1 Planning Documentation",
-            "description": "Draft the Phase 1 planning document at docs/phases/phase1_planning.md, including sections for project charter, stakeholder analysis, resource requirements, and success criteria. Add a timeline with weekly milestones.",
+            "title": "Update Template System Documentation for Serena Routing",
+            "description": "Document mandatory Serena usage across CODEX.md, CLAUDE.md, templates/TOOLS.md, and work-tracking guidance.",
             "dependencies": [],
-            "details": "Ensure the document is production-ready, clearly structured, and includes actionable milestones for the SSOT migration.",
+            "details": "Update references so developers must use Serena for registry-first discovery and evidence collection, citing command examples and logging requirements.",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 2,
-            "title": "Develop Phase 2 Analysis Documentation",
-            "description": "Produce the Phase 2 analysis document at docs/phases/phase2_analysis.md, covering current state assessment, gap analysis, technical debt inventory, and migration readiness score calculation.",
+            "title": "Configure Serena Activation in MCP and Session Workflows",
+            "description": "Ensure Serena project activation is automatic in .mcp.json, session templates, and handoff docs.",
             "dependencies": [
               "15.1"
             ],
-            "details": "Use quantitative and qualitative analysis to assess migration readiness and document all findings in a structured format.",
+            "details": "Document activation via `serena activate_project codex` and add checkpoints to session/handoff templates so activation is never skipped.",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 3,
-            "title": "Build Phase 3 Implementation Guide",
-            "description": "Create the Phase 3 implementation guide at docs/phases/phase3_implementation.md, including sprint planning templates, feature flags strategy, incremental rollout plan, and parallel run procedures.",
+            "title": "Create Serena Query Reference",
+            "description": "Provide quick-reference scripts for Serena commands (find_symbol, search_for_pattern, memories).",
             "dependencies": [
-              "15.2"
+              "15.1"
             ],
-            "details": "Ensure the guide supports agile delivery and safe migration, with clear instructions for incremental deployment.",
+            "details": "Write docs/reference/serena_queries.md showing command usage, output expectations, and evidence logging patterns.",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 4,
-            "title": "Design Phase 4 Validation Framework",
-            "description": "Develop the Phase 4 validation framework at docs/phases/phase4_validation.md, including test scenarios, acceptance criteria, performance benchmarks, and regression test suites.",
+            "title": "Seed and Maintain Serena Memories",
+            "description": "Ensure baseline scanner outputs and compaction checkpoints are stored as Serena memories with retention policies.",
             "dependencies": [
               "15.3"
             ],
-            "details": "Define comprehensive validation procedures to ensure migration quality and performance targets are met.",
+            "details": "Create/maintain memories (compaction, enforcement, template baselines) and document naming/retention (180 days active).",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 5,
-            "title": "Create Phase 5 Deployment Runbook",
-            "description": "Write the Phase 5 deployment runbook at docs/phases/phase5_deployment.md, with cutover checklist, rollback procedures, monitoring alerts, and incident response protocols.",
+            "title": "Update codex-guard to Require Serena Evidence",
+            "description": "Modify guard validation to fail template edits lacking Serena-backed evidence.",
             "dependencies": [
-              "15.4"
+              "15.2",
+              "15.3"
             ],
-            "details": "Ensure the runbook is actionable, with clear steps for deployment, monitoring, and rapid incident response.",
+            "details": "Add checks ensuring changed templates include Serena evidence references; include clear diagnostics and allowlist rules.",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 6,
-            "title": "Implement Milestone Tracking System",
-            "description": "Develop a milestone tracking system at docs/phases/milestones.yaml, defining a YAML schema for milestone definitions, progress tracking, and automated status reporting.",
+            "title": "Embed Serena Usage in Work-Tracking Templates",
+            "description": "Add Serena checkpoints to TRACKER, HANDOFF, and session templates.",
             "dependencies": [
               "15.1"
             ],
-            "details": "Design the schema to support automated tools and integrate with project dashboards if required.",
+            "details": "Update work-tracking files so every template change checklist includes Serena search/memory logging steps.",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 7,
-            "title": "Build Risk Register Database",
-            "description": "Create a risk register at docs/phases/risk_register.json, including a risk scoring algorithm, mitigation strategies, owner assignments, and trigger conditions.",
+            "title": "Provide Serena-Driven S:W:H:E Examples",
+            "description": "Create sample S:W:H:E entries demonstrating Serena query snippets and evidence logs.",
             "dependencies": [
-              "15.2"
+              "15.3",
+              "15.6"
             ],
-            "details": "Ensure the database is structured for easy updates and supports automated risk reporting.",
+            "details": "Document examples in docs/examples/serena_evidence.md showing how to cite Serena output in sessions/work-tracking logs.",
             "status": "pending",
             "testStrategy": ""
           },
           {
             "id": 8,
-            "title": "Develop Stakeholder Communication Toolkit",
-            "description": "Assemble a stakeholder communication toolkit at docs/phases/templates/, including email templates, status report formats, escalation procedures, and meeting agendas.",
+            "title": "Execute End-to-End Serena Validation",
+            "description": "Perform a dry run applying a template edit using Serena queries, guard validation, and work-tracking logging.",
             "dependencies": [
-              "15.1"
+              "15.1",
+              "15.2",
+              "15.3",
+              "15.4",
+              "15.5",
+              "15.6",
+              "15.7"
             ],
-            "details": "Provide reusable, professional templates to streamline stakeholder communications throughout all migration phases.",
+            "details": "Run a sample template modification, document Serena searches/memories, capture guard output, and update session/work-tracking evidence.",
             "status": "pending",
             "testStrategy": ""
           }
@@ -2601,7 +2609,7 @@
             "dependencies": [
               "25.1"
             ],
-            "details": "Test data located at 'validation/phase0/test_data/'. Acceptance criteria: ≥98% true positive rate, ≤2% false positive rate. Document results in 'validation/phase0/results/accuracy_metrics.json'.",
+            "details": "Test data located at 'validation/phase0/test_data/'. Acceptance criteria: \u226598% true positive rate, \u22642% false positive rate. Document results in 'validation/phase0/results/accuracy_metrics.json'.",
             "status": "pending",
             "testStrategy": ""
           },
@@ -2889,7 +2897,7 @@
         "id": 28,
         "title": "Implement Dual-Path Discovery",
         "description": "Create fallback system for template discovery during migration",
-        "details": "Implement discovery chain: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
+        "details": "Implement discovery chain: modular check \u2192 compatibility map lookup \u2192 legacy monolith search \u2192 Serena semantic search \u2192 error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
         "testStrategy": "Test each fallback path, verify correct order, test circuit breaker activation, measure discovery performance",
         "priority": "high",
         "dependencies": [
@@ -2901,7 +2909,7 @@
           {
             "id": 1,
             "title": "Implement Dual Path Manager Core Logic",
-            "description": "Develop the main orchestration logic for dual-path discovery in `src/codex/discovery/dual_path.py`, ensuring correct ordering: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions.",
+            "description": "Develop the main orchestration logic for dual-path discovery in `src/codex/discovery/dual_path.py`, ensuring correct ordering: modular check \u2192 compatibility map lookup \u2192 legacy monolith search \u2192 Serena semantic search \u2192 error with suggestions.",
             "dependencies": [],
             "details": "Implement the discovery chain as a modular, extensible pipeline. Ensure each step can trigger the next on failure, and errors are handled with actionable suggestions. Integrate with configuration at `config/discovery.yaml` for path ordering and enable/disable flags.",
             "status": "pending",
@@ -2997,7 +3005,7 @@
         "id": 29,
         "title": "Create Template Lifecycle Management",
         "description": "Implement system for template creation, versioning, and deprecation",
-        "details": "Create lifecycle states: draft → review → stable → deprecated → archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
+        "details": "Create lifecycle states: draft \u2192 review \u2192 stable \u2192 deprecated \u2192 archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
         "testStrategy": "Test state transitions, verify deprecation warnings appear, test grace period enforcement, validate archival process",
         "priority": "medium",
         "dependencies": [
@@ -3028,7 +3036,7 @@
           {
             "id": 3,
             "title": "Develop Template Deployment Pipeline",
-            "description": "Implement a multi-stage deployment pipeline (dev → staging → prod) with automated validation, rollback, blue-green deployment support, and deployment metrics/logging.",
+            "description": "Implement a multi-stage deployment pipeline (dev \u2192 staging \u2192 prod) with automated validation, rollback, blue-green deployment support, and deployment metrics/logging.",
             "dependencies": [
               "29.2"
             ],
@@ -3502,7 +3510,7 @@
         "id": 34,
         "title": "Implement A/B Testing Framework",
         "description": "Create system for gradual template rollout and testing",
-        "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% → 50% → 100%).",
+        "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% \u2192 50% \u2192 100%).",
         "testStrategy": "Test feature flag toggling, verify metrics separation, test auto-rollback trigger, validate gradual rollout",
         "priority": "low",
         "dependencies": [
@@ -3578,7 +3586,7 @@
           {
             "id": 7,
             "title": "Enable Gradual Rollout Progression",
-            "description": "Automate progression of rollout stages (10% → 50% → 100%) based on health metrics and feedback, with configurable thresholds.",
+            "description": "Automate progression of rollout stages (10% \u2192 50% \u2192 100%) based on health metrics and feedback, with configurable thresholds.",
             "dependencies": [
               "34.2",
               "34.4"
@@ -3921,7 +3929,7 @@
         "id": 38,
         "title": "Execute Phase 1 Reference Remediation",
         "description": "Complete Phase 1 reference fixes and validation",
-        "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine → patterns → remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
+        "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine \u2192 patterns \u2192 remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
         "testStrategy": "All references must resolve, guard validation passes, performance targets met, rollback tested successfully",
         "priority": "high",
         "dependencies": [
@@ -4128,7 +4136,7 @@
         "id": 40,
         "title": "Create Canary Deployment System",
         "description": "Build infrastructure for gradual migration rollout",
-        "details": "Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
+        "details": "Implement canary stages: Codex (24h) \u2192 Claude (48h) \u2192 Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
         "testStrategy": "Test stage progression, verify health checks, test rollback triggers, validate traffic splitting",
         "priority": "medium",
         "dependencies": [

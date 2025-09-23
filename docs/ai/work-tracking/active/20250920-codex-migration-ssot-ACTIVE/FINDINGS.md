@@ -18,6 +18,7 @@
 - Scanner run inside Codex repo completed in ~0.2s (thanks to limited file set and local execution).
 
 ## Issues Encountered
+- Taskmaster task graph requires audit to ensure each task/subtask aligns with the template migration plan (Session 2025-09-22-001).
 - Optional packages for sequential thinking/fpl MCP still need manual installation; tracked separately.
 - Migration status reports show majority of monolithic files still partially/not migrated (needs remediation via generated scripts).
 

@@ -14,6 +14,7 @@
 - Upgraded migration PRD with executive summary, RACI, dashboards, communication templates, and success scorecard to drive Taskmaster planning.
 
 ## Current Issues/Blockers
+- Taskmaster task graph under manual audit to correct misaligned definitions (2025-09-22 session).
 - Taskmaster CLI parse awaiting valid Anthropic API key to generate 80/300 task graph.
 - Remediation roadmap from scanner outputs still pending (reports + prioritized fixes).
 - Guard auto-fix/CI integration not yet scoped.
