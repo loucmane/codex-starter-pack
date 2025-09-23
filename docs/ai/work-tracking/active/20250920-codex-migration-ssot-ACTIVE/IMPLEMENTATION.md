@@ -22,11 +22,13 @@ Codex-first migration of the Claude template system. We need a clean Single Sour
    - `scripts/codex-guard validate` inspects changed session/work-tracking files for handler/evidence compliance (supports `--include-untracked`).
    - Document usage in CODEX.md, AGENTS.md, and templates/TOOLS.md; keep optional pre-commit/CI wiring on the roadmap.
    - TODO: extend guard with auto-fix skeletons when safe (tracked in plans).
+9. Produce enterprise-grade migration PRD (executive summary, RACI, dashboards, governance, scorecard) as input for Taskmaster planning.
 
 ## Success Criteria
 - Work-tracking structure exists with populated files and subfolders.
 - Sessions directory records today’s migration work with evidence links.
 - SSOT scanner outputs live under `scripts/template-ssot-scanner/output/` for this repo and match the safety rules from the August analysis.
 - Tooling documentation explicitly references Serena + Codex MCP usage.
+- Enterprise migration PRD ready for Taskmaster parsing (80/300 task target).
 - Ready list of remaining modularization tasks accompanied by clean scanner reports.
 - `codex-task` helper + guard run cleanly (`codex-task …`, `codex-guard --validate`).

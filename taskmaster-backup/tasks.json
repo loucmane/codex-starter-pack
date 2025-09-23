@@ -1,0 +1,1190 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Analyze Current Codebase Structure",
+        "description": "Perform comprehensive analysis of the existing Codex repository to understand current template system, monolithic files, and migration readiness",
+        "details": "Use Glob to explore project structure ('**/*.md', '**/*.py', '**/templates/**'), Grep to search for template references and patterns, Read key files (CLAUDE.md, CODEX.md, package.json). Document existing monolithic files (WORKFLOWS.md, PATTERNS.md), current template locations, reference patterns, and integration points. Create baseline inventory of all template-related files and their dependencies.",
+        "testStrategy": "Verify inventory completeness by cross-referencing with git ls-files, ensure all template references are captured, validate file paths and accessibility",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Inventory Project Structure and File Organization",
+            "description": "Use Glob to discover and catalog all markdown files, Python files, and template directories in the codebase",
+            "dependencies": [],
+            "details": "Execute Glob patterns: '**/*.md' for all markdown files, '**/*.py' for Python scripts, '**/templates/**' for template directories, '**/docs/**' for documentation structure. Create a comprehensive file inventory with paths, sizes, and last modified dates. Document directory hierarchy and identify non-standard file locations.",
+            "status": "pending",
+            "testStrategy": "Cross-reference glob results with 'git ls-files' output, verify all file paths are accessible, check for orphaned or unreferenced files"
+          },
+          {
+            "id": 2,
+            "title": "Analyze Template Reference Patterns",
+            "description": "Search codebase for all template references, imports, and usage patterns using Grep",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Use Grep to find: '@templates/', '@./', 'import.*template', 'require.*template', template function calls, YAML/JSON template references. Document reference formats (relative vs absolute paths), identify cross-directory references, catalog template naming conventions.",
+            "status": "pending",
+            "testStrategy": "Validate each discovered reference resolves to an actual file, test regex patterns against known template references, ensure no false positives"
+          },
+          {
+            "id": 3,
+            "title": "Document Monolithic File Dependencies",
+            "description": "Analyze WORKFLOWS.md, PATTERNS.md, and other large consolidated files to map their internal structure and external dependencies",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Read and parse WORKFLOWS.md and PATTERNS.md files. Extract section headers and create outline. Identify embedded templates, code snippets, and references. Map dependencies to other files. Document which components rely on these monolithic files. Calculate line counts and complexity metrics.",
+            "status": "pending",
+            "testStrategy": "Verify all internal links and references are valid, check for circular dependencies, validate section hierarchy"
+          },
+          {
+            "id": 4,
+            "title": "Examine Core Configuration Files",
+            "description": "Deep dive into CLAUDE.md, CODEX.md, package.json, and other configuration files to understand project setup and constraints",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Read CLAUDE.md for AI assistant configuration and conventions. Parse CODEX.md for project-specific rules and patterns. Analyze package.json for dependencies and scripts. Check for .taskmaster/, .serena/, and other tool configurations. Document integration points and API keys.",
+            "status": "pending",
+            "testStrategy": "Validate JSON/YAML syntax, verify all referenced scripts exist, check configuration compatibility"
+          },
+          {
+            "id": 5,
+            "title": "Map Template Category Hierarchy",
+            "description": "Identify and categorize all template types (conventions, workflows, patterns, etc.) and their relationships",
+            "dependencies": [
+              "1.2",
+              "1.3"
+            ],
+            "details": "Classify templates by type: convention templates, workflow templates, pattern templates, documentation templates. Create hierarchy map showing parent-child relationships. Document template metadata formats (frontmatter, headers). Identify template inheritance patterns.",
+            "status": "pending",
+            "testStrategy": "Ensure every template is categorized, verify category assignments match content, test hierarchy for logical consistency"
+          },
+          {
+            "id": 6,
+            "title": "Analyze Import and Reference Graph",
+            "description": "Build comprehensive dependency graph showing how templates reference each other and external resources",
+            "dependencies": [
+              "1.2",
+              "1.5"
+            ],
+            "details": "Create directed graph of template dependencies. Identify circular references and dependency chains. Map external resource dependencies (APIs, tools, libraries). Document import depth and complexity. Find templates with highest fan-in/fan-out.",
+            "status": "pending",
+            "testStrategy": "Validate graph completeness by tracing all imports, check for unreachable templates, verify no broken references"
+          },
+          {
+            "id": 7,
+            "title": "Assess Migration Readiness Metrics",
+            "description": "Calculate complexity scores and identify migration risks for each component",
+            "dependencies": [
+              "1.3",
+              "1.4",
+              "1.6"
+            ],
+            "details": "Calculate file size metrics for migration candidates. Identify high-risk dependencies and breaking changes. Assess coupling between components. Document technical debt and refactoring needs. Create priority matrix based on complexity and importance.",
+            "status": "pending",
+            "testStrategy": "Verify metric calculations are accurate, validate risk assessments against known issues, test priority rankings"
+          },
+          {
+            "id": 8,
+            "title": "Generate Baseline Inventory Report",
+            "description": "Compile comprehensive analysis report documenting current state for migration planning",
+            "dependencies": [
+              "1.5",
+              "1.6",
+              "1.7"
+            ],
+            "details": "Create markdown report with: file inventory table, dependency visualization, template catalog, monolithic file analysis, migration readiness scores. Include statistics: total files, template count, dependency depth, complexity metrics. Generate JSON manifest for programmatic access.",
+            "status": "pending",
+            "testStrategy": "Validate report completeness against initial requirements, verify all data sources are included, test JSON manifest parsing"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Setup Python Environment and Dependencies",
+        "description": "Configure Python 3.11+ environment with required dependencies for scanner suite and automation tools",
+        "details": "Install Python 3.11+ via pyenv or system package manager. Create virtual environment using 'python -m venv .venv'. Install dependencies: pip install pytest>=7.4.0 pytest-benchmark>=4.0.0 pytest-cov>=4.1.0 pyyaml>=6.0 click>=8.1.0 rich>=13.5.0. Create pyproject.toml with pinned versions. Setup uv for faster dependency management: pip install uv, then uv pip compile pyproject.toml -o requirements.lock",
+        "testStrategy": "Run 'python --version' to verify 3.11+, execute 'pip freeze' to confirm all packages installed, test import of all required modules, run sample pytest to ensure testing framework works",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Port SSOT Scanner Suite to Codex",
+        "description": "Migrate the Python scanner suite from FPL MCP repository to Codex environment",
+        "details": "Copy scanner modules from ~/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/ to scripts/template-ssot-scanner/. Port main scanner.py, reference_validator.py, duplicate_detector.py, migration_tracker.py. Update import paths and configuration for Codex structure. Implement versioned metadata output format 2.0.0 with compatibility field. Add JSON schema validation using jsonschema library.",
+        "testStrategy": "Run unit tests for each scanner module, verify JSON output matches schema, test on sample template files, ensure backwards compatibility with existing outputs",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Create Scanner Configuration System",
+        "description": "Implement YAML-based configuration for scanner rules, severities, and allowlists",
+        "details": "Create scanner_config.yaml with rule definitions: reference_validation (severity: error, auto_fix: true), duplicate_detection (severity: warning, threshold: 0.8), migration_tracking (severity: info). Implement ConfigLoader class using PyYAML. Add allowlist support for paths like templates/legacy/, docs/examples/. Create rule severity taxonomy (error, warning, info). Implement configuration validation and defaults.",
+        "testStrategy": "Test configuration loading with valid/invalid YAML, verify rule application with different severities, test allowlist pattern matching, ensure defaults work when config missing",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement Codex-Task CLI Tool",
+        "description": "Create command-line utility for task management and work-tracking integration",
+        "details": "Create scripts/codex-task using Click framework. Implement commands: 'sessions update' for work-tracking, 'scanner run' with --log-note flag, 'report generate' for outputs. Add S:W:H:E structured logging support. Integrate with git for automatic session detection. Add --dry-run flag for all destructive operations. Implement progress bars using Rich library for long-running operations.",
+        "testStrategy": "Test all CLI commands with various arguments, verify output formatting, test dry-run mode prevents changes, ensure proper error handling and help text",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Codex-Guard Validation Tool",
+        "description": "Create enforcement helper for template compliance and S:W:H:E format validation",
+        "details": "Create scripts/codex-guard with validation engine. Implement S:W:H:E format checker using regex patterns. Add frontmatter schema validation (id, type, category, dependencies, triggers, exports, version, status). Create auto-fix mode for common issues. Implement allowlist configuration for exceptions. Add git hook integration support. Use colorized output for validation results.",
+        "testStrategy": "Test against valid/invalid S:W:H:E formats, verify frontmatter validation catches missing fields, test auto-fix corrections, ensure git hook integration works",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Generate Baseline Scanner Outputs",
+        "description": "Run scanner suite on current codebase to establish migration baseline",
+        "details": "Execute full scanner suite on existing templates. Generate output/data/migration_status.json with current state. Create duplicate_analysis.json for duplicate detection results. Generate fix_recommendations.json with prioritized fixes. Include versioned metadata (scanner_version: 2.0.0, generated_at timestamp). Calculate metrics: total references, broken references, duplicate count, migration percentage.",
+        "testStrategy": "Verify JSON outputs are valid and complete, cross-check reference counts manually, ensure all template files are scanned, validate metrics calculation",
+        "priority": "high",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Create Template Registry System",
+        "description": "Build centralized registry for template discovery and management",
+        "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular → compatibility map → legacy → Serena → error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
+        "testStrategy": "Benchmark discovery time (<50ms), test fallback chain order, verify cache invalidation, test search functionality, ensure thread-safety",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Setup Git Hooks Infrastructure",
+        "description": "Configure pre-commit hooks for automated validation",
+        "details": "Install pre-commit framework: pip install pre-commit. Create .pre-commit-config.yaml with hooks for codex-guard, scanner incremental mode, secret scanning (detect-secrets), Python linting (ruff). Add custom hook scripts in .git/hooks/. Implement bypass mechanism with SKIP_HOOKS=1 environment variable. Configure hook output formatting for CI compatibility.",
+        "testStrategy": "Test hooks trigger on commit, verify validation failures prevent commit, test bypass mechanism, ensure hooks run in CI environment",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement Reference Fix Scripts",
+        "description": "Create automated scripts for fixing template references",
+        "details": "Port apply_reference_fixes.py from FPL repo. Implement safe mode with backup creation. Add dry-run capability with detailed preview. Create apply_all_fixes.sh wrapper for batch operations. Implement rollback mechanism using git. Add progress tracking and logging. Handle special cases: symlinks, circular references, external references.",
+        "testStrategy": "Test on sample files with known issues, verify dry-run doesn't modify files, test rollback restores original state, validate fix accuracy",
+        "priority": "high",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Create Migration Roadmap Generator",
+        "description": "Build tool to generate prioritized migration plan from scanner outputs",
+        "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) → high (monolith refs) → medium (duplicates) → low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
+        "testStrategy": "Verify roadmap covers all scanner findings, test priority ordering logic, validate Taskmaster format compatibility, ensure estimates are reasonable",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Setup Taskmaster Integration",
+        "description": "Configure Taskmaster-AI for migration task management",
+        "details": "Run 'taskmaster-ai init' in project root. Configure .taskmaster/config.json with API keys. Parse PRD using 'taskmaster-ai parse-prd .taskmaster/docs/prd.txt'. Set up MCP configuration in .mcp.json. Configure models with 'taskmaster-ai models --setup'. Create custom task templates for migration workflow. Set up task dependencies and milestones.",
+        "testStrategy": "Verify Taskmaster initialization completes, test task creation from PRD, ensure API connectivity, validate task dependency graph",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Implement Compatibility Mapping Table",
+        "description": "Create mapping system for backward compatibility during migration",
+        "details": "Create CompatibilityMap class with bidirectional mapping. Store mappings in JSON format: {monolith_anchor: modular_path}. Implement lookup methods with O(1) performance. Add version tracking for mapping changes. Create update mechanism for incremental migrations. Implement conflict resolution for duplicate mappings. Add validation to ensure all mappings resolve.",
+        "testStrategy": "Test bidirectional lookups, verify performance with large datasets, test version migration, validate conflict resolution logic",
+        "priority": "high",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Create Work-Tracking Template Structure",
+        "description": "Establish standardized work-tracking directory and file structure",
+        "details": "Create docs/ai/work-tracking/active/ directory structure. Set up 7 canonical files: TRACKER.md, HANDOFF.md, FINDINGS.md, IMPLEMENTATION.md, MEMORY-REFS.md, CHANGELOG.md, plans/. Create templates for each file type with S:W:H:E format. Implement auto-generation script for new work items. Add validation for required sections. Create archival process for completed work.",
+        "testStrategy": "Verify directory structure creation, test file template generation, validate S:W:H:E format compliance, test archival process",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Implement Serena MCP Integration",
+        "description": "Configure Serena for semantic search and memory management",
+        "details": "Install Serena MCP server (version >=0.23). Configure connection in .mcp.json. Implement SerenaClient wrapper class. Add memory storage for migration checkpoints. Create search indices for templates. Implement regex and symbol analysis features. Add memory compaction support. Configure retention policies (180 days active).",
+        "testStrategy": "Test Serena connectivity, verify memory storage and retrieval, test search functionality, validate compaction process",
+        "priority": "medium",
+        "dependencies": [
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Create Performance Testing Harness",
+        "description": "Build comprehensive performance testing suite for migration validation",
+        "details": "Create performance_tests.py with pytest-benchmark. Implement tests: test_template_discovery_time (<50ms target), test_context_token_usage (30% reduction target), test_scanner_incremental (<10s), test_guard_validation (<5s). Add profiling for top 20 templates. Create baseline capture mechanism. Implement regression detection (warning +20%, critical +50%). Add CI integration with performance gates.",
+        "testStrategy": "Run benchmarks against current baseline, verify metrics collection accuracy, test regression detection thresholds, ensure CI integration works",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Setup Monitoring Infrastructure",
+        "description": "Establish metrics collection and monitoring dashboards",
+        "details": "Set up Prometheus exporters for metrics. Create Grafana dashboards for migration health, template usage, performance metrics. Implement StatsD client for application metrics. Add log aggregation with Elasticsearch. Configure alerts: discovery >100ms, guard failures >5/hr, cost >80% budget. Create migration progress tracker. Add telemetry decorators for template loads.",
+        "testStrategy": "Verify metrics are being collected, test alert triggering, validate dashboard accuracy, ensure data retention policies work",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Implement Security Validation Framework",
+        "description": "Create security scanning and validation tools for templates",
+        "details": "Implement path traversal detection using pathlib. Add template injection scanner with regex patterns. Create secret detection using detect-secrets library. Implement input sanitization functions. Add security audit checklist automation. Create vulnerability reporting format. Implement allowlist for false positives. Add SAST integration for template code.",
+        "testStrategy": "Test against known vulnerabilities, verify path traversal prevention, test secret detection accuracy, validate sanitization effectiveness",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Create Rollback Mechanism",
+        "description": "Build comprehensive rollback system for migration safety",
+        "details": "Implement git-based checkpoint system with tags. Create rollback script with state restoration. Add Taskmaster milestone snapshots. Implement Serena memory backups. Create compatibility map versioning. Add rollback decision matrix. Implement emergency toggle for legacy mode. Create rollback validation tests.",
+        "testStrategy": "Test rollback from various states, verify data integrity after rollback, test emergency toggle activation, validate checkpoint restoration",
+        "priority": "high",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Setup CI/CD Pipeline",
+        "description": "Configure continuous integration for automated validation",
+        "details": "Create .github/workflows/migration.yml for GitHub Actions (or equivalent for your CI). Add jobs: scanner validation, guard enforcement, performance tests, security scans. Implement matrix testing for multiple Python versions. Add artifact storage for reports. Configure branch protection rules. Set up deployment gates for each phase. Add cost monitoring for CI minutes.",
+        "testStrategy": "Trigger CI on test PR, verify all jobs complete, test failure scenarios, validate artifact generation, ensure branch protection works",
+        "priority": "high",
+        "dependencies": [
+          9,
+          16
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Implement Template Frontmatter Schema",
+        "description": "Create and enforce standardized frontmatter for all templates",
+        "details": "Define YAML schema with required fields: id, type (trigger|operator|orchestrator|guide), category, dependencies[], triggers[], exports[], version (semver), status (stable|beta|deprecated), tags[]. Create JSON Schema validator. Implement frontmatter parser using python-frontmatter. Add migration tool for existing templates. Create frontmatter generator CLI command.",
+        "testStrategy": "Validate schema against sample templates, test parser with various formats, verify migration tool preserves content, test validation errors",
+        "priority": "high",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Build Template Discovery API",
+        "description": "Create programmatic interface for template discovery and access",
+        "details": "Create TemplateAPI class with REST-like interface. Implement methods: get_template(id), search_templates(query), list_by_category(category), get_dependencies(id). Add response caching with Redis or in-memory LRU. Implement pagination for large results. Add filtering by status, version, tags. Create GraphQL schema for complex queries.",
+        "testStrategy": "Test API methods with various inputs, verify caching behavior, test pagination limits, validate GraphQL queries, benchmark response times",
+        "priority": "medium",
+        "dependencies": [
+          8,
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Create Migration Rehearsal Environment",
+        "description": "Set up isolated environment for migration testing",
+        "details": "Create migration-rehearsal branches with git worktree. Set up Docker containers for isolated testing. Configure test API keys with rate limits. Create data seeding scripts for templates. Implement agent simulators for Claude/Codex. Add load testing harness with k6 or locust. Create rehearsal runbook with checkpoints.",
+        "testStrategy": "Verify environment isolation, test data seeding completeness, validate simulator responses, run load tests at 100x volume",
+        "priority": "medium",
+        "dependencies": [
+          19
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Implement Cost Tracking System",
+        "description": "Build system to monitor and control API and resource costs",
+        "details": "Create CostTracker class for API usage monitoring. Implement Anthropic API usage tracking with rate limits. Add CI minutes monitoring. Create budget alerts at 80% threshold. Implement caching strategy to reduce API calls. Add cost projection based on current usage. Create monthly cost reports. Implement auto-throttling when approaching limits.",
+        "testStrategy": "Test cost calculation accuracy, verify alert triggering, test caching reduces API calls, validate throttling behavior",
+        "priority": "medium",
+        "dependencies": [
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "Execute Phase 0 Scanner Validation",
+        "description": "Complete Phase 0 validation gate for scanner suite",
+        "details": "Run comprehensive scanner unit tests with pytest. Execute security validation checks. Generate baseline performance metrics. Document scanner accuracy metrics. Create compatibility baseline report. Set up monitoring infrastructure verification. Prepare Phase 0 gate review documentation. Schedule stakeholder review meeting.",
+        "testStrategy": "All scanner tests must pass, security scan clean, performance within targets, documentation complete, stakeholder sign-off obtained",
+        "priority": "high",
+        "dependencies": [
+          3,
+          4,
+          7,
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "Migrate Critical Handler Templates",
+        "description": "Phase 2.1 - Migrate core handler templates to modular structure",
+        "details": "Identify critical handlers: start-new-work, fix-problem, test-implementation. Extract from monolithic files. Create modular files with proper frontmatter. Update all references using fix scripts. Validate with guard tool. Update compatibility mapping. Run performance tests on migrated handlers. Document migration decisions.",
+        "testStrategy": "Verify handlers load correctly, test execution paths, validate all references updated, performance benchmarks met",
+        "priority": "high",
+        "dependencies": [
+          25,
+          21
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "Migrate Pattern Templates",
+        "description": "Phase 2.2 - Migrate pattern templates including work-tracking and session",
+        "details": "Extract patterns from PATTERNS.md monolith. Create pattern-workflow-variant.md naming structure. Migrate work-tracking patterns with S:W:H:E format. Update session management patterns. Create pattern index file. Update discovery fallback chain. Validate pattern dependencies. Run regression tests.",
+        "testStrategy": "Test pattern loading and execution, verify work-tracking flows, validate session lifecycle, ensure no broken references",
+        "priority": "high",
+        "dependencies": [
+          26
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "Implement Dual-Path Discovery",
+        "description": "Create fallback system for template discovery during migration",
+        "details": "Implement discovery chain: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
+        "testStrategy": "Test each fallback path, verify correct order, test circuit breaker activation, measure discovery performance",
+        "priority": "high",
+        "dependencies": [
+          13,
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "Create Template Lifecycle Management",
+        "description": "Implement system for template creation, versioning, and deprecation",
+        "details": "Create lifecycle states: draft → review → stable → deprecated → archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
+        "testStrategy": "Test state transitions, verify deprecation warnings appear, test grace period enforcement, validate archival process",
+        "priority": "medium",
+        "dependencies": [
+          21
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "Build Cross-Repository Sync System",
+        "description": "Create automated synchronization between legacy and Codex repos",
+        "details": "Implement daily diff detection using git. Create drift scanner for template divergence. Generate auto PRs for required fixes. Implement conflict resolution with manual review queue. Add sync status dashboard. Create bidirectional sync for transition period. Implement sync audit logging.",
+        "testStrategy": "Test diff detection accuracy, verify PR generation, test conflict resolution, validate sync completeness",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "Implement Compaction Protocol",
+        "description": "Create system for preserving migration state during context resets",
+        "details": "Create CompactionManager class. Implement checkpoint creation before compaction. Store state in: sessions/current, Serena memories, Taskmaster tasks. Create restoration protocol for post-compaction. Add compaction detection triggers. Implement incremental checkpoint updates. Create compaction history tracking.",
+        "testStrategy": "Test checkpoint creation and restoration, verify no data loss during compaction, test incremental updates, validate history tracking",
+        "priority": "high",
+        "dependencies": [
+          14,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "Create Documentation Suite",
+        "description": "Phase 4 - Generate comprehensive documentation for migration",
+        "details": "Update CODEX.md with new template system. Create AGENTS.md for agent-specific guidance. Write templates/TOOLS.md for tooling docs. Generate user guides with examples. Create migration guide for developers. Write FAQ and troubleshooting guide. Add API documentation. Create video walkthrough scripts.",
+        "testStrategy": "Review documentation for accuracy, test code examples, verify cross-references, get user feedback on clarity",
+        "priority": "medium",
+        "dependencies": [
+          27
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Setup Training Materials",
+        "description": "Create training resources for template system users",
+        "details": "Create interactive tutorial templates. Record video walkthroughs using OBS or similar. Write quickstart guide for new developers. Create office hours schedule. Build knowledge base articles. Design hands-on exercises. Create certification checklist. Prepare training feedback surveys.",
+        "testStrategy": "Test tutorials with new users, verify exercise completeness, validate video quality, gather training feedback",
+        "priority": "medium",
+        "dependencies": [
+          32
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Implement A/B Testing Framework",
+        "description": "Create system for gradual template rollout and testing",
+        "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% → 50% → 100%).",
+        "testStrategy": "Test feature flag toggling, verify metrics separation, test auto-rollback trigger, validate gradual rollout",
+        "priority": "low",
+        "dependencies": [
+          17,
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "Create Emergency Response System",
+        "description": "Build incident response infrastructure for migration issues",
+        "details": "Create incident classification (P0-P3) with response SLAs. Implement PagerDuty integration for P0/P1 alerts. Add Slack webhooks for P2/P3 notifications. Create emergency halt mechanism. Write incident response runbook. Set up war room procedures. Create post-mortem template. Add incident tracking dashboard.",
+        "testStrategy": "Test alert routing, verify SLA tracking, simulate emergency halt, validate runbook procedures",
+        "priority": "high",
+        "dependencies": [
+          19,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 36,
+        "title": "Implement Template Governance Board",
+        "description": "Establish governance structure for template management",
+        "details": "Define board composition and roles. Create charter document with responsibilities. Set up weekly meeting schedule during migration. Implement change review process. Create voting mechanism for breaking changes. Add decision tracking system. Create escalation procedures. Implement stakeholder notification system.",
+        "testStrategy": "Test decision tracking, verify notification system, validate escalation procedures, ensure meeting tools work",
+        "priority": "low",
+        "dependencies": [
+          29
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "Build Telemetry Pipeline",
+        "description": "Create comprehensive telemetry collection and analysis system",
+        "details": "Implement OpenTelemetry SDK integration. Add trace context propagation. Create custom metrics for template usage. Set up Elasticsearch for log aggregation. Implement Grafana dashboards for visualization. Add anomaly detection with statistical analysis. Create data retention policies (90 days). Implement GDPR compliance for telemetry.",
+        "testStrategy": "Verify telemetry data flow, test retention policies, validate GDPR compliance, check dashboard accuracy",
+        "priority": "medium",
+        "dependencies": [
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Execute Phase 1 Reference Remediation",
+        "description": "Complete Phase 1 reference fixes and validation",
+        "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine → patterns → remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
+        "testStrategy": "All references must resolve, guard validation passes, performance targets met, rollback tested successfully",
+        "priority": "high",
+        "dependencies": [
+          10,
+          25
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "Implement Auto-Fix Mode for Guard",
+        "description": "Add automatic correction capabilities to guard tool",
+        "details": "Identify common fixable issues (formatting, frontmatter, references). Implement fix strategies for each issue type. Add --auto-fix flag to guard CLI. Create fix preview mode. Implement fix validation post-application. Add fix history tracking. Create fix configuration options. Implement selective auto-fix.",
+        "testStrategy": "Test each fix strategy, verify fixes don't break functionality, test preview mode, validate fix history",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          38
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "Create Canary Deployment System",
+        "description": "Build infrastructure for gradual migration rollout",
+        "details": "Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
+        "testStrategy": "Test stage progression, verify health checks, test rollback triggers, validate traffic splitting",
+        "priority": "medium",
+        "dependencies": [
+          34,
+          23
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 41,
+        "title": "Build Migration Health Dashboard",
+        "description": "Create real-time dashboard for migration monitoring",
+        "details": "Create React/Vue dashboard with real-time updates. Add migration progress bar with phase indicators. Display scanner/guard status. Show performance metrics graphs. Add cost usage gauge. Implement alert status panel. Create error rate trending. Add team blockers section. Use WebSocket for live updates.",
+        "testStrategy": "Test real-time updates, verify metric accuracy, test alert displays, validate mobile responsiveness",
+        "priority": "medium",
+        "dependencies": [
+          37,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 42,
+        "title": "Implement Session Management System",
+        "description": "Create robust session tracking for work continuity",
+        "details": "Create SessionManager class with state persistence. Implement session creation/restoration. Add session metadata tracking. Create session archival process. Implement session search capabilities. Add session handoff mechanism. Create session analytics. Implement session recovery after crashes.",
+        "testStrategy": "Test session persistence, verify restoration after restart, test handoff between agents, validate crash recovery",
+        "priority": "high",
+        "dependencies": [
+          14,
+          31
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 43,
+        "title": "Create Template Testing Framework",
+        "description": "Build comprehensive testing system for templates",
+        "details": "Create TemplateTestCase base class. Implement template execution mocking. Add assertion methods for template behavior. Create fixture system for test data. Implement coverage tracking for templates. Add mutation testing for template logic. Create template benchmark suite. Implement visual regression testing for UI templates.",
+        "testStrategy": "Test framework with sample templates, verify coverage accuracy, test mutation detection, validate benchmarks",
+        "priority": "medium",
+        "dependencies": [
+          21,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 44,
+        "title": "Setup Change Advisory Board Process",
+        "description": "Implement formal change management for migration",
+        "details": "Create CAB meeting structure and cadence. Define change request template. Implement change tracking system. Create risk assessment framework. Add stakeholder approval workflow. Implement change communication plan. Create change metrics tracking. Add post-implementation reviews.",
+        "testStrategy": "Test change submission process, verify approval workflow, test communication delivery, validate metrics collection",
+        "priority": "low",
+        "dependencies": [
+          36
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 45,
+        "title": "Implement Scanner Optimization",
+        "description": "Optimize scanner performance for large-scale operations",
+        "details": "Add parallel processing using multiprocessing.Pool. Implement incremental scanning with file change detection. Add caching layer with invalidation. Optimize regex patterns for performance. Implement streaming JSON output. Add memory profiling and optimization. Create scanner profiling mode. Implement lazy loading for large files.",
+        "testStrategy": "Benchmark against baseline, test parallel processing correctness, verify cache invalidation, measure memory usage",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          16
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 46,
+        "title": "Create Template Import/Export System",
+        "description": "Build system for template portability and sharing",
+        "details": "Create template bundle format (ZIP with manifest). Implement export with dependency resolution. Add import with conflict detection. Create template marketplace integration. Implement template signing for authenticity. Add version compatibility checking. Create template preview system. Implement bulk import/export.",
+        "testStrategy": "Test bundle creation and extraction, verify dependency resolution, test conflict detection, validate signatures",
+        "priority": "low",
+        "dependencies": [
+          21,
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 47,
+        "title": "Build Error Recovery System",
+        "description": "Create comprehensive error handling and recovery",
+        "details": "Create error classification taxonomy. Implement recovery strategies for each error type. Add exponential backoff for transient errors. Create error context capture. Implement error reporting to monitoring. Add user-friendly error messages. Create error recovery flowchart. Implement automatic error resolution where possible.",
+        "testStrategy": "Test each recovery strategy, verify backoff behavior, test error reporting, validate automatic resolution",
+        "priority": "high",
+        "dependencies": [
+          35
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 48,
+        "title": "Execute Phase 2.3 Remaining Templates",
+        "description": "Complete migration of all remaining templates",
+        "details": "Identify remaining unmigrated templates. Apply modular structure to each. Update all references and dependencies. Validate with guard and scanner. Update compatibility map completely. Run comprehensive regression tests. Document edge cases found. Prepare Phase 2 gate documentation.",
+        "testStrategy": "100% template migration verified, all tests pass, compatibility map complete, performance targets met",
+        "priority": "high",
+        "dependencies": [
+          27
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 49,
+        "title": "Implement Communication Templates",
+        "description": "Create standardized communication for migration updates",
+        "details": "Create weekly status template with metrics placeholders. Design breaking change notification template. Build incident communication template. Create milestone announcement format. Implement automated template filling. Add distribution list management. Create communication archive. Implement feedback collection.",
+        "testStrategy": "Test template generation, verify distribution, test feedback collection, validate archive completeness",
+        "priority": "medium",
+        "dependencies": [
+          32
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 50,
+        "title": "Setup Security Audit Process",
+        "description": "Create comprehensive security validation framework",
+        "details": "Define security audit checklist. Implement automated SAST scanning. Add dependency vulnerability checking. Create penetration test scenarios. Implement security metrics collection. Add compliance validation (GDPR, etc.). Create security report generation. Implement remediation tracking.",
+        "testStrategy": "Run full security audit, verify vulnerability detection, test compliance checks, validate remediation process",
+        "priority": "high",
+        "dependencies": [
+          18,
+          48
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 51,
+        "title": "Build Template Usage Analytics",
+        "description": "Create analytics system for template usage patterns",
+        "details": "Implement usage tracking decorators. Create analytics data model. Add usage aggregation pipeline. Build usage dashboards. Implement trend analysis. Add anomaly detection for usage patterns. Create usage reports. Implement predictive analytics for capacity planning.",
+        "testStrategy": "Verify tracking accuracy, test aggregation correctness, validate trend analysis, test anomaly detection",
+        "priority": "low",
+        "dependencies": [
+          37,
+          22
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 52,
+        "title": "Implement CI/CD Gates",
+        "description": "Phase 3 - Create automated quality gates for CI/CD",
+        "details": "Add scanner gate with zero tolerance for errors. Implement guard gate with auto-fix. Add performance gate with regression detection. Create security gate with vulnerability scanning. Implement cost gate with budget checks. Add approval gate for production. Create gate override mechanism. Implement gate metrics collection.",
+        "testStrategy": "Test each gate triggers correctly, verify override mechanism, test gate metrics, validate production safety",
+        "priority": "high",
+        "dependencies": [
+          20,
+          39
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 53,
+        "title": "Create Template Caching Layer",
+        "description": "Implement high-performance caching for template access",
+        "details": "Implement Redis cache for template storage. Add in-memory LRU cache as L1. Create cache warming on startup. Implement cache invalidation on changes. Add cache hit/miss metrics. Create distributed cache for multi-instance. Implement cache persistence. Add cache debugging tools.",
+        "testStrategy": "Test cache hit rates, verify invalidation, test distributed cache sync, measure performance improvement",
+        "priority": "medium",
+        "dependencies": [
+          8,
+          45
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 54,
+        "title": "Setup Knowledge Transfer Process",
+        "description": "Create knowledge transfer infrastructure for post-migration",
+        "details": "Create knowledge base with searchable articles. Record video tutorials for common tasks. Write troubleshooting guides. Create expert contact list. Implement Q&A system. Add knowledge tracking metrics. Create knowledge retention plan. Implement succession planning.",
+        "testStrategy": "Test knowledge base search, verify video quality, test Q&A system, validate retention metrics",
+        "priority": "low",
+        "dependencies": [
+          33,
+          49
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 55,
+        "title": "Implement Migration Metrics Collection",
+        "description": "Create comprehensive metrics system for migration tracking",
+        "details": "Define KPI metrics for migration success. Implement metric collection agents. Create metric aggregation pipeline. Build metric storage with time-series DB. Add metric visualization dashboards. Implement metric alerting. Create metric reports. Add metric export capabilities.",
+        "testStrategy": "Verify metric accuracy, test aggregation pipeline, validate dashboards, test alert triggering",
+        "priority": "medium",
+        "dependencies": [
+          41,
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 56,
+        "title": "Execute Phase 3 Automation Integration",
+        "description": "Complete automation and tooling integration phase",
+        "details": "Deploy CI/CD gates to production. Monitor gate performance for 5 days. Implement auto-fix in production. Validate cost tracking accuracy. Execute canary deployment. Monitor canary metrics. Update automation documentation. Prepare Phase 3 gate review.",
+        "testStrategy": "CI green for 5 consecutive days, auto-fix working correctly, canary successful, cost within budget",
+        "priority": "high",
+        "dependencies": [
+          52,
+          53
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 57,
+        "title": "Create Operational Runbook",
+        "description": "Build comprehensive operational procedures documentation",
+        "details": "Document daily operational tasks. Create weekly maintenance procedures. Write monthly review process. Define incident response procedures. Create troubleshooting flowcharts. Add contact escalation tree. Document emergency procedures. Create runbook validation checklist.",
+        "testStrategy": "Test procedures with operators, verify completeness, validate emergency procedures, test escalation paths",
+        "priority": "medium",
+        "dependencies": [
+          47,
+          35
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 58,
+        "title": "Implement Template Versioning System",
+        "description": "Create robust versioning for template changes",
+        "details": "Implement semantic versioning for templates. Create version comparison logic. Add backward compatibility checking. Implement version migration tools. Create version history tracking. Add version conflict resolution. Implement version rollback capability. Create version documentation.",
+        "testStrategy": "Test version bumping, verify compatibility checks, test migration tools, validate rollback functionality",
+        "priority": "medium",
+        "dependencies": [
+          29,
+          46
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 59,
+        "title": "Build Feedback Collection System",
+        "description": "Create infrastructure for user feedback during migration",
+        "details": "Create feedback form with categorization. Implement feedback API endpoints. Add sentiment analysis for feedback. Create feedback dashboard. Implement feedback routing to owners. Add feedback metrics tracking. Create feedback response system. Implement feedback archive.",
+        "testStrategy": "Test feedback submission, verify routing logic, test sentiment analysis, validate metrics collection",
+        "priority": "low",
+        "dependencies": [
+          49,
+          54
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 60,
+        "title": "Setup Post-Migration Monitoring",
+        "description": "Phase 6 - Establish ongoing monitoring post-migration",
+        "details": "Configure production monitoring dashboards. Set up weekly scanner health checks. Implement monthly usage reviews. Create quarterly benchmark updates. Add yearly planning reviews. Set up automated reports. Create monitoring playbooks. Implement monitoring automation.",
+        "testStrategy": "Verify monitoring coverage, test alert accuracy, validate report generation, test automation reliability",
+        "priority": "medium",
+        "dependencies": [
+          56
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 61,
+        "title": "Implement Template Discovery Optimization",
+        "description": "Optimize template discovery for <50ms performance",
+        "details": "Profile current discovery bottlenecks. Implement bloom filters for quick existence checks. Add predictive prefetching based on usage patterns. Create discovery result caching. Optimize file I/O operations. Implement async discovery API. Add discovery performance metrics. Create discovery debugging mode.",
+        "testStrategy": "Benchmark discovery <50ms, test prediction accuracy, verify cache effectiveness, validate async behavior",
+        "priority": "high",
+        "dependencies": [
+          53,
+          28
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 62,
+        "title": "Create Agent Compatibility Layer",
+        "description": "Build compatibility system for different agent requirements",
+        "details": "Create agent capability detection. Implement version negotiation protocol. Add feature flag per agent. Create compatibility matrix validation. Implement fallback strategies per agent. Add agent-specific transformations. Create compatibility testing suite. Implement compatibility metrics.",
+        "testStrategy": "Test each agent integration, verify version negotiation, test fallback strategies, validate transformations",
+        "priority": "high",
+        "dependencies": [
+          13,
+          40
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 63,
+        "title": "Execute Phase 4 Documentation Delivery",
+        "description": "Complete documentation and training phase",
+        "details": "Publish all documentation to production. Deploy training materials. Schedule office hours. Execute communication plan. Deliver training sessions. Collect training feedback. Update documentation based on feedback. Prepare Phase 4 gate documentation.",
+        "testStrategy": "Documentation published and accessible, training delivered to all teams, feedback collected, gate requirements met",
+        "priority": "medium",
+        "dependencies": [
+          32,
+          33,
+          57
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 64,
+        "title": "Implement Cleanup Automation",
+        "description": "Create automated cleanup for legacy artifacts",
+        "details": "Create cleanup scheduler with cron. Implement legacy file detection. Add safe deletion with backups. Create cleanup audit trail. Implement cleanup dry-run mode. Add cleanup metrics collection. Create cleanup rollback capability. Implement cleanup notifications.",
+        "testStrategy": "Test cleanup detection accuracy, verify backup creation, test rollback capability, validate notifications",
+        "priority": "low",
+        "dependencies": [
+          60
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 65,
+        "title": "Build Template Quality Scoring",
+        "description": "Create quality metrics system for templates",
+        "details": "Define quality metrics (complexity, maintainability, performance). Implement static analysis for templates. Add quality score calculation. Create quality dashboards. Implement quality gates for new templates. Add quality improvement suggestions. Create quality trends tracking. Implement quality benchmarks.",
+        "testStrategy": "Test scoring accuracy, verify metric calculations, test improvement suggestions, validate benchmarks",
+        "priority": "low",
+        "dependencies": [
+          43,
+          51
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 66,
+        "title": "Setup Deprecation Management",
+        "description": "Implement systematic deprecation process",
+        "details": "Create deprecation timeline tracker. Implement deprecation warnings in logs. Add grace period enforcement. Create migration path documentation. Implement automatic archival. Add deprecation metrics. Create deprecation notifications. Implement deprecation override for emergencies.",
+        "testStrategy": "Test deprecation warnings, verify grace period enforcement, test archival process, validate notifications",
+        "priority": "medium",
+        "dependencies": [
+          58,
+          64
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 67,
+        "title": "Create Success Metrics Dashboard",
+        "description": "Build comprehensive success tracking dashboard",
+        "details": "Implement KPI tracking widgets. Add trend analysis graphs. Create comparative analysis views. Implement success score calculation. Add predictive success metrics. Create executive summary view. Implement metric drill-down capability. Add metric export functionality.",
+        "testStrategy": "Verify KPI accuracy, test trend calculations, validate success scoring, test export functionality",
+        "priority": "medium",
+        "dependencies": [
+          55,
+          41
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 68,
+        "title": "Implement Final Validation Suite",
+        "description": "Create comprehensive validation for migration completion",
+        "details": "Create validation checklist automation. Implement reference integrity checks. Add performance validation suite. Create security validation tests. Implement compatibility validation. Add cost validation checks. Create validation report generation. Implement validation sign-off workflow.",
+        "testStrategy": "Run full validation suite, verify all checks pass, test report generation, validate sign-off process",
+        "priority": "high",
+        "dependencies": [
+          50,
+          63
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 69,
+        "title": "Execute Phase 5 Enhancement Planning",
+        "description": "Plan and initiate post-MVP enhancements",
+        "details": "Identify enhancement opportunities. Create enhancement roadmap. Implement auto-compaction triggers. Add semantic search enhancements. Create AI-assisted template generation. Implement advanced optimizations. Plan additional MCP integrations. Create enhancement metrics.",
+        "testStrategy": "Validate enhancement feasibility, test prototype features, verify metrics collection, assess user interest",
+        "priority": "low",
+        "dependencies": [
+          68
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 70,
+        "title": "Setup Long-term Maintenance",
+        "description": "Establish sustainable maintenance processes",
+        "details": "Create maintenance schedule automation. Implement health check routines. Add performance baseline updates. Create security patch process. Implement dependency updates. Add maintenance metrics tracking. Create maintenance documentation. Implement maintenance alerts.",
+        "testStrategy": "Test automation reliability, verify health checks, test update processes, validate alert accuracy",
+        "priority": "medium",
+        "dependencies": [
+          60,
+          66
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 71,
+        "title": "Create Migration Archive",
+        "description": "Build comprehensive archive of migration artifacts",
+        "details": "Collect all migration documents. Archive scanner outputs and reports. Store fix scripts and tools. Create migration timeline. Archive decision records. Store performance baselines. Create lessons learned document. Implement archive search capability.",
+        "testStrategy": "Verify archive completeness, test search functionality, validate document accessibility, ensure preservation",
+        "priority": "low",
+        "dependencies": [
+          64,
+          68
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 72,
+        "title": "Implement Post-Mortem Process",
+        "description": "Create systematic post-mortem for incidents",
+        "details": "Create post-mortem template. Implement incident timeline reconstruction. Add root cause analysis tools. Create action item tracking. Implement follow-up automation. Add post-mortem metrics. Create knowledge extraction. Implement prevention measures tracking.",
+        "testStrategy": "Test template completeness, verify timeline accuracy, test action tracking, validate prevention effectiveness",
+        "priority": "medium",
+        "dependencies": [
+          35,
+          57
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 73,
+        "title": "Build Stakeholder Reporting",
+        "description": "Create executive-level reporting system",
+        "details": "Create executive dashboard. Implement automated report generation. Add cost-benefit analysis. Create ROI calculations. Implement risk reporting. Add compliance reporting. Create stakeholder notifications. Implement report scheduling.",
+        "testStrategy": "Verify report accuracy, test generation automation, validate calculations, test notification delivery",
+        "priority": "medium",
+        "dependencies": [
+          67,
+          55
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 74,
+        "title": "Execute Phase 6 Cleanup",
+        "description": "Complete final cleanup and maintenance setup",
+        "details": "Remove all monolithic files. Archive legacy artifacts. Clean temporary files. Update all documentation. Verify zero legacy references. Establish maintenance cadence. Create final report. Schedule celebration event.",
+        "testStrategy": "Zero monolith references for 30 days, all artifacts archived, maintenance running smoothly",
+        "priority": "medium",
+        "dependencies": [
+          70,
+          71
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 75,
+        "title": "Create Knowledge Base",
+        "description": "Build searchable knowledge repository",
+        "details": "Set up knowledge base platform (Confluence/GitBook). Import all documentation. Create search indexing. Add categorization system. Implement access controls. Create contribution guidelines. Add version control. Implement analytics.",
+        "testStrategy": "Test search accuracy, verify access controls, test contribution workflow, validate analytics",
+        "priority": "low",
+        "dependencies": [
+          54,
+          71
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 76,
+        "title": "Implement Celebration Planning",
+        "description": "Organize migration success celebration",
+        "details": "Plan celebration event. Create success announcement. Prepare team recognition. Document achievements. Create success blog post. Prepare demos. Organize retrospective. Plan future roadmap presentation.",
+        "testStrategy": "Event planning complete, materials prepared, team recognition documented, retrospective scheduled",
+        "priority": "low",
+        "dependencies": [
+          74
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 77,
+        "title": "Setup Continuous Improvement",
+        "description": "Establish ongoing improvement processes",
+        "details": "Create improvement suggestion system. Implement metric-driven improvements. Add A/B testing for changes. Create improvement tracking. Implement feedback loops. Add innovation pipeline. Create improvement metrics. Implement change validation.",
+        "testStrategy": "Test suggestion system, verify improvement tracking, test A/B testing, validate metrics",
+        "priority": "low",
+        "dependencies": [
+          69,
+          70
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 78,
+        "title": "Create Final Documentation",
+        "description": "Generate comprehensive final documentation set",
+        "details": "Create architecture documentation. Write operation manual. Generate API documentation. Create troubleshooting guide. Write disaster recovery plan. Create capacity planning guide. Generate compliance documentation. Create handover documentation.",
+        "testStrategy": "Documentation review complete, all guides tested, compliance verified, handover successful",
+        "priority": "medium",
+        "dependencies": [
+          75,
+          73
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 79,
+        "title": "Implement Production Verification",
+        "description": "Final production readiness verification",
+        "details": "Run final security audit. Execute performance benchmarks. Verify cost projections. Test disaster recovery. Validate compliance. Check monitoring coverage. Verify documentation. Obtain stakeholder sign-off.",
+        "testStrategy": "All audits pass, benchmarks meet targets, stakeholders approve, production ready",
+        "priority": "high",
+        "dependencies": [
+          68,
+          74,
+          78
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 80,
+        "title": "Execute Production Deployment",
+        "description": "Final production deployment and migration completion",
+        "details": "Execute final deployment checklist. Enable production monitoring. Activate maintenance automation. Remove migration flags. Update status communications. Archive migration project. Transition to BAU. Celebrate success.",
+        "testStrategy": "Production deployment successful, all systems operational, migration officially complete",
+        "priority": "high",
+        "dependencies": [
+          79
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-21T16:32:29.468Z",
+      "updated": "2025-09-21T16:32:29.468Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

@@ -21,3 +21,18 @@
 
 ### Removed
 - None.
+
+## 2025-09-21
+
+### Added
+- Enterprise-level migration PRD deliverables (executive summary, RACI matrix, telemetry dashboards, communication templates, scorecard).
+- Quick reference card and migration weekly scorecard framework for ongoing operations.
+
+### Changed
+- Updated `.taskmaster/docs/prd.txt` with budget/timeline targets, naming conventions, governance procedures, rehearsal checklist, and monitoring stack.
+
+### Fixed
+- N/A.
+
+### Removed
+- None.

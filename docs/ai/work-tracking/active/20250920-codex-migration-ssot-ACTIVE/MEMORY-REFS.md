@@ -17,3 +17,4 @@
 
 ## Current Memories
 - enforcement_2025-09-20_codex_helpers (Serena) — codex-task/codex-guard implementation state + follow-up tasks.
+- session_end_2025-09-20_codex_migration (Serena) — session wrap-up summary with outstanding actions.

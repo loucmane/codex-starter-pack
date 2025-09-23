@@ -1,0 +1,653 @@
+{
+	"meta": {
+		"generatedAt": "2025-09-21T16:38:20.115Z",
+		"tasksAnalyzed": 80,
+		"totalTasks": 80,
+		"analysisCount": 80,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Analyze Current Codebase Structure",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down the codebase analysis into systematic discovery of existing template infrastructure, monolithic files inventory, reference pattern mapping, and baseline documentation creation. Focus on understanding the current state before migration.",
+			"reasoning": "Relatively straightforward analysis task. Codebase already has template structure in place with scanners partially implemented. Main work is documentation and inventory creation."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Setup Python Environment and Dependencies",
+			"complexityScore": 2,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Create tasks for Python environment setup (already have 3.12.3), dependency installation with requirements file creation, and verification testing. Include virtual environment setup and package management configuration.",
+			"reasoning": "Simple environment setup task. Python 3.12.3 already installed. Just needs virtual environment, dependencies, and configuration files."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Port SSOT Scanner Suite to Codex",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Organize porting of scanner modules including core scanner.py, validation modules, metadata handling, JSON schema implementation, and compatibility testing. Scanner already exists but needs enhancement and versioning.",
+			"reasoning": "Scanner suite already exists in scripts/template-ssot-scanner/ but needs updates for versioned metadata, JSON schema validation, and potential refactoring."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Create Scanner Configuration System",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Design and implement YAML configuration loader, rule definition system with severities, allowlist pattern matching, configuration validation, default handling, and integration with existing scanner infrastructure.",
+			"reasoning": "Requires new configuration architecture with YAML parsing, rule engine, allowlist system, and integration with existing scanner code."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Implement Codex-Task CLI Tool",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Build CLI framework with Click, implement core commands (sessions, scanner, report), add S:W:H:E logging integration, git integration for session detection, dry-run capabilities, progress visualization with Rich, and comprehensive testing.",
+			"reasoning": "New CLI tool requiring multiple command implementations, integration with existing systems, and sophisticated features like progress bars and git integration."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement Codex-Guard Validation Tool",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Create validation engine architecture, S:W:H:E format validator with regex, frontmatter schema validation system, auto-fix mode implementation, allowlist configuration, git hook integration, colorized output formatting, and comprehensive error handling.",
+			"reasoning": "Complex validation tool requiring multiple validation strategies, auto-fix logic, git integration, and sophisticated output formatting."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Generate Baseline Scanner Outputs",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Execute scanner suite, generate migration_status.json, create duplicate_analysis.json, compile fix_recommendations.json with versioned metadata, and calculate comprehensive metrics report.",
+			"reasoning": "Execution task using existing scanner. Some outputs already exist (found in output/data/) but need versioning and metrics calculation."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Create Template Registry System",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Design TemplateRegistry class architecture, implement discovery mechanism with glob patterns, build caching layer with TTL management, create fallback chain logic, implement metadata parsing, add search capabilities, optimize with functools.lru_cache, ensure thread-safety, and benchmark performance.",
+			"reasoning": "Complex system requiring sophisticated caching, fallback mechanisms, search capabilities, and performance optimization to meet <50ms target."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Setup Git Hooks Infrastructure",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Install pre-commit framework, create .pre-commit-config.yaml configuration, implement codex-guard hook, add scanner incremental mode, integrate secret scanning, configure Python linting, implement bypass mechanism, and test CI compatibility.",
+			"reasoning": "Moderate complexity requiring pre-commit framework setup, multiple hook configurations, and CI integration. No existing hooks found."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Implement Reference Fix Scripts",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Port apply_reference_fixes.py (already exists in output/scripts/), implement safe mode with backups, add dry-run preview, create batch wrapper script, implement git-based rollback, add progress tracking, handle special cases for symlinks and circular references.",
+			"reasoning": "Script exists but needs enhancement with safety features, rollback mechanism, and special case handling."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Create Migration Roadmap Generator",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Design RoadmapGenerator class, implement priority algorithm, generate markdown reports, add Gantt visualization with matplotlib, create Taskmaster export format, implement risk assessment logic, and integrate with existing scanner outputs.",
+			"reasoning": "New tool requiring algorithm design, visualization capabilities, and integration with multiple output formats."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Setup Taskmaster Integration",
+			"complexityScore": 2,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Verify Taskmaster initialization (already done), review existing configuration, validate API connectivity, and document any customizations needed for migration workflow.",
+			"reasoning": "Taskmaster already initialized with config.json present. Mainly verification and documentation task."
+		},
+		{
+			"taskId": 13,
+			"taskTitle": "Implement Compatibility Mapping Table",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Design CompatibilityMap class with bidirectional mapping, implement JSON storage format, create O(1) lookup methods, add version tracking system, build incremental update mechanism, implement conflict resolution, add validation logic, and create comprehensive testing suite.",
+			"reasoning": "Complex data structure requiring efficient lookups, version management, and conflict resolution capabilities."
+		},
+		{
+			"taskId": 14,
+			"taskTitle": "Create Work-Tracking Template Structure",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Create directory structure (partially exists), design canonical file templates, implement S:W:H:E format validation, create auto-generation scripts, and establish archival process.",
+			"reasoning": "Structure partially exists in docs/ai/work-tracking/. Needs templates and automation scripts."
+		},
+		{
+			"taskId": 15,
+			"taskTitle": "Implement Serena MCP Integration",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Install Serena MCP server, configure .mcp.json connection, implement SerenaClient wrapper, add memory storage system, create search indices, implement regex/symbol analysis, configure compaction, and set retention policies.",
+			"reasoning": "Complex MCP integration requiring server setup, client implementation, and multiple feature configurations."
+		},
+		{
+			"taskId": 16,
+			"taskTitle": "Create Performance Testing Harness",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Set up pytest-benchmark framework, implement discovery time tests, create token usage tests, add incremental scanner tests, implement profiling for templates, create baseline capture, add regression detection, and configure CI integration.",
+			"reasoning": "Testing framework requiring multiple benchmark implementations and CI integration."
+		},
+		{
+			"taskId": 17,
+			"taskTitle": "Setup Monitoring Infrastructure",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Configure Prometheus exporters, create Grafana dashboards, implement StatsD client, set up Elasticsearch logging, configure alerts with thresholds, create migration tracker, add telemetry decorators, implement data retention, and test alert routing.",
+			"reasoning": "Complex monitoring stack requiring multiple tools integration and configuration."
+		},
+		{
+			"taskId": 18,
+			"taskTitle": "Implement Security Validation Framework",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Implement path traversal detection, create template injection scanner, integrate detect-secrets, build sanitization functions, automate security checklist, create vulnerability reporting, implement allowlist system, and add SAST integration.",
+			"reasoning": "Security framework requiring multiple detection mechanisms and integration with security tools."
+		},
+		{
+			"taskId": 19,
+			"taskTitle": "Create Rollback Mechanism",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Implement git checkpoint system, create rollback script, add Taskmaster snapshots, implement Serena backups, version compatibility maps, create decision matrix, implement emergency toggle, and build validation tests.",
+			"reasoning": "Critical safety system requiring multiple backup strategies and validation mechanisms."
+		},
+		{
+			"taskId": 20,
+			"taskTitle": "Setup CI/CD Pipeline",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Create GitHub Actions workflow, configure scanner validation job, add guard enforcement, implement performance tests, set up security scans, configure matrix testing, add artifact storage, and implement deployment gates.",
+			"reasoning": "CI/CD setup requiring multiple job configurations and deployment safeguards."
+		},
+		{
+			"taskId": 21,
+			"taskTitle": "Implement Template Frontmatter Schema",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Define YAML schema with required fields, create JSON Schema validator, implement frontmatter parser, build migration tool for existing templates, create generator CLI, and add validation tests.",
+			"reasoning": "Schema implementation with parser and migration tools for existing templates."
+		},
+		{
+			"taskId": 22,
+			"taskTitle": "Build Template Discovery API",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Design TemplateAPI class, implement REST-like methods, add caching with Redis/LRU, implement pagination, add filtering capabilities, create GraphQL schema, optimize response times, and build comprehensive tests.",
+			"reasoning": "API development requiring multiple query methods, caching, and optional GraphQL support."
+		},
+		{
+			"taskId": 23,
+			"taskTitle": "Create Migration Rehearsal Environment",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Set up git worktrees, configure Docker containers, set up test API keys, create data seeding scripts, implement agent simulators, add load testing with k6/locust, create rehearsal runbook, and validate isolation.",
+			"reasoning": "Complex test environment requiring containerization, simulators, and load testing infrastructure."
+		},
+		{
+			"taskId": 24,
+			"taskTitle": "Implement Cost Tracking System",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Create CostTracker class, implement API usage tracking, add CI minutes monitoring, create budget alerts, implement caching strategies, add cost projections, generate monthly reports, and implement auto-throttling.",
+			"reasoning": "Financial tracking system requiring API monitoring and budget management features."
+		},
+		{
+			"taskId": 25,
+			"taskTitle": "Execute Phase 0 Scanner Validation",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Run comprehensive scanner tests, execute security validation, generate performance metrics, document accuracy metrics, create compatibility baseline, verify monitoring, and prepare gate review documentation.",
+			"reasoning": "Validation phase primarily executing existing tools and documenting results."
+		},
+		{
+			"taskId": 26,
+			"taskTitle": "Migrate Critical Handler Templates",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Identify critical handlers, extract from monolithic files, create modular structures with frontmatter, update references using fix scripts, validate with guard, update compatibility mapping, and run performance benchmarks.",
+			"reasoning": "Template migration requiring extraction, restructuring, and validation. Many handlers already modular."
+		},
+		{
+			"taskId": 27,
+			"taskTitle": "Migrate Pattern Templates",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Extract patterns from PATTERNS.md, create modular pattern files, migrate work-tracking patterns, update session patterns, create pattern index, update discovery chain, and run regression tests.",
+			"reasoning": "Pattern migration from monolithic files. Some patterns already modular in templates/patterns/."
+		},
+		{
+			"taskId": 28,
+			"taskTitle": "Implement Dual-Path Discovery",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Implement discovery chain logic, add fallback logging, create path usage metrics, implement circuit breaker pattern, add cache warming, create hint system, optimize performance, ensure correct ordering, and test all paths.",
+			"reasoning": "Complex fallback system requiring circuit breakers, caching, and performance optimization."
+		},
+		{
+			"taskId": 29,
+			"taskTitle": "Create Template Lifecycle Management",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Define lifecycle states, implement version bumping, add deprecation warnings, create grace period system, implement auto-archival, add migration notices, create audit trail, and build state transition tests.",
+			"reasoning": "Lifecycle system requiring state management and automated transitions."
+		},
+		{
+			"taskId": 30,
+			"taskTitle": "Build Cross-Repository Sync System",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Implement diff detection, create drift scanner, build PR generation system, implement conflict resolution, add sync dashboard, create bidirectional sync, implement audit logging, test sync accuracy, and handle edge cases.",
+			"reasoning": "Complex sync system requiring git automation and conflict resolution."
+		},
+		{
+			"taskId": 31,
+			"taskTitle": "Implement Compaction Protocol",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Create CompactionManager class, implement checkpoint creation, integrate with sessions/Serena/Taskmaster storage, create restoration protocol, add detection triggers, implement incremental updates, create history tracking, and test data preservation.",
+			"reasoning": "State management system requiring integration with multiple storage systems."
+		},
+		{
+			"taskId": 32,
+			"taskTitle": "Create Documentation Suite",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Update CODEX.md, create AGENTS.md, write TOOLS.md documentation, generate user guides, create migration guide, write FAQ/troubleshooting, add API docs, and prepare video scripts.",
+			"reasoning": "Documentation task with multiple deliverables. Some docs already exist."
+		},
+		{
+			"taskId": 33,
+			"taskTitle": "Setup Training Materials",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create interactive tutorials, record video walkthroughs, write quickstart guide, schedule office hours, build knowledge base, design exercises, create certification checklist, and prepare feedback surveys.",
+			"reasoning": "Training material creation with various media types and feedback mechanisms."
+		},
+		{
+			"taskId": 34,
+			"taskTitle": "Implement A/B Testing Framework",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Implement feature flag system, configure canary deployment, add metrics collection for groups, implement auto-rollback, create comparison dashboards, add user segmentation, implement gradual rollout, and test rollback triggers.",
+			"reasoning": "A/B testing requiring feature flags, metrics separation, and automatic rollback."
+		},
+		{
+			"taskId": 35,
+			"taskTitle": "Create Emergency Response System",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Define incident classification, integrate PagerDuty for P0/P1, configure Slack webhooks, implement emergency halt, write response runbook, establish war room procedures, create post-mortem template, and build incident dashboard.",
+			"reasoning": "Incident response requiring multiple integrations and procedures."
+		},
+		{
+			"taskId": 36,
+			"taskTitle": "Implement Template Governance Board",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Define board composition, create charter document, establish meeting schedule, implement review process, create voting mechanism, add decision tracking, and implement stakeholder notifications.",
+			"reasoning": "Governance structure primarily requiring documentation and process definition."
+		},
+		{
+			"taskId": 37,
+			"taskTitle": "Build Telemetry Pipeline",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Integrate OpenTelemetry SDK, add trace propagation, create custom metrics, set up Elasticsearch, configure Grafana dashboards, implement anomaly detection, create retention policies, ensure GDPR compliance, and test data flow.",
+			"reasoning": "Complex telemetry requiring multiple tool integrations and compliance considerations."
+		},
+		{
+			"taskId": 38,
+			"taskTitle": "Execute Phase 1 Reference Remediation",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Run fix dry-run, review changes, execute fixes in priority order, validate with scanner/guard, update compatibility mapping, capture rollback checkpoint, and document fixes applied.",
+			"reasoning": "Execution phase using existing tools with validation and documentation."
+		},
+		{
+			"taskId": 39,
+			"taskTitle": "Implement Auto-Fix Mode for Guard",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Identify fixable issues, implement fix strategies per issue type, add --auto-fix CLI flag, create preview mode, implement validation, add history tracking, and create selective fix options.",
+			"reasoning": "Auto-fix feature requiring multiple fix strategies and validation."
+		},
+		{
+			"taskId": 40,
+			"taskTitle": "Create Canary Deployment System",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Implement stage progression logic, create health check metrics, add automatic promotion, implement rollback triggers, create status dashboard, add notifications, implement traffic splitting, and generate analysis reports.",
+			"reasoning": "Deployment system requiring staged rollout and health monitoring."
+		},
+		{
+			"taskId": 41,
+			"taskTitle": "Build Migration Health Dashboard",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Create React/Vue dashboard, add real-time updates via WebSocket, implement progress indicators, display scanner/guard status, add performance graphs, create alert panel, implement error trending, and ensure mobile responsiveness.",
+			"reasoning": "Dashboard requiring frontend development and real-time data integration."
+		},
+		{
+			"taskId": 42,
+			"taskTitle": "Implement Session Management System",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Create SessionManager class, implement persistence, add metadata tracking, create archival process, implement search capabilities, add handoff mechanism, create analytics, and implement crash recovery.",
+			"reasoning": "Session system requiring state management and recovery capabilities."
+		},
+		{
+			"taskId": 43,
+			"taskTitle": "Create Template Testing Framework",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Create TemplateTestCase base class, implement execution mocking, add assertion methods, create fixture system, implement coverage tracking, add mutation testing, create benchmark suite, and implement visual regression testing.",
+			"reasoning": "Testing framework requiring multiple testing strategies including mutation and visual regression."
+		},
+		{
+			"taskId": 44,
+			"taskTitle": "Setup Change Advisory Board Process",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Create CAB structure, define change request template, implement tracking system, create risk assessment framework, add approval workflow, implement communication plan, and establish review process.",
+			"reasoning": "Process definition with workflow implementation."
+		},
+		{
+			"taskId": 45,
+			"taskTitle": "Implement Scanner Optimization",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Add parallel processing with multiprocessing, implement incremental scanning, add caching with invalidation, optimize regex patterns, implement streaming JSON, add memory profiling, create profiling mode, and implement lazy loading.",
+			"reasoning": "Performance optimization requiring parallelization and memory management."
+		},
+		{
+			"taskId": 46,
+			"taskTitle": "Create Template Import/Export System",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Design bundle format with manifest, implement export with dependencies, add import with conflict detection, create marketplace integration, implement signing, add version checking, and create preview system.",
+			"reasoning": "Import/export system with dependency resolution and authentication."
+		},
+		{
+			"taskId": 47,
+			"taskTitle": "Build Error Recovery System",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Create error taxonomy, implement recovery strategies per type, add exponential backoff, create context capture, implement error reporting, add user-friendly messages, create recovery flowchart, and implement automatic resolution.",
+			"reasoning": "Error handling system requiring multiple recovery strategies."
+		},
+		{
+			"taskId": 48,
+			"taskTitle": "Execute Phase 2.3 Remaining Templates",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Identify unmigrated templates, apply modular structure, update references, validate with guard/scanner, update compatibility map, run regression tests, and document edge cases.",
+			"reasoning": "Final template migration with validation and documentation."
+		},
+		{
+			"taskId": 49,
+			"taskTitle": "Implement Communication Templates",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create status template, design change notification, build incident template, create announcement format, implement automated filling, manage distribution lists, and implement feedback collection.",
+			"reasoning": "Communication system with templates and distribution management."
+		},
+		{
+			"taskId": 50,
+			"taskTitle": "Setup Security Audit Process",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Define audit checklist, implement SAST scanning, add vulnerability checking, create penetration scenarios, implement metrics collection, add compliance validation, generate security reports, and track remediation.",
+			"reasoning": "Security audit requiring multiple scanning tools and compliance checks."
+		},
+		{
+			"taskId": 51,
+			"taskTitle": "Build Template Usage Analytics",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Implement tracking decorators, create data model, add aggregation pipeline, build dashboards, implement trend analysis, add anomaly detection, create usage reports, and implement predictive analytics.",
+			"reasoning": "Analytics system with trend analysis and predictive capabilities."
+		},
+		{
+			"taskId": 52,
+			"taskTitle": "Implement CI/CD Gates",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Add scanner gate, implement guard gate with auto-fix, add performance gate, create security gate, implement cost gate, add approval gate, create override mechanism, and collect gate metrics.",
+			"reasoning": "Quality gates requiring integration with multiple validation tools."
+		},
+		{
+			"taskId": 53,
+			"taskTitle": "Create Template Caching Layer",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Implement Redis cache, add in-memory LRU as L1, create cache warming, implement invalidation, add hit/miss metrics, create distributed cache, implement persistence, and add debugging tools.",
+			"reasoning": "Multi-layer caching system with distributed capabilities."
+		},
+		{
+			"taskId": 54,
+			"taskTitle": "Setup Knowledge Transfer Process",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create searchable knowledge base, record video tutorials, write troubleshooting guides, create expert contact list, implement Q&A system, and establish retention plan.",
+			"reasoning": "Knowledge management with various documentation formats."
+		},
+		{
+			"taskId": 55,
+			"taskTitle": "Implement Migration Metrics Collection",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Define KPI metrics, implement collection agents, create aggregation pipeline, build time-series storage, add visualization dashboards, implement alerting, and add export capabilities.",
+			"reasoning": "Metrics system with time-series storage and visualization."
+		},
+		{
+			"taskId": 56,
+			"taskTitle": "Execute Phase 3 Automation Integration",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Deploy CI/CD gates, monitor performance for 5 days, implement production auto-fix, validate cost tracking, execute canary deployment, and update documentation.",
+			"reasoning": "Deployment and monitoring phase primarily using existing tools."
+		},
+		{
+			"taskId": 57,
+			"taskTitle": "Create Operational Runbook",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Document daily tasks, create maintenance procedures, write review process, define incident response, create troubleshooting flowcharts, and add escalation tree.",
+			"reasoning": "Documentation of operational procedures and workflows."
+		},
+		{
+			"taskId": 58,
+			"taskTitle": "Implement Template Versioning System",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Implement semantic versioning, create comparison logic, add compatibility checking, implement migration tools, create version history, add conflict resolution, and implement rollback capability.",
+			"reasoning": "Versioning system with migration and rollback capabilities."
+		},
+		{
+			"taskId": 59,
+			"taskTitle": "Build Feedback Collection System",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create feedback form with categories, implement API endpoints, add sentiment analysis, create dashboard, implement routing to owners, and create response system.",
+			"reasoning": "Feedback system with sentiment analysis and routing."
+		},
+		{
+			"taskId": 60,
+			"taskTitle": "Setup Post-Migration Monitoring",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Configure production dashboards, set up health checks, implement usage reviews, create benchmark updates, add planning reviews, and implement monitoring automation.",
+			"reasoning": "Ongoing monitoring configuration with automated checks."
+		},
+		{
+			"taskId": 61,
+			"taskTitle": "Implement Template Discovery Optimization",
+			"complexityScore": 8,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Profile bottlenecks, implement bloom filters, add predictive prefetching, create result caching, optimize I/O operations, implement async API, add performance metrics, create debugging mode, and achieve <50ms target.",
+			"reasoning": "Performance optimization requiring advanced techniques like bloom filters and predictive prefetching."
+		},
+		{
+			"taskId": 62,
+			"taskTitle": "Create Agent Compatibility Layer",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Implement capability detection, create version negotiation, add per-agent feature flags, validate compatibility matrix, implement fallback strategies, add agent transformations, create testing suite, and collect compatibility metrics.",
+			"reasoning": "Compatibility system requiring negotiation protocols and per-agent customization."
+		},
+		{
+			"taskId": 63,
+			"taskTitle": "Execute Phase 4 Documentation Delivery",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Publish documentation, deploy training materials, schedule office hours, execute communication plan, deliver training, and collect feedback.",
+			"reasoning": "Delivery phase primarily publishing and training execution."
+		},
+		{
+			"taskId": 64,
+			"taskTitle": "Implement Cleanup Automation",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create cleanup scheduler, implement legacy detection, add safe deletion with backups, create audit trail, implement dry-run mode, and add rollback capability.",
+			"reasoning": "Cleanup automation with safety mechanisms and audit trail."
+		},
+		{
+			"taskId": 65,
+			"taskTitle": "Build Template Quality Scoring",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Define quality metrics, implement static analysis, calculate quality scores, create dashboards, implement quality gates, add improvement suggestions, and establish benchmarks.",
+			"reasoning": "Quality measurement system with static analysis and scoring algorithms."
+		},
+		{
+			"taskId": 66,
+			"taskTitle": "Setup Deprecation Management",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create deprecation timeline, implement warning system, enforce grace periods, document migration paths, implement auto-archival, and add emergency override.",
+			"reasoning": "Deprecation system with timeline management and automated archival."
+		},
+		{
+			"taskId": 67,
+			"taskTitle": "Create Success Metrics Dashboard",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Implement KPI widgets, add trend graphs, create comparative views, calculate success scores, add predictive metrics, create executive summary, and implement drill-down capability.",
+			"reasoning": "Executive dashboard with KPI tracking and predictive analytics."
+		},
+		{
+			"taskId": 68,
+			"taskTitle": "Implement Final Validation Suite",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create automated checklist, implement integrity checks, add performance validation, create security tests, generate validation report, and implement sign-off workflow.",
+			"reasoning": "Comprehensive validation suite with automated checks and reporting."
+		},
+		{
+			"taskId": 69,
+			"taskTitle": "Execute Phase 5 Enhancement Planning",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Identify enhancement opportunities, create roadmap, implement auto-compaction, add semantic search, plan AI-assisted generation, and create enhancement metrics.",
+			"reasoning": "Planning phase for post-MVP enhancements with prototyping."
+		},
+		{
+			"taskId": 70,
+			"taskTitle": "Setup Long-term Maintenance",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Automate maintenance schedule, implement health checks, update performance baselines, create patch process, implement dependency updates, and add maintenance tracking.",
+			"reasoning": "Maintenance automation with health monitoring and update processes."
+		},
+		{
+			"taskId": 71,
+			"taskTitle": "Create Migration Archive",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Collect migration documents, archive outputs and tools, create timeline documentation, compile lessons learned, and implement search capability.",
+			"reasoning": "Documentation archival with search functionality."
+		},
+		{
+			"taskId": 72,
+			"taskTitle": "Implement Post-Mortem Process",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create post-mortem template, implement timeline reconstruction, add root cause analysis, track action items, implement follow-up automation, and track prevention measures.",
+			"reasoning": "Incident analysis process with tracking and follow-up automation."
+		},
+		{
+			"taskId": 73,
+			"taskTitle": "Build Stakeholder Reporting",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create executive dashboard, automate report generation, add cost-benefit analysis, calculate ROI, implement risk reporting, and schedule report delivery.",
+			"reasoning": "Executive reporting with automated generation and financial analysis."
+		},
+		{
+			"taskId": 74,
+			"taskTitle": "Execute Phase 6 Cleanup",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Remove monolithic files, archive legacy artifacts, clean temporary files, update documentation, verify zero legacy references, and establish maintenance cadence.",
+			"reasoning": "Final cleanup phase with verification and maintenance setup."
+		},
+		{
+			"taskId": 75,
+			"taskTitle": "Create Knowledge Base",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Set up knowledge platform, import documentation, create search indexing, add categorization, implement access controls, and establish contribution guidelines.",
+			"reasoning": "Knowledge base setup with search and access control."
+		},
+		{
+			"taskId": 76,
+			"taskTitle": "Implement Celebration Planning",
+			"complexityScore": 2,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Plan celebration event, prepare team recognition, create success announcement, document achievements, and organize retrospective.",
+			"reasoning": "Simple event planning and recognition task."
+		},
+		{
+			"taskId": 77,
+			"taskTitle": "Setup Continuous Improvement",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Create suggestion system, implement metric-driven improvements, add A/B testing, track improvements, implement feedback loops, and create innovation pipeline.",
+			"reasoning": "Improvement process with feedback loops and testing."
+		},
+		{
+			"taskId": 78,
+			"taskTitle": "Create Final Documentation",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Write architecture documentation, create operation manual, generate API docs, write troubleshooting guide, create disaster recovery plan, and prepare handover documentation.",
+			"reasoning": "Comprehensive documentation creation covering all aspects."
+		},
+		{
+			"taskId": 79,
+			"taskTitle": "Implement Production Verification",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Run security audit, execute performance benchmarks, verify cost projections, test disaster recovery, validate compliance, and obtain stakeholder sign-off.",
+			"reasoning": "Final verification with multiple validation checks and sign-off."
+		},
+		{
+			"taskId": 80,
+			"taskTitle": "Execute Production Deployment",
+			"complexityScore": 4,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Execute deployment checklist, enable production monitoring, activate maintenance automation, remove migration flags, update status communications, and transition to BAU.",
+			"reasoning": "Final deployment execution with transition to normal operations."
+		}
+	]
+}

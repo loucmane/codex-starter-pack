@@ -3,6 +3,7 @@
 ## Discoveries
 - Historical reports (2025-08) highlight dangerous legacy scripts (`reorganize_files.sh`) and confirm the safety features we must preserve (`safe_reorganize.py`, consolidated reference fixer).
 - Codex templates still rely heavily on Serena MCP tooling; documentation updates must reinforce that rather than remove it.
+- Enterprise-grade migration PRD completed (exec summary, RACI, dashboards, governance, scorecard) to drive Taskmaster planning (target 80/300 tasks).
 
 ## Test Results
 - `python3 scripts/template-ssot-scanner/scanner.py --base /home/loucmane/codex --no-checkpoints` ✅ (237 files; outputs in `output/data/`).

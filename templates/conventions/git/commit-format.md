@@ -199,11 +199,11 @@ gac "test: update tests for refactored code"
 3. **Safety**: Adds all changes (intentional)
 4. **Simplicity**: Shorter than manual commands
 
-### Why Single Quotes Inside
-1. **Shell Parsing**: Double quotes break shell parsing
-2. **Escape Complexity**: Avoids complex escaping
-3. **Consistency**: One rule for all quoted content
-4. **Error Prevention**: Eliminates common shell errors
+### Why This Quote Discipline
+1. **Shell Safety**: Double quotes around the message keep the `gac` alias simple.
+2. **Minimal Noise**: Only using single quotes when required keeps bullets readable.
+3. **Escape Control**: Literal code/commands stay accurate without heavy escaping.
+4. **Error Prevention**: Avoids accidental double-quote shell breakage while permitting precise quoting when needed.
 
 ### Benefits
 - **Searchable History**: Type prefixes enable filtering

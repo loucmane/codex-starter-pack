@@ -23,11 +23,16 @@
 - **2025-09-20 20:17** — [S:20250920|W:codex-migration|H:templates/coordination/session-swhe-integration|E:files`scripts/codex-task`] Logged codex-task helper for auto S:W:H:E scaffolds.
 - **2025-09-20 20:18** — [S:20250920|W:codex-migration|H:templates/coordination/enforcement-enhancement-session|E:files`scripts/codex-guard`] Guard validates session/work-tracking S:W:H:E entries with handler/evidence checks.
 - **2025-09-20 20:37** — [S:20250920|W:codex-migration|H:templates/handlers/triggers/docs/create-docs|E:files`CODEX.md; AGENTS.md; templates/TOOLS.md`] Extended docs to cover codex-task logging + codex-guard validations.
+- **2025-09-20 21:06** — [S:20250920|W:codex-migration|H:templates/conventions/git/commit-format|E:files`templates/conventions/git/commit-format.md`] Aligned gac convention with new Summary layout and quote discipline.
+- **2025-09-20 21:17** — [S:20250920|W:codex-migration|H:templates/handlers/triggers/session/end-session|E:note`session wrap-up`] Ended session for 2025-09-20; handoff + roadmap prep queued for next work block.
+- **2025-09-21 12:24** — [S:20250921|W:codex-migration|H:templates/handlers/triggers/session/start-session|E:note`session initialized`] Session 2025-09-21-001 started; targeting remediation roadmap and guard planning.
+- **2025-09-21 18:04** — [S:20250921|W:codex-migration|H:templates/handlers/triggers/docs/create-docs|E:files`.taskmaster/docs/prd.txt`] Elevated migration PRD to enterprise spec (exec summary, RACI, dashboards, scorecard, budget).
 
 ## Current State
-Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). `codex-task` helper and `codex-guard` validator now active with initial validations passing; remediation planning still pending.
+Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). Enforcement helpers (`codex-task`, `codex-guard`) documented and validated; enterprise migration PRD ready for Taskmaster parsing (80/300 target) and remediation planning resumed on 2025-09-21 12:16 CEST.
 
 ## Next Steps
-1. Synthesize scanner outputs into a remediation roadmap (reports + FINDINGS/CHANGELOG).
-2. Define guard auto-fix/CI integration plan and capture follow-up tasks.
-3. Prioritize reference/migration fixes using generated scripts and address circular dependencies/orphaned files.
+1. Run Taskmaster PRD parse when Anthropic API key available (80 tasks / ~300 subtasks).
+2. Synthesize scanner outputs into a remediation roadmap (reports + FINDINGS/CHANGELOG).
+3. Define guard auto-fix/CI integration plan and capture follow-up tasks.
+4. Prioritize reference/migration fixes using generated scripts and address circular dependencies/orphaned files.

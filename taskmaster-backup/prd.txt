@@ -1,0 +1,651 @@
+# Executive Summary
+**Mission**: Migrate the template system from monoliths to a modular, enforceable architecture shared across all agents.
+**Timeline**: Six core phases plus cleanup (target 12-week rollout with canary milestones).
+**Budget**: ~\$400/month in API usage (Taskmaster/Anthropic) + ~1200 CI minutes; alerts at 80%.
+**Risk Level**: Medium (mitigated via incremental migration, rehearsal, canary deployments, rollback playbooks).
+**Success Criteria**: 100% modular templates, 0 reference violations, 30% context reduction, guard/scanner passing in CI, performance benchmarks met.
+**Go/No-Go Decision**: Phase 0 gate review (target 2025-10-06) determines migration kickoff.
+
+# RACI Matrix
+# Phase Timeline
+- Phase 0: Weeks 1–2 (target start 2025-09-22)
+- Phase 1: Weeks 3–4
+- Phase 2: Weeks 5–8 (incremental sub-phases 2.1–2.3)
+- Phase 3: Weeks 9–10
+- Phase 4: Weeks 11–12
+- Phases 5–6: Post-MVP continuous improvements
+
+| Activity | Template Operator | Agent Maintainer | Automation Engineer | Stakeholders |
+|----------|------------------|------------------|---------------------|-------------|
+| Scanner runs | R | C | A | I |
+| Template authoring | A/R | C | I | I |
+| Guard enforcement | C | R | A | I |
+| Migration execution | A/R | R | R | C |
+| Incident response | R | R | A | I |
+| Training & communications | C | C | R | A |
+(R = Responsible, A = Accountable, C = Consulted, I = Informed)
+
+<context>
+# Overview
+Codex is inheriting the CLAUDE template operating system. The migration project must eliminate the legacy monolithic template files, finish the modular breakdown, and institutionalize the enforcement + evidence tooling so every agent (Codex, Claude, Taskmaster, Serena) shares a single source of truth. The work began in the FPL MCP repository (Python template compatibility analysis, SSOT scanner suite, enforcement hooks) and is partially migrated into this Codex repo. Remaining effort spans reference remediation, modular template authoring, guard automation, CI integration, documentation, workflow protocols (including compaction), cross-agent compatibility, security, cost governance, and long-term maintenance.
+
+# Core Features
+1. **Single-Source-of-Truth Template Library**
+   - Replace monoliths (WORKFLOWS.md, PATTERNS.md, etc.) with modular directories.
+   - Maintain authoritative index files while enforcing canonical locations.
+   - Provide migration-aware metadata (fully migrated, partial, not migrated) for every file.
+2. **SSOT Scanner + Report Suite**
+   - Python tooling under `scripts/template-ssot-scanner/` scans, analyzes, and fixes references.
+   - Outputs JSON + scripts (`apply_reference_fixes.py`, `safe_reorganize.py`, etc.) with versioned metadata.
+   - Supports include/exclude filters, heading validation, duplicate detection, migration detector, configurable rule severities.
+3. **Enforcement Helpers (`codex-task`, `codex-guard`)**
+   - CLI utilities to scaffold S:W:H:E logs and validate compliance before handoff/commit (with planned auto-fix mode and guard allowlists).
+   - Integration planned for git hooks, pre-commit, CI, and operational runbooks.
+4. **Workflow + Session Management System**
+   - Standardized work-tracking (7 canonical files), compaction protocol, Serena memories, session logs, Taskmaster tasks.
+   - Migration state persists across compactions, CI runs, and repository sync via handoffs, Serena memories, and Taskmaster snapshots.
+5. **Automation & Integration Layer**
+   - CI jobs to run scanners, guard, prd-lint, performance tests, and Taskmaster validation.
+   - Hooks for Taskmaster, Serena, Sequential Thinking, Codex wrapper, and guard enforcement.
+6. **Template Authoring Standards**
+   - Handler frontmatter schema enforced for every template (id, type, category, dependencies, triggers, exports, version, status).
+   - S:W:H:E guidance, discovery fallback chain (modular → compatibility map → legacy → Serena → error), and lifecycle management (creation → deprecation → archival).
+
+# User Experience
+## Personas
+- **Template Operator** (you/Codex developer): runs scanners, applies fixes, updates templates, manages lifecycle.
+- **Agent Maintainer**: ensures agents (Codex, Claude) adhere to ULTRATHINK, S:W:H:E, compaction, work-tracking protocols.
+- **Automation Engineer**: wires guard + scanner + lint into CI/pre-commit pipelines, monitors health dashboards, manages rehearsals and canary rollouts.
+
+## Key Flows
+1. **Daily Deep Work Flow** – Start session → run `codex-task sessions update` → follow Taskmaster next task → use Serena/scanners → guard validate → log evidence.
+2. **Remediation Sprint** – Pull latest scanner outputs → generate remediation roadmap → apply fix scripts (dry-run → apply) → guard + CI pass → update roadmap.
+3. **Template Authoring** – Use registry-first discovery → create/modify modular template with required frontmatter & S:W:H:E guidance → update indices and metadata → run guard + scanners.
+4. **Automation Integration** – Update Taskmaster tasks → run prd-lint, guard, scanner in pipeline → push results to reports + work-tracking → monitor metrics.
+5. **Compaction-Aware Workflow** – During long migrations, log compaction checkpoints (sessions, Serena memories, Taskmaster snapshots) so work resumes seamlessly after context resets.
+6. **Incremental Migration & Canary Rollout** – Stage migrations (core handlers → patterns → remainder), rehearse in dry-run environment, execute canary deployments (Codex → Claude → others) with monitoring windows.
+
+## UX Considerations
+- S:W:H:E structured logging (sessions/work-tracking) remains mandatory and guard-enforced.
+- Codex CLI should have quick commands (e.g., `./scripts/codex-task scanner run ... --log-note`).
+- Reports generated automatically land in `docs/ai/work-tracking/.../reports/` with timestamped filenames.
+- Template discovery must surface canonical files quickly (indexes, compatibility matrix, fallback logic, Serena search hints).
+- Security/injection protections and cost awareness built into tooling (allowlists, rate limits, caching).
+</context>
+<PRD>
+## Escalation Contacts
+- P0 Critical: Template Operator Lead (primary TBD), Automation Engineer On-Call (backup TBD).
+- Template Operator Lead: TBD (@template-lead).
+- Agent Maintainer Lead: TBD (@agent-maint).
+- Automation Engineer Lead: TBD (@auto-eng).
+- On-call rotation schedule stored in docs/ai/work-tracking/.../plans/on-call-schedule.md.
+
+# Technical Architecture
+- **Repositories**: Primary (`~/codex`), legacy context (`~/dev/mcp-development/fpl-mcp-repo`).
+
+## System Architecture Diagram
+```
+┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
+│ Agents (Claude,│────▶│ Template     │────▶│ Guard &     │
+│ Codex, etc.)    │     │ Registry      │     │ Enforcement │
+└─────────────────┘     └──────────────┘     └─────────────┘
+          │                      │                     │
+          ▼                      ▼                     ▼
+┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
+│ Serena MCP      │     │ Scanner Suite│     │ CI / Taskmaster│
+│ (Search/Memories)│    │ (analysis)    │     │ (Automation) │
+└─────────────────┘     └──────────────┘     └─────────────┘
+          │                      │                     │
+          └──────────────────────┴─────────────────────┘
+                                 │
+                         ┌───────▼────────┐
+                         │ Work Tracking &│
+                         │ Compaction     │
+                         └────────────────┘
+```
+- **Key Components**:
+  - Modular template tree under `templates/` with indices in `templates/*.md`.
+  - SSOT scanner suite (`scripts/template-ssot-scanner/*.py`) using Python 3.11+, outputting versioned JSON with severity taxonomy.
+  - Enforcement helpers (`scripts/codex-task`, `scripts/codex-guard`) with planned auto-fix and allowlist configs.
+  - Work-tracking docs (seven canonical files), Serena memories, compaction checkpoints, Taskmaster tasks.
+  - Legacy migration artifacts (fix scripts, reports) maintained or ported to Codex environment.
+
+# Lessons from FPL Migration
+- Scanner produced false positives on symlinks; guard allowlist added (2025-08).
+- Metadata compatibility issues solved by wrapper integration.
+- Reference fix order (engine → patterns → remaining) prevents regressions.
+- See legacy sessions under fpl-mcp-repo/sessions/2025/08/ for detailed context.
+
+  - Compatibility mapping table for backward references (monolith anchor → modular path).
+- **Data Models**:
+  - Handler frontmatter schema:
+    ```yaml
+    ---
+    id: unique-id
+    type: trigger|operator|orchestrator|guide
+    category: session|development|tools|etc
+    dependencies: []
+    triggers: []
+    exports: []
+    version: 1.0.0
+    status: stable|beta|deprecated
+    tags: [core, py, …]
+    ---
+    ```
+  - Scanner outputs:
+    ```json
+    {
+      "metadata": {
+        "scanner_version": "2.0.0",
+        "output_format_version": "2.0.0",
+        "generated_at": "2025-09-21T12:16:00Z",
+        "compatibility": ">=1.0.0"
+      },
+      "references": [...],
+      "duplicates": [...],
+      "migration_status": {...}
+    }
+    ```
+  - Guard configuration (`scanner_config.yaml` / `guard_config.yaml`) with rule severity, auto-fix flags, allowlists.
+  - Taskmaster tasks: JSON tasks with subtasks, statuses, dependencies, acceptance criteria, target metrics.
+  - Migration state: Taskmaster tasks + Serena memories + work-tracking logs + compatibility mapping.
+- **Integrations**:
+  - Serena MCP: semantic search, regex, symbol analysis, memory store.
+  - Taskmaster-AI: task graph, status updates, PRD parsing (requires this prd.txt) with CLI commands (e.g., `taskmaster-ai parse-prd`).
+  - Sequential Thinking MCP: deep planning sequences.
+  - Codex wrapper: enforces `CODEX.md` protocols before execution.
+  - CI/Pre-commit: guard + scanner + prd-lint + performance tests + Taskmaster check.
+  - Observability: metrics pipeline capturing performance, usage, compliance.
+- **Infrastructure Requirements**:
+  - Python 3.11 (pinned via `pyproject.toml` / `uv.lock`).
+  - Shell access with `git`, `rg` (≥14.0), `sed`, `python3`.
+  - Taskmaster CLI with configured Anthropic/Perplexity keys (rate limits 1000 req/min and 100 req/min; implement caching/backoff).
+  - Cross-platform support (Mac/Linux primary, Windows compatible via path normalization).
+
+# Testing & Validation Strategy
+- **Unit Tests**: scanner modules, guard validators, codex-task CLI, security sanitizers.
+- **Integration Tests**:
+  - Template load flows (registry lookups, handler execution with new frontmatter).
+  - Guard + scanner combos on staged diffs with allowlist.
+  - Taskmaster automation dry-runs (task creation, status updates, cost estimation).
+  - Security tests (path traversal, template injection attempts).
+- **Regression Tests**:
+  - ULTRATHINK compliance flows (start-session → handler search → ULTRATHINK → S:W:H:E logging).
+  - Common workflows (start-new-work, fix-problem, test-implementation) using modular templates.
+  - Performance harness (`performance_tests.py`) verifying discovery <50 ms, scanner <30 s, context reduction.
+- **Acceptance Tests per Phase** (see Validation Gates).
+- **Edge Case Scenarios**: circular dependencies, templates with 100+ references, concurrent updates, compaction mid-migration, scanner crash, API key expiration, git conflicts, >10KB templates, non-ASCII characters, symlinks.
+- **Test Environment**:
+  - Branch-based isolation for migrations, rehearsal environment mirroring production.
+  - `make test-templates`, `make test-ci`, `make test-security`.
+- **Continuous Testing**:
+  - CI runs guard + scanner + prd-lint + Taskmaster + security checks on every PR.
+  
+# Rehearsal Environment
+## Environment Setup
+- Isolated branch `migration-rehearsal-<phase>` seeded from production main.
+- CI pointed to rehearsal environment with test API keys mirroring production limits.
+- Populate with sanitized copy of production templates and compatibility map.
+- Agent simulators/mock endpoints for Claude/Codex/Serena interactions.
+- Load testing harness simulating 100× normal template discovery volume.
+
+## Rehearsal Script
+1. Execute Phase 0–1 migration steps (<=2 hours).
+2. Run smoke tests + guard/scanner/performance suite (30 minutes).
+3. Perform rollback drill (`make rollback-reference-fixes`) and verify state (15 minutes).
+4. Execute Phase 2 migration on rehearsal data (<=3 hours).
+5. Run performance benchmarks (`python -m pytest performance_tests.py -v --benchmark-only`) (1 hour).
+6. Stakeholder review + sign-off (1 hour).
+
+## Success Criteria
+- All validation gates pass in rehearsal environment.
+- Total rehearsal duration <8 hours.
+- Zero data loss; rollback restores baseline.
+- Issues documented in Taskmaster + work-tracking runbook.
+
+# Migration Dry-Run Checklist
+- [ ] Clone production repo to `migration-rehearsal-<phase>` branch.
+- [ ] Configure rehearsal CI with test API keys and identical rate limits.
+- [ ] Execute migration scripts in dry-run mode; capture logs/artifacts.
+- [ ] Run rollback procedure end-to-end and confirm baseline integrity.
+- [ ] Execute guard/scanner/performance suites; record metrics vs targets.
+- [ ] Document findings and update runbooks/Taskmaster tasks before production run.
+
+# Rollback & Recovery Strategy
+- **Branching**: migrations on feature branches; merge after gates pass.
+- **Checkpoints**: git tags, Taskmaster milestones, Serena memories, compatibility map snapshots.
+- **Backups**: copy critical template directories and outputs before applying fix scripts.
+- **Rollback Procedures**:
+  - `make rollback-reference-fixes`, revert branch, restore compatibility map.
+  - Emergency toggle to legacy compatibility mode.
+  - Decision criteria for rollback vs fix-forward.
+- **Emergency Playbooks**: guard bypass protocol, scanner failure fallback, incident escalation tree, post-mortem within 48 h.
+
+# Success Metrics & KPIs
+- Reference integrity: 0 broken refs, 0 monolith references.
+
+# Current Baseline (Pre-Migration)
+- Template discovery: 150 ms average.
+- Context usage: 45k tokens average per session.
+- Error rate: 0.5% failure rate on template execution.
+- CI pass rate: 92% over last month.
+- Guard/scanner violations: averaging 6/week with monolith references.
+
+- Template discovery: <50 ms (target) / <100 ms max.
+- Guard validation: <5 s per run (<30 s CI aggregate).
+- Scanner execution: <30 s full suite; <10 s incremental.
+- Context usage: 30% reduction vs monolith baseline.
+- CI health: 0 enforcement violations merged.
+- Migration progress: % fully migrated templates (target 100%).
+- Cost: within Taskmaster/CI budget thresholds (alerts at 80%).
+- Security: 0 unresolved template injection findings.
+- Developer satisfaction: ≥4/5 post-migration survey.
+
+# Migration Validation & Acceptance Criteria
+## Definition of "Fully Migrated"
+- Zero references to monolithic files (scanner/guard verified).
+- Handler/doc files contain required frontmatter schema.
+- S:W:H:E format validates via guard.
+- Template discovery benchmarks met (<50 ms).
+- All agents pass compatibility matrix tests.
+- Work-tracking templates updated in modular locations.
+- Compaction protocol verified (checkpoints + Serena memories).
+- Security audit passed (no injection/path traversal).
+- Cost projection within budget.
+
+## Validation Gates
+- **Phase 0 Gate**: Scanner suite passes unit tests; guard baseline validated; Taskmaster tasks generated; compatibility baseline recorded; monitoring infrastructure ready.
+- **Phase 1 Gate**: 0 broken references; guard passes on diffs; rollback checkpoint captured; security lint passes; performance baseline recorded.
+- **Phase 2 Gate**: Monolith content migrated/deprecated; indices updated; handler docs validated; incremental sub-phase gates (Phase 2.1–2.3) each pass tests; compatibility map updated; dual-path discovery functioning.
+- **Phase 3 Gate**: CI/pre-commit pipeline green 5 consecutive days; auto-fix mode documented/tested; compatibility matrix validated; cost usage within thresholds.
+- **Phase 4 Gate**: Documentation suite published; training delivered; monitoring dashboards live; communication plan executed; canary rollout successful.
+- **Post-Migration Gate**: Security audit, performance benchmarks, cost projections, user satisfaction, and deprecation timeline on track.
+- **Production Readiness**: All success metrics met; incident rehearsal completed; stakeholder sign-off.
+
+# Development Roadmap
+## Phase 0 – Foundations & Inventory (Partially Complete)
+- Verify scanner suite (unit tests, security checks) in Codex environment.
+- Regenerate baseline outputs (done 2025-09-20) with versioned metadata.
+- Initialize Taskmaster with PRD; create tasks for all phases.
+- Establish enforcement helpers baseline + auto-fix backlog + guard allowlist.
+- Record compatibility baseline (monolith performance, agent versions).
+- Set up monitoring infrastructure and cost tracking.
+- Prepare template author training materials.
+
+## Phase 1 – Reference Remediation + Modular Parity
+- Generate remediation roadmap report; log in work-tracking & Taskmaster tasks.
+- Review/port fix scripts (`apply_reference_fixes.py`, etc.); ensure dry-run logs saved with version.
+- Execute fixes in priority order (engine → patterns → remaining) with rollback checkpoint.
+- Update indices and compatibility mapping table.
+- Re-run scanner/guard/performance tests; Phase 1 gate.
+
+## Phase 2 – Template Modularization Completion
+- **Phase 2.1**: Migrate critical handlers (start-new-work, fix-problem, test-implementation). Validate with tests and guard.
+- **Phase 2.2**: Migrate patterns (work-tracking, session). Update indices, run discovery tests.
+- **Phase 2.3**: Migrate remaining handlers/docs; ensure lifecycle metadata.
+- Maintain dual-path discovery (modular → compatibility map → legacy → Serena → error).
+- Document migration state persistence (compaction, CI, repo sync).
+- Phase 2 gate.
+
+## Phase 3 – Enforcement Automation & Tooling
+- Extend `codex-guard` auto-fix, allowlist, and scanner rule configuration (`scanner_config.yaml`).
+- Wire guard + scanner + prd-lint + performance tests + Taskmaster validation into CI/pre-commit.
+- Implement monitoring dashboards; set alert thresholds.
+- Execute canary deployment plan (Codex → Claude → others with 24/48h windows).
+- Cross-repo synchronization protocol (daily drift check, auto PRs, conflict playbook).
+- Phase 3 gate.
+
+## Phase 4 – Documentation, Training, Observability & Communication
+- Update `CODEX.md`, `AGENTS.md`, `templates/TOOLS.md`, user guides, agent-specific migration guides (Claude, Codex, Serena, Taskmaster).
+- Produce developer playbook (migration guide, compatibility mapping, FAQ, error recovery table).
+- Deliver training (tutorials, videos, office hours).
+- Execute communication plan (status updates, milestone announcements, feedback loop).
+- Phase 4 gate.
+
+## Phase 5 – Future Enhancements (Post-MVP)
+- Compaction-aware automation (auto checkpoints, context monitoring).
+- Additional MCP integrations (Firecrawl, Context7, etc.).
+- Semantic discovery enhancements (fuzzy matching, caching, predictive suggestions).
+- Advanced optimization (auto modularization suggestions, AI-assisted template generation).
+- Celebrate success (blog post, credits, retrospective, knowledge transfer).
+
+### Phase 5 Success Criteria
+- Auto-compaction trigger accuracy ≥85% when context approaches limit.
+- Semantic search responses <100 ms for top templates.
+- Auto-modularization suggestions accepted ≥80% of reviewed cases.
+
+## Phase 6 – Post-Migration Cleanup & Maintenance
+- Archive monolithic files after grace period; remove compatibility layer (Week 6) per deprecation schedule.
+- Remove legacy scripts/artifacts; ensure clean repo state.
+- Update documentation to remove legacy references.
+- Establish ongoing maintenance cadence (weekly scanner health, monthly usage review, quarterly benchmarks, yearly major review).
+
+### Phase 6 Success Criteria
+- Zero monolith references detected for 30 consecutive days.
+- All legacy artifacts archived/removed and inventories updated.
+- Maintenance automation jobs running on schedule with green status.
+- Knowledge transfer artifacts published (video, docs, FAQ).
+
+# Logical Dependency Chain
+```
+Scanner accuracy → Reference mapping → Test harness → Security baseline
+          ↓                 ↓                ↓              ↓
+   Rollback plan → Initial migration → Validation gate 1 → Compatibility mapping
+          ↓                 ↓                ↓              ↓
+ Guard auto-fix → Incremental migration → Validation gate 2 → Dual-path discovery
+          ↓                 ↓                ↓              ↓
+ CI enforcement → Monitoring & cost control → Validation gate 3 → Canary rollout
+          ↓                 ↓                ↓              ↓
+ Documentation/training → Cleanup & maintenance → Validation gate 4/6 → Production readiness
+```
+
+# Risks and Mitigations
+- **Scanner Breakdown**: If scanner mis-detects references, sample manual validation pre-phase; maintain allowlist.
+- **Agent Incompatibility**: Agents unable to load modular templates; maintain monolith escape hatch until proven.
+- **Performance Cliff**: Modular templates slow down load times; enforce performance gate; implement caching.
+- **Context Explosion**: Modular templates increase token usage; enforce token usage gate, prune content.
+- **Template Discovery Failure**: Dual-path fallback chain ensures discovery; run exhaustive tests.
+- **Budget Overrun**: Monitor API usage; implement caching; set alerts at 80% budget.
+- **Security Vulnerabilities**: Path traversal or injection; sanitize inputs; security audit before gates.
+- **Cross-Repo Drift**: Daily sync checks, auto PRs, conflict resolution playbook.
+- **CI/CD Instability**: Guard/scanner auto-fix errors; maintain bypass protocol with approval.
+- **Template Lifecycle Neglect**: Implement lifecycle policies; review usage monthly.
+
+# Testing Strategy (Detailed)
+| Layer | Tests | Tools |
+|-------|-------|-------|
+| Unit | Scanner modules, guard validators, sanitizers | pytest, coverage |
+| Integration | Template load flows, guard+scanner combos, Taskmaster automations, security tests | pytest, smoke scripts |
+| Regression | ULTRATHINK flow, session lifecycle, handler execution, compaction scenarios | scripted scenarios |
+| Performance | discovery, scanner, context usage harness | pytest-benchmark |
+| Acceptance | Validation gates (Phase 0–6 checklists) | Taskmaster tasks, guard reports |
+
+# Rollback Playbook
+1. Snapshot workspace (`git tag migration-pre-<phase>`, Taskmaster milestone, Serena memory, compatibility map).
+2. Apply migration tasks.
+3. If gate fails beyond remediation window, execute rollback (`make rollback-reference-fixes`, revert branch, restore compatibility mapping).
+4. Notify stakeholders per communication plan; log incident in work-tracking; schedule post-mortem.
+
+# Success Metrics & Monitoring
+- Metrics captured via scripts (JSON), dashboards, and Taskmaster reports.
+- Alerts for guard/scanner failures, performance degradation, budget thresholds.
+- Template usage analytics (per agent, per handler).
+- Weekly migration status update (Taskmaster + work-tracking report).
+
+# Training, Communication & Adoption Plan
+- Training materials: recorded walkthrough, interactive tutorial template, agent-specific migration guides, FAQ/troubleshooting.
+- Communication: weekly status updates, milestone announcements, breaking change notices, feedback loop.
+- Adoption: quickstart guide for new developers, compatibility checklist, office hours.
+
+# Quick Reference Card
+### Daily Checklist
+- [ ] Check scanner health dashboard.
+- [ ] Review guard violations and apply allowlist overrides if approved.
+- [ ] Monitor API/cost usage against budget.
+- [ ] Confirm Taskmaster tasks reflect current progress.
+
+### On Error
+1. Consult migration health dashboard to identify alert.
+2. Reference error recovery table for recovery steps.
+3. If critical, trigger emergency halt and notify stakeholders.
+4. Log incident in Taskmaster and work-tracking.
+
+# Operational Runbook
+## Daily Ops
+- Scanner runs at 06:00 UTC; guard on every commit; metrics collected hourly.
+- Cost monitoring (API usage) and security alerts.
+## Weekly Maintenance
+- Deep scanner run, performance tests, dependency review, migration progress report.
+## Monthly
+- Template usage review, cost analysis, security updates, Taskmaster roadmap review.
+## Incident Response
+- P0 (critical): 15 min response; P1: 1 hr; P2: 4 hr; P3: next business day.
+- Incident response runbook: detect → triage → mitigate → fix → review.
+
+# Security & Compliance
+- Template path allowlist; sanitize inputs to prevent path traversal.
+- Secret scanning pre-commit hooks; restrict who can modify critical templates.
+- Audit logging for template edits (author, timestamp, diff).
+- Compliance: ensure no PII stored in templates; follow GDPR guidelines for logs.
+- Security audit before each phase gate; include in validation checklist.
+
+# Cost Estimation & Management
+- Track API usage (Taskmaster/Anthropic) per task; cache results to reduce calls.
+- Estimate CI minutes per PR; optimize by batching tests.
+- Store scanner reports for 90 days; manage storage costs.
+- Set budget alerts; review monthly.
+
+# Dependency & Version Management
+- Python 3.11+, dependencies pinned via `pyproject.toml`/`uv.lock`.
+- Tool versions: Serena ≥0.23, Taskmaster ≥0.26, rg ≥14.0.
+- Update cadence: security patches weekly; feature updates monthly.
+- Version templates via git tags for major changes; maintain changelog.
+
+# Template Lifecycle Management
+## Creation
+- PR review required; guard validation must pass; documentation updated.
+## Naming Conventions
+- Handlers: `category-action-context.md` (e.g., `session-start-new.md`).
+- Operators: `op-verb-target.md` (e.g., `op-validate-references.md`).
+- Patterns: `pattern-workflow-variant.md`.
+- Lowercase with hyphens; no spaces; version captured in frontmatter, not filename.
+- Test/support files use `.test.md` suffix and are allowlisted in guard config.
+## Deprecation Process
+1. Mark as deprecated in frontmatter.
+2. Add migration notice pointing to replacement.
+3. Grace period 30 days (compatibility map redirects).
+4. Move to `templates/deprecated/`.
+5. Remove after 90 days.
+## Versioning & Conflict Resolution
+- Templates versioned via frontmatter `version` field and git history; major changes tagged in git.
+- If agents require different versions: compatibility layer serves both; Taskmaster task opened; deprecation warning logged; forced upgrade after grace period.
+- Change advisory board reviews breaking changes before merge.
+
+# Incremental Migration Approach
+- Phase 2.1: Critical handlers.
+- Phase 2.2: Patterns (work-tracking, session).
+- Phase 2.3: Remaining handlers/docs.
+- Each sub-phase executes canary rollout, performance tests, validation gates.
+
+# Error Recovery Patterns
+| Error | Detection | Recovery | Fallback |
+|-------|-----------|----------|----------|
+| Template not found | Guard/scanner 404 | Check compatibility map | Use legacy monolith | Manual update
+| Scanner timeout | >30 s execution | Use cached results, rerun | Manual review | Increase resources
+| Guard false positive | Known pattern flagged | Apply allowlist rule | Override with justification | Fix guard rule
+| Compaction loss | Missing memory | Restore from sessions/Serena | Reconstruct via git | Document gap
+| API rate limit | HTTP 429 | Exponential backoff | Switch to cached/offline mode | Alert, pause automation
+
+# Migration State Persistence
+- Compaction: log to sessions + Serena memory + Taskmaster.
+- Agent restarts: follow `CODEX.md`/`CLAUDE.md` protocols to reload sessions, Taskmaster tasks, compatibility map.
+- Repository switches: cross-repo sync protocol ensures state preserved.
+- CI/CD runs: guard/scanner outputs stored with version, consumed by Taskmaster.
+
+# Template Deprecation Timeline
+- Day 0: Dual-path discovery enabled.
+- Week 1: Deprecation warnings in logs.
+- Week 2: Monolithic refs fail in CI (warning mode).
+- Week 4: Monolithic files archived to `templates/deprecated/`.
+- Week 6: Compatibility layer removed; guard enforces new paths.
+
+# Performance Testing Harness
+- `performance_tests.py` with `test_template_discovery_time`, `test_context_token_usage`, `test_scanner_incremental`, etc.
+- Baseline captured in Phase 0; rerun each phase.
+- Profile top 20 most-used templates via `pytest-benchmark` to ensure 50% faster discovery than monolith baseline.
+- Monitor performance degradation thresholds (warning at +20%, critical at +50%).
+- Command: `python -m pytest performance_tests.py -v --benchmark-only`.
+
+# Cross-Repository Synchronization
+1. Daily diff of templates between legacy and Codex repos.
+2. Scanner drift detection; raise Taskmaster task if mismatch.
+3. Auto PR generation for required fixes.
+4. Merge conflict resolution playbook.
+
+# Quality Gates per Phase
+- Phase 1: Code coverage >80%, 0 scanner violations.
+- Phase 2: All handlers tested/documented; compatibility tests pass; incremental phases validated.
+- Phase 3: CI green 5 consecutive days; cost usage <80% budget.
+- Phase 4: Training completed; documentation published; communications executed; satisfaction survey triggered.
+- Phase 6: Cleanup complete; maintenance cadence scheduled.
+
+# Canary Deployment Strategy
+1. Deploy to Codex (smallest blast radius); monitor 24 hours.
+2. Deploy to Claude; monitor 48 hours.
+3. Deploy to Serena/Taskmaster; monitor 72 hours.
+4. Rollback or proceed based on guard/scanner metrics, performance, cost.
+
+# Scanner Rule Configuration
+```yaml
+rules:
+  reference_validation:
+    severity: error
+    auto_fix: true
+  duplicate_detection:
+    severity: warning
+    threshold: 0.8
+  migration_tracking:
+    severity: info
+allowlist:
+  - templates/legacy/
+  - docs/examples/
+```
+
+# Incident Response Runbook
+1. Detect: Alert triggers (performance, guard, scanner, discovery failure).
+2. Triage: Consult guard/scanner logs, compatibility map.
+3. Mitigate: Enable compatibility mode, apply allowlist override.
+4. Fix: Patch template or rollback.
+5. Review: Post-mortem within 48 hours; update runbook.
+
+# Ongoing Maintenance
+- Weekly scanner health checks.
+- Monthly template usage & cost review.
+- Quarterly performance benchmark updates, security review.
+- Yearly major version planning.
+
+# Telemetry & A/B Testing
+- Instrument template loads with `track_usage` decorator to emit metrics (load count, duration, error rates).
+- Metrics pipeline: Prometheus exporters + Grafana dashboards; logs streamed to Elasticsearch/Splunk; alerting via PagerDuty (P0/P1) and Slack (P2/P3).
+- A/B testing: roll out new templates to 10% canary, monitor load time/error rate; escalate to 50%/100% over 72 hours; auto rollback if error rate >5%.
+- Store telemetry dashboards for migration health and adoption trends.
+
+## Migration Health Dashboard
+### Real-Time Metrics
+- Migration progress bar (e.g., `[██████░░░░] 60%`).
+- Active phase/sub-phase indicator.
+- Scanner health status (pass/fail count last 24h).
+- Guard violations trend (hourly/daily).
+- Template discovery time average/max.
+- Error rate (template failures per 1k loads).
+- Cost usage vs budget (e.g., $127/$500).
+
+### Alert Thresholds
+- Discovery time >100 ms triggers warning.
+- Guard failures >5/hour triggers critical alert.
+- Cost usage >80% triggers warning.
+- Scanner timeout triggers critical alert.
+- Context usage regression >10% triggers investigation.
+
+### Telemetry Storage
+- Metrics retained 90 days for trend analysis; archived quarterly.
+- Dashboard links recorded in work-tracking reports and Taskmaster tasks.
+
+# Template Governance Board
+- Representatives: template operator lead, agent maintainer rep, automation engineer, stakeholder liaison.
+- Meets weekly during migration, monthly afterwards.
+- Reviews breaking changes, deprecations, new pattern proposals; holds veto rights with documented justification.
+
+# Change Management
+## Template Changes
+- All template modifications require PR review with guard/scanner checks; critical templates demand human approval.
+- 24-hour comment period for breaking changes; communication template issued to stakeholders.
+- Taskmaster tracks approvals and outstanding change actions.
+## Migration Go/No-Go (CAB)
+- Change advisory board (template operator, agent maintainer, automation engineer) reviews each phase gate.
+- Decision criteria: gate status, risk assessment, resource availability, rehearsal results.
+- Meeting notes stored in work-tracking `plans/` and Taskmaster tasks.
+
+# Data Governance
+- Retention: scanner reports 90 days, work-tracking indefinite, Serena memories 180 days active → archive.
+- Backup strategy: daily snapshots, 30-day retention.
+- Ensure templates contain no PII; enforce via guard/secrets scanning.
+
+# Success Celebration
+- Launch announcement (blog post, team meeting).
+- Recognition (CREDITS.md, shout-outs) highlighting scanner suite (@scanner-dev), guard system (@guard-dev), migration lead (@migration-lead).
+- Retrospective within 1 week; knowledge transfer via recorded walkthrough.
+- Publish final metrics dashboard; share wins.
+
+# Post-Migration Cleanup
+- Remove monolithic files after grace period; archive to `templates/deprecated/`.
+- Clean up temporary artifacts/logs.
+- Final scanner run to confirm zero legacy dependencies.
+- Update docs to remove legacy references.
+
+# Migration Scorecard (Updated Weekly)
+## Overall Health: 🟢 Green | 🟡 Yellow | 🔴 Red
+
+### Progress
+- Phase status (e.g., Phase 2.2 at 60% complete).
+- On-track indicator based on timeline.
+
+### Quality
+- Scanner violations count (last 7 days).
+- Guard failures count/resolution status.
+- Test suite pass rate.
+
+### Performance
+- Template discovery average/max time.
+- Context usage change vs baseline.
+- Error rate trend.
+
+### Budget
+- API usage vs budget (e.g., $127/$500).
+- CI minutes vs allocation.
+
+### Team
+- Blockers summary.
+- Training completion %.
+- Morale pulse (survey).
+
+# Security & Performance Validation Updates for Gates
+- Add security audit, performance benchmarks, cost projections checks to validation gates.
+
+# Risks (Expanded)
+- Critical path risks (scanner breakdown, agent incompatibility, performance cliff, context explosion, discovery failure) with mitigation.
+- Budget overrun; mitigation via cost monitoring & caching.
+- Security vulnerability; mitigation via sanitization, audits.
+- Cross-platform differences; mitigation via path normalization tests.
+- Multi-tenant conflicts (different teams needing divergent templates); mitigation via compatibility mapping, governance board review, staged rollouts.
+
+# Communication Strategy (Expanded)
+- Weekly updates, milestone announcements, canary status, incident notifications, feedback loop.
+- Stakeholder matrix (developer core, agent maintainers, automation team).
+- Communication templates (weekly status, breaking change, incident) stored under docs/ai/work-tracking/.../plans/.
+
+## Communication Templates
+- **Weekly Status**: "Migration Status Week [N]: Phase [X] at [Y]% complete. Goals: [...]. Blockers: [none|list]."
+- **Breaking Change**: "⚠️ BREAKING: [change] effective [date]. Action required: [steps]. Compatibility mode available until [date]."
+- **Incident Update**: "🚨 INCIDENT: [summary]. Mitigation in progress. Next update in [time]."
+
+# Agent Coordination During Migration
+- Taskmaster acts as migration coordinator and source of truth for task status.
+- Status broadcasts posted every 4 hours via Serena memory entry and session log.
+- Any agent detecting critical issue can trigger emergency halt (Taskmaster flag + guard bypass).
+- Compatibility matrix resolves feature discrepancies; conflicts logged as Taskmaster tasks.
+
+# Training & Adoption (Expanded)
+- Agent-specific migration guides (Claude, Codex, Serena, Taskmaster).
+- Migration tutorial templates; knowledge base articles.
+- Office hours schedule and Q&A tracking.
+
+# Appendix
+- **Legacy Work Artifacts**: `/home/loucmane/dev/mcp-development/fpl-mcp-repo/docs/ai/work-tracking/active/20250812-python-template-check-ACTIVE/` (scanner history) and `20250813-mcp-prd-development-ACTIVE/` (PRD tooling).
+- **Generated Scripts**: `scripts/template-ssot-scanner/`, `output/scripts/apply_reference_fixes.py`, `apply_all_fixes.sh`, safe reorganize reports.
+- **Enforcement Utilities**: `scripts/codex-task`, `scripts/codex-guard`, guard allowlist/config, commit convention updates.
+- **Current Remediation Outputs**: `output/data/migration_status.json`, `duplicate_analysis.json`, `fix_recommendations.json`.
+- **Work-Tracking**: `docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/`, Serena memories `compaction_2025-09-20_codex_migration`, `enforcement_2025-09-20_codex_helpers`, `session_end_2025-09-20_codex_migration`.
+- **Compatibility Mapping**: Legacy reference map maintained in Phase 2 for backward compatibility.
+- **Operational Runbook & Incident Playbook**: stored under `docs/ai/work-tracking/active/.../plans/`.
+</PRD>
