@@ -16,6 +16,8 @@ tools:
   - TodoWrite
 version: 2.0.0
 ---
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
+
 
 #### Handler: end-session {#end-session}
 **Triggers**: "let's wrap up", "end for today", "finish session"

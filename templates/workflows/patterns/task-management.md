@@ -10,6 +10,8 @@ related:
 version: 1.0.0
 status: stable
 ---
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
+
 
 # Task Management Patterns
 

@@ -1,3 +1,5 @@
+
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
 # Claude Template System Registry - REFINED v2.0
 
 Complete index of all handlers, templates, patterns, and conventions across the template system. 

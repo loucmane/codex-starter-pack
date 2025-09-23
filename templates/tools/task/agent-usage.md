@@ -8,6 +8,8 @@ description: Intelligent delegation and specialist deployment patterns
 status: stable
 tools: [Task]
 ---
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
+
 
 # Task Tool Agent Deployment Guide
 

@@ -1,3 +1,5 @@
+
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
 # Implementation Plan
 
 ## Overview
@@ -32,3 +34,47 @@ Codex-first migration of the Claude template system. We need a clean Single Sour
 - Enterprise migration PRD ready for Taskmaster parsing (80/300 task target).
 - Ready list of remaining modularization tasks accompanied by clean scanner reports.
 - `codex-task` helper + guard run cleanly (`codex-task …`, `codex-guard --validate`).
+
+
+## Template System Audit Roadmap (2025-09-23)
+The comprehensive template inventory surfaced ten remediation tracks. Each track will be executed sequentially after documenting scope in sessions/work-tracking and receiving stakeholder approval.
+
+1. **Session Workflows (Action 1)** — Create `templates/workflows/session/continuation.md` and `state-management.md`, update handlers/patterns/registry, and replace legacy anchors.
+2. **Meta Workflow Authoring (Action 2)** — Introduce workflow + orchestrator + guard to enforce creation protocol for new workflows/handlers.
+3. **Domain Workflow Packs (Action 3)** — Author frontend/backend/API/testing/ops workflow modules, with matching conventions/guards/examples.
+4. **Legacy Anchor Remediation (Action 4)** — Replace all `WORKFLOWS.md#…` references with modular equivalents or create the missing modules.
+5. **Taskmaster Alignment (Action 5)** — Document pre-edit checklist workflow and integrate with `codex-task`/guard enforcement.
+6. **Work-Tracking Orchestration (Action 6)** — Codify the seven-file active folder, TodoWrite integration, sessions, and Serena handoffs.
+7. **Engine Migration Completion (Action 7)** — Finish Phase 2/3 modules listed in `templates/engine/README.md` and adjust documentation accordingly.
+8. **Metadata Standardization (Action 8)** — Ensure every module frontmatter includes `type`, `status`, and related metadata.
+9. **Workflow Guard Expansion (Action 9)** — Extend `templates/metadata/workflow-guards.json` to cover new workflows and Taskmaster enforcement.
+10. **Compaction Behavior Cleanup (Action 10)** — Decide on archival/rewrite of deprecated `session/compaction-detection.md`.
+
+All actions require recording scope in sessions/, tracker entries, and HANDOFF before modifying `tasks.json`.
+
+
+### Upcoming Work: Meta Workflow Authoring (Action 2)
+- Document formal process for creating/modifying workflows/handlers/conventions before implementation.
+- Define scope for enforcing orchestrator + gap-detection pattern (implementation deferred).
+- Capture dependency touchpoints (registry, behaviors, Taskmaster, Serena, TodoWrite) required once approved.
+- Align outputs with guard updates (Action 9) and domain workflow packs (Action 3).
+
+
+### Tooling Equivalence Notes
+- Codex Plan tool functions as internal todo manager (Plan update = TodoWrite, Plan display = TodoRead).
+- Work-tracking files capture detailed evidence; Taskmaster supplements when structured tasks needed.
+- No separate Todo API; plan + tracker combo is the canonical method inside Codex.
+
+
+### Plan Compliance Rules (Draft)
+- Minimum plan structure: Scope confirmation → Implementation steps → Verification/reporting.
+- Plan tool is mandatory before file edits; enforce via behavior + guard.
+- Tracker checklist to mirror plan requirements (no plan, no work).
+- Implementation pending review of behavior/template drafts.
+
+
+### Meta Workflow Authoring (Draft)
+- Drafts now include task/subtask outlines to convert into Taskmaster entries during implementation.
+- Captured draft in `designs/meta-workflow-authoring-draft.md` (gap detection → plan → design → scaffolding → validation → documentation).
+- Includes update vs. create differences, guard prerequisites, tool usage, and evidence expectations.
+- Implementation pending plan compliance guard and stakeholder review.

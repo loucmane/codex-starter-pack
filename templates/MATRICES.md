@@ -1,3 +1,5 @@
+
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
 # Decision Matrices
 
 This document contains comprehensive decision matrices for quick, accurate routing of requests and actions. Each matrix provides a scannable reference for decision-making.

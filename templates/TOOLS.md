@@ -1,3 +1,5 @@
+
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
 # Codex Tooling & Command Router
 
 This document defines the allowed tools inside the Codex CLI, how to choose between them, and the evidence you must produce when using each one.

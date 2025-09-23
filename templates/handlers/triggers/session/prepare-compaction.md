@@ -22,6 +22,8 @@ tools:
 version: 1.0.0
 priority: high
 ---
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
+
 
 #### Handler: prepare-compaction {#prepare-compaction}
 **Triggers**: "compaction", "X% left", "context getting long", "need new chat"

@@ -1,3 +1,5 @@
+
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
 # Findings
 
 ## Discoveries
@@ -18,7 +20,7 @@
 - Scanner run inside Codex repo completed in ~0.2s (thanks to limited file set and local execution).
 
 ## Issues Encountered
-- Taskmaster task graph requires audit to ensure each task/subtask aligns with the template migration plan (Session 2025-09-22-001).
+- Taskmaster task graph requires audit to ensure each task/subtask aligns with the template migration plan (Session 2025-09-23-001).
 - Optional packages for sequential thinking/fpl MCP still need manual installation; tracked separately.
 - Migration status reports show majority of monolithic files still partially/not migrated (needs remediation via generated scripts).
 
@@ -27,3 +29,20 @@
 - `scripts/codex-guard validate` parses git changes and enforces handler/evidence compliance (supports `--include-untracked`).
 - Documentation updates pending (CODEX.md, templates/TOOLS.md) to publicize workflow usage.
 - TODO: add guard auto-fix skeleton support and CI/pre-commit integration.
+
+## Template System Audit (2025-09-23)
+- Plan compliance, meta workflow, and timestamp gate drafts now include executable Taskmaster-style task outlines.
+- Plan compliance + meta workflow designs updated with canonical step IDs, plan-template table, guard procedures, regression/rollback guidance.
+- Drafting plan compliance behavior (minimum plan steps, guard enforcement) to formalize plan-first discipline.
+- Codex plan tool serves as TodoWrite/TodoRead equivalent; use plan updates for task creation and plan summaries for status reviews.
+- Meta workflow authoring plan drafted; assets (workflow, orchestrator, gap-detection pattern) pending implementation approval.
+- Action 2 will establish a meta workflow authoring process (workflow + orchestrator + gap-detection pattern) to prevent future coverage gaps.
+- Full inventory (237 templates) captured in templates/metadata/{template-inventory.txt, template-summary.csv, template-overview.md}.
+- Missing session workflows (continuation/state-management); references currently broken and fall back to handlers/patterns only.
+- No meta workflow for authoring new workflows/handlers/guards; Taskmaster edits lack enforced checklist.
+- Domain-specific workflow packs (frontend/backend/API/testing/ops) absent; conventions/guards need expansion.
+- Legacy WORKFLOWS.md anchors still referenced across handlers/patterns/registry; modular replacements required.
+- Taskmaster alignment workflow, work-tracking orchestration, engine Phase 2/3 modules, and guide stubs still outstanding.
+- Metadata inconsistencies: ~118 modules missing status, 40 lacking frontmatter; workflow guards limited to code-style keywords.
+- Behavior compaction-detection file remains deprecated but indexed; needs archival or rewrite.
+

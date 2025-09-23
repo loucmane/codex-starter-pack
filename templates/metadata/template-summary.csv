@@ -1,0 +1,240 @@
+path,title,type,status,category,first_heading,has_frontmatter
+templates/BEHAVIORS.md,,,,,Behavioral Hooks,no
+templates/BUILDING-BETTER.md,,,,,Building Better: System Extension Guide,no
+templates/CONVENTIONS.md,,,,,Development Conventions & Standards,no
+templates/HANDLERS.md,,,,,System Handlers Registry,no
+templates/MATRICES.md,,,,,Decision Matrices,no
+templates/PATTERNS.md,,,,,System Patterns Library,no
+templates/PROJECT-BLOG.md,,,,,Animal Protection Foundation Blog - Project Configuration,no
+templates/REGISTRY.md,,,,,Claude Template System Registry - REFINED v2.0,no
+templates/TOOLS.md,,,,,Codex Tooling & Command Router,no
+templates/USER-GUIDE.md,,,,,Claude User Guide,no
+templates/WORKFLOWS.md,,,,,Universal Development Workflows,no
+templates/behaviors/file-operations/before-create.md,,,,file-operations,Before Creating New Files,yes
+templates/behaviors/file-operations/before-edit.md,,,,file-operations,Before Any File Edit,yes
+templates/behaviors/git/before-commit.md,,,,git,Before Commit (gac Format),yes
+templates/behaviors/index.md,Behavioral Hooks System,index,,,Behavioral Hooks System,yes
+templates/behaviors/session/compaction-detection.md,,,,session,Session Compaction Detection [DEPRECATED],yes
+templates/behaviors/session/compaction-preparation.md,,,,session,Compaction Preparation Behavior,yes
+templates/behaviors/session/session-end.md,,,,session,Session End Behavior,yes
+templates/behaviors/task-management/todo-write.md,,,,task-management,Todo Write Enforcement,yes
+templates/behaviors/timestamps/before-adding.md,,,,timestamps,Before Adding Timestamps,yes
+templates/behaviors/validation/evidence-claims.md,,,,validation,Evidence Before Claims,yes
+templates/behaviors/work-tracking/update-tracker.md,,,,work-tracking,Work Tracking Updates,yes
+templates/conventions/code-style/general.md,Language-Agnostic Style Rules,convention,stable,code-style,General Code Style Rules,yes
+templates/conventions/code-style/javascript.md,JavaScript Specific Conventions,convention,stable,code-style,JavaScript Code Style Conventions,yes
+templates/conventions/code-style/typescript.md,TypeScript Specific Conventions,convention,stable,code-style,TypeScript Code Style Conventions,yes
+templates/conventions/docs/comment-format.md,Code Comment Conventions,convention,stable,docs,Code Comment Format,yes
+templates/conventions/docs/documentation-standards.md,General Documentation Format,convention,stable,docs,Documentation Standards,yes
+templates/conventions/docs/readme-format.md,README Format Standards,convention,stable,docs,README Format Standards,yes
+templates/conventions/files/directory-structure.md,Project Directory Structure,convention,stable,files,Project Directory Structure,yes
+templates/conventions/files/organization.md,General File Organization Principles,convention,stable,files,General File Organization Principles,yes
+templates/conventions/files/special-files.md,"Special Files (sessions/, TRACKER.md, HANDOFF.md)",convention,stable,files,Special Files Convention,yes
+templates/conventions/git/branch-naming.md,Branch Naming Standards,convention,stable,git,Branch Naming Standards,yes
+templates/conventions/git/commit-format.md,Git Commit Format (gac),convention,stable,git,Git Commit Format (gac),yes
+templates/conventions/git/pr-conventions.md,Pull Request Format and Standards,convention,stable,git,Pull Request Conventions,yes
+templates/conventions/naming/files.md,File Naming Standards,convention,stable,naming,File Naming Standards,yes
+templates/conventions/naming/functions.md,Function Naming Patterns,convention,stable,naming,Function Naming Patterns,yes
+templates/conventions/naming/variables.md,Variable Naming Conventions,convention,stable,naming,Variable Naming Conventions,yes
+templates/conventions/testing/test-naming.md,Test File and Function Naming,convention,stable,testing,Test Naming Conventions,yes
+templates/conventions/testing/test-structure.md,Test Organization and Structure,convention,stable,testing,Test Structure Conventions,yes
+templates/conventions/timestamps/format-rules.md,ISO 8601 and Other Timestamp Formats,convention,stable,timestamps,Timestamp Format Rules,yes
+templates/conventions/timestamps/usage-patterns.md,When and Where to Use Timestamps,convention,stable,timestamps,Timestamp Usage Patterns,yes
+templates/conventions/work-tracking/folder-structure.md,Work Folder Format (YYYYMMDD-name-STATUS),convention,stable,work-tracking,Work Folder Structure Convention,yes
+templates/conventions/work-tracking/handoff-format.md,HANDOFF.md Format Standards,convention,stable,work-tracking,HANDOFF.md Format Standards,yes
+templates/conventions/work-tracking/tracker-format.md,TRACKER.md Format and Required Sections,convention,stable,work-tracking,TRACKER.md Format Standards,yes
+templates/coordination/enforcement-enhancement-session.md,,,,,Enforcement Enhancement Coordination Session,no
+templates/coordination/session-integration-collaboration.md,,,,,Session System Integration Collaboration,no
+templates/coordination/session-swhe-integration.md,,,,,Session-SWHE Integration Collaboration,no
+templates/coordination/specialist-collaboration-session.md,,,,,Specialist Collaboration Session - Real-Time Discussion,no
+templates/engine/MODULARIZATION-COMPLETE.md,,,,,CLAUDE.md Modularization Complete,no
+templates/engine/README.md,,,,,Claude Execution Engine - Modular Components,no
+templates/engine/activation/context-aware.md,,,,,Context-Aware Activation,no
+templates/engine/core/codex-readiness.md,,,,,Codex Readiness Checklist,no
+templates/engine/core/enforcement-check.md,enforcement-check,critical-enforcement,,,🚨 CODEX ENFORCEMENT GATE 🚨,yes
+templates/engine/core/pre-ultrathink.md,pre-ultrathink-protocol,critical-enforcement,,,🚨 PRE-ULTRATHINK PROTOCOL (CODEX) 🚨,yes
+templates/engine/core/session-resolver.md,session-resolver,engine-component,,,Session Resolution Engine,yes
+templates/engine/core/ultrathink-protocol.md,ultrathink-protocol,engine-component,,,🧠 ULTRATHINK (CODEX EDITION),yes
+templates/engine/debugging/system-debug.md,,,,,System Debugging Protocol,no
+templates/engine/enforcement/behavioral-hooks.md,behavioral-hooks,engine-component,,,BEHAVIORAL HOOKS (How I Actually Work),yes
+templates/engine/enforcement/cannot-proceed.md,cannot-proceed,engine-component,,,ENFORCEMENT MECHANISMS,yes
+templates/engine/examples/practical.md,practical-examples,engine-component,,,Practical Examples,yes
+templates/engine/execution/swhe-format.md,,,,,Development Mode Execution - S:W:H:E Format,no
+templates/engine/fallbacks/error-handling.md,,,,,Error Handling & Fallbacks,no
+templates/engine/navigation/common-flows.md,common-request-flows,engine-component,,,Common Request Flows,yes
+templates/engine/navigation/template-protocol.md,,,,,Template Navigation Protocol,no
+templates/engine/structure/template-system.md,template-system-structure,engine-component,,,Template System Structure,yes
+templates/engine/validation/ENFORCEMENT-SUMMARY.md,,,,,ULTRATHINK Enforcement System - Implementation Summary,no
+templates/engine/validation/integration-guide.md,integration-guide,documentation,,,ULTRATHINK Enforcement Integration Guide,yes
+templates/engine/validation/validation-framework.md,validation-framework,enforcement,,,Validation Framework,yes
+templates/engine/verify-phase1.sh,,,,,!/bin/bash,no
+templates/guides/index.md,Claude User Guide Hub,user-guide,,,Claude User Guide Hub,yes
+templates/guides/quickstart/getting-started.md,Getting Started with Claude,user-guide,,,Getting Started with Claude,yes
+templates/guides/reference/triggers.md,Trigger Phrases and Commands,user-guide,,,Trigger Phrases and Commands Reference,yes
+templates/guides/token-optimization.md,Token Optimization Guide,,,,Token Optimization Guide,yes
+templates/guides/troubleshooting/issues.md,Troubleshooting Common Issues,user-guide,,,Troubleshooting Common Issues,yes
+templates/guides/ultrathink/understanding.md,Understanding ULTRATHINK,user-guide,,,Understanding ULTRATHINK,yes
+templates/guides/workflows/common.md,Common Development Workflows,user-guide,,,Common Development Workflows,yes
+templates/handlers/operators/analysis/cite-source.md,Cite Source,operator,,analysis,Handler: cite-source {#cite-source},yes
+templates/handlers/operators/analysis/gather-evidence.md,Gather Evidence,operator,,analysis,Handler: gather-evidence {#gather-evidence},yes
+templates/handlers/operators/analysis/verify-claim.md,Verify Claim,operator,,analysis,Handler: verify-claim {#verify-claim},yes
+templates/handlers/operators/development/check-naming.md,Check Naming,operator,,development,Handler: check-naming {#check-naming},yes
+templates/handlers/operators/development/check-style.md,Check Style,operator,,development,Handler: check-style {#check-style},yes
+templates/handlers/operators/development/edit-file.md,Edit File,operator,,development,edit-file,yes
+templates/handlers/operators/development/format-code.md,Format Code,operator,,development,Handler: format-code {#format-code},yes
+templates/handlers/operators/development/review-patterns.md,Review Patterns,operator,,development,Handler: review-patterns {#review-patterns},yes
+templates/handlers/operators/development/suggest-name.md,Suggest Name,operator,,development,Handler: suggest-name {#suggest-name},yes
+templates/handlers/operators/docs/check-docs-needed.md,Check Documentation Needed,operator,,docs,Handler: check-docs-needed {#check-docs-needed},yes
+templates/handlers/operators/docs/validate-comments.md,Validate Comments,operator,,docs,Handler: validate-comments {#validate-comments},yes
+templates/handlers/operators/external/time-capture.md,Time Capture,operator,,external,Pattern: time-capture {#time-capture},yes
+templates/handlers/operators/file/validate-path.md,Validate Path,operator,,file,Handler: validate-path {#validate-path},yes
+templates/handlers/operators/git/check-commit-msg.md,Check Commit Message,operator,,git,Handler: check-commit-msg {#check-commit-msg},yes
+templates/handlers/operators/git/suggest-commit-type.md,Suggest Commit Type,operator,,git,Handler: suggest-commit-type {#suggest-commit-type},yes
+templates/handlers/operators/session/checkpoint-session.md,Checkpoint Session,operator,,session,Handler: checkpoint-session {#checkpoint-session},yes
+templates/handlers/operators/session/restore-context.md,Restore Context State,operator,,session,Handler: restore-context {#restore-context},yes
+templates/handlers/operators/session/save-context.md,Save Context State,operator,,session,Handler: save-context {#save-context},yes
+templates/handlers/operators/workflow/create-work-folder.md,Create Work Folder,operator,,workflow,Handler: create-work-folder {#create-work-folder},yes
+templates/handlers/operators/workflow/resolve-handler-void.md,Resolve Handler VOID,operator,,workflow,Handler: resolve-handler-void {#resolve-handler-void},yes
+templates/handlers/operators/workflow/resolve-work-void.md,Resolve Work VOID,operator,,workflow,Handler: resolve-work-void {#resolve-work-void},yes
+templates/handlers/orchestrators/ambiguous-request.md,Ambiguous Request,orchestrator,,workflow,Pattern: ambiguous-request {#ambiguous-request},yes
+templates/handlers/orchestrators/architecture-claim.md,Architecture Claim,orchestrator,,analysis,Pattern: architecture-claim {#architecture-claim},yes
+templates/handlers/orchestrators/check-conventions-first.md,Check Conventions First,orchestrator,,workflow,Handler: check-conventions-first {#check-conventions-first},yes
+templates/handlers/orchestrators/code-creation.md,Code Creation,orchestrator,,development,Pattern: code-creation {#code-creation},yes
+templates/handlers/orchestrators/convention-to-workflow.md,Convention to Workflow Router,orchestrator,,workflow,Handler: convention-to-workflow {#convention-to-workflow},yes
+templates/handlers/orchestrators/enforce-pre-flight.md,Enforce Pre-Flight,orchestrator,,workflow,Handler: enforce-pre-flight {#enforce-pre-flight},yes
+templates/handlers/orchestrators/evidence-check.md,Evidence Check,orchestrator,,analysis,Pattern: evidence-check {#evidence-check},yes
+templates/handlers/orchestrators/execute-ultrathink.md,Execute Ultrathink,orchestrator,,workflow,Pattern: execute-ultrathink {#execute-ultrathink},yes
+templates/handlers/orchestrators/file-creation.md,File Creation,orchestrator,,file,Pattern: file-creation {#file-creation},yes
+templates/handlers/orchestrators/file-operation.md,File Operation,orchestrator,,file,Pattern: file-operation {#file-operation},yes
+templates/handlers/orchestrators/lost-context.md,Lost Context,orchestrator,,session,Pattern: lost-context {#lost-context},yes
+templates/handlers/orchestrators/multi-step-request.md,Multi-step Request,orchestrator,,workflow,Pattern: multi-step-request {#multi-step-request},yes
+templates/handlers/orchestrators/orchestrate-complex.md,Orchestrate Complex,orchestrator,,workflow,Handler: orchestrate-complex {#orchestrate-complex},yes
+templates/handlers/orchestrators/resolve-session-void.md,Resolve Session Void,orchestrator,,session,Handler: resolve-session-void {#resolve-session-void},yes
+templates/handlers/orchestrators/session-start.md,Session Start,orchestrator,,session,Handler: session-start {#session-start},yes
+templates/handlers/orchestrators/standard-dev-workflow.md,Standard Development Workflow,orchestrator,,development,Handler: standard-dev-workflow {#standard-dev-workflow},yes
+templates/handlers/orchestrators/switch-context.md,Switch Context State,orchestrator,,session,Handler: switch-context {#switch-context},yes
+templates/handlers/orchestrators/system-improvement.md,System Improvement,orchestrator,,workflow,Pattern: system-improvement {#system-improvement},yes
+templates/handlers/orchestrators/tool-selection.md,Tool Selection,orchestrator,,search,Pattern: tool-selection {#tool-selection},yes
+templates/handlers/orchestrators/tool-to-convention.md,Tool to Convention Validator,orchestrator,,workflow,Handler: tool-to-convention {#tool-to-convention},yes
+templates/handlers/orchestrators/work-activity.md,Work Activity,orchestrator,,workflow,Pattern: work-activity {#work-activity},yes
+templates/handlers/orchestrators/work-continuation.md,Work Continuation,orchestrator,,workflow,Pattern: work-continuation {#work-continuation},yes
+templates/handlers/orchestrators/workflow-to-tool.md,Workflow to Tool Router,orchestrator,,workflow,Handler: workflow-to-tool {#workflow-to-tool},yes
+templates/handlers/tools/external/consult-gpt5.md,consult-gpt5,,,tools/external,Consult GPT-5 Handler,yes
+templates/handlers/triggers/analysis/code-review.md,Review Code,trigger,,analysis,Review Code Handler,yes
+templates/handlers/triggers/analysis/deploy-specialist.md,Deploy Specialist,trigger,,workflow,Handler: deploy-specialist {#deploy-specialist},yes
+templates/handlers/triggers/analysis/deploy-ultrathink.md,Deploy Ultrathink,trigger,,analysis,Handler: deploy-ultrathink {#deploy-ultrathink},yes
+templates/handlers/triggers/analysis/explain-code.md,Explain Code,trigger,,analysis,Explain Code Handler,yes
+templates/handlers/triggers/debug/debug-issue.md,Debug Issue,trigger,,debug,Debug Issue Handler,yes
+templates/handlers/triggers/debug/fix-bug.md,Fix Code Bug,trigger,,debug,Fix Code Bug Handler,yes
+templates/handlers/triggers/development/create-component.md,Create Component,trigger,,development,Handler: create-component {#create-component},yes
+templates/handlers/triggers/development/optimize-code.md,Optimize Code Performance,trigger,,development,Optimize Code Performance Handler,yes
+templates/handlers/triggers/development/refactor-code.md,Refactor Code,trigger,,development,Handler: refactor-code {#refactor-code},yes
+templates/handlers/triggers/development/start-new-work.md,Start New Work,trigger,,development,Start New Work Handler,yes
+templates/handlers/triggers/docs/create-docs.md,Create Documentation,trigger,,docs,Handler: create-docs {#create-docs},yes
+templates/handlers/triggers/docs/document-findings.md,Document Findings,trigger,,docs,Handler: document-findings {#document-findings},yes
+templates/handlers/triggers/docs/record-decision.md,Record Decision,trigger,,docs,Handler: record-decision {#record-decision},yes
+templates/handlers/triggers/session/end-session.md,End Session,trigger,,session,Handler: end-session {#end-session},yes
+templates/handlers/triggers/session/prepare-compaction.md,Prepare Compaction,trigger,,session,Handler: prepare-compaction {#prepare-compaction},yes
+templates/handlers/triggers/session/show-capabilities.md,Show Capabilities,trigger,,session,Handler: show-capabilities {#show-capabilities},yes
+templates/handlers/triggers/session/start-session.md,Start Session with Smart Title,trigger,,session,Start Session Handler,yes
+templates/handlers/triggers/session/update-session.md,Update Session,trigger,,session,Handler: update-session {#update-session},yes
+templates/handlers/triggers/test/create-test-checkpoint.md,Create Test Checkpoint,trigger,,test,Handler: create-test-checkpoint {#create-test-checkpoint},yes
+templates/handlers/triggers/test/simulation-test.md,Simulation Test,trigger,,test,Handler: simulation-test {#simulation-test},yes
+templates/handlers/triggers/test/validate-changes.md,Validate Changes,trigger,,test,Handler: validate-changes {#validate-changes},yes
+templates/handlers/triggers/workflow/check-progress.md,Check Progress,trigger,,workflow,Handler: check-progress {#check-progress},yes
+templates/handlers/triggers/workflow/continue-work.md,Continue Work,trigger,,workflow,Handler: continue-work {#continue-work},yes
+templates/handlers/triggers/workflow/create-todos.md,Create Todos,trigger,,workflow,Handler: create-todos {#create-todos},yes
+templates/handlers/triggers/workflow/update-todos.md,Update Todos,trigger,,workflow,Handler: update-todos {#update-todos},yes
+templates/handlers/triggers/workflow/update-tracker.md,Update Tracker,trigger,,workflow,Handler: update-tracker {#update-tracker},yes
+templates/integration/architecture/handler-architecture.md,Handler System Design,integration-guide,stable,architecture,Handler System Design,yes
+templates/integration/architecture/system-architecture.md,Overall System Architecture,integration-guide,stable,architecture,Overall System Architecture,yes
+templates/integration/architecture/template-architecture.md,Template System Design,integration-guide,stable,architecture,Template System Design,yes
+templates/integration/best-practices/handler-design.md,Handler Design Best Practices,integration-guide,stable,best-practices,Handler Design Best Practices,yes
+templates/integration/best-practices/integration-patterns.md,Integration Best Practices,integration-guide,stable,best-practices,Integration Best Practices,yes
+templates/integration/best-practices/template-design.md,Template Design Principles,integration-guide,stable,best-practices,Template Design Principles,yes
+templates/integration/composition/handler-chaining.md,Chaining Handlers Together,integration-guide,stable,composition,Chaining Handlers Together,yes
+templates/integration/composition/pattern-composition.md,Combining Patterns for Complex Behaviors,integration-guide,stable,composition,Combining Patterns for Complex Behaviors,yes
+templates/integration/composition/workflow-composition.md,Composing Complex Workflows,integration-guide,stable,composition,Composing Complex Workflows,yes
+templates/integration/cross-system/agent-coordination.md,Multi-Agent Coordination Patterns,integration-guide,stable,cross-system,Multi-Agent Coordination Patterns,yes
+templates/integration/cross-system/mcp-integration.md,MCP Tool Integration,integration-guide,beta,cross-system,MCP Tool Integration,yes
+templates/integration/cross-system/tool-integration.md,Tool Integration Guide,integration-guide,stable,cross-system,Tool Integration Guide,yes
+templates/integration/guides/adding-agents.md,Adding New Agents to the System,integration-guide,stable,guides,Adding New Agents to the System,yes
+templates/integration/guides/creating-handlers.md,Creating and Managing Handlers,integration-guide,stable,guides,Creating and Managing Handlers,yes
+templates/integration/guides/extending-templates.md,Extending the Template System,integration-guide,stable,guides,Extending the Template System,yes
+templates/integration/guides/system-integration.md,System Integration Guide,integration-guide,stable,guides,System Integration Guide,yes
+templates/matrices/index.md,matrices-index,decision-matrix,,navigation,Decision Matrices,yes
+templates/matrices/mapping/keyword-to-handler.md,keyword-to-handler-matrix,decision-matrix,,mapping,Keyword → Handler Mapping,yes
+templates/matrices/mapping/trigger-to-action.md,trigger-to-action-matrix,decision-matrix,,mapping,Behavior → Workflow Coverage Matrix,yes
+templates/matrices/recovery/error-to-recovery.md,error-to-recovery-matrix,decision-matrix,,recovery,Error → Recovery Matrix,yes
+templates/matrices/routing/context-to-mode.md,context-to-mode-matrix,decision-matrix,,routing,Context → Mode Matrix,yes
+templates/matrices/routing/request-to-handler.md,request-to-handler-matrix,decision-matrix,,routing,Request Type → Handler Matrix,yes
+templates/matrices/selection/file-to-convention.md,file-to-convention-matrix,decision-matrix,,selection,File Type → Convention Matrix,yes
+templates/matrices/selection/tool-selection.md,tool-selection-matrix,decision-matrix,,selection,Tool Selection Matrix,yes
+templates/metadata/handler-rules.json,,,,,,no
+templates/metadata/template-inventory.txt,,,,,,no
+templates/metadata/workflow-guards.json,,,,,,no
+templates/patterns/evidence/evidence-patterns.md,Evidence Collection Patterns,pattern,stable,evidence,Evidence Collection Patterns,yes
+templates/patterns/evidence/proof-patterns.md,Proof Requirement Patterns,pattern,stable,evidence,Proof Requirement Patterns,yes
+templates/patterns/evidence/validation-patterns.md,Validation Patterns,pattern,stable,evidence,Validation Patterns,yes
+templates/patterns/integration/composition.md,Pattern Composition Strategies,pattern,stable,integration,Pattern Composition Strategies,yes
+templates/patterns/integration/cross-system.md,Cross-System Integration Patterns,pattern,stable,integration,Cross-System Integration Patterns,yes
+templates/patterns/routing/intent-detection.md,Intent Detection Patterns,pattern,stable,routing,Intent Detection Patterns,yes
+templates/patterns/routing/meta-routing.md,Meta-Routing Patterns,pattern,stable,routing,Meta-Routing Patterns,yes
+templates/patterns/routing/request-analysis.md,Request Analysis Patterns,pattern,stable,routing,Request Analysis Patterns,yes
+templates/patterns/selection/agent-selection.md,Agent Selection Patterns,pattern,stable,selection,Agent Selection Patterns,yes
+templates/patterns/selection/handler-selection.md,Handler Selection Patterns,pattern,stable,selection,Handler Selection Patterns,yes
+templates/patterns/selection/tool-selection.md,Tool Selection Patterns,pattern,stable,selection,Tool Selection Patterns,yes
+templates/patterns/session/continuation-patterns.md,Session Continuation Patterns,pattern,stable,session,Session Continuation Patterns,yes
+templates/patterns/session/session-patterns.md,Session Management Patterns,pattern,stable,session,Session Management Patterns,yes
+templates/patterns/session/state-patterns.md,State Tracking Patterns,pattern,stable,session,State Tracking Patterns,yes
+templates/patterns/work-tracking/documentation-patterns.md,Documentation Creation Patterns,pattern,stable,work-tracking,Documentation Creation Patterns,yes
+templates/patterns/work-tracking/progress-patterns.md,Progress Measurement Patterns,pattern,stable,work-tracking,Progress Measurement Patterns,yes
+templates/patterns/work-tracking/work-patterns.md,Work Tracking Patterns,pattern,stable,work-tracking,Work Tracking Patterns,yes
+templates/prompts/claude-md-specialist-collab-prompt.md,,,,,Claude-MD Specialist Collaboration Prompt,no
+templates/prompts/hook-specialist-collab-prompt.md,,,,,Hook Specialist Collaboration Prompt,no
+templates/prompts/session-integration-claude-specialist.md,,,,,Claude-MD Specialist Prompt for Session Integration,no
+templates/prompts/session-integration-coordinator-prompt.md,,,,,Session Integration Collaboration - Coordinator Instructions,no
+templates/prompts/session-integration-scanner-specialist.md,,,,,Template Scanner Specialist Prompt for Session Integration,no
+templates/prompts/subagent-blind-test-prompt.md,,,,,Subagent System Capability Assessment,no
+templates/prompts/ultrathink-discovery-test-prompt.md,,,,,System Behavior and Protocol Discovery Assessment,no
+templates/prompts/zero-context-system-test-prompt.md,,,,,Codebase Operational Analysis,no
+templates/registry/MIGRATION-REPORT.md,,,,,Registry Modularization Report,no
+templates/registry/behavioral/hooks.md,Behavioral Hooks Registry,registry-component,,,Behavioral Hooks Registry,yes
+templates/registry/behavioral/templates.md,Behavioral Templates Registry,registry-component,,,Behavioral Templates Registry,yes
+templates/registry/conventions/special-files.md,Special Files Conventions,registry-component,,,Special Files Conventions,yes
+templates/registry/handlers/operators-registry.md,Operator Handlers Registry,registry-component,,,Operator Handlers Registry,yes
+templates/registry/handlers/orchestrators-registry.md,Orchestrator Handlers Registry,registry-component,,,Orchestrator Handlers Registry,yes
+templates/registry/handlers/triggers-registry.md,Trigger Handlers Registry,registry-component,,,Trigger Handlers Registry,yes
+templates/registry/index.json,,,,,,no
+templates/registry/index.md,Claude Template System Registry Index,registry-component,modular,,Claude Template System Registry - Modular v3.0,yes
+templates/registry/matrices/decision-matrices.md,Decision Matrices Registry,registry-component,,,Decision Matrices Registry,yes
+templates/registry/navigation/keywords.md,Navigation Keywords Mapping,registry-component,,,Navigation Keywords,yes
+templates/registry/patterns/meta-routing.md,Meta-Routing Patterns Registry,registry-component,,,Meta-Routing Patterns Registry,yes
+templates/shared/patterns/ultrathink-format.md,ultrathink-format,shared-pattern,,core,ULTRATHINK Format Pattern,yes
+templates/shared/reports/claude-analysis-report.md,,,,,CLAUDE.md Modularization Analysis Report,no
+templates/shared/reports/claude-analysis.json,,,,,,no
+templates/shared/tools/tool-selection-matrix.md,Tool Selection Matrix and Decision Funnel,shared-resource,stable,tools,Tool Selection Matrix and Decision Funnel,yes
+templates/tools/file/edit-strategies.md,File Edit Strategies Guide,tool-guide,stable,file,File Edit Strategies Guide,yes
+templates/tools/file/multi-edit.md,Multi-Edit Batch Operations Guide,tool-guide,stable,file,Multi-Edit Batch Operations Guide,yes
+templates/tools/git/commands.md,Git Commands and Operations Guide,tool-guide,stable,git,Git Commands and Operations Guide,yes
+templates/tools/index.md,Tool Configuration and Usage Guide,tool-guide,stable,index,Tool Configuration and Usage Guide,yes
+templates/tools/search/grep-patterns.md,Grep Pattern Search Guide,tool-guide,stable,search,Grep Pattern Search Guide,yes
+templates/tools/search/serena-guide.md,Serena MCP Integration Guide,tool-guide,stable,search,Serena MCP Integration Guide,yes
+templates/tools/task/agent-usage.md,Task Tool Agent Deployment Guide,tool-guide,stable,task,Task Tool Agent Deployment Guide,yes
+templates/workflows/analysis/evidence-gathering.md,Evidence Gathering Workflows,workflow-component,stable,analysis,Evidence Gathering Workflows,yes
+templates/workflows/core/ultrathink-reference.md,ULTRATHINK System Reference,workflow-component,stable,core,ULTRATHINK System Reference,yes
+templates/workflows/examples/common-workflows.md,Common Development Workflows,workflow-component,stable,examples,Common Development Workflows,yes
+templates/workflows/guides/common-mistakes.md,Common Mistakes That Break Sessions,workflow-component,stable,guides,Common Mistakes That Break Sessions,yes
+templates/workflows/handlers/intent-handlers.md,Intent Handlers,workflow-component,stable,handlers,Intent Handlers,yes
+templates/workflows/memory/serena-patterns.md,Serena Memory Usage Patterns,workflow-component,stable,memory,Serena Memory Usage Patterns,yes
+templates/workflows/patterns/multi-agent-orchestration.md,Intelligent Multi-Agent Orchestration,workflow-component,stable,patterns,Intelligent Multi-Agent Orchestration,yes
+templates/workflows/patterns/task-management.md,Task Management Patterns,workflow-component,stable,patterns,Task Management Patterns,yes
+templates/workflows/protocols/universal-flight.md,Universal Flight Protocol,workflow-component,stable,protocols,Universal Flight Protocol,yes
+templates/workflows/session/compaction.md,Context Compaction Workflow,workflow-component,stable,session,Context Compaction Workflow,yes
+templates/workflows/session/continuation.md,Session Continuation Workflow,workflow-component,stable,session,Session Continuation Workflow,yes
+templates/workflows/session/lifecycle.md,Session Lifecycle Management,workflow-component,stable,session,Session Lifecycle Management,yes
+templates/workflows/session/state-management.md,Session State Management Workflow,workflow-component,stable,session,Session State Management Workflow,yes
+templates/workflows/templates/behavioral-templates.md,Behavioral Templates,workflow-component,stable,templates,Behavioral Templates,yes
+templates/workflows/testing/simulation-testing.md,Simulation Testing Patterns,workflow-component,stable,testing,Simulation Testing Patterns,yes
+templates/workflows/testing/subagent-simulation.md,Subagent Simulation Testing,workflow-component,stable,testing,Subagent Simulation Testing,yes
+templates/workflows/testing/test-checkpoints.md,User Testing Checkpoints,workflow-component,stable,testing,User Testing Checkpoints,yes

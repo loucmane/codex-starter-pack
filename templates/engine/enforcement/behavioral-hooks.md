@@ -18,6 +18,8 @@ exports:
   - git-operations-hook
   - testing-validation-hook
 ---
+> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
+
 
 # BEHAVIORAL HOOKS (How I Actually Work)
 
