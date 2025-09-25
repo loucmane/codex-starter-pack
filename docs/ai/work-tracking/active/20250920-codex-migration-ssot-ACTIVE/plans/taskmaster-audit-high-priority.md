@@ -33,16 +33,22 @@
 
 ### Backlog: Meta Workflow Enforcement Follow-up (2025-09-25)
 - **Task Proposal**: "Integrate meta workflow authoring enforcement"
-  - Draft Taskmaster task covering orchestrator/pattern guard hooks, registry validation, and Taskmaster alignment.
+  - Draft Taskmaster task covering orchestrator/pattern guard hooks, registry validation, Taskmaster alignment.
   - Subtasks:
-    1. Wire meta workflow orchestrator into guard automation (plan compliance + workflow gap detection hooks).
-    2. Update Taskmaster checklist to require meta workflow plan before editing workflows.
-    3. Document regression expectations and add tests for orchestrator/pattern registration.
+    1. Wire meta workflow orchestrator + gap pattern into `codex-guard` (plan compliance + workflow-gap checks).
+    2. Extend guard metadata (`templates/metadata/workflow-guards.json`) with workflow-gap triggers and validations.
+    3. Update Taskmaster alignment checklist to require meta workflow plan before editing template assets.
+    4. Document guard failure messaging and auto-fix guidance for missing meta workflow assets.
+    5. Plan CI/pre-commit wiring for the new enforcement path (notes + TODO).
+    6. Update `scripts/codex-task` helper to surface meta workflow requirements during scaffolding.
+    7. Capture guard output + documentation references as evidence (reports + handoff).
 - **Task Proposal**: "Meta workflow regression test suite"
   - Subtasks:
-    1. Add unit tests for pattern/orchestrator discovery.
-    2. Create integration test running sample workflow authoring through guard.
-    3. Capture reports for reproducibility and add to CI plan.
+    1. Add unit tests confirming orchestrator/pattern registration via registries.
+    2. Create integration test walking a sample workflow authoring cycle through the guard.
+    3. Store test/guard reports under `reports/meta-workflow/` and reference in docs.
+    4. Update testing documentation + CHANGELOG with coverage details.
+    5. Plan CI integration (Taskmaster/Serena notes) for new tests.
   - Notes: add to Taskmaster only after review.
 
 ## Next Steps
