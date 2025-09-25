@@ -3,7 +3,7 @@ id: orchestrators-registry
 type: registry-component
 name: Orchestrator Handlers Registry
 description: Complete registry of coordination and orchestration handlers
-handler_count: 7
+handler_count: 8
 cross_references:
   - ../index.md
   - triggers-registry.md
@@ -56,13 +56,19 @@ Coordination handlers that manage complex workflows and multi-handler operations
 - **Process**: System-wide enforcement of conventions
 - **Location**: handlers/orchestrators/enforce-pre-flight.md
 
-## Meta Coordination (1 handler)
+## Meta Coordination (2 handlers)
 
 ### `meta-orchestration` {#meta-orchestration}
 - **Triggers**: Complex requests requiring multiple orchestrators
 - **Keywords**: [meta, complex, multi-phase, pipeline]
 - **Process**: Coordinates other orchestrators for very complex tasks
 - **Location**: handlers/orchestrators/meta-orchestration.md
+
+### `meta-workflow-authoring` {#meta-workflow-authoring}
+- **Triggers**: "create workflow", "new workflow", guard-detected workflow gaps
+- **Keywords**: [workflow, authoring, meta, gap]
+- **Process**: Enforces plan-first workflow creation (plan compliance, design docs, scaffolding, validation, documentation)
+- **Location**: handlers/orchestrators/meta-workflow-authoring.md
 
 ## Key Characteristics
 

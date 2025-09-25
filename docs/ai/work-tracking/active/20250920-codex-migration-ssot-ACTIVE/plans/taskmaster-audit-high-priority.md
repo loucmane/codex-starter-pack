@@ -31,6 +31,20 @@
 - Reposition Task 24 (Cost Tracking) later alongside telemetry/metrics tasks.
 - Ensure Task 18 (Security Validation) precedes Task 50 (Security Audit Process).
 
+### Backlog: Meta Workflow Enforcement Follow-up (2025-09-25)
+- **Task Proposal**: "Integrate meta workflow authoring enforcement"
+  - Draft Taskmaster task covering orchestrator/pattern guard hooks, registry validation, and Taskmaster alignment.
+  - Subtasks:
+    1. Wire meta workflow orchestrator into guard automation (plan compliance + workflow gap detection hooks).
+    2. Update Taskmaster checklist to require meta workflow plan before editing workflows.
+    3. Document regression expectations and add tests for orchestrator/pattern registration.
+- **Task Proposal**: "Meta workflow regression test suite"
+  - Subtasks:
+    1. Add unit tests for pattern/orchestrator discovery.
+    2. Create integration test running sample workflow authoring through guard.
+    3. Capture reports for reproducibility and add to CI plan.
+  - Notes: add to Taskmaster only after review.
+
 ## Next Steps
 - Insert “Author Development Workflow Modules” task around Task 14–15 in `tasks.json`.
 - Refine Task 14 subtasks to cover extended work-tracking engine.

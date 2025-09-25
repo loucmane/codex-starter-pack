@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -24,6 +25,19 @@ PLAN_CURRENT = REPO_ROOT / "plans" / "current"
 TRACKER_ACTIVE = REPO_ROOT / "docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md"
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 EMERGENCY_PATTERN = re.compile(r"\*\*Emergency Bypass\*\*:\s*(true|false)", re.IGNORECASE)
+PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
+PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
+PLAN_STATUS_COMPLETE = {"completed", "done"}
+PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
+PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
+
+
+@dataclass
+class PlanDetails:
+    steps: Dict[str, Dict[str, str]]
+    scope: List[str]
+    emergency_bypass: bool
+    text: str
 
 @dataclass
 class ValidationIssue:
@@ -163,7 +177,8 @@ def parse_plan_table(text: str) -> Dict[str, Dict[str, str]]:
         stripped = line.strip()
         if not stripped.startswith('|'):
             continue
-        if not stripped.lstrip('|').startswith('plan-step-'):
+        inner = stripped.lstrip('|').lstrip()
+        if not inner.startswith('plan-step-'):
             continue
         cells = [cell.strip() for cell in stripped.strip('|').split('|')]
         if len(cells) < 4:
@@ -180,22 +195,80 @@ def parse_plan_table(text: str) -> Dict[str, Dict[str, str]]:
     return steps
 
 
-def validate_plan(plan_path: Path) -> List[ValidationIssue]:
+def extract_scope(text: str) -> List[str]:
+    scope: List[str] = []
+    scope_index = text.find('## Scope')
+    if scope_index == -1:
+        return scope
+    subsection = text[scope_index:].split('\n## ', 1)[0]
+    for line in subsection.splitlines()[1:]:
+        stripped = line.strip()
+        if not stripped:
+            break
+        if stripped.startswith('- '):
+            scope.append(stripped[2:].strip())
+    return scope
+
+
+def evidence_tokens(raw: str) -> List[str]:
+    tokens: List[str] = []
+    for chunk in re.split(r"[;,]\s*", raw):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        tokens.append(chunk)
+    return tokens
+
+
+def is_path_token(token: str) -> bool:
+    if '/' in token or token.endswith(('.md', '.py', '.sh', '.txt', '.json', '.yaml', '.yml')):
+        return True
+    return False
+
+
+def token_path_exists(token: str) -> bool:
+    candidate = (REPO_ROOT / token).resolve()
+    return candidate.exists()
+
+
+def compute_sha256(path: Path) -> str:
+    data = path.read_bytes()
+    return hashlib.sha256(data).hexdigest()
+
+
+def extract_path_candidates(token: str) -> List[str]:
+    cleaned = token.replace('`', ' ').strip()
+    parts = re.split(r"\s+", cleaned)
+    candidates: List[str] = []
+    for part in parts:
+        if not part:
+            continue
+        if is_path_token(part):
+            candidates.append(part)
+    if not candidates and is_path_token(cleaned):
+        candidates.append(cleaned)
+    return candidates
+
+
+def validate_plan(plan_path: Path) -> Tuple[List[ValidationIssue], Optional[PlanDetails]]:
     issues: List[ValidationIssue] = []
     try:
         plan_text = plan_path.read_text(encoding='utf-8')
     except FileNotFoundError:
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan file missing'))
-        return issues
+        return issues, None
 
     steps = parse_plan_table(plan_text)
     for required in PLAN_REQUIRED_STEPS:
         if required not in steps:
             issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f"Missing row for {required}"))
 
-    scope = steps.get('plan-step-scope')
-    if scope and 'completed' not in scope['status']:
-        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-scope must be completed before work'))
+    scope_step = steps.get('plan-step-scope')
+    if scope_step:
+        if 'completed' not in scope_step['status']:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-scope must be completed before work'))
+    else:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-scope row not found'))
 
     emergency_match = EMERGENCY_PATTERN.search(plan_text)
     emergency_required = bool(emergency_match and emergency_match.group(1).lower() == 'true')
@@ -210,22 +283,30 @@ def validate_plan(plan_path: Path) -> List[ValidationIssue]:
     if verify and not verify['description']:
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-verify description is empty'))
 
+    placeholders = {'pending', 'tbd', 'todo', 'n/a', 'not-needed', 'none'}
+    for step_id, data in steps.items():
+        raw_evidence = data.get('evidence', '').strip()
+        if not raw_evidence:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence is empty'))
+            continue
+        if raw_evidence.lower() in placeholders:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence still placeholder'))
+            continue
+        for token in evidence_tokens(raw_evidence):
+            lower = token.lower()
+            if lower in placeholders:
+                issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence token still placeholder', token))
+                continue
+            for candidate in extract_path_candidates(token):
+                if not token_path_exists(candidate):
+                    issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence path not found', candidate))
+
     if 'Plan Version' not in plan_text:
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Plan Version entry'))
 
-    scope_index = plan_text.find('## Scope')
-    if scope_index == -1:
-        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan missing ## Scope section'))
-    else:
-        scope_end = plan_text.find('
-
-', scope_index + 1)
-        if scope_end == -1:
-            scope_section = plan_text[scope_index:]
-        else:
-            scope_section = plan_text[scope_index:scope_end]
-        if '-' not in scope_section:
-            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Scope section missing bullet list of files/components'))
+    scope_entries = extract_scope(plan_text)
+    if not scope_entries:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Scope section missing bullet list of files/components'))
 
     if '## Continuation' not in plan_text:
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan missing ## Continuation section'))
@@ -233,10 +314,11 @@ def validate_plan(plan_path: Path) -> List[ValidationIssue]:
     if not EMERGENCY_PATTERN.search(plan_text):
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Emergency Bypass field'))
 
-    return issues
+    details = PlanDetails(steps=steps, scope=scope_entries, emergency_bypass=emergency_required, text=plan_text)
+    return issues, details
 
 
-def validate_tracker_alignment(plan_steps: Iterable[str]) -> List[ValidationIssue]:
+def validate_tracker_alignment(plan_steps: Dict[str, Dict[str, str]]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     try:
         tracker_text = TRACKER_ACTIVE.read_text(encoding='utf-8')
@@ -244,14 +326,97 @@ def validate_tracker_alignment(plan_steps: Iterable[str]) -> List[ValidationIssu
         issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Tracker file missing'))
         return issues
 
-    for step in plan_steps:
-        checkbox_unchecked = f'- [ ] {step}'
-        checkbox_checked = f'- [x] {step}'
-        if checkbox_unchecked not in tracker_text and checkbox_checked not in tracker_text:
-            issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker missing checkbox for {step}'))
+    for step_id, data in plan_steps.items():
+        unchecked = f'- [ ] {step_id}'
+        checked = f'- [x] {step_id}'
+        has_unchecked = unchecked in tracker_text
+        has_checked = checked in tracker_text
+        if not (has_unchecked or has_checked):
+            issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker missing checkbox for {step_id}'))
+            continue
+
+        status = data.get('status', '').strip().lower()
+        if status in PLAN_STATUS_COMPLETE:
+            if not has_checked:
+                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should be checked'))
+        elif status in PLAN_STATUS_INCOMPLETE:
+            if has_checked:
+                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} marked complete but plan status is {status}'))
+        elif status in PLAN_STATUS_PASSIVE:
+            if has_checked:
+                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
+        else:
+            if has_checked and status not in PLAN_STATUS_COMPLETE:
+                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} marked complete but plan status is "{status}"'))
+
     return issues
 
 
+def validate_plan_sync(plan_path: Path, details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not PLAN_SYNC_LOG.exists():
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan sync log missing'))
+        return issues
+
+    try:
+        data = json.loads(PLAN_SYNC_LOG.read_text(encoding='utf-8'))
+    except json.JSONDecodeError:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan sync log is not valid JSON'))
+        return issues
+
+    if not isinstance(data, list) or not data:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan sync log has no entries'))
+        return issues
+
+    plan_rel = plan_path.relative_to(REPO_ROOT).as_posix()
+    matching = [entry for entry in data if entry.get('plan') == plan_rel]
+    if not matching:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), f'No sync entry recorded for {plan_rel}'))
+        return issues
+
+    latest = matching[-1]
+    expected_plan_hash = compute_sha256(plan_path)
+    if not TRACKER_ACTIVE.exists():
+        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Tracker file missing for sync validation'))
+        return issues
+    expected_tracker_hash = compute_sha256(TRACKER_ACTIVE)
+
+    if latest.get('plan_hash') != expected_plan_hash:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan hash mismatch; run plan sync'))
+    if latest.get('tracker_hash') != expected_tracker_hash:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Tracker hash mismatch; run plan sync'))
+    if 'synced_at' not in latest:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Sync entry missing synced_at timestamp'))
+
+    return issues
+
+
+def validate_plan_conflicts(plan_path: Path, details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    plans_dir = plan_path.parent
+    scope_set = set(details.scope)
+    if not scope_set:
+        return issues
+
+    for candidate in plans_dir.glob('*.md'):
+        if candidate.resolve() == plan_path.resolve():
+            continue
+        try:
+            candidate_text = candidate.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            continue
+        candidate_scope = set(extract_scope(candidate_text))
+        if not candidate_scope:
+            continue
+        candidate_steps = parse_plan_table(candidate_text)
+        statuses = {entry.get('status', '').strip().lower() for entry in candidate_steps.values()}
+        if statuses and statuses.issubset(PLAN_STATUS_COMPLETE.union(PLAN_STATUS_PASSIVE)):
+            continue
+        overlap = scope_set & candidate_scope
+        if overlap:
+            overlap_item = sorted(overlap)[0]
+            issues.append(ValidationIssue(candidate.relative_to(REPO_ROOT), f'Active plan overlaps scope with current plan ({overlap_item})'))
+    return issues
 def evaluate_file(path: Path) -> List[ValidationIssue]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -294,8 +459,12 @@ def guard_validate(args: argparse.Namespace) -> int:
     if plan_path is None:
         all_issues.append(ValidationIssue(Path('plans/current'), 'Active plan symlink missing or invalid'))
     else:
-        all_issues.extend(validate_plan(plan_path))
-        all_issues.extend(validate_tracker_alignment(PLAN_REQUIRED_STEPS))
+        plan_issues, plan_details = validate_plan(plan_path)
+        all_issues.extend(plan_issues)
+        if plan_details:
+            all_issues.extend(validate_tracker_alignment(plan_details.steps))
+            all_issues.extend(validate_plan_sync(plan_path, plan_details))
+            all_issues.extend(validate_plan_conflicts(plan_path, plan_details))
 
     if all_issues:
         print("Guard validation failed:")

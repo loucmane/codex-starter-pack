@@ -14,9 +14,39 @@
 - [ ] Prepare next actions for modularization cleanup
 - [x] Implement `codex-task` helper + diff-aware guard
 
+## Plan Compliance Phase 1 Checklist
+- [x] plan-step-scope — Scope confirmed with loucmane for guard + plan enforcement work (2025-09-25 18:47 CEST)
+- [x] plan-step-implement — Guard enhancements delivered, meta workflow workflow created, sync log refreshed (2025-09-25 20:33 CEST)
+- [x] plan-step-verify — Guard/test evidence logged, Serena memory written, backlog staged for Taskmaster (2025-09-25 21:22 CEST)
+- [ ] plan-step-emergency — Not applicable unless emergency bypass triggered
+
 ## Progress Log
 - **2025-09-25 16:37** — Plan compliance Phase 1 resumed (new session established).
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 16:37 CEST` (previous session start corrected for actual local time)
+- **2025-09-25 18:48**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 18:48 CEST` — [S:20250925|W:plan-compliance-phase1|H:plans/2025-09-25-plan-compliance-phase1.md|E:files`plans/2025-09-25-plan-compliance-phase1.md`] Created active plan file and pointed `plans/current` symlink to it.
+- **2025-09-25 19:00**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 19:00 CEST` — [S:20250925|W:plan-compliance-phase1|H:.plan_state/sync.log|E:files`.plan_state/sync.log`] Recorded initial plan/tracker sync entry (hash + timestamp) for guard validation.
+- **2025-09-25 19:03**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 19:03 CEST` — [S:20250925|W:plan-compliance-phase1|H:scripts/codex-guard|E:files`reports/plan-compliance-phase1/guard-20250925-1849.txt`] Ran guard with new plan checks (flagging missing meta workflow template; remediation queued).
+- **2025-09-25 20:30**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 20:30 CEST` — [S:20250925|W:plan-compliance-phase1|H:templates/workflows/processes/meta-workflow-authoring.md|E:files`templates/workflows/processes/meta-workflow-authoring.md`] Authored meta workflow authoring process to satisfy guard and unblock plan compliance.
+- **2025-09-25 20:31**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 20:31 CEST` — [S:20250925|W:plan-compliance-phase1|H:templates/handlers/orchestrators/meta-workflow-authoring.md|E:files`templates/handlers/orchestrators/meta-workflow-authoring.md`] Added orchestrator to enforce plan-first workflow authoring.
+- **2025-09-25 20:31**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 20:31 CEST` — [S:20250925|W:plan-compliance-phase1|H:templates/patterns/integration/workflow-gap-detection.md|E:files`templates/patterns/integration/workflow-gap-detection.md`] Added workflow gap detection pattern to route requests into meta workflow authoring.
+- **2025-09-25 21:17**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:17 CEST` — [S:20250925|W:plan-compliance-phase1|H:.plan_state/sync.log|E:files`.plan_state/sync.log`] Refreshed plan ↔ tracker hash sync after workflow creation.
+- **2025-09-25 20:33**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 20:33 CEST` — [S:20250925|W:plan-compliance-phase1|H:scripts/codex-guard|E:files`reports/plan-compliance-phase1/guard-20250925-2033.txt`] Guard validation now passes with plan compliance pipeline intact.
+- **2025-09-25 21:18**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:18 CEST` — [S:20250925|W:plan-compliance-phase1|H:scripts/codex-guard|E:files`reports/plan-compliance-phase1/guard-20250925-2035.txt`] Guard re-run with `--include-untracked`; plan/tracker sync refreshed and evidence captured for verification step.
+- **2025-09-25 21:22**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:22 CEST` — [S:20250925|W:plan-compliance-phase1|H:.plan_state/sync.log|E:files`.plan_state/sync.log`] Re-synced plan ↔ tracker after documentation updates.
+- **2025-09-25 21:22**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:22 CEST` — [S:20250925|W:plan-compliance-phase1|H:scripts/codex-guard|E:files`reports/plan-compliance-phase1/guard-20250925-2122.txt`] Guard final pass (`--include-untracked`) captured for plan-step-verify evidence.
+- **2025-09-25 21:22**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:22 CEST` — [S:20250925|W:plan-compliance-phase1|H:.serena/memories/plan_compliance_phase1_20250925|E:memory`plan_compliance_phase1_20250925`] Serena memory recorded for plan verification checkpoint.
 - **2025-09-24 19:30**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:30 CEST` — [S:20250924|W:taskmaster-audit|H:scripts/codex-guard|E:note`guard run deferred`] Guard run deferred (plan pending); will validate once plan created.
 - **2025-09-24 19:20**

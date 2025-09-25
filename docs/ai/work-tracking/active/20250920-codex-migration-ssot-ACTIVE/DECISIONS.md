@@ -49,3 +49,20 @@ Option 2. `codex-task <workflow>` drives Serena handler lookup, scaffolds S:W:H:
 - Validator can suggest auto-fixes (skeleton entries) when safe (roadmap item).
 - Keeps wrapper lightweight while still enabling mandatory compliance.
 - Implementation: `scripts/codex-task` (scaffolds logs) + `scripts/codex-guard` (validates S:W:H:E).
+
+## 2025-09-25 - Meta Workflow Authoring Enforcement
+
+### Context
+Plan compliance guard flagged missing modular workflows; we need a repeatable, enforced process for introducing or revising workflows so gaps cannot recur.
+
+### Options Considered
+1. Treat each workflow addition as ad-hoc work with manual guard updates.
+2. Create a dedicated workflow + orchestrator + routing pattern that forces the plan-first authoring process before any workflow change.
+
+### Decision
+Option 2. Authored `templates/workflows/processes/meta-workflow-authoring.md`, added orchestrator (`templates/handlers/orchestrators/meta-workflow-authoring.md`), and routing pattern (`templates/patterns/integration/workflow-gap-detection.md`) wired into the registries.
+
+### Consequences
+- Guard can now route new workflow requests into a controlled plan-first process.
+- Future workflow additions must pass plan compliance, registry updates, and documentation checkpoints.
+- Remaining TODO: integrate regression tests and Taskmaster alignment once plan-step-verify closes.

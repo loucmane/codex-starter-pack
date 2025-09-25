@@ -36,3 +36,21 @@
 
 ### Removed
 - None.
+
+## 2025-09-25
+
+### Added
+- Established active plan file (`plans/2025-09-25-plan-compliance-phase1.md`) and plan compliance checklist within tracker.
+- Created `.plan_state/sync.log` hash record to support guard parity checks.
+- Captured guard outputs in `reports/plan-compliance-phase1/guard-20250925-1849.txt`, `guard-20250925-2033.txt`, `guard-20250925-2035.txt`, and `guard-20250925-2122.txt`.
+- Authored `templates/workflows/processes/meta-workflow-authoring.md`, orchestrator (`templates/handlers/orchestrators/meta-workflow-authoring.md`), and routing pattern (`templates/patterns/integration/workflow-gap-detection.md`).
+
+### Changed
+- Extended `scripts/codex-guard` with plan evidence validation, tracker status parity, plan sync log enforcement, and shallow conflict detection.
+- Updated tracker/session logs with S:W:H:E entries for plan, orchestrator/pattern creation, sync logging, and guard execution.
+
+### Issues
+- Plan verification still open; need documentation sweep, Serena memory, and timestamp gate follow-through.
+
+### Removed
+- None.

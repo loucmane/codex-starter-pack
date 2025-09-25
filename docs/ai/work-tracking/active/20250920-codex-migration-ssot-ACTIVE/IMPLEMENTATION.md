@@ -72,9 +72,14 @@ All actions require recording scope in sessions/, tracker entries, and HANDOFF b
 - Plan tool is mandatory before file edits; enforce via behavior + guard.
 - Tracker checklist to mirror plan requirements (no plan, no work).
 - Implementation pending review of behavior/template drafts.
+- First Codex-native plan file (`plans/2025-09-25-plan-compliance-phase1.md`) active; `.plan_state/sync.log` hash recorded for guard parity.
+- Guard passes with enhanced plan checks (`reports/plan-compliance-phase1/guard-20250925-2033.txt`); remain on plan-step-verify to complete documentation/test evidence.
+- Guard passes with enhanced plan checks (`reports/plan-compliance-phase1/guard-20250925-2122.txt`); plan-step-verify completed after backlog/Serena memory updates.
 
 
 ### Meta Workflow Authoring (Draft)
+- Workflow file added at `templates/workflows/processes/meta-workflow-authoring.md`; orchestrator/pattern now scaffolded (`templates/handlers/orchestrators/meta-workflow-authoring.md`, `templates/patterns/integration/workflow-gap-detection.md`).
+- Registry updates in place (`templates/registry/handlers/orchestrators-registry.md`, `templates/registry/patterns/meta-routing.md`); guard verified with `--include-untracked` log.
 - Logged new design drafts: drift detection, interactive wizard, metrics dashboard; backlog created for additional enhancements.
 - Updated design drafts per Claude review (emergency bypass, plan amendments, CI integration, regression tasks).
 - Drafts now include task/subtask outlines to convert into Taskmaster entries during implementation.

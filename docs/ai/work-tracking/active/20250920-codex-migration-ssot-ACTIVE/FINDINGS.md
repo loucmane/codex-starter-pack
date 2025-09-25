@@ -14,7 +14,7 @@
 - `python3 scripts/template-ssot-scanner/migration_detector.py` ✅ (migration_status.json confirms 4 fully migrated files, etc.).
 - `python3 scripts/template-ssot-scanner/generate_fixes.py` ✅ (fix_recommendations.json + scripts in `output/scripts/`).
 - `python3 scripts/template-ssot-scanner/safe_reorganize.py` ✅ (dry-run; no moves proposed; report in `scripts/template-ssot-scanner/output/reports/`).
-- `./scripts/codex-guard validate --include-untracked` ✅ (session/work-tracking S:W:H:E compliance check).
+- `python3 scripts/codex-guard validate` ⚠️ (new plan enforcement checks pass structurally but block on missing `templates/workflows/processes/meta-workflow-authoring.md`; remediation pending).
 
 ## Performance Observations
 - Scanner run inside Codex repo completed in ~0.2s (thanks to limited file set and local execution).
@@ -23,6 +23,9 @@
 - Taskmaster task graph requires audit to ensure each task/subtask aligns with the template migration plan (Session 2025-09-23-001).
 - Optional packages for sequential thinking/fpl MCP still need manual installation; tracked separately.
 - Migration status reports show majority of monolithic files still partially/not migrated (needs remediation via generated scripts).
+- Guard previously blocked on missing `templates/workflows/processes/meta-workflow-authoring.md`; workflow + orchestrator + routing pattern now added (2025-09-25 20:31 CEST). Next up: finish plan verification and add regression tests around meta workflow assets.
+- Plan-step-verify still open: need Serena memory + documentation sweep (especially Taskmaster backlog) before closing Phase 1.
+- Backlog staged in `plans/taskmaster-audit-high-priority.md`; pending push to Taskmaster after review.
 
 ## Enforcement Helper Status (2025-09-20 20:18)
 - `scripts/codex-task` now scaffolds S:W:H:E entries for sessions and work-tracking; `scanner run` can log executions post-command.
@@ -48,4 +51,3 @@
 - Taskmaster alignment workflow, work-tracking orchestration, engine Phase 2/3 modules, and guide stubs still outstanding.
 - Metadata inconsistencies: ~118 modules missing status, 40 lacking frontmatter; workflow guards limited to code-style keywords.
 - Behavior compaction-detection file remains deprecated but indexed; needs archival or rewrite.
-

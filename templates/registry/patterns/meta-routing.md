@@ -3,7 +3,7 @@ id: meta-routing-patterns
 type: registry-component
 name: Meta-Routing Patterns Registry
 description: Patterns that route ambiguous requests to appropriate handlers
-pattern_count: 13
+pattern_count: 14
 cross_references:
   - ../index.md
   - ../handlers/triggers-registry.md
@@ -140,6 +140,16 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Check existing patterns
   3. Route to meta-agent or specialist
 - **Location**: PATTERNS.md#system-improvement
+
+### 14. `workflow-gap-detection` Pattern
+- **Purpose**: Routes workflow gaps into the meta workflow authoring process
+- **Triggers**: Guard reports missing workflow, explicit request for new workflow, registry lookup failure
+- **Process**:
+  1. Record gap evidence (session + tracker)
+  2. Confirm plan compliance and sync log
+  3. Route to `handlers/orchestrators/meta-workflow-authoring.md`
+  4. Block further edits until workflow authoring completes
+- **Location**: patterns/integration/workflow-gap-detection.md
 
 ## Pattern Recognition Flow
 
