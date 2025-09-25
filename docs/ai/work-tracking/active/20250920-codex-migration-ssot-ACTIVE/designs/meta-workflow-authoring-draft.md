@@ -100,6 +100,14 @@ Establish a repeatable protocol for adding or modifying workflows/handlers/conve
 ## Execution Tasks (Draft)
 - **TaskMASTER Task Proposal**
   - Task: "Implement meta workflow authoring"
+    - Subtask 1: Finalize design (including plan continuation, conflict detection, CI integration)
+    - Subtask 2: Implement workflow + orchestrator (combined) 
+    - Subtask 3: Implement gap-detection pattern and wire to orchestrator
+    - Subtask 4: Update registry/conventions/docs/guard references (include conflict detection)
+    - Subtask 5: Develop regression test suite for existing workflows
+    - Subtask 6: Validate via guard/tests; update plan/tracker/Serena handoff
+- **TaskMASTER Task Proposal**
+  - Task: "Implement meta workflow authoring"
     - Subtask 1: Finalize design draft
     - Subtask 2: Author workflow file (`templates/workflows/processes/meta-workflow-authoring.md`)
     - Subtask 3: Add orchestrator handler (`templates/handlers/orchestrators/meta-workflow-authoring.md`)
@@ -109,3 +117,20 @@ Establish a repeatable protocol for adding or modifying workflows/handlers/conve
     - Subtask 7: Update plan/tracker/Serena handoff
 
 > Note: Commit messages must use double quotes per templates/conventions/git/commit-format.md.
+
+## Plan Continuation & Ownership
+- Require plan continuation entry when workflow spans sessions (owner, next steps, dependencies).
+- Guard ensures plan references handoff details before allowing session close.
+
+## Conflict Detection & Resolution
+- Guard compares proposed workflow changes against active plans to detect conflicts.
+- Introduce conflict resolution workflow (to be drafted) when overlapping modifications detected.
+- Tracker logs conflict outcomes and follow-up actions.
+
+## Plan Amendments
+- Use plan versioning rules from plan compliance draft when workflow scope changes mid-stream.
+- Require updated guard validation after amendments.
+
+## Automation & CI Integration
+- Provide guidelines for CI pipelines to call guard/API endpoints before deployment.
+- Document how automated tooling should supply plan identifiers when running workflows.

@@ -36,6 +36,11 @@ status: stable
 
 **BEFORE DOING ANYTHING ELSE:**
 
+### Plan Compliance
+- Create or update active plan using [Plan Template](../processes/plan-template.md).
+- Run `scripts/codex-guard validate --plan` (via behavior) before editing files.
+- Ensure `plan-step-scope` is completed after stakeholder confirmation.
+
 1. **Run these commands and save outputs:**
    ```bash
    date "+%Y-%m-%d %H:%M %Z"       # Save as $CURRENT_DATE (local time)

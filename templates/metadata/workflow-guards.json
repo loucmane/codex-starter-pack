@@ -1101,5 +1101,17 @@
     "requires": [
       "templates/handlers/triggers/workflow/update-tracker.md"
     ]
+  },
+  {
+    "name": "plan-compliance",
+    "keywords": [
+      "plan",
+      "planning",
+      "workflow plan"
+    ],
+    "requires": [
+      "templates/workflows/processes/plan-template.md",
+      "templates/behaviors/planning/plan-compliance.md"
+    ]
   }
 ]

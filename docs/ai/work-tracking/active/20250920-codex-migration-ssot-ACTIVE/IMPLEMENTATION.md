@@ -67,6 +67,7 @@ All actions require recording scope in sessions/, tracker entries, and HANDOFF b
 
 
 ### Plan Compliance Rules (Draft)
+- Plan compliance behavior implemented; guard now validates plan template, tracker checklist, emergency bypass.
 - Minimum plan structure: Scope confirmation → Implementation steps → Verification/reporting.
 - Plan tool is mandatory before file edits; enforce via behavior + guard.
 - Tracker checklist to mirror plan requirements (no plan, no work).
@@ -74,6 +75,8 @@ All actions require recording scope in sessions/, tracker entries, and HANDOFF b
 
 
 ### Meta Workflow Authoring (Draft)
+- Logged new design drafts: drift detection, interactive wizard, metrics dashboard; backlog created for additional enhancements.
+- Updated design drafts per Claude review (emergency bypass, plan amendments, CI integration, regression tasks).
 - Drafts now include task/subtask outlines to convert into Taskmaster entries during implementation.
 - Captured draft in `designs/meta-workflow-authoring-draft.md` (gap detection → plan → design → scaffolding → validation → documentation).
 - Includes update vs. create differences, guard prerequisites, tool usage, and evidence expectations.

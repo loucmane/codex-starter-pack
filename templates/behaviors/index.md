@@ -50,6 +50,10 @@ Session lifecycle management:
 - [compaction-preparation.md](session/compaction-preparation.md) - Context limit handling
 - ~~[compaction-detection.md](session/compaction-detection.md)~~ - DEPRECATED (split into above)
 
+### [planning/](planning/)
+Plan enforcement behaviors:
+- [plan-compliance.md](planning/plan-compliance.md) - Require validated plan before work
+
 ## 🔗 Integration Points
 
 ### ULTRATHINK Enforcement
@@ -78,6 +82,7 @@ This pattern is referenced by all behaviors that require development context.
 | [Todo Enforcement](task-management/todo-write.md) | Starting work | Task list required |
 | [Session End](session/session-end.md) | End signals | Proper session closure |
 | [Compaction Prep](session/compaction-preparation.md) | Memory limits | Context checkpoint |
+| [Plan Compliance](planning/plan-compliance.md) | Starting/modifying work | Enforce plan-first discipline |
 
 ## ⚡ Enforcement Strength
 

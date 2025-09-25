@@ -15,6 +15,20 @@
 - [x] Implement `codex-task` helper + diff-aware guard
 
 ## Progress Log
+- **2025-09-25 16:37** — Plan compliance Phase 1 resumed (new session established).
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 16:37 CEST` (previous session start corrected for actual local time)
+- **2025-09-24 19:30**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:30 CEST` — [S:20250924|W:taskmaster-audit|H:scripts/codex-guard|E:note`guard run deferred`] Guard run deferred (plan pending); will validate once plan created.
+- **2025-09-24 19:20**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:20 CEST` — [S:20250924|W:taskmaster-audit|H:scripts/codex-guard|E:files`scripts/codex-guard`] Extended guard with plan validation (plan template checks, tracker checklist, emergency bypass detection).
+- **2025-09-24 19:05**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:05 CEST` — [S:20250924|W:taskmaster-audit|H:templates/behaviors/planning/plan-compliance|E:files`templates/behaviors/planning/plan-compliance.md`] Authored plan compliance behavior (plan template enforcement, emergency bypass protocol).
+- **2025-09-24 18:55**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 18:55 CEST` — [S:20250924|W:taskmaster-audit|H:templates/workflows/processes/plan-template|E:files`templates/workflows/processes/plan-template.md`] Added plan template workflow (canonical steps, amendments, continuation, emergency bypass).
+- **2025-09-24 18:50**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 18:50 CEST` — [S:20250924|W:taskmaster-audit|H:templates/engine/enforcement/behavioral-hooks|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/enforcement-framework-draft.md; docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/template-drift-detection-draft.md; docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/template-wizard-draft.md; docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/template-metrics-dashboard-draft.md; docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/template-enhancements-backlog.md`] Logged new enhancement drafts (drift detection, wizard, metrics dashboard, backlog).
+- **2025-09-24 12:55**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 12:55 CEST` — [S:20250924|W:taskmaster-audit|H:templates/engine/enforcement/behavioral-hooks|E:note`drafts updated per Claude`] Updated design drafts with emergency bypass, plan amendments, conflict detection, migration strategy, task refinements.
 - **2025-09-23 20:12** — [S:20250923|W:taskmaster-audit|H:templates/engine/enforcement/behavioral-hooks|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/enforcement-framework-draft.md`] Enforcement framework draft added (template-first guard requirements).
 - **2025-09-23 20:05** — [S:20250923|W:taskmaster-audit|H:templates/handlers/triggers/session/end-session|E:note`handoff prep`] Session ending; tomorrow review drafts then implement plan compliance behavior/guard.
 - **2025-09-23 19:55** — [S:20250923|W:taskmaster-audit|H:templates/workflows/processes/meta-workflow-authoring|E:note`drafts now task-ready`] Noted that design drafts now contain executable task/subtask outlines for implementation.
@@ -92,3 +106,9 @@ Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates,
 - [ ] Tracker checklist updated to mirror plan
 - [ ] Guard hook documented (`codex-guard validate` plan check)
 - [ ] Session/work-tracking entries note plan compliance status
+
+## Plan Compliance Checklist
+- [ ] plan-step-scope
+- [ ] plan-step-implement
+- [ ] plan-step-verify
+- [ ] plan-step-emergency (if applicable)

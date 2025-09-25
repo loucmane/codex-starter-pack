@@ -35,6 +35,15 @@ Ensure every timestamp logged in sessions/work-tracking uses the current local t
 ## Execution Tasks (Draft)
 - **TaskMASTER Task Proposal**
   - Task: "Implement timestamp validation gate"
+    - Subtask 1: Finalize timestamp gate design (includes migration strategy)
+    - Subtask 2: Update behavior `timestamps/before-adding.md`
+    - Subtask 3: Extend `codex-guard` timestamp checks (warn/enforce phases)
+    - Subtask 4: Add optional helper script (`codex-task timestamp stamp`)
+    - Subtask 5: Plan legacy migration (detection, auto-fix, enforcement)
+    - Subtask 6: Update tracker checklist, plan template, documentation
+    - Subtask 7: Validate with guard and capture evidence
+- **TaskMASTER Task Proposal**
+  - Task: "Implement timestamp validation gate"
     - Subtask 1: Finalize timestamp gate design
     - Subtask 2: Update behavior `timestamps/before-adding.md`
     - Subtask 3: Extend `codex-guard` timestamp checks
@@ -43,3 +52,15 @@ Ensure every timestamp logged in sessions/work-tracking uses the current local t
     - Subtask 6: Validate with guard and capture evidence
 
 > Note: Use double quotes in commit messages (see templates/conventions/git/commit-format.md).
+
+## Legacy Timestamp Migration
+- Phase 1: Detection mode (guard warns but allows legacy entries).
+- Phase 2: Auto-fix suggestions (script to insert command output).
+- Phase 3: Enforcement (guard blocks non-compliant timestamps).
+- Document migration plan and communicate to contributors.
+
+## Timestamp Command Enforcement
+- Guard ensures every session/tracker timestamp is accompanied by `date "+%Y-%m-%d %H:%M %Z"` output.
+- Behavior requirement: insert command output immediately after each log entry.
+- Automation idea: `scripts/codex-task timestamp stamp` helper to insert command output.
+- Validation: guard flags entries lacking the command, reorder logs in chronological order.

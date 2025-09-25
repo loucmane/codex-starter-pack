@@ -48,6 +48,7 @@
 - `templates/behaviors/file-operations/before-edit.md` — category: file-operations; heading: Before Any File Edit
 - `templates/behaviors/git/before-commit.md` — category: git; heading: Before Commit (gac Format)
 - `templates/behaviors/index.md` — title: Behavioral Hooks System; type: index
+- `templates/behaviors/planning/plan-compliance.md` — category: planning; heading: Plan Compliance Behavior
 - `templates/behaviors/session/compaction-detection.md` — category: session; heading: Session Compaction Detection [DEPRECATED]
 - `templates/behaviors/session/compaction-preparation.md` — category: session; heading: Compaction Preparation Behavior
 - `templates/behaviors/session/session-end.md` — category: session; heading: Session End Behavior
@@ -124,77 +125,77 @@
 
 ## handlers
 
-- `templates/handlers/operators/analysis/cite-source.md` — title: Cite Source; type: operator; category: analysis; heading: Handler: cite-source {#cite-source}
-- `templates/handlers/operators/analysis/gather-evidence.md` — title: Gather Evidence; type: operator; category: analysis; heading: Handler: gather-evidence {#gather-evidence}
-- `templates/handlers/operators/analysis/verify-claim.md` — title: Verify Claim; type: operator; category: analysis; heading: Handler: verify-claim {#verify-claim}
-- `templates/handlers/operators/development/check-naming.md` — title: Check Naming; type: operator; category: development; heading: Handler: check-naming {#check-naming}
-- `templates/handlers/operators/development/check-style.md` — title: Check Style; type: operator; category: development; heading: Handler: check-style {#check-style}
-- `templates/handlers/operators/development/edit-file.md` — title: Edit File; type: operator; category: development; heading: edit-file
-- `templates/handlers/operators/development/format-code.md` — title: Format Code; type: operator; category: development; heading: Handler: format-code {#format-code}
-- `templates/handlers/operators/development/review-patterns.md` — title: Review Patterns; type: operator; category: development; heading: Handler: review-patterns {#review-patterns}
-- `templates/handlers/operators/development/suggest-name.md` — title: Suggest Name; type: operator; category: development; heading: Handler: suggest-name {#suggest-name}
-- `templates/handlers/operators/docs/check-docs-needed.md` — title: Check Documentation Needed; type: operator; category: docs; heading: Handler: check-docs-needed {#check-docs-needed}
-- `templates/handlers/operators/docs/validate-comments.md` — title: Validate Comments; type: operator; category: docs; heading: Handler: validate-comments {#validate-comments}
-- `templates/handlers/operators/external/time-capture.md` — title: Time Capture; type: operator; category: external; heading: Pattern: time-capture {#time-capture}
-- `templates/handlers/operators/file/validate-path.md` — title: Validate Path; type: operator; category: file; heading: Handler: validate-path {#validate-path}
-- `templates/handlers/operators/git/check-commit-msg.md` — title: Check Commit Message; type: operator; category: git; heading: Handler: check-commit-msg {#check-commit-msg}
-- `templates/handlers/operators/git/suggest-commit-type.md` — title: Suggest Commit Type; type: operator; category: git; heading: Handler: suggest-commit-type {#suggest-commit-type}
-- `templates/handlers/operators/session/checkpoint-session.md` — title: Checkpoint Session; type: operator; category: session; heading: Handler: checkpoint-session {#checkpoint-session}
-- `templates/handlers/operators/session/restore-context.md` — title: Restore Context State; type: operator; category: session; heading: Handler: restore-context {#restore-context}
-- `templates/handlers/operators/session/save-context.md` — title: Save Context State; type: operator; category: session; heading: Handler: save-context {#save-context}
-- `templates/handlers/operators/workflow/create-work-folder.md` — title: Create Work Folder; type: operator; category: workflow; heading: Handler: create-work-folder {#create-work-folder}
-- `templates/handlers/operators/workflow/resolve-handler-void.md` — title: Resolve Handler VOID; type: operator; category: workflow; heading: Handler: resolve-handler-void {#resolve-handler-void}
-- `templates/handlers/operators/workflow/resolve-work-void.md` — title: Resolve Work VOID; type: operator; category: workflow; heading: Handler: resolve-work-void {#resolve-work-void}
-- `templates/handlers/orchestrators/ambiguous-request.md` — title: Ambiguous Request; type: orchestrator; category: workflow; heading: Pattern: ambiguous-request {#ambiguous-request}
-- `templates/handlers/orchestrators/architecture-claim.md` — title: Architecture Claim; type: orchestrator; category: analysis; heading: Pattern: architecture-claim {#architecture-claim}
-- `templates/handlers/orchestrators/check-conventions-first.md` — title: Check Conventions First; type: orchestrator; category: workflow; heading: Handler: check-conventions-first {#check-conventions-first}
-- `templates/handlers/orchestrators/code-creation.md` — title: Code Creation; type: orchestrator; category: development; heading: Pattern: code-creation {#code-creation}
-- `templates/handlers/orchestrators/convention-to-workflow.md` — title: Convention to Workflow Router; type: orchestrator; category: workflow; heading: Handler: convention-to-workflow {#convention-to-workflow}
-- `templates/handlers/orchestrators/enforce-pre-flight.md` — title: Enforce Pre-Flight; type: orchestrator; category: workflow; heading: Handler: enforce-pre-flight {#enforce-pre-flight}
-- `templates/handlers/orchestrators/evidence-check.md` — title: Evidence Check; type: orchestrator; category: analysis; heading: Pattern: evidence-check {#evidence-check}
-- `templates/handlers/orchestrators/execute-ultrathink.md` — title: Execute Ultrathink; type: orchestrator; category: workflow; heading: Pattern: execute-ultrathink {#execute-ultrathink}
-- `templates/handlers/orchestrators/file-creation.md` — title: File Creation; type: orchestrator; category: file; heading: Pattern: file-creation {#file-creation}
-- `templates/handlers/orchestrators/file-operation.md` — title: File Operation; type: orchestrator; category: file; heading: Pattern: file-operation {#file-operation}
-- `templates/handlers/orchestrators/lost-context.md` — title: Lost Context; type: orchestrator; category: session; heading: Pattern: lost-context {#lost-context}
-- `templates/handlers/orchestrators/multi-step-request.md` — title: Multi-step Request; type: orchestrator; category: workflow; heading: Pattern: multi-step-request {#multi-step-request}
-- `templates/handlers/orchestrators/orchestrate-complex.md` — title: Orchestrate Complex; type: orchestrator; category: workflow; heading: Handler: orchestrate-complex {#orchestrate-complex}
-- `templates/handlers/orchestrators/resolve-session-void.md` — title: Resolve Session Void; type: orchestrator; category: session; heading: Handler: resolve-session-void {#resolve-session-void}
-- `templates/handlers/orchestrators/session-start.md` — title: Session Start; type: orchestrator; category: session; heading: Handler: session-start {#session-start}
-- `templates/handlers/orchestrators/standard-dev-workflow.md` — title: Standard Development Workflow; type: orchestrator; category: development; heading: Handler: standard-dev-workflow {#standard-dev-workflow}
-- `templates/handlers/orchestrators/switch-context.md` — title: Switch Context State; type: orchestrator; category: session; heading: Handler: switch-context {#switch-context}
-- `templates/handlers/orchestrators/system-improvement.md` — title: System Improvement; type: orchestrator; category: workflow; heading: Pattern: system-improvement {#system-improvement}
-- `templates/handlers/orchestrators/tool-selection.md` — title: Tool Selection; type: orchestrator; category: search; heading: Pattern: tool-selection {#tool-selection}
-- `templates/handlers/orchestrators/tool-to-convention.md` — title: Tool to Convention Validator; type: orchestrator; category: workflow; heading: Handler: tool-to-convention {#tool-to-convention}
-- `templates/handlers/orchestrators/work-activity.md` — title: Work Activity; type: orchestrator; category: workflow; heading: Pattern: work-activity {#work-activity}
-- `templates/handlers/orchestrators/work-continuation.md` — title: Work Continuation; type: orchestrator; category: workflow; heading: Pattern: work-continuation {#work-continuation}
-- `templates/handlers/orchestrators/workflow-to-tool.md` — title: Workflow to Tool Router; type: orchestrator; category: workflow; heading: Handler: workflow-to-tool {#workflow-to-tool}
+- `templates/handlers/operators/analysis/cite-source.md` — title: Cite Source; type: operator; category: analysis; status: stable; heading: Handler: cite-source {#cite-source}
+- `templates/handlers/operators/analysis/gather-evidence.md` — title: Gather Evidence; type: operator; category: analysis; status: stable; heading: Handler: gather-evidence {#gather-evidence}
+- `templates/handlers/operators/analysis/verify-claim.md` — title: Verify Claim; type: operator; category: analysis; status: stable; heading: Handler: verify-claim {#verify-claim}
+- `templates/handlers/operators/development/check-naming.md` — title: Check Naming; type: operator; category: development; status: stable; heading: Handler: check-naming {#check-naming}
+- `templates/handlers/operators/development/check-style.md` — title: Check Style; type: operator; category: development; status: stable; heading: Handler: check-style {#check-style}
+- `templates/handlers/operators/development/edit-file.md` — title: Edit File; type: operator; category: development; status: stable; heading: edit-file
+- `templates/handlers/operators/development/format-code.md` — title: Format Code; type: operator; category: development; status: stable; heading: Handler: format-code {#format-code}
+- `templates/handlers/operators/development/review-patterns.md` — title: Review Patterns; type: operator; category: development; status: stable; heading: Handler: review-patterns {#review-patterns}
+- `templates/handlers/operators/development/suggest-name.md` — title: Suggest Name; type: operator; category: development; status: stable; heading: Handler: suggest-name {#suggest-name}
+- `templates/handlers/operators/docs/check-docs-needed.md` — title: Check Documentation Needed; type: operator; category: docs; status: stable; heading: Handler: check-docs-needed {#check-docs-needed}
+- `templates/handlers/operators/docs/validate-comments.md` — title: Validate Comments; type: operator; category: docs; status: stable; heading: Handler: validate-comments {#validate-comments}
+- `templates/handlers/operators/external/time-capture.md` — title: Time Capture; type: operator; category: external; status: stable; heading: Pattern: time-capture {#time-capture}
+- `templates/handlers/operators/file/validate-path.md` — title: Validate Path; type: operator; category: file; status: stable; heading: Handler: validate-path {#validate-path}
+- `templates/handlers/operators/git/check-commit-msg.md` — title: Check Commit Message; type: operator; category: git; status: stable; heading: Handler: check-commit-msg {#check-commit-msg}
+- `templates/handlers/operators/git/suggest-commit-type.md` — title: Suggest Commit Type; type: operator; category: git; status: stable; heading: Handler: suggest-commit-type {#suggest-commit-type}
+- `templates/handlers/operators/session/checkpoint-session.md` — title: Checkpoint Session; type: operator; category: session; status: stable; heading: Handler: checkpoint-session {#checkpoint-session}
+- `templates/handlers/operators/session/restore-context.md` — title: Restore Context State; type: operator; category: session; status: stable; heading: Handler: restore-context {#restore-context}
+- `templates/handlers/operators/session/save-context.md` — title: Save Context State; type: operator; category: session; status: stable; heading: Handler: save-context {#save-context}
+- `templates/handlers/operators/workflow/create-work-folder.md` — title: Create Work Folder; type: operator; category: workflow; status: stable; heading: Handler: create-work-folder {#create-work-folder}
+- `templates/handlers/operators/workflow/resolve-handler-void.md` — title: Resolve Handler VOID; type: operator; category: workflow; status: stable; heading: Handler: resolve-handler-void {#resolve-handler-void}
+- `templates/handlers/operators/workflow/resolve-work-void.md` — title: Resolve Work VOID; type: operator; category: workflow; status: stable; heading: Handler: resolve-work-void {#resolve-work-void}
+- `templates/handlers/orchestrators/ambiguous-request.md` — title: Ambiguous Request; type: orchestrator; category: workflow; status: stable; heading: Pattern: ambiguous-request {#ambiguous-request}
+- `templates/handlers/orchestrators/architecture-claim.md` — title: Architecture Claim; type: orchestrator; category: analysis; status: stable; heading: Pattern: architecture-claim {#architecture-claim}
+- `templates/handlers/orchestrators/check-conventions-first.md` — title: Check Conventions First; type: orchestrator; category: workflow; status: stable; heading: Handler: check-conventions-first {#check-conventions-first}
+- `templates/handlers/orchestrators/code-creation.md` — title: Code Creation; type: orchestrator; category: development; status: stable; heading: Pattern: code-creation {#code-creation}
+- `templates/handlers/orchestrators/convention-to-workflow.md` — title: Convention to Workflow Router; type: orchestrator; category: workflow; status: stable; heading: Handler: convention-to-workflow {#convention-to-workflow}
+- `templates/handlers/orchestrators/enforce-pre-flight.md` — title: Enforce Pre-Flight; type: orchestrator; category: workflow; status: stable; heading: Handler: enforce-pre-flight {#enforce-pre-flight}
+- `templates/handlers/orchestrators/evidence-check.md` — title: Evidence Check; type: orchestrator; category: analysis; status: stable; heading: Pattern: evidence-check {#evidence-check}
+- `templates/handlers/orchestrators/execute-ultrathink.md` — title: Execute Ultrathink; type: orchestrator; category: workflow; status: stable; heading: Pattern: execute-ultrathink {#execute-ultrathink}
+- `templates/handlers/orchestrators/file-creation.md` — title: File Creation; type: orchestrator; category: file; status: stable; heading: Pattern: file-creation {#file-creation}
+- `templates/handlers/orchestrators/file-operation.md` — title: File Operation; type: orchestrator; category: file; status: stable; heading: Pattern: file-operation {#file-operation}
+- `templates/handlers/orchestrators/lost-context.md` — title: Lost Context; type: orchestrator; category: session; status: stable; heading: Pattern: lost-context {#lost-context}
+- `templates/handlers/orchestrators/multi-step-request.md` — title: Multi-step Request; type: orchestrator; category: workflow; status: stable; heading: Pattern: multi-step-request {#multi-step-request}
+- `templates/handlers/orchestrators/orchestrate-complex.md` — title: Orchestrate Complex; type: orchestrator; category: workflow; status: stable; heading: Handler: orchestrate-complex {#orchestrate-complex}
+- `templates/handlers/orchestrators/resolve-session-void.md` — title: Resolve Session Void; type: orchestrator; category: session; status: stable; heading: Handler: resolve-session-void {#resolve-session-void}
+- `templates/handlers/orchestrators/session-start.md` — title: Session Start; type: orchestrator; category: session; status: stable; heading: Handler: session-start {#session-start}
+- `templates/handlers/orchestrators/standard-dev-workflow.md` — title: Standard Development Workflow; type: orchestrator; category: development; status: stable; heading: Handler: standard-dev-workflow {#standard-dev-workflow}
+- `templates/handlers/orchestrators/switch-context.md` — title: Switch Context State; type: orchestrator; category: session; status: stable; heading: Handler: switch-context {#switch-context}
+- `templates/handlers/orchestrators/system-improvement.md` — title: System Improvement; type: orchestrator; category: workflow; status: stable; heading: Pattern: system-improvement {#system-improvement}
+- `templates/handlers/orchestrators/tool-selection.md` — title: Tool Selection; type: orchestrator; category: search; status: stable; heading: Pattern: tool-selection {#tool-selection}
+- `templates/handlers/orchestrators/tool-to-convention.md` — title: Tool to Convention Validator; type: orchestrator; category: workflow; status: stable; heading: Handler: tool-to-convention {#tool-to-convention}
+- `templates/handlers/orchestrators/work-activity.md` — title: Work Activity; type: orchestrator; category: workflow; status: stable; heading: Pattern: work-activity {#work-activity}
+- `templates/handlers/orchestrators/work-continuation.md` — title: Work Continuation; type: orchestrator; category: workflow; status: stable; heading: Pattern: work-continuation {#work-continuation}
+- `templates/handlers/orchestrators/workflow-to-tool.md` — title: Workflow to Tool Router; type: orchestrator; category: workflow; status: stable; heading: Handler: workflow-to-tool {#workflow-to-tool}
 - `templates/handlers/tools/external/consult-gpt5.md` — title: consult-gpt5; category: tools/external; heading: Consult GPT-5 Handler
-- `templates/handlers/triggers/analysis/code-review.md` — title: Review Code; type: trigger; category: analysis; heading: Review Code Handler
-- `templates/handlers/triggers/analysis/deploy-specialist.md` — title: Deploy Specialist; type: trigger; category: workflow; heading: Handler: deploy-specialist {#deploy-specialist}
-- `templates/handlers/triggers/analysis/deploy-ultrathink.md` — title: Deploy Ultrathink; type: trigger; category: analysis; heading: Handler: deploy-ultrathink {#deploy-ultrathink}
-- `templates/handlers/triggers/analysis/explain-code.md` — title: Explain Code; type: trigger; category: analysis; heading: Explain Code Handler
-- `templates/handlers/triggers/debug/debug-issue.md` — title: Debug Issue; type: trigger; category: debug; heading: Debug Issue Handler
-- `templates/handlers/triggers/debug/fix-bug.md` — title: Fix Code Bug; type: trigger; category: debug; heading: Fix Code Bug Handler
-- `templates/handlers/triggers/development/create-component.md` — title: Create Component; type: trigger; category: development; heading: Handler: create-component {#create-component}
-- `templates/handlers/triggers/development/optimize-code.md` — title: Optimize Code Performance; type: trigger; category: development; heading: Optimize Code Performance Handler
-- `templates/handlers/triggers/development/refactor-code.md` — title: Refactor Code; type: trigger; category: development; heading: Handler: refactor-code {#refactor-code}
-- `templates/handlers/triggers/development/start-new-work.md` — title: Start New Work; type: trigger; category: development; heading: Start New Work Handler
-- `templates/handlers/triggers/docs/create-docs.md` — title: Create Documentation; type: trigger; category: docs; heading: Handler: create-docs {#create-docs}
-- `templates/handlers/triggers/docs/document-findings.md` — title: Document Findings; type: trigger; category: docs; heading: Handler: document-findings {#document-findings}
-- `templates/handlers/triggers/docs/record-decision.md` — title: Record Decision; type: trigger; category: docs; heading: Handler: record-decision {#record-decision}
-- `templates/handlers/triggers/session/end-session.md` — title: End Session; type: trigger; category: session; heading: Handler: end-session {#end-session}
-- `templates/handlers/triggers/session/prepare-compaction.md` — title: Prepare Compaction; type: trigger; category: session; heading: Handler: prepare-compaction {#prepare-compaction}
-- `templates/handlers/triggers/session/show-capabilities.md` — title: Show Capabilities; type: trigger; category: session; heading: Handler: show-capabilities {#show-capabilities}
-- `templates/handlers/triggers/session/start-session.md` — title: Start Session with Smart Title; type: trigger; category: session; heading: Start Session Handler
-- `templates/handlers/triggers/session/update-session.md` — title: Update Session; type: trigger; category: session; heading: Handler: update-session {#update-session}
-- `templates/handlers/triggers/test/create-test-checkpoint.md` — title: Create Test Checkpoint; type: trigger; category: test; heading: Handler: create-test-checkpoint {#create-test-checkpoint}
-- `templates/handlers/triggers/test/simulation-test.md` — title: Simulation Test; type: trigger; category: test; heading: Handler: simulation-test {#simulation-test}
-- `templates/handlers/triggers/test/validate-changes.md` — title: Validate Changes; type: trigger; category: test; heading: Handler: validate-changes {#validate-changes}
-- `templates/handlers/triggers/workflow/check-progress.md` — title: Check Progress; type: trigger; category: workflow; heading: Handler: check-progress {#check-progress}
-- `templates/handlers/triggers/workflow/continue-work.md` — title: Continue Work; type: trigger; category: workflow; heading: Handler: continue-work {#continue-work}
-- `templates/handlers/triggers/workflow/create-todos.md` — title: Create Todos; type: trigger; category: workflow; heading: Handler: create-todos {#create-todos}
-- `templates/handlers/triggers/workflow/update-todos.md` — title: Update Todos; type: trigger; category: workflow; heading: Handler: update-todos {#update-todos}
-- `templates/handlers/triggers/workflow/update-tracker.md` — title: Update Tracker; type: trigger; category: workflow; heading: Handler: update-tracker {#update-tracker}
+- `templates/handlers/triggers/analysis/code-review.md` — title: Review Code; type: trigger; category: analysis; status: stable; heading: Review Code Handler
+- `templates/handlers/triggers/analysis/deploy-specialist.md` — title: Deploy Specialist; type: trigger; category: workflow; status: stable; heading: Handler: deploy-specialist {#deploy-specialist}
+- `templates/handlers/triggers/analysis/deploy-ultrathink.md` — title: Deploy Ultrathink; type: trigger; category: analysis; status: stable; heading: Handler: deploy-ultrathink {#deploy-ultrathink}
+- `templates/handlers/triggers/analysis/explain-code.md` — title: Explain Code; type: trigger; category: analysis; status: stable; heading: Explain Code Handler
+- `templates/handlers/triggers/debug/debug-issue.md` — title: Debug Issue; type: trigger; category: debug; status: stable; heading: Debug Issue Handler
+- `templates/handlers/triggers/debug/fix-bug.md` — title: Fix Code Bug; type: trigger; category: debug; status: stable; heading: Fix Code Bug Handler
+- `templates/handlers/triggers/development/create-component.md` — title: Create Component; type: trigger; category: development; status: stable; heading: Handler: create-component {#create-component}
+- `templates/handlers/triggers/development/optimize-code.md` — title: Optimize Code Performance; type: trigger; category: development; status: stable; heading: Optimize Code Performance Handler
+- `templates/handlers/triggers/development/refactor-code.md` — title: Refactor Code; type: trigger; category: development; status: stable; heading: Handler: refactor-code {#refactor-code}
+- `templates/handlers/triggers/development/start-new-work.md` — title: Start New Work; type: trigger; category: development; status: stable; heading: Start New Work Handler
+- `templates/handlers/triggers/docs/create-docs.md` — title: Create Documentation; type: trigger; category: docs; status: stable; heading: Handler: create-docs {#create-docs}
+- `templates/handlers/triggers/docs/document-findings.md` — title: Document Findings; type: trigger; category: docs; status: stable; heading: Handler: document-findings {#document-findings}
+- `templates/handlers/triggers/docs/record-decision.md` — title: Record Decision; type: trigger; category: docs; status: stable; heading: Handler: record-decision {#record-decision}
+- `templates/handlers/triggers/session/end-session.md` — title: End Session; type: trigger; category: session; status: stable; heading: Handler: end-session {#end-session}
+- `templates/handlers/triggers/session/prepare-compaction.md` — title: Prepare Compaction; type: trigger; category: session; status: stable; heading: Handler: prepare-compaction {#prepare-compaction}
+- `templates/handlers/triggers/session/show-capabilities.md` — title: Show Capabilities; type: trigger; category: session; status: stable; heading: Handler: show-capabilities {#show-capabilities}
+- `templates/handlers/triggers/session/start-session.md` — title: Start Session with Smart Title; type: trigger; category: session; status: stable; heading: Start Session Handler
+- `templates/handlers/triggers/session/update-session.md` — title: Update Session; type: trigger; category: session; status: stable; heading: Handler: update-session {#update-session}
+- `templates/handlers/triggers/test/create-test-checkpoint.md` — title: Create Test Checkpoint; type: trigger; category: test; status: stable; heading: Handler: create-test-checkpoint {#create-test-checkpoint}
+- `templates/handlers/triggers/test/simulation-test.md` — title: Simulation Test; type: trigger; category: test; status: stable; heading: Handler: simulation-test {#simulation-test}
+- `templates/handlers/triggers/test/validate-changes.md` — title: Validate Changes; type: trigger; category: test; status: stable; heading: Handler: validate-changes {#validate-changes}
+- `templates/handlers/triggers/workflow/check-progress.md` — title: Check Progress; type: trigger; category: workflow; status: stable; heading: Handler: check-progress {#check-progress}
+- `templates/handlers/triggers/workflow/continue-work.md` — title: Continue Work; type: trigger; category: workflow; status: stable; heading: Handler: continue-work {#continue-work}
+- `templates/handlers/triggers/workflow/create-todos.md` — title: Create Todos; type: trigger; category: workflow; status: stable; heading: Handler: create-todos {#create-todos}
+- `templates/handlers/triggers/workflow/update-todos.md` — title: Update Todos; type: trigger; category: workflow; status: stable; heading: Handler: update-todos {#update-todos}
+- `templates/handlers/triggers/workflow/update-tracker.md` — title: Update Tracker; type: trigger; category: workflow; status: stable; heading: Handler: update-tracker {#update-tracker}
 
 ## integration
 
@@ -280,7 +281,7 @@
 
 ## shared
 
-- `templates/shared/patterns/ultrathink-format.md` — title: ultrathink-format; type: shared-pattern; category: core; heading: ULTRATHINK Format Pattern
+- `templates/shared/patterns/ultrathink-format.md` — title: ultrathink-format; type: shared-pattern; category: core; status: stable; heading: ULTRATHINK Format Pattern
 - `templates/shared/reports/claude-analysis-report.md` — heading: CLAUDE.md Modularization Analysis Report
 - `templates/shared/reports/claude-analysis.json`
 - `templates/shared/tools/tool-selection-matrix.md` — title: Tool Selection Matrix and Decision Funnel; type: shared-resource; category: tools; status: stable
@@ -305,6 +306,7 @@
 - `templates/workflows/memory/serena-patterns.md` — title: Serena Memory Usage Patterns; type: workflow-component; category: memory; status: stable
 - `templates/workflows/patterns/multi-agent-orchestration.md` — title: Intelligent Multi-Agent Orchestration; type: workflow-component; category: patterns; status: stable
 - `templates/workflows/patterns/task-management.md` — title: Task Management Patterns; type: workflow-component; category: patterns; status: stable
+- `templates/workflows/processes/plan-template.md` — title: Standard Plan Compliance Template; type: workflow-template; category: processes; status: draft
 - `templates/workflows/protocols/universal-flight.md` — title: Universal Flight Protocol; type: workflow-component; category: protocols; status: stable
 - `templates/workflows/session/compaction.md` — title: Context Compaction Workflow; type: workflow-component; category: session; status: stable
 - `templates/workflows/session/continuation.md` — title: Session Continuation Workflow; type: workflow-component; category: session; status: stable

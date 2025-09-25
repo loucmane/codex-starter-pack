@@ -31,6 +31,9 @@
 - TODO: add guard auto-fix skeleton support and CI/pre-commit integration.
 
 ## Template System Audit (2025-09-23)
+- Guard updated to enforce plan template (scope, continuation, emergency bypass) and tracker checklist alignment.
+- Added design drafts for template drift detection, interactive wizard, metrics dashboard, and backlog per Claude recommendations.
+- Incorporated Claude feedback: emergency bypass, plan amendments, conflict detection, new guard proposals added to drafts.
 - Plan compliance, meta workflow, and timestamp gate drafts now include executable Taskmaster-style task outlines.
 - Plan compliance + meta workflow designs updated with canonical step IDs, plan-template table, guard procedures, regression/rollback guidance.
 - Drafting plan compliance behavior (minimum plan steps, guard enforcement) to formalize plan-first discipline.

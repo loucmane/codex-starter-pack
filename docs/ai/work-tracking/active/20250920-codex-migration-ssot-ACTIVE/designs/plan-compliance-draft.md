@@ -152,6 +152,18 @@ Codify a reusable enforcement pattern that ensures every Codex task begins with 
 ## Execution Tasks (Draft)
 - **TaskMASTER Task Proposal**
   - Task: "Implement plan compliance enforcement"
+    - Subtask 1: Finalize design (including emergency bypass, amendments, cross-session continuation, conflict detection)
+    - Subtask 2: Implement `plan-compliance` behavior file
+    - Subtask 3: Implement guard core validation (mandatory plan structure & IDs)
+    - Subtask 4: Implement plan-tracker sync validation logic
+    - Subtask 5: Implement evidence verification (S:W:H:E + command proofs)
+    - Subtask 6: Integrate guard with existing workflows (session lifecycle, meta workflow authoring)
+    - Subtask 7: Implement emergency bypass flow with post-mortem logging
+    - Subtask 8: Implement plan amendment/version tracking (archival + guard awareness)
+    - Subtask 9: Document plan continuation/hand-off protocol
+    - Subtask 10: Build regression tests/automation for plan compliance
+- **TaskMASTER Task Proposal**
+  - Task: "Implement plan compliance enforcement"
     - Subtask 1: Draft behavior spec (this document)
     - Subtask 2: Implement `plan-compliance` behavior file
     - Subtask 3: Extend `codex-guard` with plan validation
@@ -159,3 +171,23 @@ Codify a reusable enforcement pattern that ensures every Codex task begins with 
     - Subtask 5: Update workflows (session/meta/etc.) to reference behavior
     - Subtask 6: Document tracker/plan tool integration
   - Evidence: tracker checklist, guard output, plan sync log.
+
+## Emergency Bypass Protocol (Draft)
+- Define `plan-step-emergency` with explicit justification and post-mortem requirement.
+- Guard allows bypass only with `emergency-bypass` flag and tracker entry.
+- Post-mortem plan must be created within 24 hours documenting remediation and follow-up tasks.
+
+## Plan Amendments & Versioning
+- Maintain `plans/archive/<plan>-vN.md` when major changes occur mid-execution.
+- Section in plan template for "Amendments" capturing rationale, approver, timestamp.
+- Guard compares plan hash against last validated version; prompts re-validation when changed.
+
+## Cross-Session Continuation
+- Add "Continuation" block in plan template listing next session owner, required context reload steps.
+- Tracker checklist includes "Plan continuation validated" for multi-session efforts.
+- Serena handoff must reference plan path and amendment history.
+
+## Plan Conflict Detection
+- Guard checks for overlapping plans touching same files (via git diff + plan file lists).
+- If conflict detected, guard blocks and instructs merge via designated conflict-resolution workflow.
+- Plan sync log records conflict resolutions for audit.

@@ -13,6 +13,7 @@ templates/behaviors/file-operations/before-create.md
 templates/behaviors/file-operations/before-edit.md
 templates/behaviors/git/before-commit.md
 templates/behaviors/index.md
+templates/behaviors/planning/plan-compliance.md
 templates/behaviors/session/compaction-detection.md
 templates/behaviors/session/compaction-preparation.md
 templates/behaviors/session/session-end.md
@@ -228,6 +229,7 @@ templates/workflows/handlers/intent-handlers.md
 templates/workflows/memory/serena-patterns.md
 templates/workflows/patterns/multi-agent-orchestration.md
 templates/workflows/patterns/task-management.md
+templates/workflows/processes/plan-template.md
 templates/workflows/protocols/universal-flight.md
 templates/workflows/session/compaction.md
 templates/workflows/session/continuation.md

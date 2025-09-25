@@ -78,3 +78,9 @@
 - Documented plan compliance, meta workflow, and timestamp gate designs (with execution tasks).
 - No implementation performed; all changes are draft documentation and task outlines.
 - Next session: review drafts, approve guard/behavior scope, then implement plan compliance first.
+
+
+### Enhancement Backlog (2025-09-24)
+- Logged design drafts for template drift detection, interactive wizard, metrics dashboard.
+- Backlog captured additional ideas (dependency graph, test harness, pre-commit hook, etc.).
+- Prioritize high-value items after Phase 1 (plan compliance) implementation.
