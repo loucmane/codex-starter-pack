@@ -24,9 +24,9 @@
 3. Resume instrumentation/performance tasks once enforcement/enhancement chain complete.
 
 ## How to Continue
-- Start new session, load drafts in `docs/ai/work-tracking/.../designs/`.
-- Confirm plan compliance guard requirements, then implement behavior and guard updates first.
-- After plan compliance, proceed with meta workflow assets and timestamp guard.
+- Start new session with plan-compliance follow-up context (2025-09-26).
+- Work through Taskmaster tasks 81–97 in order (plan compliance guard → session/domain → enforcement enhancements).
+- Resume instrumentation/performance tasks only after the enforcement chain is complete.
 
 
 Additional Enhancements Logged (2025-09-24 18:50)

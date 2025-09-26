@@ -29,3 +29,42 @@ title: Plan Compliance Follow-up & Timestamp Gate Prep
 - **[15:52]** — [S:20250926|W:plan-compliance-followup|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md|E:files`.../plans/taskmaster-audit-high-priority.md`] Drafted task/subtask outlines for remaining backlog items (session workflows, domain packs, legacy anchors, alignment workflow, work-tracking orchestration, engine migration, metadata standardization, guard coverage, compaction behavior, enhancement backlog).
 - **[16:28]** — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:files`.taskmaster/tasks/tasks.json`] Inserted tasks 85–97 (session workflows → metrics dashboard) with dependencies chained on guard/timestamp tasks.
 - **[16:31]** — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:cmd`task-master add-dependency --id=16..20 --depends-on=97`] Downstream instrumentation tasks (16–20) now depend on Task 97 to enforce completion of the new guard/enforcement chain first.
+- **[21:08]** — [S:20250926|W:plan-compliance-followup|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/HANDOFF.md|E:files`.../HANDOFF.md`] Updated handoff with execution order for tasks 81–97 and next-session instructions.
+- **[21:10]** — 🏁 Session ending - Enforcement backlog embedded in Taskmaster; documentation and handoff updated for follow-up.
+
+### 🚦 Session End Status
+**SESSION COMPLETED** - Enforcement Backlog Embedded:
+- ✅ Added guard chain tasks 81–84 (plan compliance, meta workflow, regression, timestamp guard)
+- ✅ Inserted backlog tasks 85–97 with chained dependencies across workflows and enhancements
+- ✅ Updated tracker, findings, handoff, and session logs to reflect new execution order
+- ✅ Validated Taskmaster dependencies post-insertion
+- 🎯 Ready for next session to execute Tasks 81–97 sequentially before resuming instrumentation
+
+### 📊 Session Metrics
+- Duration: ~8.8 hours (12:23–21:10 CEST)
+- Tasks created: 17 (IDs 81–97)
+- Files modified: 6 docs + `.taskmaster/tasks/tasks.json` + regenerated task markdown files
+- Validations: `task-master validate-dependencies` (after insertion and after dependency updates)
+
+### 📋 Next Session Should:
+1. Kick off Task 81 `Implement Plan Compliance Enforcement` and progress through Tasks 82–84
+2. Continue into newly added backlog Tasks 85–97, capturing evidence for each subtask
+3. Re-run `task-master validate-dependencies` after completing the enforcement chain to confirm readiness for instrumentation tasks (16–20)
+
+### 🔄 Handoff Messages
+
+**Initialization** (for next session):
+```
+mcp__serena__activate_project --project codex
+read memory plan_compliance_phase1_20250925 and sessions/current.
+Review Taskmaster Task 81 and execute guard/enforcement backlog (81–97) sequentially.
+```
+
+**Git Commit**:
+```
+gac "feat: embed enforcement roadmap into Taskmaster graph
+
+- add tasks 81-97 for guard, workflow, and enhancement execution
+- link instrumentation tasks (16-20) to enforcement chain
+- update work-tracking docs with new backlog"
+```
