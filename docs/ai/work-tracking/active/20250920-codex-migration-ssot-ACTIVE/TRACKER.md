@@ -47,6 +47,10 @@
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:22 CEST` — [S:20250925|W:plan-compliance-phase1|H:scripts/codex-guard|E:files`reports/plan-compliance-phase1/guard-20250925-2122.txt`] Guard final pass (`--include-untracked`) captured for plan-step-verify evidence.
 - **2025-09-25 21:22**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-25 21:22 CEST` — [S:20250925|W:plan-compliance-phase1|H:.serena/memories/plan_compliance_phase1_20250925|E:memory`plan_compliance_phase1_20250925`] Serena memory recorded for plan verification checkpoint.
+- **2025-09-26 13:46**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 13:46 CEST` — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:note`rolled back`] Removed provisional Tasks 81–82 from Taskmaster; backlog remains in work-tracking for earlier insertion.
+- **2025-09-26 14:02**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 14:02 CEST` — [S:20250926|W:plan-compliance-followup|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md|E:files`.../plans/taskmaster-audit-high-priority.md`] Backlog expanded with plan compliance, timestamp gate, and enforcement framework task proposals (pending insertion).
 - **2025-09-24 19:30**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:30 CEST` — [S:20250924|W:taskmaster-audit|H:scripts/codex-guard|E:note`guard run deferred`] Guard run deferred (plan pending); will validate once plan created.
 - **2025-09-24 19:20**

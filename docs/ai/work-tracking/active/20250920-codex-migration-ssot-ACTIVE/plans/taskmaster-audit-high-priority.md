@@ -51,6 +51,40 @@
     5. Plan CI integration (Taskmaster/Serena notes) for new tests.
   - Notes: add to Taskmaster only after review.
 
+### Backlog: Plan Compliance Enforcement (Draft Extraction 2025-09-26)
+- **Task Proposal**: "Implement plan compliance enforcement"
+  - Subtasks:
+    1. Finalize design scope (emergency bypass, amendments, continuation, conflict detection) and obtain sign-off.
+    2. Implement `templates/behaviors/planning/plan-compliance.md` behavior with enforcement hooks.
+    3. Extend `scripts/codex-guard` with mandatory plan structure & ID validation logic.
+    4. Implement plan ↔ tracker sync validation (`.plan_state/sync.log` hash parity).
+    5. Implement evidence verification (S:W:H:E + command proofs) before closing plan steps.
+    6. Integrate guard hooks with session lifecycle & meta workflow authoring workflows.
+    7. Document bypass/remediation guidance in work-tracking/HANDOFF.
+    8. Capture guard/test evidence and Serena memory on completion.
+  - Target placement: immediately after “Create Work-Tracking Template Structure” (Task 14).
+
+### Backlog: Timestamp Validation Gate (Draft Extraction 2025-09-26)
+- **Task Proposal**: "Implement timestamp guard"
+  - Subtasks:
+    1. Update `templates/behaviors/timestamps/before-adding.md` to enforce running `date "+%Y-%m-%d %H:%M %Z"` before logging timestamps.
+    2. Extend `scripts/codex-guard` to detect recent date command output alongside timestamp entries.
+    3. Update session/work-tracking templates with timestamp evidence checklist entries.
+    4. Add helper guidance (codex-task message or alias suggestion) for capturing timestamps.
+    5. Create regression tests ensuring guard fails on manual timestamps.
+    6. Document guard usage and remediation steps in findings/handoff.
+  - Target placement: after meta workflow enforcement tasks, before performance/security items.
+
+### Backlog: Enforcement Framework Enhancements (Draft Extraction 2025-09-24)
+- **Task Proposal**: "Expand enforcement framework"
+  - Subtasks:
+    1. Review enforcement framework draft and confirm scope (plan-first, guard-first, evidence-first).
+    2. Identify gaps for new behaviors/guards (commit format enforcement, file scope guard, etc.) and stage future tasks.
+    3. Update enforcement documentation to reference plan compliance + meta workflow guard requirements.
+    4. Outline automation roadmap (CI, dashboard metrics, drift detection integration) for future phases.
+    5. Coordinate enhancement backlog (wizard, metrics dashboard, drift detection) for prioritisation.
+  - Notes: coordinating task to be inserted once plan compliance/meta workflow enforcement tasks land.
+
 ## Next Steps
 - Insert “Author Development Workflow Modules” task around Task 14–15 in `tasks.json`.
 - Refine Task 14 subtasks to cover extended work-tracking engine.

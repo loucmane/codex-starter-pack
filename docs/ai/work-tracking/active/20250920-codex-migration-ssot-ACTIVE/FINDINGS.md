@@ -26,6 +26,7 @@
 - Guard previously blocked on missing `templates/workflows/processes/meta-workflow-authoring.md`; workflow + orchestrator + routing pattern now added (2025-09-25 20:31 CEST). Next up: finish plan verification and add regression tests around meta workflow assets.
 - Plan-step-verify still open: need Serena memory + documentation sweep (especially Taskmaster backlog) before closing Phase 1.
 - Backlog staged in `plans/taskmaster-audit-high-priority.md`; pending push to Taskmaster after review.
+- Meta workflow enforcement/regression tasks remain in backlog plan; need to insert earlier in Taskmaster graph.
 
 ## Enforcement Helper Status (2025-09-20 20:18)
 - `scripts/codex-task` now scaffolds S:W:H:E entries for sessions and work-tracking; `scanner run` can log executions post-command.
