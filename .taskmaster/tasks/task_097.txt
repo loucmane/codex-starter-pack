@@ -1,0 +1,43 @@
+# Task ID: 97
+# Title: Create Template Metrics Dashboard
+# Status: pending
+# Dependencies: 94, 95, 96
+# Priority: medium
+# Description: Summarize template usage/compliance metrics via dashboard/report.
+# Details:
+Provides visibility into template enforcement health.
+
+# Test Strategy:
+Metrics dashboard/report generated with automation plan.
+
+# Subtasks:
+## 1. Define metrics schema [pending]
+### Dependencies: None
+### Description: Finalize schema for usage/compliance/guard metrics.
+### Details:
+Finalize schema for usage/compliance/guard metrics.
+
+## 2. Build data collector [pending]
+### Dependencies: None
+### Description: Create tooling to parse guard logs, plan sync logs, task history.
+### Details:
+Create tooling to parse guard logs, plan sync logs, task history.
+
+## 3. Implement dashboard/report [pending]
+### Dependencies: None
+### Description: Generate dashboard or Markdown report summarizing metrics.
+### Details:
+Generate dashboard or Markdown report summarizing metrics.
+
+## 4. Document maintenance [pending]
+### Dependencies: None
+### Description: Add maintenance process and alert thresholds.
+### Details:
+Add maintenance process and alert thresholds.
+
+## 5. Plan automation [pending]
+### Dependencies: None
+### Description: Outline CI/cron integration for metrics refresh.
+### Details:
+Outline CI/cron integration for metrics refresh.
+

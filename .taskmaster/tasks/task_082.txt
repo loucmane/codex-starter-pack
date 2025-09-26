@@ -1,0 +1,55 @@
+# Task ID: 82
+# Title: Integrate Meta Workflow Authoring Enforcement
+# Status: pending
+# Dependencies: 81
+# Priority: high
+# Description: Wire the meta workflow orchestrator and gap-detection pattern into guard automation, Taskmaster alignment, and helper tooling.
+# Details:
+Ensures meta workflow authoring process runs before any workflow/handler changes.
+
+# Test Strategy:
+Guard blocks workflow edits when meta workflow assets missing; Taskmaster checklist updated.
+
+# Subtasks:
+## 1. Wire orchestrator/pattern into guard [pending]
+### Dependencies: None
+### Description: Extend scripts/codex-guard to require meta workflow orchestrator and workflow-gap pattern during validations.
+### Details:
+Guard checks for workflow-gap triggers and ensures assets exist before edits.
+
+## 2. Extend guard metadata [pending]
+### Dependencies: None
+### Description: Add meta workflow triggers to templates/metadata/workflow-guards.json and confirm registries updated.
+### Details:
+Guard metadata references new workflow IDs/keywords.
+
+## 3. Update Taskmaster alignment checklist [pending]
+### Dependencies: None
+### Description: Require meta workflow plan confirmation before editing workflow assets via Taskmaster.
+### Details:
+Checklist includes meta workflow step in workflow tasks.
+
+## 4. Document guard remediation guidance [pending]
+### Dependencies: None
+### Description: Provide failure messaging and remediation steps for meta workflow enforcement in docs/handoff.
+### Details:
+Add instructions for restoring missing assets.
+
+## 5. Plan CI/pre-commit wiring [pending]
+### Dependencies: None
+### Description: Capture TODO notes for running meta workflow guard in CI or pre-commit contexts.
+### Details:
+Document pipeline integration plan.
+
+## 6. Update codex-task helper messaging [pending]
+### Dependencies: None
+### Description: Modify scripts/codex-task to surface meta workflow requirements during scaffolding commands.
+### Details:
+Helper output references meta workflow plan template.
+
+## 7. Capture enforcement evidence [pending]
+### Dependencies: None
+### Description: Store guard outputs and link them in tracker/handoff once enforcement complete.
+### Details:
+Add reports/meta-workflow logs and document references.
+

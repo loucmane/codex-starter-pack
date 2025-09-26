@@ -1,0 +1,61 @@
+# Task ID: 48
+# Title: Execute Phase 2.3 Remaining Templates
+# Status: pending
+# Dependencies: 26
+# Priority: high
+# Description: Complete migration of all remaining templates
+# Details:
+Identify remaining unmigrated templates. Apply modular structure to each. Update all references and dependencies. Validate with guard and scanner. Update compatibility map completely. Run comprehensive regression tests. Document edge cases found. Prepare Phase 2 gate documentation.
+
+# Test Strategy:
+100% template migration verified, all tests pass, compatibility map complete, performance targets met
+
+# Subtasks:
+## 1. Implement Migration State Machine [pending]
+### Dependencies: None
+### Description: Design and develop a robust migration state machine with checkpoint management, rollback state tracking, and persistent state storage to ensure all template migrations can be paused, resumed, or reverted with zero downtime.
+### Details:
+Implement in `src/codex/migration/state/machine.py` and `src/codex/migration/state/transitions.py`. Ensure state transitions complete in under 1 second. Include comprehensive unit and integration tests, failover logic, and data consistency checks.
+
+## 2. Develop Parallel Migration Executor [pending]
+### Dependencies: 48.1
+### Description: Build a parallel migration executor to orchestrate concurrent template migrations, manage resource allocation, track progress, and isolate failures to prevent cascading errors.
+### Details:
+Implement in `src/codex/migration/executor/parallel.py` and `src/codex/migration/executor/scheduler.py`. Achieve execution throughput of at least 100 tasks/minute. Include robust test coverage, failover, and zero-downtime guarantees.
+
+## 3. Construct Data Migration Pipeline [pending]
+### Dependencies: 48.2
+### Description: Create a streaming data migration pipeline with transformation rules, validation checkpoints, and incremental migration support to handle large template data sets efficiently and safely.
+### Details:
+Implement in `src/codex/migration/data/pipeline.py` and `src/codex/migration/data/transformer.py`. Ensure a migration rate of at least 10GB/hour. Include data consistency checks, rollback hooks, and comprehensive tests.
+
+## 4. Integrate Schema Evolution Manager [pending]
+### Dependencies: 48.3
+### Description: Develop a schema evolution manager to handle forward and backward compatibility, schema versioning, migration script generation, and compatibility validation for all template schemas.
+### Details:
+Implement in `src/codex/migration/schema/evolver.py` and `src/codex/migration/schema/compatibility.py`. Guarantee zero-downtime schema changes. Include automated compatibility tests and failover procedures.
+
+## 5. Deploy Traffic Cutover Controller [pending]
+### Dependencies: 48.4
+### Description: Implement a traffic cutover controller to gradually migrate live traffic to new templates, validate health, trigger rollbacks if needed, and preserve user sessions during cutover.
+### Details:
+Implement in `src/codex/migration/traffic/controller.py` and `src/codex/migration/traffic/validator.py`. Ensure cutover completes in under 30 seconds. Include automated health checks, rollback triggers, and session preservation tests.
+
+## 6. Establish Migration Validation Framework [pending]
+### Dependencies: 48.5
+### Description: Build a comprehensive validation framework to verify data integrity, performance, functionality, and security of all migrated templates, ensuring 100% validation coverage.
+### Details:
+Implement in `src/codex/migration/validation/framework.py` and `src/codex/migration/validation/tests.py`. Automate validation for all migration scenarios, including edge cases and failover events.
+
+## 7. Orchestrate Rollback Mechanisms [pending]
+### Dependencies: 48.6
+### Description: Develop rollback orchestration to manage migration snapshots, restore previous states, revert data, and reverse traffic with minimal disruption in under 5 minutes.
+### Details:
+Implement in `src/codex/migration/rollback/orchestrator.py` and `src/codex/migration/rollback/snapshots.py`. Include automated rollback tests, data consistency checks, and failover validation.
+
+## 8. Launch Migration Monitoring Suite [pending]
+### Dependencies: 48.7
+### Description: Deploy a real-time monitoring suite to track migration progress, performance metrics, error rates, and SLA compliance, with alerting and response times under 30 seconds.
+### Details:
+Implement in `src/codex/migration/monitoring/dashboard.py` and `src/codex/migration/monitoring/alerts.py`. Provide dashboards, automated alerts, and incident response workflows. Include monitoring tests and failover alert simulations.
+

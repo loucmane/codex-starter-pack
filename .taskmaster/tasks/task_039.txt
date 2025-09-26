@@ -1,0 +1,61 @@
+# Task ID: 39
+# Title: Implement Auto-Fix Mode for Guard
+# Status: pending
+# Dependencies: 6, 37
+# Priority: medium
+# Description: Add automatic correction capabilities to guard tool
+# Details:
+Identify common fixable issues (formatting, frontmatter, references). Implement fix strategies for each issue type. Add --auto-fix flag to guard CLI. Create fix preview mode. Implement fix validation post-application. Add fix history tracking. Create fix configuration options. Implement selective auto-fix.
+
+# Test Strategy:
+Test each fix strategy, verify fixes don't break functionality, test preview mode, validate fix history
+
+# Subtasks:
+## 1. Migrate Scanner Architecture to Async and Parallel Processing [pending]
+### Dependencies: None
+### Description: Refactor scanner core and engine to support asynchronous and parallel file scanning, implement streaming for large files, and optimize for memory efficiency and high throughput (10k files/minute).
+### Details:
+Update src/codex/scanner/v2/core.py and src/codex/scanner/v2/engine.py. Ensure backward compatibility with single-threaded mode. Add error handling for async failures and implement migration rollback procedures. Benchmark performance and document results.
+
+## 2. Develop Scanner Plugin System with Sandboxing and Hot-Reload [pending]
+### Dependencies: 39.1
+### Description: Implement plugin discovery, loading, sandboxed execution, versioning, dependency management, and hot-reload support with minimal performance overhead (<5%).
+### Details:
+Work in src/codex/scanner/plugins/manager.py and src/codex/scanner/plugins/interface.py. Ensure plugins are isolated and backward compatible. Add error handling for plugin failures and rollback on plugin errors. Benchmark plugin system overhead.
+
+## 3. Implement Advanced Pattern Matching Engine [pending]
+### Dependencies: 39.1
+### Description: Add optimized regex, machine learning-based detection, fuzzy and context-aware matching with >98% accuracy.
+### Details:
+Update src/codex/scanner/patterns/advanced.py and src/codex/scanner/patterns/ml_matcher.py. Ensure backward compatibility with legacy patterns. Add error handling for pattern failures and rollback on detection errors. Benchmark match accuracy and speed.
+
+## 4. Optimize Scanner Performance with Caching and Indexing [pending]
+### Dependencies: 39.1
+### Description: Implement LRU file content caching, incremental scanning, binary file skipping, and scan result indexing to achieve >80% cache hit rate.
+### Details:
+Work in src/codex/scanner/optimization/cache.py and src/codex/scanner/optimization/index.py. Ensure backward compatibility with previous cache/index formats. Add error handling for cache/index corruption and rollback procedures. Benchmark cache hit rate and scan speed.
+
+## 5. Enhance Scanner Configuration Management [pending]
+### Dependencies: 39.1
+### Description: Implement YAML-based configs with inheritance, environment overrides, runtime updates, and fast (<100ms) validation.
+### Details:
+Update src/codex/scanner/config/manager.py and src/codex/scanner/config/validator.py. Ensure backward compatibility with existing configs. Add error handling for invalid configs and rollback on config errors. Benchmark config validation speed.
+
+## 6. Build Scanner Reporting Framework with Multi-Format Output [pending]
+### Dependencies: 39.1
+### Description: Create reporting system supporting JSON, XML, HTML, custom templates, real-time streaming, aggregation, and summary with <5s generation time.
+### Details:
+Work in src/codex/scanner/reporting/generator.py and src/codex/scanner/reporting/formatters/. Ensure backward compatibility with legacy reports. Add error handling for report generation failures and rollback on report errors. Benchmark report generation time.
+
+## 7. Implement Comprehensive Scanner Integration Testing [pending]
+### Dependencies: 39.1, 39.2, 39.3, 39.4, 39.5, 39.6
+### Description: Develop integration tests, performance benchmarks, regression automation, and cross-platform tests to achieve >95% coverage.
+### Details:
+Add tests in tests/scanner/integration/ and tests/scanner/fixtures/. Ensure backward compatibility with legacy test suites. Add error handling for test failures and rollback on test regressions. Benchmark test coverage and performance.
+
+## 8. Validate Scanner Migration and Enable Rollback [pending]
+### Dependencies: 39.7
+### Description: Compare results with legacy scanner, validate performance and accuracy, and implement migration rollback if validation fails (complete in <10 minutes).
+### Details:
+Work in src/codex/scanner/migration/validator.py and src/codex/scanner/migration/comparator.py. Ensure backward compatibility with legacy validation tools. Add error handling for validation failures and automate rollback procedures. Benchmark validation time.
+

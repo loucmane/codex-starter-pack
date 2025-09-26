@@ -1,0 +1,55 @@
+# Task ID: 86
+# Title: Author Domain Workflow Modules
+# Status: pending
+# Dependencies: 85
+# Priority: high
+# Description: Create modular workflows for key domains and wire them into enforcement.
+# Details:
+Ensures each domain has a workflow with guard and helper support.
+
+# Test Strategy:
+Domain workflows piloted and documented.
+
+# Subtasks:
+## 1. Inventory domain categories [pending]
+### Dependencies: None
+### Description: List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.
+### Details:
+List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.
+
+## 2. Design workflow templates [pending]
+### Dependencies: None
+### Description: Draft workflow files under templates/workflows/domains/ with frontmatter and steps.
+### Details:
+Draft workflow files under templates/workflows/domains/ with frontmatter and steps.
+
+## 3. Map conventions/guards [pending]
+### Dependencies: None
+### Description: Identify domain-specific conventions and guard requirements; document mapping.
+### Details:
+Identify domain-specific conventions and guard requirements; document mapping.
+
+## 4. Update registry/navigation [pending]
+### Dependencies: None
+### Description: Add domain workflows to registry and navigation indexes.
+### Details:
+Add domain workflows to registry and navigation indexes.
+
+## 5. Provide helper prompts [pending]
+### Dependencies: None
+### Description: Update codex-task helper/messages with domain workflow scaffolding.
+### Details:
+Update codex-task helper/messages with domain workflow scaffolding.
+
+## 6. Pilot domain workflows [pending]
+### Dependencies: None
+### Description: Execute at least two domain workflows end-to-end and log findings/evidence.
+### Details:
+Execute at least two domain workflows end-to-end and log findings/evidence.
+
+## 7. Add regression tests [pending]
+### Dependencies: None
+### Description: Create tests verifying domain workflow discovery and guard behavior.
+### Details:
+Create tests verifying domain workflow discovery and guard behavior.
+

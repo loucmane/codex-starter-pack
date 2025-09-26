@@ -1,0 +1,11 @@
+# Task ID: 72
+# Title: Implement Post-Mortem Process
+# Status: pending
+# Dependencies: 34, 56
+# Priority: medium
+# Description: Create systematic post-mortem for incidents
+# Details:
+Create post-mortem template. Implement incident timeline reconstruction. Add root cause analysis tools. Create action item tracking. Implement follow-up automation. Add post-mortem metrics. Create knowledge extraction. Implement prevention measures tracking.
+
+# Test Strategy:
+Test template completeness, verify timeline accuracy, test action tracking, validate prevention effectiveness

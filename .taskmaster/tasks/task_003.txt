@@ -1,0 +1,61 @@
+# Task ID: 3
+# Title: Port SSOT Scanner Suite to Codex
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Migrate the Python scanner suite from FPL MCP repository to Codex environment
+# Details:
+Copy scanner modules from ~/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/ to scripts/template-ssot-scanner/. Port main scanner.py, reference_validator.py, duplicate_detector.py, migration_tracker.py. Update import paths and configuration for Codex structure. Implement versioned metadata output format 2.0.0 with compatibility field. Add JSON schema validation using jsonschema library.
+
+# Test Strategy:
+Run unit tests for each scanner module, verify JSON output matches schema, test on sample template files, ensure backwards compatibility with existing outputs
+
+# Subtasks:
+## 1. Audit and Document Existing Scanner Modules [pending]
+### Dependencies: None
+### Description: Analyze scanner.py, reference_validator.py, duplicate_detector.py, and migration_tracker.py in /home/loucmane/codex/scripts/template-ssot-scanner/. Document all functions, classes, dependencies, and external library usage. Produce a markdown file (MODULE_AUDIT.md) summarizing findings.
+### Details:
+List all function signatures, class hierarchies, and module-level dependencies. Include code samples for complex logic. Note any hardcoded paths or configuration assumptions.
+
+## 2. Refactor Core Scanning Logic into Modular Components [pending]
+### Dependencies: 3.1
+### Description: Extract core scanning logic from scanner.py into modular components within /home/loucmane/codex/scripts/template-ssot-scanner/modules/. Define clear interfaces for scanning, validation, and reporting.
+### Details:
+Create modules: scan_core.py, validation_interface.py, report_generator.py. Refactor scanner.py to use these modules. Provide code samples for interface definitions and usage.
+
+## 3. Implement Versioned Metadata Output (v1 and v2) with Backward Compatibility [pending]
+### Dependencies: 3.2
+### Description: Design and implement metadata output schemas (v1, v2.0.0) with a compatibility field. Ensure scanner can output both formats based on configuration.
+### Details:
+Define metadata_v1.json and metadata_v2.json schema files. Update report_generator.py to support both. Add CLI flag --metadata-version. Provide code samples for schema selection logic.
+
+## 4. Integrate JSON Schema Validation Using jsonschema Library [pending]
+### Dependencies: 3.3
+### Description: Add JSON schema validation for all scanner outputs using the jsonschema library. Validate outputs against the correct schema version.
+### Details:
+Install jsonschema in requirements.txt. Create schemas/metadata_v1.schema.json and schemas/metadata_v2.schema.json. Add validate_output() function in report_generator.py. Provide test commands and expected validation errors.
+
+## 5. Develop Configurable Validation Modules with Rule Severity Levels [pending]
+### Dependencies: 3.2
+### Description: Refactor reference_validator.py and duplicate_detector.py to support configurable rules and severity levels (error, warning, info).
+### Details:
+Add config loading from /home/loucmane/codex/scripts/template-ssot-scanner/scanner_config.yaml. Implement severity handling in validation_interface.py. Provide code samples for rule configuration and severity mapping.
+
+## 6. Build Compatibility Layer for Legacy Template Formats [pending]
+### Dependencies: 3.2
+### Description: Implement auto-detection and handling of legacy template formats in scanner.py. Ensure backward compatibility with older templates.
+### Details:
+Add legacy_format_detector.py. Update scanner.py to use compatibility layer. Provide code samples for format detection and transformation logic.
+
+## 7. Implement Comprehensive Test Suite with Pytest and Coverage [pending]
+### Dependencies: 3.2, 3.3, 3.4, 3.5, 3.6
+### Description: Develop unit and integration tests for all modules using pytest. Target 90%+ code coverage. Include sample test commands and expected outputs.
+### Details:
+Create tests/ directory with test_scanner.py, test_validation.py, test_metadata.py, test_compatibility.py. Add coverage configuration. Provide pytest and coverage run commands.
+
+## 8. Optimize Scanner Performance: Profiling, Parallelism, and Caching [pending]
+### Dependencies: 3.2, 3.7
+### Description: Profile scanner performance, implement parallel processing for large template sets, and add caching strategies. Document benchmarks and optimization results.
+### Details:
+Use cProfile for profiling. Add multiprocessing in scan_core.py. Implement file-level caching. Provide before/after benchmarks and code samples for parallel execution.
+

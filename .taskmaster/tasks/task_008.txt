@@ -1,0 +1,61 @@
+# Task ID: 8
+# Title: Create Template Registry System
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Build centralized registry for template discovery and management
+# Details:
+Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular → compatibility map → legacy → Serena → error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.
+
+# Test Strategy:
+Benchmark discovery time (<50ms), test fallback chain order, verify cache invalidation, test search functionality, ensure thread-safety
+
+# Subtasks:
+## 1. Design and Implement TemplateRegistry Class [pending]
+### Dependencies: None
+### Description: Create the main TemplateRegistry class in `src/codex/registry/template_registry.py` with methods for registration, lookup, and management of templates. Ensure thread-safety and extensibility for future features.
+### Details:
+Define the class architecture, including initialization, registration, retrieval, and update methods. Use appropriate locking mechanisms (e.g., threading.RLock) to ensure thread-safety. Document public APIs and internal methods.
+
+## 2. Implement Template Discovery Mechanism [pending]
+### Dependencies: 8.1
+### Description: Develop a discovery scanner in `src/codex/registry/discovery.py` that uses glob patterns to scan multiple directories for template files, targeting <50ms scan time.
+### Details:
+Use Python's glob and os modules to recursively scan configured directories. Optimize for speed by minimizing disk I/O and using in-memory indexing. Support configuration via `config/registry.yaml`.
+
+## 3. Build Caching Layer with TTL Management [pending]
+### Dependencies: 8.1, 8.2
+### Description: Implement a caching strategy in `src/codex/registry/cache.py` using an in-memory LRU cache (functools.lru_cache) and optional Redis/memcached backend, with TTL management for cache invalidation.
+### Details:
+Design cache interfaces for template objects and metadata. Implement TTL logic to expire stale entries. Provide configuration for cache size and TTL in `config/registry.yaml`. Ensure cache operations are thread-safe.
+
+## 4. Develop Fallback Chain Logic [pending]
+### Dependencies: 8.1, 8.2, 8.3
+### Description: Create fallback chain logic in `src/codex/registry/fallback.py` to resolve templates in the order: modular → compatibility map → legacy → Serena → error.
+### Details:
+Implement a priority-based resolver that attempts each source in order, short-circuiting on first success. Log resolution steps for debugging. Provide unit tests for all fallback scenarios.
+
+## 5. Implement Metadata Parsing from Frontmatter [pending]
+### Dependencies: 8.2
+### Description: Build a metadata parser in `src/codex/registry/metadata.py` to extract and validate YAML/JSON frontmatter from template files.
+### Details:
+Support both YAML and JSON frontmatter formats. Validate required fields (id, type, category, tags). Raise descriptive errors for malformed metadata. Integrate parser with discovery and registry ingestion.
+
+## 6. Add Search Capabilities with Fuzzy Matching and Scoring [pending]
+### Dependencies: 8.1, 8.5
+### Description: Implement a search engine in `src/codex/registry/search.py` that supports searching templates by id, type, category, and tags, with fuzzy matching and relevance scoring.
+### Details:
+Use algorithms such as Levenshtein distance for fuzzy matching. Design a scoring formula that weights field matches and fuzziness. Support pagination and result ranking. Expose search API via TemplateRegistry.
+
+## 7. Integrate functools.lru_cache for Hot Path Optimization [pending]
+### Dependencies: 8.1, 8.3, 8.6
+### Description: Optimize frequently accessed template retrieval methods in `src/codex/registry/template_registry.py` using functools.lru_cache.
+### Details:
+Identify hot paths (e.g., get_template_by_id). Apply lru_cache with appropriate maxsize. Ensure cache coherence with external cache layer and TTL. Add tests for cache hit/miss behavior.
+
+## 8. Develop Performance Benchmarking Suite [pending]
+### Dependencies: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7
+### Description: Create a benchmarking suite in `tests/benchmarks/registry_performance.py` to measure discovery, lookup, search, and fallback chain performance, ensuring <50ms latency.
+### Details:
+Write tests to benchmark end-to-end registry operations under various loads. Simulate concurrent access and cache churn. Report metrics for each operation and flag regressions. Integrate with CI pipeline.
+

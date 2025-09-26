@@ -1,0 +1,61 @@
+# Task ID: 19
+# Title: Create Rollback Mechanism
+# Status: pending
+# Dependencies: 10, 84, 97
+# Priority: high
+# Description: Build comprehensive rollback system for migration safety
+# Details:
+Implement git-based checkpoint system with tags. Create rollback script with state restoration. Add Taskmaster milestone snapshots. Implement Serena memory backups. Create compatibility map versioning. Add rollback decision matrix. Implement emergency toggle for legacy mode. Create rollback validation tests.
+
+# Test Strategy:
+Test rollback from various states, verify data integrity after rollback, test emergency toggle activation, validate checkpoint restoration
+
+# Subtasks:
+## 1. Implement Rollback Manager Core [pending]
+### Dependencies: None
+### Description: Develop the main rollback manager logic to coordinate all rollback operations, manage rollback states, and orchestrate subcomponents.
+### Details:
+File: src/codex/rollback/manager.py. Define the RollbackManager class with methods to trigger, monitor, and log rollback events. Integrate with CLI and submodules. Ensure extensibility for future rollback strategies.
+
+## 2. Develop Snapshot Creation Module [pending]
+### Dependencies: 19.1
+### Description: Create a snapshot system to capture application state before critical operations, supporting both Taskmaster and Serena memory formats.
+### Details:
+File: src/codex/rollback/snapshot.py. Implement functions to generate and store snapshots in JSON and binary formats. Include timestamp, operation metadata, and checksums. Trigger snapshot creation before migrations and major changes.
+
+## 3. Implement Git-Based Rollback System [pending]
+### Dependencies: 19.1, 19.2
+### Description: Enable rollback to previous states using Git commits and tags as checkpoints, supporting both full and partial restoration.
+### Details:
+File: src/codex/rollback/git_rollback.py. Use Git commands to create, tag, and revert to checkpoints. Support atomic rollbacks and selective file restoration. Handle errors and ensure consistency with snapshot metadata.
+
+## 4. Build Database Rollback with Transaction Logs [pending]
+### Dependencies: 19.1, 19.2
+### Description: Implement database rollback using transaction logs to restore data to a consistent state after failed migrations.
+### Details:
+File: src/codex/rollback/db_rollback.py. Integrate with DB transaction logs, support point-in-time recovery, and ensure atomicity. Validate rollback with integrity checks and snapshot comparison.
+
+## 5. Create File System Restoration Module [pending]
+### Dependencies: 19.1, 19.2, 19.3
+### Description: Develop atomic file system restoration procedures to revert files and directories to previous states using snapshots and Git.
+### Details:
+File: src/codex/rollback/fs_restore.py. Implement atomic move/copy operations, handle large files, and ensure rollback is crash-safe. Support restoration from both Git and custom snapshots.
+
+## 6. Implement Rollback Verification and Integrity Checks [pending]
+### Dependencies: 19.1, 19.2, 19.3, 19.4, 19.5
+### Description: Build a verification engine to validate rollback success using checksums, hash comparisons, and state diffs.
+### Details:
+File: src/codex/rollback/verify.py. Compute and compare checksums (SHA256) for files, DB records, and snapshots. Log discrepancies and trigger alerts on mismatch. Integrate with rollback manager for automated validation.
+
+## 7. Enable Partial Rollback and Selective Restoration [pending]
+### Dependencies: 19.1, 19.2, 19.3, 19.4, 19.5, 19.6
+### Description: Add support for partial rollback, allowing selective restoration of files, DB tables, or system components based on a decision matrix.
+### Details:
+File: src/codex/rollback/history.py. Track rollback history and support granular selection of rollback targets. Implement a decision matrix for guided partial restoration. Log all partial rollback actions for audit.
+
+## 8. Integrate CLI and Enforce Performance Requirements [pending]
+### Dependencies: 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7
+### Description: Develop a CLI interface for rollback operations and enforce that full rollback completes in under 30 seconds.
+### Details:
+File: src/codex/rollback/cli.py. Provide commands for full/partial rollback, snapshot management, and verification. Implement timing checks and optimize for <30s rollback. Display progress and error reporting.
+

@@ -1,0 +1,61 @@
+# Task ID: 27
+# Title: Migrate Pattern Templates
+# Status: pending
+# Dependencies: 25
+# Priority: high
+# Description: Phase 2.2 - Migrate pattern templates including work-tracking and session
+# Details:
+Extract patterns from PATTERNS.md monolith. Create pattern-workflow-variant.md naming structure. Migrate work-tracking patterns with S:W:H:E format. Update session management patterns. Create pattern index file. Update discovery fallback chain. Validate pattern dependencies. Run regression tests.
+
+# Test Strategy:
+Test pattern loading and execution, verify work-tracking flows, validate session lifecycle, ensure no broken references
+
+# Subtasks:
+## 1. Extract Patterns from PATTERNS.md Monolith [pending]
+### Dependencies: None
+### Description: Parse the PATTERNS.md monolith and extract all individual pattern definitions, including metadata and S:W:H:E fields, for migration.
+### Details:
+Use a migration script at scripts/migrate/patterns/extract_patterns.py to identify pattern boundaries and extract content. Output each pattern as a separate markdown file in templates/patterns/library/ with the naming convention pattern-workflow-variant.md. Ensure all extracted data is complete and correctly formatted.
+
+## 2. Preserve and Validate S:W:H:E Format in Work-Tracking Patterns [pending]
+### Dependencies: 27.1
+### Description: Ensure all work-tracking patterns maintain the S:W:H:E (Situation:Work:Hint:Example) structure and validate for completeness and correctness.
+### Details:
+Implement validation logic in scripts/migrate/patterns/validate_swhe.py to check that each work-tracking pattern in templates/patterns/work_tracking/ contains all four S:W:H:E sections, with non-empty content and correct order. Log and flag any patterns failing validation for manual review.
+
+## 3. Migrate and Link Session Management Patterns [pending]
+### Dependencies: 27.1
+### Description: Migrate session management patterns to templates/patterns/session/ and ensure all internal and external references are updated.
+### Details:
+Move session-related patterns to templates/patterns/session/. Update all links and references in other pattern files and documentation to point to the new session pattern locations. Use scripts/migrate/patterns/update_references.py to automate reference updates.
+
+## 4. Categorize Patterns by Type [pending]
+### Dependencies: 27.1
+### Description: Classify each pattern as behavioral, structural, or creational and update metadata accordingly.
+### Details:
+Apply categorization criteria based on pattern intent and structure. Update the frontmatter of each pattern file in templates/patterns/library/ with a 'category' field. Document categorization rules in docs/patterns/categorization.md.
+
+## 5. Update Pattern Reference Graph [pending]
+### Dependencies: 27.3, 27.4
+### Description: Regenerate the pattern reference graph to reflect new file paths and updated links after migration.
+### Details:
+Scan all pattern files in templates/patterns/ for references to other patterns. Update data/patterns/index.json to include a reference graph mapping dependencies and links. Use scripts/migrate/patterns/generate_reference_graph.py for automation.
+
+## 6. Map and Validate Cross-Pattern Dependencies [pending]
+### Dependencies: 27.5
+### Description: Identify and validate all cross-pattern dependencies, ensuring no broken or circular references exist.
+### Details:
+Analyze the updated reference graph in data/patterns/index.json. Use scripts/migrate/patterns/validate_dependencies.py to detect missing, broken, or circular dependencies. Document any issues and resolve them by updating pattern files or references.
+
+## 7. Enforce Performance Requirements for Pattern Access [pending]
+### Dependencies: 27.2, 27.3, 27.4, 27.5, 27.6
+### Description: Ensure all migrated pattern files can be loaded and accessed in under 100ms.
+### Details:
+Implement performance tests in tests/patterns/performance_test.py to measure file access times for all patterns in templates/patterns/. Optimize file structure, indexing, or caching as needed to meet the <100ms requirement.
+
+## 8. Run Regression and Validation Tests on Migrated Patterns [pending]
+### Dependencies: 27.7
+### Description: Execute comprehensive regression tests to verify pattern loading, execution, reference integrity, and compliance with S:W:H:E and categorization rules.
+### Details:
+Run all tests in tests/patterns/ including pattern loading, work-tracking flows, session lifecycle, and reference validation. Ensure all tests pass and document results in docs/patterns/migration_validation.md.
+

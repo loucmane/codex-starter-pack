@@ -53,6 +53,12 @@
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 14:02 CEST` — [S:20250926|W:plan-compliance-followup|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md|E:files`.../plans/taskmaster-audit-high-priority.md`] Backlog expanded with plan compliance, timestamp gate, and enforcement framework task proposals (pending insertion).
 - **2025-09-26 15:35**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 15:35 CEST` — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:files`.taskmaster/tasks/tasks.json`] Added tasks 81–84 to Taskmaster and set tasks 15–20 to depend on timestamp guard (84).
+- **2025-09-26 15:52**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 15:52 CEST` — [S:20250926|W:plan-compliance-followup|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md|E:files`.../plans/taskmaster-audit-high-priority.md`] Drafted task/subtask outlines for session workflows, domain packs, legacy anchors, alignment workflow, work-tracking orchestration, engine migration, metadata standardization, guard coverage, compaction behavior, and enhancement backlog.
+- **2025-09-26 16:28**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 16:28 CEST` — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:files`.taskmaster/tasks/tasks.json`] Inserted tasks 85–97 (session workflows → metrics dashboard) with sequential dependencies built atop the guard chain.
+- **2025-09-26 16:31**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 16:31 CEST` — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:cmd`task-master add-dependency --id=16..20 --depends-on=97`] Added dependency on Task 97 for Tasks 16–20 so downstream instrumentation waits for enforcement/enhancement chain.
 - **2025-09-24 19:30**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:30 CEST` — [S:20250924|W:taskmaster-audit|H:scripts/codex-guard|E:note`guard run deferred`] Guard run deferred (plan pending); will validate once plan created.
 - **2025-09-24 19:20**

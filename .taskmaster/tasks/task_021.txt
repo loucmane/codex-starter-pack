@@ -1,0 +1,61 @@
+# Task ID: 21
+# Title: Implement Template Frontmatter Schema
+# Status: pending
+# Dependencies: 6
+# Priority: high
+# Description: Create and enforce standardized frontmatter for all templates
+# Details:
+Define YAML schema with required fields: id, type (trigger|operator|orchestrator|guide), category, dependencies[], triggers[], exports[], version (semver), status (stable|beta|deprecated), tags[]. Create JSON Schema validator. Implement frontmatter parser using python-frontmatter. Add migration tool for existing templates. Create frontmatter generator CLI command.
+
+# Test Strategy:
+Validate schema against sample templates, test parser with various formats, verify migration tool preserves content, test validation errors
+
+# Subtasks:
+## 1. Create Optimized Application Dockerfile [pending]
+### Dependencies: None
+### Description: Develop a multi-stage Dockerfile at `docker/Dockerfile.app` for the application, ensuring minimal image size, efficient build cache usage, and stateless, non-root execution.
+### Details:
+Use trusted base images, separate build and runtime stages, leverage Docker cache for dependencies, and include HEALTHCHECK. Ensure the container starts in under 10 seconds.
+
+## 2. Implement Docker Compose for Local Development [pending]
+### Dependencies: 21.1
+### Description: Set up `docker-compose.yml` to orchestrate application, database, and supporting services for local development.
+### Details:
+Define service dependencies, environment variables, and volumes. Ensure compatibility with the multi-stage build and support for hot-reloading if applicable.
+
+## 3. Develop Kubernetes Manifests for Production [pending]
+### Dependencies: 21.1
+### Description: Create Kubernetes deployment, service, and config manifests in `k8s/` for production-grade orchestration.
+### Details:
+Include liveness/readiness probes, resource limits, and secure context. Reference the built image from the registry and ensure manifests are Helm-compatible.
+
+## 4. Package Helm Charts for Deployment [pending]
+### Dependencies: 21.3
+### Description: Build Helm charts in `charts/codex/` to enable templated, parameterized deployments of the application stack.
+### Details:
+Parameterize image tags, resource limits, and environment variables. Support overrides for staging and production environments.
+
+## 5. Integrate Service Mesh with Istio or Linkerd [pending]
+### Dependencies: 21.3
+### Description: Configure service mesh integration in Kubernetes manifests for traffic management, observability, and security.
+### Details:
+Annotate deployments for automatic sidecar injection, define mesh policies, and ensure compatibility with Helm charts.
+
+## 6. Configure Container Registry with Versioning [pending]
+### Dependencies: 21.1
+### Description: Set up container registry configuration at `docker/registry.yaml` to support image versioning and automated tagging.
+### Details:
+Implement semantic versioning for images, automate pushes from CI/CD, and enforce retention policies for old images.
+
+## 7. Integrate Security Scanning in CI/CD [pending]
+### Dependencies: 21.1, 21.6
+### Description: Add security scanning with Trivy or Clair in `.github/workflows/docker.yml` to detect vulnerabilities in images before deployment.
+### Details:
+Fail builds on critical vulnerabilities, generate reports, and enforce non-root execution and minimal privileges.
+
+## 8. Enforce Performance and Security Policies [pending]
+### Dependencies: 21.3, 21.7
+### Description: Define and apply security policies in `k8s/policies/` and monitoring in `k8s/monitoring/` to ensure containers start in under 10 seconds and meet compliance requirements.
+### Details:
+Implement PodSecurityPolicies, resource quotas, and startup probes. Set up monitoring for startup latency and security events.
+

@@ -1,0 +1,43 @@
+# Task ID: 93
+# Title: Remediate Compaction Detection Behavior
+# Status: pending
+# Dependencies: 92
+# Priority: medium
+# Description: Rewrite or retire compaction behavior to align with new enforcement pipeline.
+# Details:
+Prevents stale compaction hooks from causing confusion.
+
+# Test Strategy:
+Updated compaction behavior documented and tested.
+
+# Subtasks:
+## 1. Evaluate compaction behavior [pending]
+### Dependencies: None
+### Description: Review current compaction detection behavior usage/failures.
+### Details:
+Review current compaction detection behavior usage/failures.
+
+## 2. Decide rewrite vs deprecation [pending]
+### Dependencies: None
+### Description: Determine whether to rewrite or retire compaction behavior.
+### Details:
+Determine whether to rewrite or retire compaction behavior.
+
+## 3. Implement behavior update [pending]
+### Dependencies: None
+### Description: Rewrite or remove compaction behavior and update references.
+### Details:
+Rewrite or remove compaction behavior and update references.
+
+## 4. Document protocol [pending]
+### Dependencies: None
+### Description: Update work-tracking/HANDOFF with new compaction protocol.
+### Details:
+Update work-tracking/HANDOFF with new compaction protocol.
+
+## 5. Add regression tests [pending]
+### Dependencies: None
+### Description: Ensure compaction checkpoints behave correctly in new behavior.
+### Details:
+Ensure compaction checkpoints behave correctly in new behavior.
+

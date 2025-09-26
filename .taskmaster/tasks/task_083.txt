@@ -1,0 +1,43 @@
+# Task ID: 83
+# Title: Build Meta Workflow Regression Test Suite
+# Status: pending
+# Dependencies: 82
+# Priority: high
+# Description: Add automated coverage to ensure meta workflow orchestrator/pattern registration and guard behavior remain intact.
+# Details:
+Creates unit and integration tests plus documentation for ongoing enforcement.
+
+# Test Strategy:
+CI passes with new meta workflow tests covering registration and guard behavior.
+
+# Subtasks:
+## 1. Add registration unit tests [pending]
+### Dependencies: None
+### Description: Write tests confirming orchestrator and pattern appear in registries and guard metadata.
+### Details:
+Add tests under tests/templates/test_meta_workflow_registration.py.
+
+## 2. Create guard integration test [pending]
+### Dependencies: None
+### Description: Simulate workflow authoring cycle and assert guard responses with and without assets.
+### Details:
+Integration test toggles assets and checks guard behavior.
+
+## 3. Store regression reports [pending]
+### Dependencies: None
+### Description: Archive test and guard outputs under reports/meta-workflow/ and document findings.
+### Details:
+Create reports/meta-workflow/README.md summarizing results.
+
+## 4. Update documentation [pending]
+### Dependencies: None
+### Description: Log regression coverage in changelog, findings, testing docs, and handoff.
+### Details:
+Document new tests and evidence trail.
+
+## 5. Plan CI integration [pending]
+### Dependencies: None
+### Description: Outline CI pipeline updates (Taskmaster/Serena) to run new tests.
+### Details:
+Add TODO notes for pipeline work once tests exist.
+

@@ -1,0 +1,49 @@
+# Task ID: 84
+# Title: Implement Timestamp Guard
+# Status: pending
+# Dependencies: 81, 82, 83
+# Priority: high
+# Description: Enforce real timestamp commands before logging session/work-tracking entries and add regression coverage.
+# Details:
+Extends timestamp behavior, guard checks, templates, helper messaging, and testing.
+
+# Test Strategy:
+Guard fails when timestamps lack command output; documentation updated with guidance.
+
+# Subtasks:
+## 1. Update timestamp behavior [pending]
+### Dependencies: None
+### Description: Revise templates/behaviors/timestamps/before-adding.md to mandate running `date "+%Y-%m-%d %H:%M %Z"` before logging timestamps.
+### Details:
+Document requirement and examples in behavior file.
+
+## 2. Extend guard with timestamp checks [pending]
+### Dependencies: None
+### Description: Add guard logic verifying recent date command output accompanies each timestamp entry.
+### Details:
+Guard examines session/work-tracking edits for timestamp evidence.
+
+## 3. Update session/work-tracking templates [pending]
+### Dependencies: None
+### Description: Add checklist entries ensuring timestamp evidence recorded for each log entry.
+### Details:
+Update templates and tracker documentation.
+
+## 4. Add helper guidance [pending]
+### Dependencies: None
+### Description: Provide codex-task messaging or helper instructions for capturing timestamps.
+### Details:
+Helper output references timestamp command usage.
+
+## 5. Create regression tests [pending]
+### Dependencies: None
+### Description: Add tests ensuring guard blocks manual timestamps and passes when evidence provided.
+### Details:
+Add tests under tests/integration/test_timestamp_guard.py.
+
+## 6. Document guard usage and remediation [pending]
+### Dependencies: None
+### Description: Update work-tracking, findings, and handoff with timestamp guard instructions and remediation steps.
+### Details:
+Add guidance for handling guard failures.
+

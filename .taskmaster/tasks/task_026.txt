@@ -1,0 +1,61 @@
+# Task ID: 26
+# Title: Migrate Critical Handler Templates
+# Status: pending
+# Dependencies: 24, 20
+# Priority: high
+# Description: Phase 2.1 - Migrate core handler templates to modular structure
+# Details:
+Identify critical handlers: start-new-work, fix-problem, test-implementation. Extract from monolithic files. Create modular files with proper frontmatter. Update all references using fix scripts. Validate with guard tool. Update compatibility mapping. Run performance tests on migrated handlers. Document migration decisions.
+
+# Test Strategy:
+Verify handlers load correctly, test execution paths, validate all references updated, performance benchmarks met
+
+# Subtasks:
+## 1. Identify and Catalog Critical Handler Templates [pending]
+### Dependencies: None
+### Description: Enumerate all critical handler templates (start-new-work, fix-problem, test-implementation) in monolithic files and map their current file paths.
+### Details:
+Scan `templates/handlers/` for monolithic files containing the critical handlers. Record exact file paths (e.g., `templates/handlers/monolith_handlers.md`). Use extraction patterns to locate handler blocks by unique frontmatter or section headers.
+
+## 2. Extract Handler Templates from Monolithic Files [pending]
+### Dependencies: 26.1
+### Description: Extract the identified handler templates into standalone files using defined extraction patterns.
+### Details:
+For each handler, extract content from monolithic files (e.g., `templates/handlers/monolith_handlers.md`) and create new files at `templates/handlers/{handler_name}_handler.md`. Use regex or AST-based scripts in `scripts/migrate/handlers/` to automate extraction. Preserve all logic and comments.
+
+## 3. Generate Complete Frontmatter Metadata for Modular Templates [pending]
+### Dependencies: 26.2
+### Description: Add or update YAML frontmatter in each new modular handler file to include required metadata fields.
+### Details:
+Define a metadata schema (e.g., `id`, `type`, `version`, `description`, `dependencies`, `created_at`, `updated_at`). Ensure each file in `templates/handlers/` has valid frontmatter. Validate with schema in `tests/handlers/`.
+
+## 4. Update All References to Handler Templates Using Fix Scripts [pending]
+### Dependencies: 26.3
+### Description: Update references to the migrated handler templates across all consuming files and scripts.
+### Details:
+Run fix scripts in `scripts/migrate/handlers/` to update references in code, configs, and documentation. Target files in `templates/handlers/`, `templates/handlers/error/`, `templates/handlers/event/`, `templates/handlers/request/`, and any other consumers. Ensure no broken links remain.
+
+## 5. Validate Modular Handler Templates with Guard Tool [pending]
+### Dependencies: 26.4
+### Description: Run validation tests to ensure migrated handler templates function correctly and meet schema requirements.
+### Details:
+Use the guard tool and test suite in `tests/handlers/` to verify handler loading, execution paths, and schema compliance. Apply validation rules for required fields, syntax, and logic. Log and resolve any errors.
+
+## 6. Update Compatibility Mapping for Migrated Handlers [pending]
+### Dependencies: 26.5
+### Description: Update `data/compatibility/handlers.json` to reflect new modular handler file paths and metadata.
+### Details:
+Edit the compatibility map to include new handler locations, versions, and backward compatibility notes. Ensure all consuming systems reference the updated map. Document any breaking changes and provide rollback procedures.
+
+## 7. Document Migration Decisions and New Template Structure [pending]
+### Dependencies: 26.6
+### Description: Update `docs/handlers/` to reflect the new modular structure, migration rationale, and usage instructions.
+### Details:
+Document the migration process, extraction patterns, metadata schema, validation rules, and rollback steps. Provide before/after examples and update onboarding guides for developers.
+
+## 8. Benchmark Performance of Migrated Handler Templates [pending]
+### Dependencies: 26.5
+### Description: Run performance tests to ensure each handler migration completes in under 5 minutes and meets runtime benchmarks.
+### Details:
+Use scripts in `tests/handlers/` to measure migration and execution times for each handler. Record results, compare to baseline, and optimize scripts or templates as needed to meet the <5 minute migration requirement.
+

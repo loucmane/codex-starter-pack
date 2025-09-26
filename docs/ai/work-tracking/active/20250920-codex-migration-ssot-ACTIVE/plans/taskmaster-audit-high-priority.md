@@ -85,6 +85,129 @@
     5. Coordinate enhancement backlog (wizard, metrics dashboard, drift detection) for prioritisation.
   - Notes: coordinating task to be inserted once plan compliance/meta workflow enforcement tasks land.
 
+### Backlog: Session Continuation & State Management Workflows (Action 1)
+- **Task Proposal**: "Author session continuation/state workflows"
+  - Subtasks:
+    1. Inventory existing session lifecycle references (compaction, continuation, state) and capture gaps.
+    2. Author `templates/workflows/session/continuation.md` and `state-management.md` with full frontmatter.
+    3. Update handlers/patterns/registry entries to route requests into the new workflows.
+    4. Integrate guard checkpoints (session restoration, compaction recovery) with plan compliance workflow.
+    5. Add S:W:H:E examples and documentation updates (TRACKER, HANDOFF, findings).
+    6. Create regression tests ensuring guard/workflow hand-off behaves correctly across sessions.
+  - Target placement: immediately before domain workflow modules.
+
+### Backlog: Domain Workflow Packs (Action 3)
+- **Task Proposal**: "Author domain workflow modules"
+  - Subtasks:
+    1. Inventory required domain categories (frontend, backend, API, testing, ops, documentation).
+    2. Draft workflow files under `templates/workflows/domains/` with frontmatter + prerequisites.
+    3. Map required conventions/guards for each domain and update enforcement hooks.
+    4. Update registry/navigation to expose the new workflows.
+    5. Provide sample S:W:H:E logs + codex-task helper prompts per domain.
+    6. Run pilot executions (at least two domains) and capture findings/evidence.
+  - Target placement: after session continuation/state workflows.
+
+### Backlog: Legacy Anchor Remediation (Action 4)
+- **Task Proposal**: "Replace monolithic references with modular paths"
+  - Subtasks:
+    1. Enumerate all references to WORKFLOWS.md, PATTERNS.md, CONVENTIONS.md, etc. (scanner + manual audit).
+    2. Map each reference to its modular replacement; identify gaps requiring new modules.
+    3. Implement replacements across templates/handlers/docs; capture diff evidence.
+    4. Update guard to flag references to deprecated monolithic anchors.
+    5. Document migration in findings/changelog with proof of replacement.
+    6. Add regression test ensuring future references trigger guard.
+  - Target placement: immediately after domain workflow packs.
+
+### Backlog: Taskmaster Alignment Workflow (Action 5)
+- **Task Proposal**: "Create Taskmaster alignment workflow"
+  - Subtasks:
+    1. Define prerequisites/checklist required before editing tasks.json (plan compliance, registry review, evidence capture).
+    2. Author workflow/handler/pattern to enforce alignment steps within Taskmaster.
+    3. Wire guard/CLI reminders so task edits require active plan + alignment checklist.
+    4. Update documentation (tracker, handoff, codex-task helper) with alignment protocol.
+    5. Create regression tests verifying CLI/guard block edits without alignment workflow.
+  - Target placement: alongside legacy anchor remediation.
+
+### Backlog: Work-Tracking Workflow Expansion (Action 6)
+- **Task Proposal**: "Expand work-tracking orchestration"
+  - Subtasks:
+    1. Document the seven-file active folder plus related behavioural hooks (TodoWrite equivalents, Serena memories, compaction protocol).
+    2. Author workflow/pattern enforcing work-tracking updates before/after implementation.
+    3. Integrate guard signals ensuring tracker, implementation, findings, decisions are updated per templates.
+    4. Provide helper automation (codex-task commands) for updating work-tracking docs.
+    5. Capture regression evidence demonstrating workflow adherence across two sample sessions.
+  - Target placement: before engine migration tasks.
+
+### Backlog: Engine Migration Completion (Action 7)
+- **Task Proposal**: "Complete engine Phase 2/3 migration"
+  - Subtasks:
+    1. Audit `templates/engine/` README for outstanding Phase 2/3 modules; create inventory.
+    2. Author missing modules/workflows referenced in engine roadmap.
+    3. Update registry/navigation to include new engine modules.
+    4. Document tests/usage examples for each new engine module.
+    5. Capture guard/automation hooks ensuring engine modules are discoverable.
+  - Target placement: after work-tracking orchestration.
+
+### Backlog: Metadata Standardization (Action 8)
+- **Task Proposal**: "Standardize template metadata"
+  - Subtasks:
+    1. Inventory templates lacking status/type/version metadata.
+    2. Define canonical metadata schema and publish guidance.
+    3. Batch-update templates with missing metadata (include automated checks/scripts).
+    4. Extend guard to require metadata presence on new/modified templates.
+    5. Document the metadata rollout and regression evidence.
+  - Target placement: after engine migration completion.
+
+### Backlog: Workflow Guard Coverage Expansion (Action 9)
+- **Task Proposal**: "Expand guard coverage"
+  - Subtasks:
+    1. Audit existing guard coverage to identify missing behavioural checks (commit format, scope, testing, etc.).
+    2. Prioritize guard additions; schedule follow-on tasks where needed.
+    3. Implement the highest-priority guards and integrate with codex-task helper messaging.
+    4. Document guard updates and add regression tests.
+    5. Capture evidence and update enforcement framework documentation.
+  - Target placement: after metadata standardization.
+
+### Backlog: Compaction Behavior Remediation (Action 10)
+- **Task Proposal**: "Rewrite or retire compaction detection behavior"
+  - Subtasks:
+    1. Evaluate current compaction behavior usage and failure points.
+    2. Decide on rewrite vs deprecation; draft new behaviour if required.
+    3. Update workflow/handler references to new behavior (or remove obsolete references).
+    4. Document new compaction protocol in work-tracking/HANDOFF.
+    5. Add regression tests ensuring compaction checkpoints behave correctly.
+  - Target placement: after guard coverage expansion.
+
+### Backlog: Template Drift Detection Enhancement
+- **Task Proposal**: "Implement template drift detection"
+  - Subtasks:
+    1. Finalize design from template-drift-detection-draft (scope, heuristics, output format).
+    2. Implement drift detection script and integrate with codex-guard scanning.
+    3. Store drift reports under reports/template-drift/ and document remediation workflow.
+    4. Add regression tests verifying drift detection accuracy.
+    5. Plan automation/CI integration for drift reports.
+  - Target placement: enforcement enhancements phase.
+
+### Backlog: Interactive Template Wizard Enhancement
+- **Task Proposal**: "Build template wizard CLI"
+  - Subtasks:
+    1. Design wizard flow based on template-wizard-draft (inputs, prompts, outputs).
+    2. Implement wizard CLI leveraging existing workflows/handlers.
+    3. Integrate guard/checks to ensure wizard respects plan compliance and evidence requirements.
+    4. Document usage, logging, and troubleshooting.
+    5. Add regression tests covering common wizard paths.
+  - Target placement: enforcement enhancements phase.
+
+### Backlog: Template Metrics Dashboard Enhancement
+- **Task Proposal**: "Create template metrics dashboard"
+  - Subtasks:
+    1. Define metrics schema (usage frequency, compliance rate, guard violations) from metrics-dashboard-draft.
+    2. Build data collector parsing guard logs, plan sync logs, and task history.
+    3. Implement dashboard/report (web or Markdown) summarizing metrics.
+    4. Document maintenance process and alerting thresholds.
+    5. Plan CI/cron integration for metrics refresh.
+  - Target placement: enforcement enhancements phase.
+
 ## Next Steps
 - Insert “Author Development Workflow Modules” task around Task 14–15 in `tasks.json`.
 - Refine Task 14 subtasks to cover extended work-tracking engine.

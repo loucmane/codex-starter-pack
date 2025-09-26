@@ -1,0 +1,43 @@
+# Task ID: 95
+# Title: Implement Template Drift Detection
+# Status: pending
+# Dependencies: 94
+# Priority: medium
+# Description: Add drift detection tooling and integrate with guard/automation.
+# Details:
+Helps monitor template divergence over time.
+
+# Test Strategy:
+Drift detection script executed with guard integration and evidence stored.
+
+# Subtasks:
+## 1. Finalize drift detection design [pending]
+### Dependencies: None
+### Description: Review design draft and confirm scope, heuristics, output format.
+### Details:
+Review design draft and confirm scope, heuristics, output format.
+
+## 2. Implement drift detection script [pending]
+### Dependencies: None
+### Description: Build script integrating with codex-guard scanning.
+### Details:
+Build script integrating with codex-guard scanning.
+
+## 3. Store drift reports [pending]
+### Dependencies: None
+### Description: Capture outputs under reports/template-drift/ with README.
+### Details:
+Capture outputs under reports/template-drift/ with README.
+
+## 4. Add regression tests [pending]
+### Dependencies: None
+### Description: Verify drift detection accuracy via automated tests.
+### Details:
+Verify drift detection accuracy via automated tests.
+
+## 5. Plan automation [pending]
+### Dependencies: None
+### Description: Document CI/cron integration for drift reports.
+### Details:
+Document CI/cron integration for drift reports.
+

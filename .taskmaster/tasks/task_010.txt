@@ -1,0 +1,61 @@
+# Task ID: 10
+# Title: Implement Reference Fix Scripts
+# Status: pending
+# Dependencies: 7
+# Priority: high
+# Description: Create automated scripts for fixing template references
+# Details:
+Port apply_reference_fixes.py from FPL repo. Implement safe mode with backup creation. Add dry-run capability with detailed preview. Create apply_all_fixes.sh wrapper for batch operations. Implement rollback mechanism using git. Add progress tracking and logging. Handle special cases: symlinks, circular references, external references.
+
+# Test Strategy:
+Test on sample files with known issues, verify dry-run doesn't modify files, test rollback restores original state, validate fix accuracy
+
+# Subtasks:
+## 1. Design and Implement Backend API Endpoints [pending]
+### Dependencies: None
+### Description: Develop RESTful API endpoints using FastAPI in `src/codex/dashboard/api/` to serve migration progress, metrics, and user actions.
+### Details:
+Endpoints must include: `/progress` (GET, returns migration status and metrics), `/metrics` (GET, returns aggregated statistics), `/actions/rollback` (POST, triggers rollback), `/auth/login` (POST, JWT authentication). Ensure OpenAPI schema is generated.
+
+## 2. Create Database Models and Persistence Layer [pending]
+### Dependencies: 10.1
+### Description: Define SQLAlchemy models in `src/codex/dashboard/models.py` for tracking migration jobs, progress events, user sessions, and rollback states. Integrate with PostgreSQL.
+### Details:
+Schema includes tables: `migrations` (id, status, started_at, completed_at), `progress_events` (id, migration_id, timestamp, message, percent_complete), `users` (id, username, password_hash), `rollbacks` (id, migration_id, triggered_by, timestamp). Implement migration scripts.
+
+## 3. Implement JWT Authentication System [pending]
+### Dependencies: 10.2
+### Description: Develop authentication logic in `src/codex/dashboard/auth.py` to issue and validate JWT tokens for API and WebSocket access.
+### Details:
+Add `/auth/login` endpoint for credential verification and JWT issuance. Protect all API endpoints and WebSocket connections with JWT middleware. Store hashed passwords in the database.
+
+## 4. Develop WebSocket Server for Real-Time Updates [pending]
+### Dependencies: 10.3
+### Description: Implement a WebSocket server in `src/codex/dashboard/websocket.py` to stream live migration progress and events to authenticated clients.
+### Details:
+WebSocket endpoint `/ws/progress` streams JSON updates on migration status and progress events. Integrate with backend event system and enforce JWT authentication on connection.
+
+## 5. Build React Frontend with Real-Time Dashboard [pending]
+### Dependencies: 10.4
+### Description: Create a React app in `src/codex/dashboard/frontend/` with components for migration overview, progress bars, and event logs. Integrate with REST API and WebSocket.
+### Details:
+Component hierarchy: `DashboardApp` > `MigrationOverview`, `ProgressChart`, `EventLog`, `LoginForm`. Use WebSocket for live updates and REST API for initial data load. Implement JWT-based auth flow.
+
+## 6. Integrate Data Visualization Components [pending]
+### Dependencies: 10.5
+### Description: Develop reusable chart components in `src/codex/dashboard/frontend/components/charts/` using Chart.js for metrics visualization.
+### Details:
+Charts include: migration completion timeline (line chart), per-job progress (progress bar), error rates (doughnut chart). All charts update in real-time via WebSocket events.
+
+## 7. Optimize Performance and Ensure Fast Load Times [pending]
+### Dependencies: 10.6
+### Description: Profile and optimize backend and frontend to ensure dashboard loads in under 2 seconds under typical load.
+### Details:
+Implement API response caching, lazy-load heavy components, compress static assets, and use efficient SQL queries. Add automated performance tests to CI.
+
+## 8. Configure Docker and Deployment Scripts [pending]
+### Dependencies: 10.7
+### Description: Create Dockerfiles in `docker/dashboard/` and deployment scripts in `deploy/dashboard/` for production deployment of the dashboard stack.
+### Details:
+Dockerize backend, frontend, and database. Compose with Docker Compose. Deployment scripts handle environment setup, database migrations, and service orchestration. Document deployment steps.
+

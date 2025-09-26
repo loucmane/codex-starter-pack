@@ -1,0 +1,61 @@
+# Task ID: 31
+# Title: Implement Compaction Protocol
+# Status: pending
+# Dependencies: 14, 15
+# Priority: high
+# Description: Create system for preserving migration state during context resets
+# Details:
+Create CompactionManager class. Implement checkpoint creation before compaction. Store state in: sessions/current, Serena memories, Taskmaster tasks. Create restoration protocol for post-compaction. Add compaction detection triggers. Implement incremental checkpoint updates. Create compaction history tracking.
+
+# Test Strategy:
+Test checkpoint creation and restoration, verify no data loss during compaction, test incremental updates, validate history tracking
+
+# Subtasks:
+## 1. Design and Implement Feature Flag Core Engine [pending]
+### Dependencies: None
+### Description: Develop the core engine supporting boolean, percentage, and multi-variant flag types with user targeting, segmentation, inheritance, overrides, and a rule-based evaluation engine. Ensure flag evaluation latency is under 1ms.
+### Details:
+Implement in `src/codex/flags/engine.py` and `src/codex/flags/models/flag.py`. Include comprehensive error handling for invalid flag definitions and evaluation errors. Integrate monitoring for evaluation latency and error rates. Provide unit and property-based tests for all flag types and rule logic. Optimize for minimal memory and CPU usage.
+
+## 2. Develop Flag Storage Backend [pending]
+### Dependencies: 31.1
+### Description: Create a storage backend using DynamoDB for persistence, Redis for hot caching, and a local memory cache with TTL. Implement eventual consistency and a write-through cache strategy.
+### Details:
+Implement in `src/codex/flags/storage/backend.py` and `src/codex/flags/storage/cache.py`. Handle storage errors, cache invalidation, and consistency edge cases. Integrate storage operation metrics and alerting. Write integration and stress tests for cache and backend interactions. Profile cache hit/miss rates and optimize TTL settings.
+
+## 3. Build Flag Management API [pending]
+### Dependencies: 31.2
+### Description: Expose RESTful and GraphQL APIs for flag CRUD operations with role-based access control, audit logging, and rate limiting (1000 req/s per client).
+### Details:
+Implement in `src/codex/flags/api/endpoints.py` and `src/codex/flags/api/auth.py`. Handle authentication, authorization, and input validation errors. Log all changes for auditing. Integrate API monitoring and rate limit enforcement. Write API contract and security tests. Benchmark API throughput and latency.
+
+## 4. Implement Flag SDKs and Evaluation Client [pending]
+### Dependencies: 31.3
+### Description: Develop SDKs for Python, JavaScript, and Go with offline local evaluation, polling/streaming updates, and a circuit breaker for API failures. Ensure SDK size is under 50KB minified.
+### Details:
+Implement in `src/codex/flags/sdk/client.py` and `src/codex/flags/sdk/evaluator.py`. Handle network errors, fallback to offline mode, and ensure consistent evaluation. Integrate SDK usage and error telemetry. Provide unit and integration tests for all SDKs. Profile and optimize SDK bundle size and performance.
+
+## 5. Create Flag Dashboard UI [pending]
+### Dependencies: 31.4
+### Description: Develop a React-based dashboard for flag management with real-time status updates, A/B test visualization, kill switch, and mobile-responsive design.
+### Details:
+Implement in `src/codex/flags/ui/dashboard.py` and `src/codex/flags/ui/components/`. Handle UI errors and display clear error messages. Integrate real-time monitoring for dashboard actions. Write end-to-end and accessibility tests. Optimize for fast load and interaction times.
+
+## 6. Implement Flag Rollout Strategy Module [pending]
+### Dependencies: 31.5
+### Description: Support progressive rollout scheduling, canary and ring-based deployments, automatic rollback on errors, and rollout velocity control.
+### Details:
+Implement in `src/codex/flags/rollout/strategy.py` and `src/codex/flags/rollout/scheduler.py`. Handle rollout scheduling errors and rollback triggers. Integrate rollout progress and error monitoring. Write scenario and rollback tests. Profile rollout scheduling for scalability.
+
+## 7. Integrate Flag Analytics and Reporting [pending]
+### Dependencies: 31.6
+### Description: Stream flag events to analytics platforms, track feature adoption, measure performance impact, and support A/B test statistical analysis.
+### Details:
+Implement in `src/codex/flags/analytics/collector.py` and `src/codex/flags/analytics/reporter.py`. Handle analytics delivery failures and data integrity. Integrate monitoring for analytics pipeline health. Write analytics integration and statistical correctness tests. Optimize event throughput and minimize latency.
+
+## 8. Develop Flag Testing Framework [pending]
+### Dependencies: 31.7
+### Description: Provide a testing framework with mock flag providers, state fixtures, integration helpers, performance benchmarks, and 100% test coverage for critical paths.
+### Details:
+Implement in `src/codex/flags/testing/mock.py` and `src/codex/flags/testing/scenarios.py`. Handle test isolation and fixture errors. Integrate test coverage and performance monitoring. Write comprehensive unit, integration, and performance tests. Ensure framework is easy to extend and maintain.
+

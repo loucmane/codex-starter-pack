@@ -1,0 +1,61 @@
+# Task ID: 7
+# Title: Generate Baseline Scanner Outputs
+# Status: pending
+# Dependencies: 3, 4
+# Priority: high
+# Description: Run scanner suite on current codebase to establish migration baseline
+# Details:
+Execute full scanner suite on existing templates. Generate output/data/migration_status.json with current state. Create duplicate_analysis.json for duplicate detection results. Generate fix_recommendations.json with prioritized fixes. Include versioned metadata (scanner_version: 2.0.0, generated_at timestamp). Calculate metrics: total references, broken references, duplicate count, migration percentage.
+
+# Test Strategy:
+Verify JSON outputs are valid and complete, cross-check reference counts manually, ensure all template files are scanned, validate metrics calculation
+
+# Subtasks:
+## 1. Implement Git Log Parsing for Pattern Extraction [pending]
+### Dependencies: None
+### Description: Develop a module to parse git logs, diffs, and blame data using GitPython to extract code patterns and their evolution over time.
+### Details:
+File: src/codex/validation/pattern_evolution.py. Use GitPython to iterate through 1000+ commits, extract regex-based code patterns, and record their frequency and location. Store results in intermediate data structures for downstream analysis.
+
+## 2. Develop Pattern Drift Detection Algorithms [pending]
+### Dependencies: 7.1
+### Description: Implement statistical drift detection algorithms to identify significant changes in pattern frequency and structure across commit history.
+### Details:
+File: src/codex/validation/drift_detection.py. Use KL divergence and chi-square tests to compare pattern distributions between time windows. Flag patterns with statistically significant drift for further review.
+
+## 3. Integrate Machine Learning for Pattern Trend Prediction [pending]
+### Dependencies: 7.1, 7.2
+### Description: Build ML models to predict future pattern evolution and group similar patterns using clustering techniques.
+### Details:
+File: src/codex/ml/pattern_trend_predictor.py. Use scikit-learn for KMeans clustering of pattern groups. Implement LSTM neural network (TensorFlow/Keras) for time-series prediction of pattern frequency. Output predictions to migration_status.json.
+
+## 4. Optimize Scanner Performance for Large Commit Histories [pending]
+### Dependencies: 7.1, 7.2, 7.3
+### Description: Ensure scanner suite can analyze at least 1000 commits in under 10 seconds by profiling and optimizing code.
+### Details:
+File: src/codex/validation/performance.py. Profile bottlenecks, parallelize pattern extraction, and cache intermediate results. Benchmark against 1000-commit repositories and log performance metrics.
+
+## 5. Generate Visualization Components for Pattern Evolution [pending]
+### Dependencies: 7.2, 7.3, 7.4
+### Description: Create interactive visualizations of pattern trends, drift, and clusters using matplotlib and plotly.
+### Details:
+File: src/codex/visualization/pattern_dashboard.py. Generate time-series graphs, cluster maps, and drift alerts. Export dashboard to reports/pattern_evolution/index.html and PNG/SVG formats.
+
+## 6. Implement Alert System for Significant Pattern Deviations [pending]
+### Dependencies: 7.2, 7.3, 7.5
+### Description: Develop an alerting mechanism to notify stakeholders of major pattern drifts or anomalies detected by the scanner.
+### Details:
+File: src/codex/validation/alert_system.py. Configure alert thresholds, send notifications via email or webhook, and log alerts in migration_status.json. Integrate with dashboard for real-time updates.
+
+## 7. Integrate Scanner Suite with CI/CD Pipeline [pending]
+### Dependencies: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6
+### Description: Automate scanner execution and report generation within CI/CD workflows using GitHub Actions and GitLab CI.
+### Details:
+File: .github/workflows/pattern_evolution.yml and .gitlab-ci.yml. Trigger scanner on push/merge events, publish reports to reports/pattern_evolution/, and archive JSON outputs with versioned metadata.
+
+## 8. Compile and Version Baseline Outputs with Comprehensive Metrics [pending]
+### Dependencies: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7
+### Description: Aggregate all scanner outputs, calculate metrics, and generate versioned migration_status.json, duplicate_analysis.json, and fix_recommendations.json.
+### Details:
+File: output/data/migration_status.json, output/data/duplicate_analysis.json, output/data/fix_recommendations.json. Include scanner_version: 2.0.0, generated_at timestamp, total references, broken references, duplicate count, migration percentage.
+

@@ -1,0 +1,61 @@
+# Task ID: 81
+# Title: Implement Plan Compliance Enforcement
+# Status: pending
+# Dependencies: 14
+# Priority: high
+# Description: Implement guard and behavior to enforce plan-first workflow execution before any edits occur.
+# Details:
+Completes the plan compliance enforcement loop (behavior, guard validation, plan/tracker sync, evidence logging).
+
+# Test Strategy:
+Guard blocks workflows when plan requirements are missing; documentation and evidence updated.
+
+# Subtasks:
+## 1. Finalize plan compliance design scope [pending]
+### Dependencies: None
+### Description: Review draft requirements (emergency bypass, amendments, continuation, conflict detection) and obtain approval before implementation.
+### Details:
+Confirm draft with loucmane and update design docs if required.
+
+## 2. Implement plan compliance behavior [pending]
+### Dependencies: None
+### Description: Create or update templates/behaviors/planning/plan-compliance.md with enforcement hooks for session start and workflow edits.
+### Details:
+Behavior must trigger after ULTRATHINK and before editing guarded files.
+
+## 3. Extend guard with plan validation [pending]
+### Dependencies: None
+### Description: Add mandatory plan structure/ID checks and failure messaging to scripts/codex-guard.
+### Details:
+Validate plan-step-scope/implement/verify, S:W:H:E entries, and emergency bypass protocol.
+
+## 4. Implement plan ↔ tracker sync validation [pending]
+### Dependencies: None
+### Description: Ensure plan and tracker hashes align via .plan_state/sync.log and guard enforcement.
+### Details:
+Guard fails when plan/tracker hashes diverge or sync log missing.
+
+## 5. Implement evidence verification [pending]
+### Dependencies: None
+### Description: Verify S:W:H:E entries and captured commands before allowing plan steps to close.
+### Details:
+Guard must confirm evidence is recorded before marking plan steps completed.
+
+## 6. Integrate guard hooks with workflows [pending]
+### Dependencies: None
+### Description: Wire plan compliance guard into session lifecycle and meta workflow authoring workflows.
+### Details:
+Update workflow docs and ensure guard invoked at entry points.
+
+## 7. Document bypass and remediation [pending]
+### Dependencies: None
+### Description: Update work-tracking and handoff documents with emergency bypass policy and remediation steps.
+### Details:
+Include instructions for responding to guard failures.
+
+## 8. Capture guard/test evidence [pending]
+### Dependencies: None
+### Description: Store guard outputs and update Serena memory once enforcement is complete.
+### Details:
+Add reports to reports/plan-compliance-phase1 and log Serena memory entry.
+

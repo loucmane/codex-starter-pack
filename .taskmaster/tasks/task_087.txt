@@ -1,0 +1,49 @@
+# Task ID: 87
+# Title: Replace Legacy Monolithic References
+# Status: pending
+# Dependencies: 86
+# Priority: high
+# Description: Remove references to monolithic template files and enforce modular paths via guard.
+# Details:
+Completes migration away from WORKFLOWS.md/PATTERNS.md references.
+
+# Test Strategy:
+Legacy references removed and guard prevents regressions.
+
+# Subtasks:
+## 1. Enumerate monolithic references [pending]
+### Dependencies: None
+### Description: Use scanners and manual audit to list references to WORKFLOWS.md, PATTERNS.md, etc.
+### Details:
+Use scanners and manual audit to list references to WORKFLOWS.md, PATTERNS.md, etc.
+
+## 2. Map replacements [pending]
+### Dependencies: None
+### Description: Determine modular replacements or new modules for each reference.
+### Details:
+Determine modular replacements or new modules for each reference.
+
+## 3. Implement replacements [pending]
+### Dependencies: None
+### Description: Update templates/handlers/docs to use modular paths; capture diffs.
+### Details:
+Update templates/handlers/docs to use modular paths; capture diffs.
+
+## 4. Extend guard for legacy anchors [pending]
+### Dependencies: None
+### Description: Modify guard to flag references to deprecated monoliths.
+### Details:
+Modify guard to flag references to deprecated monoliths.
+
+## 5. Document migration [pending]
+### Dependencies: None
+### Description: Update findings/changelog with reference fixes and evidence.
+### Details:
+Update findings/changelog with reference fixes and evidence.
+
+## 6. Regression test [pending]
+### Dependencies: None
+### Description: Add tests ensuring future references trigger guard or linter.
+### Details:
+Add tests ensuring future references trigger guard or linter.
+

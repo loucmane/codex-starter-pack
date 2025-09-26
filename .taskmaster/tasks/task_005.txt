@@ -1,0 +1,61 @@
+# Task ID: 5
+# Title: Implement Codex-Task CLI Tool
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Create command-line utility for task management and work-tracking integration
+# Details:
+Create scripts/codex-task using Click framework. Implement commands: 'sessions update' for work-tracking, 'scanner run' with --log-note flag, 'report generate' for outputs. Add S:W:H:E structured logging support. Integrate with git for automatic session detection. Add --dry-run flag for all destructive operations. Implement progress bars using Rich library for long-running operations.
+
+# Test Strategy:
+Test all CLI commands with various arguments, verify output formatting, test dry-run mode prevents changes, ensure proper error handling and help text
+
+# Subtasks:
+## 1. Establish CLI File Structure and Entry Point [pending]
+### Dependencies: None
+### Description: Set up the main CLI entry point at 'src/codex/cli/task.py' using the Click framework. Define the CLI group and subcommand structure for 'init', 'list', 'show', 'start', 'complete', and 'update'. Ensure scripts/codex-task is the executable entry script.
+### Details:
+Create the directory structure: src/codex/cli/task.py as the main CLI module. Use @click.group() for the root command and @click.command() for subcommands. Ensure the CLI is discoverable via setuptools entry_points or a scripts/codex-task launcher.
+
+## 2. Implement Core CLI Commands with Error Handling and Logging [pending]
+### Dependencies: 5.1
+### Description: Develop the full implementations for all CLI commands ('sessions update', 'scanner run', 'report generate', etc.) with robust error handling and S:W:H:E structured logging. Ensure each command uses Click decorators and provides helpful user messages.
+### Details:
+Use @click.command() and @click.option() for command definitions. Integrate structured logging (S:W:H:E) at key points. Implement error handling with try/except and user-friendly error output. Include --dry-run flag for destructive operations.
+
+## 3. Integrate Task Master Python SDK with Authentication and Retry Logic [pending]
+### Dependencies: 5.2
+### Description: Wrap Task Master API client with authentication, error recovery, and retry logic for all network operations. Ensure seamless integration with CLI commands and secure handling of credentials.
+### Details:
+Create a client wrapper module (e.g., src/codex/taskmaster/client.py) that handles authentication, retries (with exponential backoff), and error translation. Use this wrapper in all CLI commands that interact with Task Master.
+
+## 4. Integrate Rich Library for Terminal Output and Progress Bars [pending]
+### Dependencies: 5.2
+### Description: Enhance CLI output using the Rich library for tables, progress bars, and status indicators. Apply Rich patterns to long-running operations and command outputs for improved user experience.
+### Details:
+Use Rich's Console, Table, and Progress classes in command implementations. Display progress bars for operations like 'scanner run' and status indicators for session updates. Ensure output is visually appealing and accessible.
+
+## 5. Implement Git Integration for Automatic Session Detection [pending]
+### Dependencies: 5.2
+### Description: Add logic to detect active git repositories and use git metadata for session tracking and context in relevant CLI commands.
+### Details:
+Detect git root using subprocess or GitPython. Extract branch, commit, and status information for session context. Integrate this data into 'sessions update' and related commands.
+
+## 6. Add Async Support and Shell Completion [pending]
+### Dependencies: 5.2
+### Description: Enable async execution for parallel task operations and implement shell completion scripts for bash, zsh, and fish.
+### Details:
+Use asyncio for parallelizable commands (e.g., batch updates). Register shell completion with Click's shell completion features. Provide installation instructions for users.
+
+## 7. Implement Configuration Management with Pydantic and Environment Variables [pending]
+### Dependencies: 5.1
+### Description: Centralize configuration using a Pydantic settings class, supporting environment variables and a config file at '~/.config/codex/task.yaml'.
+### Details:
+Create a config module (e.g., src/codex/config.py) using Pydantic's BaseSettings. Load settings from environment and YAML file. Inject config into CLI context for use by all commands.
+
+## 8. Develop Comprehensive Testing and Documentation [pending]
+### Dependencies: 5.2, 5.3, 5.4, 5.5, 5.6, 5.7
+### Description: Write unit and integration tests for all CLI commands using pytest and pytest-click. Ensure all commands have complete docstrings and Click's built-in help text is accurate and comprehensive.
+### Details:
+Create tests/ directory with test_cli.py and integration tests. Use pytest-click for CLI testing. Verify help text, error handling, and dry-run mode. Ensure all commands have docstrings and help options.
+

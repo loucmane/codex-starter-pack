@@ -1,0 +1,43 @@
+# Task ID: 88
+# Title: Implement Taskmaster Alignment Workflow
+# Status: pending
+# Dependencies: 87
+# Priority: high
+# Description: Create workflow/guard ensuring task edits follow alignment checklist.
+# Details:
+Prevents task.json edits without plan compliance and registry checks.
+
+# Test Strategy:
+Alignment workflow documented and enforced.
+
+# Subtasks:
+## 1. Define alignment prerequisites [pending]
+### Dependencies: None
+### Description: List checks required before editing tasks.json (plan compliance, registry review, evidence).
+### Details:
+List checks required before editing tasks.json (plan compliance, registry review, evidence).
+
+## 2. Author alignment workflow [pending]
+### Dependencies: None
+### Description: Create workflow/handler/pattern enforcing Taskmaster alignment steps.
+### Details:
+Create workflow/handler/pattern enforcing Taskmaster alignment steps.
+
+## 3. Integrate guard/CLI reminders [pending]
+### Dependencies: None
+### Description: Ensure guard and helper commands require alignment workflow before edits.
+### Details:
+Ensure guard and helper commands require alignment workflow before edits.
+
+## 4. Update documentation [pending]
+### Dependencies: None
+### Description: Add alignment protocol to tracker, handoff, codex-task helper.
+### Details:
+Add alignment protocol to tracker, handoff, codex-task helper.
+
+## 5. Regression test [pending]
+### Dependencies: None
+### Description: Add tests ensuring tasks cannot be edited without alignment workflow completion.
+### Details:
+Add tests ensuring tasks cannot be edited without alignment workflow completion.
+

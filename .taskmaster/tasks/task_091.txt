@@ -1,0 +1,43 @@
+# Task ID: 91
+# Title: Standardize Template Metadata
+# Status: pending
+# Dependencies: 90
+# Priority: medium
+# Description: Ensure all templates carry consistent metadata and guard enforces presence.
+# Details:
+Prevents templates from missing status/type information.
+
+# Test Strategy:
+Metadata schema applied and guard enforcement active.
+
+# Subtasks:
+## 1. Inventory missing metadata [pending]
+### Dependencies: None
+### Description: List templates lacking status/type/version metadata.
+### Details:
+List templates lacking status/type/version metadata.
+
+## 2. Define metadata schema [pending]
+### Dependencies: None
+### Description: Publish canonical metadata schema and guidelines.
+### Details:
+Publish canonical metadata schema and guidelines.
+
+## 3. Batch update templates [pending]
+### Dependencies: None
+### Description: Add metadata to templates using script/automation.
+### Details:
+Add metadata to templates using script/automation.
+
+## 4. Extend guard [pending]
+### Dependencies: None
+### Description: Add guard checks requiring metadata on new/modified templates.
+### Details:
+Add guard checks requiring metadata on new/modified templates.
+
+## 5. Document rollout [pending]
+### Dependencies: None
+### Description: Update findings/changelog with metadata rollout summary.
+### Details:
+Update findings/changelog with metadata rollout summary.
+

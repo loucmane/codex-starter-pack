@@ -1,0 +1,61 @@
+# Task ID: 28
+# Title: Implement Dual-Path Discovery
+# Status: pending
+# Dependencies: 13, 21
+# Priority: high
+# Description: Create fallback system for template discovery during migration
+# Details:
+Implement discovery chain: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.
+
+# Test Strategy:
+Test each fallback path, verify correct order, test circuit breaker activation, measure discovery performance
+
+# Subtasks:
+## 1. Implement Dual Path Manager Core Logic [pending]
+### Dependencies: None
+### Description: Develop the main orchestration logic for dual-path discovery in `src/codex/discovery/dual_path.py`, ensuring correct ordering: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions.
+### Details:
+Implement the discovery chain as a modular, extensible pipeline. Ensure each step can trigger the next on failure, and errors are handled with actionable suggestions. Integrate with configuration at `config/discovery.yaml` for path ordering and enable/disable flags.
+
+## 2. Develop Primary Resolver for Modular Templates [pending]
+### Dependencies: 28.1
+### Description: Create the primary resolver at `src/codex/discovery/primary.py` to handle modular template discovery and compatibility map lookups.
+### Details:
+Implement lookup algorithms for modular templates and compatibility map. Ensure fast, deterministic resolution. Add hooks for logging and metrics. Integrate with cache layer for common lookups.
+
+## 3. Develop Fallback Resolver for Legacy Templates [pending]
+### Dependencies: 28.1
+### Description: Implement fallback resolver at `src/codex/discovery/fallback.py` to handle legacy monolith search and Serena semantic search.
+### Details:
+Design robust search algorithms for legacy monolith and Serena semantic search. Add triggers for fallback activation and error handling. Integrate with cache and logging.
+
+## 4. Implement Path Switching and Circuit Breaker Logic [pending]
+### Dependencies: 28.2, 28.3
+### Description: Build path switching logic and circuit breaker pattern in `src/codex/discovery/switcher.py` to manage failover and configurable rules.
+### Details:
+Allow dynamic switching between primary and fallback paths based on configurable rules in `config/discovery.yaml`. Implement circuit breaker to disable failing paths and trigger alerts. Log all switches and breaker activations.
+
+## 5. Optimize Performance with Parallel Lookups [pending]
+### Dependencies: 28.4
+### Description: Enhance performance by enabling parallel lookups where safe, minimizing discovery latency.
+### Details:
+Refactor discovery chain to support parallel execution of non-dependent lookups. Ensure thread safety and resource limits. Measure and log latency for each path.
+
+## 6. Implement Caching Strategy for Discovery Paths [pending]
+### Dependencies: 28.2, 28.3, 28.5
+### Description: Develop cache layer at `src/codex/discovery/cache.py` to support cache warming, invalidation, and fast retrieval for both primary and fallback paths.
+### Details:
+Design cache warming for common lookups, set invalidation rules for template updates, and ensure cache consistency across both paths. Integrate with metrics and logging.
+
+## 7. Add Monitoring and Metrics Collection [pending]
+### Dependencies: 28.4, 28.5, 28.6
+### Description: Create metrics collector at `src/codex/discovery/metrics.py` to track path usage, fallback rates, circuit breaker events, and latency.
+### Details:
+Expose metrics for dashboards and alerting. Track per-path usage, error rates, and performance. Integrate with existing monitoring systems and provide dashboards for operational visibility.
+
+## 8. Define and Enforce Performance Requirements [pending]
+### Dependencies: 28.5, 28.6, 28.7
+### Description: Ensure end-to-end discovery latency is consistently below 50ms through testing and optimization.
+### Details:
+Develop tests in `tests/discovery/` to measure latency across all discovery paths. Profile and optimize slow components. Fail builds if latency exceeds threshold. Document performance guarantees.
+

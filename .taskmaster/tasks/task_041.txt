@@ -1,0 +1,61 @@
+# Task ID: 41
+# Title: Build Migration Health Dashboard
+# Status: pending
+# Dependencies: 36, 16
+# Priority: medium
+# Description: Create real-time dashboard for migration monitoring
+# Details:
+Create React/Vue dashboard with real-time updates. Add migration progress bar with phase indicators. Display scanner/guard status. Show performance metrics graphs. Add cost usage gauge. Implement alert status panel. Create error rate trending. Add team blockers section. Use WebSocket for live updates.
+
+# Test Strategy:
+Test real-time updates, verify metric accuracy, test alert displays, validate mobile responsiveness
+
+# Subtasks:
+## 1. Blue-Green Infrastructure Setup [pending]
+### Dependencies: None
+### Description: Provision dual blue and green environments using Terraform, configure load balancer for instant traffic switching, manage shared database connections and storage, and ensure infrastructure overhead remains below 20%.
+### Details:
+Implement infrastructure as code in `infrastructure/blue-green/terraform/main.tf` and supporting modules. Both environments must be identical and support seamless switching. Shared resources (database, storage) must be configured for zero-downtime and data consistency. Cost analysis required to keep overhead under 20%.
+
+## 2. Traffic Router Implementation [pending]
+### Dependencies: 41.1
+### Description: Develop DNS and application-level routing logic to enable gradual and instant traffic shifts between blue and green environments, preserving session affinity and ensuring switch time under 30 seconds.
+### Details:
+Implement routing controllers in `src/codex/deployment/router/controller.py` and strategies in `src/codex/deployment/router/strategies.py`. Integrate with Route53 for DNS-based routing and load balancer for application-level routing. Support gradual traffic shifting (0% to 100%) and session stickiness.
+
+## 3. Database Migration Strategy [pending]
+### Dependencies: 41.1, 41.2
+### Description: Design and implement blue-green database migration patterns, validate schema compatibility, synchronize data during environment switch, and guarantee zero migration downtime.
+### Details:
+Develop migration and sync scripts in `src/codex/deployment/db/migrator.py` and `src/codex/deployment/db/sync.py`. Ensure both environments use a single, backward/forward-compatible database schema. Automate data sync and transaction consistency checks.
+
+## 4. Health Check System [pending]
+### Dependencies: 41.1, 41.2, 41.3
+### Description: Implement automated, multi-layer health checks and smoke tests for both environments, with performance baseline comparisons and dependency validation every 30 seconds.
+### Details:
+Create health checkers in `src/codex/deployment/health/checker.py` and validators in `src/codex/deployment/health/validators.py`. Automate smoke tests and compare performance metrics to baselines. Validate all dependencies and report health status in real time.
+
+## 5. Rollback Automation [pending]
+### Dependencies: 41.2, 41.3, 41.4
+### Description: Develop automated rollback triggers, preserve state, instantly reverse traffic, and validate system health post-rollback, ensuring rollback completes in under 1 minute.
+### Details:
+Implement rollback manager and triggers in `src/codex/deployment/rollback/manager.py` and `src/codex/deployment/rollback/triggers.py`. Automate detection of failure conditions, preserve critical state, and instantly revert traffic and environment roles. Validate system health after rollback.
+
+## 6. Blue-Green Testing Suite [pending]
+### Dependencies: 41.1, 41.2, 41.3, 41.4, 41.5
+### Description: Build comprehensive end-to-end test suite for blue-green deployments, validating traffic switching, data consistency, and performance, with 100% coverage of critical paths.
+### Details:
+Develop tests in `tests/deployment/blue_green/` and scenario scripts in `tests/deployment/scenarios/`. Automate validation of deployment, traffic routing, data integrity, and performance metrics. Ensure all critical deployment paths are tested.
+
+## 7. Deployment Orchestration [pending]
+### Dependencies: 41.1, 41.2, 41.3, 41.4, 41.5, 41.6
+### Description: Automate the blue-green deployment workflow, including pre- and post-deployment validation, notification, and approval gates, ensuring total deployment time is under 15 minutes.
+### Details:
+Implement orchestrator logic in `src/codex/deployment/orchestrator/manager.py` and workflow definitions in `src/codex/deployment/orchestrator/workflow.py`. Integrate with CI/CD pipelines, automate validation steps, and add notification/approval mechanisms.
+
+## 8. Monitoring and Alerting [pending]
+### Dependencies: 41.1, 41.2, 41.3, 41.4, 41.5, 41.6, 41.7
+### Description: Implement real-time monitoring and alerting for deployment status, performance, error rates, and business metrics, with alert latency under 30 seconds and instant rollback triggers.
+### Details:
+Develop monitoring trackers in `src/codex/deployment/monitoring/tracker.py` and alert logic in `src/codex/deployment/monitoring/alerts.py`. Integrate with dashboard for live updates, compare blue/green metrics, and trigger automated rollback on critical alerts.
+

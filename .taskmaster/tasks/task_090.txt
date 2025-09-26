@@ -1,0 +1,43 @@
+# Task ID: 90
+# Title: Complete Engine Migration (Phase 2/3)
+# Status: pending
+# Dependencies: 89
+# Priority: high
+# Description: Finish outstanding engine modules and ensure discoverability.
+# Details:
+Completes migration roadmap for engine templates.
+
+# Test Strategy:
+Engine modules updated, tested, and discoverable.
+
+# Subtasks:
+## 1. Audit engine roadmap [pending]
+### Dependencies: None
+### Description: Review templates/engine README for outstanding Phase 2/3 modules; create inventory.
+### Details:
+Review templates/engine README for outstanding Phase 2/3 modules; create inventory.
+
+## 2. Author missing modules [pending]
+### Dependencies: None
+### Description: Implement outstanding engine modules referenced in roadmap.
+### Details:
+Implement outstanding engine modules referenced in roadmap.
+
+## 3. Update registry/navigation [pending]
+### Dependencies: None
+### Description: Include new engine modules in registry/navigation indexes.
+### Details:
+Include new engine modules in registry/navigation indexes.
+
+## 4. Document usage/tests [pending]
+### Dependencies: None
+### Description: Add documentation and tests for new engine modules.
+### Details:
+Add documentation and tests for new engine modules.
+
+## 5. Add guard hooks [pending]
+### Dependencies: None
+### Description: Ensure guard and helpers can discover engine modules.
+### Details:
+Ensure guard and helpers can discover engine modules.
+

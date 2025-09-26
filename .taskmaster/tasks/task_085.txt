@@ -1,0 +1,55 @@
+# Task ID: 85
+# Title: Author Session Continuation & State Workflows
+# Status: pending
+# Dependencies: 84
+# Priority: high
+# Description: Create dedicated workflows for session continuation and state management with guard integration.
+# Details:
+Formalize continuation/state workflows to replace ad-hoc handlers and ensure guard coverage.
+
+# Test Strategy:
+Workflows documented, guard passes, evidence logged.
+
+# Subtasks:
+## 1. Inventory existing session lifecycle references [pending]
+### Dependencies: None
+### Description: Audit continuation, compaction, and state management references; capture gaps in tracker.
+### Details:
+Audit continuation, compaction, and state management references; capture gaps in tracker.
+
+## 2. Author continuation workflow [pending]
+### Dependencies: None
+### Description: Create templates/workflows/session/continuation.md with full frontmatter and steps.
+### Details:
+Create templates/workflows/session/continuation.md with full frontmatter and steps.
+
+## 3. Author state-management workflow [pending]
+### Dependencies: None
+### Description: Create templates/workflows/session/state-management.md covering state restoration.
+### Details:
+Create templates/workflows/session/state-management.md covering state restoration.
+
+## 4. Update routing/registry [pending]
+### Dependencies: None
+### Description: Add new workflows to registry, handlers, and patterns so requests route correctly.
+### Details:
+Add new workflows to registry, handlers, and patterns so requests route correctly.
+
+## 5. Integrate guard checkpoints [pending]
+### Dependencies: None
+### Description: Hook plan compliance/timestamp guards into continuation/state workflows.
+### Details:
+Hook plan compliance/timestamp guards into continuation/state workflows.
+
+## 6. Document evidence [pending]
+### Dependencies: None
+### Description: Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.
+### Details:
+Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.
+
+## 7. Create regression tests [pending]
+### Dependencies: None
+### Description: Add tests ensuring guard enforces workflow usage across session recovery.
+### Details:
+Add tests ensuring guard enforces workflow usage across session recovery.
+

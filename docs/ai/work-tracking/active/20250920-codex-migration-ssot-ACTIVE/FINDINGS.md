@@ -23,10 +23,10 @@
 - Taskmaster task graph requires audit to ensure each task/subtask aligns with the template migration plan (Session 2025-09-23-001).
 - Optional packages for sequential thinking/fpl MCP still need manual installation; tracked separately.
 - Migration status reports show majority of monolithic files still partially/not migrated (needs remediation via generated scripts).
-- Guard previously blocked on missing `templates/workflows/processes/meta-workflow-authoring.md`; workflow + orchestrator + routing pattern now added (2025-09-25 20:31 CEST). Next up: finish plan verification and add regression tests around meta workflow assets.
-- Plan-step-verify still open: need Serena memory + documentation sweep (especially Taskmaster backlog) before closing Phase 1.
-- Backlog staged in `plans/taskmaster-audit-high-priority.md`; pending push to Taskmaster after review.
+- Guard previously blocked on missing `templates/workflows/processes/meta-workflow-authoring.md`; workflow + orchestrator + routing pattern now added (2025-09-25 20:31 CEST).
+- Plan compliance Phase 1 verification complete (guard/test evidence logged, Serena memory recorded, plan archived).
 - Tasks 81–84 (plan compliance enforcement, meta workflow enforcement, regression suite, timestamp guard) added to Taskmaster; tasks 15–20 now depend on timestamp guard (84).
+- Drafted and inserted tasks 85–97 covering session workflows, domain packs, legacy anchors, Taskmaster alignment workflow, work-tracking orchestration, engine migration, metadata standardization, guard expansion, compaction behavior rewrite, and enhancement backlog (drift detection, wizard, metrics dashboard) with chained dependencies.
 
 ## Enforcement Helper Status (2025-09-20 20:18)
 - `scripts/codex-task` now scaffolds S:W:H:E entries for sessions and work-tracking; `scanner run` can log executions post-command.

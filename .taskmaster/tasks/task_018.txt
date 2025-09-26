@@ -1,0 +1,61 @@
+# Task ID: 18
+# Title: Implement Security Validation Framework
+# Status: pending
+# Dependencies: 6, 84, 97
+# Priority: high
+# Description: Create security scanning and validation tools for templates
+# Details:
+Implement path traversal detection using pathlib. Add template injection scanner with regex patterns. Create secret detection using detect-secrets library. Implement input sanitization functions. Add security audit checklist automation. Create vulnerability reporting format. Implement allowlist for false positives. Add SAST integration for template code.
+
+# Test Strategy:
+Test against known vulnerabilities, verify path traversal prevention, test secret detection accuracy, validate sanitization effectiveness
+
+# Subtasks:
+## 1. Design Cache Manager Interface [pending]
+### Dependencies: None
+### Description: Define the core cache manager interface at `src/codex/cache/manager.py` to orchestrate multi-tier caching, including cache key generation, serialization formats, and tier selection logic.
+### Details:
+Specify cache key strategies (e.g., hash of template path and parameters), support for JSON and MessagePack serialization, and tier selection logic for L1 (memory), L2 (Redis), and L3 (disk).
+
+## 2. Implement Memory Cache Layer (L1) [pending]
+### Dependencies: 18.1
+### Description: Develop the in-memory cache at `src/codex/cache/memory_cache.py` using an LRU eviction algorithm and TTL support for fast template retrieval.
+### Details:
+Ensure cache lookup latency is consistently <5ms. Integrate TTL-based expiration and LRU eviction. Use thread-safe data structures for concurrent access.
+
+## 3. Develop Redis Adapter for Distributed Caching (L2) [pending]
+### Dependencies: 18.1
+### Description: Create the Redis cache adapter at `src/codex/cache/redis_adapter.py` to enable distributed caching and cache coherence for multi-instance deployments.
+### Details:
+Implement Redis connection pooling, support for TTL, and publish/subscribe mechanisms for cache coherence. Ensure compatibility with cluster deployments.
+
+## 4. Build Disk Cache Layer (L3) [pending]
+### Dependencies: 18.1
+### Description: Implement the disk-based cache at `src/codex/cache/disk_cache.py` with LRU eviction and TTL, using efficient serialization and file management.
+### Details:
+Support large template payloads, use atomic file operations, and optimize for low-latency disk access. Integrate with cache manager for tier fallback.
+
+## 5. Implement Cache Invalidation Manager [pending]
+### Dependencies: 18.2, 18.3, 18.4
+### Description: Create cache invalidation logic at `src/codex/cache/invalidation.py` supporting TTL, LRU, and event-driven invalidation for template updates.
+### Details:
+Support explicit invalidation via API, scheduled TTL expiry, and event hooks for template changes. Ensure invalidation propagates across all tiers.
+
+## 6. Develop Cache Warmer for Startup Optimization [pending]
+### Dependencies: 18.2, 18.3, 18.4
+### Description: Build cache warming routines at `src/codex/cache/warmer.py` to pre-populate caches with frequently used templates on application startup.
+### Details:
+Analyze template usage patterns, load top N templates into all cache tiers, and track warm-up completion for readiness checks.
+
+## 7. Integrate Cache Metrics Collector [pending]
+### Dependencies: 18.2, 18.3, 18.4
+### Description: Implement cache metrics tracking at `src/codex/cache/metrics.py` to monitor hit/miss ratios, eviction counts, and latency for each cache tier.
+### Details:
+Expose metrics via Prometheus or StatsD, log cache performance, and trigger alerts if lookup latency exceeds 5ms or hit ratio drops below threshold.
+
+## 8. Configure Cache Settings and Coherence Protocols [pending]
+### Dependencies: 18.1, 18.3
+### Description: Define cache configuration at `config/cache.yaml` including tier capacities, TTLs, eviction policies, serialization formats, and coherence protocols.
+### Details:
+Specify settings for each cache tier, select eviction algorithms (LRU, FIFO), configure Redis cluster options, and document cache coherence protocol (e.g., publish/subscribe, versioning).
+

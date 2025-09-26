@@ -148,7 +148,7 @@
           },
           {
             "id": 4,
-            "title": "Implement plan \u2194 tracker sync validation",
+            "title": "Implement plan ↔ tracker sync validation",
             "description": "Ensure plan and tracker hashes align via .plan_state/sync.log and guard enforcement.",
             "dependencies": [],
             "details": "Guard fails when plan/tracker hashes diverge or sync log missing.",
@@ -851,7 +851,7 @@
           {
             "id": 4,
             "title": "Implement Boundary Validation Logic",
-            "description": "Define and enforce rules for mocking boundaries (e.g., service layer \u2192 infrastructure, domain \u2192 external) and flag violations.",
+            "description": "Define and enforce rules for mocking boundaries (e.g., service layer → infrastructure, domain → external) and flag violations.",
             "dependencies": [
               "6.3"
             ],
@@ -1034,7 +1034,7 @@
         "id": 8,
         "title": "Create Template Registry System",
         "description": "Build centralized registry for template discovery and management",
-        "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular \u2192 compatibility map \u2192 legacy \u2192 Serena \u2192 error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
+        "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular → compatibility map → legacy → Serena → error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
         "testStrategy": "Benchmark discovery time (<50ms), test fallback chain order, verify cache invalidation, test search functionality, ensure thread-safety",
         "priority": "high",
         "dependencies": [
@@ -1077,7 +1077,7 @@
           {
             "id": 4,
             "title": "Develop Fallback Chain Logic",
-            "description": "Create fallback chain logic in `src/codex/registry/fallback.py` to resolve templates in the order: modular \u2192 compatibility map \u2192 legacy \u2192 Serena \u2192 error.",
+            "description": "Create fallback chain logic in `src/codex/registry/fallback.py` to resolve templates in the order: modular → compatibility map → legacy → Serena → error.",
             "dependencies": [
               "8.1",
               "8.2",
@@ -1365,7 +1365,7 @@
         "id": 11,
         "title": "Create Migration Roadmap Generator",
         "description": "Build tool to generate prioritized migration plan from scanner outputs",
-        "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) \u2192 high (monolith refs) \u2192 medium (duplicates) \u2192 low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
+        "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) → high (monolith refs) → medium (duplicates) → low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
         "testStrategy": "Verify roadmap covers all scanner findings, test priority ordering logic, validate Taskmaster format compatibility, ensure estimates are reasonable",
         "priority": "medium",
         "dependencies": [
@@ -1896,7 +1896,8 @@
         "dependencies": [
           2,
           8,
-          84
+          84,
+          "97"
         ],
         "status": "pending",
         "subtasks": [
@@ -2014,7 +2015,8 @@
         "priority": "medium",
         "dependencies": [
           1,
-          84
+          84,
+          "97"
         ],
         "status": "pending",
         "subtasks": [
@@ -2126,7 +2128,8 @@
         "priority": "high",
         "dependencies": [
           6,
-          84
+          84,
+          "97"
         ],
         "status": "pending",
         "subtasks": [
@@ -2234,7 +2237,8 @@
         "priority": "high",
         "dependencies": [
           10,
-          84
+          84,
+          "97"
         ],
         "status": "pending",
         "subtasks": [
@@ -2355,7 +2359,8 @@
         "dependencies": [
           9,
           15,
-          84
+          84,
+          "97"
         ],
         "status": "pending",
         "subtasks": [
@@ -2907,7 +2912,7 @@
             "dependencies": [
               "25.1"
             ],
-            "details": "Test data located at 'validation/phase0/test_data/'. Acceptance criteria: \u226598% true positive rate, \u22642% false positive rate. Document results in 'validation/phase0/results/accuracy_metrics.json'.",
+            "details": "Test data located at 'validation/phase0/test_data/'. Acceptance criteria: ≥98% true positive rate, ≤2% false positive rate. Document results in 'validation/phase0/results/accuracy_metrics.json'.",
             "status": "pending",
             "testStrategy": ""
           },
@@ -3195,7 +3200,7 @@
         "id": 28,
         "title": "Implement Dual-Path Discovery",
         "description": "Create fallback system for template discovery during migration",
-        "details": "Implement discovery chain: modular check \u2192 compatibility map lookup \u2192 legacy monolith search \u2192 Serena semantic search \u2192 error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
+        "details": "Implement discovery chain: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
         "testStrategy": "Test each fallback path, verify correct order, test circuit breaker activation, measure discovery performance",
         "priority": "high",
         "dependencies": [
@@ -3207,7 +3212,7 @@
           {
             "id": 1,
             "title": "Implement Dual Path Manager Core Logic",
-            "description": "Develop the main orchestration logic for dual-path discovery in `src/codex/discovery/dual_path.py`, ensuring correct ordering: modular check \u2192 compatibility map lookup \u2192 legacy monolith search \u2192 Serena semantic search \u2192 error with suggestions.",
+            "description": "Develop the main orchestration logic for dual-path discovery in `src/codex/discovery/dual_path.py`, ensuring correct ordering: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions.",
             "dependencies": [],
             "details": "Implement the discovery chain as a modular, extensible pipeline. Ensure each step can trigger the next on failure, and errors are handled with actionable suggestions. Integrate with configuration at `config/discovery.yaml` for path ordering and enable/disable flags.",
             "status": "pending",
@@ -3303,7 +3308,7 @@
         "id": 29,
         "title": "Create Template Lifecycle Management",
         "description": "Implement system for template creation, versioning, and deprecation",
-        "details": "Create lifecycle states: draft \u2192 review \u2192 stable \u2192 deprecated \u2192 archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
+        "details": "Create lifecycle states: draft → review → stable → deprecated → archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
         "testStrategy": "Test state transitions, verify deprecation warnings appear, test grace period enforcement, validate archival process",
         "priority": "medium",
         "dependencies": [
@@ -3334,7 +3339,7 @@
           {
             "id": 3,
             "title": "Develop Template Deployment Pipeline",
-            "description": "Implement a multi-stage deployment pipeline (dev \u2192 staging \u2192 prod) with automated validation, rollback, blue-green deployment support, and deployment metrics/logging.",
+            "description": "Implement a multi-stage deployment pipeline (dev → staging → prod) with automated validation, rollback, blue-green deployment support, and deployment metrics/logging.",
             "dependencies": [
               "29.2"
             ],
@@ -3808,7 +3813,7 @@
         "id": 34,
         "title": "Implement A/B Testing Framework",
         "description": "Create system for gradual template rollout and testing",
-        "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% \u2192 50% \u2192 100%).",
+        "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% → 50% → 100%).",
         "testStrategy": "Test feature flag toggling, verify metrics separation, test auto-rollback trigger, validate gradual rollout",
         "priority": "low",
         "dependencies": [
@@ -3884,7 +3889,7 @@
           {
             "id": 7,
             "title": "Enable Gradual Rollout Progression",
-            "description": "Automate progression of rollout stages (10% \u2192 50% \u2192 100%) based on health metrics and feedback, with configurable thresholds.",
+            "description": "Automate progression of rollout stages (10% → 50% → 100%) based on health metrics and feedback, with configurable thresholds.",
             "dependencies": [
               "34.2",
               "34.4"
@@ -4227,7 +4232,7 @@
         "id": 38,
         "title": "Execute Phase 1 Reference Remediation",
         "description": "Complete Phase 1 reference fixes and validation",
-        "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine \u2192 patterns \u2192 remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
+        "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine → patterns → remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
         "testStrategy": "All references must resolve, guard validation passes, performance targets met, rollback tested successfully",
         "priority": "high",
         "dependencies": [
@@ -4434,7 +4439,7 @@
         "id": 40,
         "title": "Create Canary Deployment System",
         "description": "Build infrastructure for gradual migration rollout",
-        "details": "Implement canary stages: Codex (24h) \u2192 Claude (48h) \u2192 Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
+        "details": "Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
         "testStrategy": "Test stage progression, verify health checks, test rollback triggers, validate traffic splitting",
         "priority": "medium",
         "dependencies": [
@@ -6375,11 +6380,825 @@
         ],
         "status": "pending",
         "subtasks": []
+      },
+      {
+        "id": 85,
+        "title": "Author Session Continuation & State Workflows",
+        "description": "Create dedicated workflows for session continuation and state management with guard integration.",
+        "details": "Formalize continuation/state workflows to replace ad-hoc handlers and ensure guard coverage.",
+        "testStrategy": "Workflows documented, guard passes, evidence logged.",
+        "priority": "high",
+        "dependencies": [
+          84
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Inventory existing session lifecycle references",
+            "description": "Audit continuation, compaction, and state management references; capture gaps in tracker.",
+            "dependencies": [],
+            "details": "Audit continuation, compaction, and state management references; capture gaps in tracker.",
+            "status": "pending",
+            "testStrategy": "Inventory document produced and linked in tracker."
+          },
+          {
+            "id": 2,
+            "title": "Author continuation workflow",
+            "description": "Create templates/workflows/session/continuation.md with full frontmatter and steps.",
+            "dependencies": [],
+            "details": "Create templates/workflows/session/continuation.md with full frontmatter and steps.",
+            "status": "pending",
+            "testStrategy": "Workflow file created and linted."
+          },
+          {
+            "id": 3,
+            "title": "Author state-management workflow",
+            "description": "Create templates/workflows/session/state-management.md covering state restoration.",
+            "dependencies": [],
+            "details": "Create templates/workflows/session/state-management.md covering state restoration.",
+            "status": "pending",
+            "testStrategy": "Workflow file created and linted."
+          },
+          {
+            "id": 4,
+            "title": "Update routing/registry",
+            "description": "Add new workflows to registry, handlers, and patterns so requests route correctly.",
+            "dependencies": [],
+            "details": "Add new workflows to registry, handlers, and patterns so requests route correctly.",
+            "status": "pending",
+            "testStrategy": "Registry entries reference new workflows."
+          },
+          {
+            "id": 5,
+            "title": "Integrate guard checkpoints",
+            "description": "Hook plan compliance/timestamp guards into continuation/state workflows.",
+            "dependencies": [],
+            "details": "Hook plan compliance/timestamp guards into continuation/state workflows.",
+            "status": "pending",
+            "testStrategy": "Guard validation passes when workflows used."
+          },
+          {
+            "id": 6,
+            "title": "Document evidence",
+            "description": "Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.",
+            "dependencies": [],
+            "details": "Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.",
+            "status": "pending",
+            "testStrategy": "Documentation updated with S:W:H:E examples."
+          },
+          {
+            "id": 7,
+            "title": "Create regression tests",
+            "description": "Add tests ensuring guard enforces workflow usage across session recovery.",
+            "dependencies": [],
+            "details": "Add tests ensuring guard enforces workflow usage across session recovery.",
+            "status": "pending",
+            "testStrategy": "pytest tests/templates/test_session_workflows.py"
+          }
+        ]
+      },
+      {
+        "id": 86,
+        "title": "Author Domain Workflow Modules",
+        "description": "Create modular workflows for key domains and wire them into enforcement.",
+        "details": "Ensures each domain has a workflow with guard and helper support.",
+        "testStrategy": "Domain workflows piloted and documented.",
+        "priority": "high",
+        "dependencies": [
+          85
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Inventory domain categories",
+            "description": "List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.",
+            "dependencies": [],
+            "details": "List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.",
+            "status": "pending",
+            "testStrategy": "Inventory document stored and linked."
+          },
+          {
+            "id": 2,
+            "title": "Design workflow templates",
+            "description": "Draft workflow files under templates/workflows/domains/ with frontmatter and steps.",
+            "dependencies": [],
+            "details": "Draft workflow files under templates/workflows/domains/ with frontmatter and steps.",
+            "status": "pending",
+            "testStrategy": "Workflow drafts created for each domain."
+          },
+          {
+            "id": 3,
+            "title": "Map conventions/guards",
+            "description": "Identify domain-specific conventions and guard requirements; document mapping.",
+            "dependencies": [],
+            "details": "Identify domain-specific conventions and guard requirements; document mapping.",
+            "status": "pending",
+            "testStrategy": "Mapping file created and referenced."
+          },
+          {
+            "id": 4,
+            "title": "Update registry/navigation",
+            "description": "Add domain workflows to registry and navigation indexes.",
+            "dependencies": [],
+            "details": "Add domain workflows to registry and navigation indexes.",
+            "status": "pending",
+            "testStrategy": "Registry entries updated."
+          },
+          {
+            "id": 5,
+            "title": "Provide helper prompts",
+            "description": "Update codex-task helper/messages with domain workflow scaffolding.",
+            "dependencies": [],
+            "details": "Update codex-task helper/messages with domain workflow scaffolding.",
+            "status": "pending",
+            "testStrategy": "Helper output includes domain prompts."
+          },
+          {
+            "id": 6,
+            "title": "Pilot domain workflows",
+            "description": "Execute at least two domain workflows end-to-end and log findings/evidence.",
+            "dependencies": [],
+            "details": "Execute at least two domain workflows end-to-end and log findings/evidence.",
+            "status": "pending",
+            "testStrategy": "Pilot execution results recorded."
+          },
+          {
+            "id": 7,
+            "title": "Add regression tests",
+            "description": "Create tests verifying domain workflow discovery and guard behavior.",
+            "dependencies": [],
+            "details": "Create tests verifying domain workflow discovery and guard behavior.",
+            "status": "pending",
+            "testStrategy": "pytest tests/templates/test_domain_workflows.py"
+          }
+        ]
+      },
+      {
+        "id": 87,
+        "title": "Replace Legacy Monolithic References",
+        "description": "Remove references to monolithic template files and enforce modular paths via guard.",
+        "details": "Completes migration away from WORKFLOWS.md/PATTERNS.md references.",
+        "testStrategy": "Legacy references removed and guard prevents regressions.",
+        "priority": "high",
+        "dependencies": [
+          86
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Enumerate monolithic references",
+            "description": "Use scanners and manual audit to list references to WORKFLOWS.md, PATTERNS.md, etc.",
+            "dependencies": [],
+            "details": "Use scanners and manual audit to list references to WORKFLOWS.md, PATTERNS.md, etc.",
+            "status": "pending",
+            "testStrategy": "Reference inventory produced."
+          },
+          {
+            "id": 2,
+            "title": "Map replacements",
+            "description": "Determine modular replacements or new modules for each reference.",
+            "dependencies": [],
+            "details": "Determine modular replacements or new modules for each reference.",
+            "status": "pending",
+            "testStrategy": "Replacement mapping table created."
+          },
+          {
+            "id": 3,
+            "title": "Implement replacements",
+            "description": "Update templates/handlers/docs to use modular paths; capture diffs.",
+            "dependencies": [],
+            "details": "Update templates/handlers/docs to use modular paths; capture diffs.",
+            "status": "pending",
+            "testStrategy": "Reference updates committed locally."
+          },
+          {
+            "id": 4,
+            "title": "Extend guard for legacy anchors",
+            "description": "Modify guard to flag references to deprecated monoliths.",
+            "dependencies": [],
+            "details": "Modify guard to flag references to deprecated monoliths.",
+            "status": "pending",
+            "testStrategy": "Guard fails when legacy anchor added."
+          },
+          {
+            "id": 5,
+            "title": "Document migration",
+            "description": "Update findings/changelog with reference fixes and evidence.",
+            "dependencies": [],
+            "details": "Update findings/changelog with reference fixes and evidence.",
+            "status": "pending",
+            "testStrategy": "Documentation updated with before/after summary."
+          },
+          {
+            "id": 6,
+            "title": "Regression test",
+            "description": "Add tests ensuring future references trigger guard or linter.",
+            "dependencies": [],
+            "details": "Add tests ensuring future references trigger guard or linter.",
+            "status": "pending",
+            "testStrategy": "pytest tests/templates/test_legacy_anchors.py"
+          }
+        ]
+      },
+      {
+        "id": 88,
+        "title": "Implement Taskmaster Alignment Workflow",
+        "description": "Create workflow/guard ensuring task edits follow alignment checklist.",
+        "details": "Prevents task.json edits without plan compliance and registry checks.",
+        "testStrategy": "Alignment workflow documented and enforced.",
+        "priority": "high",
+        "dependencies": [
+          87
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define alignment prerequisites",
+            "description": "List checks required before editing tasks.json (plan compliance, registry review, evidence).",
+            "dependencies": [],
+            "details": "List checks required before editing tasks.json (plan compliance, registry review, evidence).",
+            "status": "pending",
+            "testStrategy": "Checklist drafted and approved."
+          },
+          {
+            "id": 2,
+            "title": "Author alignment workflow",
+            "description": "Create workflow/handler/pattern enforcing Taskmaster alignment steps.",
+            "dependencies": [],
+            "details": "Create workflow/handler/pattern enforcing Taskmaster alignment steps.",
+            "status": "pending",
+            "testStrategy": "Workflow/handler files created."
+          },
+          {
+            "id": 3,
+            "title": "Integrate guard/CLI reminders",
+            "description": "Ensure guard and helper commands require alignment workflow before edits.",
+            "dependencies": [],
+            "details": "Ensure guard and helper commands require alignment workflow before edits.",
+            "status": "pending",
+            "testStrategy": "Guard/CLI reminders operational."
+          },
+          {
+            "id": 4,
+            "title": "Update documentation",
+            "description": "Add alignment protocol to tracker, handoff, codex-task helper.",
+            "dependencies": [],
+            "details": "Add alignment protocol to tracker, handoff, codex-task helper.",
+            "status": "pending",
+            "testStrategy": "Docs updated with alignment instructions."
+          },
+          {
+            "id": 5,
+            "title": "Regression test",
+            "description": "Add tests ensuring tasks cannot be edited without alignment workflow completion.",
+            "dependencies": [],
+            "details": "Add tests ensuring tasks cannot be edited without alignment workflow completion.",
+            "status": "pending",
+            "testStrategy": "pytest tests/taskmaster/test_alignment_workflow.py"
+          }
+        ]
+      },
+      {
+        "id": 89,
+        "title": "Expand Work-Tracking Workflow Enforcement",
+        "description": "Formalize work-tracking orchestration with guard and helper support.",
+        "details": "Ensures documentation workflow is enforced alongside plan compliance.",
+        "testStrategy": "Work-tracking workflow operational with guard support.",
+        "priority": "medium",
+        "dependencies": [
+          88
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Document seven-file orchestration",
+            "description": "Detail active folder structure, TodoWrite equivalents, Serena memory requirements.",
+            "dependencies": [],
+            "details": "Detail active folder structure, TodoWrite equivalents, Serena memory requirements.",
+            "status": "pending",
+            "testStrategy": "Documentation added to tracker."
+          },
+          {
+            "id": 2,
+            "title": "Author work-tracking workflow",
+            "description": "Create workflow/pattern enforcing work-tracking updates before/after implementation.",
+            "dependencies": [],
+            "details": "Create workflow/pattern enforcing work-tracking updates before/after implementation.",
+            "status": "pending",
+            "testStrategy": "Workflow files created."
+          },
+          {
+            "id": 3,
+            "title": "Integrate guard signals",
+            "description": "Ensure guard checks tracker, implementation, findings, decisions updates.",
+            "dependencies": [],
+            "details": "Ensure guard checks tracker, implementation, findings, decisions updates.",
+            "status": "pending",
+            "testStrategy": "Guard fails when docs missing updates."
+          },
+          {
+            "id": 4,
+            "title": "Automate helper support",
+            "description": "Enhance codex-task helper to scaffold work-tracking entries.",
+            "dependencies": [],
+            "details": "Enhance codex-task helper to scaffold work-tracking entries.",
+            "status": "pending",
+            "testStrategy": "Helper output includes work-tracking prompts."
+          },
+          {
+            "id": 5,
+            "title": "Capture regression evidence",
+            "description": "Demonstrate workflow adherence across two sample sessions; store evidence.",
+            "dependencies": [],
+            "details": "Demonstrate workflow adherence across two sample sessions; store evidence.",
+            "status": "pending",
+            "testStrategy": "Evidence logs captured in reports/work-tracking"
+          }
+        ]
+      },
+      {
+        "id": 90,
+        "title": "Complete Engine Migration (Phase 2/3)",
+        "description": "Finish outstanding engine modules and ensure discoverability.",
+        "details": "Completes migration roadmap for engine templates.",
+        "testStrategy": "Engine modules updated, tested, and discoverable.",
+        "priority": "high",
+        "dependencies": [
+          89
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit engine roadmap",
+            "description": "Review templates/engine README for outstanding Phase 2/3 modules; create inventory.",
+            "dependencies": [],
+            "details": "Review templates/engine README for outstanding Phase 2/3 modules; create inventory.",
+            "status": "pending",
+            "testStrategy": "Inventory stored in docs/engine/"
+          },
+          {
+            "id": 2,
+            "title": "Author missing modules",
+            "description": "Implement outstanding engine modules referenced in roadmap.",
+            "dependencies": [],
+            "details": "Implement outstanding engine modules referenced in roadmap.",
+            "status": "pending",
+            "testStrategy": "Engine modules created."
+          },
+          {
+            "id": 3,
+            "title": "Update registry/navigation",
+            "description": "Include new engine modules in registry/navigation indexes.",
+            "dependencies": [],
+            "details": "Include new engine modules in registry/navigation indexes.",
+            "status": "pending",
+            "testStrategy": "Registry entries updated."
+          },
+          {
+            "id": 4,
+            "title": "Document usage/tests",
+            "description": "Add documentation and tests for new engine modules.",
+            "dependencies": [],
+            "details": "Add documentation and tests for new engine modules.",
+            "status": "pending",
+            "testStrategy": "Docs/tests committed."
+          },
+          {
+            "id": 5,
+            "title": "Add guard hooks",
+            "description": "Ensure guard and helpers can discover engine modules.",
+            "dependencies": [],
+            "details": "Ensure guard and helpers can discover engine modules.",
+            "status": "pending",
+            "testStrategy": "Guard check passes for engine modules."
+          }
+        ]
+      },
+      {
+        "id": 91,
+        "title": "Standardize Template Metadata",
+        "description": "Ensure all templates carry consistent metadata and guard enforces presence.",
+        "details": "Prevents templates from missing status/type information.",
+        "testStrategy": "Metadata schema applied and guard enforcement active.",
+        "priority": "medium",
+        "dependencies": [
+          90
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Inventory missing metadata",
+            "description": "List templates lacking status/type/version metadata.",
+            "dependencies": [],
+            "details": "List templates lacking status/type/version metadata.",
+            "status": "pending",
+            "testStrategy": "Inventory document produced."
+          },
+          {
+            "id": 2,
+            "title": "Define metadata schema",
+            "description": "Publish canonical metadata schema and guidelines.",
+            "dependencies": [],
+            "details": "Publish canonical metadata schema and guidelines.",
+            "status": "pending",
+            "testStrategy": "Schema document published."
+          },
+          {
+            "id": 3,
+            "title": "Batch update templates",
+            "description": "Add metadata to templates using script/automation.",
+            "dependencies": [],
+            "details": "Add metadata to templates using script/automation.",
+            "status": "pending",
+            "testStrategy": "Batch update logs captured."
+          },
+          {
+            "id": 4,
+            "title": "Extend guard",
+            "description": "Add guard checks requiring metadata on new/modified templates.",
+            "dependencies": [],
+            "details": "Add guard checks requiring metadata on new/modified templates.",
+            "status": "pending",
+            "testStrategy": "Guard fails when metadata missing."
+          },
+          {
+            "id": 5,
+            "title": "Document rollout",
+            "description": "Update findings/changelog with metadata rollout summary.",
+            "dependencies": [],
+            "details": "Update findings/changelog with metadata rollout summary.",
+            "status": "pending",
+            "testStrategy": "Documentation updated."
+          }
+        ]
+      },
+      {
+        "id": 92,
+        "title": "Expand Workflow Guard Coverage",
+        "description": "Close behavioural guard gaps identified during audit.",
+        "details": "Improves guard breadth across workflows and commits.",
+        "testStrategy": "Guard enhancements deployed with regression tests.",
+        "priority": "medium",
+        "dependencies": [
+          91
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit guard coverage",
+            "description": "Identify missing behavioural checks (commit format, scope, testing, etc.).",
+            "dependencies": [],
+            "details": "Identify missing behavioural checks (commit format, scope, testing, etc.).",
+            "status": "pending",
+            "testStrategy": "Coverage audit logged."
+          },
+          {
+            "id": 2,
+            "title": "Prioritize guard additions",
+            "description": "Select highest-priority guard enhancements and schedule follow-up tasks.",
+            "dependencies": [],
+            "details": "Select highest-priority guard enhancements and schedule follow-up tasks.",
+            "status": "pending",
+            "testStrategy": "Priority list approved."
+          },
+          {
+            "id": 3,
+            "title": "Implement guard updates",
+            "description": "Add highest-priority guard checks and integrate with helpers.",
+            "dependencies": [],
+            "details": "Add highest-priority guard checks and integrate with helpers.",
+            "status": "pending",
+            "testStrategy": "Guard updates committed."
+          },
+          {
+            "id": 4,
+            "title": "Document guard changes",
+            "description": "Update enforcement documentation with new guard coverage.",
+            "dependencies": [],
+            "details": "Update enforcement documentation with new guard coverage.",
+            "status": "pending",
+            "testStrategy": "Docs updated."
+          },
+          {
+            "id": 5,
+            "title": "Add regression tests",
+            "description": "Create tests verifying new guard checks.",
+            "dependencies": [],
+            "details": "Create tests verifying new guard checks.",
+            "status": "pending",
+            "testStrategy": "pytest tests/enforcement/test_guard_expansion.py"
+          }
+        ]
+      },
+      {
+        "id": 93,
+        "title": "Remediate Compaction Detection Behavior",
+        "description": "Rewrite or retire compaction behavior to align with new enforcement pipeline.",
+        "details": "Prevents stale compaction hooks from causing confusion.",
+        "testStrategy": "Updated compaction behavior documented and tested.",
+        "priority": "medium",
+        "dependencies": [
+          92
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Evaluate compaction behavior",
+            "description": "Review current compaction detection behavior usage/failures.",
+            "dependencies": [],
+            "details": "Review current compaction detection behavior usage/failures.",
+            "status": "pending",
+            "testStrategy": "Evaluation report stored."
+          },
+          {
+            "id": 2,
+            "title": "Decide rewrite vs deprecation",
+            "description": "Determine whether to rewrite or retire compaction behavior.",
+            "dependencies": [],
+            "details": "Determine whether to rewrite or retire compaction behavior.",
+            "status": "pending",
+            "testStrategy": "Decision recorded."
+          },
+          {
+            "id": 3,
+            "title": "Implement behavior update",
+            "description": "Rewrite or remove compaction behavior and update references.",
+            "dependencies": [],
+            "details": "Rewrite or remove compaction behavior and update references.",
+            "status": "pending",
+            "testStrategy": "Behavior update committed."
+          },
+          {
+            "id": 4,
+            "title": "Document protocol",
+            "description": "Update work-tracking/HANDOFF with new compaction protocol.",
+            "dependencies": [],
+            "details": "Update work-tracking/HANDOFF with new compaction protocol.",
+            "status": "pending",
+            "testStrategy": "Docs updated."
+          },
+          {
+            "id": 5,
+            "title": "Add regression tests",
+            "description": "Ensure compaction checkpoints behave correctly in new behavior.",
+            "dependencies": [],
+            "details": "Ensure compaction checkpoints behave correctly in new behavior.",
+            "status": "pending",
+            "testStrategy": "pytest tests/session/test_compaction_behavior.py"
+          }
+        ]
+      },
+      {
+        "id": 94,
+        "title": "Expand Enforcement Framework",
+        "description": "Coordinate enforcement enhancements (drift detection, wizard, metrics dashboard) following guard expansion.",
+        "details": "Keeps enforcement roadmap aligned with new guard chain.",
+        "testStrategy": "Framework documentation updated and enhancement plan sequenced.",
+        "priority": "medium",
+        "dependencies": [
+          93
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Review enforcement framework draft",
+            "description": "Confirm scope and priorities for enforcement enhancements.",
+            "dependencies": [],
+            "details": "Confirm scope and priorities for enforcement enhancements.",
+            "status": "pending",
+            "testStrategy": "Framework outline approved."
+          },
+          {
+            "id": 2,
+            "title": "Sequence enhancement tasks",
+            "description": "Coordinate execution order for drift detection, wizard, dashboard.",
+            "dependencies": [],
+            "details": "Coordinate execution order for drift detection, wizard, dashboard.",
+            "status": "pending",
+            "testStrategy": "Execution plan documented."
+          },
+          {
+            "id": 3,
+            "title": "Update framework documentation",
+            "description": "Reflect guard chain progress and future enhancements.",
+            "dependencies": [],
+            "details": "Reflect guard chain progress and future enhancements.",
+            "status": "pending",
+            "testStrategy": "Documentation updated."
+          },
+          {
+            "id": 4,
+            "title": "Plan automation roadmap",
+            "description": "Outline automation/CI/dashboard integration for enforcement metrics.",
+            "dependencies": [],
+            "details": "Outline automation/CI/dashboard integration for enforcement metrics.",
+            "status": "pending",
+            "testStrategy": "Roadmap published."
+          },
+          {
+            "id": 5,
+            "title": "Coordinate backlog tracking",
+            "description": "Ensure enhancement tasks have owners and evidence tracking.",
+            "dependencies": [],
+            "details": "Ensure enhancement tasks have owners and evidence tracking.",
+            "status": "pending",
+            "testStrategy": "Backlog tracker updated."
+          }
+        ]
+      },
+      {
+        "id": 95,
+        "title": "Implement Template Drift Detection",
+        "description": "Add drift detection tooling and integrate with guard/automation.",
+        "details": "Helps monitor template divergence over time.",
+        "testStrategy": "Drift detection script executed with guard integration and evidence stored.",
+        "priority": "medium",
+        "dependencies": [
+          94
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Finalize drift detection design",
+            "description": "Review design draft and confirm scope, heuristics, output format.",
+            "dependencies": [],
+            "details": "Review design draft and confirm scope, heuristics, output format.",
+            "status": "pending",
+            "testStrategy": "Design signed off."
+          },
+          {
+            "id": 2,
+            "title": "Implement drift detection script",
+            "description": "Build script integrating with codex-guard scanning.",
+            "dependencies": [],
+            "details": "Build script integrating with codex-guard scanning.",
+            "status": "pending",
+            "testStrategy": "Script added under scripts/drift_detection.py."
+          },
+          {
+            "id": 3,
+            "title": "Store drift reports",
+            "description": "Capture outputs under reports/template-drift/ with README.",
+            "dependencies": [],
+            "details": "Capture outputs under reports/template-drift/ with README.",
+            "status": "pending",
+            "testStrategy": "Reports directory populated."
+          },
+          {
+            "id": 4,
+            "title": "Add regression tests",
+            "description": "Verify drift detection accuracy via automated tests.",
+            "dependencies": [],
+            "details": "Verify drift detection accuracy via automated tests.",
+            "status": "pending",
+            "testStrategy": "pytest tests/enforcement/test_drift_detection.py"
+          },
+          {
+            "id": 5,
+            "title": "Plan automation",
+            "description": "Document CI/cron integration for drift reports.",
+            "dependencies": [],
+            "details": "Document CI/cron integration for drift reports.",
+            "status": "pending",
+            "testStrategy": "Automation plan documented."
+          }
+        ]
+      },
+      {
+        "id": 96,
+        "title": "Build Interactive Template Wizard",
+        "description": "Create a wizard CLI to guide template execution while honoring enforcement rules.",
+        "details": "Improves developer experience with template workflows.",
+        "testStrategy": "Wizard CLI implemented with guard integration and tested.",
+        "priority": "medium",
+        "dependencies": [
+          94
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design wizard flow",
+            "description": "Finalize wizard prompts/flow based on design draft.",
+            "dependencies": [],
+            "details": "Finalize wizard prompts/flow based on design draft.",
+            "status": "pending",
+            "testStrategy": "Wizard spec approved."
+          },
+          {
+            "id": 2,
+            "title": "Implement wizard CLI",
+            "description": "Build interactive CLI leveraging workflow/handler metadata.",
+            "dependencies": [],
+            "details": "Build interactive CLI leveraging workflow/handler metadata.",
+            "status": "pending",
+            "testStrategy": "Wizard CLI added under scripts/template_wizard.py"
+          },
+          {
+            "id": 3,
+            "title": "Integrate guard checks",
+            "description": "Ensure wizard respects plan compliance and guard requirements.",
+            "dependencies": [],
+            "details": "Ensure wizard respects plan compliance and guard requirements.",
+            "status": "pending",
+            "testStrategy": "Guard integration validated."
+          },
+          {
+            "id": 4,
+            "title": "Document wizard usage",
+            "description": "Add usage guide, logging, troubleshooting notes.",
+            "dependencies": [],
+            "details": "Add usage guide, logging, troubleshooting notes.",
+            "status": "pending",
+            "testStrategy": "Documentation updated."
+          },
+          {
+            "id": 5,
+            "title": "Regression tests",
+            "description": "Add tests covering common wizard paths.",
+            "dependencies": [],
+            "details": "Add tests covering common wizard paths.",
+            "status": "pending",
+            "testStrategy": "pytest tests/tooling/test_template_wizard.py"
+          }
+        ]
+      },
+      {
+        "id": 97,
+        "title": "Create Template Metrics Dashboard",
+        "description": "Summarize template usage/compliance metrics via dashboard/report.",
+        "details": "Provides visibility into template enforcement health.",
+        "testStrategy": "Metrics dashboard/report generated with automation plan.",
+        "priority": "medium",
+        "dependencies": [
+          94,
+          95,
+          96
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define metrics schema",
+            "description": "Finalize schema for usage/compliance/guard metrics.",
+            "dependencies": [],
+            "details": "Finalize schema for usage/compliance/guard metrics.",
+            "status": "pending",
+            "testStrategy": "Schema document published."
+          },
+          {
+            "id": 2,
+            "title": "Build data collector",
+            "description": "Create tooling to parse guard logs, plan sync logs, task history.",
+            "dependencies": [],
+            "details": "Create tooling to parse guard logs, plan sync logs, task history.",
+            "status": "pending",
+            "testStrategy": "Collector implemented."
+          },
+          {
+            "id": 3,
+            "title": "Implement dashboard/report",
+            "description": "Generate dashboard or Markdown report summarizing metrics.",
+            "dependencies": [],
+            "details": "Generate dashboard or Markdown report summarizing metrics.",
+            "status": "pending",
+            "testStrategy": "Dashboard/report stored in reports/metrics."
+          },
+          {
+            "id": 4,
+            "title": "Document maintenance",
+            "description": "Add maintenance process and alert thresholds.",
+            "dependencies": [],
+            "details": "Add maintenance process and alert thresholds.",
+            "status": "pending",
+            "testStrategy": "Documentation updated."
+          },
+          {
+            "id": 5,
+            "title": "Plan automation",
+            "description": "Outline CI/cron integration for metrics refresh.",
+            "dependencies": [],
+            "details": "Outline CI/cron integration for metrics refresh.",
+            "status": "pending",
+            "testStrategy": "Automation plan documented."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-26T11:45:49.527781Z",
+      "updated": "2025-09-26T14:28:19.652054Z",
       "description": "Tasks for master context"
     }
   }
