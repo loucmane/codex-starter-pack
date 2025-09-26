@@ -11,17 +11,17 @@
 - Authored meta workflow authoring process (`templates/workflows/processes/meta-workflow-authoring.md`) plus orchestrator/pattern routing assets; refreshed plan/guard evidence.
 - Logged Serena memory `plan_compliance_phase1_20250925` capturing completion checkpoint.
 - Guard passes with new plan enforcement (`reports/plan-compliance-phase1/guard-20250925-2122.txt`).
-- Meta workflow enforcement tasks remain staged in work-tracking; awaiting placement earlier in Taskmaster graph.
+- Tasks 81–84 (plan compliance enforcement chain + timestamp guard) added to Taskmaster; upstream tasks (15–20) now depend on the new guard chain.
 
 ## Current Issues/Blockers
 - Awaiting stakeholder approval to implement behaviors/guards (plan compliance, timestamp gate).
 - Taskmaster CLI previously flaky; ensure environment ready before converting drafts to tasks.
-- Meta workflow regression tests not yet implemented; need to insert enforcement tasks earlier in Taskmaster graph.
+- Meta workflow regression tests not yet executed; new tasks (81–84) must be completed before timestamp gate work proceeds.
 
 ## Next Steps
-1. Reinsert meta workflow enforcement/regression tasks into Taskmaster at correct position (consider MCP-assisted reorder).
-2. Implement regression coverage (tests + reports) once tasks are positioned.
-3. Begin timestamp gate implementation after regression plan is locked.
+1. Execute new Taskmaster tasks 81–84 (plan compliance enforcement chain) before resuming downstream work.
+2. Implement regression coverage (tests + reports) for meta workflow guard per Task 83.
+3. Begin timestamp gate implementation (Task 84 subtasks) after regression plan is confirmed.
 
 ## How to Continue
 - Start new session, load drafts in `docs/ai/work-tracking/.../designs/`.

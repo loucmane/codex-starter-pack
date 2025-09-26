@@ -108,6 +108,298 @@
         ]
       },
       {
+        "id": 81,
+        "title": "Implement Plan Compliance Enforcement",
+        "description": "Implement guard and behavior to enforce plan-first workflow execution before any edits occur.",
+        "details": "Completes the plan compliance enforcement loop (behavior, guard validation, plan/tracker sync, evidence logging).",
+        "testStrategy": "Guard blocks workflows when plan requirements are missing; documentation and evidence updated.",
+        "priority": "high",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Finalize plan compliance design scope",
+            "description": "Review draft requirements (emergency bypass, amendments, continuation, conflict detection) and obtain approval before implementation.",
+            "dependencies": [],
+            "details": "Confirm draft with loucmane and update design docs if required.",
+            "status": "pending",
+            "testStrategy": "Design draft signed off and tracker log updated."
+          },
+          {
+            "id": 2,
+            "title": "Implement plan compliance behavior",
+            "description": "Create or update templates/behaviors/planning/plan-compliance.md with enforcement hooks for session start and workflow edits.",
+            "dependencies": [],
+            "details": "Behavior must trigger after ULTRATHINK and before editing guarded files.",
+            "status": "pending",
+            "testStrategy": "Behavior referenced in session lifecycle documentation."
+          },
+          {
+            "id": 3,
+            "title": "Extend guard with plan validation",
+            "description": "Add mandatory plan structure/ID checks and failure messaging to scripts/codex-guard.",
+            "dependencies": [],
+            "details": "Validate plan-step-scope/implement/verify, S:W:H:E entries, and emergency bypass protocol.",
+            "status": "pending",
+            "testStrategy": "python3 scripts/codex-guard validate (fails when plan requirements not met)."
+          },
+          {
+            "id": 4,
+            "title": "Implement plan \u2194 tracker sync validation",
+            "description": "Ensure plan and tracker hashes align via .plan_state/sync.log and guard enforcement.",
+            "dependencies": [],
+            "details": "Guard fails when plan/tracker hashes diverge or sync log missing.",
+            "status": "pending",
+            "testStrategy": "Guard failure observed when removing sync log entry."
+          },
+          {
+            "id": 5,
+            "title": "Implement evidence verification",
+            "description": "Verify S:W:H:E entries and captured commands before allowing plan steps to close.",
+            "dependencies": [],
+            "details": "Guard must confirm evidence is recorded before marking plan steps completed.",
+            "status": "pending",
+            "testStrategy": "Guard fails when evidence field set to placeholder."
+          },
+          {
+            "id": 6,
+            "title": "Integrate guard hooks with workflows",
+            "description": "Wire plan compliance guard into session lifecycle and meta workflow authoring workflows.",
+            "dependencies": [],
+            "details": "Update workflow docs and ensure guard invoked at entry points.",
+            "status": "pending",
+            "testStrategy": "Workflow docs reference guard checks."
+          },
+          {
+            "id": 7,
+            "title": "Document bypass and remediation",
+            "description": "Update work-tracking and handoff documents with emergency bypass policy and remediation steps.",
+            "dependencies": [],
+            "details": "Include instructions for responding to guard failures.",
+            "status": "pending",
+            "testStrategy": "HANDOFF.md includes bypass guidance."
+          },
+          {
+            "id": 8,
+            "title": "Capture guard/test evidence",
+            "description": "Store guard outputs and update Serena memory once enforcement is complete.",
+            "dependencies": [],
+            "details": "Add reports to reports/plan-compliance-phase1 and log Serena memory entry.",
+            "status": "pending",
+            "testStrategy": "Evidence files present and linked in tracker."
+          }
+        ]
+      },
+      {
+        "id": 82,
+        "title": "Integrate Meta Workflow Authoring Enforcement",
+        "description": "Wire the meta workflow orchestrator and gap-detection pattern into guard automation, Taskmaster alignment, and helper tooling.",
+        "details": "Ensures meta workflow authoring process runs before any workflow/handler changes.",
+        "testStrategy": "Guard blocks workflow edits when meta workflow assets missing; Taskmaster checklist updated.",
+        "priority": "high",
+        "dependencies": [
+          81
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Wire orchestrator/pattern into guard",
+            "description": "Extend scripts/codex-guard to require meta workflow orchestrator and workflow-gap pattern during validations.",
+            "dependencies": [],
+            "details": "Guard checks for workflow-gap triggers and ensures assets exist before edits.",
+            "status": "pending",
+            "testStrategy": "python3 scripts/codex-guard validate --include-untracked fails when assets removed."
+          },
+          {
+            "id": 2,
+            "title": "Extend guard metadata",
+            "description": "Add meta workflow triggers to templates/metadata/workflow-guards.json and confirm registries updated.",
+            "dependencies": [],
+            "details": "Guard metadata references new workflow IDs/keywords.",
+            "status": "pending",
+            "testStrategy": "Guard metadata tests detect workflow-gap mapping."
+          },
+          {
+            "id": 3,
+            "title": "Update Taskmaster alignment checklist",
+            "description": "Require meta workflow plan confirmation before editing workflow assets via Taskmaster.",
+            "dependencies": [],
+            "details": "Checklist includes meta workflow step in workflow tasks.",
+            "status": "pending",
+            "testStrategy": "Checklist reviewed with meta workflow requirement."
+          },
+          {
+            "id": 4,
+            "title": "Document guard remediation guidance",
+            "description": "Provide failure messaging and remediation steps for meta workflow enforcement in docs/handoff.",
+            "dependencies": [],
+            "details": "Add instructions for restoring missing assets.",
+            "status": "pending",
+            "testStrategy": "Handoff contains meta workflow remediation section."
+          },
+          {
+            "id": 5,
+            "title": "Plan CI/pre-commit wiring",
+            "description": "Capture TODO notes for running meta workflow guard in CI or pre-commit contexts.",
+            "dependencies": [],
+            "details": "Document pipeline integration plan.",
+            "status": "pending",
+            "testStrategy": "Documentation includes CI plan section."
+          },
+          {
+            "id": 6,
+            "title": "Update codex-task helper messaging",
+            "description": "Modify scripts/codex-task to surface meta workflow requirements during scaffolding commands.",
+            "dependencies": [],
+            "details": "Helper output references meta workflow plan template.",
+            "status": "pending",
+            "testStrategy": "codex-task output displays meta workflow reminder."
+          },
+          {
+            "id": 7,
+            "title": "Capture enforcement evidence",
+            "description": "Store guard outputs and link them in tracker/handoff once enforcement complete.",
+            "dependencies": [],
+            "details": "Add reports/meta-workflow logs and document references.",
+            "status": "pending",
+            "testStrategy": "Evidence files present and linked in tracker."
+          }
+        ]
+      },
+      {
+        "id": 83,
+        "title": "Build Meta Workflow Regression Test Suite",
+        "description": "Add automated coverage to ensure meta workflow orchestrator/pattern registration and guard behavior remain intact.",
+        "details": "Creates unit and integration tests plus documentation for ongoing enforcement.",
+        "testStrategy": "CI passes with new meta workflow tests covering registration and guard behavior.",
+        "priority": "high",
+        "dependencies": [
+          82
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add registration unit tests",
+            "description": "Write tests confirming orchestrator and pattern appear in registries and guard metadata.",
+            "dependencies": [],
+            "details": "Add tests under tests/templates/test_meta_workflow_registration.py.",
+            "status": "pending",
+            "testStrategy": "pytest tests/templates/test_meta_workflow_registration.py"
+          },
+          {
+            "id": 2,
+            "title": "Create guard integration test",
+            "description": "Simulate workflow authoring cycle and assert guard responses with and without assets.",
+            "dependencies": [],
+            "details": "Integration test toggles assets and checks guard behavior.",
+            "status": "pending",
+            "testStrategy": "pytest tests/integration/test_meta_workflow_guard.py"
+          },
+          {
+            "id": 3,
+            "title": "Store regression reports",
+            "description": "Archive test and guard outputs under reports/meta-workflow/ and document findings.",
+            "dependencies": [],
+            "details": "Create reports/meta-workflow/README.md summarizing results.",
+            "status": "pending",
+            "testStrategy": "reports/meta-workflow directory contains latest outputs."
+          },
+          {
+            "id": 4,
+            "title": "Update documentation",
+            "description": "Log regression coverage in changelog, findings, testing docs, and handoff.",
+            "dependencies": [],
+            "details": "Document new tests and evidence trail.",
+            "status": "pending",
+            "testStrategy": "Docs reference meta workflow regression suite."
+          },
+          {
+            "id": 5,
+            "title": "Plan CI integration",
+            "description": "Outline CI pipeline updates (Taskmaster/Serena) to run new tests.",
+            "dependencies": [],
+            "details": "Add TODO notes for pipeline work once tests exist.",
+            "status": "pending",
+            "testStrategy": "CI plan documented in enforcement framework notes."
+          }
+        ]
+      },
+      {
+        "id": 84,
+        "title": "Implement Timestamp Guard",
+        "description": "Enforce real timestamp commands before logging session/work-tracking entries and add regression coverage.",
+        "details": "Extends timestamp behavior, guard checks, templates, helper messaging, and testing.",
+        "testStrategy": "Guard fails when timestamps lack command output; documentation updated with guidance.",
+        "priority": "high",
+        "dependencies": [
+          81,
+          82,
+          83
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update timestamp behavior",
+            "description": "Revise templates/behaviors/timestamps/before-adding.md to mandate running `date \"+%Y-%m-%d %H:%M %Z\"` before logging timestamps.",
+            "dependencies": [],
+            "details": "Document requirement and examples in behavior file.",
+            "status": "pending",
+            "testStrategy": "Behavior file updated; tracker references requirement."
+          },
+          {
+            "id": 2,
+            "title": "Extend guard with timestamp checks",
+            "description": "Add guard logic verifying recent date command output accompanies each timestamp entry.",
+            "dependencies": [],
+            "details": "Guard examines session/work-tracking edits for timestamp evidence.",
+            "status": "pending",
+            "testStrategy": "Guard fails when manual timestamps detected."
+          },
+          {
+            "id": 3,
+            "title": "Update session/work-tracking templates",
+            "description": "Add checklist entries ensuring timestamp evidence recorded for each log entry.",
+            "dependencies": [],
+            "details": "Update templates and tracker documentation.",
+            "status": "pending",
+            "testStrategy": "Templates include timestamp evidence checklist."
+          },
+          {
+            "id": 4,
+            "title": "Add helper guidance",
+            "description": "Provide codex-task messaging or helper instructions for capturing timestamps.",
+            "dependencies": [],
+            "details": "Helper output references timestamp command usage.",
+            "status": "pending",
+            "testStrategy": "codex-task output includes timestamp reminder."
+          },
+          {
+            "id": 5,
+            "title": "Create regression tests",
+            "description": "Add tests ensuring guard blocks manual timestamps and passes when evidence provided.",
+            "dependencies": [],
+            "details": "Add tests under tests/integration/test_timestamp_guard.py.",
+            "status": "pending",
+            "testStrategy": "pytest tests/integration/test_timestamp_guard.py"
+          },
+          {
+            "id": 6,
+            "title": "Document guard usage and remediation",
+            "description": "Update work-tracking, findings, and handoff with timestamp guard instructions and remediation steps.",
+            "dependencies": [],
+            "details": "Add guidance for handling guard failures.",
+            "status": "pending",
+            "testStrategy": "Handoff includes timestamp guard section."
+          }
+        ]
+      },
+      {
         "id": 2,
         "title": "Setup Python Environment and Dependencies",
         "description": "Configure Python 3.11+ environment with required dependencies for scanner suite and automation tools",
@@ -1493,7 +1785,8 @@
         "testStrategy": "Run an end-to-end template change using Serena queries, guard validation, and recorded evidence across sessions/work-tracking.",
         "priority": "medium",
         "dependencies": [
-          12
+          12,
+          84
         ],
         "status": "pending",
         "subtasks": [
@@ -1602,7 +1895,8 @@
         "priority": "medium",
         "dependencies": [
           2,
-          8
+          8,
+          84
         ],
         "status": "pending",
         "subtasks": [
@@ -1719,7 +2013,8 @@
         "testStrategy": "Verify metrics are being collected, test alert triggering, validate dashboard accuracy, ensure data retention policies work",
         "priority": "medium",
         "dependencies": [
-          1
+          1,
+          84
         ],
         "status": "pending",
         "subtasks": [
@@ -1830,7 +2125,8 @@
         "testStrategy": "Test against known vulnerabilities, verify path traversal prevention, test secret detection accuracy, validate sanitization effectiveness",
         "priority": "high",
         "dependencies": [
-          6
+          6,
+          84
         ],
         "status": "pending",
         "subtasks": [
@@ -1937,7 +2233,8 @@
         "testStrategy": "Test rollback from various states, verify data integrity after rollback, test emergency toggle activation, validate checkpoint restoration",
         "priority": "high",
         "dependencies": [
-          10
+          10,
+          84
         ],
         "status": "pending",
         "subtasks": [
@@ -2057,7 +2354,8 @@
         "priority": "high",
         "dependencies": [
           9,
-          15
+          15,
+          84
         ],
         "status": "pending",
         "subtasks": [

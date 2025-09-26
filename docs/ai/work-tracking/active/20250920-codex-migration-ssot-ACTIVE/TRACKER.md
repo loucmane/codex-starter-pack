@@ -51,6 +51,8 @@
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 13:46 CEST` — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:note`rolled back`] Removed provisional Tasks 81–82 from Taskmaster; backlog remains in work-tracking for earlier insertion.
 - **2025-09-26 14:02**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 14:02 CEST` — [S:20250926|W:plan-compliance-followup|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md|E:files`.../plans/taskmaster-audit-high-priority.md`] Backlog expanded with plan compliance, timestamp gate, and enforcement framework task proposals (pending insertion).
+- **2025-09-26 15:35**
+  `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-26 15:35 CEST` — [S:20250926|W:plan-compliance-followup|H:.taskmaster/tasks/tasks.json|E:files`.taskmaster/tasks/tasks.json`] Added tasks 81–84 to Taskmaster and set tasks 15–20 to depend on timestamp guard (84).
 - **2025-09-24 19:30**
   `date "+%Y-%m-%d %H:%M %Z"` => `2025-09-24 19:30 CEST` — [S:20250924|W:taskmaster-audit|H:scripts/codex-guard|E:note`guard run deferred`] Guard run deferred (plan pending); will validate once plan created.
 - **2025-09-24 19:20**
