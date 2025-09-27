@@ -110,6 +110,26 @@
 - **2025-09-21 18:04** — [S:20250921|W:codex-migration|H:templates/handlers/triggers/docs/create-docs|E:files`.taskmaster/docs/prd.txt`] Elevated migration PRD to enterprise spec (exec summary, RACI, dashboards, scorecard, budget).
 - **2025-09-23 10:15** — [S:20250923|W:codex-migration|H:templates/handlers/triggers/session/start-session|E:note`session 2025-09-23-001 started for Taskmaster audit`] Session 2025-09-23-001 initiated to audit Taskmaster tasks for template-system alignment.
 - **2025-09-23 10:39** — [S:20250923|W:codex-migration|H:templates/workflows/patterns/task-management|E:files`.taskmaster/tasks/tasks.json`] Inserted Task 15 “Author Development Workflow Modules” and renumbered downstream IDs to reflect workflow enforcement priority.
+- **2025-09-27 11:23** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/plan-compliance-draft.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/plan-compliance-draft.md`] Scope audit captured for Taskmaster Task 81 outstanding items.
+- **2025-09-27 11:30** — [S:20250927|W:plan-compliance-execution|H:plans/2025-09-27-plan-compliance-phase2.md|E:files`plans/2025-09-27-plan-compliance-phase2.md`] Phase 2 plan created and linked via plans/current for Taskmaster 81 scope.
+- **2025-09-27 11:30** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-task|E:files`scripts/codex-task`] Added plan sync helper subcommand for plan/tracker parity.
+- **2025-09-27 11:30** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`scripts/codex-guard`] Extended guard with emergency bypass tracker check.
+- **2025-09-27 11:30** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/HANDOFF.md|E:files`templates/workflows/session/lifecycle.md`, files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/IMPLEMENTATION.md`, files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/FINDINGS.md`] Updated session workflow + work-tracking docs with plan sync guidance and emergency bypass remediation.
+- **2025-09-27 11:32** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:files`.plan_state/sync.log`] Ran plan sync helper to capture hashes for Phase 2 plan.
+- **2025-09-27 11:34** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:files`.plan_state/sync.log`] Re-synced plan snapshot after evidence/document updates.
+- **2025-09-27 11:35** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:files`.plan_state/sync.log`] Final plan sync recorded post-tracker updates (Phase 2).
+- **2025-09-27 11:36** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`reports/plan-compliance-phase2/guard-20250927-113559.txt`] Guard validation passed with plan sync + emergency bypass enforcement.
+- **2025-09-27 11:39** — [S:20250927|W:plan-compliance-execution|H:.taskmaster/tasks/tasks.json|E:files`.taskmaster/tasks/tasks.json`] Marked Taskmaster Task 14 as done (work-tracking structure already in place).
+- **2025-09-27 11:40** — [S:20250927|W:plan-compliance-execution|H:.taskmaster/tasks/tasks.json|E:files`.taskmaster/tasks/task_081.txt`] Completed Taskmaster Task 81 (plan compliance enforcement) with guard + documentation updates.
+- **2025-09-27 11:41** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/CHANGELOG.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/CHANGELOG.md`] Updated changelog with plan compliance Phase 2 guard + plan sync work.
+- **2025-09-27 11:42** — [S:20250927|W:plan-compliance-execution|H:mcp/serena/write_memory|E:memory`plan_compliance_phase2_20250927`] Stored enforcement checkpoint memory after guard + plan sync updates.
+- **2025-09-27 11:43** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/HANDOFF.md`] Refreshed handoff with Task 81 completion + Task 82 start instructions.
+- **2025-09-27 11:44** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/plans/taskmaster-audit-high-priority.md`] Recorded completion of plan compliance enforcement backlog item (Task 81).
+- **2025-09-27 11:45** — [S:20250927|W:plan-compliance-execution|H:plans/2025-09-27-plan-compliance-phase2.md|E:files`plans/2025-09-27-plan-compliance-phase2.md`] Updated continuation risks to focus on Task 82 + plan-step-verify follow-up.
+- **2025-09-27 11:45** — [S:20250927|W:plan-compliance-execution|H:.taskmaster/tasks/tasks.json|E:cmd`task-master show 82`] Previewed Task 82 (meta workflow enforcement) for next session preparation.
+- **2025-09-27 11:47** — [S:20250927|W:plan-compliance-execution|H:plans/2025-09-27-plan-compliance-phase2.md|E:files`plans/2025-09-27-plan-compliance-phase2.md`] Added guard log reference to plan-step-implement evidence.
+- **2025-09-27 11:49** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`reports/plan-compliance-phase2/guard-20250927-114836.txt`] Final guard pass after plan sync (Phase 2 steady state).
+- **2025-09-27 11:52** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/plan-compliance-draft.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/plan-compliance-draft.md`] Scope audit bullets updated: helper + guard in place, regression tests still outstanding.
 
 ## Current State
 Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). Enforcement helpers (`codex-task`, `codex-guard`) documented and validated; enterprise migration PRD ready for Taskmaster parsing (expansion target to be redefined) and remediation planning resumed on 2025-09-21 12:16 CEST.
@@ -154,3 +174,9 @@ Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates,
 - [ ] plan-step-implement
 - [ ] plan-step-verify
 - [ ] plan-step-emergency (if applicable)
+
+## Plan Compliance Phase 2 Checklist (2025-09-27)
+- [x] plan-step-scope — Scope confirmed with loucmane (Session 2025-09-27 11:15 CEST)
+- [x] plan-step-implement — Guard enhancements + documentation updates completed (2025-09-27 12:05 CEST)
+- [ ] plan-step-verify — Guard/test evidence + Serena memory pending
+- [ ] plan-step-emergency — Not needed unless bypass triggered

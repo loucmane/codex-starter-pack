@@ -1,0 +1,5 @@
+Guard validation failed:
+  - plans/2025-09-27-plan-compliance-phase2.md: plan-step-implement evidence path not found | entry: docs/ai/work-tracking/.../{TRACKER.md
+  - docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md: Tracker checkbox for plan-step-implement marked complete but plan status is pending
+  - docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md: Tracker checkbox for plan-step-verify marked complete but plan status is pending
+  - .plan_state/sync.log: Tracker hash mismatch; run plan sync

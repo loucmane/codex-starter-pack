@@ -340,10 +340,10 @@ def validate_tracker_alignment(plan_steps: Dict[str, Dict[str, str]]) -> List[Va
             if not has_checked:
                 issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should be checked'))
         elif status in PLAN_STATUS_INCOMPLETE:
-            if has_checked:
-                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} marked complete but plan status is {status}'))
+            if not has_unchecked:
+                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
         elif status in PLAN_STATUS_PASSIVE:
-            if has_checked:
+            if not has_unchecked:
                 issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
         else:
             if has_checked and status not in PLAN_STATUS_COMPLETE:
@@ -417,6 +417,24 @@ def validate_plan_conflicts(plan_path: Path, details: PlanDetails) -> List[Valid
             overlap_item = sorted(overlap)[0]
             issues.append(ValidationIssue(candidate.relative_to(REPO_ROOT), f'Active plan overlaps scope with current plan ({overlap_item})'))
     return issues
+
+
+def validate_emergency_bypass(plan_details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not plan_details.emergency_bypass:
+        return issues
+
+    try:
+        tracker_text = TRACKER_ACTIVE.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Tracker file missing for emergency bypass validation'))
+        return issues
+
+    markers = ('plan compliance waived', 'emergency bypass', 'plan-step-emergency')
+    lower = tracker_text.lower()
+    if not any(marker in lower for marker in markers):
+        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Emergency bypass declared but tracker lacks waiver/remediation note'))
+    return issues
 def evaluate_file(path: Path) -> List[ValidationIssue]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -465,6 +483,7 @@ def guard_validate(args: argparse.Namespace) -> int:
             all_issues.extend(validate_tracker_alignment(plan_details.steps))
             all_issues.extend(validate_plan_sync(plan_path, plan_details))
             all_issues.extend(validate_plan_conflicts(plan_path, plan_details))
+            all_issues.extend(validate_emergency_bypass(plan_details))
 
     if all_issues:
         print("Guard validation failed:")

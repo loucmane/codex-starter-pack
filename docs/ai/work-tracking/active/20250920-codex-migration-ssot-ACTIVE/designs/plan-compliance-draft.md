@@ -4,6 +4,15 @@
 Codify a reusable enforcement pattern that ensures every Codex task begins with a detailed plan and cannot proceed without stakeholder confirmation.
 
 ## Core Requirements
+## 2025-09-27 Scope Audit
+- ✅ Behavior (`templates/behaviors/planning/plan-compliance.md`) and plan template (`templates/workflows/processes/plan-template.md`) implemented.
+- ✅ Guard now enforces mandatory plan steps, evidence path existence, tracker parity, sync log presence, and active-plan conflict detection.
+- ✅ `codex-task plan sync` helper implemented; `.plan_state/sync.log` now updated via CLI.
+- ✅ Emergency bypass tracker note enforced via guard (remediation guidance documented in HANDOFF).
+- ✅ Session lifecycle workflow references plan sync requirement.
+- ⚠️ Regression harness pending (dedicated tests still outstanding).
+- ⚠️ Plan amendments/versioning guidance present in template but guard does not validate version bumps or archive records.
+
 1. **Minimum Plan Structure**
    - Plan must contain at least three steps:
      1. `Confirm scope with loucmane` (discussion checkpoint).

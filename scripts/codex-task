@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -19,6 +20,14 @@ PROGRESS_HEADING_TRACKER = "## Progress Log"
 DEFAULT_TIME_FORMAT_SESSION = "%H:%M"
 DEFAULT_TIME_FORMAT_TRACKER = "%Y-%m-%d %H:%M"
 SCANNER_PATH = REPO_ROOT / "scripts" / "template-ssot-scanner"
+PLAN_CURRENT = REPO_ROOT / "plans" / "current"
+TRACKER_ACTIVE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active" / "20250920-codex-migration-ssot-ACTIVE" / "TRACKER.md"
+PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
+PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
+PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
+PLAN_STATUS_COMPLETE = {"completed", "done"}
+PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
+PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
 
 class TaskError(Exception):
     """Custom exception for predictable task failures."""
@@ -35,6 +44,142 @@ def _write_file_lines(path: Path, lines: Iterable[str]) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _resolve_plan_path(override: Optional[str] = None) -> Path:
+    if override:
+        candidate = (REPO_ROOT / override).resolve()
+        if not candidate.exists():
+            raise TaskError(f"Plan file not found: {candidate}")
+        return candidate
+
+    if not PLAN_CURRENT.exists():
+        raise TaskError("Active plan symlink missing; create plan with templates/workflows/processes/plan-template.md")
+
+    resolved = PLAN_CURRENT.resolve()
+    if not resolved.exists():
+        raise TaskError(f"Active plan target missing: {resolved}")
+    return resolved
+
+
+def _resolve_tracker_path(override: Optional[str] = None) -> Path:
+    if override:
+        candidate = (REPO_ROOT / override).resolve()
+        if not candidate.exists():
+            raise TaskError(f"Tracker file not found: {candidate}")
+        return candidate
+    if not TRACKER_ACTIVE.exists():
+        raise TaskError(f"Tracker file missing at {TRACKER_ACTIVE}")
+    return TRACKER_ACTIVE
+
+
+def _parse_plan_table(text: str) -> Dict[str, Dict[str, str]]:
+    steps: Dict[str, Dict[str, str]] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if not cells or not cells[0].startswith("plan-step-"):
+            continue
+        if len(cells) < 4:
+            raise TaskError(f"Malformed plan table row: {raw_line}")
+        step_id = cells[0]
+        description = cells[1] if len(cells) > 1 else ""
+        evidence = cells[-2] if len(cells) >= 3 else ""
+        status = cells[-1].lower()
+        steps[step_id] = {
+            "description": description,
+            "evidence": evidence,
+            "status": status,
+        }
+    return steps
+
+
+def _ensure_plan_steps_present(steps: Dict[str, Dict[str, str]]) -> None:
+    missing = [step for step in PLAN_REQUIRED_STEPS if step not in steps]
+    if missing:
+        raise TaskError(f"Plan is missing required rows: {', '.join(missing)}")
+
+
+def _load_tracker_text(tracker_path: Path) -> str:
+    return tracker_path.read_text(encoding="utf-8")
+
+
+def _tracker_has_checkbox(tracker_text: str, step_id: str, checked: bool) -> bool:
+    token = "- [x]" if checked else "- [ ]"
+    return f"{token} {step_id}" in tracker_text
+
+
+def _validate_tracker_alignment(steps: Dict[str, Dict[str, str]], tracker_text: str) -> None:
+    issues: List[str] = []
+    for step_id, data in steps.items():
+        status = data.get("status", "").strip().lower()
+        has_checked = _tracker_has_checkbox(tracker_text, step_id, True)
+        has_unchecked = _tracker_has_checkbox(tracker_text, step_id, False)
+        if not has_checked and not has_unchecked:
+            issues.append(f"Tracker missing checkbox for {step_id}")
+            continue
+
+        if status in PLAN_STATUS_COMPLETE and not has_checked:
+            issues.append(f"Tracker checkbox for {step_id} should be checked (status {status})")
+        elif status in PLAN_STATUS_INCOMPLETE and not has_unchecked:
+            issues.append(f"Tracker checkbox for {step_id} should remain unchecked (status {status})")
+        elif status in PLAN_STATUS_PASSIVE and not has_unchecked:
+            issues.append(f"Tracker checkbox for {step_id} should remain unchecked (status {status})")
+    if issues:
+        raise TaskError("; ".join(issues))
+
+
+def _compute_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _load_plan_sync_entries() -> List[Dict[str, str]]:
+    if not PLAN_SYNC_LOG.exists():
+        return []
+    try:
+        data = json.loads(PLAN_SYNC_LOG.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"Plan sync log is not valid JSON: {exc}")
+    if not isinstance(data, list):
+        raise TaskError("Plan sync log root must be a list")
+    return data
+
+
+def _write_plan_sync_entries(entries: List[Dict[str, str]]) -> None:
+    PLAN_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    PLAN_SYNC_LOG.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+
+
+def handle_plan_sync(args: argparse.Namespace) -> None:
+    plan_path = _resolve_plan_path(args.plan)
+    tracker_path = _resolve_tracker_path(args.tracker)
+
+    plan_text = plan_path.read_text(encoding="utf-8")
+    steps = _parse_plan_table(plan_text)
+    _ensure_plan_steps_present(steps)
+
+    tracker_text = _load_tracker_text(tracker_path)
+    _validate_tracker_alignment(steps, tracker_text)
+
+    plan_hash = _compute_sha256(plan_path)
+    tracker_hash = _compute_sha256(tracker_path)
+
+    rel_plan = plan_path.relative_to(REPO_ROOT).as_posix()
+    entries = _load_plan_sync_entries()
+    entry = {
+        "plan": rel_plan,
+        "plan_hash": plan_hash,
+        "tracker_hash": tracker_hash,
+        "synced_at": datetime.now().astimezone().isoformat(),
+    }
+
+    if args.dry_run:
+        print(json.dumps(entry, indent=2))
+        return
+
+    entries.append(entry)
+    _write_plan_sync_entries(entries)
+    print(f"Plan sync recorded for {rel_plan}")
 def _parse_front_matter(path: Path) -> Dict[str, str]:
     text = path.read_text(encoding="utf-8")
     if not text.startswith("---"):
@@ -250,6 +395,13 @@ def build_parser() -> argparse.ArgumentParser:
     work_update.add_argument("--document", default="TRACKER", help="Work-tracking markdown name (default TRACKER)")
     work_update.add_argument("--folder", help="Specific ACTIVE folder relative name")
     work_update.set_defaults(func=handle_work_tracking_update)
+
+    plan_parser = subparsers.add_parser("plan", help="Plan utilities")
+    plan_sub = plan_parser.add_subparsers(dest="subcommand", required=True)
+    plan_sync = plan_sub.add_parser("sync", help="Validate plan/tracker parity and log sync entry")
+    plan_sync.add_argument("--plan", help="Explicit plan file path (default: plans/current)")
+    plan_sync.add_argument("--tracker", help="Explicit tracker file path (default: active tracker)")
+    plan_sync.set_defaults(func=handle_plan_sync)
 
     scanner_parser = subparsers.add_parser("scanner", help="SSOT scanner operations")
     scanner_sub = scanner_parser.add_subparsers(dest="subcommand", required=True)

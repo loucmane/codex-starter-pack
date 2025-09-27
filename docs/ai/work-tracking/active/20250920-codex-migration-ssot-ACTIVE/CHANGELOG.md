@@ -54,3 +54,20 @@
 
 ### Removed
 - None.
+
+## 2025-09-27
+
+### Added
+- Implemented `python3 scripts/codex-task plan sync` helper and appended Phase 2 plan file (`plans/2025-09-27-plan-compliance-phase2.md`).
+- Captured guard output with emergency bypass validation (`reports/plan-compliance-phase2/guard-20250927-113559.txt`).
+
+### Changed
+- Updated `scripts/codex-guard` with tracker waiver check for emergency bypass.
+- Refreshed session/work-tracking docs to reference plan sync command and bypass remediation notes.
+- Marked Taskmaster Task 81 (plan compliance enforcement) as completed following guard/doc updates.
+
+### Issues
+- Plan verification step still pending final Serena memory + handoff confirmation.
+
+### Removed
+- None.

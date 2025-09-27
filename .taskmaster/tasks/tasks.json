@@ -117,7 +117,7 @@
         "dependencies": [
           14
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -125,7 +125,7 @@
             "description": "Review draft requirements (emergency bypass, amendments, continuation, conflict detection) and obtain approval before implementation.",
             "dependencies": [],
             "details": "Confirm draft with loucmane and update design docs if required.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Design draft signed off and tracker log updated."
           },
           {
@@ -134,7 +134,7 @@
             "description": "Create or update templates/behaviors/planning/plan-compliance.md with enforcement hooks for session start and workflow edits.",
             "dependencies": [],
             "details": "Behavior must trigger after ULTRATHINK and before editing guarded files.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Behavior referenced in session lifecycle documentation."
           },
           {
@@ -143,7 +143,7 @@
             "description": "Add mandatory plan structure/ID checks and failure messaging to scripts/codex-guard.",
             "dependencies": [],
             "details": "Validate plan-step-scope/implement/verify, S:W:H:E entries, and emergency bypass protocol.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "python3 scripts/codex-guard validate (fails when plan requirements not met)."
           },
           {
@@ -152,7 +152,7 @@
             "description": "Ensure plan and tracker hashes align via .plan_state/sync.log and guard enforcement.",
             "dependencies": [],
             "details": "Guard fails when plan/tracker hashes diverge or sync log missing.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard failure observed when removing sync log entry."
           },
           {
@@ -161,7 +161,7 @@
             "description": "Verify S:W:H:E entries and captured commands before allowing plan steps to close.",
             "dependencies": [],
             "details": "Guard must confirm evidence is recorded before marking plan steps completed.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard fails when evidence field set to placeholder."
           },
           {
@@ -170,7 +170,7 @@
             "description": "Wire plan compliance guard into session lifecycle and meta workflow authoring workflows.",
             "dependencies": [],
             "details": "Update workflow docs and ensure guard invoked at entry points.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow docs reference guard checks."
           },
           {
@@ -179,7 +179,7 @@
             "description": "Update work-tracking and handoff documents with emergency bypass policy and remediation steps.",
             "dependencies": [],
             "details": "Include instructions for responding to guard failures.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "HANDOFF.md includes bypass guidance."
           },
           {
@@ -188,7 +188,7 @@
             "description": "Store guard outputs and update Serena memory once enforcement is complete.",
             "dependencies": [],
             "details": "Add reports to reports/plan-compliance-phase1 and log Serena memory entry.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Evidence files present and linked in tracker."
           }
         ]
@@ -1681,7 +1681,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1689,7 +1689,7 @@
             "description": "Create the main error handler at `src/codex/recovery/handler.py` to coordinate error recovery mechanisms and route errors to appropriate strategies.",
             "dependencies": [],
             "details": "Define a central handler class that receives error events, logs context, and invokes retry, rollback, or circuit breaker modules as needed. Ensure extensibility for future recovery strategies.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1700,7 +1700,7 @@
               "14.1"
             ],
             "details": "Support configurable max attempts, initial delay, multiplier, and jitter. Integrate with handler to automatically retry transient errors. Document retry algorithm and edge cases.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1711,7 +1711,7 @@
               "14.1"
             ],
             "details": "Track error rates and thresholds. Transition between states based on failure/success metrics. Expose hooks for handler to check breaker state before processing requests.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1722,7 +1722,7 @@
               "14.1"
             ],
             "details": "Support atomic rollback for database changes and git-based file restores. Define rollback checkpoints and ensure consistency across distributed operations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1733,7 +1733,7 @@
               "14.1"
             ],
             "details": "Design queue structure, serialization format, and retention policy. Integrate with handler to route failed operations after max retries or circuit breaker open.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1744,7 +1744,7 @@
               "14.1"
             ],
             "details": "Log recovery attempts, circuit breaker transitions, rollback actions, and DLQ entries. Emit metrics for error rates, recovery latency, and alert on threshold breaches.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1755,7 +1755,7 @@
               "14.1"
             ],
             "details": "Define strategy interfaces and implement logic for each type. Allow handler to select appropriate strategy based on error type and context.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -1772,7 +1772,7 @@
               "14.7"
             ],
             "details": "Benchmark recovery modules, optimize code paths, and set configuration parameters for latency targets. Add automated tests to validate performance under load.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-26T14:28:19.652054Z",
+      "updated": "2025-09-27T09:39:54.816Z",
       "description": "Tasks for master context"
     }
   }

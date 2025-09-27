@@ -39,6 +39,7 @@ status: stable
 ### Plan Compliance
 - Create or update active plan using [Plan Template](../processes/plan-template.md).
 - Run `scripts/codex-guard validate --plan` (via behavior) before editing files.
+- After plan + tracker updates, run `python3 scripts/codex-task plan sync` to refresh `.plan_state/sync.log` before continuing.
 - Ensure `plan-step-scope` is completed after stakeholder confirmation.
 
 1. **Run these commands and save outputs:**

@@ -70,6 +70,7 @@ All actions require recording scope in sessions/, tracker entries, and HANDOFF b
 - Plan compliance behavior implemented; guard now validates plan template, tracker checklist, emergency bypass.
 - Minimum plan structure: Scope confirmation → Implementation steps → Verification/reporting.
 - Plan tool is mandatory before file edits; enforce via behavior + guard.
+- After each plan/tracker update, run `python3 scripts/codex-task plan sync` to record hash parity in `.plan_state/sync.log` before continuing.
 - Tracker checklist to mirror plan requirements (no plan, no work).
 - Implementation pending review of behavior/template drafts.
 - First Codex-native plan file (`plans/2025-09-25-plan-compliance-phase1.md`) active; `.plan_state/sync.log` hash recorded for guard parity.

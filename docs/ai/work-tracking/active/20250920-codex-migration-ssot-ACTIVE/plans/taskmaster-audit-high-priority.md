@@ -51,7 +51,7 @@
     5. Plan CI integration (Taskmaster/Serena notes) for new tests.
   - Notes: add to Taskmaster only after review.
 
-### Backlog: Plan Compliance Enforcement (Draft Extraction 2025-09-26)
+### Backlog: Plan Compliance Enforcement (Completed 2025-09-27)
 - **Task Proposal**: "Implement plan compliance enforcement"
   - Subtasks:
     1. Finalize design scope (emergency bypass, amendments, continuation, conflict detection) and obtain sign-off.
@@ -63,6 +63,7 @@
     7. Document bypass/remediation guidance in work-tracking/HANDOFF.
     8. Capture guard/test evidence and Serena memory on completion.
   - Target placement: immediately after “Create Work-Tracking Template Structure” (Task 14).
+  - ✅ Completed via Taskmaster Task 81 on 2025-09-27 (plan sync helper + guard enforcement).
 
 ### Backlog: Timestamp Validation Gate (Draft Extraction 2025-09-26)
 - **Task Proposal**: "Implement timestamp guard"
