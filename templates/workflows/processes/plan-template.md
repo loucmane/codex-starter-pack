@@ -41,7 +41,7 @@ Use this template for every non-trivial work effort. The plan file lives under `
 - (List affected files/components here)
 
 ## Branch Policy
-- `feature-required` (default): work must happen on a feature branch matching one of the plan’s Task IDs (e.g. `feat/81-plan-guard`).
+- `feature-required` (default): work must happen on a feature branch that encodes one of the plan’s Task IDs, e.g. `feat/81-plan-guard`, `feat/task81-plan-guard`, or `feat/task-81-plan-guard`.
 - `main-only`: allowed only when work needs to land directly on `main`; rationale must be noted in Continuation/Handoff and guard will enforce tracker documentation.
 - Additional policies (e.g. `release/<id>`) can be defined explicitly; the guard treats any non `main-only` policy as requiring task-aligned feature branches.
 

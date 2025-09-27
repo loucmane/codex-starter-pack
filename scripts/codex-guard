@@ -214,6 +214,24 @@ def extract_scope(text: str) -> List[str]:
     return scope
 
 
+def extract_task_id_slug(slug: str) -> Optional[str]:
+    token = slug
+    lower = token.lower()
+    if lower.startswith('task-') or lower.startswith('task_'):
+        token = token[5:]
+    elif lower.startswith('task'):
+        token = token[4:]
+    token = token.lstrip('-_')
+    for separator in ('-', '_'):
+        if separator in token:
+            token = token.split(separator, 1)[0]
+            break
+    match = re.match(r"(\d+)", token)
+    if match:
+        return match.group(1)
+    return None
+
+
 def parse_task_ids(text: str) -> List[str]:
     match = TASK_IDS_PATTERN.search(text)
     if not match:
@@ -496,11 +514,10 @@ def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
     for prefix in prefixes:
         if branch.startswith(f'{prefix}/'):
             remainder = branch.split('/', 1)[1]
-            if '-' in remainder:
-                candidate_id = remainder.split('-', 1)[0]
-                if candidate_id in allowed_ids:
-                    branch_ok = True
-                    break
+            candidate_id = extract_task_id_slug(remainder)
+            if candidate_id and candidate_id in allowed_ids:
+                branch_ok = True
+                break
 
     if not branch_ok:
         # allow explicit branch names by matching policy string exactly

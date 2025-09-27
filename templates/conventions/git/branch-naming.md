@@ -32,9 +32,11 @@ type/task-id-descriptive-name
 
 ### Feature Branches
 - **Pattern**: `feat/[task-id]-description`
+- **Task-aware Pattern**: `feat/task[task-id]-description` or `feat/task-[task-id]-description`
 - **Examples**: 
   - `feat/004-shadcn-ui-setup`
-  - `feat/007-core-layout-components`
+  - `feat/task82-meta-workflow-guard`
+  - `feat/task-97-drift-detector`
   - `feat/auth-system`
 - **Purpose**: New features or enhancements
 
