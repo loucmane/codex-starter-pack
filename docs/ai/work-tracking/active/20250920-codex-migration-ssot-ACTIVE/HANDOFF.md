@@ -9,6 +9,7 @@
 - Documented timestamp validation gate requirements.
 - Implemented `codex-task plan sync` helper and updated guard with emergency bypass documentation checks (Task 81 complete).
 - Logged plan compliance Phase 2 changelog + Serena memory (`plan_compliance_phase2_20250927`).
+- Guard now enforces meta workflow plan scope when editing templates/workflows (requires meta orchestrator + pattern in plan scope).
 
 - Authored meta workflow authoring process (`templates/workflows/processes/meta-workflow-authoring.md`) plus orchestrator/pattern routing assets; refreshed plan/guard evidence.
 - Logged Serena memory `plan_compliance_phase1_20250925` capturing completion checkpoint.

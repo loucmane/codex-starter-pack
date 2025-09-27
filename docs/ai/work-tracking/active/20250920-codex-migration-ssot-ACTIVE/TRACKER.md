@@ -145,6 +145,8 @@
 - **2025-09-27 12:44** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:cmd`python3 scripts-codex-task plan sync`] Plan sync recorded after Task 82 evidence update.
 - **2025-09-27 12:45** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after tracker logging (Task 82 plan).],
 - **2025-09-27 12:46** — [S:20250927|W:plan-compliance-execution|H:templates/conventions/git/branch-naming.md|E:files`templates/conventions/git/branch-naming.md`] Branch naming convention updated to allow feat/task82 prefix matching guard.
+- **2025-09-27 12:47** — [S:20250927|W:plan-compliance-execution|H:templates/metadata/workflow-guards.json|E:files`templates/metadata/workflow-guards.json`] Workflow-authoring guard entry added to require meta workflow orchestrator/pattern.
+- **2025-09-27 12:48** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard now requires meta workflow assets in plan scope for workflow edits.
 
 ## Current State
 Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). Enforcement helpers (`codex-task`, `codex-guard`) documented and validated; enterprise migration PRD ready for Taskmaster parsing (expansion target to be redefined) and remediation planning resumed on 2025-09-21 12:16 CEST.

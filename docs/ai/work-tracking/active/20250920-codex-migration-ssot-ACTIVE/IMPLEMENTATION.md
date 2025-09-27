@@ -88,3 +88,4 @@ All actions require recording scope in sessions/, tracker entries, and HANDOFF b
 - Captured draft in `designs/meta-workflow-authoring-draft.md` (gap detection → plan → design → scaffolding → validation → documentation).
 - Includes update vs. create differences, guard prerequisites, tool usage, and evidence expectations.
 - Implementation pending plan compliance guard and stakeholder review.
+- Guard now enforces meta workflow plan scope before allowing changes under `templates/workflows/` (requires orchestrator, workflow, and gap-detection pattern in plan scope).

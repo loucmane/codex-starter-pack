@@ -82,12 +82,14 @@ title: Plan Compliance Enforcement Execution
 - **[12:44]** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:cmd`python3 scripts-codex-task plan sync`] Plan sync after updating Task 82 evidence references.
 - **[12:45]** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:cmd] Plan sync after tracker logging (Task 82 plan).
 - **[12:46]** — [S:20250927|W:plan-compliance-execution|H:templates/conventions/git/branch-naming.md|E:files`templates/conventions/git/branch-naming.md`] Documented task-prefixed feature branch pattern (feat/task82-...).
+- **[12:47]** — [S:20250927|W:plan-compliance-execution|H:templates/metadata/workflow-guards.json|E:files`templates/metadata/workflow-guards.json`] Added workflow-authoring guard mapping to meta workflow assets.
+- **[12:48]** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard enforces meta workflow plan scope on templates/workflows changes.
 ### 🚦 Session End Status
-**SESSION COMPLETED** — Plan compliance enforcement (Task 81) delivered; guard + documentation updates ready for Task 82.
+- **SESSION COMPLETED** — Plan compliance enforcement (Task 81) delivered; guard + documentation updates ready for Task 82.
 - ✅ Implemented `codex-task plan sync` helper and refreshed `.plan_state/sync.log`.
-- ✅ Extended `scripts/codex-guard` with branch/task alignment and emergency bypass tracker validation; guard pass captured.
+- ✅ Extended `scripts/codex-guard` with branch/task alignment, meta workflow scope enforcement, and emergency bypass tracker validation; guard pass captured.
 - ✅ Updated session/work-tracking docs + changelog; Serena memory recorded.
-- ✅ Taskmaster Tasks 14 and 81 marked done; enforcement backlog advances to Task 82.
+- ✅ Taskmaster Tasks 14 and 81 marked done and Task 82 plan created on `feat/task82-meta-workflow-guard` with feature-required branch policy.
 
 ### 📊 Session Metrics
 - Duration: ~1.0 h (11:15–12:17 CEST)

@@ -1113,5 +1113,20 @@
       "templates/workflows/processes/plan-template.md",
       "templates/behaviors/planning/plan-compliance.md"
     ]
+  },
+  {
+    "name": "workflow-authoring",
+    "keywords": [
+      "new workflow",
+      "create workflow",
+      "workflow gap",
+      "update workflow",
+      "modify workflow"
+    ],
+    "requires": [
+      "templates/workflows/processes/meta-workflow-authoring.md",
+      "templates/handlers/orchestrators/meta-workflow-authoring.md",
+      "templates/patterns/integration/workflow-gap-detection.md"
+    ]
   }
 ]
