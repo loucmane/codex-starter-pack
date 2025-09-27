@@ -238,7 +238,7 @@
             "description": "Provide failure messaging and remediation steps for meta workflow enforcement in docs/handoff.",
             "dependencies": [],
             "details": "Add instructions for restoring missing assets.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Handoff contains meta workflow remediation section."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-27T16:44:43.263Z",
+      "updated": "2025-09-27T17:06:32.821Z",
       "description": "Tasks for master context"
     }
   }

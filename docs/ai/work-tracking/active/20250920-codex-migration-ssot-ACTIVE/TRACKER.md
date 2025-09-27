@@ -148,6 +148,8 @@
 - **2025-09-27 12:47** — [S:20250927|W:plan-compliance-execution|H:templates/metadata/workflow-guards.json|E:files`templates/metadata/workflow-guards.json`] Workflow-authoring guard entry added to require meta workflow orchestrator/pattern.
 - **2025-09-27 12:48** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard now requires meta workflow assets in plan scope for workflow edits.
 - **2025-09-27 12:50** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md`] Added Taskmaster alignment checklist item to enforce meta workflow guard + branch policy before editing tasks.
+- **2025-09-27 12:55** — [S:20250927|W:plan-compliance-execution|H:templates/engine/enforcement/meta-workflow-guard-remediation.md|E:files`templates/engine/enforcement/meta-workflow-guard-remediation.md`] Created remediation guidance for meta workflow guard failures.
+- **2025-09-27 12:56** — [S:20250927|W:plan-compliance-execution|H:templates/engine/enforcement/meta-workflow-guard-remediation.md|E:files`templates/engine/enforcement/meta-workflow-guard-remediation.md`] Relocated meta workflow guard remediation guide into templates enforcement.
 
 ## Current State
 Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). Enforcement helpers (`codex-task`, `codex-guard`) documented and validated; enterprise migration PRD ready for Taskmaster parsing (expansion target to be redefined) and remediation planning resumed on 2025-09-21 12:16 CEST.

@@ -85,6 +85,8 @@ title: Plan Compliance Enforcement Execution
 - **[12:47]** — [S:20250927|W:plan-compliance-execution|H:templates/metadata/workflow-guards.json|E:files`templates/metadata/workflow-guards.json`] Added workflow-authoring guard mapping to meta workflow assets.
 - **[12:48]** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard enforces meta workflow plan scope on templates/workflows changes.
 - **[12:50]** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md`] Updated Taskmaster alignment checklist with meta workflow guard requirement.
+- **[12:55]** — [S:20250927|W:plan-compliance-execution|H:templates/engine/enforcement/meta-workflow-guard-remediation.md|E:files`templates/engine/enforcement/meta-workflow-guard-remediation.md`] Documented meta workflow guard remediation playbook.
+- **[12:56]** — [S:20250927|W:plan-compliance-execution|H:templates/engine/enforcement/meta-workflow-guard-remediation.md|E:files`templates/engine/enforcement/meta-workflow-guard-remediation.md`] Moved remediation guidance into templates engine enforcement directory (outside work-tracking).
 ### 🚦 Session End Status
 - **SESSION COMPLETED** — Plan compliance enforcement (Task 81) delivered; guard + documentation updates ready for Task 82.
 - ✅ Implemented `codex-task plan sync` helper and refreshed `.plan_state/sync.log`.
