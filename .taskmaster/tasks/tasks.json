@@ -220,7 +220,7 @@
             "description": "Add meta workflow triggers to templates/metadata/workflow-guards.json and confirm registries updated.",
             "dependencies": [],
             "details": "Guard metadata references new workflow IDs/keywords.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard metadata tests detect workflow-gap mapping."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-27T16:01:57.402Z",
+      "updated": "2025-09-27T16:44:43.263Z",
       "description": "Tasks for master context"
     }
   }
