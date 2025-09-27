@@ -130,6 +130,14 @@
 - **2025-09-27 11:47** — [S:20250927|W:plan-compliance-execution|H:plans/2025-09-27-plan-compliance-phase2.md|E:files`plans/2025-09-27-plan-compliance-phase2.md`] Added guard log reference to plan-step-implement evidence.
 - **2025-09-27 11:49** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`reports/plan-compliance-phase2/guard-20250927-114836.txt`] Final guard pass after plan sync (Phase 2 steady state).
 - **2025-09-27 11:52** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/plan-compliance-draft.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/designs/plan-compliance-draft.md`] Scope audit bullets updated: helper + guard in place, regression tests still outstanding.
+- **2025-09-27 12:25** — [S:20250927|W:plan-compliance-execution|H:templates/workflows/processes/plan-template.md|E:files`templates/workflows/processes/plan-template.md`] Updated plan template header with Task IDs/Branch Policy requirements.
+- **2025-09-27 12:26** — [S:20250927|W:plan-compliance-execution|H:templates/behaviors/planning/plan-compliance.md|E:files`templates/behaviors/planning/plan-compliance.md`] Behavior now requires branch validation before edits.
+- **2025-09-27 12:27** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`scripts/codex-guard`] Added branch policy enforcement (Task IDs vs branch) with tracker waiver requirement.
+- **2025-09-27 12:28** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/IMPLEMENTATION.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/IMPLEMENTATION.md`] Implementation guide updated with branch compliance guard notes.
+- **2025-09-27 12:29** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/FINDINGS.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/FINDINGS.md`] Findings updated to capture new branch guard enforcement.
+- **2025-09-27 12:31** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync executed after branch policy updates.
+- **2025-09-27 12:32** — [S:20250927|W:plan-compliance-execution|H:.plan_state/sync.log|E:cmd`python3 scripts-codex-task plan sync`] Latest plan sync after tracker updates (branch guard integration).
+- **2025-09-27 12:34** — [S:20250927|W:plan-compliance-execution|H:scripts/codex-guard|E:files`reports/plan-compliance-phase2/guard-20250927-123024.txt`] Guard pass confirming branch enforcement + plan sync alignment.
 
 ## Current State
 Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). Enforcement helpers (`codex-task`, `codex-guard`) documented and validated; enterprise migration PRD ready for Taskmaster parsing (expansion target to be redefined) and remediation planning resumed on 2025-09-21 12:16 CEST.
@@ -174,9 +182,11 @@ Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates,
 - [ ] plan-step-implement
 - [ ] plan-step-verify
 - [ ] plan-step-emergency (if applicable)
+- [ ] branch-policy-aligned
 
 ## Plan Compliance Phase 2 Checklist (2025-09-27)
 - [x] plan-step-scope — Scope confirmed with loucmane (Session 2025-09-27 11:15 CEST)
 - [x] plan-step-implement — Guard enhancements + documentation updates completed (2025-09-27 12:05 CEST)
 - [ ] plan-step-verify — Guard/test evidence + Serena memory pending
 - [ ] plan-step-emergency — Not needed unless bypass triggered
+- [x] branch-policy-aligned — Plan header updated (Task IDs + Branch Policy main-only) with guard enforcement (2025-09-27 12:27 CEST)

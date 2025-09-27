@@ -32,6 +32,7 @@
 - `scripts/codex-task` now scaffolds S:W:H:E entries for sessions and work-tracking; `scanner run` can log executions post-command.
 - `scripts/codex-guard validate` parses git changes and enforces handler/evidence compliance (supports `--include-untracked`).
 - New `python3 scripts/codex-task plan sync` command records plan/tracker hash parity into `.plan_state/sync.log` for guard validation.
+- Branch guard enforcement active: current branch must follow plan Branch Policy (e.g. `feat/<task-id>-…` or documented `main-only` waiver).
 - Documentation updates pending (CODEX.md, templates/TOOLS.md) to publicize workflow usage.
 - TODO: add guard auto-fix skeleton support and CI/pre-commit integration.
 

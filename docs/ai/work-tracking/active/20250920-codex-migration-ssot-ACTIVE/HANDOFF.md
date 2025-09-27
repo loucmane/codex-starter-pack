@@ -30,6 +30,7 @@
 - Start new session with plan-compliance follow-up context (2025-09-26).
 - Work through Taskmaster tasks 82–97 in order (meta workflow guard → session/domain → enforcement enhancements).
 - Resume instrumentation/performance tasks only after the enforcement chain is complete.
+- Ensure Git branch matches active plan Branch Policy before edits (feature branch for Task IDs unless plan is explicitly `main-only`).
 
 
 Additional Enhancements Logged (2025-09-24 18:50)

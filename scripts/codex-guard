@@ -30,6 +30,8 @@ PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
 PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
+TASK_IDS_PATTERN = re.compile(r"\*\*Task IDs\*\*:\s*(.+)")
+BRANCH_POLICY_PATTERN = re.compile(r"\*\*Branch Policy\*\*:\s*(.+)")
 
 
 @dataclass
@@ -37,6 +39,8 @@ class PlanDetails:
     steps: Dict[str, Dict[str, str]]
     scope: List[str]
     emergency_bypass: bool
+    task_ids: List[str]
+    branch_policy: Optional[str]
     text: str
 
 @dataclass
@@ -210,6 +214,27 @@ def extract_scope(text: str) -> List[str]:
     return scope
 
 
+def parse_task_ids(text: str) -> List[str]:
+    match = TASK_IDS_PATTERN.search(text)
+    if not match:
+        return []
+    raw = match.group(1)
+    ids: List[str] = []
+    for token in raw.split(','):
+        cleaned = token.strip()
+        if cleaned:
+            ids.append(cleaned)
+    return ids
+
+
+def parse_branch_policy(text: str) -> Optional[str]:
+    match = BRANCH_POLICY_PATTERN.search(text)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    return value if value else None
+
+
 def evidence_tokens(raw: str) -> List[str]:
     tokens: List[str] = []
     for chunk in re.split(r"[;,]\s*", raw):
@@ -314,7 +339,22 @@ def validate_plan(plan_path: Path) -> Tuple[List[ValidationIssue], Optional[Plan
     if not EMERGENCY_PATTERN.search(plan_text):
         issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Emergency Bypass field'))
 
-    details = PlanDetails(steps=steps, scope=scope_entries, emergency_bypass=emergency_required, text=plan_text)
+    task_ids = parse_task_ids(plan_text)
+    if not task_ids:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Task IDs entry'))
+
+    branch_policy = parse_branch_policy(plan_text)
+    if not branch_policy:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Branch Policy entry'))
+
+    details = PlanDetails(
+        steps=steps,
+        scope=scope_entries,
+        emergency_bypass=emergency_required,
+        task_ids=task_ids,
+        branch_policy=branch_policy,
+        text=plan_text,
+    )
     return issues, details
 
 
@@ -419,6 +459,65 @@ def validate_plan_conflicts(plan_path: Path, details: PlanDetails) -> List[Valid
     return issues
 
 
+def get_current_branch() -> Optional[str]:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(REPO_ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError:
+        return None
+    branch = result.stdout.strip()
+    return branch or None
+
+
+def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    branch = get_current_branch()
+    if branch is None:
+        issues.append(ValidationIssue(Path('.'), 'Unable to determine current git branch'))
+        return issues
+
+    policy_raw = plan_details.branch_policy.strip().lower() if plan_details.branch_policy else ''
+    if not policy_raw:
+        return issues
+
+    if policy_raw == 'main-only':
+        if branch != 'main':
+            issues.append(ValidationIssue(Path('git'), f'Branch policy is main-only but current branch is {branch}'))
+        return issues
+
+    allowed_ids = {task_id.strip() for task_id in plan_details.task_ids if task_id.strip()}
+    prefixes = ('feat', 'feature', 'task', 'fix')
+    branch_ok = False
+    for prefix in prefixes:
+        if branch.startswith(f'{prefix}/'):
+            remainder = branch.split('/', 1)[1]
+            if '-' in remainder:
+                candidate_id = remainder.split('-', 1)[0]
+                if candidate_id in allowed_ids:
+                    branch_ok = True
+                    break
+
+    if not branch_ok:
+        # allow explicit branch names by matching policy string exactly
+        if policy_raw != 'feature-required' and branch == plan_details.branch_policy:
+            branch_ok = True
+
+    if not branch_ok:
+        if allowed_ids:
+            expected = ', '.join(sorted(allowed_ids))
+            message = f'Branch {branch} does not match expected Task IDs ({expected}) for policy {plan_details.branch_policy}'
+        else:
+            message = f'Branch {branch} does not satisfy branch policy {plan_details.branch_policy}'
+        issues.append(ValidationIssue(Path('git'), message))
+
+    return issues
+
+
 def validate_emergency_bypass(plan_details: PlanDetails) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     if not plan_details.emergency_bypass:
@@ -483,6 +582,7 @@ def guard_validate(args: argparse.Namespace) -> int:
             all_issues.extend(validate_tracker_alignment(plan_details.steps))
             all_issues.extend(validate_plan_sync(plan_path, plan_details))
             all_issues.extend(validate_plan_conflicts(plan_path, plan_details))
+            all_issues.extend(validate_branch_policy(plan_details))
             all_issues.extend(validate_emergency_bypass(plan_details))
 
     if all_issues:

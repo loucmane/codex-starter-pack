@@ -68,6 +68,7 @@ All actions require recording scope in sessions/, tracker entries, and HANDOFF b
 
 ### Plan Compliance Rules (Draft)
 - Plan compliance behavior implemented; guard now validates plan template, tracker checklist, emergency bypass.
+- Branch enforcement enabled: guard checks active branch vs. plan Task IDs / Branch Policy and requires tracker documentation for any main-only bypass.
 - Minimum plan structure: Scope confirmation → Implementation steps → Verification/reporting.
 - Plan tool is mandatory before file edits; enforce via behavior + guard.
 - After each plan/tracker update, run `python3 scripts/codex-task plan sync` to record hash parity in `.plan_state/sync.log` before continuing.

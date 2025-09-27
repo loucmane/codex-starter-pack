@@ -21,6 +21,8 @@ Use this template for every non-trivial work effort. The plan file lives under `
 - **Session ID (S)**: `YYYY-MM-DD-###`
 - **Work Context (W)**: Matches work-tracking folder/task ID
 - **Handler Target (H)**: Primary template/handler being executed
+- **Task IDs**: Primary Taskmaster IDs covered by this plan (comma-separated)
+- **Branch Policy**: `main-only` (work lands directly on main) or `feature-required` (enforce feature branch)
 - **Evidence Summary (E)**: Commands/files that will prove completion
 - **Plan Version**: Increment when amendments occur (v1, v2, ...)
 - **Emergency Bypass**: `false` (set `true` only with approved waiver)
@@ -37,6 +39,11 @@ Use this template for every non-trivial work effort. The plan file lives under `
 
 ## Scope
 - (List affected files/components here)
+
+## Branch Policy
+- `feature-required` (default): work must happen on a feature branch matching one of the plan’s Task IDs (e.g. `feat/81-plan-guard`).
+- `main-only`: allowed only when work needs to land directly on `main`; rationale must be noted in Continuation/Handoff and guard will enforce tracker documentation.
+- Additional policies (e.g. `release/<id>`) can be defined explicitly; the guard treats any non `main-only` policy as requiring task-aligned feature branches.
 
 ## Amendments & Versioning
 
@@ -60,6 +67,7 @@ Use this template for every non-trivial work effort. The plan file lives under `
 - Command outputs saved under `reports/` or attached to session log.
 - Tests executed with logs linked in **Evidence** column.
 - Guard validation results attached before marking `plan-step-verify` complete.
+- Branch compliance verified (`git branch --show-current` matches Branch Policy and Task IDs).
 
 ## Emergency Bypass Protocol
 - Set `plan-step-emergency` status to `in_progress` when bypass triggered.

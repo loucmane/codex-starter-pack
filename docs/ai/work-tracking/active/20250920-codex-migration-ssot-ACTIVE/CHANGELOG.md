@@ -60,11 +60,13 @@
 ### Added
 - Implemented `python3 scripts/codex-task plan sync` helper and appended Phase 2 plan file (`plans/2025-09-27-plan-compliance-phase2.md`).
 - Captured guard output with emergency bypass validation (`reports/plan-compliance-phase2/guard-20250927-113559.txt`).
+- Enforced branch/task alignment in `scripts/codex-guard` (feature branch must match plan Task IDs or policy `main-only`).
 
 ### Changed
 - Updated `scripts/codex-guard` with tracker waiver check for emergency bypass.
 - Refreshed session/work-tracking docs to reference plan sync command and bypass remediation notes.
 - Marked Taskmaster Task 81 (plan compliance enforcement) as completed following guard/doc updates.
+- Added Branch Policy guidance to plan template and plan compliance behavior.
 
 ### Issues
 - Plan verification step still pending final Serena memory + handoff confirmation.

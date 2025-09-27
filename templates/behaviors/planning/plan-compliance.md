@@ -21,23 +21,29 @@ This behavior fires whenever:
    - `plan-step-scope` is completed after discussion with loucmane.
    - `plan-step-implement` lists concrete deliverables (files/tests).
    - `plan-step-verify` is pending until evidence captured.
-3. Record evidence (session/tracker entries with S:W:H:E, command outputs stored under `reports/`).
-4. If emergency bypass required:
+3. Verify branch policy compliance:
+   - Read `Task IDs` and `Branch Policy` from plan header.
+   - Ensure current branch matches policy (e.g. `feat/<task-id>-…` or `main` when plan is `main-only`).
+   - Document any approved bypass in tracker + handoff before continuing.
+4. Record evidence (session/tracker entries with S:W:H:E, command outputs stored under `reports/`).
+5. If emergency bypass required:
    - Add `plan-step-emergency` with reason, approval, and remediation plan.
    - Create follow-up plan/post-mortem within 24 hours.
-5. Await `codex-guard plan` validation before editing files.
+6. Await `codex-guard plan` validation before editing files.
 
 ## Blocking Gate
 - No active plan symlink (`plans/current`) or missing mandatory steps.
 - Scope step incomplete or missing approval note.
 - Demand for emergency bypass without proper logging.
 - Plan hash changed since last guard run without re-validation.
+- Feature branch mismatch with plan Task IDs or unauthorized edits on `main` when policy requires feature branch.
 
 ## Satisfaction Criteria
 - Guard reports `PLAN_COMPLIANCE=PASS`.
 - Tracker checklist updated for each plan step.
 - Plan sync log updated (`.plan_state/sync.log`).
 - Evidence references (commands/files/tests) recorded.
+- Branch policy satisfied (`git branch --show-current` aligns with plan).
 
 ## Cross-References
 - [Standard Plan Template](../../workflows/processes/plan-template.md)
