@@ -1,7 +1,7 @@
 # Handoff Document
 
-**Last Session**: 2025-09-27 12:12 CEST
-**Current State**: Plan compliance enforcement (Task 81) complete; meta workflow enforcement (Task 82) ready; timestamp gate pending.
+**Last Session**: 2025-09-27 20:45 CEST
+**Current State**: Subtasks 82.1–82.4 complete (guard metadata + remediation docs); CI/pre-commit planning (82.5) next; timestamp gate pending.
 
 ## What Was Done
 - Created detailed design drafts with canonical steps, guard specs, sync procedures.
@@ -23,8 +23,8 @@
 - If an emergency plan bypass is invoked, record the waiver + remediation steps in TRACKER/HANDOFF before resuming work and schedule follow-up plan within 24 hours.
 
 ## Next Steps
-1. Execute Taskmaster Task 82 (Meta Workflow Enforcement) followed by Task 83 (Regression Suite) and Task 84 (Timestamp Gate).
-2. Continue through Tasks 85–97 (session workflows → domain packs → legacy cleanup → alignment → work-tracking → engine → metadata → guard expansion → compaction → enhancements) in order.
+1. Continue Taskmaster Task 82 with subtask 82.5 (CI/pre-commit plan), then 82.6–82.7.
+2. After Task 82 finishes, proceed to Task 83 (Regression Suite) and Task 84 (Timestamp Gate).
 3. Capture regression evidence/tests for guard expansion (Tasks 83, 92, 93) and enhancement tasks (94–97) before resuming instrumentation/performance work.
 
 ## How to Continue

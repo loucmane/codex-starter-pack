@@ -247,7 +247,7 @@
             "description": "Capture TODO notes for running meta workflow guard in CI or pre-commit contexts.",
             "dependencies": [],
             "details": "Document pipeline integration plan.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation includes CI plan section."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-27T17:06:32.821Z",
+      "updated": "2025-09-29T09:24:44.529Z",
       "description": "Tasks for master context"
     }
   }

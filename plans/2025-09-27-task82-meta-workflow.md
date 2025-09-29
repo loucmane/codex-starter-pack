@@ -14,7 +14,7 @@
 | Step ID             | Description                                                                 | Evidence                                                                                     | Status    |
 |---------------------|-----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|-----------|
 | plan-step-scope     | Confirm scope with loucmane for Task 82 meta workflow enforcement on branch `feat/task82-meta-workflow-guard` | sessions/2025/09/2025-09-27-001-plan-compliance-execution.md (scope confirmation entry); tracker log (2025-09-27 12:40 CEST) | completed |
-| plan-step-implement | Wire meta workflow orchestrator/pattern into guard, Taskmaster, tooling; document branch policy usage | scripts/codex-guard; templates/registry updates; docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md; reports/meta-workflow-guard/ | pending   |
+| plan-step-implement | Wire meta workflow orchestrator/pattern into guard, Taskmaster, tooling; document branch policy usage | scripts/codex-guard; templates/engine/enforcement/meta-workflow-guard-ci-plan.md; templates/registry updates; docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md; reports/meta-workflow-guard/ | pending   |
 | plan-step-verify    | Run guard/test suite, capture reports, update Serena memory + handoff, archive plan when done | reports/meta-workflow-guard/; Serena memory (tbd); session end status                      | pending   |
 | plan-step-emergency | Emergency bypass rationale & remediation (only if invoked)                 | Waiver note; post-mortem plan                                                                | not-needed |
 
@@ -22,6 +22,7 @@
 - templates/handlers/orchestrators/meta-workflow-authoring.md
 - templates/patterns/integration/workflow-gap-detection.md
 - templates/metadata/workflow-guards.json
+- templates/engine/enforcement/meta-workflow-guard-ci-plan.md
 - templates/registry/** (handlers, patterns entries)
 - scripts/codex-guard
 - docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/{TRACKER.md, IMPLEMENTATION.md, HANDOFF.md, FINDINGS.md}
