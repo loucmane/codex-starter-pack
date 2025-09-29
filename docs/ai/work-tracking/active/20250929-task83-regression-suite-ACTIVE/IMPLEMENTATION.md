@@ -17,6 +17,14 @@
 - **[16:31 CEST]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker and reran guard (pass at guard-20250929-163110.txt).
 
 ## Upcoming Work
-1. Expand documentation + findings to reflect full regression coverage (subtask 83.4).
-2. Draft CI integration plan and automation hooks for the suite (subtask 83.5).
-3. Prepare consolidated evidence bundle for plan-step-verify (tests + guard outputs).
+1. Draft CI integration plan and automation hooks for the suite (subtask 83.5).
+2. Prepare consolidated evidence bundle for plan-step-verify (tests + guard outputs).
+
+## Regression Coverage Summary
+
+| Suite | Scope | Enforcement | Evidence |
+|-------|-------|-------------|----------|
+| Registration | Validates orchestrator front matter, pattern dependencies, registry anchors, and workflow guard metadata for `workflow-authoring`. | Fails if required dependencies drift or metadata references disappear. | tests/meta_workflow_guard/test_registration.py; reports/meta-workflow-guard/tests/test-registration-20250929-141524.txt |
+| Integration | Executes `codex-guard validate` against clean + placeholder-handler sessions to ensure enforcement remains active. | Fails on placeholder handlers, highlights plan/tracker sync requirements. | tests/meta_workflow_guard/test_guard_integration.py; reports/meta-workflow-guard/tests/test-suite-20250929-155826.txt |
+| Guard Logs | Captures guard responses around plan sync, including expected failures and passes. | Ensures evidence of plan-step-verify readiness and reveals stale state promptly. | reports/meta-workflow-guard/guard-*.txt (mirrored under work-tracking reports) |
+

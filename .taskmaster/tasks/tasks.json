@@ -315,7 +315,7 @@
             "description": "Log regression coverage in changelog, findings, testing docs, and handoff.",
             "dependencies": [],
             "details": "Document new tests and evidence trail.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Docs reference meta workflow regression suite."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T14:29:47.429Z",
+      "updated": "2025-09-29T14:57:13.658Z",
       "description": "Tasks for master context"
     }
   }

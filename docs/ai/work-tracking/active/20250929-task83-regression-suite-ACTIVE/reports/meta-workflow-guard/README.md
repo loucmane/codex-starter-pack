@@ -10,6 +10,9 @@ This directory archives regression evidence generated during Taskmaster Task 83.
 - `guard/guard-20250929-160202.txt` — guard success confirming documentation updates and latest sync.
 - `guard/guard-20250929-163053.txt` — guard failure capturing tracker hash mismatch after documentation edits (pre-sync).
 - `guard/guard-20250929-163110.txt` — guard success after resync, verifying latest documentation changes.
+- `guard/guard-20250929-165219.txt` — guard success confirming documentation expansion for subtask 83.4 prep.
+- `guard/guard-20250929-165424.txt` — guard success after regression coverage summary + plan sync updates.
+- `guard/guard-20250929-165543.txt` — guard success verifying plan table evidence list includes documentation updates.
 - `tests/test-registration-20250929-141524.txt` — unit regression output for orchestrator/pattern/metadata registration checks.
 - `tests/test-suite-20250929-155826.txt` — combined unit + integration regression output covering placeholder handler enforcement.
 

@@ -9,11 +9,19 @@
 - No missing dependencies detected for `workflow-authoring` guard mapping; current SSOT metadata remains valid.
 
 ## Evidence Links
+- [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-165219.txt`] Guard success after documentation expansion.
 - [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-163110.txt`] Guard success after final documentation sync.
 - [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/reports/meta-workflow-guard/README.md|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/reports/meta-workflow-guard/README.md`] Work-tracking snapshot of regression evidence.
 - [S:20250929|W:task83-regression-suite|H:tests/meta_workflow_guard/test_guard_integration.py|E:files`reports/meta-workflow-guard/tests/test-suite-20250929-155826.txt`] Guard integration suite output.
 - [S:20250929|W:task83-regression-suite|H:tests/meta_workflow_guard/test_registration.py|E:files`reports/meta-workflow-guard/tests/test-registration-20250929-141524.txt`] Unit test log confirming registration checks.
 
 ## Follow-ups
-- Extend findings once integration tests surface additional issues (subtask 83.2).
 - Monitor for registry drift after future template migrations.
+- Ensure CI integration (subtask 83.5) stores logs alongside these artefacts.
+
+## Regression Coverage Conclusions
+1. Registration tests enforce the integrity of meta workflow assets (orchestrator, pattern, metadata, registry). Any drift will fail the suite before guard runs.
+2. Integration tests provide behavioural verification of `codex-guard`, catching placeholder handlers and surfacing plan sync issues.
+3. Guard log snapshots demonstrate operational enforcement: both failure (pre-sync) and success (post-sync) are preserved for audit.
+4. Evidence mirrors the plan’s scope, ensuring plan-step-verify has concrete artefacts across tests and guard outputs.
+

@@ -29,6 +29,10 @@
 - **2025-09-29 16:30** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-163053.txt`] Guard caught tracker hash mismatch after report archival.
 - **2025-09-29 16:31** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker following guard failure.
 - **2025-09-29 16:31** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-163110.txt`] Guard validation passes after resync.
+- **2025-09-29 16:35** — [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/IMPLEMENTATION.md|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/IMPLEMENTATION.md`] Documented regression coverage summary for Task 83.
+- **2025-09-29 16:52** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-165219.txt`] Guard pass after documentation expansion for subtask 83.4.
+- **2025-09-29 16:55** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-165543.txt`] Guard validation after plan evidence list update.
+- **2025-09-29 16:56** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.4 --status=done`] Subtask 83.4 marked done after documentation sweep.
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Scope confirmed with loucmane (2025-09-29 13:37 CEST)
 - [ ] plan-step-implement

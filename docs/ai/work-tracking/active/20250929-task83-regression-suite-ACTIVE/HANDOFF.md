@@ -10,7 +10,12 @@
 - Updated tracker checklist and documentation files (Implementation, Findings, Changelog, Decisions).
 
 ## Current Issues / Blockers
-- None for subtask 83.1. Pending integration coverage (subtask 83.2).
+- None for subtask 83.3. Pending documentation expansion + CI plan.
+
+## Regression Coverage Summary
+- Registration suite ensures orchestrator/pattern/metadata alignment (fails on missing dependencies).
+- Integration suite exercises `codex-guard` to block placeholder handlers and confirm plan sync enforcement.
+- Guard logs archived (failure + success) to support plan-step-verify evidence requirements.
 
 ## Next Steps
 1. Capture regression artefacts for storage requirements (subtask 83.3).
