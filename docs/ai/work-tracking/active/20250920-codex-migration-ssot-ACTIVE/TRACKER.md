@@ -153,6 +153,7 @@
 - **2025-09-27 20:45** — [S:20250927|W:plan-compliance-execution|H:docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/HANDOFF.md`] Updated handoff with status after completing Task 82 subtasks 82.1–82.4; next step 82.5 (CI/pre-commit plan).
 - **2025-09-27 20:45** — [S:20250927|W:plan-compliance-execution|H:mcp/serena/write_memory|E:memory`session_2025-09-27_task82_meta_workflow`] Serena memory recorded for Task 82 subtasks 82.1–82.4 completion and next-step plan.
 - **2025-09-29 11:14** — [S:20250929|W:task82-ci-plan|H:templates/engine/enforcement/meta-workflow-guard-ci-plan.md|E:files`templates/engine/enforcement/meta-workflow-guard-ci-plan.md`] Drafted CI/pre-commit wiring plan for meta workflow guard enforcement.
+- **2025-09-29 11:18** — [S:20250929|W:task82-ci-plan|H:scripts/codex-task|E:files`scripts/codex-task`] codex-task now surfaces meta guard remediation message when errors mention guard/plan sync/branch policy.
 
 ## Current State
 Scaffolding complete; baseline + follow-up scanner outputs captured (duplicates, migration status, fix scripts, safe reorganize). Enforcement helpers (`codex-task`, `codex-guard`) documented and validated; enterprise migration PRD ready for Taskmaster parsing (expansion target to be redefined) and remediation planning resumed on 2025-09-21 12:16 CEST.
