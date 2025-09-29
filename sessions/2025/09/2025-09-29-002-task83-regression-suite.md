@@ -33,9 +33,14 @@ title: Task 83 – Meta Workflow Regression Suite
 - **[14:20]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-142041.txt`] Guard validation now passes with registration tests tracked.
 - **[14:21]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83 --status=in-progress`] Marked Task 83 as in-progress after landing first regression tests.
 - **[14:21]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.1 --status=done`] Closed subtask 83.1 (registration unit tests complete).
+- **[15:58]** — [S:20250929|W:task83-regression-suite|H:tests/meta_workflow_guard/test_guard_integration.py|E:files`reports/meta-workflow-guard/tests/test-suite-20250929-155826.txt`] Subtask 83.2: added guard integration regression tests and archived suite output.
+- **[15:58]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-155801.txt`] Guard validation passes post-integration tests.
+- **[15:59]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.2 --status=done`] Closed subtask 83.2 after integration tests.
+- **[15:59]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker after integration documentation updates.
+- **[15:59]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-160202.txt`] Guard validation passes following latest updates.
 
 ### 🚦 Session End Status
-**SESSION IN PROGRESS** — Subtask 83.1 complete; preparing integration coverage (83.2).
+**SESSION IN PROGRESS** — Subtasks 83.1–83.2 complete; preparing evidence/documentation tasks (83.3–83.4).
 
 ### 📊 Session Metrics
 - Duration: —
@@ -43,9 +48,9 @@ title: Task 83 – Meta Workflow Regression Suite
 - Validations: —
 
 ### 📋 Next Session Should:
-- Implement integration tests for meta workflow guard enforcement (plan-step-implement).
-- Capture guard + unittest artefacts for integration coverage and update tracker.
-- Prepare CI wiring notes for regression suite (subtask 83.5).
+- Archive regression artefacts and update storage docs (subtask 83.3).
+- Expand documentation (Implementation, Findings, CHANGELOG) for integration coverage (subtask 83.4).
+- Draft CI integration plan for regression suite (subtask 83.5).
 
 ### 🔄 Handoff Messages
 - See docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/HANDOFF.md for detailed instructions.

@@ -6,7 +6,7 @@
 
 ## Goals
 - [x] Define regression test coverage for meta workflow enforcement
-- [] Implement guard regression scripts/tests
+- [x] Implement guard regression scripts/tests
 - [] Capture evidence bundle for Task 83 completion
 
 ## Progress Log
@@ -20,6 +20,10 @@
 
 - **2025-09-29 14:21** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83 --status=in-progress`] Task 83 marked in progress for regression suite execution.
 - **2025-09-29 14:21** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.1 --status=done`] Subtask 83.1 closed after registration tests landed.
+- **2025-09-29 15:58** — [S:20250929|W:task83-regression-suite|H:tests/meta_workflow_guard/test_guard_integration.py|E:files`reports/meta-workflow-guard/tests/test-suite-20250929-155826.txt`] Subtask 83.2: added guard integration regression suite; outputs archived.
+- **2025-09-29 15:59** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.2 --status=done`] Subtask 83.2 marked done after guard integration tests succeeded.
+- **2025-09-29 15:59** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker after documentation updates.
+- **2025-09-29 15:59** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-160202.txt`] Guard validation passes following integration documentation updates.
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Scope confirmed with loucmane (2025-09-29 13:37 CEST)
 - [ ] plan-step-implement

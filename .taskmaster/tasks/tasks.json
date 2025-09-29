@@ -297,7 +297,7 @@
             "description": "Simulate workflow authoring cycle and assert guard responses with and without assets.",
             "dependencies": [],
             "details": "Integration test toggles assets and checks guard behavior.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/integration/test_meta_workflow_guard.py"
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T12:22:18.514Z",
+      "updated": "2025-09-29T14:00:37.528Z",
       "description": "Tasks for master context"
     }
   }
