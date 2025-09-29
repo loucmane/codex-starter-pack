@@ -6,7 +6,7 @@
 ## What Was Done
 - Created `tests/meta_workflow_guard/test_registration.py` to verify orchestrator/pattern/metadata wiring.
 - Added `tests/meta_workflow_guard/test_guard_integration.py` to exercise codex-guard end-to-end (placeholder handler enforcement).
-- Stored unit + integration outputs under `reports/meta-workflow-guard/tests/`.
+- Stored unit + integration outputs under `reports/meta-workflow-guard/tests/` and archived guard/test snapshots inside work-tracking reports.
 - Updated tracker checklist and documentation files (Implementation, Findings, Changelog, Decisions).
 
 ## Current Issues / Blockers

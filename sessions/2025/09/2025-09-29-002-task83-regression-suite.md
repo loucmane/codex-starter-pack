@@ -39,8 +39,14 @@ title: Task 83 – Meta Workflow Regression Suite
 - **[15:59]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker after integration documentation updates.
 - **[15:59]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-160202.txt`] Guard validation passes following latest updates.
 
+- **[16:27]** — [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/reports/meta-workflow-guard/README.md|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/reports/meta-workflow-guard/README.md`] Subtask 83.3: archived guard/test artefacts into work-tracking reports snapshot.
+- **[16:28]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.3 --status=done`] Closed subtask 83.3 after archiving regression artefacts.
+- **[16:30]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-163053.txt`] Guard caught tracker hash mismatch after report archival.
+- **[16:31]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker following guard failure.
+- **[16:31]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-163110.txt`] Guard validation passes after resync.
+
 ### 🚦 Session End Status
-**SESSION IN PROGRESS** — Subtasks 83.1–83.2 complete; preparing evidence/documentation tasks (83.3–83.4).
+**SESSION IN PROGRESS** — Subtasks 83.1–83.3 complete; preparing documentation + CI tasks (83.4–83.5).
 
 ### 📊 Session Metrics
 - Duration: —
@@ -48,9 +54,9 @@ title: Task 83 – Meta Workflow Regression Suite
 - Validations: —
 
 ### 📋 Next Session Should:
-- Archive regression artefacts and update storage docs (subtask 83.3).
 - Expand documentation (Implementation, Findings, CHANGELOG) for integration coverage (subtask 83.4).
 - Draft CI integration plan for regression suite (subtask 83.5).
+- Prepare summary for plan-step-verify (tests + guard evidence).
 
 ### 🔄 Handoff Messages
 - See docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/HANDOFF.md for detailed instructions.
