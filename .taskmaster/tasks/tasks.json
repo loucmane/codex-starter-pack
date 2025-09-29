@@ -203,7 +203,7 @@
         "dependencies": [
           81
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -229,7 +229,7 @@
             "description": "Require meta workflow plan confirmation before editing workflow assets via Taskmaster.",
             "dependencies": [],
             "details": "Checklist includes meta workflow step in workflow tasks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Checklist reviewed with meta workflow requirement."
           },
           {
@@ -265,7 +265,7 @@
             "description": "Store guard outputs and link them in tracker/handoff once enforcement complete.",
             "dependencies": [],
             "details": "Add reports/meta-workflow logs and document references.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Evidence files present and linked in tracker."
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T10:13:04.690Z",
+      "updated": "2025-09-29T10:33:44.450Z",
       "description": "Tasks for master context"
     }
   }

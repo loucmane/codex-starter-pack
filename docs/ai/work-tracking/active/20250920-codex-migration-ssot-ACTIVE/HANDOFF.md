@@ -1,7 +1,7 @@
 # Handoff Document
 
-**Last Session**: 2025-09-27 20:45 CEST
-**Current State**: Subtasks 82.1–82.4 complete (guard metadata + remediation docs); CI/pre-commit planning (82.5) next; timestamp gate pending.
+**Last Session**: 2025-09-29 11:24 CEST
+**Current State**: Task 82 (Meta Workflow Enforcement) complete; CI/pre-commit plan documented; guard evidence stored; Task 83 (Regression Suite) ready; timestamp gate pending.
 
 ## What Was Done
 - Created detailed design drafts with canonical steps, guard specs, sync procedures.
@@ -23,13 +23,12 @@
 - If an emergency plan bypass is invoked, record the waiver + remediation steps in TRACKER/HANDOFF before resuming work and schedule follow-up plan within 24 hours.
 
 ## Next Steps
-1. Continue Taskmaster Task 82 with subtask 82.5 (CI/pre-commit plan), then 82.6–82.7.
-2. After Task 82 finishes, proceed to Task 83 (Regression Suite) and Task 84 (Timestamp Gate).
-3. Capture regression evidence/tests for guard expansion (Tasks 83, 92, 93) and enhancement tasks (94–97) before resuming instrumentation/performance work.
+1. Begin Taskmaster Task 83 (Regression Suite) followed by Task 84 (Timestamp Gate).
+2. Capture regression evidence/tests for guard expansion (Tasks 83, 92, 93) and enhancement tasks (94–97) before resuming instrumentation/performance work.
 
 ## How to Continue
 - Start new session with plan-compliance follow-up context (2025-09-26).
-- Work through Taskmaster tasks 82–97 in order (meta workflow guard → session/domain → enforcement enhancements).
+- Work through Taskmaster tasks 83–97 in order (regression suite → timestamp gate → session/domain → enforcement enhancements).
 - Resume instrumentation/performance tasks only after the enforcement chain is complete.
 - Ensure Git branch matches active plan Branch Policy before edits (feature branch for Task IDs unless plan is explicitly `main-only`).
 
