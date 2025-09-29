@@ -67,6 +67,8 @@
 - Refreshed session/work-tracking docs to reference plan sync command and bypass remediation notes.
 - Marked Taskmaster Task 81 (plan compliance enforcement) as completed following guard/doc updates.
 - Added Branch Policy guidance to plan template and plan compliance behavior.
+- Guard now enforces meta workflow plan scope when workflows are modified.
+- Documented CI/pre-commit plan for meta workflow guard and enhanced `scripts/codex-task` failure messaging.
 
 ### Issues
 - Plan verification step still pending final Serena memory + handoff confirmation.

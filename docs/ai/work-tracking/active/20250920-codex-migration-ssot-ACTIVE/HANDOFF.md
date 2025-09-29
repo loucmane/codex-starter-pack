@@ -1,7 +1,7 @@
 # Handoff Document
 
-**Last Session**: 2025-09-27 12:12 CEST
-**Current State**: Plan compliance enforcement (Task 81) complete; meta workflow enforcement (Task 82) ready; timestamp gate pending.
+**Last Session**: 2025-09-29 11:24 CEST
+**Current State**: Task 82 (Meta Workflow Enforcement) complete; CI/pre-commit plan documented; guard evidence stored; Task 83 (Regression Suite) ready; timestamp gate pending.
 
 ## What Was Done
 - Created detailed design drafts with canonical steps, guard specs, sync procedures.
@@ -9,6 +9,7 @@
 - Documented timestamp validation gate requirements.
 - Implemented `codex-task plan sync` helper and updated guard with emergency bypass documentation checks (Task 81 complete).
 - Logged plan compliance Phase 2 changelog + Serena memory (`plan_compliance_phase2_20250927`).
+- Guard now enforces meta workflow plan scope when editing templates/workflows (requires meta orchestrator + pattern in plan scope).
 
 - Authored meta workflow authoring process (`templates/workflows/processes/meta-workflow-authoring.md`) plus orchestrator/pattern routing assets; refreshed plan/guard evidence.
 - Logged Serena memory `plan_compliance_phase1_20250925` capturing completion checkpoint.
@@ -22,13 +23,12 @@
 - If an emergency plan bypass is invoked, record the waiver + remediation steps in TRACKER/HANDOFF before resuming work and schedule follow-up plan within 24 hours.
 
 ## Next Steps
-1. Execute Taskmaster Task 82 (Meta Workflow Enforcement) followed by Task 83 (Regression Suite) and Task 84 (Timestamp Gate).
-2. Continue through Tasks 85–97 (session workflows → domain packs → legacy cleanup → alignment → work-tracking → engine → metadata → guard expansion → compaction → enhancements) in order.
-3. Capture regression evidence/tests for guard expansion (Tasks 83, 92, 93) and enhancement tasks (94–97) before resuming instrumentation/performance work.
+1. Begin Taskmaster Task 83 (Regression Suite) followed by Task 84 (Timestamp Gate).
+2. Capture regression evidence/tests for guard expansion (Tasks 83, 92, 93) and enhancement tasks (94–97) before resuming instrumentation/performance work.
 
 ## How to Continue
 - Start new session with plan-compliance follow-up context (2025-09-26).
-- Work through Taskmaster tasks 82–97 in order (meta workflow guard → session/domain → enforcement enhancements).
+- Work through Taskmaster tasks 83–97 in order (regression suite → timestamp gate → session/domain → enforcement enhancements).
 - Resume instrumentation/performance tasks only after the enforcement chain is complete.
 - Ensure Git branch matches active plan Branch Policy before edits (feature branch for Task IDs unless plan is explicitly `main-only`).
 

@@ -20,6 +20,11 @@ GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
 SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
 PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
 PLACEHOLDER_HANDLERS_LOWER = {value.lower() for value in PLACEHOLDER_HANDLERS}
+META_WORKFLOW_FILES = {
+    "templates/workflows/processes/meta-workflow-authoring.md",
+    "templates/handlers/orchestrators/meta-workflow-authoring.md",
+    "templates/patterns/integration/workflow-gap-detection.md",
+}
 
 PLAN_CURRENT = REPO_ROOT / "plans" / "current"
 TRACKER_ACTIVE = REPO_ROOT / "docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md"
@@ -212,6 +217,24 @@ def extract_scope(text: str) -> List[str]:
         if stripped.startswith('- '):
             scope.append(stripped[2:].strip())
     return scope
+
+
+def extract_task_id_slug(slug: str) -> Optional[str]:
+    token = slug
+    lower = token.lower()
+    if lower.startswith('task-') or lower.startswith('task_'):
+        token = token[5:]
+    elif lower.startswith('task'):
+        token = token[4:]
+    token = token.lstrip('-_')
+    for separator in ('-', '_'):
+        if separator in token:
+            token = token.split(separator, 1)[0]
+            break
+    match = re.match(r"(\d+)", token)
+    if match:
+        return match.group(1)
+    return None
 
 
 def parse_task_ids(text: str) -> List[str]:
@@ -496,11 +519,10 @@ def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
     for prefix in prefixes:
         if branch.startswith(f'{prefix}/'):
             remainder = branch.split('/', 1)[1]
-            if '-' in remainder:
-                candidate_id = remainder.split('-', 1)[0]
-                if candidate_id in allowed_ids:
-                    branch_ok = True
-                    break
+            candidate_id = extract_task_id_slug(remainder)
+            if candidate_id and candidate_id in allowed_ids:
+                branch_ok = True
+                break
 
     if not branch_ok:
         # allow explicit branch names by matching policy string exactly

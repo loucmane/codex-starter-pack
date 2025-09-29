@@ -203,7 +203,7 @@
         "dependencies": [
           81
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -211,7 +211,7 @@
             "description": "Extend scripts/codex-guard to require meta workflow orchestrator and workflow-gap pattern during validations.",
             "dependencies": [],
             "details": "Guard checks for workflow-gap triggers and ensures assets exist before edits.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "python3 scripts/codex-guard validate --include-untracked fails when assets removed."
           },
           {
@@ -220,7 +220,7 @@
             "description": "Add meta workflow triggers to templates/metadata/workflow-guards.json and confirm registries updated.",
             "dependencies": [],
             "details": "Guard metadata references new workflow IDs/keywords.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard metadata tests detect workflow-gap mapping."
           },
           {
@@ -229,7 +229,7 @@
             "description": "Require meta workflow plan confirmation before editing workflow assets via Taskmaster.",
             "dependencies": [],
             "details": "Checklist includes meta workflow step in workflow tasks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Checklist reviewed with meta workflow requirement."
           },
           {
@@ -238,7 +238,7 @@
             "description": "Provide failure messaging and remediation steps for meta workflow enforcement in docs/handoff.",
             "dependencies": [],
             "details": "Add instructions for restoring missing assets.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Handoff contains meta workflow remediation section."
           },
           {
@@ -247,7 +247,7 @@
             "description": "Capture TODO notes for running meta workflow guard in CI or pre-commit contexts.",
             "dependencies": [],
             "details": "Document pipeline integration plan.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation includes CI plan section."
           },
           {
@@ -256,7 +256,7 @@
             "description": "Modify scripts/codex-task to surface meta workflow requirements during scaffolding commands.",
             "dependencies": [],
             "details": "Helper output references meta workflow plan template.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "codex-task output displays meta workflow reminder."
           },
           {
@@ -265,7 +265,7 @@
             "description": "Store guard outputs and link them in tracker/handoff once enforcement complete.",
             "dependencies": [],
             "details": "Add reports/meta-workflow logs and document references.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Evidence files present and linked in tracker."
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-27T09:39:54.816Z",
+      "updated": "2025-09-29T10:33:44.450Z",
       "description": "Tasks for master context"
     }
   }

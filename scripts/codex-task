@@ -332,6 +332,14 @@ def _resolve_scanner(tool: str) -> Path:
     return target
 
 
+def _meta_guard_message() -> str:
+    return (
+        "Meta Workflow Guard failed. Ensure your plan includes the meta workflow assets, "
+        "branch matches policy (e.g., feat/task<id>-description), and run plan sync. "
+        "See templates/engine/enforcement/meta-workflow-guard-remediation.md for remediation steps."
+    )
+
+
 def handle_scanner_run(args: argparse.Namespace) -> None:
     script_path = _resolve_scanner(args.tool)
     extra_args = getattr(args, "scanner_args", [])
@@ -431,7 +439,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         args.func(args)
     except TaskError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        message = str(exc)
+        print(f"error: {message}", file=sys.stderr)
+        lowered = message.lower()
+        if any(keyword in lowered for keyword in ("guard", "plan sync", "branch policy")):
+            print(_meta_guard_message(), file=sys.stderr)
         return 1
     except KeyboardInterrupt:
         print("Interrupted", file=sys.stderr)
