@@ -324,7 +324,7 @@
             "description": "Outline CI pipeline updates (Taskmaster/Serena) to run new tests.",
             "dependencies": [],
             "details": "Add TODO notes for pipeline work once tests exist.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CI plan documented in enforcement framework notes."
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T14:57:13.658Z",
+      "updated": "2025-09-29T17:26:37.919Z",
       "description": "Tasks for master context"
     }
   }

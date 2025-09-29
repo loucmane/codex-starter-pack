@@ -53,8 +53,16 @@ title: Task 83 – Meta Workflow Regression Suite
 
 - **[16:56]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.4 --status=done`] Closed subtask 83.4 after documentation sweep.
 
+- **[19:22]** — [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/designs/ci-integration-plan.md|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/designs/ci-integration-plan.md`] Authored CI integration plan describing automated guard/test runs and artefact storage.
+- **[19:23]** — [S:20250929|W:task83-regression-suite|H:python3/scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Synced plan/tracker after CI plan documentation.
+- **[19:23]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`reports/meta-workflow-guard/guard-20250929-165424.txt`] Guard validation passes with CI plan evidence recorded.
+
+- **[19:25]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/reports/meta-workflow-guard/guard/guard-20250929-192520.txt`] Guard pass after syncing CI documentation updates.
+
+- **[19:26]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.5 --status=done`] Closed subtask 83.5 after CI integration plan finalized.
+
 ### 🚦 Session End Status
-**SESSION IN PROGRESS** — Subtasks 83.1–83.3 complete; preparing documentation + CI tasks (83.4–83.5).
+**SESSION IN PROGRESS** — Subtasks 83.1–83.4 complete; preparing CI automation execution + plan-step-verify bundle (83.5).
 
 ### 📊 Session Metrics
 - Duration: —
@@ -62,9 +70,9 @@ title: Task 83 – Meta Workflow Regression Suite
 - Validations: —
 
 ### 📋 Next Session Should:
-- Expand documentation (Implementation, Findings, CHANGELOG) for integration coverage (subtask 83.4).
-- Draft CI integration plan for regression suite (subtask 83.5).
-- Prepare summary for plan-step-verify (tests + guard evidence).
+- Finalise CI workflow implementation (create `.github/workflows/meta-workflow-guard.yml`).
+- Prepare consolidated evidence bundle for plan-step-verify (tests + guard outputs).
+- Run full suite post-CI script landing to confirm parity.
 
 ### 🔄 Handoff Messages
 - See docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/HANDOFF.md for detailed instructions.

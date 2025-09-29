@@ -17,8 +17,9 @@
 - **[16:31 CEST]** — [S:20250929|W:task83-regression-suite|H:scripts/codex-task/plan-sync|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan/tracker and reran guard (pass at guard-20250929-163110.txt).
 
 ## Upcoming Work
-1. Draft CI integration plan and automation hooks for the suite (subtask 83.5).
-2. Prepare consolidated evidence bundle for plan-step-verify (tests + guard outputs).
+1. Prepare consolidated evidence bundle for plan-step-verify (tests + guard outputs).
+2. Wire GitHub Actions workflow + branch protection (post-plan implementation follow-up).
+- **[19:22 CEST]** — [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/designs/ci-integration-plan.md|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/designs/ci-integration-plan.md`] Authored CI integration plan outlining workflow steps, commands, artefact storage, and failure handling.
 
 ## Regression Coverage Summary
 

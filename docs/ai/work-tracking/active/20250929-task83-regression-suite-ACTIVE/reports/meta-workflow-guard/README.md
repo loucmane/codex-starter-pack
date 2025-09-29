@@ -15,9 +15,9 @@ This directory archives regression evidence generated during Taskmaster Task 83.
 - `guard/guard-20250929-165543.txt` — guard success verifying plan table evidence list includes documentation updates.
 - `tests/test-registration-20250929-141524.txt` — unit regression output for orchestrator/pattern/metadata registration checks.
 - `tests/test-suite-20250929-155826.txt` — combined unit + integration regression output covering placeholder handler enforcement.
+- `guard/guard-20250929-192520.txt` — guard success after plan sync capturing CI documentation updates.
 
 ## Retrieval Notes
 - Original sources remain under `reports/meta-workflow-guard/` at the repository root for cross-reference.
 - Evidence is referenced in `docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/IMPLEMENTATION.md` and the session log `sessions/2025/09/2025-09-29-002-task83-regression-suite.md`.
 - Guard reports retain their original timestamps to align with plan-sync entries in `.plan_state/sync.log`.
-
