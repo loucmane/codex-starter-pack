@@ -1,9 +1,5 @@
-# ${name//-/ } Document
+# Task 83 Regression Suite – Decisions
 
-## Overview
-- Task: Taskmaster Task 83 – Regression Suite for meta workflow enforcement
-- Branch: feat/task83-regression-suite
-- Owner: Codex + loucmane
-- Created: 2025-09-29
-- Status: Draft
-
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2025-09-29 | Treat registration regression suite as baseline guard for meta workflow assets | Ensures future template edits cannot drop orchestrator/pattern references without test failures |

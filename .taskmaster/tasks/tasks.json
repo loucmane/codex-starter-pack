@@ -280,7 +280,7 @@
         "dependencies": [
           82
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -288,7 +288,7 @@
             "description": "Write tests confirming orchestrator and pattern appear in registries and guard metadata.",
             "dependencies": [],
             "details": "Add tests under tests/templates/test_meta_workflow_registration.py.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_meta_workflow_registration.py"
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T10:33:44.450Z",
+      "updated": "2025-09-29T12:22:18.514Z",
       "description": "Tasks for master context"
     }
   }

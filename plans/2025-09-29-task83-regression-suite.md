@@ -14,7 +14,7 @@
 | Step ID             | Description                                                                 | Evidence                                                                                                         | Status    |
 |---------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|-----------|
 | plan-step-scope     | Confirm regression suite scope with loucmane, identify assets under test   | sessions/2025/09/2025-09-29-002-task83-regression-suite.md; docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/TRACKER.md | completed |
-| plan-step-implement | Add unit/integration tests, update ci wiring, update docs                  | tests/meta_workflow_guard/; scripts/codex-guard; templates/engine/enforcement/meta-workflow-guard-ci-plan.md    | pending   |
+| plan-step-implement | Add unit/integration tests, update ci wiring, update docs                  | tests/meta_workflow_guard/; scripts/codex-guard; templates/engine/enforcement/meta-workflow-guard-ci-plan.md    | in_progress |
 | plan-step-verify    | Run guard/tests in CI/local, store reports, update handoff                  | reports/meta-workflow-guard/; docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/TRACKER.md; sessions/2025/09/2025-09-29-002-task83-regression-suite.md | pending   |
 | plan-step-emergency | Emergency bypass rationale & remediation (only if invoked)                 | Waiver note; post-mortem plan                                                                                    | not-needed |
 

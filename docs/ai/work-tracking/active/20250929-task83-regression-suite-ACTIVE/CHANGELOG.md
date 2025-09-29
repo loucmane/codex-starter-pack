@@ -1,9 +1,5 @@
-# ${name//-/ } Document
+# Task 83 Regression Suite – Changelog
 
-## Overview
-- Task: Taskmaster Task 83 – Regression Suite for meta workflow enforcement
-- Branch: feat/task83-regression-suite
-- Owner: Codex + loucmane
-- Created: 2025-09-29
-- Status: Draft
-
+| Date | Change | Evidence |
+|------|--------|----------|
+| 2025-09-29 | Added `tests/meta_workflow_guard/test_registration.py` covering orchestrator/pattern/metadata registration | reports/meta-workflow-guard/tests/test-registration-20250929-141524.txt |
