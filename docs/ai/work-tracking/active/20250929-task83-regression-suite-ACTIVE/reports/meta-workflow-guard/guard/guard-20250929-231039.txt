@@ -1,0 +1,2 @@
+Guard validation failed:
+  - sessions/2025/09/2025-09-29-002-task83-regression-suite.md: Referenced handler path not found | entry: [S:20250929|W:task83-regression-suite|H:templates/handlers/triggers/session/close-session.md|E:note`Wrapping Task 83 work; preparing to resume with Task 84 next session.`]
