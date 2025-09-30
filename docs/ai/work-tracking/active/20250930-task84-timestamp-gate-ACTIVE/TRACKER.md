@@ -18,6 +18,8 @@
 - **2025-09-30 11:44** — [S:20250930|W:task84-timestamp-gate|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Recorded initial plan/tracker sync for Task 84.
 - **2025-09-30 11:52** — [S:20250930|W:task84-timestamp-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Re-confirmed current time before designing timestamp guard policy.
 - **2025-09-30 11:53** — [S:20250930|W:task84-timestamp-gate|H:docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/designs/timestamp-guard-policy.md|E:files`docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/designs/timestamp-guard-policy.md`] Drafted timestamp guard policy outlining enforcement rules.
+- **2025-09-30 12:21** — [S:20250930|W:task84-timestamp-gate|H:tests/timestamp_guard/test_timestamp_validation.py|E:files`reports/timestamp-guard/test-suite-20250930-122103.txt`] Timestamp regression suite executed.
+- **2025-09-30 12:21** — [S:20250930|W:task84-timestamp-gate|H:scripts/codex-guard|E:files`reports/timestamp-guard/guard-20250930-122114.txt`] Guard run captured after timestamp enforcement changes.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Timestamp guard policy documented (2025-09-30 11:53 CEST)

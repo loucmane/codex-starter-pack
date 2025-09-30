@@ -341,7 +341,7 @@
           82,
           83
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -349,7 +349,7 @@
             "description": "Revise templates/behaviors/timestamps/before-adding.md to mandate running `date \"+%Y-%m-%d %H:%M %Z\"` before logging timestamps.",
             "dependencies": [],
             "details": "Document requirement and examples in behavior file.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Behavior file updated; tracker references requirement."
           },
           {
@@ -358,7 +358,7 @@
             "description": "Add guard logic verifying recent date command output accompanies each timestamp entry.",
             "dependencies": [],
             "details": "Guard examines session/work-tracking edits for timestamp evidence.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard fails when manual timestamps detected."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T17:26:37.919Z",
+      "updated": "2025-09-30T10:23:03.346Z",
       "description": "Tasks for master context"
     }
   }

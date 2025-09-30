@@ -23,7 +23,6 @@
 - tests/** (timestamp guard fixtures)
 - docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/{TRACKER.md, IMPLEMENTATION.md, FINDINGS.md, HANDOFF.md}
 - sessions/2025/09/2025-09-30-001-task84-timestamp-gate.md
-- .plan_state/sync.log
 
 ## Amendments & Versioning
 - None yet. Future amendments will document timestamp, rationale, approver, and version bump.
