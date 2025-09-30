@@ -33,17 +33,15 @@ version: 2.0.0
    - Parse YAML frontmatter
    - Locate Progress Log section
 3. **Gather update information**:
-   - Current timestamp: `date "+%H:%M"`
-   - Work completed since last update
-   - Any blockers or issues
-   - Next steps planned
+   - Run `date "+%Y-%m-%d %H:%M %Z"` and record the command in the session log (`E:cmd\`date ...\``) before adding the entry. This satisfies the timestamp guard.
+   - Capture work completed since last update, blockers, and next steps.
 4. **Update Progress Log section**:
-   - Add new entry with timestamp:
+   - Append a new entry immediately after the recorded `date` command. Timestamps must be strictly non-decreasing; the guard will block out-of-order entries.
    ```markdown
-   - **[HH:MM]** - [summary of progress]
-     - Completed: [specific items]
-     - Blocked: [if any]
-     - Next: [planned work]
+   - **[HH:MM]** — [S:YYYYMMDD|W:context|H:handler|E:files`path-or-note`]
+     - Completed: …
+     - Blocked: …
+     - Next: …
    ```
 5. **Update session metadata**:
    - Recalculate line count if needed

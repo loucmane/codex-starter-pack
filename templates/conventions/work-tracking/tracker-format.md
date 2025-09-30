@@ -85,6 +85,7 @@ GitHub provider pending. Database schema updated.
 - **YYYY-MM-DD HH:MM**: 🔄 RETRY: Attempting again
 - **YYYY-MM-DD HH:MM**: 👤 User feedback: "Quote from user"
 ```
+- Each entry must be preceded in the session log by an `E:cmd\`date ...\`` S:W:H:E line. The timestamp guard verifies the command and enforces chronological ordering.
 
 ### Current State
 - **REPLACE** entire content when updating
@@ -104,7 +105,8 @@ GitHub provider pending. Database schema updated.
 ```yaml
 When updating TRACKER.md:
   Progress Log: 
-    - APPEND new timestamped entries
+    - Run `date "+%Y-%m-%d %H:%M %Z"` before logging the entry and capture the command in the session log
+    - APPEND new timestamped entries in chronological order
     - NEVER delete old entries
     - Add at END of section
     
@@ -162,6 +164,7 @@ date "+%Y-%m-%d %H:%M"
 # For progress log times
 date '+%H:%M'
 ```
+> **Guard enforcement**: `python3 scripts/codex-guard validate --include-untracked` verifies recorded `date` commands and chronological order. Do not reuse or hand-type timestamps.
 
 ### Never Type Manually
 - ❌ "2025-07-30 14:30" (guessed)
