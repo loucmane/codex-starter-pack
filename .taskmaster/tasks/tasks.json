@@ -280,7 +280,7 @@
         "dependencies": [
           82
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -288,7 +288,7 @@
             "description": "Write tests confirming orchestrator and pattern appear in registries and guard metadata.",
             "dependencies": [],
             "details": "Add tests under tests/templates/test_meta_workflow_registration.py.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_meta_workflow_registration.py"
           },
           {
@@ -297,7 +297,7 @@
             "description": "Simulate workflow authoring cycle and assert guard responses with and without assets.",
             "dependencies": [],
             "details": "Integration test toggles assets and checks guard behavior.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/integration/test_meta_workflow_guard.py"
           },
           {
@@ -306,7 +306,7 @@
             "description": "Archive test and guard outputs under reports/meta-workflow/ and document findings.",
             "dependencies": [],
             "details": "Create reports/meta-workflow/README.md summarizing results.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "reports/meta-workflow directory contains latest outputs."
           },
           {
@@ -315,7 +315,7 @@
             "description": "Log regression coverage in changelog, findings, testing docs, and handoff.",
             "dependencies": [],
             "details": "Document new tests and evidence trail.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Docs reference meta workflow regression suite."
           },
           {
@@ -324,7 +324,7 @@
             "description": "Outline CI pipeline updates (Taskmaster/Serena) to run new tests.",
             "dependencies": [],
             "details": "Add TODO notes for pipeline work once tests exist.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "CI plan documented in enforcement framework notes."
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-29T10:33:44.450Z",
+      "updated": "2025-09-29T17:26:37.919Z",
       "description": "Tasks for master context"
     }
   }

@@ -21,7 +21,6 @@ DEFAULT_TIME_FORMAT_SESSION = "%H:%M"
 DEFAULT_TIME_FORMAT_TRACKER = "%Y-%m-%d %H:%M"
 SCANNER_PATH = REPO_ROOT / "scripts" / "template-ssot-scanner"
 PLAN_CURRENT = REPO_ROOT / "plans" / "current"
-TRACKER_ACTIVE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active" / "20250920-codex-migration-ssot-ACTIVE" / "TRACKER.md"
 PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
 PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
@@ -66,9 +65,7 @@ def _resolve_tracker_path(override: Optional[str] = None) -> Path:
         if not candidate.exists():
             raise TaskError(f"Tracker file not found: {candidate}")
         return candidate
-    if not TRACKER_ACTIVE.exists():
-        raise TaskError(f"Tracker file missing at {TRACKER_ACTIVE}")
-    return TRACKER_ACTIVE
+    return _get_tracker_path()
 
 
 def _parse_plan_table(text: str) -> Dict[str, Dict[str, str]]:
@@ -231,6 +228,14 @@ def _resolve_active_work_tracking(explicit: Optional[str] = None) -> Path:
         names = ", ".join(p.name for p in candidates)
         raise TaskError(f"Multiple ACTIVE work-tracking folders found ({names}); specify one via --folder.")
     return candidates[0]
+
+
+def _get_tracker_path(explicit: Optional[str] = None) -> Path:
+    folder = _resolve_active_work_tracking(explicit)
+    tracker = folder / "TRACKER.md"
+    if not tracker.exists():
+        raise TaskError(f"Tracker file missing at {tracker}")
+    return tracker
 
 
 def _derive_session_value(meta: Dict[str, str]) -> str:

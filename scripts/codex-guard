@@ -15,7 +15,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SESSIONS_PREFIX = Path("sessions")
-WORK_TRACKING_PREFIX = Path("docs/ai/work-tracking/active")
+WORK_TRACKING_PREFIX = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
 GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
 SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
 PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
@@ -27,7 +27,6 @@ META_WORKFLOW_FILES = {
 }
 
 PLAN_CURRENT = REPO_ROOT / "plans" / "current"
-TRACKER_ACTIVE = REPO_ROOT / "docs/ai/work-tracking/active/20250920-codex-migration-ssot-ACTIVE/TRACKER.md"
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 EMERGENCY_PATTERN = re.compile(r"\*\*Emergency Bypass\*\*:\s*(true|false)", re.IGNORECASE)
 PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
@@ -383,10 +382,11 @@ def validate_plan(plan_path: Path) -> Tuple[List[ValidationIssue], Optional[Plan
 
 def validate_tracker_alignment(plan_steps: Dict[str, Dict[str, str]]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
+    tracker_path = get_active_tracker_path()
     try:
-        tracker_text = TRACKER_ACTIVE.read_text(encoding='utf-8')
+        tracker_text = tracker_path.read_text(encoding='utf-8')
     except FileNotFoundError:
-        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Tracker file missing'))
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing'))
         return issues
 
     for step_id, data in plan_steps.items():
@@ -395,22 +395,22 @@ def validate_tracker_alignment(plan_steps: Dict[str, Dict[str, str]]) -> List[Va
         has_unchecked = unchecked in tracker_text
         has_checked = checked in tracker_text
         if not (has_unchecked or has_checked):
-            issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker missing checkbox for {step_id}'))
+            issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker missing checkbox for {step_id}'))
             continue
 
         status = data.get('status', '').strip().lower()
         if status in PLAN_STATUS_COMPLETE:
             if not has_checked:
-                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should be checked'))
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should be checked'))
         elif status in PLAN_STATUS_INCOMPLETE:
             if not has_unchecked:
-                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
         elif status in PLAN_STATUS_PASSIVE:
             if not has_unchecked:
-                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
         else:
             if has_checked and status not in PLAN_STATUS_COMPLETE:
-                issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} marked complete but plan status is "{status}"'))
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} marked complete but plan status is "{status}"'))
 
     return issues
 
@@ -439,10 +439,8 @@ def validate_plan_sync(plan_path: Path, details: PlanDetails) -> List[Validation
 
     latest = matching[-1]
     expected_plan_hash = compute_sha256(plan_path)
-    if not TRACKER_ACTIVE.exists():
-        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Tracker file missing for sync validation'))
-        return issues
-    expected_tracker_hash = compute_sha256(TRACKER_ACTIVE)
+    tracker_path = get_active_tracker_path()
+    expected_tracker_hash = compute_sha256(tracker_path)
 
     if latest.get('plan_hash') != expected_plan_hash:
         issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan hash mismatch; run plan sync'))
@@ -497,6 +495,19 @@ def get_current_branch() -> Optional[str]:
     return branch or None
 
 
+def get_active_tracker_path() -> Path:
+    candidates = [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
+    if not candidates:
+        raise SystemExit('No ACTIVE work-tracking folder found under docs/ai/work-tracking/active/')
+    if len(candidates) > 1:
+        names = ", ".join(p.name for p in candidates)
+        raise SystemExit(f"Multiple ACTIVE work-tracking folders found ({names}); specify via override or clean up")
+    tracker = candidates[0] / 'TRACKER.md'
+    if not tracker.exists():
+        raise SystemExit(f'Tracker file missing at {tracker}')
+    return tracker
+
+
 def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     branch = get_current_branch()
@@ -545,16 +556,17 @@ def validate_emergency_bypass(plan_details: PlanDetails) -> List[ValidationIssue
     if not plan_details.emergency_bypass:
         return issues
 
+    tracker_path = get_active_tracker_path()
     try:
-        tracker_text = TRACKER_ACTIVE.read_text(encoding='utf-8')
+        tracker_text = tracker_path.read_text(encoding='utf-8')
     except FileNotFoundError:
-        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Tracker file missing for emergency bypass validation'))
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing for emergency bypass validation'))
         return issues
 
     markers = ('plan compliance waived', 'emergency bypass', 'plan-step-emergency')
     lower = tracker_text.lower()
     if not any(marker in lower for marker in markers):
-        issues.append(ValidationIssue(TRACKER_ACTIVE.relative_to(REPO_ROOT), 'Emergency bypass declared but tracker lacks waiver/remediation note'))
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Emergency bypass declared but tracker lacks waiver/remediation note'))
     return issues
 def evaluate_file(path: Path) -> List[ValidationIssue]:
     try:
