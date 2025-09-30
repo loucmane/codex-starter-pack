@@ -14,8 +14,8 @@
 | Step ID             | Description                                                               | Evidence                                                                                                         | Status    |
 |---------------------|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|-----------|
 | plan-step-scope     | Confirm timestamp gate scope with loucmane, enumerate affected artefacts  | sessions/2025/09/2025-09-30-001-task84-timestamp-gate.md; docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/designs/timestamp-guard-policy.md | completed |
-| plan-step-implement | Implement guard behaviour, add regression coverage, update documentation  | scripts/codex-guard; tests/timestamp_guard/; docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/IMPLEMENTATION.md       | pending   |
-| plan-step-verify    | Run guard/tests locally & capture reports, update handoff & summaries     | reports/timestamp-guard/; docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/TRACKER.md                                  | pending   |
+| plan-step-implement | Implement guard behaviour, add regression coverage, update documentation  | scripts/codex-guard; tests/timestamp_guard/test_timestamp_validation.py; reports/timestamp-guard/test-suite-20250930-122103.txt; .github/workflows/meta-workflow-guard.yml | completed |
+| plan-step-verify    | Run guard/tests locally & capture reports, update handoff & summaries     | reports/timestamp-guard/guard-20250930-122114.txt; docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/HANDOFF.md; sessions/2025/09/2025-09-30-001-task84-timestamp-gate.md | completed |
 | plan-step-emergency | Emergency bypass rationale & remediation (only if invoked)                | Waiver note; post-mortem plan                                                                                    | not-needed |
 
 ## Scope

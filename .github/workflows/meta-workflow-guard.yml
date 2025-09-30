@@ -1,0 +1,44 @@
+name: Meta Workflow Guard
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/codex-guard'
+      - 'tests/**'
+      - 'docs/ai/work-tracking/**'
+      - 'templates/**'
+      - 'plans/**'
+      - 'sessions/**'
+  push:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies (optional)
+        run: |
+          if [ -f requirements-ci.txt ]; then pip install -r requirements-ci.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run timestamp regression suite
+        run: python3 -m unittest tests.timestamp_guard.test_timestamp_validation
+
+      - name: Run codex-guard
+        run: python3 scripts/codex-guard validate --include-untracked
+
+      - name: Upload guard artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meta-workflow-guard-logs
+          path: |
+            reports/timestamp-guard/
+            reports/meta-workflow-guard/

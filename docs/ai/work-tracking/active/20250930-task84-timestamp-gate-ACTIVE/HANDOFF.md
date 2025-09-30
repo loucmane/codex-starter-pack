@@ -8,13 +8,12 @@
 - Timestamp guard policy documented and guard/tests implemented.
 
 ## Current Issues / Blockers
-- Need to wire CI workflow (`.github/workflows/meta-workflow-guard.yml`).
-- Prepare plan-step-verify evidence bundle.
+- Monitor CI workflow once merged to ensure guard/tests pass on PRs.
 
 ## Next Steps
-1. Update templates/documentation references (subtask 84.3/84.4/84.6).
-2. Wire CI workflow using timestamp guard (plan 84 follow-up).
-3. Capture final evidence for plan-step-verify and create Serena memory.
+1. Monitor new CI workflow results and adjust if necessary.
+2. Create Serena memory summarizing timestamp guard implementation (before closing Task 84).
+3. Prepare final plan-step-verify summary and mark Task 84 complete.
 
 ## How to Continue
 - Stay on branch `feat/task84-timestamp-gate`.
