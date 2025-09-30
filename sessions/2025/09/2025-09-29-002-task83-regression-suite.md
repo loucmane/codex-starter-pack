@@ -61,8 +61,10 @@ title: Task 83 – Meta Workflow Regression Suite
 
 - **[19:26]** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.5 --status=done`] Closed subtask 83.5 after CI integration plan finalized.
 
+- **[23:09]** — [S:20250929|W:task83-regression-suite|H:templates/handlers/triggers/session/end-session.md|E:note`Wrapping Task 83 work; preparing to resume with Task 84 next session.`] Documented session closure and next steps.
+
 ### 🚦 Session End Status
-**SESSION IN PROGRESS** — Subtasks 83.1–83.4 complete; preparing CI automation execution + plan-step-verify bundle (83.5).
+**SESSION CLOSED** — Task 83 regression suite complete; ready to merge branch and begin Task 84 (timestamp gate) next session.
 
 ### 📊 Session Metrics
 - Duration: —
@@ -70,9 +72,9 @@ title: Task 83 – Meta Workflow Regression Suite
 - Validations: —
 
 ### 📋 Next Session Should:
-- Finalise CI workflow implementation (create `.github/workflows/meta-workflow-guard.yml`).
-- Prepare consolidated evidence bundle for plan-step-verify (tests + guard outputs).
-- Run full suite post-CI script landing to confirm parity.
+- Merge `feat/task83-regression-suite` into `main` after review.
+- Create Task 84 plan/branch for timestamp gate enforcement.
+- Implement CI workflow (`.github/workflows/meta-workflow-guard.yml`) following the documented plan.
 
 ### 🔄 Handoff Messages
 - See docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/HANDOFF.md for detailed instructions.

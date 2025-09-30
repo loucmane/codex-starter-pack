@@ -7,7 +7,7 @@
 ## Goals
 - [x] Define regression test coverage for meta workflow enforcement
 - [x] Implement guard regression scripts/tests
-- [] Capture evidence bundle for Task 83 completion
+- [ ] Capture evidence bundle for Task 83 completion (finalise before plan-step-verify)
 
 ## Progress Log
 - **2025-09-29 11:29** — [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/archive/20250920-codex-migration-ssot|E:note`archived Task 82 work-tracking folder`] Archived previous work-tracking folder 20250920-codex-migration-ssot to archive/.
@@ -36,6 +36,7 @@
 - **2025-09-29 19:22** — [S:20250929|W:task83-regression-suite|H:docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/designs/ci-integration-plan.md|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/designs/ci-integration-plan.md`] Authored CI integration plan detailing automated guard/test execution.
 - **2025-09-29 19:25** — [S:20250929|W:task83-regression-suite|H:scripts/codex-guard|E:files`docs/ai/work-tracking/active/20250929-task83-regression-suite-ACTIVE/reports/meta-workflow-guard/guard/guard-20250929-192520.txt`] Guard pass after CI plan sync.
 - **2025-09-29 19:26** — [S:20250929|W:task83-regression-suite|H:task-master/set-status|E:cmd`task-master set-status --id=83.5 --status=done`] Subtask 83.5 marked done after CI integration plan finalized.
+- **2025-09-29 23:09** — [S:20250929|W:task83-regression-suite|H:templates/handlers/triggers/session/end-session.md|E:note`Closed Task 83 session; queued merge and Task 84 kickoff for next work period.`]
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Scope confirmed with loucmane (2025-09-29 13:37 CEST)
 - [x] plan-step-implement — Registration + integration suites, documentation, and CI plan completed (2025-09-29 19:22 CEST)

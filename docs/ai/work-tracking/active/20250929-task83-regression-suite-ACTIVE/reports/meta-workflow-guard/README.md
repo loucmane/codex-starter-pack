@@ -16,6 +16,8 @@ This directory archives regression evidence generated during Taskmaster Task 83.
 - `tests/test-registration-20250929-141524.txt` — unit regression output for orchestrator/pattern/metadata registration checks.
 - `tests/test-suite-20250929-155826.txt` — combined unit + integration regression output covering placeholder handler enforcement.
 - `guard/guard-20250929-192520.txt` — guard success after plan sync capturing CI documentation updates.
+- `guard/guard-20250929-231157.txt` — guard success confirming session closure documentation and plan sync.
+- `guard/guard-20250929-231039.txt` — guard success confirming plan sync after tracker closure updates.
 
 ## Retrieval Notes
 - Original sources remain under `reports/meta-workflow-guard/` at the repository root for cross-reference.
