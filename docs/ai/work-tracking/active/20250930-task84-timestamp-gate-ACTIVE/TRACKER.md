@@ -10,6 +10,8 @@
 - [ ] Capture evidence bundle for Task 84 completion
 
 ## Progress Log
+- **2025-09-30 12:56** — [S:20250930|W:task84-timestamp-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed time before updating templates, conventions, and helper guidance.
+- **2025-09-30 12:50** — [S:20250930|W:task84-timestamp-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed time before updating templates for timestamp guard.
 - **2025-09-30 11:39** — [S:20250930|W:task84-timestamp-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed session start time for Task 84.
 - **2025-09-30 11:39** — [S:20250930|W:task84-timestamp-gate|H:git/switch|E:cmd`git switch -c feat/task84-timestamp-gate`] Created feature branch for Task 84.
 - **2025-09-30 11:40** — [S:20250930|W:task84-timestamp-gate|H:docs/ai/work-tracking/archive/20250929-task83-regression-suite|E:files`docs/ai/work-tracking/archive/20250929-task83-regression-suite`] Archived Task 83 work-tracking folder.
@@ -27,3 +29,7 @@
 - [ ] plan-step-verify
 - [ ] plan-step-emergency (if applicable)
 - [x] branch-policy-aligned — Working on feat/task84-timestamp-gate (2025-09-30 11:39 CEST)
+- **2025-09-30 12:56** — [S:20250930|W:task84-timestamp-gate|H:templates/handlers/triggers/session/update-session.md|E:files`templates/handlers/triggers/session/update-session.md`] Updated session handler to require recorded `date` command before progress entries.
+- **2025-09-30 12:56** — [S:20250930|W:task84-timestamp-gate|H:templates/conventions/work-tracking/tracker-format.md|E:files`templates/conventions/work-tracking/tracker-format.md`] Documented timestamp guard expectations for trackers (chronology + recorded commands).
+- **2025-09-30 12:56** — [S:20250930|W:task84-timestamp-gate|H:templates/handlers/operators/external/time-capture.md|E:files`templates/handlers/operators/external/time-capture.md`] Added helper guidance to log `date` command output.
+- **2025-09-30 12:56** — [S:20250930|W:task84-timestamp-gate|H:templates/conventions/timestamps/usage-patterns.md|E:files`templates/conventions/timestamps/usage-patterns.md`] Mentioned guard enforcement in timestamp usage convention.

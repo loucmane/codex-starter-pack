@@ -30,6 +30,12 @@ title: Task 84 – Timestamp Enforcement Gate
 - **[11:53]** — [S:20250930|W:task84-timestamp-gate|H:docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/designs/timestamp-guard-policy.md|E:files`docs/ai/work-tracking/active/20250930-task84-timestamp-gate-ACTIVE/designs/timestamp-guard-policy.md`] Documented timestamp guard enforcement rules.
 - **[12:21]** — [S:20250930|W:task84-timestamp-gate|H:tests/timestamp_guard/test_timestamp_validation.py|E:files`reports/timestamp-guard/test-suite-20250930-122103.txt`] Timestamp regression suite executed.
 - **[12:21]** — [S:20250930|W:task84-timestamp-gate|H:scripts/codex-guard|E:files`reports/timestamp-guard/guard-20250930-122114.txt`] Guard validation captured after timestamp enforcement changes.
+- **[12:50]** — [S:20250930|W:task84-timestamp-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Re-confirmed time before updating templates and guidance.
+- **[12:56]** — [S:20250930|W:task84-timestamp-gate|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Re-confirmed time before updating templates, conventions, and helper guidance.
+- **[12:56]** — [S:20250930|W:task84-timestamp-gate|H:templates/conventions/timestamps/usage-patterns.md|E:files`templates/conventions/timestamps/usage-patterns.md`] Updated convention to reference guard enforcement.
+- **[12:56]** — [S:20250930|W:task84-timestamp-gate|H:templates/handlers/operators/external/time-capture.md|E:files`templates/handlers/operators/external/time-capture.md`] Added helper guidance for `date` command recording.
+- **[12:56]** — [S:20250930|W:task84-timestamp-gate|H:templates/conventions/work-tracking/tracker-format.md|E:files`templates/conventions/work-tracking/tracker-format.md`] Documented guard expectations for tracker chronology and command logging.
+- **[12:56]** — [S:20250930|W:task84-timestamp-gate|H:templates/handlers/triggers/session/update-session.md|E:files`templates/handlers/triggers/session/update-session.md`] Updated session handler to record `date` command before entries.
 
 ### 🚦 Session End Status
 **SESSION IN PROGRESS** — Task 84 planning not yet started.

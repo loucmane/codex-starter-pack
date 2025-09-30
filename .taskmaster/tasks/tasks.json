@@ -367,7 +367,7 @@
             "description": "Add checklist entries ensuring timestamp evidence recorded for each log entry.",
             "dependencies": [],
             "details": "Update templates and tracker documentation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Templates include timestamp evidence checklist."
           },
           {
@@ -376,7 +376,7 @@
             "description": "Provide codex-task messaging or helper instructions for capturing timestamps.",
             "dependencies": [],
             "details": "Helper output references timestamp command usage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "codex-task output includes timestamp reminder."
           },
           {
@@ -385,7 +385,7 @@
             "description": "Add tests ensuring guard blocks manual timestamps and passes when evidence provided.",
             "dependencies": [],
             "details": "Add tests under tests/integration/test_timestamp_guard.py.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/integration/test_timestamp_guard.py"
           },
           {
@@ -394,7 +394,7 @@
             "description": "Update work-tracking, findings, and handoff with timestamp guard instructions and remediation steps.",
             "dependencies": [],
             "details": "Add guidance for handling guard failures.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Handoff includes timestamp guard section."
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-30T10:23:03.346Z",
+      "updated": "2025-09-30T11:02:18.058Z",
       "description": "Tasks for master context"
     }
   }

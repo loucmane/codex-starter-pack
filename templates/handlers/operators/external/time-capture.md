@@ -20,9 +20,9 @@ version: 1.0.0
 **Triggers**: timestamp, date, "current time", "log entry", now
 **Pre-conditions**: Time reference needed
 **Process**:
-1. Execute: date "+%Y-%m-%d %H:%M %Z"
-2. Store in variable for use
-3. Never type manually
+1. Execute: `date "+%Y-%m-%d %H:%M %Z"`
+2. Immediately record the command as an S:W:H:E entry in the active session (guard requirement)
+3. Insert the timestamp where needed; never type manually or reuse stale values
 **Success**: Accurate timestamp used
 **Failure**: N/A (command always works)
 **Examples**:

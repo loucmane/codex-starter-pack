@@ -16,6 +16,8 @@ status: stable
 ## Convention
 Timestamps must be used consistently in specific contexts to maintain chronological accuracy and enable proper tracking.
 
+> **Guard enforcement**: `scripts/codex-guard` verifies that timestamps come from recorded `date` commands and that chronological rules are respected.
+
 ## When Timestamps Are Required
 
 ### Always Required

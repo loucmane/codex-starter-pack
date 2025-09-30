@@ -35,6 +35,7 @@ version: 2.0.0
    - Gather final progress summary
    - Note any incomplete work
 3. **Add session closing section**:
+   - Run `date "+%Y-%m-%d %H:%M %Z"` and log the command as an S:W:H:E entry immediately before the closing block. This satisfies the timestamp guard and provides an "ended" timestamp.
    ```markdown
    ### 🎆 Session End: [HH:MM ZONE]
    
@@ -59,7 +60,7 @@ version: 2.0.0
    2. [Priority 2]
    ```
 4. **Update session file metadata**:
-   - Add `ended_at` field to YAML frontmatter
+   - Add `ended_at` field to YAML frontmatter (must match the recorded `date` command)
    - Update line and character counts
    - Calculate final checksum
    - Mark session as completed
