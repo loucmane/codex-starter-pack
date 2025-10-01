@@ -1,7 +1,7 @@
 # Task 85 Session Continuation & State Workflows – Decisions
 
 ## Pending Decisions
-- _Identify enforcement scope for continuation workflow guard integration_
+- Define guard enforcement surface (plan/tracker/Serena) for continuation before implementation
 
 ## Decisions Made
 - _None yet_

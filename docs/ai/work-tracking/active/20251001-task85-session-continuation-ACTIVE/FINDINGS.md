@@ -1,10 +1,11 @@
 # Task 85 Session Continuation & State Workflows – Findings
 
 ## Open Questions
-- _TBD_
+- How should guard enforce Serena memory references during continuation when memories are optional?
 
 ## Risks & Issues
-- _TBD_
+- Existing workflows reference TodoWrite/TodoRead mapping that no longer fits Codex; risk of inconsistent guidance.
+- Lack of dedicated guard checks for continuation could allow context drift across compactions.
 
 ## Completed Findings
-- _None yet_
+- 2025-10-01: Inventory confirms continuation/state workflows exist but require Codex-specific guard integration and registry cleanup (see designs/session-continuation-inventory.md).

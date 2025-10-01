@@ -27,7 +27,7 @@ emergency_bypass: false
 ## Plan Table
 | Step ID             | Description                                                        | Evidence                                              | Status  |
 |---------------------|--------------------------------------------------------------------|-------------------------------------------------------|---------|
-| plan-step-scope     | Inventory continuation/state references + define migration targets | Session log + tracker entries documenting inventory   | pending |
+| plan-step-scope     | Inventory continuation/state references + define migration targets | Session log + tracker entries + docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/session-continuation-inventory.md | completed |
 | plan-step-implement | Build workflows/handlers, update registry + guard, add regression  | Updated templates, guard logs, pytest output          | pending |
 | plan-step-verify    | Final guard/test runs, docs updated, handoff captured               | Guard + pytest logs, updated docs + Serena memory     | pending |
 | plan-step-emergency | _Optional_ – only if bypass required                                | Waiver + post-mortem plan                             | n/a     |

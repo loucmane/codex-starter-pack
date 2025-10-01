@@ -32,9 +32,18 @@ title: Task 85 – Session Continuation & State Workflows
 - **[15:43]** — [S:20251001|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Recorded plan/tracker sync for Task 85.
 - **[15:44]** — [S:20251001|W:task85-session-continuation|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard validation blocked (scope step incomplete, emergency bypass header check); will rerun after plan-step-scope.
 - **[15:46]** — [S:20251001|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan after header adjustments for guard compliance.
+- **[16:07]** — [S:20251001|W:task85-session-continuation|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Re-confirmed current time before plan-step-scope inventory.
+- **[16:09]** — [S:20251001|W:task85-session-continuation|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Timestamp captured prior to documenting scope inventory findings.
+- **[16:09]** — [S:20251001|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/session-continuation-inventory.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/session-continuation-inventory.md`] Documented existing continuation/state assets and gap analysis for plan-step-scope.
+- **[16:10]** — [S:20251001|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Synced plan after marking plan-step-scope completed.
+- **[16:12]** — [S:20251001|W:task85-session-continuation|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Timestamp captured prior to updated plan sync + guard rerun.
+- **[16:12]** — [S:20251001|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan to register updated evidence path.
+- **[16:13]** — [S:20251001|W:task85-session-continuation|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Timestamp captured prior to guard rerun documenting plan-step-scope closure.
+- **[16:13]** — [S:20251001|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251001-161314.txt`] Guard validation passed after scope evidence update (logged in reports/session-continuation/).
+- **[20:48]** — [S:20251001|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Wrapped scope phase; documented next implementation actions and ending session.
 
 ### 🚦 Session End Status
-**SESSION IN PROGRESS** — Initial setup underway.
+**SESSION ENDED** — Scope inventory complete; implementation prep scheduled next session.
 
 ### 📊 Session Metrics
 - Duration: —
@@ -42,7 +51,9 @@ title: Task 85 – Session Continuation & State Workflows
 - Validations: —
 
 ### 📋 Next Session Should:
-- _TBD_
+- Draft continuation/state workflow updates (plan-step-implement kickoff).
+- Define guard behaviour requirements and outline regression suite structure.
+- Begin implementing orchestrator/registry updates for Task 85.
 
 ### 🔄 Handoff Messages
 - See docs/ai/work-tracking/active/ (to be updated after scaffolding).
