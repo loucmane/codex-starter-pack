@@ -31,12 +31,19 @@ title: Task 85 – Session Continuation & State Workflows (Implementation Design
 - **[14:32]** — [S:20251002|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Re-synced plan with updated evidence list for plan-step-implement.
 - **[14:34]** — [S:20251002|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Recorded post-tracker update sync to clear guard mismatch.
 
+- **[20:53]** — [S:20251002|W:task85-session-continuation|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed end-of-day timestamp before closing session.
+- **[20:53]** — [S:20251002|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Logged handoff updates for continuation validation + guard tasks.
+- **[20:53]** — [S:20251002|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251002-142615.txt`] Final guard check verified; session closed.
+
 ### 🚦 Session End Status
-**SESSION IN PROGRESS** — Initialization underway.
+**SESSION ENDED** — Continuation workflows updated; guard/registry integration scheduled next session.
 
 ### 📋 Next Session Should:
-- _TBD_
+- Wire continuation validation behavior into guard and update orchestrator routing.
+- Refresh registry/metadata (REGISTRY.md, workflow-guards.json, template overview) to include new behavior.
+- Begin guard enhancement + regression test scaffolding (Subtasks 85.5 & 85.7).
 
 ### 🔄 Handoff Messages
 - See docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md for carryover context.
 - **[14:26]** — [S:20251002|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251002-142615.txt`] Guard validation passed after workflow updates (plan-step-implement evidence current).
+- **[14:33]** — [S:20251002|W:task85-session-continuation|H:templates/behaviors/session/continuation-validation.md|E:files`templates/behaviors/session/continuation-validation.md`] Preparing new continuation validation behavior for guard integration.

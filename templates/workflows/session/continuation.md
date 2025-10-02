@@ -57,7 +57,7 @@ Ensure smooth resumption of in-progress work without losing context, evidence, o
 
 ## Failure Modes & Recovery
 - **Missing session entry** → run `resolve-session-void`
-- **Work context unclear** → consult `work-patterns` and TodoWrite history
+- **Work context unclear** → consult `work-patterns` and Taskmaster history (plan + tracker)
 - **State mismatch** → reconcile Git diff, rerun tests, update documentation
 - **Serena memory missing** → reconstruct from session + tracker, document in Findings
 

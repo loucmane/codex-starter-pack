@@ -39,6 +39,7 @@ emergency_bypass: false
 - `templates/handlers/orchestrators/session/continuation.md`
 - `templates/handlers/orchestrators/session/state-recovery.md`
 - `templates/behaviors/session/continuation/*.md`
+- `templates/behaviors/session/continuation-validation.md`
 - `scripts/codex-guard` (continuation enforcement rules)
 - `tests/session_continuation/*` (new regression suite)
 - `docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/*`

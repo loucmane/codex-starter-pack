@@ -1,14 +1,14 @@
 # Handoff Document – Task 85 Session Continuation & State Workflows
 
-**Last Update**: 2025-10-02 14:31 CEST
-**Current State**: Continuation/state workflows updated; guard enhancements + behaviors pending.
+**Last Update**: 2025-10-02 14:33 CEST
+**Current State**: Continuation/state workflows updated; validation behavior drafted, guard/registry integration pending.
 
 ## What Was Done
 - Task 84 artifacts archived; Task 85 active work-tracking scaffold established.
-- Drafted implementation plan and updated continuation/state workflows for plan/guard alignment.
+- Drafted implementation plan, created continuation validation behavior, and updated continuation/state workflows for plan/guard alignment.
 
 ## Current Issues / Blockers
-- Continuation validation behavior, registry updates, and guard enhancements not yet implemented.
+- Continuation validation behavior pending guard wiring; registry updates and guard enhancements still outstanding.
 
 ## Next Steps
 1. Implement continuation validation behavior + orchestrator updates.

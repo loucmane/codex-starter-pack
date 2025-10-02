@@ -48,6 +48,7 @@ Task and todo behaviors:
 Session lifecycle management:
 - [session-end.md](session/session-end.md) - Proper session closure with status
 - [compaction-preparation.md](session/compaction-preparation.md) - Context limit handling
+- [continuation-validation.md](session/continuation-validation.md) - Continuation readiness enforcement
 - ~~[compaction-detection.md](session/compaction-detection.md)~~ - DEPRECATED (split into above)
 
 ### [planning/](planning/)
@@ -82,6 +83,7 @@ This pattern is referenced by all behaviors that require development context.
 | [Todo Enforcement](task-management/todo-write.md) | Starting work | Task list required |
 | [Session End](session/session-end.md) | End signals | Proper session closure |
 | [Compaction Prep](session/compaction-preparation.md) | Memory limits | Context checkpoint |
+| [Continuation Validation](session/continuation-validation.md) | Before resuming work | Guarded continuation readiness |
 | [Plan Compliance](planning/plan-compliance.md) | Starting/modifying work | Enforce plan-first discipline |
 
 ## ⚡ Enforcement Strength

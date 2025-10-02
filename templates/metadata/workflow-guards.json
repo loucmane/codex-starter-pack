@@ -758,9 +758,11 @@
       "continuation",
       "work",
       "work continuation",
-      "work-continuation"
+      "work-continuation",
+      "continuation validation"
     ],
     "requires": [
+      "templates/behaviors/session/continuation-validation.md",
       "templates/handlers/orchestrators/work-continuation.md"
     ]
   },

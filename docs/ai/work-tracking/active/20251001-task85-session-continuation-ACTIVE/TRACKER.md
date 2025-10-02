@@ -35,6 +35,8 @@
 
 
 - **2025-10-02 14:26** — [S:20251002|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251002-142615.txt`] Guard validation succeeded after workflow updates.
+- **2025-10-02 14:33** — [S:20251002|W:task85-session-continuation|H:templates/behaviors/session/continuation-validation.md|E:files`templates/behaviors/session/continuation-validation.md`] Drafting continuation validation behavior for guard integration.
+- **2025-10-02 20:53** — [S:20251002|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; handoff outlines guard/registry tasks for next session.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)

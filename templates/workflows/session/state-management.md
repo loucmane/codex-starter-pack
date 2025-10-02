@@ -69,7 +69,7 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 - **Incomplete documentation** → behavior `update-tracker` blocks continuation
 - **State drift** → rerun checkpoints, reconcile diff, update logs
 - **Missing Serena memory** → reconstruct from session/tracker, log as incident
-- **TodoWrite desync** → audit tasks vs. tracker, realign statuses
+- **Taskmaster desync** → audit tasks vs. tracker, realign statuses
 
 ## Completion Criteria
 - All state artifacts synchronized post-work
