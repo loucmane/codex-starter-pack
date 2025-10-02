@@ -13,7 +13,7 @@ related:
 version: 1.0.0
 status: stable
 ---
-> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
+> **Codex Equivalent:** Use the plan file + Taskmaster tasks to mirror TodoWrite/TodoRead responsibilities; maintain plan/tracker sync via `python3 scripts/codex-task plan sync` before checkpoints.
 
 
 # Session State Management Workflow
@@ -24,28 +24,30 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 ## Core State Artifacts
 - `sessions/YYYY/MM/session-id.md`
 - Work-tracking active folder (tracker, implementation, findings, decisions, changelog, handoff, reports)
-- TodoWrite task list
+- Taskmaster task list (Taskmaster CLI or plan)
 - Serena memories (if enabled)
 - Git branch + pending diff
 
 ## Workflow Steps
 1. **State Capture (during work)**
-   - Update TodoWrite status whenever changing subtasks
+   - Update Taskmaster status whenever changing subtasks (`task-master set-status ...`)
    - Log progress in session + tracker at meaningful milestones
    - Record findings/decisions immediately when discovered
    - Store evidence outputs under `reports/` or `code/`
 2. **Checkpoint Creation**
-   - Run `codex-task sessions update --checkpoint`
+   - Run `python3 scripts/codex-task sessions update --checkpoint`
    - Execute relevant scanners/tests and attach evidence
+   - Record `python3 scripts/codex-task plan sync` so continuation guard recognizes checkpoint
    - Commit or stash diff if checkpoint requires clean state
 3. **State Persistence**
    - Ensure session log, tracker, and handoff reflect the checkpoint
    - Write Serena memory describing work, state, next steps
    - Archive outdated notes into `archive/` if superseded
 4. **State Restoration**
-   - Use continuation workflow to load checkpoint
-   - Verify TodoWrite, tracker, Serena memory align
+   - Use continuation workflow (with validation behavior) to load checkpoint
+   - Verify Taskmaster statuses, tracker, Serena memory align
    - Re-run quick validation (tests/scans) if state diverged
+   - Store guard log under `reports/session-continuation/`
 5. **Audit & Reconciliation**
    - Compare Git diff to documented changes; resolve discrepancies
    - Update metadata (status fields, inventory, guard rules)
@@ -58,8 +60,8 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 - Git status clean or documented justification for WIP
 
 ## Tooling Integration
-- `codex-task` subcommands (`sessions update`, `work-tracking update`, `scanner run`)
-- `codex-guard validate` to enforce documentation
+- `python3 scripts/codex-task` subcommands (`sessions update`, `work-tracking update`, `plan sync`, `scanner run`)
+- `python3 scripts/codex-guard validate --include-untracked` to enforce documentation
 - Serena MCP memory operations
 - Taskmaster tasks linked by ID for automation
 

@@ -10,9 +10,14 @@
 ## Execution Notes
 - **[2025-10-01 16:09 CEST]** — [S:20251001|W:task85-session-continuation|H:designs/session-continuation-inventory.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/session-continuation-inventory.md`] Captured continuation/state workflow inventory and gap analysis (plan-step-scope).
 - **[2025-10-01 16:13 CEST]** — [S:20251001|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251001-161314.txt`] Guard validation passed post-scope updates; ready to begin implementation phase.
+- **[2025-10-02 14:22 CEST]** — [S:20251002|W:task85-session-continuation|H:designs/continuation-workflow-updates.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/continuation-workflow-updates.md`] Drafted implementation plan covering workflow, guard, registry, and regression tasks.
+- **[2025-10-02 14:28 CEST]** — [S:20251002|W:task85-session-continuation|H:templates/workflows/session/continuation.md|E:files`templates/workflows/session/continuation.md`] Updated continuation workflow to enforce plan/tracker sync, guard logs, and Serena references.
+- **[2025-10-02 14:31 CEST]** — [S:20251002|W:task85-session-continuation|H:templates/workflows/session/state-management.md|E:files`templates/workflows/session/state-management.md`] Aligned state management workflow with Taskmaster/guard checkpoints for restoration.
+- **[2025-10-02 14:26 CEST]** — [S:20251002|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251002-142615.txt`] Guard validation passed after workflow updates; ready to proceed with behavior/registry work.
+
 
 ## Upcoming Work
-- Perform continuation/state workflow inventory and gap analysis.
-- Author modular workflows + handlers covering continuation + recovery scenarios.
-- Integrate guard enforcement and regression coverage for continuation/state management.
-- Update documentation (templates, work-tracking, session lifecycle) to reference new workflows.
+- Author continuation validation behavior + orchestrator updates.
+- Update registry/metadata (index.json, workflow-guards.json, PATTERNS/REGISTRY docs).
+- Implement guard enhancements for continuation validation.
+- Draft regression test scaffolding under tests/session_continuation/.

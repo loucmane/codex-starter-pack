@@ -1,18 +1,19 @@
 # Handoff Document – Task 85 Session Continuation & State Workflows
 
-**Last Update**: 2025-10-01 15:46 CEST
-**Current State**: Scope inventory complete; guard validation passed, implementation phase pending.
+**Last Update**: 2025-10-02 14:31 CEST
+**Current State**: Continuation/state workflows updated; guard enhancements + behaviors pending.
 
 ## What Was Done
 - Task 84 artifacts archived; Task 85 active work-tracking scaffold established.
+- Drafted implementation plan and updated continuation/state workflows for plan/guard alignment.
 
 ## Current Issues / Blockers
-- Implementation/design work outstanding for continuation/state workflows.
+- Continuation validation behavior, registry updates, and guard enhancements not yet implemented.
 
 ## Next Steps
-1. Draft continuation/state workflow designs + guard requirements for implementation phase.
-2. Implement workflows, update documentation, and capture regression coverage + evidence.
-3. Prepare regression plan + Serena memory once implementation progresses.
+1. Implement continuation validation behavior + orchestrator updates.
+2. Update registry/metadata and enhance guard with continuation checks.
+3. Build regression tests + capture evidence (reports/session-continuation/).
 
 ## How to Continue
 - Branch: `feat/task85-session-continuation-workflows`

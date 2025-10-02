@@ -5,3 +5,5 @@
 
 ## Decisions Made
 - _None yet_
+
+- 2025-10-02: Implementation will introduce continuation validation behavior with fallback when Serena memories are disabled; guard will treat Serena reference as optional but recommend logging when available.

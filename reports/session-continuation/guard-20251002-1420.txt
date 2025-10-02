@@ -1,0 +1,5 @@
+Guard validation failed:
+  - plans/2025-10-01-task85-session-continuation.md: plan-step-implement evidence path not found | entry: designs/continuation-workflow-updates.md
+  - plans/2025-10-01-task85-session-continuation.md: plan-step-implement evidence path not found | entry: templates/guard
+  - plans/2025-10-01-task85-session-continuation.md: plan-step-implement evidence path not found | entry: logs/tests
+  - .plan_state/sync.log: Tracker hash mismatch; run plan sync
