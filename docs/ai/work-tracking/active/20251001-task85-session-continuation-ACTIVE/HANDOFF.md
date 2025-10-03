@@ -1,19 +1,21 @@
 # Handoff Document – Task 85 Session Continuation & State Workflows
 
-**Last Update**: 2025-10-02 14:33 CEST
+**Last Update**: 2025-10-03 09:17 CEST
 **Current State**: Continuation/state workflows updated; validation behavior drafted, guard/registry integration pending.
 
 ## What Was Done
 - Task 84 artifacts archived; Task 85 active work-tracking scaffold established.
 - Drafted implementation plan, created continuation validation behavior, and updated continuation/state workflows for plan/guard alignment.
+- Guard now checks for continuation evidence (reports/session-continuation/*, tracker/session entries).
 
 ## Current Issues / Blockers
-- Continuation validation behavior pending guard wiring; registry updates and guard enhancements still outstanding.
+- Registry metadata updates and guard auto-fix messaging still outstanding.
+- Regression suite not started.
 
 ## Next Steps
-1. Implement continuation validation behavior + orchestrator updates.
-2. Update registry/metadata and enhance guard with continuation checks.
-3. Build regression tests + capture evidence (reports/session-continuation/).
+1. Update registry/metadata (REGISTRY.md, template overview, workflow-guards.json) to reference continuation validation behavior.
+2. Enhance guard auto-fix messaging + add regression stubs.
+3. Begin regression tests under tests/session_continuation/.
 
 ## How to Continue
 - Branch: `feat/task85-session-continuation-workflows`

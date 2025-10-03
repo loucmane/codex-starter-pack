@@ -6408,7 +6408,7 @@
             "description": "Create templates/workflows/session/continuation.md with full frontmatter and steps.",
             "dependencies": [],
             "details": "Create templates/workflows/session/continuation.md with full frontmatter and steps.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow file created and linted."
           },
           {
@@ -6417,7 +6417,7 @@
             "description": "Create templates/workflows/session/state-management.md covering state restoration.",
             "dependencies": [],
             "details": "Create templates/workflows/session/state-management.md covering state restoration.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow file created and linted."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-02T12:19:23.726Z",
+      "updated": "2025-10-03T07:19:21.817Z",
       "description": "Tasks for master context"
     }
   }

@@ -15,6 +15,7 @@
 - **[2025-10-02 14:28 CEST]** — [S:20251002|W:task85-session-continuation|H:templates/workflows/session/continuation.md|E:files`templates/workflows/session/continuation.md`] Updated continuation workflow to enforce plan/tracker sync, guard logs, and Serena references.
 - **[2025-10-02 14:31 CEST]** — [S:20251002|W:task85-session-continuation|H:templates/workflows/session/state-management.md|E:files`templates/workflows/session/state-management.md`] Aligned state management workflow with Taskmaster/guard checkpoints for restoration.
 - **[2025-10-02 14:26 CEST]** — [S:20251002|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251002-142615.txt`] Guard validation passed after workflow updates; ready to proceed with behavior/registry work.
+- **[2025-10-03 09:17 CEST]** — [S:20251003|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251003-091726.txt`] Guard validation passed after adding continuation requirements check.
 
 
 ## Upcoming Work
