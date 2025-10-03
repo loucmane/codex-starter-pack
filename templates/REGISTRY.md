@@ -630,7 +630,13 @@ Patterns that route ambiguous requests to appropriate handlers.
 12. `lost-context` - Helps reorientation
 13. `system-improvement` - Routes meta-improvements
 
-## Behavioral Hooks (9 categories)
+
+### Continuation Validation Behavior
+- **Behavior**: `session/continuation-validation.md`
+- **Purpose**: Guarded resumption of work (plan/tracker sync + guard evidence)
+- **Usage**: Invoked automatically before continuation workflows; guard integration ensures reports/session-continuation/* contains latest log.
+
+## Behavioral Hooks (10 categories)
 
 Automatic enforcement gates located in BEHAVIORS.md:
 
@@ -639,10 +645,11 @@ Automatic enforcement gates located in BEHAVIORS.md:
 3. **Development Work** - Workflow loading before coding
 4. **Tool Selection** - Right tool verification
 5. **Evidence & Claims** - Proof before assertions
-6. **Task Management** - TodoWrite enforcement
-7. **Session Management** - Session end and compaction preparation
+6. **Task Management** - Taskmaster enforcement (TodoWrite replacement)
+7. **Session Management** - Session end, compaction, continuation validation
 8. **Timestamp Accuracy** - Check actual time before adding timestamps
-9. **Git Operations** - gac format enforcement
+9. **Continuation Validation** - Guard readiness before resuming work
+10. **Git Operations** - gac format enforcement
 
 ## Decision Matrices (5 total)
 

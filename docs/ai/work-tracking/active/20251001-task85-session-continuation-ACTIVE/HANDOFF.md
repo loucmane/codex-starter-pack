@@ -13,9 +13,9 @@
 - Regression suite not started.
 
 ## Next Steps
-1. Update registry/metadata (REGISTRY.md, template overview, workflow-guards.json) to reference continuation validation behavior.
-2. Enhance guard auto-fix messaging + add regression stubs.
-3. Begin regression tests under tests/session_continuation/.
+1. Enhance guard auto-fix messaging + add regression stubs.
+2. Begin regression tests under tests/session_continuation/.
+3. Update documentation in REGISTRY.md patterns section once guard messaging lands.
 
 ## How to Continue
 - Branch: `feat/task85-session-continuation-workflows`

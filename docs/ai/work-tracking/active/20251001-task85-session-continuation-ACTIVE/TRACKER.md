@@ -43,6 +43,10 @@
 - **2025-10-03 09:17** — [S:20251003|W:task85-session-continuation|H:scripts/codex-guard|E:files`reports/session-continuation/guard-20251003-091726.txt`] Guard validation passed after adding continuation requirements check.
 - **2025-10-03 09:18** — [S:20251003|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.2 --status=done`] Subtask 85.2 marked complete (continuation workflow updated).
 - **2025-10-03 09:18** — [S:20251003|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.3 --status=done`] Subtask 85.3 marked complete (state-management workflow updated).
+- **2025-10-03 09:20** — [S:20251003|W:task85-session-continuation|H:templates/REGISTRY.md|E:files`templates/REGISTRY.md`] Registry updated with continuation validation behavior.
+- **2025-10-03 09:21** — [S:20251003|W:task85-session-continuation|H:templates/metadata/template-overview.md|E:files`templates/metadata/template-overview.md`] Metadata overview refreshed with continuation validation entry.
+- **2025-10-03 09:21** — [S:20251003|W:task85-session-continuation|H:templates/metadata/template-summary.csv|E:files`templates/metadata/template-summary.csv`] Template summary CSV updated for continuation validation behavior.
+- **2025-10-03 09:22** — [S:20251003|W:task85-session-continuation|H:templates/registry/patterns/meta-routing.md|E:files`templates/registry/patterns/meta-routing.md`] Meta-routing patterns include continuation validation entry.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)

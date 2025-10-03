@@ -240,3 +240,4 @@ templates/workflows/templates/behavioral-templates.md,Behavioral Templates,workf
 templates/workflows/testing/simulation-testing.md,Simulation Testing Patterns,workflow-component,stable,testing,Simulation Testing Patterns,yes
 templates/workflows/testing/subagent-simulation.md,Subagent Simulation Testing,workflow-component,stable,testing,Subagent Simulation Testing,yes
 templates/workflows/testing/test-checkpoints.md,User Testing Checkpoints,workflow-component,stable,testing,User Testing Checkpoints,yes
+templates/behaviors/session/continuation-validation.md,Session Continuation Validation,behavior,draft,session,Session Continuation Validation,true
