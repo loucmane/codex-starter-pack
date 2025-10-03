@@ -2,6 +2,11 @@
 
 ## Entries
 - 2025-10-01 16:09 CEST — Logged continuation/state inventory and updated plan-step-scope evidence.
+- 2025-10-03 09:20 CEST — Registry updated with continuation validation behavior.
+- 2025-10-03 09:21 CEST — Metadata overview and summary include continuation validation behavior.
+- 2025-10-03 09:22 CEST — Meta-routing patterns reference continuation validation.
+- 2025-10-03 09:23 CEST — Guard auto-fix hints added for continuation evidence.
+- 2025-10-03 09:27 CEST — Continuation metadata checks passed (tests/session_continuation/check_metadata.py).
 - 2025-10-03 09:13 CEST — Drafted continuation validation behavior file.
 
 - 2025-10-03 09:14 CEST — Synced plan before guard integration (plan-step-implement).

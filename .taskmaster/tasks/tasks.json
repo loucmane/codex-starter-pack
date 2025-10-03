@@ -6426,7 +6426,7 @@
             "description": "Add new workflows to registry, handlers, and patterns so requests route correctly.",
             "dependencies": [],
             "details": "Add new workflows to registry, handlers, and patterns so requests route correctly.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Registry entries reference new workflows."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-03T07:19:21.817Z",
+      "updated": "2025-10-03T17:33:50.784Z",
       "description": "Tasks for master context"
     }
   }

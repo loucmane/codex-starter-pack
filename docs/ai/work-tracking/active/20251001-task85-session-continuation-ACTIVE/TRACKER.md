@@ -47,6 +47,12 @@
 - **2025-10-03 09:21** — [S:20251003|W:task85-session-continuation|H:templates/metadata/template-overview.md|E:files`templates/metadata/template-overview.md`] Metadata overview refreshed with continuation validation entry.
 - **2025-10-03 09:21** — [S:20251003|W:task85-session-continuation|H:templates/metadata/template-summary.csv|E:files`templates/metadata/template-summary.csv`] Template summary CSV updated for continuation validation behavior.
 - **2025-10-03 09:22** — [S:20251003|W:task85-session-continuation|H:templates/registry/patterns/meta-routing.md|E:files`templates/registry/patterns/meta-routing.md`] Meta-routing patterns include continuation validation entry.
+- **2025-10-03 09:23** — [S:20251003|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Added continuation guard hints for missing evidence.
+- **2025-10-03 09:24** — [S:20251003|W:task85-session-continuation|H:tests/session_continuation/test_metadata.py|E:files`tests/session_continuation/test_metadata.py`] Added metadata regression tests (pytest unavailable locally).
+- **2025-10-03 09:25** — [S:20251003|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.4 --status=done`] Subtask 85.4 (registry updates) marked complete.
+- **2025-10-03 09:26** — [S:20251003|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard now prints continuation hints for remediation.
+- **2025-10-03 09:27** — [S:20251003|W:task85-session-continuation|H:tests/session_continuation/check_metadata.py|E:cmd`python3 tests/session_continuation/check_metadata.py`] Continuation metadata checks passed.
+- **2025-10-03 20:42** — [S:20251003|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; next focus is guard messaging + regression tests.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)

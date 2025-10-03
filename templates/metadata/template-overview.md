@@ -52,6 +52,7 @@
 - `templates/behaviors/session/compaction-detection.md` — category: session; heading: Session Compaction Detection [DEPRECATED]
 - `templates/behaviors/session/compaction-preparation.md` — category: session; heading: Compaction Preparation Behavior
 - `templates/behaviors/session/session-end.md` — category: session; heading: Session End Behavior
+- `templates/behaviors/session/continuation-validation.md` — category: session; heading: Session Continuation Validation Behavior
 - `templates/behaviors/task-management/todo-write.md` — category: task-management; heading: Todo Write Enforcement
 - `templates/behaviors/timestamps/before-adding.md` — category: timestamps; heading: Before Adding Timestamps
 - `templates/behaviors/validation/evidence-claims.md` — category: validation; heading: Evidence Before Claims

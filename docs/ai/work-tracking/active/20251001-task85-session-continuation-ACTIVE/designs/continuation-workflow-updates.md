@@ -40,9 +40,10 @@
 
 ### Regression Suite (Subtask 85.7)
 - Add tests under `tests/session_continuation/`:
-  1. Unit tests for guard: simulate missing plan sync, missing session continuation evidence.
-  2. Integration test: run `scripts/codex-guard validate` against sample repo snapshot with continuation data.
-  3. Future placeholder for Serena memory enforcement (skipped unless Serena enabled).
+  1. Metadata checks (`tests/session_continuation/check_metadata.py`) ensure registry references stay current.
+  2. Unit tests for guard: simulate missing plan sync, missing session continuation evidence.
+  3. Integration test: run `scripts/codex-guard validate` against sample repo snapshot with continuation data.
+  4. Future placeholder for Serena memory enforcement (skipped unless Serena enabled).
 - Store outputs in `reports/session-continuation/tests-<timestamp>.txt`.
 
 ## Execution Order

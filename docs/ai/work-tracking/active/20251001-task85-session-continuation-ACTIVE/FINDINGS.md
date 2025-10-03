@@ -6,6 +6,7 @@
 ## Risks & Issues
 - Existing workflows reference TodoWrite/TodoRead mapping that no longer fits Codex; risk of inconsistent guidance.
 - Lack of dedicated guard checks for continuation could allow context drift across compactions.
+- Pytest not installed in current environment; regression tests pending execution.
 
 ## Completed Findings
 - 2025-10-01: Inventory confirms continuation/state workflows exist but require Codex-specific guard integration and registry cleanup (see designs/session-continuation-inventory.md).
