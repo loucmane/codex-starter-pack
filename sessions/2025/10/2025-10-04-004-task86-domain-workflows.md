@@ -65,3 +65,4 @@ title: Task 86 – Domain Workflow Modules
 - **[13:32]** — [S:20251004|W:task86-domain-workflows|H:reports/domain-workflows/pilot-session-20251004.txt|E:files`reports/domain-workflows/pilot-session-20251004.txt`] Piloted session domain workflow template.
 - **[13:33]** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.6 --status=done`] Completed Subtask 86.6 (pilot domain workflows).
 - **[13:34]** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.7 --status=done`] Completed Subtask 86.7 (domain regression scaffolding).
+- **[13:36]** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.6 --status=done`] Reviewed pilot evidence before finalizing task.
