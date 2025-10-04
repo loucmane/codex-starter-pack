@@ -33,6 +33,7 @@
   - Session log entries include guard log reference when resuming after compaction/continuation.
   - Optional: require Serena memory link if `MEMORY-REFS.md` indicates Serena usage.
 - Provide auto-fix hints (if guard fails) pointing to continuation workflow steps.
+- Print aggregated hints with reminder to re-run `python3 scripts/codex-task plan sync` and store guard logs.
 
 ### Documentation & Evidence (Subtask 85.6)
 - Update `docs/ai/work-tracking/active/.../IMPLEMENTATION.md` and `FINDINGS.md` as changes land.
@@ -42,7 +43,7 @@
 - Add tests under `tests/session_continuation/`:
   1. Metadata checks (`tests/session_continuation/check_metadata.py`) ensure registry references stay current.
   2. Unit tests for guard: simulate missing plan sync, missing session continuation evidence.
-  3. Integration test: run `scripts/codex-guard validate` against sample repo snapshot with continuation data.
+  3. Integration test: run `scripts/codex-guard validate` against sample repo snapshot with continuation data (documented in tests/session_continuation/README.md).
   4. Future placeholder for Serena memory enforcement (skipped unless Serena enabled).
 - Store outputs in `reports/session-continuation/tests-<timestamp>.txt`.
 

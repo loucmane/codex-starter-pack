@@ -2,6 +2,8 @@
 
 ## Entries
 - 2025-10-01 16:09 CEST — Logged continuation/state inventory and updated plan-step-scope evidence.
+- 2025-10-04 12:11 CEST — Guard hints remind users to rerun plan sync and store continuation logs.
+- 2025-10-04 12:12 CEST — Added regression README noting pytest dependency.
 - 2025-10-04 11:57 CEST — Registry updated with continuation validation behavior.
 - 2025-10-04 11:58 CEST — Metadata overview and summary include continuation validation behavior.
 - 2025-10-04 11:59 CEST — Meta-routing patterns reference continuation validation.

@@ -66,6 +66,15 @@
 - **2025-10-03 20:42** — [S:20251003|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; next focus is guard messaging + regression tests.
 - **2025-10-04 11:50** — [S:20251004|W:task85-session-continuation|H:sessions/2025/10/2025-10-04-001-task85-session-continuation.md|E:files`sessions/2025/10/2025-10-04-001-task85-session-continuation.md`] New session started for guard messaging/regression work.
 - **2025-10-04 11:50** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.5 --status=in-progress`] Subtask 85.5 (guard checkpoints) in progress.
+- **2025-10-04 12:09** — [S:20251004|W:task85-session-continuation|H:sessions/2025/10/2025-10-04-002-task85-session-continuation.md|E:files`sessions/2025/10/2025-10-04-002-task85-session-continuation.md`] New session started for guard messaging/regression phase 2.
+- **2025-10-04 12:11** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Added guard reminder message after aggregated hints.
+- **2025-10-04 12:12** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/README.md|E:files`tests/session_continuation/README.md`] Documented regression plan and pytest dependency.
+- **2025-10-04 12:13** — [S:20251004|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan/tracker sync recorded after guard messaging updates.
+- **2025-10-04 12:14** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard validation passed with updated messaging.
+- **2025-10-04 12:15** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard hints now remind to check CI workflow.
+- **2025-10-04 12:16** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/test_guard_stub.py|E:files`tests/session_continuation/test_guard_stub.py`] Added placeholder guard regression test (pytest pending).
+- **2025-10-04 12:17** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.5 --status=done`] Subtask 85.5 (guard checkpoints) marked complete.
+- **2025-10-04 12:19** — [S:20251004|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; guard messaging done, regression pending.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)

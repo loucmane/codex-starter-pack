@@ -28,7 +28,7 @@ emergency_bypass: false
 | Step ID             | Description                                                        | Evidence                                              | Status  |
 |---------------------|--------------------------------------------------------------------|-------------------------------------------------------|---------|
 | plan-step-scope     | Inventory continuation/state references + define migration targets | Session log + tracker entries + docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/session-continuation-inventory.md | completed |
-| plan-step-implement | Build workflows/handlers, update registry + guard, add regression  | docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/continuation-workflow-updates.md, templates/workflows/session/continuation.md, templates/workflows/session/state-management.md, templates/REGISTRY.md, tests/session_continuation/test_metadata.py | in_progress |
+| plan-step-implement | Build workflows/handlers, update registry + guard, add regression  | docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/continuation-workflow-updates.md, templates/workflows/session/continuation.md, templates/workflows/session/state-management.md, templates/REGISTRY.md, tests/session_continuation/test_metadata.py, tests/session_continuation/README.md | in_progress |
 | plan-step-verify    | Final guard/test runs, docs updated, handoff captured               | Guard + pytest logs, updated docs + Serena memory     | pending |
 | plan-step-emergency | _Optional_ – only if bypass required                                | Waiver + post-mortem plan                             | n/a     |
 

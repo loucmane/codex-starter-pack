@@ -786,6 +786,8 @@ def guard_validate(args: argparse.Namespace) -> int:
             print('\nHints:')
             for hint in hints:
                 print(f"  * {hint}")
+            print('\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.')
+            print('For CI enforcement see .github/workflows/meta-workflow-guard.yml.')
         return 1
 
     print("Guard validation passed: all S:W:H:E entries look compliant.")

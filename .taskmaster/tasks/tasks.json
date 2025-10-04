@@ -6435,7 +6435,7 @@
             "description": "Hook plan compliance/timestamp guards into continuation/state workflows.",
             "dependencies": [],
             "details": "Hook plan compliance/timestamp guards into continuation/state workflows.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Guard validation passes when workflows used."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-04T09:48:46.208Z",
+      "updated": "2025-10-04T10:12:23.603Z",
       "description": "Tasks for master context"
     }
   }

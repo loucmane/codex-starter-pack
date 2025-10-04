@@ -9,8 +9,8 @@
 - Guard now checks for continuation evidence (reports/session-continuation/*, tracker/session entries).
 
 ## Current Issues / Blockers
-- Guard auto-fix messaging improvements beyond continuation hints still outstanding.
 - Regression suite scaffolding pending (pytest unavailable locally).
+- Evidence bundle/plan-step-verify not yet prepared.
 
 ## Next Steps
 1. Extend guard messaging (include CI reminder + general hints).

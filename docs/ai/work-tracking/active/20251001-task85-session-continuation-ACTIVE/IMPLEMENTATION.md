@@ -25,7 +25,10 @@
 
 
 ## Upcoming Work
-- Enhance guard auto-fix messaging (aggregate hints & user guidance).
-- Add guard-specific regression stubs (simulate missing evidence).
-- Execute metadata regression script in CI once pytest available.
-- Expand regression suite under tests/session_continuation/.
+- Flesh out regression tests (pytest install + guard fixtures).
+- Capture evidence bundle and prepare plan-step-verify.
+- Integrate regression script into CI once pytest available.
+- **[2025-10-04 12:11 CEST]** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Added guard reminder message after aggregated hints.
+- **[2025-10-04 12:12 CEST]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/README.md|E:files`tests/session_continuation/README.md`] Added regression README noting pytest dependency.
+- **[2025-10-04 12:14 CEST]** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard validation passed with new messaging output.
+- **[2025-10-04 12:16 CEST]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/test_guard_stub.py|E:files`tests/session_continuation/test_guard_stub.py`] Added placeholder guard regression test (pending pytest).
