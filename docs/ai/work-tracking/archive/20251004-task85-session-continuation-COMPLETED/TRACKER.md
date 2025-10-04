@@ -80,10 +80,15 @@
 - **2025-10-04 12:21** — [S:20251004|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; guard messaging progress noted.
 - **2025-10-04 12:22** — [S:20251004|W:task85-session-continuation|H:shell:pytest|E:cmd`python3 -m pytest tests/session_continuation`] Pytest suite passing for metadata + guard stub checks.
 - **2025-10-04 12:23** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.7 --status=done`] Subtask 85.7 (regression tests) marked complete.
+- **2025-10-04 12:47** — [S:20251004|W:task85-session-continuation|H:reports/session-continuation/evidence-20251004.txt|E:files`reports/session-continuation/evidence-20251004.txt`] Evidence bundle compiled (guard + pytest).
+- **2025-10-04 12:48** — [S:20251004|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan/tracker sync recorded after plan-step-implement completion.
+- **2025-10-04 12:49** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.6 --status=in-progress`] Subtask 85.6 in progress for evidence bundle.
+- **2025-10-04 12:50** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.6 --status=done`] Subtask 85.6 completed with evidence bundle.
+- **2025-10-04 12:51** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85 --status=done`] Task 85 closed (all subtasks complete).
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)
-- [ ] plan-step-implement — Implement workflows/handlers + guard/test coverage (in progress 2025-10-02)
+- [x] plan-step-implement — Implement workflows/handlers + guard/test coverage (completed 2025-10-04)
 - [ ] plan-step-verify — Evidence bundle captured (docs, guard/test logs)
 - [ ] plan-step-emergency (if applicable)
 - [x] branch-policy-aligned — Branch matches `feat/task85-session-continuation-workflows`

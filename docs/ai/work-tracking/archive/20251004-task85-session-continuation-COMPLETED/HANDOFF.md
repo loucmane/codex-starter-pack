@@ -9,8 +9,7 @@
 - Guard now checks for continuation evidence (reports/session-continuation/*, tracker/session entries).
 
 ## Current Issues / Blockers
-- Pytest unavailable; regression tests remain scripted placeholders.
-- Evidence bundle/plan-step-verify not yet prepared.
+- None; readiness to archive work-tracking folder or start next task.
 
 ## Next Steps
 1. Extend guard messaging (include CI reminder + general hints).

@@ -6391,7 +6391,7 @@
         "dependencies": [
           84
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6444,7 +6444,7 @@
             "description": "Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.",
             "dependencies": [],
             "details": "Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated with S:W:H:E examples."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-04T10:33:02.678Z",
+      "updated": "2025-10-04T10:47:59.401Z",
       "description": "Tasks for master context"
     }
   }

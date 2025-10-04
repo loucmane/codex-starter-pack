@@ -1,0 +1,19 @@
+Evidence Bundle – Task 85 (2025-10-04 12:46 CEST)
+==================================================
+
+Collected Items:
+1. Guard run: reports/session-continuation/guard-20251004-121919-check.txt (via tests/session_continuation/run_guard_checks.py)
+2. Pytest run: python3 -m pytest tests/session_continuation (stdout captured below)
+
+Pytest Output
+-------------
+python3 -m pytest tests/session_continuation
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+collected 4 items
+
+tests/session_continuation/test_guard_stub.py .                          [ 25%]
+tests/session_continuation/test_metadata.py ...                          [100%]
+
+============================== 4 passed in 0.01s ===============================
