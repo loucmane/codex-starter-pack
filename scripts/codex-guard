@@ -36,6 +36,8 @@ PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-veri
 EMERGENCY_PATTERN = re.compile(r"\*\*Emergency Bypass\*\*:\s*(true|false)", re.IGNORECASE)
 PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
 PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
+CONTINUATION_GUARD_DIR = REPO_ROOT / "reports" / "session-continuation"
+SESSIONS_DIR = REPO_ROOT / "sessions"
 PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
@@ -485,6 +487,63 @@ def validate_plan_conflicts(plan_path: Path, details: PlanDetails) -> List[Valid
     return issues
 
 
+def resolve_current_session_path() -> Optional[Path]:
+    link = SESSIONS_DIR / "current"
+    if not link.exists():
+        return None
+    try:
+        target = link.resolve(strict=True)
+    except FileNotFoundError:
+        return None
+    if target.suffix != ".md":
+        return None
+    return target
+
+
+def validate_continuation_requirements(plan_details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    # Only enforce when continuation scope is part of the active plan
+    scope_lower = {item.lower() for item in plan_details.scope}
+    relevant_tokens = {
+        "templates/behaviors/session/continuation-validation.md",
+        "templates/workflows/session/continuation.md",
+        "templates/workflows/session/state-management.md",
+    }
+    if not scope_lower.intersection(relevant_tokens):
+        return issues
+
+    guard_dir = CONTINUATION_GUARD_DIR
+    if not guard_dir.exists():
+        issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), 'Continuation guard directory missing reports/session-continuation/', entry='Create reports/session-continuation/ and store guard logs (e.g. guard-<timestamp>.txt).'))
+    else:
+        logs = sorted(p for p in guard_dir.glob('guard-*.txt') if p.is_file())
+        if not logs:
+            issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), 'No continuation guard logs found (expected guard-<timestamp>.txt)', entry='Run `python3 scripts/codex-guard validate --include-untracked` and keep the resulting log under reports/session-continuation/'))
+
+    tracker_path = get_active_tracker_path()
+    try:
+        tracker_text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing for continuation validation', entry='Ensure docs/ai/work-tracking/active/.../TRACKER.md exists before resuming.'))
+    else:
+        if 'continuation-validation' not in tracker_text:
+            issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker missing continuation validation entry', entry='Log validation in the tracker (S:... |H:continuation-validation|E:guard log).'))
+
+    session_path = resolve_current_session_path()
+    if session_path:
+        try:
+            session_text = session_path.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), 'Session file referenced by sessions/current missing', entry='Recreate sessions/current symlink to an existing session log.'))
+        else:
+            if 'continuation-validation' not in session_text and 'reports/session-continuation/guard-' not in session_text:
+                issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), 'Session log missing continuation validation or guard evidence entry', entry='Add S:W:H:E entry referencing continuation validation and guard log.'))
+    else:
+        issues.append(ValidationIssue(Path('sessions/current'), 'sessions/current link missing for continuation validation', entry='Link sessions/current to the active session (e.g. ln -sf YYYY/MM/session-id.md sessions/current).'))
+
+    return issues
+
+
 def get_current_branch() -> Optional[str]:
     try:
         result = subprocess.run(
@@ -716,11 +775,19 @@ def guard_validate(args: argparse.Namespace) -> int:
             all_issues.extend(validate_plan_conflicts(plan_path, plan_details))
             all_issues.extend(validate_branch_policy(plan_details))
             all_issues.extend(validate_emergency_bypass(plan_details))
+            all_issues.extend(validate_continuation_requirements(plan_details))
 
     if all_issues:
         print("Guard validation failed:")
         for issue in all_issues:
             print(f"  - {issue.render()}")
+        hints = sorted({issue.entry for issue in all_issues if issue.entry})
+        if hints:
+            print('\nHints:')
+            for hint in hints:
+                print(f"  * {hint}")
+            print('\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.')
+            print('For CI enforcement see .github/workflows/meta-workflow-guard.yml.')
         return 1
 
     print("Guard validation passed: all S:W:H:E entries look compliant.")

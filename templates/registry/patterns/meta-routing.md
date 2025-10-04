@@ -35,6 +35,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   3. Restore context
   4. Route to appropriate handler
 - **Location**: PATTERNS.md#work-continuation
+- **Guard Dependency**: Requires behavior `session/continuation-validation.md` before routing.
 
 ### 3. `file-operation` Pattern
 - **Purpose**: Routes file operations

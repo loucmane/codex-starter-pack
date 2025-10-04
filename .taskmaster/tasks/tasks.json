@@ -6391,7 +6391,7 @@
         "dependencies": [
           84
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6399,7 +6399,7 @@
             "description": "Audit continuation, compaction, and state management references; capture gaps in tracker.",
             "dependencies": [],
             "details": "Audit continuation, compaction, and state management references; capture gaps in tracker.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Inventory document produced and linked in tracker."
           },
           {
@@ -6408,7 +6408,7 @@
             "description": "Create templates/workflows/session/continuation.md with full frontmatter and steps.",
             "dependencies": [],
             "details": "Create templates/workflows/session/continuation.md with full frontmatter and steps.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow file created and linted."
           },
           {
@@ -6417,7 +6417,7 @@
             "description": "Create templates/workflows/session/state-management.md covering state restoration.",
             "dependencies": [],
             "details": "Create templates/workflows/session/state-management.md covering state restoration.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow file created and linted."
           },
           {
@@ -6426,7 +6426,7 @@
             "description": "Add new workflows to registry, handlers, and patterns so requests route correctly.",
             "dependencies": [],
             "details": "Add new workflows to registry, handlers, and patterns so requests route correctly.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Registry entries reference new workflows."
           },
           {
@@ -6435,7 +6435,7 @@
             "description": "Hook plan compliance/timestamp guards into continuation/state workflows.",
             "dependencies": [],
             "details": "Hook plan compliance/timestamp guards into continuation/state workflows.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard validation passes when workflows used."
           },
           {
@@ -6444,7 +6444,7 @@
             "description": "Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.",
             "dependencies": [],
             "details": "Update work-tracking (tracker, findings, handoff) with examples and compliance checklist.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated with S:W:H:E examples."
           },
           {
@@ -6453,7 +6453,7 @@
             "description": "Add tests ensuring guard enforces workflow usage across session recovery.",
             "dependencies": [],
             "details": "Add tests ensuring guard enforces workflow usage across session recovery.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_session_workflows.py"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-09-30T12:08:13.618Z",
+      "updated": "2025-10-04T10:47:59.401Z",
       "description": "Tasks for master context"
     }
   }

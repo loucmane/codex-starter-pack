@@ -1,0 +1,2 @@
+Guard validation failed:
+  - plans/2025-10-01-task85-session-continuation.md: plan-step-scope evidence path not found | entry: designs/session-continuation-inventory.md

@@ -1,33 +1,38 @@
 ---
 id: work-continuation
-name: Work Continuation
+name: Work Continuation Orchestrator
 role: orchestrator
 domain: workflow
-stability: stable
+stability: beta
 triggers:
-  - "continue"
-  - "resume"
+  - continue
+  - resume
   - "back to"
   - "keep working"
   - "where were we"
 dependencies:
-  - continue-work
-tools:
-  - TodoWrite
-version: 1.0.0
+  - templates/behaviors/session/continuation-validation.md
+  - templates/workflows/session/continuation.md
+  - templates/workflows/session/state-management.md
+version: 2.0.0
 ---
-> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
-
+> **Codex Equivalent:** Continuation requires the active plan + tracker to be synced and documented before work resumes; TodoWrite tooling is replaced by Taskmaster tasks and the `codex-task` helper.
 
 #### Pattern: work-continuation {#work-continuation}
-**Triggers**: continue, resume, "back to", "keep working", "where were we"
-**Pre-conditions**: Previous work context exists
-**Process**:
-1. Check TodoWrite for active tasks
-2. Check recent work folders
-3. Load WORKFLOWS.md#continue-work
-**Success**: Resumed from correct context
-**Failure**: Ask which work to continue
-**Examples**:
-- "Continue working on auth" → Resumes auth work
-- "Where were we?" → Shows current context
+- **Triggers**: continue, resume, "back to", "keep working", "where were we"
+- **Preconditions**:
+  - Active plan (`plans/current`) exists and plan-step-scope completed
+  - Continuation validation behavior passes (plan/tracker sync + guard evidence)
+  - Session + tracker have current S:W:H:E entries
+- **Process**:
+  1. Invoke [Session Continuation Validation](../../behaviors/session/continuation-validation.md)
+  2. Load [Session Continuation Workflow](../../workflows/session/continuation.md)
+  3. Restore state via [Session State Management Workflow](../../workflows/session/state-management.md)
+  4. Confirm Taskmaster status (`task-master show <id>`) and set active subtask `in-progress`
+  5. Resume implementation with guard monitoring enabled
+- **Success**: Work resumes from the correct continuation point with documented evidence and passing guard
+- **Failure**: Ask for missing context, create required documentation, or rerun guard until validation passes
+
+**Examples**
+- "Continue working on the timestamp guard" → Runs validation, syncs plan/tracker, and resumes Task 84/Task 85 work
+- "Where were we yesterday?" → Loads continuation workflow, surfaces guard log, and prepares next subtask
