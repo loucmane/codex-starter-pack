@@ -12,6 +12,17 @@
 - [ ] Capture evidence bundle (docs, guard logs, tests) and handoff for Task 85 completion
 
 ## Progress Log
+- **2025-10-03 20:42** — [S:20251003|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; next focus is guard messaging + regression tests.
+- **2025-10-04 11:50** — [S:20251004|W:task85-session-continuation|H:sessions/2025/10/2025-10-04-001-task85-session-continuation.md|E:files`sessions/2025/10/2025-10-04-001-task85-session-continuation.md`] New session started for guard messaging/regression work.
+- **2025-10-04 11:51** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.5 --status=in-progress`] Subtask 85.5 (guard checkpoints) in progress.
+- **2025-10-04 11:55** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Added aggregated hint outputs for continuation guard failures.
+- **2025-10-04 11:57** — [S:20251004|W:task85-session-continuation|H:templates/REGISTRY.md|E:files`templates/REGISTRY.md`] Registry updated with continuation validation behavior entry.
+- **2025-10-04 11:58** — [S:20251004|W:task85-session-continuation|H:templates/metadata/template-overview.md|E:files`templates/metadata/template-overview.md`] Metadata overview refreshed for continuation validation behavior.
+- **2025-10-04 11:58** — [S:20251004|W:task85-session-continuation|H:templates/metadata/template-summary.csv|E:files`templates/metadata/template-summary.csv`] Template summary CSV updated with behavior entry.
+- **2025-10-04 11:59** — [S:20251004|W:task85-session-continuation|H:templates/registry/patterns/meta-routing.md|E:files`templates/registry/patterns/meta-routing.md`] Meta-routing patterns include continuation validation route.
+- **2025-10-04 12:02** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/check_metadata.py|E:cmd`python3 tests/session_continuation/check_metadata.py`] Continuation metadata checks passed.
+- **2025-10-04 12:03** — [S:20251004|W:task85-session-continuation|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan/tracker sync recorded after metadata updates.
+- **2025-10-04 12:04** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard validation passed with continuation hints available.
 - **2025-10-01 15:36** — [S:20251001|W:task85-session-continuation|H:docs/ai/work-tracking/archive|E:files`docs/ai/work-tracking/archive/20250930-task84-timestamp-gate`] Archived Task 84 work-tracking folder before starting Task 85.
 - **2025-10-01 15:37** — [S:20251001|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/TRACKER.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/TRACKER.md`] Scaffolded Task 85 active work-tracking folder structure.
 - **2025-10-01 15:41** — [S:20251001|W:task85-session-continuation|H:plans/2025-10-01-task85-session-continuation.md|E:files`plans/2025-10-01-task85-session-continuation.md`] Authored Task 85 plan and linked via `plans/current`.
@@ -53,6 +64,8 @@
 - **2025-10-03 09:26** — [S:20251003|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Guard now prints continuation hints for remediation.
 - **2025-10-03 09:27** — [S:20251003|W:task85-session-continuation|H:tests/session_continuation/check_metadata.py|E:cmd`python3 tests/session_continuation/check_metadata.py`] Continuation metadata checks passed.
 - **2025-10-03 20:42** — [S:20251003|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; next focus is guard messaging + regression tests.
+- **2025-10-04 11:50** — [S:20251004|W:task85-session-continuation|H:sessions/2025/10/2025-10-04-001-task85-session-continuation.md|E:files`sessions/2025/10/2025-10-04-001-task85-session-continuation.md`] New session started for guard messaging/regression work.
+- **2025-10-04 11:50** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.5 --status=in-progress`] Subtask 85.5 (guard checkpoints) in progress.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)
