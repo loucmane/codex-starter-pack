@@ -241,3 +241,8 @@ templates/workflows/testing/simulation-testing.md,Simulation Testing Patterns,wo
 templates/workflows/testing/subagent-simulation.md,Subagent Simulation Testing,workflow-component,stable,testing,Subagent Simulation Testing,yes
 templates/workflows/testing/test-checkpoints.md,User Testing Checkpoints,workflow-component,stable,testing,User Testing Checkpoints,yes
 templates/behaviors/session/continuation-validation.md,Session Continuation Validation,behavior,draft,session,Session Continuation Validation,true
+templates/workflows/domain/session.md,Session Domain Workflow,workflow-component,draft,domain,Session Domain Workflow,false
+templates/workflows/domain/test.md,Testing Domain Workflow,workflow-component,draft,domain,Testing Domain Workflow,false
+templates/workflows/domain/development.md,Development Domain Workflow,workflow-component,draft,domain,Development Domain Workflow,false
+templates/workflows/domain/docs.md,Documentation Domain Workflow,workflow-component,draft,domain,Documentation Domain Workflow,false
+templates/workflows/domain/analysis.md,Analysis Domain Workflow,workflow-component,draft,domain,Analysis Domain Workflow,false

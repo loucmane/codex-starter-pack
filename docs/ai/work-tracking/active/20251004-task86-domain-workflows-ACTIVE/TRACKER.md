@@ -25,6 +25,17 @@
 - **2025-10-04 13:15** — [S:20251004|W:task86-domain-workflows|H:designs/domain-guard-map.md|E:files`docs/ai/work-tracking/active/20251004-task86-domain-workflows-ACTIVE/designs/domain-guard-map.md`] Mapped guard and convention requirements per domain.
 - **2025-10-04 13:16** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.3 --status=done`] Subtask 86.3 completed (guard mapping).
 - **2025-10-04 13:18** — [S:20251004|W:task86-domain-workflows|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after completing plan-step-scope.
+- **2025-10-04 13:18** — [S:20251004|W:task86-domain-workflows|H:templates/workflows/domain/session.md|E:files`templates/workflows/domain/session.md`] Created session domain workflow skeleton.
+- **2025-10-04 13:18** — [S:20251004|W:task86-domain-workflows|H:templates/workflows/domain/test.md|E:files`templates/workflows/domain/test.md`] Created testing domain workflow skeleton.
+- **2025-10-04 13:18** — [S:20251004|W:task86-domain-workflows|H:templates/workflows/domain/development.md|E:files`templates/workflows/domain/development.md`] Created development domain workflow skeleton.
+- **2025-10-04 13:18** — [S:20251004|W:task86-domain-workflows|H:templates/workflows/domain/docs.md|E:files`templates/workflows/domain/docs.md`] Created documentation domain workflow skeleton.
+- **2025-10-04 13:18** — [S:20251004|W:task86-domain-workflows|H:templates/workflows/domain/analysis.md|E:files`templates/workflows/domain/analysis.md`] Created analysis domain workflow skeleton.
+- **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/registry/index.json|E:files`templates/registry/index.json`] Added domain workflows to registry index.
+- **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/REGISTRY.md|E:files`templates/REGISTRY.md`] Documented domain workflows section.
+- **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/metadata/template-overview.md|E:files`templates/metadata/template-overview.md`] Updated template overview with domain workflows.
+- **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/metadata/template-summary.csv|E:files`templates/metadata/template-summary.csv`] Logged domain workflows in summary CSV.
+- **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/metadata/workflow-guards.json|E:files`templates/metadata/workflow-guards.json`] Added guard metadata entries for new domain workflows.
+- **2025-10-04 13:21** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.4 --status=done`] Subtask 86.4 completed (registry/navigation updates).
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define domain categories and scope for workflows (completed 2025-10-04)

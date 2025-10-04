@@ -944,5 +944,55 @@
       "update-tracker"
     ],
     "goodFirstHandler": false
+  },
+  {
+    "id": "workflows-domain-session",
+    "path": "templates/workflows/domain/session.md",
+    "tags": [
+      "workflows",
+      "domain",
+      "session"
+    ],
+    "goodFirstWorkflow": false
+  },
+  {
+    "id": "workflows-domain-test",
+    "path": "templates/workflows/domain/test.md",
+    "tags": [
+      "workflows",
+      "domain",
+      "testing"
+    ],
+    "goodFirstWorkflow": false
+  },
+  {
+    "id": "workflows-domain-development",
+    "path": "templates/workflows/domain/development.md",
+    "tags": [
+      "workflows",
+      "domain",
+      "development"
+    ],
+    "goodFirstWorkflow": false
+  },
+  {
+    "id": "workflows-domain-docs",
+    "path": "templates/workflows/domain/docs.md",
+    "tags": [
+      "workflows",
+      "domain",
+      "docs"
+    ],
+    "goodFirstWorkflow": false
+  },
+  {
+    "id": "workflows-domain-analysis",
+    "path": "templates/workflows/domain/analysis.md",
+    "tags": [
+      "workflows",
+      "domain",
+      "analysis"
+    ],
+    "goodFirstWorkflow": false
   }
 ]
