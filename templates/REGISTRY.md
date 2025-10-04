@@ -636,6 +636,16 @@ Patterns that route ambiguous requests to appropriate handlers.
 - **Purpose**: Guarded resumption of work (plan/tracker sync + guard evidence)
 - **Usage**: Invoked automatically before continuation workflows; guard integration ensures reports/session-continuation/* contains latest log.
 
+
+### Domain Workflows (Task 86)
+| Workflow | Path |
+|---|---|
+| Session Domain Workflow | templates/workflows/domain/session.md |
+| Testing Domain Workflow | templates/workflows/domain/test.md |
+| Development Domain Workflow | templates/workflows/domain/development.md |
+| Documentation Domain Workflow | templates/workflows/domain/docs.md |
+| Analysis Domain Workflow | templates/workflows/domain/analysis.md |
+
 ## Behavioral Hooks (10 categories)
 
 Automatic enforcement gates located in BEHAVIORS.md:

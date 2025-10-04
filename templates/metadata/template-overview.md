@@ -313,6 +313,12 @@
 - `templates/workflows/session/continuation.md` — title: Session Continuation Workflow; type: workflow-component; category: session; status: stable
 - `templates/workflows/session/lifecycle.md` — title: Session Lifecycle Management; type: workflow-component; category: session; status: stable
 - `templates/workflows/session/state-management.md` — title: Session State Management Workflow; type: workflow-component; category: session; status: stable
+
+- `templates/workflows/domain/session.md` — title: Session Domain Workflow; type: workflow-component; category: domain; status: draft
+- `templates/workflows/domain/test.md` — title: Testing Domain Workflow; type: workflow-component; category: domain; status: draft
+- `templates/workflows/domain/development.md` — title: Development Domain Workflow; type: workflow-component; category: domain; status: draft
+- `templates/workflows/domain/docs.md` — title: Documentation Domain Workflow; type: workflow-component; category: domain; status: draft
+- `templates/workflows/domain/analysis.md` — title: Analysis Domain Workflow; type: workflow-component; category: domain; status: draft
 - `templates/workflows/templates/behavioral-templates.md` — title: Behavioral Templates; type: workflow-component; category: templates; status: stable
 - `templates/workflows/testing/simulation-testing.md` — title: Simulation Testing Patterns; type: workflow-component; category: testing; status: stable
 - `templates/workflows/testing/subagent-simulation.md` — title: Subagent Simulation Testing; type: workflow-component; category: testing; status: stable

@@ -1130,5 +1130,57 @@
       "templates/handlers/orchestrators/meta-workflow-authoring.md",
       "templates/patterns/integration/workflow-gap-detection.md"
     ]
+  },
+  {
+    "name": "domain-session",
+    "keywords": [
+      "session workflow",
+      "domain session",
+      "session domain"
+    ],
+    "requires": [
+      "templates/workflows/domain/session.md"
+    ]
+  },
+  {
+    "name": "domain-test",
+    "keywords": [
+      "testing workflow",
+      "domain test",
+      "qa workflow"
+    ],
+    "requires": [
+      "templates/workflows/domain/test.md"
+    ]
+  },
+  {
+    "name": "domain-development",
+    "keywords": [
+      "development workflow",
+      "domain dev"
+    ],
+    "requires": [
+      "templates/workflows/domain/development.md"
+    ]
+  },
+  {
+    "name": "domain-docs",
+    "keywords": [
+      "documentation workflow",
+      "domain docs"
+    ],
+    "requires": [
+      "templates/workflows/domain/docs.md"
+    ]
+  },
+  {
+    "name": "domain-analysis",
+    "keywords": [
+      "analysis workflow",
+      "domain analysis"
+    ],
+    "requires": [
+      "templates/workflows/domain/analysis.md"
+    ]
   }
 ]

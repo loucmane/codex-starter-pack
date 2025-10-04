@@ -6468,7 +6468,7 @@
         "dependencies": [
           85
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -6476,7 +6476,7 @@
             "description": "List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.",
             "dependencies": [],
             "details": "List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Inventory document stored and linked."
           },
           {
@@ -6485,7 +6485,7 @@
             "description": "Draft workflow files under templates/workflows/domains/ with frontmatter and steps.",
             "dependencies": [],
             "details": "Draft workflow files under templates/workflows/domains/ with frontmatter and steps.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow drafts created for each domain."
           },
           {
@@ -6494,7 +6494,7 @@
             "description": "Identify domain-specific conventions and guard requirements; document mapping.",
             "dependencies": [],
             "details": "Identify domain-specific conventions and guard requirements; document mapping.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Mapping file created and referenced."
           },
           {
@@ -6503,7 +6503,7 @@
             "description": "Add domain workflows to registry and navigation indexes.",
             "dependencies": [],
             "details": "Add domain workflows to registry and navigation indexes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Registry entries updated."
           },
           {
@@ -6512,7 +6512,7 @@
             "description": "Update codex-task helper/messages with domain workflow scaffolding.",
             "dependencies": [],
             "details": "Update codex-task helper/messages with domain workflow scaffolding.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Helper output includes domain prompts."
           },
           {
@@ -6521,7 +6521,7 @@
             "description": "Execute at least two domain workflows end-to-end and log findings/evidence.",
             "dependencies": [],
             "details": "Execute at least two domain workflows end-to-end and log findings/evidence.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Pilot execution results recorded."
           },
           {
@@ -6530,7 +6530,7 @@
             "description": "Create tests verifying domain workflow discovery and guard behavior.",
             "dependencies": [],
             "details": "Create tests verifying domain workflow discovery and guard behavior.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_domain_workflows.py"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-04T10:47:59.401Z",
+      "updated": "2025-10-04T13:33:35.537Z",
       "description": "Tasks for master context"
     }
   }
