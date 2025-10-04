@@ -1,14 +1,15 @@
 # Session Continuation Regression Suite (Task 85)
 
-## Planned Coverage
-- `check_metadata.py` (python script) – verifies registry + metadata references for continuation validation behavior.
-- Upcoming pytest suite (pending installation) – simulate guard failures for missing guard logs, tracker entries, and sessions/current link.
+## Test Coverage
+- `check_metadata.py` (Python script) – verifies registry + metadata references for continuation validation behavior.
+- `test_metadata.py` (pytest) – ensures metadata files remain in sync.
+- `test_guard_stub.py` (pytest placeholder) – scaffolding for future guard simulations.
 
-## Manual Run
+## Running Tests
 ```bash
-python3 tests/session_continuation/check_metadata.py
+python3 -m pytest tests/session_continuation
 ```
 
 ## Outstanding
-- Install pytest in environment to enable guard/unit tests.
-- Add fixtures for guard simulation once pytest available.
+- Replace placeholder guard tests with real guard simulations.
+- Consider adding CI job once guard tests are in place.

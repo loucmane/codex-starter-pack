@@ -6453,7 +6453,7 @@
             "description": "Add tests ensuring guard enforces workflow usage across session recovery.",
             "dependencies": [],
             "details": "Add tests ensuring guard enforces workflow usage across session recovery.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_session_workflows.py"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-04T10:12:23.603Z",
+      "updated": "2025-10-04T10:33:02.678Z",
       "description": "Tasks for master context"
     }
   }

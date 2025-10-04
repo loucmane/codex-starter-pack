@@ -32,3 +32,5 @@
 - **[2025-10-04 12:12 CEST]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/README.md|E:files`tests/session_continuation/README.md`] Added regression README noting pytest dependency.
 - **[2025-10-04 12:14 CEST]** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard validation passed with new messaging output.
 - **[2025-10-04 12:16 CEST]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/test_guard_stub.py|E:files`tests/session_continuation/test_guard_stub.py`] Added placeholder guard regression test (pending pytest).
+- **[2025-10-04 12:19 CEST]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/run_guard_checks.py|E:cmd`python3 tests/session_continuation/run_guard_checks.py`] Guard check script executed; log stored under reports/session-continuation/guard-20251004-121919-check.txt.
+- **[2025-10-04 12:22 CEST]** — [S:20251004|W:task85-session-continuation|H:shell:pytest|E:cmd`python3 -m pytest tests/session_continuation`] Pytest suite passing for continuation metadata and guard stub.

@@ -1,6 +1,6 @@
 # Handoff Document – Task 85 Session Continuation & State Workflows
 
-**Last Update**: 2025-10-04 12:04 CEST
+**Last Update**: 2025-10-04 12:21 CEST
 **Current State**: Continuation/state workflows updated; validation behavior drafted, guard/registry integration pending.
 
 ## What Was Done
@@ -9,7 +9,7 @@
 - Guard now checks for continuation evidence (reports/session-continuation/*, tracker/session entries).
 
 ## Current Issues / Blockers
-- Regression suite scaffolding pending (pytest unavailable locally).
+- Pytest unavailable; regression tests remain scripted placeholders.
 - Evidence bundle/plan-step-verify not yet prepared.
 
 ## Next Steps

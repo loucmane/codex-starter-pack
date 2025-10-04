@@ -38,3 +38,7 @@ title: Task 85 – Guard Messaging & Regression (Phase 2)
 - **[12:15]** — [S:20251004|W:task85-session-continuation|H:scripts/codex-guard|E:files`scripts/codex-guard`] Added CI reminder to guard hints output.
 - **[12:16]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/test_guard_stub.py|E:files`tests/session_continuation/test_guard_stub.py`] Added placeholder guard regression test (awaiting pytest).
 - **[12:17]** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.5 --status=done`] Marked subtask 85.5 (guard checkpoints) complete.
+- **[12:19]** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/run_guard_checks.py|E:cmd`python3 tests/session_continuation/run_guard_checks.py`] Guard check script executed; log stored under reports/session-continuation/guard-20251004-121919-check.txt.
+- **[12:20]** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.7 --status=in-progress`] Marked subtask 85.7 (regression tests) in progress.
+- **[12:22]** — [S:20251004|W:task85-session-continuation|H:shell:pytest|E:cmd`python3 -m pytest tests/session_continuation`] Pytest suite passing for metadata and guard stub checks.
+- **[12:23]** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.7 --status=done`] Marked subtask 85.7 (regression tests) complete.

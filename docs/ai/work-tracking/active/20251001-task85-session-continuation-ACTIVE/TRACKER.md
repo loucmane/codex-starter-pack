@@ -75,6 +75,11 @@
 - **2025-10-04 12:16** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/test_guard_stub.py|E:files`tests/session_continuation/test_guard_stub.py`] Added placeholder guard regression test (pytest pending).
 - **2025-10-04 12:17** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.5 --status=done`] Subtask 85.5 (guard checkpoints) marked complete.
 - **2025-10-04 12:19** — [S:20251004|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; guard messaging done, regression pending.
+- **2025-10-04 12:19** — [S:20251004|W:task85-session-continuation|H:tests/session_continuation/run_guard_checks.py|E:cmd`python3 tests/session_continuation/run_guard_checks.py`] Guard check script executed; log stored under reports/session-continuation/guard-20251004-121919-check.txt.
+- **2025-10-04 12:20** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.7 --status=in-progress`] Subtask 85.7 (regression tests) in progress.
+- **2025-10-04 12:21** — [S:20251004|W:task85-session-continuation|H:docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/HANDOFF.md`] Session closed; guard messaging progress noted.
+- **2025-10-04 12:22** — [S:20251004|W:task85-session-continuation|H:shell:pytest|E:cmd`python3 -m pytest tests/session_continuation`] Pytest suite passing for metadata + guard stub checks.
+- **2025-10-04 12:23** — [S:20251004|W:task85-session-continuation|H:task-master/set-status|E:cmd`task-master set-status --id=85.7 --status=done`] Subtask 85.7 (regression tests) marked complete.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define continuation workflow scope + gap analysis (completed 2025-10-01 16:09 CEST)
