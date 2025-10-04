@@ -26,7 +26,7 @@ emergency_bypass: false
 ## Plan Table
 | Step ID             | Description                                                        | Evidence                                                   | Status  |
 |---------------------|--------------------------------------------------------------------|------------------------------------------------------------|---------|
-| plan-step-scope     | Inventory domains, existing workflows, and gaps                    | Session log + tracker entries + designs/domain-inventory.md | in_progress |
+| plan-step-scope     | Inventory domains, existing workflows, and gaps                    | Session log + tracker entries + designs/domain-inventory.md | completed |
 | plan-step-implement | Author domain workflows, update registry, guards, helpers          | Updated templates, guard logs, helper docs, pytest output  | pending |
 | plan-step-verify    | Evidence bundle captured, guard/tests passing, handoff documented  | reports/domain-workflows/*, updated docs, Serena memory    | pending |
 | plan-step-emergency | _Optional_ – only if bypass required                                | Waiver + post-mortem plan                                  | n/a     |

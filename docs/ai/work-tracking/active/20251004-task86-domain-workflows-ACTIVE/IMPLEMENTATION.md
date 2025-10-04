@@ -16,3 +16,5 @@
 - Update registry/navigation and document helper prompts.
 - Pilot workflows and capture regression evidence.
 - **[2025-10-04 13:01 CEST]** — [S:20251004|W:task86-domain-workflows|H:designs/domain-inventory.md|E:files`docs/ai/work-tracking/active/20251004-task86-domain-workflows-ACTIVE/designs/domain-inventory.md`] Documented domain inventory and identified gaps.
+- **[2025-10-04 13:12 CEST]** — [S:20251004|W:task86-domain-workflows|H:templates/workflows/domain/README.md|E:files`templates/workflows/domain/README.md`] Created domain workflow directory scaffolding and README.
+- **[2025-10-04 13:15 CEST]** — [S:20251004|W:task86-domain-workflows|H:designs/domain-guard-map.md|E:files`docs/ai/work-tracking/active/20251004-task86-domain-workflows-ACTIVE/designs/domain-guard-map.md`] Mapped guard and convention requirements per domain.

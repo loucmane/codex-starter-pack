@@ -6485,7 +6485,7 @@
             "description": "Draft workflow files under templates/workflows/domains/ with frontmatter and steps.",
             "dependencies": [],
             "details": "Draft workflow files under templates/workflows/domains/ with frontmatter and steps.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow drafts created for each domain."
           },
           {
@@ -6494,7 +6494,7 @@
             "description": "Identify domain-specific conventions and guard requirements; document mapping.",
             "dependencies": [],
             "details": "Identify domain-specific conventions and guard requirements; document mapping.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Mapping file created and referenced."
           },
           {
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-04T12:11:08.742Z",
+      "updated": "2025-10-04T12:47:04.991Z",
       "description": "Tasks for master context"
     }
   }
