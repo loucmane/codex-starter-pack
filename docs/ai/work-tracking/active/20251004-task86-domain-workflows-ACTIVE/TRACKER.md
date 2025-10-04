@@ -36,6 +36,17 @@
 - **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/metadata/template-summary.csv|E:files`templates/metadata/template-summary.csv`] Logged domain workflows in summary CSV.
 - **2025-10-04 13:20** — [S:20251004|W:task86-domain-workflows|H:templates/metadata/workflow-guards.json|E:files`templates/metadata/workflow-guards.json`] Added guard metadata entries for new domain workflows.
 - **2025-10-04 13:21** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.4 --status=done`] Subtask 86.4 completed (registry/navigation updates).
+- **2025-10-04 13:25** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.5 --status=in-progress`] Subtask 86.5 (helper prompts) in progress.
+- **2025-10-04 13:27** — [S:20251004|W:task86-domain-workflows|H:templates/helpers/domain/session.md|E:files`templates/helpers/domain/session.md`] Added session domain helper prompt.
+- **2025-10-04 13:27** — [S:20251004|W:task86-domain-workflows|H:templates/helpers/domain/test.md|E:files`templates/helpers/domain/test.md`] Added testing domain helper prompt.
+- **2025-10-04 13:27** — [S:20251004|W:task86-domain-workflows|H:templates/helpers/domain/development.md|E:files`templates/helpers/domain/development.md`] Added development domain helper prompt.
+- **2025-10-04 13:27** — [S:20251004|W:task86-domain-workflows|H:templates/helpers/domain/docs.md|E:files`templates/helpers/domain/docs.md`] Added documentation domain helper prompt.
+- **2025-10-04 13:27** — [S:20251004|W:task86-domain-workflows|H:templates/helpers/domain/analysis.md|E:files`templates/helpers/domain/analysis.md`] Added analysis domain helper prompt.
+- **2025-10-04 13:28** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.5 --status=done`] Subtask 86.5 completed (helper prompts).
+- **2025-10-04 13:30** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.6 --status=in-progress`] Subtask 86.6 (pilot workflows) in progress.
+- **2025-10-04 13:32** — [S:20251004|W:task86-domain-workflows|H:reports/domain-workflows/pilot-session-20251004.txt|E:files`reports/domain-workflows/pilot-session-20251004.txt`] Piloted session domain workflow template.
+- **2025-10-04 13:33** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.6 --status=done`] Subtask 86.6 completed (pilot domain workflows).
+- **2025-10-04 13:34** — [S:20251004|W:task86-domain-workflows|H:task-master/set-status|E:cmd`task-master set-status --id=86.7 --status=done`] Subtask 86.7 completed (domain regression scaffolding).
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define domain categories and scope for workflows (completed 2025-10-04)
