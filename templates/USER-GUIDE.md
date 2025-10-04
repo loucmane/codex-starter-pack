@@ -14,7 +14,7 @@ This guide helps you get the most out of Claude for software development. Think 
 ## 🔗 Quick Links
 
 - **Full handler list** → [REGISTRY.md](REGISTRY.md)
-- **See handlers in action** → [WORKFLOWS.md#common-workflows](WORKFLOWS.md#common-workflows)
+- **See handlers in action** → [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
 - **Create new handlers** → [BUILDING-BETTER.md#creating-handlers](BUILDING-BETTER.md#creating-handlers)
 - **Standards & conventions** → [CONVENTIONS.md](templates/conventions/)
 
@@ -1198,7 +1198,7 @@ Remember: Most issues can be resolved by being more specific, providing context,
 
 - **Add new handlers?** → See [BUILDING-BETTER.md#creating-handlers](BUILDING-BETTER.md#creating-handlers)
 - **See all handlers?** → Browse [REGISTRY.md](REGISTRY.md)
-- **Common workflows?** → Check [WORKFLOWS.md#common-workflows](WORKFLOWS.md#common-workflows)
+- **Common workflows?** → Check [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
 - **Standards to follow?** → Read [CONVENTIONS.md](templates/conventions/)
 - **Improve the system?** → Visit [BUILDING-BETTER.md](templates/integration/)
 

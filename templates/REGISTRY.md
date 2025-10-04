@@ -17,7 +17,7 @@ Complete index of all handlers, templates, patterns, and conventions across the 
 ## 📚 Essential Documentation
 
 - **New to Claude?** → Start with [USER-GUIDE.md](USER-GUIDE.md)
-- **Common workflows?** → See [WORKFLOWS.md#common-workflows](WORKFLOWS.md#common-workflows)
+- **Common workflows?** → See [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
 - **Creating handlers?** → See [BUILDING-BETTER.md#creating-handlers](BUILDING-BETTER.md#creating-handlers)
 - **Having issues?** → Check [USER-GUIDE.md#troubleshooting-guide](USER-GUIDE.md#troubleshooting-guide)
 
@@ -104,7 +104,7 @@ Quick keyword lookup for finding handlers based on natural language.
 
 Handlers that respond to user triggers and route to appropriate workflows.
 
-### Development Work (WORKFLOWS.md) - 5 handlers
+### Development Work (templates/workflows/domain/development.md) - 5 handlers
 
 #### Handler: `start-new-work` {#start-new-work}
 - **Triggers**: "I want to work on X", "Let's build Y", "start working on Z"
@@ -136,7 +136,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 - **Process**: Ensures tests exist, refactors safely, verifies behavior
 - **Location**: handlers/triggers/development/refactor-code.md
 
-### Task Management (WORKFLOWS.md) - 3 handlers
+### Task Management (templates/workflows/patterns/task-management.md) - 3 handlers
 
 #### Handler: `create-todos` {#create-todos}
 - **Triggers**: "plan out X", "break down Y", "create tasks for Z"
@@ -156,7 +156,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 - **Process**: Shows completion percentage, blockers, next priorities
 - **Location**: handlers/triggers/workflow/check-progress.md
 
-### Session Management (WORKFLOWS.md + CONVENTIONS.md) - 5 handlers
+### Session Management (templates/workflows/domain/session.md + templates/conventions/work-tracking/update-tracker.md) - 5 handlers
 
 #### Handler: `show-capabilities` {#show-capabilities}
 - **Triggers**: "what can you do", "help", "show commands"
@@ -200,7 +200,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 - **Process**: Auto-saves state without interrupting flow
 - **Location**: handlers/operators/session/checkpoint-session.md
 
-### Specialist Deployment (WORKFLOWS.md) - 3 handlers
+### Specialist Deployment (templates/workflows/patterns/multi-agent-orchestration.md) - 3 handlers
 
 #### Handler: `deploy-ultrathink` {#deploy-ultrathink}
 - **Triggers**: "think deeply about X", "ultrathink on Y", "need deep analysis"
@@ -220,7 +220,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 - **Process**: Coordinates multiple specialists for complex tasks
 - **Location**: handlers/orchestrators/orchestrate-complex.md
 
-### Testing (WORKFLOWS.md) - 3 handlers
+### Testing (templates/workflows/domain/test.md) - 3 handlers
 
 #### Handler: `create-test-checkpoint` {#create-test-checkpoint}
 - **Triggers**: "test X", "create tests for Y", "add test coverage"
@@ -240,7 +240,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 - **Process**: Comprehensive validation of changes
 - **Location**: handlers/triggers/test/validate-changes.md
 
-### Work Tracking (WORKFLOWS.md) - 4 handlers
+### Work Tracking (templates/workflows/domain/session.md) - 4 handlers
 
 #### Handler: `create-work-folder` {#create-work-folder}
 - **Triggers**: Automatic from other handlers
@@ -755,7 +755,7 @@ pnpm lint                         # Run linter
   - Low Priority: security-check, deployment, rollback, compare-code
 - **Grand Total (if all added)**: 73 handlers
 - **Practical Total**: 69 handlers ✅ ACHIEVED
-- **Behavioral Templates**: 6 (WORKFLOWS.md)
+- **Behavioral Templates**: 6 (templates/workflows/templates/behavioral-templates.md)
 - **Meta-Routing Patterns**: 13 (PATTERNS.md)
 - **Behavioral Hooks**: 9 categories (BEHAVIORS.md)
 - **Decision Matrices**: 5 (MATRICES.md)

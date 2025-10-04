@@ -85,7 +85,7 @@ All tool selection handlers expect valid [S:W:H] context before execution. The t
 
 ## 📚 See Also
 
-- **[WORKFLOWS.md](../templates/workflows/)** - Complete development workflows
+- **[Domain Workflows](../templates/workflows/domain/README.md)** - Complete development workflows
 - **[CONVENTIONS.md](../templates/conventions/)** - Code and communication standards
 - **[REGISTRY.md](../templates/REGISTRY.md)** - Handler registry and navigation
 - **[PROJECT-BLOG.md](../templates/PROJECT-BLOG.md)** - Project-specific configurations

@@ -5,12 +5,18 @@
 **Last Updated**: 2025-10-04
 
 ## Goals
-- [ ] Enumerate lingering references to WORKFLOWS.md / PATTERNS.md / BUILDING-BETTER.md
-- [ ] Map each reference to new modular files (domain workflows, guards, helpers)
+- [x] Enumerate lingering references to WORKFLOWS.md / PATTERNS.md / BUILDING-BETTER.md
+- [x] Map each reference to new modular files (domain workflows, guards, helpers)
 - [ ] Implement replacements and ensure guard enforcement blocks legacy paths
 - [ ] Document migration and regression coverage
 
 ## Progress Log
+- **2025-10-04 21:16 CEST** — [S:20251004|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/HANDOFF.md`] Captured end-of-day handoff with remediation next steps.
+
+- **2025-10-04 19:10 CEST** — [S:20251004|W:task87-replace-monolith|H:reports/domain-workflows/guard-2025-10-04-1909.txt|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/guard-2025-10-04-1909.txt`] Stored guard validation log for legacy replacement sweep.
+
+- **2025-10-04 19:10 CEST** — [S:20251004|W:task87-replace-monolith|H:reports/domain-workflows/tests-2025-10-04-1910.txt|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/tests-2025-10-04-1910.txt`] Captured pytest output (Project baseline).
+
 - **2025-10-04 13:40** — [S:20251004|W:task87-replace-monolith|H:sessions/2025/10/2025-10-04-005-task87-replace-monolith.md|E:files`sessions/2025/10/2025-10-04-005-task87-replace-monolith.md`] Session started for Task 87 legacy replacement.
 - **2025-10-04 13:41** — [S:20251004|W:task87-replace-monolith|H:plans/2025-10-04-task87-replace-monolith.md|E:files`plans/2025-10-04-task87-replace-monolith.md`] Task 87 plan created and linked via plans/current.
 - **2025-10-04 13:44** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Recorded initial plan/tracker sync for Task 87.
@@ -18,8 +24,113 @@
 
 - **2025-10-04 17:05 CEST** — [S:20251004|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md`] Catalogued primary legacy reference mappings and pending replacements.
 
+- **2025-10-04 17:17 CEST** — [S:20251004|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md`] Expanded inventory to cover registry, matrices, and user guide references.
+
+- **2025-10-04 17:43 CEST** — [S:20251004|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md`] Inventory coverage complete; plan-step-scope marked complete with evidence logged.
+
+- **2025-10-04 17:43 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Synced plan after completing scope inventory.
+
+- **2025-10-04 17:47 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/handlers/operators/git/create-commit-message.md|E:files`templates/handlers/operators/git/create-commit-message.md`] Authored modular commit-message handler and updated metadata inventory entries.
+
+
+- **2025-10-04 17:49 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Synced plan after authoring commit-message handler.
+
+
+- **2025-10-04 17:57 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/workflows/examples/common-workflows.md|E:files`templates/workflows/examples/common-workflows.md`] Updated legacy example workflow to align with Codex plan/tracker protocol.
+
+
+- **2025-10-04 17:57 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Synced plan after refreshing common workflow guidance.
+
+
+- **2025-10-04 18:23 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/workflows/handlers/intent-handlers.md|E:files`templates/workflows/handlers/intent-handlers.md`] Modernized intent handlers to reference plan/tracker + Taskmaster instead of TodoWrite.
+
+
+- **2025-10-04 18:23 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after intent handler refresh.
+
+
+- **2025-10-04 18:24 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/workflows/patterns/task-management.md|E:files`templates/workflows/patterns/task-management.md`] Converted task-management pattern to plan/tracker + Taskmaster guidance.
+
+
+- **2025-10-04 18:24 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after task-management pattern refresh.
+
+
+- **2025-10-04 18:26 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/workflows/patterns/multi-agent-orchestration.md|E:files`templates/workflows/patterns/multi-agent-orchestration.md`] Updated multi-agent orchestration pattern to reference plan/tracker + Taskmaster sync.
+
+
+- **2025-10-04 18:26 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after multi-agent orchestration updates.
+
+
+- **2025-10-04 19:02 CEST** — [S:20251004|W:task87-replace-monolith|H:CODEX.md|E:files`CODEX.md`] Replaced WORKFLOWS.md/BUILDING-BETTER.md links with modular workflow, convention, and improvement docs.
+
+
+- **2025-10-04 19:02 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after CODEX reference updates.
+
+
+- **2025-10-04 19:04 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/HANDLERS.md|E:files`templates/HANDLERS.md`] Remapped handler registry links from WORKFLOWS.md anchors to modular handler files.
+
+
+- **2025-10-04 19:04 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after handler registry updates.
+
+
+- **2025-10-04 19:04 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/REGISTRY.md|E:files`templates/REGISTRY.md`] Updated registry links to modular workflow docs.
+
+
+- **2025-10-04 19:05 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/MATRICES.md|E:files`templates/MATRICES.md`] Remapped matrices entries to modular handlers/workflows.
+
+
+- **2025-10-04 19:05 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/tools/index.md|E:files`templates/tools/index.md`] Updated tools index link to domain workflow README.
+
+
+- **2025-10-04 19:05 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/USER-GUIDE.md|E:files`templates/USER-GUIDE.md`] User guide references now point to common-workflows example.
+
+
+- **2025-10-04 19:05 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/PROJECT-BLOG.md|E:files`templates/PROJECT-BLOG.md`] Project blog links updated to modular workflow overview.
+
+
+- **2025-10-04 19:05 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after tool/user-guide/project-blog updates.
+
+
+- **2025-10-04 19:06 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/behaviors/index.md|E:files`templates/behaviors/index.md`] Behavior index now references domain workflow overview.
+
+
+- **2025-10-04 19:06 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/behaviors/work-tracking/update-tracker.md|E:files`templates/behaviors/work-tracking/update-tracker.md`] Updated tracker behavior link to plan/Taskmaster guidance.
+
+
+- **2025-10-04 19:06 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after behavior updates.
+
+
+- **2025-10-04 19:07 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/metadata/template-overview.md|E:files`templates/metadata/template-overview.md`] Replaced monolith entries with modular workflow/pattern sections.
+
+
+- **2025-10-04 19:07 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/metadata/template-summary.csv|E:files`templates/metadata/template-summary.csv`] Removed monolith rows from template summary.
+
+
+- **2025-10-04 19:07 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/metadata/template-inventory.txt|E:files`templates/metadata/template-inventory.txt`] Cleared monolith entries from template inventory.
+
+
+- **2025-10-04 19:07 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after metadata updates.
+
+
+- **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/integration/architecture/template-architecture.md|E:files`templates/integration/architecture/template-architecture.md`] Updated architecture doc to reference modular workflow/improvement sections.
+
+
+- **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/BEHAVIORS.md|E:files`templates/BEHAVIORS.md`] Repointed VOID references to modular resolve-work-void handler.
+
+
+- **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/BUILDING-BETTER.md|E:files`templates/BUILDING-BETTER.md`] Updated internal guidance to modular workflow references.
+
+
+- **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/handlers/orchestrators/work-activity.md|E:files`templates/handlers/orchestrators/work-activity.md`] Routed work-activity orchestrator to modular handler docs.
+
+
+- **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:templates/registry/index.md|E:files`templates/registry/index.md`] Registry index quick link now points to modular workflow example.
+
+
+- **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after architecture/behavior/registry updates.
+
+
 ## Plan Compliance Checklist
-- [ ] plan-step-scope — Inventory legacy references and targets
+- [x] plan-step-scope — Inventory legacy references and targets
 - [ ] plan-step-implement — Replace references and update guard/tests
 - [ ] plan-step-verify — Evidence bundle captured, guard/tests passing
 - [ ] plan-step-emergency (if applicable)

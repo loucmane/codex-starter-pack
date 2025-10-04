@@ -2,10 +2,9 @@
 
 - `templates/BEHAVIORS.md` — heading: Behavioral Hooks
 
-## BUILDING-BETTER.md
+## Improvement & Extension
 
-- `templates/BUILDING-BETTER.md` — heading: Building Better: System Extension Guide
-
+- `templates/handlers/orchestrators/system-improvement.md` — heading: System Improvement Orchestrator
 ## CONVENTIONS.md
 
 - `templates/CONVENTIONS.md` — heading: Development Conventions & Standards
@@ -18,10 +17,10 @@
 
 - `templates/MATRICES.md` — heading: Decision Matrices
 
-## PATTERNS.md
+## Pattern Library
 
-- `templates/PATTERNS.md` — heading: System Patterns Library
-
+- `templates/workflows/patterns/task-management.md` — heading: Task Management Patterns
+- `templates/workflows/patterns/multi-agent-orchestration.md` — heading: Intelligent Multi-Agent Orchestration
 ## PROJECT-BLOG.md
 
 - `templates/PROJECT-BLOG.md` — heading: Animal Protection Foundation Blog - Project Configuration
@@ -38,10 +37,9 @@
 
 - `templates/USER-GUIDE.md` — heading: Claude User Guide
 
-## WORKFLOWS.md
+## Domain Workflows
 
-- `templates/WORKFLOWS.md` — heading: Universal Development Workflows
-
+- `templates/workflows/domain/README.md` — heading: Domain Workflow Directory
 ## behaviors
 
 - `templates/behaviors/file-operations/before-create.md` — category: file-operations; heading: Before Creating New Files
@@ -140,6 +138,7 @@
 - `templates/handlers/operators/external/time-capture.md` — title: Time Capture; type: operator; category: external; status: stable; heading: Pattern: time-capture {#time-capture}
 - `templates/handlers/operators/file/validate-path.md` — title: Validate Path; type: operator; category: file; status: stable; heading: Handler: validate-path {#validate-path}
 - `templates/handlers/operators/git/check-commit-msg.md` — title: Check Commit Message; type: operator; category: git; status: stable; heading: Handler: check-commit-msg {#check-commit-msg}
+- `templates/handlers/operators/git/create-commit-message.md` — title: Create Commit Message; type: operator; category: git; status: draft; heading: Handler: create-commit-message {#create-commit-message}
 - `templates/handlers/operators/git/suggest-commit-type.md` — title: Suggest Commit Type; type: operator; category: git; status: stable; heading: Handler: suggest-commit-type {#suggest-commit-type}
 - `templates/handlers/operators/session/checkpoint-session.md` — title: Checkpoint Session; type: operator; category: session; status: stable; heading: Handler: checkpoint-session {#checkpoint-session}
 - `templates/handlers/operators/session/restore-context.md` — title: Restore Context State; type: operator; category: session; status: stable; heading: Handler: restore-context {#restore-context}

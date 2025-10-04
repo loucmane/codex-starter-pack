@@ -11,8 +11,7 @@ related:
 version: 1.0.0
 status: stable
 ---
-> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
-
+> **Codex Alignment:** Replace legacy TodoWrite/TodoRead steps with the plan file + tracker checklist + Taskmaster tasks (plan update = TodoWrite, plan review = TodoRead). Always sync via `python3 scripts/codex-task plan sync` before guard checks.
 
 # Intent Handlers
 
@@ -31,7 +30,7 @@ This section defines how to handle specific user intents when they're routed fro
 2. Create work folder: `YYYYMMDD-{feature-name}-ACTIVE`
 3. Initialize 7-file structure (ALL CAPS)
 4. Update sessions/ with new work
-5. Create initial todos with TodoWrite
+5. Update plan/tracker with initial scope (plan-step-scope, tracker checklist, Taskmaster backlog entries)
 6. Route to Standard Development Workflow
 **Success**: Work folder created, todos initialized
 **Failure**: Ask for clarification on feature name
@@ -48,7 +47,7 @@ This section defines how to handle specific user intents when they're routed fro
 **Process**:
 1. Search for matching work folder
 2. Read current state from tracker.md
-3. Check TodoWrite for in-progress items
+3. Review current plan/tracker status and Taskmaster tasks
 4. Show current status to user
 5. Resume from last checkpoint
 **Success**: Previous context restored, work resumed
@@ -121,13 +120,13 @@ This section defines how to handle specific user intents when they're routed fro
 **Target Pattern**: Work item to decompose
 **Pre-conditions**: 
 - Clear understanding of overall goal
-- TodoWrite tool available
+- Plan/tracker + Taskmaster context available
 **Process**:
 1. Analyze work scope
 2. Break into logical phases
 3. Create hierarchical task structure
 4. Set appropriate priorities
-5. Add to TodoWrite
+5. Log items in the plan file and Taskmaster
 6. Show task breakdown to user
 **Success**: Comprehensive task list created
 **Failure**: Scope unclear, needs discussion
@@ -139,7 +138,7 @@ This section defines how to handle specific user intents when they're routed fro
 **Triggers**: "mark X as done", "update task Y", "Z is complete"
 **Target Pattern**: Task identifier or description
 **Pre-conditions**: 
-- Task exists in TodoWrite
+- Task exists in plan/tracker or Taskmaster
 - Valid status transition
 **Process**:
 1. Find matching task(s)

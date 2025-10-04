@@ -203,7 +203,7 @@ TodoWrite with sections:
 ```
 
 ## Cross-References
-- [WORKFLOWS.md#task-management](../../templates/workflows/)
+- [Task Management Patterns](../../templates/workflows/patterns/task-management.md)
 - [work-tracking/update-tracker.md](../work-tracking/update-tracker.md)
 - [validation/evidence-claims.md](../validation/evidence-claims.md) - Before marking complete
 

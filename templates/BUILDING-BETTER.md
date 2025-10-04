@@ -109,7 +109,7 @@ This file participates in the ULTRATHINK system:
 
 ### VOID Resolution
 - **S = VOID** → See [resolve-session-void](CONVENTIONS.md#resolve-session-void)
-- **W = VOID** → See [resolve-work-void](WORKFLOWS.md#resolve-work-void)
+- **W = VOID** → See [resolve-work-void](templates/handlers/operators/workflow/resolve-work-void.md#resolve-work-void)
 - **H = VOID** → See [resolve-handler-void](REGISTRY.md#resolve-handler-void)
 
 ### Integration Handler Requirements
@@ -527,7 +527,7 @@ Create a new handler when:
    - Check it's distinct from existing handlers
 
 2. **Choose Handler Location**
-   - **WORKFLOWS.md** - Development tasks, features, implementation
+   - **Domain Workflows** - See templates/workflows/domain/README.md for development workflows
    - **TOOLS.md** - Tool selection and usage patterns
    - **CONVENTIONS.md** - Standards, validation, formatting
    - **PATTERNS.md** - Meta-routing, ambiguous requests

@@ -65,7 +65,7 @@ This pattern is referenced by all behaviors that require development context.
 
 ### Cross-Template References
 - **CLAUDE.md** → Invokes these behaviors as execution gates
-- **WORKFLOWS.md** → References for work tracking enforcement
+- **Domain Workflows** → See `templates/workflows/domain/README.md` for workflow references used by enforcement guards
 - **CONVENTIONS.md** → Automated through these behaviors
 - **REGISTRY.md** → Lists all behaviors with locations
 - **MATRICES.md** → Error recovery behaviors

@@ -1,22 +1,24 @@
 # Handoff Document – Task 87 Replace Legacy Monolithic References
 
-**Last Update**: 2025-10-04 16:50 CEST
-**Current State**: Task 87 scaffolded; plan synced; legacy inventory underway.
+**Last Update**: 2025-10-04 21:16 CEST
+**Current State**: Monolithic references replaced; guard + pytest evidence captured; remaining work focuses on remediation scripts and documentation clean-up.
 
 ## What Was Done
-- Started Task 87 session and linked plan via `plans/current`.
-- Recorded initial plan sync to ensure guard compliance.
-- Created legacy reference inventory stub in `designs/legacy-inventory.md`.
+- Replaced all WORKFLOWS.md/PATTERNS.md/BUILDING-BETTER.md references with modular handlers/workflows.
+- Modernized legacy workflow/pattern docs and added git `create-commit-message` handler.
+- Captured guard validation + pytest outputs under `reports/domain-workflows/`.
 
 ## Current Issues / Blockers
-- Full inventory of legacy references still pending.
+- Generated remediation scripts still need review/application (e.g., templates/WORKFLOWS.md removal).
+- Documentation pass required to reflect new modular sources in narrative docs (e.g., README/PRD references).
 
 ## Next Steps
-1. Complete inventory for WORKFLOWS.md, PATTERNS.md, BUILDING-BETTER.md references.
-2. Map each legacy reference to modular replacements and document in inventory.
-3. Implement replacements and capture guard / pytest evidence.
+1. Apply/remediate any outstanding scripts (e.g., output/scripts/apply_reference_fixes.py) and remove deprecated monolith files.
+2. Update high-level documentation/PRDs to reference modular locations.
+3. Prepare plan-step-verify closure (final tracker update, summary, Serena memory) once remediation is finished.
 
 ## How to Continue
 - Branch: `feat/task87-replace-monolith`
-- Use Task 87 plan (`plans/2025-10-04-task87-replace-monolith.md`) for scope + evidence requirements.
-- Update tracker checklist after each plan-step milestone.
+- Review plan (`plans/2025-10-04-task87-replace-monolith.md`) and tracker for pending plan-step-implement items.
+- Use guard/pytest logs in `reports/domain-workflows/` as baseline before applying remediation scripts.
+- Log follow-up changes in tracker + session, then rerun guard/tests before plan-step-verify completion.

@@ -26,9 +26,9 @@ emergency_bypass: false
 ## Plan Table
 | Step ID             | Description                                                        | Evidence                                                   | Status  |
 |---------------------|--------------------------------------------------------------------|------------------------------------------------------------|---------|
-| plan-step-scope     | Enumerate legacy references and map replacements                   | Session log + tracker entries + designs/legacy-inventory.md | in_progress |
+| plan-step-scope     | Enumerate legacy references and map replacements                   | Session log + tracker entries + docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/designs/legacy-inventory.md | completed |
 | plan-step-implement | Replace references, update guard & metadata, capture regression    | Updated templates, guard logs, pytest output               | pending |
-| plan-step-verify    | Evidence bundle captured, guard/tests passing, docs updated        | reports/domain-workflows/*, archived logs                  | pending |
+| plan-step-verify    | Evidence bundle captured, guard/tests passing, docs updated        | docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/guard-2025-10-04-1909.txt; docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/tests-2025-10-04-1910.txt, archived logs                  | pending |
 | plan-step-emergency | _Optional_ – only if bypass required                                | Waiver + post-mortem plan                                  | n/a     |
 
 ## Scope

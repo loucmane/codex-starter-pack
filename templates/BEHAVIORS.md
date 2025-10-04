@@ -23,7 +23,7 @@ This file participates in the ULTRATHINK system:
 
 ### VOID Resolution
 - **S = VOID** → See [resolve-session-void](CONVENTIONS.md#resolve-session-void)
-- **W = VOID** → See [resolve-work-void](WORKFLOWS.md#resolve-work-void)
+- **W = VOID** → See [resolve-work-void](templates/handlers/operators/workflow/resolve-work-void.md#resolve-work-void)
 - **H = VOID** → See [resolve-handler-void](registry/index.md#resolve-handler-void)
 
 ### Behavioral Enforcement

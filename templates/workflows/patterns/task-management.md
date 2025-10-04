@@ -10,33 +10,32 @@ related:
 version: 1.0.0
 status: stable
 ---
-> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
-
+> **Codex Alignment:** Replace legacy TodoWrite/TodoRead usage with the plan file (updates), tracker checklist (status), and Taskmaster tasks (backlog). Always sync via `python3 scripts/codex-task plan sync` before/after changes so guard checks stay accurate.
 
 # Task Management Patterns
 
-You have access to the TodoWrite and TodoRead tools to help manage and plan tasks. Use these tools frequently to ensure you're tracking tasks and giving visibility into progress.
+Use the plan file + tracker checklist + Taskmaster tasks to manage scope. Update them frequently to keep progress visible and enforce guard compliance.
 
-## When to Use TodoWrite
+## When to Update Plan & Taskmaster
 
-Use TodoWrite proactively in these scenarios:
+Update plan/tracker + Taskmaster proactively in these scenarios:
 1. **Complex multi-step tasks** - When a task requires 3 or more distinct steps
 2. **Non-trivial implementations** - Tasks requiring careful planning or multiple operations  
 3. **Before starting major work** - Break down the approach into manageable steps
 4. **During orchestration** - Track deployment of multiple agents or parallel work
 
-## TodoWrite Best Practices
+## Plan/Taskmaster Best Practices
 
-- Create todos BEFORE starting work, not after
-- Break large tasks into specific, actionable items
-- Update status in real-time (pending → in_progress → completed)
-- Only have ONE task in_progress at a time
-- Mark tasks complete IMMEDIATELY when done
+- Record plan steps BEFORE starting work, not after
+- Break large tasks into specific, actionable items in the plan file
+- Update tracker checklist status in real-time (pending → in_progress → completed)
+- Only progress one tracker item at a time; document why if parallel work required
+- Mark tracker checklist items complete immediately when done and sync Taskmaster status
 
 ## Example Usage
 
 When implementing a new feature:
-1. Use TodoWrite to break it down:
+1. Update plan/tracker steps to break it down:
    - Research existing patterns
    - Design the implementation
    - Write the code
@@ -45,7 +44,7 @@ When implementing a new feature:
 2. Mark each as in_progress when starting
 3. Mark as completed when done
 
-## TodoWrite for Orchestrated Tasks
+## Plan/Taskmaster for Orchestrated Tasks
 
 When task complexity warrants delegation:
 
@@ -68,7 +67,7 @@ Mark sub-agent tasks with emoji indicators:
 
 ## Priority Levels
 
-Always use TodoWrite with priority levels:
+Always capture priority levels in plan/tracker + Taskmaster:
 - 🔴 **High Priority**: Core implementation
 - 🟡 **Medium Priority**: Supporting work
 - 🟢 **Low Priority**: Polish and docs
@@ -113,7 +112,7 @@ Example: Template System Phase 3 (60+ todos)
 - **Prevents duplication**: Won't redo completed work
 - **Mental clarity**: Offload tracking to the system
 
-## Todo List Best Practices
+## Plan/Taskmaster Checklist Best Practices
 
 1. **Granular tasks**: Break down to atomic actions
 2. **Logical ordering**: Dependencies respected
@@ -142,7 +141,7 @@ Example: Template System Phase 3 (60+ todos)
 
 ## Integration with Other Workflows
 
-- TodoWrite ensures nothing is forgotten during work sessions
+- Plan/tracker + Taskmaster ensure nothing is forgotten during work sessions
 - Integrates with sessions/ progress tracking
-- Provides clear handoff for next session
-- Creates audit trail of work completed
+- Provides clear handoff for next session via HANDOFF.md
+- Creates audit trail of work completed through tracker + plan updates
