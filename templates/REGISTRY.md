@@ -18,7 +18,7 @@ Complete index of all handlers, templates, patterns, and conventions across the 
 
 - **New to Claude?** → Start with [USER-GUIDE.md](USER-GUIDE.md)
 - **Common workflows?** → See [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
-- **Creating handlers?** → See [BUILDING-BETTER.md#creating-handlers](BUILDING-BETTER.md#creating-handlers)
+- **Creating handlers?** → See [Creating and Managing Handlers](templates/integration/guides/creating-handlers.md#creating-and-managing-handlers)
 - **Having issues?** → Check [USER-GUIDE.md#troubleshooting-guide](USER-GUIDE.md#troubleshooting-guide)
 
 ## 🎯 Quick Navigation
@@ -502,7 +502,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 - **Process**: System-wide enforcement
 - **Location**: handlers/orchestrators/enforce-pre-flight.md
 
-### Cross-System Integration (BUILDING-BETTER.md) - 6 handlers
+### Cross-System Integration (templates/integration/cross-system/) - 6 handlers
 
 #### Handler: `workflow-to-tool` {#workflow-to-tool}
 - **Triggers**: Workflow step needs tool
@@ -756,7 +756,7 @@ pnpm lint                         # Run linter
 - **Grand Total (if all added)**: 73 handlers
 - **Practical Total**: 69 handlers ✅ ACHIEVED
 - **Behavioral Templates**: 6 (templates/workflows/templates/behavioral-templates.md)
-- **Meta-Routing Patterns**: 13 (PATTERNS.md)
+- **Meta-Routing Patterns**: 13 (templates/registry/patterns/meta-routing.md)
 - **Behavioral Hooks**: 9 categories (BEHAVIORS.md)
 - **Decision Matrices**: 5 (MATRICES.md)
 

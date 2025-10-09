@@ -73,7 +73,7 @@
 - **[TOOLS.md](TOOLS.md)** - MCP tool configurations
 - **[CLAUDE-NEW.md](CLAUDE-NEW.md)** - Quick navigation hub
 - **[Registry](registry/index.md)** - Modular handler registry
-- **[BUILDING-BETTER.md](BUILDING-BETTER.md)** - How to evolve this system
+- **[Extending the Template System](integration/guides/extending-templates.md#extending-the-template-system)** - How to evolve this system
 
 ---
 

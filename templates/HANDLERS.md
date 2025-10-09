@@ -22,31 +22,31 @@ This registry provides a unified view of all handlers across the Claude Template
 ### Development Work {#development-work}
 
 #### start-new-work
-**Location**: [WORKFLOWS.md#handler-start-new-work](templates/handlers/triggers/development/start-new-work.md#start-new-work)  
+**Location**: [templates/handlers/triggers/development/start-new-work.md](templates/handlers/triggers/development/start-new-work.md#start-new-work)  
 **Triggers**: "work on X", "let's build Y", "create feature Z"  
 **Purpose**: Initialize new feature/component work  
 **Related**: `continue-work`, `create-work-folder`, `save-context`
 
 #### continue-work
-**Location**: [WORKFLOWS.md#handler-continue-work](templates/handlers/triggers/workflow/continue-work.md#continue-work)  
+**Location**: [templates/handlers/triggers/workflow/continue-work.md](templates/handlers/triggers/workflow/continue-work.md#continue-work)  
 **Triggers**: "continue X", "resume Y", "back to Z"  
 **Purpose**: Resume existing work with context  
 **Related**: `restore-context`, `start-new-work`
 
 #### standard-dev-workflow
-**Location**: [WORKFLOWS.md#handler-standard-dev-workflow](templates/handlers/orchestrators/standard-dev-workflow.md#standard-dev-workflow)  
+**Location**: [templates/handlers/orchestrators/standard-dev-workflow.md](templates/handlers/orchestrators/standard-dev-workflow.md#standard-dev-workflow)  
 **Triggers**: "implement X", "develop Y"  
 **Purpose**: Follow standard development process  
 **Related**: `create-todos`, `update-tracker`
 
 #### create-component
-**Location**: [WORKFLOWS.md#handler-create-component](templates/handlers/triggers/development/create-component.md#create-component)  
+**Location**: [templates/handlers/triggers/development/create-component.md](templates/handlers/triggers/development/create-component.md#create-component)  
 **Triggers**: "create component", "new component"  
 **Purpose**: Create new UI/code component  
 **Related**: `create-file`, `check-naming`
 
 #### refactor-code
-**Location**: [WORKFLOWS.md#handler-refactor-code](templates/handlers/triggers/development/refactor-code.md#refactor-code)  
+**Location**: [templates/handlers/triggers/development/refactor-code.md](templates/handlers/triggers/development/refactor-code.md#refactor-code)  
 **Triggers**: "refactor X", "clean up Y"  
 **Purpose**: Improve code structure  
 **Related**: `analyze-code`, `run-tests`
@@ -54,7 +54,7 @@ This registry provides a unified view of all handlers across the Claude Template
 ### Problem Solving {#problem-solving}
 
 #### fix-problem
-**Location**: [WORKFLOWS.md#handler-fix-problem](templates/handlers/triggers/debug/fix-bug.md#fix-code-bug-handler)  
+**Location**: [templates/handlers/triggers/debug/fix-bug.md](templates/handlers/triggers/debug/fix-bug.md#fix-code-bug-handler)  
 **Triggers**: "fix bug", "resolve issue"  
 **Purpose**: Bug fix workflow  
 **Related**: `debug`, `find-references`
@@ -98,7 +98,7 @@ This registry provides a unified view of all handlers across the Claude Template
 **Related**: `check-commit-msg`, `check-status`, `create-commit-message`
 
 #### create-commit-message
-**Location**: [WORKFLOWS.md#handler-create-commit-message](templates/handlers/operators/git/create-commit-message.md#create-commit-message)  
+**Location**: [templates/handlers/operators/git/create-commit-message.md](templates/handlers/operators/git/create-commit-message.md#create-commit-message)  
 **Triggers**: "write commit message", "commit message for", "what's the commit message"  
 **Purpose**: Generate proper commit message following conventions  
 **Related**: `check-commit-msg`, `commit-changes`
@@ -138,7 +138,7 @@ This registry provides a unified view of all handlers across the Claude Template
 ### Meta & Recovery {#meta-recovery}
 
 #### show-capabilities
-**Location**: [WORKFLOWS.md#handler-show-capabilities](templates/handlers/triggers/session/show-capabilities.md#show-capabilities)  
+**Location**: [templates/handlers/triggers/session/show-capabilities.md](templates/handlers/triggers/session/show-capabilities.md#show-capabilities)  
 **Triggers**: "what can you do", "help", "show commands"  
 **Purpose**: Display system capabilities  
 **Related**: `im-lost`, `unknown-intent`
@@ -164,13 +164,13 @@ This registry provides a unified view of all handlers across the Claude Template
 ### System Integration {#system-integration}
 
 #### workflow-to-tool
-**Location**: [BUILDING-BETTER.md#handler-workflow-to-tool](BUILDING-BETTER.md#handler-workflow-to-tool)  
+**Location**: [templates/handlers/orchestrators/workflow-to-tool.md](templates/handlers/orchestrators/workflow-to-tool.md#workflow-to-tool)  
 **Triggers**: Workflow needs tool  
 **Purpose**: Connect workflows to tools  
 **Related**: `tool-to-convention`
 
 #### save-context
-**Location**: [BUILDING-BETTER.md#handler-save-context](BUILDING-BETTER.md#handler-save-context)  
+**Location**: [templates/handlers/operators/session/save-context.md](templates/handlers/operators/session/save-context.md#save-context)  
 **Triggers**: "save state", "checkpoint"  
 **Purpose**: Preserve work context  
 **Related**: `restore-context`, `switch-context`

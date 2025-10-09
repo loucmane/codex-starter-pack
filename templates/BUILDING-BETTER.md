@@ -530,8 +530,8 @@ Create a new handler when:
    - **Domain Workflows** - See templates/workflows/domain/README.md for development workflows
    - **TOOLS.md** - Tool selection and usage patterns
    - **CONVENTIONS.md** - Standards, validation, formatting
-   - **PATTERNS.md** - Meta-routing, ambiguous requests
-   - **BUILDING-BETTER.md** - Cross-system integration
+   - **templates/patterns/** - Meta-routing, ambiguous requests
+   - **templates/integration/cross-system/** - Cross-system integration
 
 3. **Write the Handler**
    - Follow the standard format exactly

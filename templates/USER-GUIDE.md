@@ -15,7 +15,7 @@ This guide helps you get the most out of Claude for software development. Think 
 
 - **Full handler list** → [REGISTRY.md](REGISTRY.md)
 - **See handlers in action** → [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
-- **Create new handlers** → [BUILDING-BETTER.md#creating-handlers](BUILDING-BETTER.md#creating-handlers)
+- **Create new handlers** → [Creating and Managing Handlers](templates/integration/guides/creating-handlers.md#creating-and-managing-handlers)
 - **Standards & conventions** → [CONVENTIONS.md](templates/conventions/)
 
 ---
@@ -1196,11 +1196,11 @@ Remember: Most issues can be resolved by being more specific, providing context,
 
 ## 🔗 Cross-References
 
-- **Add new handlers?** → See [BUILDING-BETTER.md#creating-handlers](BUILDING-BETTER.md#creating-handlers)
+- **Add new handlers?** → See [Creating and Managing Handlers](templates/integration/guides/creating-handlers.md#creating-and-managing-handlers)
 - **See all handlers?** → Browse [REGISTRY.md](REGISTRY.md)
 - **Common workflows?** → Check [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
 - **Standards to follow?** → Read [CONVENTIONS.md](templates/conventions/)
-- **Improve the system?** → Visit [BUILDING-BETTER.md](templates/integration/)
+- **Improve the system?** → Visit [system-improvement orchestrator](templates/handlers/orchestrators/system-improvement.md#system-improvement)
 
 ## 🏷️ Search Keywords
 

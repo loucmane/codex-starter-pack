@@ -37,8 +37,8 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 | "commit X" | commit-changes | TOOLS.md | "commit my changes" |
 | "start session" | session-start | CONVENTIONS.md | "start new session" |
 | "create work folder" | start-new-work | templates/handlers/triggers/development/start-new-work.md | "create work tracking" |
-| "analyze X" | evidence-check | PATTERNS.md | "analyze performance" |
-| "how does X work" | explain-code | PATTERNS.md | "how does auth work" |
+| "analyze X" | evidence-check | templates/handlers/orchestrators/evidence-check.md | "analyze performance" |
+| "how does X work" | explain-code | templates/handlers/triggers/analysis/explain-code.md | "how does auth work" |
 | "refactor X" | refactor-code | templates/handlers/triggers/development/refactor-code.md | "refactor auth module" |
 | "review X" | code-review | templates/handlers/triggers/analysis/code-review.md | "review my changes" |
 | "document X" | create-docs | CONVENTIONS.md | "document the API" |
@@ -46,7 +46,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 | "secure X" | security-check | TOOLS.md | "secure the endpoint" |
 | "deploy X" | deployment | templates/handlers/orchestrators/system-improvement.md | "deploy to staging" |
 | "rollback X" | rollback | templates/handlers/orchestrators/system-improvement.md | "rollback deployment" |
-| "compare X and Y" | compare-code | PATTERNS.md | "compare v1 and v2" |
+| "compare X and Y" | compare-code | templates/workflows/domain/analysis.md | "compare v1 and v2" |
 
 ## File Type → Convention Matrix {#file-type-convention-matrix}
 
@@ -86,7 +86,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 | Slow queries | Analyze query plan | Add indexes | EXPLAIN |
 | Race condition | Add proper locking | Refactor flow | Debug |
 | Circular dependency | Map dependencies | Refactor structure | find_referencing |
-| Missing handler | Search similar | Create new one | PATTERNS.md |
+| Missing handler | Search similar | Create new one | templates/registry/patterns/meta-routing.md |
 
 ## Context → Mode Matrix {#context-mode-matrix}
 
@@ -112,7 +112,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 
 | Error Pattern | Immediate Action | Recovery Path | Prevention |
 |--------------|------------------|---------------|------------|
-| Handler not found | Search broader terms | Check PATTERNS.md | Update registry |
+| Handler not found | Search broader terms | Check templates/registry/patterns/meta-routing.md | Update registry |
 | File not found | Verify path exists | Search for file | Use absolute paths |
 | Symbol not found | Try substring match | Use search_pattern | Check file first |
 | Test failure | Read full error | Fix implementation | Run before commit |
@@ -150,7 +150,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 | Navigation | find-handler | REGISTRY.md | keyword lookup | ✅ | 72.5% improvement |
 | Context Detection | mode-detection | CLAUDE.md | dev vs chat | ❌ | Mode switching |
 | Error Recovery | error-matrix | MATRICES.md | recovery paths | ❌ | Fallback behavior |
-| Memory Usage | save-context | PATTERNS.md | memory format | ❌ | Session handoff |
+| Memory Usage | save-context | templates/handlers/operators/session/save-context.md | memory format | ❌ | Session handoff |
 | Compaction | detect-size | BEHAVIORS.md | context limits | ❌ | Auto-detection |
 
 ### Coverage Summary {#coverage-summary}

@@ -2,7 +2,7 @@
 
 **Started**: 2025-10-04
 **Status**: ACTIVE
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-09
 
 ## Goals
 - [x] Enumerate lingering references to WORKFLOWS.md / PATTERNS.md / BUILDING-BETTER.md
@@ -129,10 +129,26 @@
 - **2025-10-04 19:08 CEST** — [S:20251004|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan sync after architecture/behavior/registry updates.
 
 
+- **2025-10-09 11:34 CEST** — [S:20251009|W:task87-replace-monolith|H:sessions/2025/10/2025-10-09-001-task87-replace-monolith.md|E:files`sessions/2025/10/2025-10-09-001-task87-replace-monolith.md`] Session resumed; plan sync + guard baseline captured before remediation work.
+
+- **2025-10-09 11:37 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.1 --status=done`] CLI status aligned: 87.1 marked done.
+- **2025-10-09 11:37 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.2 --status=done`] CLI status aligned: 87.2 marked done.
+- **2025-10-09 11:38 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.3 --status=in-progress`] Implementation subtask set in-progress before remediation.
+- **2025-10-09 11:43 CEST** — [S:20251009|W:task87-replace-monolith|H:output/scripts/apply_reference_fixes.py|E:files`output/scripts/apply_reference_fixes.py`] Script reviewed; contains outdated monolith targets (e.g., `templates/PATTERNS.md`), so remediation will proceed manually instead of running it.
+- **2025-10-09 11:46 CEST** — [S:20251009|W:task87-replace-monolith|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard baseline reconfirmed post-edit.
+- **2025-10-09 12:55 CEST** — [S:20251009|W:task87-replace-monolith|H:templates/HANDLERS.md|E:files`templates/HANDLERS.md`] Replaced remaining WORKFLOWS.md anchors across handler registry, meta-routing patterns, matrices, and evidence behaviors with modular targets.
+- **2025-10-09 12:57 CEST** — [S:20251009|W:task87-replace-monolith|H:templates/USER-GUIDE.md|E:files`templates/USER-GUIDE.md`] Updated user/integration docs (user guide, registry, conventions, guides, project blog) to reference modular integration guides instead of BUILDING-BETTER/PATTERNS.
+- **2025-10-09 12:58 CEST** — [S:20251009|W:task87-replace-monolith|H:templates/WORKFLOWS.md|E:files`templates/WORKFLOWS.md`] Cleaned residual cross-links (system-improvement orchestrator, workflow index) so template suite no longer points at monolith files.
+- **2025-10-09 13:00 CEST** — [S:20251009|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Recorded post-update plan sync.
+- **2025-10-09 13:00 CEST** — [S:20251009|W:task87-replace-monolith|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard passes on documentation sweep.
+- **2025-10-09 13:00 CEST** — [S:20251009|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/guard-2025-10-09-1300.txt|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/guard-2025-10-09-1300.txt`] Guard log stored for replacement sweep.
+- **2025-10-09 13:01 CEST** — [S:20251009|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/tests-2025-10-09-1301.txt|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/tests-2025-10-09-1301.txt`] Pytest regression run captured (20 passed).
+- **2025-10-09 13:02 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.3 --status=done`] Subtask 87.3 marked complete (manual remediation finished).
+
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Inventory legacy references and targets
-- [ ] plan-step-implement — Replace references and update guard/tests
-- [ ] plan-step-verify — Evidence bundle captured, guard/tests passing
+- [x] plan-step-implement — Replace references and update guard/tests
+- [x] plan-step-verify — Evidence bundle captured, guard/tests passing
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
