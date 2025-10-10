@@ -6580,7 +6580,7 @@
             "description": "Modify guard to flag references to deprecated monoliths.",
             "dependencies": [],
             "details": "Modify guard to flag references to deprecated monoliths.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard fails when legacy anchor added."
           },
           {
@@ -6589,7 +6589,7 @@
             "description": "Update findings/changelog with reference fixes and evidence.",
             "dependencies": [],
             "details": "Update findings/changelog with reference fixes and evidence.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated with before/after summary."
           },
           {
@@ -6598,7 +6598,7 @@
             "description": "Add tests ensuring future references trigger guard or linter.",
             "dependencies": [],
             "details": "Add tests ensuring future references trigger guard or linter.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_legacy_anchors.py"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-09T11:07:56.135Z",
+      "updated": "2025-10-09T13:51:57.241Z",
       "description": "Tasks for master context"
     }
   }

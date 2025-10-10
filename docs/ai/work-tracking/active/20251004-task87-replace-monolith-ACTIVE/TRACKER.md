@@ -144,6 +144,12 @@
 - **2025-10-09 13:00 CEST** — [S:20251009|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/guard-2025-10-09-1300.txt|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/guard-2025-10-09-1300.txt`] Guard log stored for replacement sweep.
 - **2025-10-09 13:01 CEST** — [S:20251009|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/tests-2025-10-09-1301.txt|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/reports/domain-workflows/tests-2025-10-09-1301.txt`] Pytest regression run captured (20 passed).
 - **2025-10-09 13:02 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.3 --status=done`] Subtask 87.3 marked complete (manual remediation finished).
+- **2025-10-09 13:03 CEST** — [S:20251009|W:task87-replace-monolith|H:scripts/codex-guard|E:files`scripts/codex-guard`] Extended guard to block legacy WORKFLOWS/PATTERNS/BUILDING-BETTER references in templates.
+- **2025-10-09 13:04 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.4 --status=done`] Subtask 87.4 (guard update) marked done.
+- **2025-10-09 13:04 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.5 --status=done`] Documentation subtask marked done.
+- **2025-10-09 13:05 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.6 --status=done`] Regression subtask marked done (evidence logged).
+- **2025-10-09 13:05 CEST** — [S:20251009|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Synced plan/tracker after closing subtasks.
+- **2025-10-09 13:06 CEST** — [S:20251009|W:task87-replace-monolith|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard passes with monolith enforcement enabled.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Inventory legacy references and targets

@@ -21,6 +21,11 @@ GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
 SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
 PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
 PLACEHOLDER_HANDLERS_LOWER = {value.lower() for value in PLACEHOLDER_HANDLERS}
+LEGACY_MONOLITH_TOKENS = {
+    "workflows.md": "Replace legacy WORKFLOWS.md references with modular templates/workflows/* documents",
+    "patterns.md": "Use templates/patterns/* modules instead of PATTERNS.md",
+    "building-better.md": "Point to templates/integration/guides/* instead of BUILDING-BETTER.md",
+}
 META_WORKFLOW_FILES = {
     "templates/workflows/processes/meta-workflow-authoring.md",
     "templates/handlers/orchestrators/meta-workflow-authoring.md",
@@ -734,7 +739,15 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
     if relative_path.parts[0] == "sessions":
         metadata = parse_front_matter_text(text)
     expected_session = derive_expected_session(metadata)
-    issues = validate_swhe_entries(relative_path, text, expected_session)
+
+    issues = []
+    if relative_path.parts and relative_path.parts[0] == "templates":
+        lower_text = text.lower()
+        for token, hint in LEGACY_MONOLITH_TOKENS.items():
+            if token in lower_text:
+                issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
+
+    issues.extend(validate_swhe_entries(relative_path, text, expected_session))
     issues.extend(validate_timestamp_policy(relative_path, text, metadata))
     return issues
 
@@ -750,6 +763,8 @@ def guard_validate(args: argparse.Namespace) -> int:
         if relative.suffix != ".md":
             continue
         if relative.parts[0] == "sessions":
+            relevant.append(file_path)
+        elif relative.parts[0] == "templates":
             relevant.append(file_path)
         elif (relative.parts[:len(WORK_TRACKING_PREFIX.parts)] == WORK_TRACKING_PREFIX.parts
               and relative.name in GUARDED_WORKTRACKING_FILES):
