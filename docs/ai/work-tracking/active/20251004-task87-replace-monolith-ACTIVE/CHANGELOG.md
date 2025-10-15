@@ -18,3 +18,5 @@
 - 2025-10-04 19:08 CEST — Updated behavior/docs references to modular handlers.
 - 2025-10-04 19:10 CEST — Captured guard log (reports/domain-workflows/guard-2025-10-04-1909.txt).
 - 2025-10-04 19:10 CEST — Captured pytest output (reports/domain-workflows/tests-2025-10-04-1910.txt).
+
+- 2025-10-11 14:15 CEST — Task 87 closure noted; confirmed guard/pytest evidence and plan checklist complete.

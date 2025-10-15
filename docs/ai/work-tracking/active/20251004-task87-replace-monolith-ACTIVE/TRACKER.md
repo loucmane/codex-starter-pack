@@ -2,13 +2,13 @@
 
 **Started**: 2025-10-04
 **Status**: ACTIVE
-**Last Updated**: 2025-10-09
+**Last Updated**: 2025-10-11
 
 ## Goals
 - [x] Enumerate lingering references to WORKFLOWS.md / PATTERNS.md / BUILDING-BETTER.md
 - [x] Map each reference to new modular files (domain workflows, guards, helpers)
-- [ ] Implement replacements and ensure guard enforcement blocks legacy paths
-- [ ] Document migration and regression coverage
+- [x] Implement replacements and ensure guard enforcement blocks legacy paths
+- [x] Document migration and regression coverage
 
 ## Progress Log
 - **2025-10-04 21:16 CEST** — [S:20251004|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/HANDOFF.md|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/HANDOFF.md`] Captured end-of-day handoff with remediation next steps.
@@ -150,6 +150,12 @@
 - **2025-10-09 13:05 CEST** — [S:20251009|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87.6 --status=done`] Regression subtask marked done (evidence logged).
 - **2025-10-09 13:05 CEST** — [S:20251009|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Synced plan/tracker after closing subtasks.
 - **2025-10-09 13:06 CEST** — [S:20251009|W:task87-replace-monolith|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard passes with monolith enforcement enabled.
+
+- **2025-10-11 14:10 CEST** — [S:20251011|W:task87-replace-monolith|H:sessions/2025/10/2025-10-11-001-task87-replace-monolith.md|E:files`sessions/2025/10/2025-10-11-001-task87-replace-monolith.md`] Follow-up session opened; plan/tracker reviewed.
+- **2025-10-11 14:12 CEST** — [S:20251011|W:task87-replace-monolith|H:.plan_state/sync.log|E:cmd`python3 scripts/codex-task plan sync`] Plan/tracker synced for closure work.
+- **2025-10-11 14:12 CEST** — [S:20251011|W:task87-replace-monolith|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard baseline confirmed (no markdown changes yet).
+- **2025-10-11 14:15 CEST** — [S:20251011|W:task87-replace-monolith|H:docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/CHANGELOG.md|E:files`docs/ai/work-tracking/active/20251004-task87-replace-monolith-ACTIVE/CHANGELOG.md`] Logged closure notes; verified plan-step checklist complete.
+- **2025-10-11 14:15 CEST** — [S:20251011|W:task87-replace-monolith|H:task-master/set-status|E:cmd`task-master set-status --id=87 --status=done`] Task 87 closed in Task Master.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Inventory legacy references and targets
