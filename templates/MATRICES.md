@@ -18,7 +18,7 @@ This file participates in the ULTRATHINK system:
 
 ### VOID Resolution
 - **S = VOID** → See [resolve-session-void](CONVENTIONS.md#resolve-session-void)
-- **W = VOID** → See [resolve-work-void](WORKFLOWS.md#resolve-work-void)
+- **W = VOID** → See [resolve-work-void](templates/handlers/operators/workflow/resolve-work-void.md#resolve-work-void)
 - **H = VOID** → See [resolve-handler-void](REGISTRY.md#resolve-handler-void)
 
 ### Matrix Usage
@@ -28,25 +28,25 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 
 | Request Pattern | Handler | Location | Example |
 |-----------------|---------|----------|---------|
-| "implement X" | standard-dev-workflow | WORKFLOWS.md | "implement user auth" |
-| "fix X" | fix-bug | WORKFLOWS.md | "fix login bug" |
-| "test X" | create-test-checkpoint | WORKFLOWS.md | "test the auth flow" |
+| "implement X" | standard-dev-workflow | templates/handlers/orchestrators/standard-dev-workflow.md | "implement user auth" |
+| "fix X" | fix-bug | templates/handlers/triggers/debug/fix-bug.md | "fix login bug" |
+| "test X" | create-test-checkpoint | templates/handlers/triggers/test/create-test-checkpoint.md | "test the auth flow" |
 | "find X" | search-code | TOOLS.md | "find user model" |
 | "search for X" | search-code | TOOLS.md | "search for login" |
-| "debug X" | debug-issue | WORKFLOWS.md | "debug auth failure" |
+| "debug X" | debug-issue | templates/handlers/triggers/debug/debug-issue.md | "debug auth failure" |
 | "commit X" | commit-changes | TOOLS.md | "commit my changes" |
 | "start session" | session-start | CONVENTIONS.md | "start new session" |
-| "create work folder" | start-new-work | WORKFLOWS.md | "create work tracking" |
-| "analyze X" | evidence-check | PATTERNS.md | "analyze performance" |
-| "how does X work" | explain-code | PATTERNS.md | "how does auth work" |
-| "refactor X" | refactor-code | WORKFLOWS.md | "refactor auth module" |
-| "review X" | code-review | WORKFLOWS.md | "review my changes" |
+| "create work folder" | start-new-work | templates/handlers/triggers/development/start-new-work.md | "create work tracking" |
+| "analyze X" | evidence-check | templates/handlers/orchestrators/evidence-check.md | "analyze performance" |
+| "how does X work" | explain-code | templates/handlers/triggers/analysis/explain-code.md | "how does auth work" |
+| "refactor X" | refactor-code | templates/handlers/triggers/development/refactor-code.md | "refactor auth module" |
+| "review X" | code-review | templates/handlers/triggers/analysis/code-review.md | "review my changes" |
 | "document X" | create-docs | CONVENTIONS.md | "document the API" |
-| "optimize X" | optimize-code | WORKFLOWS.md | "optimize queries" |
+| "optimize X" | optimize-code | templates/handlers/operators/development/optimize-code.md | "optimize queries" |
 | "secure X" | security-check | TOOLS.md | "secure the endpoint" |
-| "deploy X" | deployment | WORKFLOWS.md | "deploy to staging" |
-| "rollback X" | rollback | WORKFLOWS.md | "rollback deployment" |
-| "compare X and Y" | compare-code | PATTERNS.md | "compare v1 and v2" |
+| "deploy X" | deployment | templates/handlers/orchestrators/system-improvement.md | "deploy to staging" |
+| "rollback X" | rollback | templates/handlers/orchestrators/system-improvement.md | "rollback deployment" |
+| "compare X and Y" | compare-code | templates/workflows/domain/analysis.md | "compare v1 and v2" |
 
 ## File Type → Convention Matrix {#file-type-convention-matrix}
 
@@ -86,7 +86,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 | Slow queries | Analyze query plan | Add indexes | EXPLAIN |
 | Race condition | Add proper locking | Refactor flow | Debug |
 | Circular dependency | Map dependencies | Refactor structure | find_referencing |
-| Missing handler | Search similar | Create new one | PATTERNS.md |
+| Missing handler | Search similar | Create new one | templates/registry/patterns/meta-routing.md |
 
 ## Context → Mode Matrix {#context-mode-matrix}
 
@@ -112,7 +112,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 
 | Error Pattern | Immediate Action | Recovery Path | Prevention |
 |--------------|------------------|---------------|------------|
-| Handler not found | Search broader terms | Check PATTERNS.md | Update registry |
+| Handler not found | Search broader terms | Check templates/registry/patterns/meta-routing.md | Update registry |
 | File not found | Verify path exists | Search for file | Use absolute paths |
 | Symbol not found | Try substring match | Use search_pattern | Check file first |
 | Test failure | Read full error | Fix implementation | Run before commit |
@@ -137,20 +137,20 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 
 | Behavior Trigger | Handler | Template | Convention | Tested | Notes |
 |-----------------|---------|----------|------------|---------|--------|
-| Work Tracking | create-work-folder | WORKFLOWS.md | work-folder format | ❌ | Need to test folder creation |
+| Work Tracking | create-work-folder | templates/handlers/operators/workflow/create-work-folder.md | work-folder format | ❌ | Need to test folder creation |
 | File Operations | check-conventions | BEHAVIORS.md | file-edit rules | ❌ | Before any edit |
-| Development Work | start-new-work | WORKFLOWS.md | workflow process | ❌ | Full workflow test |
+| Development Work | start-new-work | templates/handlers/triggers/development/start-new-work.md | workflow process | ❌ | Full workflow test |
 | Tool Selection | tool-matrix | TOOLS.md | right tool rules | ❌ | Serena vs Grep |
 | Evidence & Claims | gather-evidence | BEHAVIORS.md | proof required | ❌ | Before assertions |
 | Task Management | create-todos | BEHAVIORS.md | TodoWrite usage | ❌ | Start of work |
 | Session Management | session-start | CONVENTIONS.md | sessions/ format | ❌ | Session creation |
 | Timestamp Accuracy | date-check | BEHAVIORS.md | actual time only | ✅ | Just implemented |
 | Git Operations (gac) | gac-format | BEHAVIORS.md | no double quotes | ❌ | Commit messages |
-| Testing & Validation | test-checkpoint | WORKFLOWS.md | user testing | ❌ | Before complete |
+| Testing & Validation | create-test-checkpoint | templates/handlers/triggers/test/create-test-checkpoint.md | user testing | ❌ | Before complete |
 | Navigation | find-handler | REGISTRY.md | keyword lookup | ✅ | 72.5% improvement |
 | Context Detection | mode-detection | CLAUDE.md | dev vs chat | ❌ | Mode switching |
 | Error Recovery | error-matrix | MATRICES.md | recovery paths | ❌ | Fallback behavior |
-| Memory Usage | save-context | PATTERNS.md | memory format | ❌ | Session handoff |
+| Memory Usage | save-context | templates/handlers/operators/session/save-context.md | memory format | ❌ | Session handoff |
 | Compaction | detect-size | BEHAVIORS.md | context limits | ❌ | Auto-detection |
 
 ### Coverage Summary {#coverage-summary}

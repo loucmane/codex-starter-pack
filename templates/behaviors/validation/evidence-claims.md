@@ -173,7 +173,7 @@ Read --file_path "package.json"
 ```
 
 ## Cross-References
-- [PATTERNS.md#evidence-based-claims](../../templates/patterns/)
+- [Evidence check pattern](../../templates/patterns/evidence/evidence-patterns.md#evidence-check-pattern)
 - [TOOLS.md#tool-selection-matrix](../../templates/TOOLS.md)
 - [work-tracking/update-tracker.md](../work-tracking/update-tracker.md) - Document findings
 

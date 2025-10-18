@@ -1,15 +1,12 @@
 path,title,type,status,category,first_heading,has_frontmatter
 templates/BEHAVIORS.md,,,,,Behavioral Hooks,no
-templates/BUILDING-BETTER.md,,,,,Building Better: System Extension Guide,no
 templates/CONVENTIONS.md,,,,,Development Conventions & Standards,no
 templates/HANDLERS.md,,,,,System Handlers Registry,no
 templates/MATRICES.md,,,,,Decision Matrices,no
-templates/PATTERNS.md,,,,,System Patterns Library,no
 templates/PROJECT-BLOG.md,,,,,Animal Protection Foundation Blog - Project Configuration,no
 templates/REGISTRY.md,,,,,Claude Template System Registry - REFINED v2.0,no
 templates/TOOLS.md,,,,,Codex Tooling & Command Router,no
 templates/USER-GUIDE.md,,,,,Claude User Guide,no
-templates/WORKFLOWS.md,,,,,Universal Development Workflows,no
 templates/behaviors/file-operations/before-create.md,,,,file-operations,Before Creating New Files,yes
 templates/behaviors/file-operations/before-edit.md,,,,file-operations,Before Any File Edit,yes
 templates/behaviors/git/before-commit.md,,,,git,Before Commit (gac Format),yes
@@ -90,6 +87,7 @@ templates/handlers/operators/docs/validate-comments.md,Validate Comments,operato
 templates/handlers/operators/external/time-capture.md,Time Capture,operator,stable,external,Pattern: time-capture {#time-capture},yes
 templates/handlers/operators/file/validate-path.md,Validate Path,operator,stable,file,Handler: validate-path {#validate-path},yes
 templates/handlers/operators/git/check-commit-msg.md,Check Commit Message,operator,stable,git,Handler: check-commit-msg {#check-commit-msg},yes
+templates/handlers/operators/git/create-commit-message.md,Create Commit Message,operator,draft,git,Handler: create-commit-message {#create-commit-message},yes
 templates/handlers/operators/git/suggest-commit-type.md,Suggest Commit Type,operator,stable,git,Handler: suggest-commit-type {#suggest-commit-type},yes
 templates/handlers/operators/session/checkpoint-session.md,Checkpoint Session,operator,stable,session,Handler: checkpoint-session {#checkpoint-session},yes
 templates/handlers/operators/session/restore-context.md,Restore Context State,operator,stable,session,Handler: restore-context {#restore-context},yes

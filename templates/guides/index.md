@@ -96,7 +96,7 @@ Our guides are organized by purpose and skill level:
 ### System Documentation
 - **[REGISTRY.md](..templates/REGISTRY.md)** - Complete handler list
 - **[CONVENTIONS.md](..templates/conventions/)** - Standards and rules
-- **[BUILDING-BETTER.md](..templates/integration/)** - Extending the system
+- **[Extending the Template System](templates/integration/guides/extending-templates.md#extending-the-template-system)** - Extending the system
 
 ### Quick Links
 - **Most common commands** → [Quick Actions](reference/quick-actions.md)

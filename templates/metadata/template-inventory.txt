@@ -1,14 +1,11 @@
 templates/BEHAVIORS.md
-templates/BUILDING-BETTER.md
 templates/CONVENTIONS.md
 templates/HANDLERS.md
 templates/MATRICES.md
-templates/PATTERNS.md
 templates/PROJECT-BLOG.md
 templates/REGISTRY.md
 templates/TOOLS.md
 templates/USER-GUIDE.md
-templates/WORKFLOWS.md
 templates/behaviors/file-operations/before-create.md
 templates/behaviors/file-operations/before-edit.md
 templates/behaviors/git/before-commit.md
@@ -89,6 +86,7 @@ templates/handlers/operators/docs/validate-comments.md
 templates/handlers/operators/external/time-capture.md
 templates/handlers/operators/file/validate-path.md
 templates/handlers/operators/git/check-commit-msg.md
+templates/handlers/operators/git/create-commit-message.md
 templates/handlers/operators/git/suggest-commit-type.md
 templates/handlers/operators/session/checkpoint-session.md
 templates/handlers/operators/session/restore-context.md

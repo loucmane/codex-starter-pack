@@ -124,13 +124,13 @@ core_templates:
       - Cross-references
     update_frequency: On handler changes
   
-  WORKFLOWS.md:
-    type: patterns
-    purpose: Complex workflow definitions
+  Domain workflows:
+    type: workflows
+    purpose: Modular workflow definitions
     content:
-      - Workflow patterns
-      - Multi-step processes
-      - Real examples
+      - templates/workflows/domain/*
+      - Session/testing/docs/development workflows
+      - Examples under templates/workflows/examples/
     update_frequency: On new workflows
   
   CONVENTIONS.md:
@@ -151,14 +151,13 @@ core_templates:
       - Troubleshooting
     update_frequency: On feature changes
   
-  BUILDING-BETTER.md:
-    type: index
-    purpose: System extension guide index
+  System improvement:
+    type: orchestrator docs
+    purpose: System extension guidance
     content:
-      - Links to integration modules
-      - Quick navigation
-      - Overview only
-    update_frequency: On structure changes
+      - templates/handlers/orchestrators/system-improvement.md
+      - Related improvement workflows
+    update_frequency: On improvement initiatives
 ```
 
 ### Engine Templates

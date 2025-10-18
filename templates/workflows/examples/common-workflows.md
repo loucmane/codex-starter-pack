@@ -12,6 +12,8 @@ version: 1.0.0
 status: stable
 ---
 
+> **Codex Alignment:** Before following these examples in Codex, run `python3 scripts/codex-task plan sync` and update the active tracker so guard checks align with plan compliance (replaces the legacy TodoWrite/TodoRead steps).
+
 # Common Development Workflows
 
 This section shows complete workflows from start to finish, demonstrating how multiple handlers chain together to accomplish real development tasks.
@@ -22,11 +24,11 @@ This section shows complete workflows from start to finish, demonstrating how mu
 
 ```
 User: "I want to work on user authentication"
-Claude: [start-new-work] → Creates work folder and tracking
+Codex: [start-new-work] → Creates work folder and tracking
         What aspects of authentication do you want to implement?
 
 User: "Login, logout, and session management"
-Claude: [create-todos] → Breaks down into tasks:
+Codex: [create-todos] → Breaks down into tasks:
         1. Create auth service structure
         2. Implement login functionality  
         3. Implement logout functionality
@@ -36,23 +38,23 @@ Claude: [create-todos] → Breaks down into tasks:
         7. Integrate with existing app
 
 User: "Let's start with the auth service"
-Claude: [create-component] → Creates service structure
+Codex: [create-component] → Creates service structure
         Created: src/services/auth.service.js
         Added methods: login(), logout(), getSession()
 
 User: "Add the login implementation"
-Claude: [edit-file] → Implements login with:
+Codex: [edit-file] → Implements login with:
         - Input validation
         - API communication
         - Token storage
         - Error handling
 
 User: "Test that it works"
-Claude: [create-test-checkpoint] → Creates and runs tests
+Codex: [create-test-checkpoint] → Creates and runs tests
         ✅ All auth service tests passing
 
 User: "Great, commit this"
-Claude: [commit-changes] → "feat: add auth service with login implementation"
+Codex: [commit-changes] → "feat: add auth service with login implementation"
 ```
 
 ## Fixing a Production Bug
@@ -61,11 +63,11 @@ Claude: [commit-changes] → "feat: add auth service with login implementation"
 
 ```
 User: "Users report the submit button on the contact form isn't working"
-Claude: [fix-bug] → Loads bug-fix-template
+Codex: [fix-bug] → Loads bug-fix-template
         First, I need to reproduce the issue...
 
 User: "It works fine locally but fails in production"
-Claude: [debug-issue] → Checks environment differences:
+Codex: [debug-issue] → Checks environment differences:
         1. API endpoint configuration
         2. CORS settings
         3. Environment variables
@@ -73,16 +75,16 @@ Claude: [debug-issue] → Checks environment differences:
         Found it! Production API_URL missing /api prefix
 
 User: "That makes sense! Fix it"
-Claude: [edit-file] → Updates .env.production
+Codex: [edit-file] → Updates .env.production
         Also adding validation to prevent future issues
 
 User: "Test that the fix works"
-Claude: [validate-changes] → Creates verification test
+Codex: [validate-changes] → Creates verification test
         ✅ Test passes with correct URL
         ❌ Test fails with missing /api (as expected)
 
 User: "Perfect, commit and let's deploy"
-Claude: [commit-changes] → "fix: add missing /api prefix to production API_URL"
+Codex: [commit-changes] → "fix: add missing /api prefix to production API_URL"
 ```
 
 ## Code Review Workflow
@@ -91,7 +93,7 @@ Claude: [commit-changes] → "fix: add missing /api prefix to production API_URL
 
 ```
 User: "Review my changes before I create a PR"
-Claude: [check-status] → Shows git diff in 4 files
+Codex: [check-status] → Shows git diff in 4 files
         [code-review] → Loads review template
 
 ## Code Review Results
@@ -111,19 +113,19 @@ Claude: [check-status] → Shows git diff in 4 files
 - Missing auth on DELETE
 
 User: "Fix the security issues first"
-Claude: [edit-file] → Implements:
+Codex: [edit-file] → Implements:
         1. Input sanitization
         2. Environment variables for keys
         3. Auth middleware on DELETE
 
 User: "Now optimize the performance"
-Claude: [optimize-code] → Applies:
+Codex: [optimize-code] → Applies:
         1. React.memo to UserList
         2. useCallback for handlers
         3. Request batching
 
 User: "Great, review again"
-Claude: [code-review] → ✅ All issues addressed
+Codex: [code-review] → ✅ All issues addressed
 ```
 
 ## Understanding Legacy Code
@@ -132,7 +134,7 @@ Claude: [code-review] → ✅ All issues addressed
 
 ```
 User: "How does the payment system work?"
-Claude: [explain-code] → Analyzes payment system
+Codex: [explain-code] → Analyzes payment system
         [find-symbol] → Locates main functions
 
 ## Payment System Overview
@@ -154,12 +156,12 @@ Claude: [explain-code] → Analyzes payment system
    - Sends confirmation
 
 User: "Where does it handle failed payments?"
-Claude: [find-references] → Shows failure handling:
+Codex: [find-references] → Shows failure handling:
         - gateway.js:95 - Network failures
         - processor.js:73 - Business logic failures
 
 User: "I need to add PayPal support"
-Claude: Based on architecture:
+Codex: Based on architecture:
         1. Create paypal-gateway.js
         2. Implement same interface
         3. Add to processor switch
@@ -172,7 +174,7 @@ Claude: Based on architecture:
 
 ```
 User: "The dashboard is loading very slowly"
-Claude: [debug-issue] → Performance investigation
+Codex: [debug-issue] → Performance investigation
         [measure-complexity] → Analyzing code
 
 ## Performance Analysis
@@ -183,19 +185,19 @@ Claude: [debug-issue] → Performance investigation
 3. Heavy Computation (calculations.js:67)
 
 User: "Fix the API calls first"
-Claude: [optimize-code] → Implements batching
+Codex: [optimize-code] → Implements batching
         Before: 15 calls (3.2s)
         After: 3 calls (0.8s)
 
 User: "Now fix the re-rendering"
-Claude: [optimize-code] → Applies:
+Codex: [optimize-code] → Applies:
         - React.memo to children
         - useMemo for calculations
         - useCallback for handlers
         Renders: 47 → 3
 
 User: "What's the overall improvement?"
-Claude: Summary:
+Codex: Summary:
         Load time: 4.8s → 1.2s (75% faster)
         Interaction: 400ms → 50ms (87% faster)
         Memory: 45MB → 28MB (38% reduction)
@@ -207,7 +209,7 @@ Claude: Summary:
 
 ```
 User: "Let's build a user profile component using TDD"
-Claude: [create-test-checkpoint] → Writes tests first:
+Codex: [create-test-checkpoint] → Writes tests first:
         1. Renders user information
         2. Handles missing data
         3. Shows edit button for own profile
@@ -215,20 +217,20 @@ Claude: [create-test-checkpoint] → Writes tests first:
         5. Updates on data change
 
 User: "Run the tests"
-Claude: [run-tests] → ❌ All 5 failing (expected)
+Codex: [run-tests] → ❌ All 5 failing (expected)
 
 User: "Create minimal implementation"
-Claude: [create-component] → Basic UserProfile
+Codex: [create-component] → Basic UserProfile
         [run-tests] → ✅ 3/5 passing
 
 User: "Fix the failing tests"
-Claude: [edit-file] → Adds:
+Codex: [edit-file] → Adds:
         - Null checks
         - useEffect for updates
         [run-tests] → ✅ 5/5 passing!
 
 User: "Refactor to make it cleaner"
-Claude: [refactor-code] → Extracts:
+Codex: [refactor-code] → Extracts:
         - UserAvatar component
         - useUserProfile hook
         [run-tests] → ✅ Still passing!

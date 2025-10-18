@@ -6545,7 +6545,7 @@
         "dependencies": [
           86
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6553,7 +6553,7 @@
             "description": "Use scanners and manual audit to list references to WORKFLOWS.md, PATTERNS.md, etc.",
             "dependencies": [],
             "details": "Use scanners and manual audit to list references to WORKFLOWS.md, PATTERNS.md, etc.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Reference inventory produced."
           },
           {
@@ -6562,7 +6562,7 @@
             "description": "Determine modular replacements or new modules for each reference.",
             "dependencies": [],
             "details": "Determine modular replacements or new modules for each reference.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Replacement mapping table created."
           },
           {
@@ -6571,7 +6571,7 @@
             "description": "Update templates/handlers/docs to use modular paths; capture diffs.",
             "dependencies": [],
             "details": "Update templates/handlers/docs to use modular paths; capture diffs.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Reference updates committed locally."
           },
           {
@@ -6580,7 +6580,7 @@
             "description": "Modify guard to flag references to deprecated monoliths.",
             "dependencies": [],
             "details": "Modify guard to flag references to deprecated monoliths.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard fails when legacy anchor added."
           },
           {
@@ -6589,7 +6589,7 @@
             "description": "Update findings/changelog with reference fixes and evidence.",
             "dependencies": [],
             "details": "Update findings/changelog with reference fixes and evidence.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated with before/after summary."
           },
           {
@@ -6598,7 +6598,7 @@
             "description": "Add tests ensuring future references trigger guard or linter.",
             "dependencies": [],
             "details": "Add tests ensuring future references trigger guard or linter.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/templates/test_legacy_anchors.py"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-04T13:33:35.537Z",
+      "updated": "2025-10-11T13:35:21.177Z",
       "description": "Tasks for master context"
     }
   }

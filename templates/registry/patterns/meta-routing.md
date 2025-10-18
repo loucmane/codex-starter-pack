@@ -24,7 +24,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Check for existing work folder
   3. Route to `continue-work` if exists
   4. Route to `start-new-work` if new
-- **Location**: PATTERNS.md#work-activity
+- **Location**: [templates/handlers/orchestrators/work-activity.md](templates/handlers/orchestrators/work-activity.md#work-activity)
 
 ### 2. `work-continuation` Pattern
 - **Purpose**: Routes continuation requests
@@ -34,7 +34,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Locate work folder
   3. Restore context
   4. Route to appropriate handler
-- **Location**: PATTERNS.md#work-continuation
+- **Location**: [templates/handlers/orchestrators/work-continuation.md](templates/handlers/orchestrators/work-continuation.md#work-continuation)
 - **Guard Dependency**: Requires behavior `session/continuation-validation.md` before routing.
 
 ### 3. `file-operation` Pattern
@@ -44,7 +44,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   1. Determine operation type (read/edit/create/delete)
   2. Check file conventions
   3. Route to appropriate file handler
-- **Location**: PATTERNS.md#file-operation
+- **Location**: [templates/handlers/orchestrators/file-operation.md](templates/handlers/orchestrators/file-operation.md#file-operation)
 
 ### 4. `file-creation` Pattern
 - **Purpose**: Routes file creation requests
@@ -54,7 +54,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Check naming conventions
   3. Verify location rules
   4. Route to `create-file` or specialized creator
-- **Location**: PATTERNS.md#file-creation
+- **Location**: [templates/handlers/orchestrators/file-creation.md](templates/handlers/orchestrators/file-creation.md#file-creation)
 
 ### 5. `tool-selection` Pattern
 - **Purpose**: Routes to correct tool
@@ -64,7 +64,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Check tool matrix
   3. Select optimal tool
   4. Route to tool-specific handler
-- **Location**: PATTERNS.md#tool-selection
+- **Location**: [templates/patterns/selection/tool-selection.md](templates/patterns/selection/tool-selection.md#tool-selection-patterns)
 
 ### 6. `code-creation` Pattern
 - **Purpose**: Routes code generation requests
@@ -73,7 +73,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   1. Identify code element type
   2. Check patterns and conventions
   3. Route to `create-component` or specific creator
-- **Location**: PATTERNS.md#code-creation
+- **Location**: [templates/handlers/orchestrators/code-creation.md](templates/handlers/orchestrators/code-creation.md#code-creation)
 
 ### 7. `evidence-check` Pattern
 - **Purpose**: Routes evidence gathering
@@ -82,7 +82,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   1. Identify claim type
   2. Determine evidence needed
   3. Route to `gather-evidence` or `verify-claim`
-- **Location**: PATTERNS.md#evidence-check
+- **Location**: [templates/handlers/orchestrators/evidence-check.md](templates/handlers/orchestrators/evidence-check.md#evidence-check)
 
 ### 8. `architecture-claim` Pattern
 - **Purpose**: Routes architecture verification
@@ -91,7 +91,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   1. Extract architectural claim
   2. Identify verification points
   3. Route to analysis handlers
-- **Location**: PATTERNS.md#architecture-claim
+- **Location**: [templates/handlers/orchestrators/architecture-claim.md](templates/handlers/orchestrators/architecture-claim.md#architecture-claim)
 
 ### 9. `time-capture` Pattern
 - **Purpose**: Routes timestamp handling
@@ -101,7 +101,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Get actual time (never guess)
   3. Format appropriately
   4. Route to update handler
-- **Location**: PATTERNS.md#time-capture
+- **Location**: [templates/handlers/operators/external/time-capture.md](templates/handlers/operators/external/time-capture.md#time-capture)
 
 ### 10. `ambiguous-request` Pattern
 - **Purpose**: Handles unclear requests
@@ -111,7 +111,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. List top 3 likely handlers
   3. Ask for clarification
   4. Route once clarified
-- **Location**: PATTERNS.md#ambiguous-request
+- **Location**: [templates/handlers/orchestrators/ambiguous-request.md](templates/handlers/orchestrators/ambiguous-request.md#ambiguous-request)
 
 ### 11. `multi-step-request` Pattern
 - **Purpose**: Breaks down complex requests
@@ -121,7 +121,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Order by dependencies
   3. Route each step to handler
   4. Coordinate execution
-- **Location**: PATTERNS.md#multi-step-request
+- **Location**: [templates/handlers/orchestrators/multi-step-request.md](templates/handlers/orchestrators/multi-step-request.md#multi-step-request)
 
 ### 12. `lost-context` Pattern
 - **Purpose**: Helps reorientation
@@ -131,7 +131,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   2. Check active work folders
   3. Review recent activity
   4. Restore context
-- **Location**: PATTERNS.md#lost-context
+- **Location**: [templates/handlers/orchestrators/lost-context.md](templates/handlers/orchestrators/lost-context.md#lost-context)
 
 ### 13. `system-improvement` Pattern
 - **Purpose**: Routes meta-improvements
@@ -140,7 +140,7 @@ Patterns that route ambiguous requests to appropriate handlers.
   1. Identify improvement type
   2. Check existing patterns
   3. Route to meta-agent or specialist
-- **Location**: PATTERNS.md#system-improvement
+- **Location**: [templates/handlers/orchestrators/system-improvement.md](templates/handlers/orchestrators/system-improvement.md#system-improvement)
 
 ### 14. `workflow-gap-detection` Pattern
 - **Purpose**: Routes workflow gaps into the meta workflow authoring process

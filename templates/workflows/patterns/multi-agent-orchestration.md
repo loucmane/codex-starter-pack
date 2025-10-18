@@ -11,8 +11,7 @@ related:
 version: 1.0.0
 status: stable
 ---
-> **Codex Equivalent:** References to Claude's TodoWrite/TodoRead should be handled in Codex by updating the plan tool (Plan update ≈ TodoWrite, Plan display ≈ TodoRead) alongside the work-tracking checklists.
-
+> **Codex Alignment:** Keep plan/tracker + Taskmaster in sync when orchestrating specialists (plan update = legacy TodoWrite, tracker review = legacy TodoRead). Sync via `python3 scripts/codex-task plan sync` before and after deployments.
 
 # Intelligent Multi-Agent Orchestration
 
@@ -177,8 +176,8 @@ FORBIDDEN TOOLS:
 - Only use tools explicitly listed below
 
 FORBIDDEN ACTIONS:
-- NEVER edit or read sessions/ (that's exclusively managed by main Claude)
-- NEVER create work tracking files (that's main Claude's responsibility)
+- NEVER edit or read sessions/ (that's exclusively managed by the primary agent (Codex main loop))
+- NEVER create work tracking files (that's the primary agent (Codex main loop)'s responsibility)
 - NEVER make git commits unless explicitly requested
 - NEVER modify .claude/ directory contents
 
@@ -254,7 +253,7 @@ The system is designed to evolve:
 
 ## Integration Notes
 
-- Works with TodoWrite for task tracking
+- Works with plan/tracker + Taskmaster for task tracking
 - Updates sessions/ with specialist deployments
 - Creates testing checkpoints after each subtask
 - Maintains context through orchestration

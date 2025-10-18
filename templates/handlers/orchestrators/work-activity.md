@@ -27,8 +27,8 @@ version: 1.0.0
 **Pre-conditions**: None (meta-pattern)
 **Process**:
 1. Check for active work folder in docs/ai/work-tracking/active/
-2. If exists → Load WORKFLOWS.md#continue-work
-3. If not → Load WORKFLOWS.md#start-new-work
+2. If exists → Load templates/handlers/triggers/workflow/continue-work.md
+3. If not → Load templates/handlers/triggers/development/start-new-work.md
 4. Follow loaded handler
 **Success**: Routed to appropriate work handler
 **Failure**: Use generic work creation

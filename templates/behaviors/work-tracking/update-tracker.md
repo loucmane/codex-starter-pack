@@ -232,7 +232,7 @@ Document in FINDINGS.md:
 ```
 
 ## Cross-References
-- [WORKFLOWS.md#create-work-tracking](../../templates/workflows/)
+- [Plan/Tracker Setup](../../templates/workflows/handlers/intent-handlers.md#create-todos)
 - [timestamps/before-adding.md](../timestamps/before-adding.md)
 - [session/session-end.md](../session/session-end.md)
 - [CONVENTIONS.md#work-tracking](../../templates/conventions/)

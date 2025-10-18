@@ -80,9 +80,9 @@ All convention enforcement handlers have been migrated to the handler system:
 
 ## See Also
 
-- [WORKFLOWS.md](WORKFLOWS.md) - Complete workflow documentation
+- [Domain Workflows](templates/workflows/domain/README.md) - Complete workflow documentation
 - [REGISTRY.md](REGISTRY.md) - Handler registry
-- [BUILDING-BETTER.md](BUILDING-BETTER.md) - Creating new conventions
+- [Extending the Template System](templates/integration/guides/extending-templates.md#extending-the-template-system) - Creating new conventions
 
 ---
 

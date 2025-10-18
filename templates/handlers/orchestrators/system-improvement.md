@@ -18,7 +18,7 @@ version: 1.0.0
 **Triggers**: "improve system", "make better", enhancement requests
 **Pre-conditions**: Meta-work requested
 **Process**:
-1. Load BUILDING-BETTER.md#system-improvements
+1. Load templates/integration/guides/extending-templates.md#extending-the-template-system
 2. Check which component to improve
 3. Follow improvement workflow
 **Success**: System enhanced

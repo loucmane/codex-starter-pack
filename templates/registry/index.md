@@ -25,8 +25,8 @@ Lightweight entry point to the complete template system registry.
 ## 📚 Essential Documentation
 
 - **New to Claude?** → [USER-GUIDE.md](../templates/USER-GUIDE.md)
-- **Common workflows?** → [WORKFLOWS.md#common-workflows](../templates/workflows/#common-workflows)
-- **Creating handlers?** → [BUILDING-BETTER.md#creating-handlers](../templates/integration/#creating-handlers)
+- **Common workflows?** → [templates/workflows/examples/common-workflows.md](../templates/workflows/examples/common-workflows.md)
+- **Creating handlers?** → [Creating and Managing Handlers](../templates/integration/guides/creating-handlers.md#creating-and-managing-handlers)
 - **Having issues?** → [USER-GUIDE.md#troubleshooting](../templates/USER-GUIDE.md#troubleshooting-guide)
 
 ## 🎯 Registry Components

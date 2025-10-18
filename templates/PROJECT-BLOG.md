@@ -429,10 +429,10 @@ pnpm deploy:production    # Production deployment
 
 ### Template System Files {#template-system-files}
 - **[CLAUDE-NEW.md](CLAUDE-NEW.md)** - Quick navigation hub
-- **[WORKFLOWS.md](templates/workflows/)** - Universal workflow patterns
+- **[Domain Workflows](templates/workflows/domain/README.md)** - Universal workflow patterns
 - **[TOOLS.md](TOOLS.md)** - Tool configurations
 - **[CONVENTIONS.md](templates/conventions/)** - Coding standards
-- **[BUILDING-BETTER.md](templates/integration/)** - System evolution
+- **[Extending the Template System](templates/integration/guides/extending-templates.md#extending-the-template-system)** - System evolution
 
 ### Project Documentation {#project-documentation}
 - **[Performance Standards](/docs/ai/shared-context/standards/performance.md)** - Detailed metrics
