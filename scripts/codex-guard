@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -17,6 +18,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SESSIONS_PREFIX = Path("sessions")
 WORK_TRACKING_PREFIX = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
+WORK_TRACKING_RELATIVE = WORK_TRACKING_PREFIX.relative_to(REPO_ROOT)
 GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
 SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
 PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
@@ -35,6 +37,31 @@ SESSION_TIMESTAMP_PATTERN = re.compile(r"\*\*\[(\d{2}):(\d{2})\]\*\*")
 TRACKER_TIMESTAMP_PATTERN = re.compile(r"- \*\*(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})\*\*")
 DATE_COMMAND_PATTERN = re.compile(r"E:cmd`[^`]*date[^`]*`")
 CHANGELOG_ROW_PATTERN = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\s*\|", re.MULTILINE)
+TODAY_ISO = datetime.now().date().isoformat()
+IGNORE_PATH_PREFIXES = tuple(
+    prefix for prefix in os.environ.get("CODEX_GUARD_IGNORE_PATHS", "").split(":") if prefix
+)
+
+LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
+
+def should_ignore_relative(relative: Path) -> bool:
+    if not IGNORE_PATH_PREFIXES:
+        return False
+    rel = relative.as_posix()
+    return any(rel.startswith(prefix) for prefix in IGNORE_PATH_PREFIXES)
+
+DATE_PREFIX_EXPECTED = TODAY_ISO.replace('-', '')
+
+
+CURRENT_SESSION_SYMLINK = REPO_ROOT / 'sessions' / 'current'
+try:
+    CURRENT_SESSION_PATH = CURRENT_SESSION_SYMLINK.resolve()
+except FileNotFoundError:
+    CURRENT_SESSION_PATH = None
+except RuntimeError:
+    CURRENT_SESSION_PATH = None
+
+
 
 PLAN_CURRENT = REPO_ROOT / "plans" / "current"
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
@@ -94,11 +121,219 @@ def run_git_status(include_untracked: bool) -> List[Path]:
             path_fragment = path_fragment.split("->", 1)[1].strip()
         if status == "??" and not include_untracked:
             continue
+        if len(status) > 1 and status[1] == "D":
+            # Working tree deletion; skip
+            continue
         if status.strip() == "D":
             # Deleted file; no validation required
             continue
-        changed.append((REPO_ROOT / path_fragment).resolve())
+        absolute = (REPO_ROOT / path_fragment).resolve()
+        if absolute.is_dir():
+            for candidate in absolute.rglob('*'):
+                if candidate.is_file():
+                    changed.append(candidate)
+            continue
+        changed.append(absolute)
     return sorted(set(changed))
+
+
+def detect_untracked_active_folders() -> List[Path]:
+    """Identify newly added ACTIVE work-tracking folders in the current diff."""
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(REPO_ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"git status failed: {exc}")
+
+    base_parts = WORK_TRACKING_RELATIVE.parts
+    detected: set[Path] = set()
+    for raw_line in result.stdout.splitlines():
+        if not raw_line.strip():
+            continue
+        status = raw_line[:2]
+        if status != "??":
+            continue
+        path_fragment = raw_line[3:].strip()
+        relative = Path(path_fragment)
+        if relative.parts[: len(base_parts)] != base_parts:
+            continue
+        try:
+            active_segment = relative.parts[len(base_parts)]
+        except IndexError:
+            continue
+        if not active_segment.endswith("-ACTIVE"):
+            continue
+        detected.add(WORK_TRACKING_PREFIX / active_segment)
+    return sorted(detected)
+
+
+def validate_active_folder_edits(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    """Ensure edits within docs/ai/work-tracking/active/ use today's YYYYMMDD prefix."""
+    issues: List[ValidationIssue] = []
+    seen: set[str] = set()
+    for absolute in changed_paths:
+        try:
+            relative = absolute.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative):
+            continue
+        parts = relative.parts
+        if len(parts) <= len(WORK_TRACKING_RELATIVE.parts):
+            continue
+        if parts[: len(WORK_TRACKING_RELATIVE.parts)] != WORK_TRACKING_RELATIVE.parts:
+            continue
+        folder_name = parts[len(WORK_TRACKING_RELATIVE.parts)]
+        if folder_name in seen:
+            continue
+        seen.add(folder_name)
+        prefix = folder_name.split('-', 1)[0]
+        folder_path = Path(*parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
+        if len(prefix) != 8 or not prefix.isdigit():
+            issues.append(
+                ValidationIssue(
+                    folder_path,
+                    f"Active work-tracking folder '{folder_name}' has invalid date prefix '{prefix}' (expected YYYYMMDD)",
+                )
+            )
+            continue
+        if prefix != DATE_PREFIX_EXPECTED:
+            issues.append(
+                ValidationIssue(
+                    folder_path,
+                    f"Active work-tracking folder '{folder_name}' edited with date prefix {prefix}, expected {DATE_PREFIX_EXPECTED}",
+                )
+            )
+    return issues
+
+
+
+def _collect_session_files() -> List[Path]:
+    sessions_root = REPO_ROOT / 'sessions'
+    if not sessions_root.exists():
+        return []
+    return sorted(sessions_root.rglob('*.md'))
+
+
+
+def _find_latest_prior_session() -> Optional[Path]:
+    candidates = []
+    cutoff = TODAY_ISO
+    for session_file in _collect_session_files():
+        relative = session_file.relative_to(REPO_ROOT)
+        if should_ignore_relative(relative):
+            continue
+        name = relative.name
+        if not name.endswith('.md'):
+            continue
+        date_prefix = name[:10]
+        if len(date_prefix) != 10:
+            continue
+        if date_prefix < cutoff:
+            candidates.append(session_file)
+    if not candidates:
+        return None
+    return max(candidates)
+
+
+
+def _session_marked_complete(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    return 'SESSION COMPLETE' in text.upper()
+
+
+
+def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    """Require that edited session markdown files belong to today's date."""
+    issues: List[ValidationIssue] = []
+    latest_prior = _find_latest_prior_session()
+    for absolute in changed_paths:
+        try:
+            relative = absolute.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative):
+            continue
+        parts = relative.parts
+        if not parts or parts[0] != 'sessions':
+            continue
+        if relative.name == 'current':
+            continue
+        if relative.suffix != '.md':
+            continue
+        filename = relative.name
+        date_prefix = filename[:10]
+        if date_prefix == TODAY_ISO:
+            continue
+        if latest_prior and absolute == latest_prior and _session_marked_complete(absolute):
+            continue
+        issues.append(
+            ValidationIssue(
+                relative,
+                f"Session file '{relative.as_posix()}' edited with date {date_prefix}, expected {TODAY_ISO}",
+            )
+        )
+    return issues
+
+
+    """Identify newly added ACTIVE work-tracking folders in the current diff."""
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(REPO_ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"git status failed: {exc}")
+
+    base_parts = WORK_TRACKING_RELATIVE.parts
+    detected: set[Path] = set()
+    for raw_line in result.stdout.splitlines():
+        if not raw_line.strip():
+            continue
+        status = raw_line[:2]
+        if status != "??":
+            continue
+        path_fragment = raw_line[3:].strip()
+        relative = Path(path_fragment)
+        if relative.parts[: len(base_parts)] != base_parts:
+            continue
+        try:
+            active_segment = relative.parts[len(base_parts)]
+        except IndexError:
+            continue
+        if not active_segment.endswith("-ACTIVE"):
+            continue
+        detected.add(WORK_TRACKING_PREFIX / active_segment)
+    return sorted(detected)
+
+
+def validate_work_tracking_folder_names() -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    for folder in detect_untracked_active_folders():
+        name = folder.name
+        if not name.endswith("-ACTIVE"):
+            issues.append(ValidationIssue(folder.relative_to(REPO_ROOT), "Active work-tracking folders must end with -ACTIVE"))
+            continue
+        prefix = name.split("-", 1)[0]
+        if prefix != DATE_PREFIX_EXPECTED:
+            issues.append(
+                ValidationIssue(
+                    folder.relative_to(REPO_ROOT),
+                    f"Active work-tracking folder '{name}' must start with {DATE_PREFIX_EXPECTED} for today's date {TODAY_ISO}",
+                )
+            )
+    return issues
 
 
 def parse_front_matter_text(text: str) -> Dict[str, str]:
@@ -646,8 +881,20 @@ def has_date_command(text: str) -> bool:
 def validate_session_timestamps(relative_path: Path, text: str, metadata: Dict[str, str]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     expected_date = metadata.get('date')
+    try:
+        absolute_path = (REPO_ROOT / relative_path).resolve()
+    except FileNotFoundError:
+        absolute_path = None
+    is_current_session = CURRENT_SESSION_PATH is not None and absolute_path == CURRENT_SESSION_PATH
+
     if expected_date is None:
         issues.append(ValidationIssue(relative_path, 'Session front matter missing date field'))
+    else:
+        session_id = metadata.get('session_id')
+        if session_id and not session_id.startswith(expected_date):
+            issues.append(ValidationIssue(relative_path, f"Session date {expected_date} mismatches session_id {session_id}"))
+        if is_current_session and expected_date != TODAY_ISO:
+            issues.append(ValidationIssue(relative_path, f"Current session date {expected_date} does not match today's date {TODAY_ISO}"))
 
     matches = list(SESSION_TIMESTAMP_PATTERN.finditer(text))
     if not matches:
@@ -675,6 +922,12 @@ def validate_session_timestamps(relative_path: Path, text: str, metadata: Dict[s
 
 def validate_tracker_timestamps(relative_path: Path, text: str) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
+    last_updated_match = LAST_UPDATED_PATTERN.search(text)
+    if last_updated_match is None:
+        issues.append(ValidationIssue(relative_path, 'Tracker missing **Last Updated** field'))
+    elif last_updated_match.group(1) != TODAY_ISO:
+        issues.append(ValidationIssue(relative_path, f"Tracker Last Updated {last_updated_match.group(1)} does not match today's date {TODAY_ISO}"))
+
     matches = list(TRACKER_TIMESTAMP_PATTERN.finditer(text))
     if not matches:
         return issues
@@ -754,11 +1007,18 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
 
 def guard_validate(args: argparse.Namespace) -> int:
     changed_files = run_git_status(args.include_untracked)
+    baseline_issues: List[ValidationIssue] = []
+    baseline_issues.extend(validate_active_folder_edits(changed_files))
+    baseline_issues.extend(validate_session_edit_dates(changed_files))
+    folder_name_issues = validate_work_tracking_folder_names()
+
     relevant: List[Path] = []
     for file_path in changed_files:
         try:
             relative = file_path.relative_to(REPO_ROOT)
         except ValueError:
+            continue
+        if should_ignore_relative(relative):
             continue
         if relative.suffix != ".md":
             continue
@@ -770,11 +1030,13 @@ def guard_validate(args: argparse.Namespace) -> int:
               and relative.name in GUARDED_WORKTRACKING_FILES):
             relevant.append(file_path)
 
-    if not relevant:
+    if not relevant and not baseline_issues and not folder_name_issues:
         print("No relevant markdown files changed; guard passes by default.")
         return 0
 
     all_issues: List[ValidationIssue] = []
+    all_issues.extend(baseline_issues)
+    all_issues.extend(folder_name_issues)
     for candidate in relevant:
         all_issues.extend(evaluate_file(candidate))
 

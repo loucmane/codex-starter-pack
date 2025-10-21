@@ -1,0 +1,2 @@
+Guard validation failed:
+  - sessions/2025/10/2025-10-20-001-guard-enhancements.md: Session file 'sessions/2025/10/2025-10-20-001-guard-enhancements.md' edited with date 2025-10-20, expected 2025-10-21

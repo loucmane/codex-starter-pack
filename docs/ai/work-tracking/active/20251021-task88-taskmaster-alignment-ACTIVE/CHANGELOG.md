@@ -1,0 +1,3 @@
+# Task 88 Taskmaster Alignment Workflow – Changelog
+
+- 2025-10-21 15:12 CEST — Initialized active work-tracking folder.
