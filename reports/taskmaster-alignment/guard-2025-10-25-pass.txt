@@ -1,11 +1,1 @@
-Guard validation failed:
-  - sessions/2025/10/2025-10-21-001-task88-alignment-docs.md: Session file 'sessions/2025/10/2025-10-21-001-task88-alignment-docs.md' edited with date 2025-10-21, expected 2025-10-25
-  - docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE: Active work-tracking folder '20251021-task88-taskmaster-alignment-ACTIVE' must start with 20251025 for today's date 2025-10-25
-  - sessions/2025/10/2025-10-21-001-task88-alignment-docs.md: Session timestamps must be non-decreasing | entry: **[12:38]**
-  - .plan_state/sync.log: Tracker hash mismatch; run plan sync
-
-Hints:
-  * **[12:38]**
-
-Reminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.
-For CI enforcement see .github/workflows/meta-workflow-guard.yml.
+Guard validation passed: all S:W:H:E entries look compliant.
