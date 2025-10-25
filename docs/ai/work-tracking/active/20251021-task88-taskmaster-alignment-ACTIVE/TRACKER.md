@@ -20,10 +20,18 @@
 - **2025-10-21 16:55** — [S:20251021|W:task88-taskmaster-alignment|H:templates/handlers/orchestrators/session-start.md|E:templates/handlers/orchestrators/session-start.md] Session-start instructions now include explicit codex-task date logging entry
 - **2025-10-21 17:15** — [S:20251021|W:task88-taskmaster-alignment|H:templates/handlers/triggers/session/end-session|E:sessions/2025/10/2025-10-21-001-task88-alignment-docs.md] Session complete; resume tomorrow with checklist (docs + guard follow-through)
 - **2025-10-21 17:15** — [S:20251021|W:task88-taskmaster-alignment|H:scripts/codex-task|E:docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/TRACKER.md] Tracker end-of-day summary added; Taskmaster sync/CI/audit remain
+- **2025-10-25 12:22** — [S:20251025|W:task88-taskmaster-alignment|H:scripts/codex-task|E:docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/TRACKER.md] 2025-10-25 session started; resuming guard CI/audit follow-up
+- **2025-10-25 12:39** — [S:20251025|W:task88-taskmaster-alignment|H:scripts/codex-task|E:scripts/codex-task] Ran work-tracking audit command (2025-10-25) to review active folders/sessions
+- **2025-10-25 12:40** — [S:20251025|W:task88-taskmaster-alignment|H:docs/findings|E:docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/FINDINGS.md] Findings/Decisions updated for guard CI and audit helper
+- **2025-10-25 12:42** — [S:20251025|W:task88-taskmaster-alignment|H:scripts/codex-guard|E:reports/taskmaster-alignment/guard-2025-10-25-pass.txt] Guard run exposed pending cleanup (old session/folder modifications)
+- **2025-10-25 12:44** — [S:20251025|W:task88-taskmaster-alignment|H:scripts/codex-task|E:.plan_state/sync.log] Plan sync recorded after guard/CI/audit updates
+- **2025-10-25 12:45** — [S:20251025|W:task88-taskmaster-alignment|H:ci/github-actions|E:.github/workflows/codex-guard.yml] CI workflow codex-guard.yml ensures guard runs on push/PR
+- **2025-10-25 12:45** — [S:20251025|W:task88-taskmaster-alignment|H:scripts/codex-task|E:scripts/codex-task] Audit subcommand added to codex-task for multi-day enforcement
+- **2025-10-25 12:48** — [S:20251025|W:task88-taskmaster-alignment|H:plan/status|E:plans/2025-10-20-task88-taskmaster-alignment.md] Plan-step-implement marked complete; plan sync recorded
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
-- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
+- [x] plan-step-implement — Update workflow/guard/docs and capture tests
 - [ ] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
@@ -31,6 +39,6 @@
 - Session log: sessions/current
 
 ## End of Day Summary
-- Completed: Guard enforcement upgrades, unit + smoke coverage, alignment doc updates.
-- Pending: Taskmaster sync, plan-step-implement/verify closures, guard CI hook, audit helper.
-- Next Session: Start with Taskmaster status + plan-step updates, then tackle CI/audit tasks.
+- Completed: Guard enforcement upgrades, tracked-folder deletion detection, CI guard workflow, audit helper, findings/decisions updates.
+- Pending: Taskmaster sync, plan-step-verify closure, clean guard baseline (commit or archive legacy session/folder).
+- Next Session: Finish guard baseline cleanup, sync Taskmaster, update plan-step-verify, then run guard + pytest for handoff.

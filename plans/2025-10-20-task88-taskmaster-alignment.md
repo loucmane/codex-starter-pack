@@ -27,7 +27,7 @@ emergency_bypass: false
 | Step ID             | Description                                                          | Evidence                                                   | Status  |
 |---------------------|----------------------------------------------------------------------|------------------------------------------------------------|---------|
 | plan-step-scope     | Define Taskmaster alignment prerequisites and impacted artifacts     | Session log + tracker entries + docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/designs/alignment-scope.md | completed |
-| plan-step-implement | Author workflow/guard updates, update docs/helpers, capture tests     | Updated templates, guard diffs, pytest output              | pending |
+| plan-step-implement | Author workflow/guard updates, update docs/helpers, capture tests     | Updated templates, guard diffs, pytest output              | completed |
 | plan-step-verify    | Alignment workflow documented, guard/tests recorded, Taskmaster notes | reports/taskmaster-alignment/guard-2025-10-20-setup.txt; reports/taskmaster-alignment/tests-2025-10-20-setup.txt | pending |
 | plan-step-emergency | _Optional_ – only if bypass required                                  | Waiver + post-mortem plan                                  | n/a     |
 

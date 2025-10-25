@@ -37,9 +37,20 @@ def test_validate_active_folder_edits_flags_mismatched_prefix() -> None:
     assert any('19990101-legacy-task-ACTIVE' in issue.render() for issue in issues)
 
 
+def test_validate_active_folder_allows_tracked_mismatch(monkeypatch) -> None:
+    module = load_guard_module()
+    folder = module.REPO_ROOT / 'docs' / 'ai' / 'work-tracking' / 'active' / '19990101-legacy-task-ACTIVE'
+    tracker = folder / 'TRACKER.md'
+
+    # ensure helper thinks folder is tracked
+    monkeypatch.setattr(module, '_folder_tracked', lambda rel: True)
+    issues = module.validate_active_folder_edits([tracker])
+    assert issues == []
+
+
 def test_validate_session_allows_latest_completed() -> None:
     module = load_guard_module()
-    latest = module.REPO_ROOT / 'sessions' / '2025' / '10' / '2025-10-20-001-guard-enhancements.md'
+    latest = module.REPO_ROOT / 'sessions' / '2025' / '10' / '2025-10-22-001-task88-enforcement.md'
     assert latest.exists(), 'expected latest prior session to exist'
     issues = module.validate_session_edit_dates([latest])
     assert issues == []
@@ -47,10 +58,10 @@ def test_validate_session_allows_latest_completed() -> None:
 
 def test_validate_session_flags_older_completed() -> None:
     module = load_guard_module()
-    older = module.REPO_ROOT / 'sessions' / '2025' / '10' / '2025-10-11-001-task87-replace-monolith.md'
+    older = module.REPO_ROOT / 'sessions' / '2025' / '10' / '2025-10-21-001-task88-alignment-docs.md'
     assert older.exists(), 'expected older session to exist'
     issues = module.validate_session_edit_dates([older])
-    assert any('2025-10-11-001-task87-replace-monolith.md' in issue.render() for issue in issues)
+    assert any('2025-10-21-001-task88-alignment-docs.md' in issue.render() for issue in issues)
 
 
 def test_should_ignore_relative_skips_configured_prefix(monkeypatch) -> None:
@@ -68,4 +79,20 @@ def test_validate_session_respects_ignore(monkeypatch) -> None:
     module = load_guard_module()
     legacy_session = module.REPO_ROOT / 'sessions' / '1999' / '01' / '1999-01-01-legacy.md'
     issues = module.validate_session_edit_dates([legacy_session])
+    assert issues == []
+
+
+def test_detect_tracked_active_deletions_flags(monkeypatch) -> None:
+    module = load_guard_module()
+    entries = [(' D', 'docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/TRACKER.md')]
+    monkeypatch.setattr(module, '_path_tracked', lambda rel: True)
+    issues = module.detect_tracked_active_deletions(entries)
+    assert any('Tracked ACTIVE folder' in issue.message for issue in issues)
+
+
+def test_detect_tracked_active_deletions_ignores_untracked(monkeypatch) -> None:
+    module = load_guard_module()
+    entries = [(' D', 'docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/TRACKER.md')]
+    monkeypatch.setattr(module, '_path_tracked', lambda rel: False)
+    issues = module.detect_tracked_active_deletions(entries)
     assert issues == []

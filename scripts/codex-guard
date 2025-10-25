@@ -99,7 +99,7 @@ class ValidationIssue:
         return prefix
 
 
-def run_git_status(include_untracked: bool) -> List[Path]:
+def collect_git_status_entries(include_untracked: bool) -> List[tuple[str, str]]:
     try:
         result = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -111,23 +111,31 @@ def run_git_status(include_untracked: bool) -> List[Path]:
     except subprocess.CalledProcessError as exc:
         raise SystemExit(f"git status failed: {exc}")
 
-    changed: List[Path] = []
+    entries: List[tuple[str, str]] = []
     for line in result.stdout.splitlines():
         if not line.strip():
             continue
         status = line[:2]
-        path_fragment = line[3:]
-        if "->" in path_fragment:
-            path_fragment = path_fragment.split("->", 1)[1].strip()
+        path_fragment = line[3:] if len(line) > 3 else ""
+        entries.append((status, path_fragment.strip()))
+    return entries
+
+
+def compute_changed_files(entries: List[tuple[str, str]], include_untracked: bool) -> List[Path]:
+    changed: List[Path] = []
+    for status, path_fragment in entries:
+        if not path_fragment:
+            continue
+        cleaned = path_fragment
+        if "->" in cleaned:
+            cleaned = cleaned.split("->", 1)[1].strip()
         if status == "??" and not include_untracked:
             continue
         if len(status) > 1 and status[1] == "D":
-            # Working tree deletion; skip
             continue
         if status.strip() == "D":
-            # Deleted file; no validation required
             continue
-        absolute = (REPO_ROOT / path_fragment).resolve()
+        absolute = (REPO_ROOT / cleaned).resolve()
         if absolute.is_dir():
             for candidate in absolute.rglob('*'):
                 if candidate.is_file():
@@ -137,28 +145,13 @@ def run_git_status(include_untracked: bool) -> List[Path]:
     return sorted(set(changed))
 
 
-def detect_untracked_active_folders() -> List[Path]:
+def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path]:
     """Identify newly added ACTIVE work-tracking folders in the current diff."""
-    try:
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=str(REPO_ROOT),
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise SystemExit(f"git status failed: {exc}")
-
     base_parts = WORK_TRACKING_RELATIVE.parts
     detected: set[Path] = set()
-    for raw_line in result.stdout.splitlines():
-        if not raw_line.strip():
-            continue
-        status = raw_line[:2]
+    for status, path_fragment in entries:
         if status != "??":
             continue
-        path_fragment = raw_line[3:].strip()
         relative = Path(path_fragment)
         if relative.parts[: len(base_parts)] != base_parts:
             continue
@@ -168,8 +161,41 @@ def detect_untracked_active_folders() -> List[Path]:
             continue
         if not active_segment.endswith("-ACTIVE"):
             continue
+        folder_relative = Path(*relative.parts[: len(base_parts) + 1])
+        if _folder_tracked(folder_relative):
+            continue
         detected.add(WORK_TRACKING_PREFIX / active_segment)
     return sorted(detected)
+
+
+def _folder_tracked(relative: Path) -> bool:
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files', relative.as_posix()],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0 and result.stdout.strip() != ''
+
+
+
+def _path_tracked(relative: Path) -> bool:
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files', relative.as_posix()],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0 and result.stdout.strip() != ''
+
 
 
 def validate_active_folder_edits(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
@@ -193,22 +219,59 @@ def validate_active_folder_edits(changed_paths: Iterable[Path]) -> List[Validati
             continue
         seen.add(folder_name)
         prefix = folder_name.split('-', 1)[0]
-        folder_path = Path(*parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
+        folder_relative = Path(*parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
         if len(prefix) != 8 or not prefix.isdigit():
             issues.append(
                 ValidationIssue(
-                    folder_path,
+                    folder_relative,
                     f"Active work-tracking folder '{folder_name}' has invalid date prefix '{prefix}' (expected YYYYMMDD)",
                 )
             )
             continue
         if prefix != DATE_PREFIX_EXPECTED:
+            if _folder_tracked(folder_relative):
+                continue
             issues.append(
                 ValidationIssue(
-                    folder_path,
+                    folder_relative,
                     f"Active work-tracking folder '{folder_name}' edited with date prefix {prefix}, expected {DATE_PREFIX_EXPECTED}",
                 )
             )
+    return issues
+
+
+
+def detect_tracked_active_deletions(entries: List[tuple[str, str]]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    base_parts = WORK_TRACKING_RELATIVE.parts
+    seen: set[str] = set()
+    for status, path_fragment in entries:
+        if 'D' not in status:
+            continue
+        if not path_fragment:
+            continue
+        cleaned = path_fragment.split('->', 1)[0].strip()
+        relative = Path(cleaned)
+        if relative.parts[: len(base_parts)] != base_parts:
+            continue
+        if not _path_tracked(relative):
+            continue
+        try:
+            folder_name = relative.parts[len(base_parts)]
+        except IndexError:
+            continue
+        if not folder_name.endswith('-ACTIVE'):
+            continue
+        if folder_name in seen:
+            continue
+        seen.add(folder_name)
+        folder_relative = Path(*relative.parts[: len(base_parts) + 1])
+        issues.append(
+            ValidationIssue(
+                folder_relative,
+                f"Tracked ACTIVE folder '{folder_name}' removed in this diff; archive via codex-task work-tracking archive after completion.",
+            )
+        )
     return issues
 
 
@@ -284,27 +347,13 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
     return issues
 
 
+def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path]:
     """Identify newly added ACTIVE work-tracking folders in the current diff."""
-    try:
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            cwd=str(REPO_ROOT),
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise SystemExit(f"git status failed: {exc}")
-
     base_parts = WORK_TRACKING_RELATIVE.parts
     detected: set[Path] = set()
-    for raw_line in result.stdout.splitlines():
-        if not raw_line.strip():
-            continue
-        status = raw_line[:2]
+    for status, path_fragment in entries:
         if status != "??":
             continue
-        path_fragment = raw_line[3:].strip()
         relative = Path(path_fragment)
         if relative.parts[: len(base_parts)] != base_parts:
             continue
@@ -318,9 +367,9 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
     return sorted(detected)
 
 
-def validate_work_tracking_folder_names() -> List[ValidationIssue]:
+def validate_work_tracking_folder_names(entries: List[tuple[str, str]]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
-    for folder in detect_untracked_active_folders():
+    for folder in detect_untracked_active_folders(entries):
         name = folder.name
         if not name.endswith("-ACTIVE"):
             issues.append(ValidationIssue(folder.relative_to(REPO_ROOT), "Active work-tracking folders must end with -ACTIVE"))
@@ -1006,11 +1055,13 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
 
 
 def guard_validate(args: argparse.Namespace) -> int:
-    changed_files = run_git_status(args.include_untracked)
+    entries = collect_git_status_entries(args.include_untracked)
+    changed_files = compute_changed_files(entries, args.include_untracked)
     baseline_issues: List[ValidationIssue] = []
     baseline_issues.extend(validate_active_folder_edits(changed_files))
     baseline_issues.extend(validate_session_edit_dates(changed_files))
-    folder_name_issues = validate_work_tracking_folder_names()
+    baseline_issues.extend(detect_tracked_active_deletions(entries))
+    folder_name_issues = validate_work_tracking_folder_names(entries)
 
     relevant: List[Path] = []
     for file_path in changed_files:
