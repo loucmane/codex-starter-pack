@@ -1,0 +1,12 @@
+Guard validation failed:
+  - docs/ai/work-tracking/active/20251020-task88-taskmaster-alignment-ACTIVE: Active work-tracking folder '20251020-task88-taskmaster-alignment-ACTIVE' edited with date prefix 20251020, expected 20251021
+  - sessions/2025/10/2025-10-20-001-guard-enhancements.md: Session file 'sessions/2025/10/2025-10-20-001-guard-enhancements.md' edited with date 2025-10-20, expected 2025-10-21
+  - plans/2025-10-20-task88-taskmaster-alignment.md: plan-step-scope evidence path not found | entry: docs/ai/work-tracking/active/20251020-task88-taskmaster-alignment-ACTIVE/designs/alignment-scope.md
+  - docs/ai/work-tracking/active/20251021-task88-taskmaster-alignment-ACTIVE/TRACKER.md: Tracker checkbox for plan-step-scope should be checked
+  - .plan_state/sync.log: Tracker hash mismatch; run plan sync
+
+Hints:
+  * docs/ai/work-tracking/active/20251020-task88-taskmaster-alignment-ACTIVE/designs/alignment-scope.md
+
+Reminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.
+For CI enforcement see .github/workflows/meta-workflow-guard.yml.

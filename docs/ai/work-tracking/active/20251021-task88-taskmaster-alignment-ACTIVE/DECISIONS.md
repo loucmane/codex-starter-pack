@@ -1,0 +1,5 @@
+# Decisions
+
+- 2025-10-22 — Guard + docs will block deleting tracked ACTIVE folders; scaffold helpers remain single-source of truth.
+- 2025-10-25 — Add codex-guard to CI/pre-push and provide codex-task audit command to surface stale folders/sessions before compaction.
+- 2025-10-25 — Confirmed guard policy: allow existing ACTIVE folders across days when tracker/session entries show current timestamps and plan sync hashes verified.

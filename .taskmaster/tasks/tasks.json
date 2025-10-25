@@ -6613,7 +6613,7 @@
         "dependencies": [
           87
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6621,7 +6621,7 @@
             "description": "List checks required before editing tasks.json (plan compliance, registry review, evidence).",
             "dependencies": [],
             "details": "List checks required before editing tasks.json (plan compliance, registry review, evidence).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Checklist drafted and approved."
           },
           {
@@ -6630,7 +6630,7 @@
             "description": "Create workflow/handler/pattern enforcing Taskmaster alignment steps.",
             "dependencies": [],
             "details": "Create workflow/handler/pattern enforcing Taskmaster alignment steps.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow/handler files created."
           },
           {
@@ -6639,7 +6639,7 @@
             "description": "Ensure guard and helper commands require alignment workflow before edits.",
             "dependencies": [],
             "details": "Ensure guard and helper commands require alignment workflow before edits.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard/CLI reminders operational."
           },
           {
@@ -6648,7 +6648,7 @@
             "description": "Add alignment protocol to tracker, handoff, codex-task helper.",
             "dependencies": [],
             "details": "Add alignment protocol to tracker, handoff, codex-task helper.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Docs updated with alignment instructions."
           },
           {
@@ -6657,7 +6657,7 @@
             "description": "Add tests ensuring tasks cannot be edited without alignment workflow completion.",
             "dependencies": [],
             "details": "Add tests ensuring tasks cannot be edited without alignment workflow completion.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/taskmaster/test_alignment_workflow.py"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-11T13:35:21.177Z",
+      "updated": "2025-10-25T11:52:52.093Z",
       "description": "Tasks for master context"
     }
   }

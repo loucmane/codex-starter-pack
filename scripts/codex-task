@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -28,6 +30,11 @@ PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
 
+
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip('-')
+    return slug or "work"
+
 class TaskError(Exception):
     """Custom exception for predictable task failures."""
 
@@ -41,6 +48,14 @@ def _load_file_lines(path: Path) -> List[str]:
 def _write_file_lines(path: Path, lines: Iterable[str]) -> None:
     content = "\n".join(lines) + "\n"
     path.write_text(content, encoding="utf-8")
+
+
+def _replace_line_with_prefix(lines: List[str], prefix: str, new_line: str) -> bool:
+    for idx, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[idx] = new_line
+            return True
+    return False
 
 
 def _resolve_plan_path(override: Optional[str] = None) -> Path:
@@ -251,6 +266,170 @@ def _derive_session_value(meta: Dict[str, str]) -> str:
     raise TaskError("Unable to derive session value from metadata; ensure front matter includes session_id or date.")
 
 
+def _ensure_no_active_conflict(ignore_existing: bool) -> None:
+    if ignore_existing:
+        return
+    active = [p for p in WORK_TRACKING_BASE.iterdir() if p.is_dir() and p.name.endswith("-ACTIVE")]
+    if active:
+        names = ", ".join(sorted(p.name for p in active))
+        raise TaskError(
+            f"Active work-tracking folder(s) already exist ({names}). Archive them first or pass --force to scaffold."
+        )
+
+
+def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
+    now = datetime.now().astimezone()
+    date_prefix = now.strftime("%Y%m%d")
+    iso_today = now.date().isoformat()
+    slug = _slugify(args.slug)
+    task_token = f"task{args.task}"
+    folder_name = f"{date_prefix}-{task_token}-{slug}-ACTIVE"
+    folder_path = WORK_TRACKING_BASE / folder_name
+
+    if folder_path.exists():
+        raise TaskError(f"Work-tracking folder already exists: {folder_path}")
+
+    _ensure_no_active_conflict(args.force)
+
+    if args.dry_run:
+        print(f"Would create {folder_path.relative_to(REPO_ROOT)}")
+        return
+
+    folder_path.mkdir(parents=True)
+    (folder_path / "designs").mkdir()
+    reports_base = folder_path / "reports" / slug
+    reports_base.mkdir(parents=True)
+
+    title = args.title or args.slug.replace('-', ' ').title()
+    goals = args.goal or ["Document alignment prerequisites", "Implement alignment workflow and guard", "Capture evidence"]
+
+    tracker_lines = [
+        f"# Task {args.task} {title} Tracker",
+        "",
+        f"**Started**: {iso_today}",
+        "**Status**: ACTIVE",
+        f"**Last Updated**: {iso_today}",
+        "",
+        "## Goals",
+    ] + [f"- [ ] {goal}" for goal in goals] + [
+        "",
+        "## Progress Log",
+        "",
+        "## Plan Compliance Checklist",
+        "- [ ] plan-step-scope — Define alignment prerequisites and scope",
+        "- [ ] plan-step-implement — Update workflow/guard/docs and capture tests",
+        "- [ ] plan-step-verify — Evidence stored, documentation updated",
+        "- [ ] plan-step-emergency (if applicable)",
+        "",
+        "## Dependencies & Notes",
+        "- Session log: sessions/current",
+    ]
+    _write_file_lines(folder_path / "TRACKER.md", tracker_lines)
+
+    timestamp = now.strftime("%Y-%m-%d %H:%M %Z")
+    changelog_lines = [
+        f"# Task {args.task} {title} – Changelog",
+        "",
+        f"- {timestamp} — Initialized active work-tracking folder.",
+    ]
+    _write_file_lines(folder_path / "CHANGELOG.md", changelog_lines)
+
+    print(f"Created active work-tracking folder: {folder_path.relative_to(REPO_ROOT)}")
+
+
+def handle_work_tracking_archive(args: argparse.Namespace) -> None:
+    folder = _resolve_active_work_tracking(args.folder)
+    now = datetime.now().astimezone()
+    iso_today = now.date().isoformat()
+    timestamp = now.strftime("%Y-%m-%d %H:%M %Z")
+
+    if args.dry_run:
+        print(f"Would archive {folder.relative_to(REPO_ROOT)}")
+        return
+
+    tracker_path = folder / "TRACKER.md"
+    if tracker_path.exists():
+        lines = _load_file_lines(tracker_path)
+        if not _replace_line_with_prefix(lines, "**Status**:", "**Status**: COMPLETED"):
+            lines.insert(3, "**Status**: COMPLETED")
+        if not _replace_line_with_prefix(lines, "**Last Updated**:", f"**Last Updated**: {iso_today}"):
+            lines.insert(4, f"**Last Updated**: {iso_today}")
+        _write_file_lines(tracker_path, lines)
+
+    changelog_path = folder / "CHANGELOG.md"
+    if changelog_path.exists():
+        lines = _load_file_lines(changelog_path)
+        lines.append(f"- {timestamp} — Archived active work-tracking folder.")
+        _write_file_lines(changelog_path, lines)
+
+    archive_base = WORK_TRACKING_BASE.parent / "archive"
+    archive_base.mkdir(parents=True, exist_ok=True)
+    target_name = folder.name.replace("-ACTIVE", "-COMPLETED")
+    target_path = archive_base / target_name
+    if target_path.exists():
+        raise TaskError(f"Archive destination already exists: {target_path}")
+
+    shutil.move(str(folder), str(target_path))
+    print(f"Archived work-tracking folder to {target_path.relative_to(REPO_ROOT)}")
+
+
+
+def handle_work_tracking_audit(args: argparse.Namespace) -> None:
+    today = datetime.now().date().isoformat()
+    today_prefix = today.replace('-', '')
+    issues: List[str] = []
+    warnings: List[str] = []
+
+    if not WORK_TRACKING_BASE.exists():
+        issues.append("Active work-tracking directory missing")
+    else:
+        active_folders = [p for p in WORK_TRACKING_BASE.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
+        if not active_folders:
+            warnings.append("No ACTIVE work-tracking folders present")
+        else:
+            if len(active_folders) > 1:
+                names = ", ".join(p.name for p in active_folders)
+                issues.append(f"Multiple ACTIVE folders detected: {names}")
+            for folder in active_folders:
+                prefix = folder.name.split('-', 1)[0]
+                if prefix != today_prefix:
+                    warnings.append(
+                        f"Active folder {folder.name} has prefix {prefix}; today's prefix is {today_prefix} (ensure multi-day reuse is intentional)"
+                    )
+
+    current_symlink = SESSIONS_DIR / 'current'
+    if not current_symlink.exists() or not current_symlink.is_symlink():
+        issues.append("sessions/current symlink missing")
+    else:
+        target = current_symlink.resolve()
+        if target.exists():
+            try:
+                relative = target.relative_to(SESSIONS_DIR)
+            except ValueError:
+                warnings.append(f"sessions/current points outside sessions/: {target}")
+            else:
+                session_date = relative.name[:10]
+                if session_date != today:
+                    warnings.append(
+                        f"sessions/current points to {relative} (date {session_date}); consider starting a new session for {today}"
+                    )
+        else:
+            issues.append(f"sessions/current target missing: {target}")
+
+    if issues:
+        print("Audit issues detected:")
+        for issue in issues:
+            print(f"- {issue}")
+    if warnings:
+        print("Audit warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
+    if not issues and not warnings:
+        print("Audit passed: no issues found.")
+    if issues:
+        sys.exit(1)
+
+
 def _insert_progress_entry(lines: List[str], heading: str, entry_line: str) -> List[str]:
     try:
         heading_index = next(idx for idx, line in enumerate(lines) if line.strip() == heading)
@@ -400,6 +579,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     work_parser = subparsers.add_parser("work-tracking", help="Work-tracking document operations")
     work_sub = work_parser.add_subparsers(dest="subcommand", required=True)
+    work_scaffold = work_sub.add_parser("scaffold", help="Create a new active work-tracking folder")
+    work_scaffold.add_argument("--task", required=True, help="Task ID (numeric)")
+    work_scaffold.add_argument("--slug", required=True, help="Slug for the folder name")
+    work_scaffold.add_argument("--title", help="Human-readable title for tracker")
+    work_scaffold.add_argument("--goal", action="append", help="Goal checklist item (repeatable)")
+    work_scaffold.add_argument("--force", action="store_true", help="Allow scaffolding even if another ACTIVE folder exists")
+    work_scaffold.set_defaults(func=handle_work_tracking_scaffold)
+
+    work_archive = work_sub.add_parser("archive", help="Archive the current active work-tracking folder")
+    work_archive.add_argument("--folder", help="Specific ACTIVE folder relative name")
+    work_archive.set_defaults(func=handle_work_tracking_archive)
+
     work_update = work_sub.add_parser("update", help="Append entry to work-tracking progress log")
     work_update.add_argument("--work", required=True, help="W field value")
     work_update.add_argument("--handler", required=True, help="H field value")
@@ -408,6 +599,9 @@ def build_parser() -> argparse.ArgumentParser:
     work_update.add_argument("--document", default="TRACKER", help="Work-tracking markdown name (default TRACKER)")
     work_update.add_argument("--folder", help="Specific ACTIVE folder relative name")
     work_update.set_defaults(func=handle_work_tracking_update)
+
+    work_audit = work_sub.add_parser("audit", help="Audit active work-tracking folders and sessions")
+    work_audit.set_defaults(func=handle_work_tracking_audit)
 
     plan_parser = subparsers.add_parser("plan", help="Plan utilities")
     plan_sub = plan_parser.add_subparsers(dest="subcommand", required=True)

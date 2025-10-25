@@ -20,3 +20,4 @@
 - 2025-10-04 19:10 CEST — Captured pytest output (reports/domain-workflows/tests-2025-10-04-1910.txt).
 
 - 2025-10-11 14:15 CEST — Task 87 closure noted; confirmed guard/pytest evidence and plan checklist complete.
+- 2025-10-20 15:15 CEST — Archived active work-tracking folder.

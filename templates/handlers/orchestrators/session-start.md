@@ -86,7 +86,8 @@ version: 2.0.0
    [Context from previous session or fresh start]
    
    ### 📝 Progress Log
-   - **[HH:MM]** - Session started, task: [task]
+   - **[HH:MM]** — [S:YYYYMMDD|W:<work>|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Session started, task: [task]
+   - (Use `python3 scripts/codex-task sessions update --work <work> --handler shell:date --evidence cmd\`date "+%Y-%m-%d %H:%M %Z"\`` to record this entry immediately.)
    ```
 7. **Update system references**:
    - Update sessions/current symlink to new session (safe, no rm*):
