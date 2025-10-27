@@ -17,6 +17,20 @@ from typing import Dict, Iterable, List, Optional, Tuple
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SESSIONS_DIR = REPO_ROOT / "sessions"
 WORK_TRACKING_BASE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
+WORK_TRACKING_DEFAULT_DOCS = {
+    "FINDINGS.md": "# Findings\n\n- {today} — _Pending_ — document new findings here.\n",
+    "DECISIONS.md": "# Decisions\n\n- {today} — _Pending_ — capture decisions with context.\n",
+    "IMPLEMENTATION.md": "# Task {task} {title} – Implementation Notes\n\n## Planned Workstreams\n- _Pending_\n",
+    "HANDOFF.md": "# Task {task} {title} – Handoff Summary\n\n## Current State\n- _Pending_\n\n## Next Steps\n- _Pending_\n",
+}
+
+WORK_TRACKING_PRESETS = {
+    "findings": ("FINDINGS.md", "docs/findings"),
+    "decisions": ("DECISIONS.md", "docs/decisions"),
+    "changelog": ("CHANGELOG.md", "docs/changelog"),
+    "implementation": ("IMPLEMENTATION.md", "docs/implementation"),
+    "handoff": ("HANDOFF.md", "docs/handoff"),
+}
 PROGRESS_HEADING_SESSION = "### 📝 Progress Log"
 PROGRESS_HEADING_TRACKER = "## Progress Log"
 DEFAULT_TIME_FORMAT_SESSION = "%H:%M"
@@ -334,6 +348,10 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
     ]
     _write_file_lines(folder_path / "CHANGELOG.md", changelog_lines)
 
+    for doc_name, template in WORK_TRACKING_DEFAULT_DOCS.items():
+        content = template.format(today=iso_today, task=args.task, title=title)
+        (folder_path / doc_name).write_text(content, encoding='utf-8')
+
     print(f"Created active work-tracking folder: {folder_path.relative_to(REPO_ROOT)}")
 
 
@@ -361,6 +379,12 @@ def handle_work_tracking_archive(args: argparse.Namespace) -> None:
         lines = _load_file_lines(changelog_path)
         lines.append(f"- {timestamp} — Archived active work-tracking folder.")
         _write_file_lines(changelog_path, lines)
+
+    handoff_path = folder / "HANDOFF.md"
+    if handoff_path.exists():
+        lines = _load_file_lines(handoff_path)
+        lines.append(f"- Archived on {timestamp} — Folder moved to archive and tracker marked COMPLETED.")
+        _write_file_lines(handoff_path, lines)
 
     archive_base = WORK_TRACKING_BASE.parent / "archive"
     archive_base.mkdir(parents=True, exist_ok=True)
@@ -396,6 +420,16 @@ def handle_work_tracking_audit(args: argparse.Namespace) -> None:
                     warnings.append(
                         f"Active folder {folder.name} has prefix {prefix}; today's prefix is {today_prefix} (ensure multi-day reuse is intentional)"
                     )
+                tracker_path = folder / 'TRACKER.md'
+                if tracker_path.exists():
+                    try:
+                        tracker_text = tracker_path.read_text(encoding='utf-8')
+                    except FileNotFoundError:
+                        tracker_text = ''
+                    if today not in tracker_text or 'serena/memory' not in tracker_text.lower():
+                        warnings.append(
+                            f"Tracker for {folder.name} missing Serena memory entry for {today}; capture memory and log via presets."
+                        )
 
     current_symlink = SESSIONS_DIR / 'current'
     if not current_symlink.exists() or not current_symlink.is_symlink():
@@ -473,19 +507,49 @@ def handle_sessions_update(args: argparse.Namespace) -> None:
     print(f"Updated session log: {session_path}")
 
 
+def _ensure_progress_heading(lines: List[str]) -> List[str]:
+    heading = "## Progress Log"
+    if heading in (line.strip() for line in lines):
+        return lines
+    if lines and not lines[-1].endswith("\n"):
+        lines[-1] = lines[-1] + "\n"
+    lines.extend(["\n", f"{heading}\n", "\n"])
+    return lines
+
+
 def handle_work_tracking_update(args: argparse.Namespace) -> None:
     work_folder = _resolve_active_work_tracking(args.folder)
-    target_name = args.document if args.document.endswith(".md") else f"{args.document}.md"
+
+    preset = getattr(args, "preset", None)
+    handler_value = args.handler
+
+    if preset:
+        doc_name, default_handler = WORK_TRACKING_PRESETS[preset]
+        target_name = doc_name
+        if handler_value.lower() == "auto":
+            handler_value = default_handler
+    else:
+        target_name = args.document if args.document.endswith(".md") else f"{args.document}.md"
+
     target_path = work_folder / target_name
     if not target_path.exists():
-        raise TaskError(f"Work-tracking document not found: {target_path}")
+        template = WORK_TRACKING_DEFAULT_DOCS.get(target_name)
+        today = datetime.now().date().isoformat()
+        title_token = args.work.replace('-', ' ').title()
+        task_match = re.search(r"(\d+)", args.work)
+        task_value = task_match.group(1) if task_match else args.work
+        if template:
+            content = template.format(today=today, task=task_value, title=title_token)
+        else:
+            content = f"# {title_token}\n\n## Progress Log\n"
+        target_path.write_text(content, encoding='utf-8')
 
     session_path = _resolve_current_session(args.session_file)
     metadata = _parse_front_matter(session_path)
     session_value = args.session or _derive_session_value(metadata)
 
     timestamp = args.time or datetime.now().strftime(DEFAULT_TIME_FORMAT_TRACKER)
-    swhe = f"[S:{session_value}|W:{args.work}|H:{args.handler}|E:{args.evidence}]"
+    swhe = f"[S:{session_value}|W:{args.work}|H:{handler_value}|E:{args.evidence}]"
     entry = f"- **{timestamp}** — {swhe} {args.note}"
 
     if args.dry_run:
@@ -493,6 +557,7 @@ def handle_work_tracking_update(args: argparse.Namespace) -> None:
         return
 
     lines = _load_file_lines(target_path)
+    lines = _ensure_progress_heading(lines)
     updated = _insert_progress_entry(lines, PROGRESS_HEADING_TRACKER, entry)
     _write_file_lines(target_path, updated)
     print(f"Updated work-tracking log: {target_path}")
@@ -598,6 +663,7 @@ def build_parser() -> argparse.ArgumentParser:
     work_update.add_argument("--note", required=True, help="Log note")
     work_update.add_argument("--document", default="TRACKER", help="Work-tracking markdown name (default TRACKER)")
     work_update.add_argument("--folder", help="Specific ACTIVE folder relative name")
+    work_update.add_argument("--preset", choices=sorted(WORK_TRACKING_PRESETS.keys()), help="Shortcut for common work-tracking documents (overrides --document). Use --handler auto to apply defaults.")
     work_update.set_defaults(func=handle_work_tracking_update)
 
     work_audit = work_sub.add_parser("audit", help="Audit active work-tracking folders and sessions")

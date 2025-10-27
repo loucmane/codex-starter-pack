@@ -13,7 +13,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Set
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SESSIONS_PREFIX = Path("sessions")
@@ -43,6 +43,15 @@ IGNORE_PATH_PREFIXES = tuple(
 )
 
 LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
+
+SERENA_MEMORY_PATTERN = re.compile(r"serena/memory|memories/\d{4}-\d{2}-\d{2}_", re.IGNORECASE)
+WORK_TRACKING_REQUIRED_DOCS = (
+    "FINDINGS.md",
+    "DECISIONS.md",
+    "CHANGELOG.md",
+)
+WORK_TRACKING_ARCHIVE_BASE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "archive"
+
 
 def should_ignore_relative(relative: Path) -> bool:
     if not IGNORE_PATH_PREFIXES:
@@ -266,12 +275,24 @@ def detect_tracked_active_deletions(entries: List[tuple[str, str]]) -> List[Vali
             continue
         seen.add(folder_name)
         folder_relative = Path(*relative.parts[: len(base_parts) + 1])
-        issues.append(
-            ValidationIssue(
-                folder_relative,
-                f"Tracked ACTIVE folder '{folder_name}' removed in this diff; archive via codex-task work-tracking archive after completion.",
+        archive_candidate = WORK_TRACKING_ARCHIVE_BASE / folder_name.replace('-ACTIVE', '-COMPLETED')
+        tracker_completed = archive_candidate / 'TRACKER.md'
+        tracker_completed_exists = tracker_completed.exists()
+        tracker_marks_completed = False
+        if tracker_completed_exists:
+            try:
+                tracker_text = tracker_completed.read_text(encoding='utf-8')
+            except FileNotFoundError:
+                tracker_completed_exists = False
+            else:
+                tracker_marks_completed = '**Status**: COMPLETED' in tracker_text
+        if not (archive_candidate.exists() and tracker_marks_completed):
+            issues.append(
+                ValidationIssue(
+                    folder_relative,
+                    f"Tracked ACTIVE folder '{folder_name}' removed in this diff; archive via codex-task work-tracking archive after completion.",
+                )
             )
-        )
     return issues
 
 
@@ -382,6 +403,81 @@ def validate_work_tracking_folder_names(entries: List[tuple[str, str]]) -> List[
                     f"Active work-tracking folder '{name}' must start with {DATE_PREFIX_EXPECTED} for today's date {TODAY_ISO}",
                 )
             )
+    return issues
+
+
+def _document_has_today_entry(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    today_token = TODAY_ISO
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith('-'):
+            continue
+        if today_token in stripped:
+            return True
+    return False
+
+
+def _tracker_has_today_entry(text: str) -> bool:
+    today_token = TODAY_ISO
+    for line in text.splitlines():
+        stripped = line.strip()
+        if today_token in stripped and stripped.startswith('-'):
+            return True
+    return False
+
+
+def _tracker_has_serena_reference(text: str) -> bool:
+    for line in text.splitlines():
+        if TODAY_ISO in line and SERENA_MEMORY_PATTERN.search(line):
+            return True
+    return False
+
+
+def validate_work_tracking_documents(active_folder: Path) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not active_folder.exists():
+        return issues
+
+    tracker_path = active_folder / 'TRACKER.md'
+    if not tracker_path.exists():
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing'))
+        return issues
+
+    tracker_text = tracker_path.read_text(encoding='utf-8')
+    if not _tracker_has_today_entry(tracker_text):
+        issues.append(
+            ValidationIssue(
+                tracker_path.relative_to(REPO_ROOT),
+                f"Tracker missing entry for {TODAY_ISO}; log work-tracking progress before proceeding",
+            )
+        )
+        return issues
+
+    if not _tracker_has_serena_reference(tracker_text):
+        issues.append(
+            ValidationIssue(
+                tracker_path.relative_to(REPO_ROOT),
+                'Serena memory reference missing for today in tracker progress log',
+            )
+        )
+
+    for doc_name in WORK_TRACKING_REQUIRED_DOCS:
+        doc_path = active_folder / doc_name
+        if not doc_path.exists():
+            issues.append(ValidationIssue(doc_path.relative_to(REPO_ROOT), f"Required document {doc_name} missing"))
+            continue
+        if not _document_has_today_entry(doc_path):
+            issues.append(
+                ValidationIssue(
+                    doc_path.relative_to(REPO_ROOT),
+                    f"{doc_name} missing entry for {TODAY_ISO}",
+                )
+            )
+
     return issues
 
 
@@ -1064,6 +1160,7 @@ def guard_validate(args: argparse.Namespace) -> int:
     folder_name_issues = validate_work_tracking_folder_names(entries)
 
     relevant: List[Path] = []
+    active_folders: Set[Path] = set()
     for file_path in changed_files:
         try:
             relative = file_path.relative_to(REPO_ROOT)
@@ -1077,17 +1174,24 @@ def guard_validate(args: argparse.Namespace) -> int:
             relevant.append(file_path)
         elif relative.parts[0] == "templates":
             relevant.append(file_path)
-        elif (relative.parts[:len(WORK_TRACKING_PREFIX.parts)] == WORK_TRACKING_PREFIX.parts
-              and relative.name in GUARDED_WORKTRACKING_FILES):
-            relevant.append(file_path)
+        elif (
+            len(relative.parts) >= len(WORK_TRACKING_RELATIVE.parts) + 1
+            and tuple(relative.parts[: len(WORK_TRACKING_RELATIVE.parts)]) == WORK_TRACKING_RELATIVE.parts
+        ):
+            active_folder = REPO_ROOT.joinpath(*relative.parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
+            active_folders.add(active_folder)
+            if relative.name in GUARDED_WORKTRACKING_FILES:
+                relevant.append(file_path)
 
-    if not relevant and not baseline_issues and not folder_name_issues:
+    if not relevant and not baseline_issues and not folder_name_issues and not active_folders:
         print("No relevant markdown files changed; guard passes by default.")
         return 0
 
     all_issues: List[ValidationIssue] = []
     all_issues.extend(baseline_issues)
     all_issues.extend(folder_name_issues)
+    for folder in sorted(active_folders):
+        all_issues.extend(validate_work_tracking_documents(folder))
     for candidate in relevant:
         all_issues.extend(evaluate_file(candidate))
 
