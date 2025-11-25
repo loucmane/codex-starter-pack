@@ -48,9 +48,22 @@ def test_validate_active_folder_allows_tracked_mismatch(monkeypatch) -> None:
     assert issues == []
 
 
+def test_validate_work_tracking_folder_names_skips_tracked_existing(monkeypatch) -> None:
+    module = load_guard_module()
+    entries = [
+        (
+            '??',
+            'docs/ai/work-tracking/active/19990101-legacy-task-ACTIVE/reports/work-tracking-enforcement/guard-1999-01-01-pass.txt',
+        )
+    ]
+    monkeypatch.setattr(module, '_path_tracked', lambda rel: True)
+    issues = module.validate_work_tracking_folder_names(entries)
+    assert issues == []
+
+
 def test_validate_session_allows_latest_completed() -> None:
     module = load_guard_module()
-    latest = module.REPO_ROOT / 'sessions' / '2025' / '10' / '2025-10-25-001-task88-guard-ci.md'
+    latest = module.REPO_ROOT / 'sessions' / '2025' / '11' / '2025-11-24-001-task89-work-tracking.md'
     assert latest.exists(), 'expected latest prior session to exist'
     issues = module.validate_session_edit_dates([latest])
     assert issues == []

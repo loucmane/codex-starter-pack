@@ -28,11 +28,12 @@ emergency_bypass: false
 |---------------------|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|------------|
 | plan-step-scope     | Define work-tracking enforcement requirements and affected artifacts      | docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/designs/work-tracking-enforcement-scope.md | completed  |
 | plan-step-implement | Author workflow/guard/helper updates and document enforcement procedures   | docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/IMPLEMENTATION.md; templates/workflows/taskmaster/work-tracking-enforcement.md; scripts/codex-guard; scripts/codex-task | completed |
-| plan-step-verify    | Record guard/tests evidence and update Taskmaster + work-tracking records | docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/reports/work-tracking-enforcement/guard-2025-10-27-baseline.txt | pending    |
+| plan-step-verify    | Record guard/tests evidence and update Taskmaster + work-tracking records | docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/reports/work-tracking-enforcement/guard-2025-11-25-pass.txt; docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/reports/work-tracking-enforcement/tests-2025-11-25-guard.txt | completed |
 | plan-step-emergency | _Optional_ – only if bypass required                                       | Waiver + post-mortem plan                                                                                  | n/a        |
 
 ## Scope
 - `docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/`
+- `docs/ai/work-tracking/archive/20251027-task89-work-tracking-enforcement-COMPLETED/`
 - `docs/ai/work-tracking/archive/20251021-task88-taskmaster-alignment-COMPLETED/`
 - `templates/workflows/taskmaster/*`
 - `scripts/codex-guard`

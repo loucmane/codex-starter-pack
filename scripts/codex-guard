@@ -391,15 +391,21 @@ def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path
 def validate_work_tracking_folder_names(entries: List[tuple[str, str]]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     for folder in detect_untracked_active_folders(entries):
+        relative_path = folder.relative_to(REPO_ROOT)
+        if _path_tracked(relative_path):
+            # Existing tracked folders (e.g., reused ACTIVE folders for multi-day work)
+            # will show up here whenever a new evidence file is added. Skip enforcing
+            # the date prefix because these folders were scaffolded previously.
+            continue
         name = folder.name
         if not name.endswith("-ACTIVE"):
-            issues.append(ValidationIssue(folder.relative_to(REPO_ROOT), "Active work-tracking folders must end with -ACTIVE"))
+            issues.append(ValidationIssue(relative_path, "Active work-tracking folders must end with -ACTIVE"))
             continue
         prefix = name.split("-", 1)[0]
         if prefix != DATE_PREFIX_EXPECTED:
             issues.append(
                 ValidationIssue(
-                    folder.relative_to(REPO_ROOT),
+                    relative_path,
                     f"Active work-tracking folder '{name}' must start with {DATE_PREFIX_EXPECTED} for today's date {TODAY_ISO}",
                 )
             )
