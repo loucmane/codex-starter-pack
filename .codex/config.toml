@@ -1,4 +1,4 @@
-model = "gpt-5-codex"
+model = "gpt-5.4"
 model_provider = "openai"
 approval_policy = "on-request"
 profile = "deep-work"
@@ -6,14 +6,7 @@ sandbox_mode = "workspace-write"
 model_reasoning_effort = "high"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
-
-[model_providers.openai]
-name = "OpenAI"
-base_url = "https://api.openai.com/v1"
-env_key = "OPENAI_API_KEY"
-request_max_retries = 4
-stream_max_retries = 10
-stream_idle_timeout_ms = 300000
+personality = "pragmatic"
 
 [sandbox_workspace_write]
 network_access = true
@@ -24,28 +17,16 @@ exclude_slash_tmp = false
 [shell_environment_policy]
 inherit = "core"
 include_only = ["PATH", "HOME", "USER", "SHELL", "CODEX_HOME", "OPENAI_API_KEY"]
-set = { CODEX_HOME = "/home/loucmane/.codex" }
-
-[tools]
-web_search = true
-
-[tui]
-notifications = ["agent-turn-complete", "approval-requested"]
-
-[history]
-persistence = "save-all"
-
-file_opener = "vscode"
 
 [profiles.deep-work]
-model = "gpt-5-codex"
+model = "gpt-5.4"
 approval_policy = "on-request"
 model_reasoning_effort = "high"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 
 [profiles.fast-iterate]
-model = "gpt-5-codex"
+model = "gpt-5.4"
 approval_policy = "on-request"
 model_reasoning_effort = "medium"
 model_reasoning_summary = "concise"
@@ -67,47 +48,10 @@ XAI_API_KEY = "${XAI_API_KEY}"
 AZURE_OPENAI_API_KEY = "${AZURE_OPENAI_API_KEY}"
 OLLAMA_API_KEY = "${OLLAMA_API_KEY}"
 
-[mcp_servers.context7-mcp]
-type = "stdio"
-command = "npx"
-args = ["-y", "@smithery/cli@latest", "run", "@upstash/context7-mcp", "--key", "aa98ebf3-24e5-4cba-880d-5e8b18a17773"]
-
-[mcp_servers.shadcn]
-description = "shadcn/ui component registry MCP"
-type = "stdio"
-command = "npx"
-args = ["-y", "shadcn@canary", "registry:mcp"]
-
-[mcp_servers.shadcn.env]
-REGISTRY_URL = "https://ui.shadcn.com/schema/registry.json"
-
-[mcp_servers.sequential-thinking]
-type = "stdio"
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-
-[mcp_servers.firecrawl-mcp]
-type = "stdio"
-command = "npx"
-args = ["-y", "firecrawl-mcp"]
-
-[mcp_servers.firecrawl-mcp.env]
-FIRECRAWL_API_KEY = "fc-54e0f458f1124c4b9fd754e36a11985b"
-
-[mcp_servers.elevenlabs-mcp]
-type = "stdio"
-command = "uvx"
-args = ["elevenlabs-mcp"]
-
-[mcp_servers.elevenlabs-mcp.env]
-ELEVENLABS_API_KEY = "sk_75485abe983f74923128730d7f183ffa3f33db54f066c2a1"
-
-[mcp_servers.fpl-mcp]
-type = "stdio"
-command = "python3"
-args = ["-m", "fpl_mcp.server"]
-
 [mcp_servers.serena]
 type = "stdio"
 command = "uvx"
-args = ["--from", "git+https://github.com/oraios/serena", "serena-mcp-server"]
+args = ["--from", "git+https://github.com/oraios/serena@229fac066237f7156c8fe2a9fa7166f95715e0b3", "serena", "start-mcp-server", "--project-from-cwd"]
+
+[projects."/home/loucmane/codex"]
+trust_level = "trusted"

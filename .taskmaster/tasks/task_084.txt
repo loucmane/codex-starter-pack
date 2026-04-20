@@ -1,6 +1,6 @@
 # Task ID: 84
 # Title: Implement Timestamp Guard
-# Status: pending
+# Status: done
 # Dependencies: 81, 82, 83
 # Priority: high
 # Description: Enforce real timestamp commands before logging session/work-tracking entries and add regression coverage.
@@ -11,37 +11,37 @@ Extends timestamp behavior, guard checks, templates, helper messaging, and testi
 Guard fails when timestamps lack command output; documentation updated with guidance.
 
 # Subtasks:
-## 1. Update timestamp behavior [pending]
+## 1. Update timestamp behavior [done]
 ### Dependencies: None
 ### Description: Revise templates/behaviors/timestamps/before-adding.md to mandate running `date "+%Y-%m-%d %H:%M %Z"` before logging timestamps.
 ### Details:
 Document requirement and examples in behavior file.
 
-## 2. Extend guard with timestamp checks [pending]
+## 2. Extend guard with timestamp checks [done]
 ### Dependencies: None
 ### Description: Add guard logic verifying recent date command output accompanies each timestamp entry.
 ### Details:
 Guard examines session/work-tracking edits for timestamp evidence.
 
-## 3. Update session/work-tracking templates [pending]
+## 3. Update session/work-tracking templates [done]
 ### Dependencies: None
 ### Description: Add checklist entries ensuring timestamp evidence recorded for each log entry.
 ### Details:
 Update templates and tracker documentation.
 
-## 4. Add helper guidance [pending]
+## 4. Add helper guidance [done]
 ### Dependencies: None
 ### Description: Provide codex-task messaging or helper instructions for capturing timestamps.
 ### Details:
 Helper output references timestamp command usage.
 
-## 5. Create regression tests [pending]
+## 5. Create regression tests [done]
 ### Dependencies: None
 ### Description: Add tests ensuring guard blocks manual timestamps and passes when evidence provided.
 ### Details:
 Add tests under tests/integration/test_timestamp_guard.py.
 
-## 6. Document guard usage and remediation [pending]
+## 6. Document guard usage and remediation [done]
 ### Dependencies: None
 ### Description: Update work-tracking, findings, and handoff with timestamp guard instructions and remediation steps.
 ### Details:

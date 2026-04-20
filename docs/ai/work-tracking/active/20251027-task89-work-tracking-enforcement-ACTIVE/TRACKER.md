@@ -2,7 +2,7 @@
 
 **Started**: 2025-10-25
 **Status**: COMPLETED
-**Last Updated**: 2025-11-25
+**Last Updated**: 2026-04-20
 
 ## Goals
 - [x] Document seven-file orchestration
@@ -63,6 +63,17 @@
 - **2025-11-25 12:05** — [S:20251125|W:task89-work-tracking|H:tests|E:docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/reports/work-tracking-enforcement/tests-2025-11-25-guard.txt] Pytest suite re-run with new guard coverage + tracked-folder exemption test
 - **2025-11-25 12:07** — [S:20251125|W:task89-work-tracking|H:scripts/codex-task|E:.plan_state/sync.log] Plan synced after tracker updates + verification evidence
 - **2025-11-25 12:10** — [S:20251125|W:task89-work-tracking|H:docs/handoff|E:docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/HANDOFF.md] Handoff updated with verification summary + new evidence paths
+- **2026-04-20 13:42** — [S:20260420|W:task89-work-tracking|H:shell:date|E:cmd`date '+%Y-%m-%d %H:%M:%S %Z %z'`] Session restarted after long gap; timestamp confirmed as `2026-04-20 13:42:23 CEST +0200`
+- **2026-04-20 13:42** — [S:20260420|W:task89-work-tracking|H:scripts/codex-task|E:cmd`python3 scripts/codex-task work-tracking audit`] Audit identified stale `sessions/current` and missing April 20 Serena/tracker entry before recovery
+- **2026-04-20 13:43** — [S:20260420|W:task89-work-tracking|H:file:session|E:sessions/2026/04/2026-04-20-001-task89-mcp-reentry.md] New day session created and `sessions/current` repointed to April 20 recovery session
+- **2026-04-20 13:44** — [S:20260420|W:task89-work-tracking|H:config:mcp|E:.codex/config.toml] Restored clean modern MCP baseline with only core `serena` and `taskmaster-ai` servers
+- **2026-04-20 13:44** — [S:20260420|W:task89-work-tracking|H:serena/memory|E:.serena/memories/2026-04-20_task89_mcp_reentry.md] Serena memory checkpoint captured for April 2026 protocol recovery
+- **2026-04-20 13:53** — [S:20260420|W:task89-work-tracking|H:scripts/codex-task|E:.plan_state/sync.log] Plan sync recorded after April 20 tracker/session updates
+- **2026-04-20 13:53** — [S:20260420|W:task89-work-tracking|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/reports/work-tracking-enforcement/guard-2026-04-20-pass.txt] Guard validation passed after MCP re-entry protocol recovery
+- **2026-04-20 14:15** — [S:20260420|W:task89-work-tracking|H:task-master|E:.taskmaster/tasks/tasks.json] Taskmaster Task 83 parent status marked done after subtask completion audit
+- **2026-04-20 14:16** — [S:20260420|W:task89-work-tracking|H:task-master|E:.taskmaster/tasks/tasks.json] Taskmaster Task 86 parent status marked done sequentially after initial parallel write did not persist
+- **2026-04-20 14:16** — [S:20260420|W:task89-work-tracking|H:task-master|E:cmd`task-master list`] Dashboard verified at Done 10, In Progress 0, Pending 87
+- **2026-04-20 14:17** — [S:20260420|W:task89-work-tracking|H:task-master|E:cmd`task-master validate-dependencies`] Dependency validation passed for 97 tasks, 528 subtasks, and 837 dependency references
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define enforcement prerequisites and affected artifacts

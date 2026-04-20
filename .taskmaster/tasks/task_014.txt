@@ -1,6 +1,6 @@
 # Task ID: 14
 # Title: Create Work-Tracking Template Structure
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: medium
 # Description: Establish standardized work-tracking directory and file structure
@@ -11,49 +11,49 @@ Create docs/ai/work-tracking/active/ directory structure. Set up 7 canonical fil
 Verify directory structure creation, test file template generation, validate S:W:H:E format compliance, test archival process
 
 # Subtasks:
-## 1. Implement Error Handler Module [pending]
+## 1. Implement Error Handler Module [done]
 ### Dependencies: None
 ### Description: Create the main error handler at `src/codex/recovery/handler.py` to coordinate error recovery mechanisms and route errors to appropriate strategies.
 ### Details:
 Define a central handler class that receives error events, logs context, and invokes retry, rollback, or circuit breaker modules as needed. Ensure extensibility for future recovery strategies.
 
-## 2. Develop Retry Logic with Exponential Backoff and Jitter [pending]
+## 2. Develop Retry Logic with Exponential Backoff and Jitter [done]
 ### Dependencies: 14.1
 ### Description: Implement robust retry logic in `src/codex/recovery/retry.py` using exponential backoff and random jitter to mitigate thundering herd problems.
 ### Details:
 Support configurable max attempts, initial delay, multiplier, and jitter. Integrate with handler to automatically retry transient errors. Document retry algorithm and edge cases.
 
-## 3. Implement Circuit Breaker Pattern [pending]
+## 3. Implement Circuit Breaker Pattern [done]
 ### Dependencies: 14.1
 ### Description: Create a circuit breaker at `src/codex/recovery/circuit_breaker.py` with state transitions (Closed, Open, Half-Open) to prevent repeated failures.
 ### Details:
 Track error rates and thresholds. Transition between states based on failure/success metrics. Expose hooks for handler to check breaker state before processing requests.
 
-## 4. Design Rollback Mechanisms [pending]
+## 4. Design Rollback Mechanisms [done]
 ### Dependencies: 14.1
 ### Description: Build rollback manager at `src/codex/recovery/rollback.py` to revert operations using database transactions and git checkpoints.
 ### Details:
 Support atomic rollback for database changes and git-based file restores. Define rollback checkpoints and ensure consistency across distributed operations.
 
-## 5. Create Dead Letter Queue for Failed Operations [pending]
+## 5. Create Dead Letter Queue for Failed Operations [done]
 ### Dependencies: 14.1
 ### Description: Implement a dead letter queue at `src/codex/recovery/dlq.py` to capture and persistently store unrecoverable errors for manual review.
 ### Details:
 Design queue structure, serialization format, and retention policy. Integrate with handler to route failed operations after max retries or circuit breaker open.
 
-## 6. Integrate Monitoring and Alerting [pending]
+## 6. Integrate Monitoring and Alerting [done]
 ### Dependencies: 14.1
 ### Description: Add monitoring and alerting in `src/codex/recovery/monitoring.py` using structured logging and metrics for error recovery events.
 ### Details:
 Log recovery attempts, circuit breaker transitions, rollback actions, and DLQ entries. Emit metrics for error rates, recovery latency, and alert on threshold breaches.
 
-## 7. Implement Recovery Strategies [pending]
+## 7. Implement Recovery Strategies [done]
 ### Dependencies: 14.1
 ### Description: Develop modular recovery strategies in `src/codex/recovery/strategies/` for compensate, retry, skip, and manual intervention.
 ### Details:
 Define strategy interfaces and implement logic for each type. Allow handler to select appropriate strategy based on error type and context.
 
-## 8. Enforce Performance Requirements [pending]
+## 8. Enforce Performance Requirements [done]
 ### Dependencies: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7
 ### Description: Ensure all recovery decisions are made within <100ms and configure thresholds in `config/recovery.yaml`.
 ### Details:

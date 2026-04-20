@@ -1,6 +1,6 @@
 # Task ID: 89
 # Title: Expand Work-Tracking Workflow Enforcement
-# Status: pending
+# Status: done
 # Dependencies: 88
 # Priority: medium
 # Description: Formalize work-tracking orchestration with guard and helper support.
@@ -11,31 +11,31 @@ Ensures documentation workflow is enforced alongside plan compliance.
 Work-tracking workflow operational with guard support.
 
 # Subtasks:
-## 1. Document seven-file orchestration [pending]
+## 1. Document seven-file orchestration [done]
 ### Dependencies: None
 ### Description: Detail active folder structure, TodoWrite equivalents, Serena memory requirements.
 ### Details:
 Detail active folder structure, TodoWrite equivalents, Serena memory requirements.
 
-## 2. Author work-tracking workflow [pending]
+## 2. Author work-tracking workflow [done]
 ### Dependencies: None
 ### Description: Create workflow/pattern enforcing work-tracking updates before/after implementation.
 ### Details:
 Create workflow/pattern enforcing work-tracking updates before/after implementation.
 
-## 3. Integrate guard signals [pending]
+## 3. Integrate guard signals [done]
 ### Dependencies: None
 ### Description: Ensure guard checks tracker, implementation, findings, decisions updates.
 ### Details:
 Ensure guard checks tracker, implementation, findings, decisions updates.
 
-## 4. Automate helper support [pending]
+## 4. Automate helper support [done]
 ### Dependencies: None
 ### Description: Enhance codex-task helper to scaffold work-tracking entries.
 ### Details:
 Enhance codex-task helper to scaffold work-tracking entries.
 
-## 5. Capture regression evidence [pending]
+## 5. Capture regression evidence [done]
 ### Dependencies: None
 ### Description: Demonstrate workflow adherence across two sample sessions; store evidence.
 ### Details:
