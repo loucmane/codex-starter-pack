@@ -280,7 +280,7 @@
         "dependencies": [
           82
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6468,7 +6468,7 @@
         "dependencies": [
           85
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6672,7 +6672,7 @@
         "dependencies": [
           88
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -6680,7 +6680,7 @@
             "description": "Detail active folder structure, TodoWrite equivalents, Serena memory requirements.",
             "dependencies": [],
             "details": "Detail active folder structure, TodoWrite equivalents, Serena memory requirements.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation added to tracker."
           },
           {
@@ -6689,7 +6689,7 @@
             "description": "Create workflow/pattern enforcing work-tracking updates before/after implementation.",
             "dependencies": [],
             "details": "Create workflow/pattern enforcing work-tracking updates before/after implementation.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Workflow files created."
           },
           {
@@ -6698,7 +6698,7 @@
             "description": "Ensure guard checks tracker, implementation, findings, decisions updates.",
             "dependencies": [],
             "details": "Ensure guard checks tracker, implementation, findings, decisions updates.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard fails when docs missing updates."
           },
           {
@@ -6707,7 +6707,7 @@
             "description": "Enhance codex-task helper to scaffold work-tracking entries.",
             "dependencies": [],
             "details": "Enhance codex-task helper to scaffold work-tracking entries.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Helper output includes work-tracking prompts."
           },
           {
@@ -6716,7 +6716,7 @@
             "description": "Demonstrate workflow adherence across two sample sessions; store evidence.",
             "dependencies": [],
             "details": "Demonstrate workflow adherence across two sample sessions; store evidence.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Evidence logs captured in reports/work-tracking"
           }
         ]
@@ -7198,7 +7198,7 @@
     ],
     "metadata": {
       "created": "2025-09-21T16:32:29.468Z",
-      "updated": "2025-10-25T11:52:52.093Z",
+      "updated": "2026-04-20T12:16:07.528Z",
       "description": "Tasks for master context"
     }
   }

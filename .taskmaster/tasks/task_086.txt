@@ -1,6 +1,6 @@
 # Task ID: 86
 # Title: Author Domain Workflow Modules
-# Status: pending
+# Status: done
 # Dependencies: 85
 # Priority: high
 # Description: Create modular workflows for key domains and wire them into enforcement.
@@ -11,43 +11,43 @@ Ensures each domain has a workflow with guard and helper support.
 Domain workflows piloted and documented.
 
 # Subtasks:
-## 1. Inventory domain categories [pending]
+## 1. Inventory domain categories [done]
 ### Dependencies: None
 ### Description: List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.
 ### Details:
 List required workflow domains (frontend, backend, API, testing, ops, docs) and existing handlers.
 
-## 2. Design workflow templates [pending]
+## 2. Design workflow templates [done]
 ### Dependencies: None
 ### Description: Draft workflow files under templates/workflows/domains/ with frontmatter and steps.
 ### Details:
 Draft workflow files under templates/workflows/domains/ with frontmatter and steps.
 
-## 3. Map conventions/guards [pending]
+## 3. Map conventions/guards [done]
 ### Dependencies: None
 ### Description: Identify domain-specific conventions and guard requirements; document mapping.
 ### Details:
 Identify domain-specific conventions and guard requirements; document mapping.
 
-## 4. Update registry/navigation [pending]
+## 4. Update registry/navigation [done]
 ### Dependencies: None
 ### Description: Add domain workflows to registry and navigation indexes.
 ### Details:
 Add domain workflows to registry and navigation indexes.
 
-## 5. Provide helper prompts [pending]
+## 5. Provide helper prompts [done]
 ### Dependencies: None
 ### Description: Update codex-task helper/messages with domain workflow scaffolding.
 ### Details:
 Update codex-task helper/messages with domain workflow scaffolding.
 
-## 6. Pilot domain workflows [pending]
+## 6. Pilot domain workflows [done]
 ### Dependencies: None
 ### Description: Execute at least two domain workflows end-to-end and log findings/evidence.
 ### Details:
 Execute at least two domain workflows end-to-end and log findings/evidence.
 
-## 7. Add regression tests [pending]
+## 7. Add regression tests [done]
 ### Dependencies: None
 ### Description: Create tests verifying domain workflow discovery and guard behavior.
 ### Details:

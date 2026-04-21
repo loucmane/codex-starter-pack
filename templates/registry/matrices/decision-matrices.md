@@ -43,7 +43,7 @@ Maps file types to their specific conventions and rules.
 | Styles | *.module.css | Colocated with component | CSS modules only |
 | Configs | kebab-case.json | Project root or config/ | Validate schema |
 | Documentation | UPPER-CASE.md | docs/ or root | Must have TOC |
-| Work Tracking | YYYYMMDD-name-STATUS | work-tracking/ | 7-file structure |
+| Work Tracking | YYYYMMDD-name-STATUS | work-tracking/ | 7-file structure; see `templates/workflows/taskmaster/work-tracking-enforcement.md` |
 | Handlers | handler-name.md | handlers/[role]/[domain]/ | YAML frontmatter |
 
 ### Append-Only Files
@@ -184,3 +184,7 @@ Matrices should be:
 - File error? → Error Matrix → Recovery
 - Style issue? → Problem Matrix → format-code
 - Complex task? → Context Matrix → orchestrate-complex
+
+## S:W:H:E Examples
+- [S:20251027|W:task89-work-tracking|H:templates/registry/matrices/decision-matrices.md|E:templates/workflows/taskmaster/work-tracking-enforcement.md] Updated Work Tracking row with enforcement workflow reference
+- [S:20251027|W:task89-work-tracking|H:templates/registry/matrices/decision-matrices.md|E:cmd`python3 scripts/codex-task work-tracking update --preset changelog --handler auto --note "Documented matrix update"`] Logged matrix maintenance in tracker/session

@@ -24,8 +24,8 @@ Establish a repeatable process for starting, maintaining, and closing Taskmaster
 ## Standard Workflow
 1. **Run the scaffolding helper**
    - `python3 scripts/codex-task work-tracking scaffold --task <id> --slug <slug>`
-   - Command derives today’s `YYYYMMDD` prefix, creates `TRACKER.md` and `CHANGELOG.md`, and refuses to scaffold when another `-ACTIVE` folder already exists (unless `--force`).
-   - First tracker entry should be logged via `scripts/codex-task work-tracking update` (WORK = `task<int>-...`).
+   - Command derives today’s `YYYYMMDD` prefix, creates the full seven-file structure (tracker, findings, decisions, implementation, changelog, handoff, reports) and refuses to scaffold when another `-ACTIVE` folder already exists (unless `--force`).
+   - First tracker entry should be logged via `scripts/codex-task work-tracking update --preset tracker` (WORK = `task<int>-...`).
 2. **Start the session properly**
    - Follow `session-start` template: run `date "+%Y-%m-%d %H:%M %Z"` and capture the output in the session log.
    - Ensure the session file lives under `sessions/YYYY/MM/` and the `sessions/current` symlink points at it.
@@ -33,10 +33,11 @@ Establish a repeatable process for starting, maintaining, and closing Taskmaster
    - Each guard invocation (`python3 scripts/codex-guard validate --include-untracked`) and plan sync must be logged both in the session file and tracker via `scripts/codex-task`.
    - Run guard before significant edits and after major milestones (scaffold, docs, tests, pre-handoff).
 4. **Document active work every day**
-   - Append new entries to `TRACKER.md` with the current timestamp (`scripts/codex-task work-tracking update --note '...'`).
+   - Append new entries to `TRACKER.md` with the current timestamp (`scripts/codex-task work-tracking update --preset tracker --note '...'`).
+   - Use presets for related docs (`--preset findings|decisions|changelog|implementation|handoff --handler auto`) so guard detects required S:W:H:E entries.
    - If the same folder stays active across days, add a fresh log entry for the new day before running guard; the guard checks the latest `**Last Updated**` stamp.
 5. **Close or archive when finished**
-   - `python3 scripts/codex-task work-tracking archive --folder <active-folder>` moves the folder to `docs/ai/work-tracking/archive/` and marks the tracker `COMPLETED`.
+   - `python3 scripts/codex-task work-tracking archive --folder <active-folder>` moves the folder to `docs/ai/work-tracking/archive/`, marks the tracker `COMPLETED`, and appends an archive line to `HANDOFF.md`.
    - Guard should fail if another `-ACTIVE` folder remains for the same task after archival.
 6. **Keep Taskmaster in sync**
    - Update Taskmaster status (`task-master set-status --id=<task> --status=in-progress|done`) after each milestone.
@@ -44,7 +45,10 @@ Establish a repeatable process for starting, maintaining, and closing Taskmaster
 7. **Run regression tests + guard before handoff**
    - Execute pytest suites touching guard/date logic.
    - Capture outputs under `reports/taskmaster-alignment/` and reference them in both session and tracker logs.
-8. **Finalize documentation**
+8. **Escalate to enforcement workflow**
+   - For guard/helper expansion tasks, follow `templates/workflows/taskmaster/work-tracking-enforcement.md` (seven-file enforcement).
+   - Use `codex-task work-tracking audit` at the start of each session to detect stale folders/sessions.
+9. **Finalize documentation**
    - Summarise accomplishments, outstanding work, and next steps in the session “Session End Status” block.
    - Ensure plan `plan-step-implement` and `plan-step-verify` are updated, with evidence paths noted.
 
