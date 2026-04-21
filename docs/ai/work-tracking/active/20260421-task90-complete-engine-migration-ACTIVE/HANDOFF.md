@@ -2,7 +2,7 @@
 
 ## Current State
 - Task 90 kickoff is complete on branch `feat/task-90-complete-engine-migration`.
-- Taskmaster Task 90 is `in-progress`.
+- Taskmaster Task 90 is `done`.
 - Task 89 work-tracking has been archived; Task 90 now owns the single active work-tracking folder.
 - The roadmap audit in `designs/engine-migration-roadmap-audit.md` is complete.
 - `templates/engine/README.md` now matches the actual current engine files and registry/metadata discovery model.
@@ -15,12 +15,12 @@
 - Latest verification evidence for the second slice:
   - `reports/complete-engine-migration/tests-2026-04-21-engine-metadata.txt`
   - `reports/complete-engine-migration/guard-2026-04-21-metadata-pass.txt`
-- Remaining scope is now to determine whether any genuine engine modules still need authoring, because the major discoverability drift has been removed.
+- Final reference scan shows no concrete missing engine markdown modules.
+- Taskmaster reconciliation is complete; there is no evidenced module-authoring work left in the current repo for Task 90.
 
 ## Next Steps
-- Re-check whether any genuine engine-module gaps remain now that README drift, metadata drift, and guard false positives have been removed.
-- Decide whether Task 90 subtask `90.2 Author missing modules` still has real scope or can be narrowed/closed.
-- If real module gaps remain, scope them narrowly before authoring new engine modules.
+- Archive the Task 90 active folder when the session closes or when work moves to the next task.
+- Prepare the checkpoint/PR flow for the completed Task 90 branch.
 - Run `python3 scripts/codex-task plan sync` after tracker updates and before guard validation.
 
 ## Progress Log
@@ -30,3 +30,4 @@
 - **2026-04-21 13:27** — [S:20260421|W:task90-complete-engine-migration|H:docs/handoff|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/verify-phase1-2026-04-21-pass.txt] Handoff updated after completing the README/verifier reconciliation and recording a passing verifier report
 - **2026-04-21 13:43** — [S:20260421|W:task90-complete-engine-migration|H:docs/handoff|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/guard-2026-04-21-post-implement.txt] Handoff updated after recording the clean post-implementation guard/audit state
 - **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:docs/handoff|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/tests-2026-04-21-engine-metadata.txt] Handoff updated after metadata alignment, guard false-positive remediation, and passing regression coverage
+- **2026-04-21 14:37** — [S:20260421|W:task90-complete-engine-migration|H:task-master|E:.taskmaster/tasks/tasks.json] Handoff updated after Taskmaster Task 90 and all subtasks were marked done

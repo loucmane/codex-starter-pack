@@ -6,7 +6,7 @@
 
 ## Goals
 - [x] Audit engine roadmap
-- [ ] Author missing modules
+- [x] Author missing modules
 - [x] Update registry and discoverability
 
 ## Progress Log
@@ -30,14 +30,17 @@
 - **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-guard|E:scripts/codex-guard] Fixed legacy monolith detection to ignore hyphenated filenames like `common-workflows.md` and `usage-patterns.md`
 - **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:tests/session_continuation/test_engine_metadata_alignment.py|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/tests-2026-04-21-engine-metadata.txt] Added metadata-alignment regression coverage and captured a passing pytest report
 - **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/guard-2026-04-21-metadata-pass.txt] Guard validation passed after metadata alignment and guard false-positive remediation
+- **2026-04-21 14:31** — [S:20260421|W:task90-complete-engine-migration|H:analysis|E:cmd`python3 - <<'PY' ... engine reference scan ... PY`] Final module-gap scan found no concrete missing engine markdown modules; only intentional `verify-phase1.sh` script references remain
+- **2026-04-21 14:31** — [S:20260421|W:task90-complete-engine-migration|H:taskmaster/reconciliation|E:.taskmaster/tasks/tasks.json] Task 90 subtask scope is ready for Taskmaster completion reconciliation because audit, discoverability, tests, and guard work are complete
+- **2026-04-21 14:37** — [S:20260421|W:task90-complete-engine-migration|H:task-master|E:.taskmaster/tasks/tasks.json] Marked Task 90 subtasks 90.1–90.5 done and confirmed parent Task 90 is done in Taskmaster
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
-- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-implement — Update workflow/guard/docs and capture tests
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
 - Session log: sessions/current
 - Plan: plans/2026-04-21-task90-complete-engine-migration.md
-- Current audit focus: determine whether any genuine engine-module gaps remain now that README drift, metadata discoverability drift, and guard false positives have been removed.
+- Current audit focus: reconcile Taskmaster statuses now that no concrete missing engine markdown modules remain.

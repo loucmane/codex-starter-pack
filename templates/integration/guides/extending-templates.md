@@ -309,7 +309,7 @@ steps:
 
 1. **Create Module**
    ```markdown
-   # templates/engine/monitoring/performance.md
+   # <new engine module file>
    ---
    id: performance-monitor
    type: engine-module
@@ -383,3 +383,7 @@ steps:
 - [Handler Architecture](../architecture/handler-architecture.md)
 - [Template Architecture](../architecture/template-architecture.md)
 - [Integration Patterns](../best-practices/integration-patterns.md)
+
+## Progress Log
+
+- **2026-04-21 14:31** — [S:20260421|W:task90-complete-engine-migration|H:templates/integration/guides/extending-templates.md|E:templates/integration/guides/extending-templates.md] Replaced a stale fake engine path in the performance-monitoring example with a neutral placeholder so the guide no longer implies a missing concrete engine module

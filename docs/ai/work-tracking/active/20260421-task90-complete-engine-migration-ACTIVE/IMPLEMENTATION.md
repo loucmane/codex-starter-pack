@@ -8,7 +8,7 @@
    - [x] Update `templates/engine/README.md` to reflect the current engine module set.
    - [x] Modernize `templates/engine/verify-phase1.sh` away from `.claude`-era assumptions.
 3. **Module Authoring**
-   - [ ] Implement missing engine modules under `templates/engine/`.
+   - [x] Implement missing engine modules under `templates/engine/` if any real gaps are proven. (Final audit found none.)
 4. **Registry & Discoverability**
    - [x] Update registries/indexes/navigation so current engine modules and enforcement docs are discoverable.
 5. **Documentation & Tests**
@@ -22,6 +22,7 @@
 - Current audit indicates the most likely first deliverable is reconciliation of stale engine docs/verification rather than authoring many new modules.
 - The reconciled verifier now passes against the real engine tree and the current registry/metadata discovery surfaces; use that baseline before deciding whether any module authoring is still required.
 - Current follow-up slice aligned registry/index and metadata surfaces, then added regression coverage so the same drift cannot return silently.
+- Final reference scans found no concrete missing engine markdown modules, so module authoring closed as a no-op rather than a coding omission.
 
 ## Progress Log
 - **2026-04-21 12:51** — [S:20260421|W:task90-complete-engine-migration|H:docs/implementation|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/IMPLEMENTATION.md] Added kickoff workstreams aligned to Task 90 subtasks

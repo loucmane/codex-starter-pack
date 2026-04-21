@@ -39,7 +39,7 @@ Add to `.pre-commit-config.yaml`:
 1. Developer runs `pre-commit install`.
 2. Hook triggers on staged changes; guard blocks if plan scope, branch policy, or remediation steps missing.
 3. On failure, hook prints remediation URL:
-   `templates/engine/enforcement/meta-workflow-guard-remediation.md`.
+   `templates/engine/enforcement/meta-workflow-guard-remediation.md`
 4. Allow emergency bypass via `SKIP_META_GUARD=1` environment flag, logged in tracker with justification.
 
 ## 4. CI Pipeline Plan (GitHub Actions example)
@@ -74,7 +74,7 @@ jobs:
 - CI comment template:
   ```
   Meta Workflow Guard failed. Review plan scope, branch policy, and evidence.
-  See templates/engine/enforcement/meta-workflow-guard-remediation.md.
+  See templates/engine/enforcement/meta-workflow-guard-remediation.md
   ```
 - On repeated failures, escalate via Taskmaster task referencing guard failure.
 
@@ -92,3 +92,7 @@ jobs:
 - Guard remediation: `templates/engine/enforcement/meta-workflow-guard-remediation.md`
 - Plan compliance: `plans/2025-09-27-task82-meta-workflow.md`
 - Taskmaster: Task 82 subtasks 82.5–82.7.
+
+## Progress Log
+
+- **2026-04-21 14:31** — [S:20260421|W:task90-complete-engine-migration|H:templates/engine/enforcement/meta-workflow-guard-ci-plan.md|E:templates/engine/enforcement/meta-workflow-guard-ci-plan.md] Removed the last trailing-punctuation reference so engine-path scanners treat the remediation guide link as a valid existing document

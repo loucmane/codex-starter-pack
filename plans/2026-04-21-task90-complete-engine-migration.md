@@ -28,8 +28,8 @@ emergency_bypass: false
 | Step ID             | Description                                                          | Evidence                                                                                               | Status   |
 |---------------------|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|----------|
 | plan-step-scope     | Audit outstanding engine modules, migration roadmap, and entry points | docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/designs/engine-migration-roadmap-audit.md | completed |
-| plan-step-implement | Author missing modules, update registry/discoverability, add guards  | docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/IMPLEMENTATION.md; docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/designs/engine-migration-roadmap-audit.md | pending  |
-| plan-step-verify    | Record evidence, tests, and documentation updates                    | docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/TRACKER.md | pending  |
+| plan-step-implement | Author missing modules, update registry/discoverability, add guards  | docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/IMPLEMENTATION.md; docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/designs/engine-migration-roadmap-audit.md | completed |
+| plan-step-verify    | Record evidence, tests, and documentation updates                    | docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ – only if bypass required                                 | Waiver + post-mortem plan                                                                              | n/a      |
 
 ## Scope
@@ -42,7 +42,7 @@ emergency_bypass: false
 - Working branch: `feat/task-90-complete-engine-migration`
 
 ## Amendments & Versioning
-- _None yet_
+- 2026-04-21 — Audit concluded no concrete missing engine markdown modules remained; Task 90 closed as a discoverability/guard reconciliation task.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
@@ -66,4 +66,5 @@ emergency_bypass: false
 - No bypass authorized.
 
 ## Completion
-- Archive the Task 90 active folder when engine migration scope, implementation, and verification are complete and Taskmaster Task 90 is marked done.
+- Taskmaster Task 90 and subtasks 90.1–90.5 are marked done as of 2026-04-21.
+- Archive the Task 90 active folder when the current session ends or the work context moves to the next task.
