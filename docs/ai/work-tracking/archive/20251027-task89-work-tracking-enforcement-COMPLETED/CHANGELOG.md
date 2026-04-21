@@ -12,3 +12,4 @@
 - 2025-11-25 12:05 CET — Guard/tests logs recorded and documentation refreshed to close plan-step-verify.
 - 2026-04-20 13:44 CEST — [S:20260420|W:task89-work-tracking|H:docs/changelog|E:docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/CHANGELOG.md] Logged MCP re-entry and protocol recovery after config drift review.
 - 2026-04-20 14:16 CEST — [S:20260420|W:task89-work-tracking|H:task-master|E:.taskmaster/tasks/tasks.json] Logged Taskmaster parent-status cleanup for Tasks 83 and 86.
+- 2026-04-21 12:50 CEST — Archived active work-tracking folder.
