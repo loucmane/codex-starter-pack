@@ -91,7 +91,7 @@
 ## engine
 
 - `templates/engine/MODULARIZATION-COMPLETE.md` — heading: CLAUDE.md Modularization Complete
-- `templates/engine/README.md` — heading: Claude Execution Engine - Modular Components
+- `templates/engine/README.md` — heading: Codex Execution Engine
 - `templates/engine/activation/context-aware.md` — heading: Context-Aware Activation
 - `templates/engine/core/codex-readiness.md` — heading: Codex Readiness Checklist
 - `templates/engine/core/enforcement-check.md` — title: enforcement-check; type: critical-enforcement; heading: 🚨 CODEX ENFORCEMENT GATE 🚨
@@ -101,6 +101,8 @@
 - `templates/engine/debugging/system-debug.md` — heading: System Debugging Protocol
 - `templates/engine/enforcement/behavioral-hooks.md` — title: behavioral-hooks; type: engine-component; heading: BEHAVIORAL HOOKS (How I Actually Work)
 - `templates/engine/enforcement/cannot-proceed.md` — title: cannot-proceed; type: engine-component; heading: ENFORCEMENT MECHANISMS
+- `templates/engine/enforcement/meta-workflow-guard-ci-plan.md` — title: meta-workflow-guard-ci-plan; type: enforcement-plan; heading: Meta Workflow Guard – CI & Pre-commit Wiring Plan
+- `templates/engine/enforcement/meta-workflow-guard-remediation.md` — heading: Meta Workflow Guard Remediation Guidance
 - `templates/engine/examples/practical.md` — title: practical-examples; type: engine-component; heading: Practical Examples
 - `templates/engine/execution/swhe-format.md` — heading: Development Mode Execution - S:W:H:E Format
 - `templates/engine/fallbacks/error-handling.md` — heading: Error Handling & Fallbacks
@@ -322,3 +324,7 @@
 - `templates/workflows/testing/simulation-testing.md` — title: Simulation Testing Patterns; type: workflow-component; category: testing; status: stable
 - `templates/workflows/testing/subagent-simulation.md` — title: Subagent Simulation Testing; type: workflow-component; category: testing; status: stable
 - `templates/workflows/testing/test-checkpoints.md` — title: User Testing Checkpoints; type: workflow-component; category: testing; status: stable
+
+## Progress Log
+
+- **2026-04-21 14:01** — [S:20260421|W:task90-complete-engine-migration|H:templates/metadata/template-overview.md|E:tests/session_continuation/test_engine_metadata_alignment.py] Updated engine metadata entries to match the current README heading and include the missing guard-enforcement docs

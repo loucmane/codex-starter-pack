@@ -30,6 +30,27 @@ def test_validate_session_edit_dates_flags_legacy_session() -> None:
     assert any('1999-01-01-legacy.md' in issue.render() for issue in issues)
 
 
+def test_find_legacy_monolith_references_ignores_hyphenated_filenames() -> None:
+    module = load_guard_module()
+    text = """
+    - templates/workflows/examples/common-workflows.md
+    - templates/conventions/timestamps/usage-patterns.md
+    - templates/integration/best-practices/integration-patterns.md
+    """
+    assert module.find_legacy_monolith_references(text) == []
+
+
+def test_find_legacy_monolith_references_flags_standalone_legacy_names() -> None:
+    module = load_guard_module()
+    text = """
+    Replace WORKFLOWS.md first.
+    Move references away from PATTERNS.md.
+    """
+    matches = module.find_legacy_monolith_references(text)
+    tokens = {token for token, _hint in matches}
+    assert {'workflows.md', 'patterns.md'} <= tokens
+
+
 def test_validate_active_folder_edits_flags_mismatched_prefix() -> None:
     module = load_guard_module()
     legacy_tracker = module.REPO_ROOT / 'docs' / 'ai' / 'work-tracking' / 'active' / '19990101-legacy-task-ACTIVE' / 'TRACKER.md'
@@ -61,16 +82,18 @@ def test_validate_work_tracking_folder_names_skips_tracked_existing(monkeypatch)
     assert issues == []
 
 
-def test_validate_session_allows_latest_completed() -> None:
+def test_validate_session_allows_latest_completed(monkeypatch) -> None:
     module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2025-11-25')
     latest = module.REPO_ROOT / 'sessions' / '2025' / '11' / '2025-11-24-001-task89-work-tracking.md'
     assert latest.exists(), 'expected latest prior session to exist'
     issues = module.validate_session_edit_dates([latest])
     assert issues == []
 
 
-def test_validate_session_flags_older_completed() -> None:
+def test_validate_session_flags_older_completed(monkeypatch) -> None:
     module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2025-11-25')
     older = module.REPO_ROOT / 'sessions' / '2025' / '10' / '2025-10-21-001-task88-alignment-docs.md'
     assert older.exists(), 'expected older session to exist'
     issues = module.validate_session_edit_dates([older])

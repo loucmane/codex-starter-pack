@@ -55,6 +55,8 @@ templates/engine/core/ultrathink-protocol.md
 templates/engine/debugging/system-debug.md
 templates/engine/enforcement/behavioral-hooks.md
 templates/engine/enforcement/cannot-proceed.md
+templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+templates/engine/enforcement/meta-workflow-guard-remediation.md
 templates/engine/examples/practical.md
 templates/engine/execution/swhe-format.md
 templates/engine/fallbacks/error-handling.md

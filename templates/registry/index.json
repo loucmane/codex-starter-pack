@@ -28,6 +28,16 @@
     "goodFirstHandler": false
   },
   {
+    "id": "engine-core-codex-readiness",
+    "path": "templates/engine/core/codex-readiness.md",
+    "tags": [
+      "engine",
+      "core",
+      "codex-readiness"
+    ],
+    "goodFirstHandler": false
+  },
+  {
     "id": "engine-core-enforcement-check",
     "path": "templates/engine/core/enforcement-check.md",
     "tags": [
@@ -94,6 +104,26 @@
       "engine",
       "enforcement",
       "cannot-proceed"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-enforcement-meta-workflow-guard-ci-plan",
+    "path": "templates/engine/enforcement/meta-workflow-guard-ci-plan.md",
+    "tags": [
+      "engine",
+      "enforcement",
+      "meta-workflow-guard-ci-plan"
+    ],
+    "goodFirstHandler": false
+  },
+  {
+    "id": "engine-enforcement-meta-workflow-guard-remediation",
+    "path": "templates/engine/enforcement/meta-workflow-guard-remediation.md",
+    "tags": [
+      "engine",
+      "enforcement",
+      "meta-workflow-guard-remediation"
     ],
     "goodFirstHandler": false
   },

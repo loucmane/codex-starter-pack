@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+collected 26 items
+
+tests/session_continuation/test_metadata.py ...                          [ 11%]
+tests/session_continuation/test_engine_metadata_alignment.py ...         [ 23%]
+tests/meta_workflow_guard/test_guard_rules.py ....................       [100%]
+
+============================== 26 passed in 0.05s ==============================

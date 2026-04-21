@@ -46,3 +46,10 @@ Task 90 should begin by reconciling engine roadmap and discoverability documenta
 - The verifier passes and the report is stored at `reports/complete-engine-migration/verify-phase1-2026-04-21-pass.txt`.
 - The mixed `id`/`name` frontmatter convention is now treated as a real engine-tree invariant rather than a failure condition.
 - Remaining audit question: do any engine-module or registry gaps remain once stale roadmap assumptions are removed?
+
+## Discoverability Follow-up Result — 2026-04-21
+- `templates/registry/index.json` now includes `templates/engine/core/codex-readiness.md` and the two meta-workflow guard enforcement docs.
+- `templates/metadata/template-overview.md`, `template-summary.csv`, and `template-inventory.txt` now include the missing enforcement docs and the current `Codex Execution Engine` README heading.
+- Added regression coverage in `tests/session_continuation/test_engine_metadata_alignment.py` for the precise gaps found during the follow-up audit.
+- Fixed a guard false positive where substring matching treated valid filenames like `common-workflows.md` and `usage-patterns.md` as legacy monolith references.
+- Remaining audit question is now narrower: do any engine modules still need authoring after the discoverability surfaces and guard logic were corrected?

@@ -28,6 +28,10 @@ LEGACY_MONOLITH_TOKENS = {
     "patterns.md": "Use templates/patterns/* modules instead of PATTERNS.md",
     "building-better.md": "Point to templates/integration/guides/* instead of BUILDING-BETTER.md",
 }
+LEGACY_MONOLITH_PATTERNS = {
+    token: re.compile(rf"(?<![a-z0-9_-]){re.escape(token)}(?![a-z0-9_-])", re.IGNORECASE)
+    for token in LEGACY_MONOLITH_TOKENS
+}
 META_WORKFLOW_FILES = {
     "templates/workflows/processes/meta-workflow-authoring.md",
     "templates/handlers/orchestrators/meta-workflow-authoring.md",
@@ -565,6 +569,15 @@ def validate_swhe_entries(path: Path, text: str, expected_session: Optional[str]
             issues.append(ValidationIssue(path, "Evidence still marked as pending/searching", entry_text))
 
     return issues
+
+
+def find_legacy_monolith_references(text: str) -> List[Tuple[str, str]]:
+    matches: List[Tuple[str, str]] = []
+    for token, hint in LEGACY_MONOLITH_TOKENS.items():
+        pattern = LEGACY_MONOLITH_PATTERNS[token]
+        if pattern.search(text):
+            matches.append((token, hint))
+    return matches
 
 
 def resolve_plan_path() -> Optional[Path]:
@@ -1146,10 +1159,8 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
 
     issues = []
     if relative_path.parts and relative_path.parts[0] == "templates":
-        lower_text = text.lower()
-        for token, hint in LEGACY_MONOLITH_TOKENS.items():
-            if token in lower_text:
-                issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
+        for token, hint in find_legacy_monolith_references(text):
+            issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
 
     issues.extend(validate_swhe_entries(relative_path, text, expected_session))
     issues.extend(validate_timestamp_policy(relative_path, text, metadata))

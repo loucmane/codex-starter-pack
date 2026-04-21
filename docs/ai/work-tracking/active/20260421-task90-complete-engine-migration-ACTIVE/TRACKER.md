@@ -7,7 +7,7 @@
 ## Goals
 - [x] Audit engine roadmap
 - [ ] Author missing modules
-- [ ] Update registry and discoverability
+- [x] Update registry and discoverability
 
 ## Progress Log
 - **2026-04-21 12:51** — [S:20260421|W:task90-complete-engine-migration|H:shell:date|E:cmd`date '+%Y-%m-%d %H:%M:%S %Z %z'`] Kickoff timestamp confirmed as `2026-04-21 12:51:18 CEST +0200`
@@ -25,6 +25,11 @@
 - **2026-04-21 13:43** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-task|E:.plan_state/sync.log] Re-synced the Task 90 plan and tracker after the README/verifier implementation slice
 - **2026-04-21 13:43** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/guard-2026-04-21-post-implement.txt] Guard validation passed after adding README evidence entries for the updated template documentation
 - **2026-04-21 13:43** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-task|E:cmd`python3 scripts/codex-task work-tracking audit`] Work-tracking audit passed with no issues after the implementation-slice documentation updates
+- **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:templates/registry/index.json|E:templates/registry/index.json] Added missing engine discoverability entries for `codex-readiness.md` and the two meta-workflow guard enforcement docs
+- **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:templates/metadata/template-overview.md|E:templates/metadata/template-overview.md] Updated engine metadata surfaces to use the current README heading and include the missing guard-enforcement documents
+- **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-guard|E:scripts/codex-guard] Fixed legacy monolith detection to ignore hyphenated filenames like `common-workflows.md` and `usage-patterns.md`
+- **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:tests/session_continuation/test_engine_metadata_alignment.py|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/tests-2026-04-21-engine-metadata.txt] Added metadata-alignment regression coverage and captured a passing pytest report
+- **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/guard-2026-04-21-metadata-pass.txt] Guard validation passed after metadata alignment and guard false-positive remediation
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -35,4 +40,4 @@
 ## Dependencies & Notes
 - Session log: sessions/current
 - Plan: plans/2026-04-21-task90-complete-engine-migration.md
-- Current audit focus: determine whether any genuine engine-module or registry gaps remain after README/verifier reconciliation removed stale roadmap assumptions.
+- Current audit focus: determine whether any genuine engine-module gaps remain now that README drift, metadata discoverability drift, and guard false positives have been removed.

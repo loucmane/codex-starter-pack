@@ -46,7 +46,7 @@ templates/coordination/session-integration-collaboration.md,,,,,Session System I
 templates/coordination/session-swhe-integration.md,,,,,Session-SWHE Integration Collaboration,no
 templates/coordination/specialist-collaboration-session.md,,,,,Specialist Collaboration Session - Real-Time Discussion,no
 templates/engine/MODULARIZATION-COMPLETE.md,,,,,CLAUDE.md Modularization Complete,no
-templates/engine/README.md,,,,,Claude Execution Engine - Modular Components,no
+templates/engine/README.md,,,,,Codex Execution Engine,no
 templates/engine/activation/context-aware.md,,,,,Context-Aware Activation,no
 templates/engine/core/codex-readiness.md,,,,,Codex Readiness Checklist,no
 templates/engine/core/enforcement-check.md,enforcement-check,critical-enforcement,,,🚨 CODEX ENFORCEMENT GATE 🚨,yes
@@ -56,6 +56,8 @@ templates/engine/core/ultrathink-protocol.md,ultrathink-protocol,engine-componen
 templates/engine/debugging/system-debug.md,,,,,System Debugging Protocol,no
 templates/engine/enforcement/behavioral-hooks.md,behavioral-hooks,engine-component,,,BEHAVIORAL HOOKS (How I Actually Work),yes
 templates/engine/enforcement/cannot-proceed.md,cannot-proceed,engine-component,,,ENFORCEMENT MECHANISMS,yes
+templates/engine/enforcement/meta-workflow-guard-ci-plan.md,meta-workflow-guard-ci-plan,enforcement-plan,,,Meta Workflow Guard – CI & Pre-commit Wiring Plan,yes
+templates/engine/enforcement/meta-workflow-guard-remediation.md,,,,,Meta Workflow Guard Remediation Guidance,no
 templates/engine/examples/practical.md,practical-examples,engine-component,,,Practical Examples,yes
 templates/engine/execution/swhe-format.md,,,,,Development Mode Execution - S:W:H:E Format,no
 templates/engine/fallbacks/error-handling.md,,,,,Error Handling & Fallbacks,no
