@@ -1,6 +1,6 @@
 # Task ID: 90
 # Title: Complete Engine Migration (Phase 2/3)
-# Status: pending
+# Status: in-progress
 # Dependencies: 89
 # Priority: high
 # Description: Finish outstanding engine modules and ensure discoverability.
