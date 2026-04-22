@@ -1,7 +1,9 @@
 ---
 id: trigger-to-action-matrix
+title: Trigger to Action Matrix
 type: decision-matrix
 category: mapping
+status: stable
 usage: Maps behavioral triggers to their corresponding actions and handlers
 version: 1.0.0
 ---
@@ -123,3 +125,7 @@ Handler, template location, convention, and testing status
 - Error recovery
 - Memory management
 - Compaction detection
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/mapping/trigger-to-action.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

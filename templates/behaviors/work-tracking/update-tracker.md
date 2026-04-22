@@ -1,9 +1,12 @@
 ---
 trigger: Progress milestones, discoveries, decisions, or context switches
+title: Work Tracking Updates
 action: Update relevant work tracking files immediately
 blocks: Cannot proceed without documenting progress
 category: work-tracking
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -253,3 +256,4 @@ Document in FINDINGS.md:
 
 ## Remember
 **Real-time documentation is not optional - it's how we maintain work continuity and capture insights as they happen!**
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/work-tracking/update-tracker.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

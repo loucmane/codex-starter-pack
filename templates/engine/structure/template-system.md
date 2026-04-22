@@ -1,6 +1,8 @@
 ---
 id: template-system-structure
+title: Template System Structure
 type: engine-component
+status: stable
 dependencies: []
 exports:
   - registry-structure
@@ -63,3 +65,7 @@ My knowledge lives in these templates that I search dynamically:
 - **Purpose**: Behavioral hooks that create "cannot proceed" gates
 - **When I use it**: Automatically triggered before actions
 - **Key behaviors**: Work tracking, file operations, git conventions, task management
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/structure/template-system.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

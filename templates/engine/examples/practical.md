@@ -1,6 +1,8 @@
 ---
 id: practical-examples
+title: Practical Examples
 type: engine-component
+status: stable
 dependencies:
   - engine/navigation/template-protocol
   - engine/structure/template-system
@@ -60,3 +62,7 @@ My Internal Process:
 4. [WRITE] "- **14:12** - Added timestamp checking behavior"
 5. [NEVER] Make up times like "14:15" without checking
 ```
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/examples/practical.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

@@ -1,9 +1,12 @@
 ---
 trigger: DEPRECATED - See session-end.md and compaction-preparation.md
+title: Session Compaction Detection [DEPRECATED]
 action: DEPRECATED - Separated into two distinct behaviors
 blocks: DEPRECATED - Use new separated behaviors
 category: session
+type: behavior
 enforcement: deprecated
+status: stable
 version: 2.0.0
 ---
 
@@ -242,3 +245,4 @@ If ending due to error or issue:
 
 ## Remember
 **Every session needs proper closure - these messages enable seamless continuation!**
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/session/compaction-detection.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

@@ -1,9 +1,12 @@
 ---
 id: resolve-handler-void
 name: Resolve Handler VOID
+title: Resolve Handler VOID
 role: operator
+type: operator
 domain: workflow
 stability: stable
+status: stable
 dependencies: []
 tools:
   - mcp__serena__search_for_pattern
@@ -66,3 +69,7 @@ version: 1.0.0
 - Success: Just the handler name (e.g., "create-component")
 - With alternatives: "primary-handler (alt: alternative-handler)"
 - For routing: "routing-pattern" (e.g., "ambiguous-request")
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/workflow/resolve-handler-void.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

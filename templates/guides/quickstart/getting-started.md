@@ -1,6 +1,7 @@
 ---
 id: getting-started
 type: user-guide
+status: stable
 audience: new-users
 skill-level: beginner
 title: Getting Started with Claude
@@ -233,3 +234,7 @@ Remember: Claude works best when you communicate clearly, stay focused on one ta
 ---
 
 *Continue learning: [Understanding ULTRATHINK](../ultrathink/understanding.md) →*
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/quickstart/getting-started.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice

@@ -1,6 +1,7 @@
 ---
 id: common-workflows
 type: user-guide
+status: stable
 audience: developers
 skill-level: intermediate
 title: Common Development Workflows
@@ -363,3 +364,7 @@ Claude: Additional optimizations:
 ---
 
 *Next: Learn specific trigger phrases in [Trigger Phrases](../reference/triggers.md) →*
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/workflows/common.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice

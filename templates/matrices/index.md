@@ -1,7 +1,9 @@
 ---
 id: matrices-index
+title: Decision Matrices Index
 type: decision-matrix
 category: navigation
+status: stable
 usage: Entry point for all decision matrices
 version: 1.0.0
 ---
@@ -108,3 +110,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 4. Implement prevention
 
 Remember: Matrices are for quick decisions. For detailed procedures, always load the full handler from the indicated template file.
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/index.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

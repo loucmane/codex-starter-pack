@@ -1,9 +1,12 @@
 ---
 id: create-commit-message
 name: Create Commit Message
+title: Create Commit Message
 role: operator
+type: operator
 domain: git
 stability: draft
+status: draft
 triggers:
   - "draft commit message"
   - "suggest commit"
@@ -56,7 +59,7 @@ version: 1.0.0
 **Examples**:
 - `docs(templates): document legacy → modular replacements`  
   ```
-  - map WORKFLOWS.md anchors to templates/workflows/domain/
+  - map legacy workflow anchors to templates/workflows/domain/
   - add inventory coverage for registry/matrix references
   - log plan sync + tracker updates for task 87 scope completion
   ```
@@ -76,3 +79,7 @@ version: 1.0.0
 - Updated tracker/session entries referencing this commit
 - Guard/test logs stored under `reports/`
 - Plan step marked completed where applicable
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/git/create-commit-message.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

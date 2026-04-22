@@ -1,9 +1,12 @@
 ---
 id: gather-evidence
 name: Gather Evidence
+title: Gather Evidence
 role: operator
+type: operator
 domain: analysis
 stability: stable
+status: stable
 triggers:
   - "find evidence for X"
   - "gather proof of Y"
@@ -38,3 +41,7 @@ version: 1.0.0
 **Examples**:
 - "find evidence of performance optimization" → Code patterns + commits
 - "gather proof of security measures" → Auth code + tests
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/analysis/gather-evidence.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

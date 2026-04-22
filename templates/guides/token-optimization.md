@@ -1,5 +1,7 @@
 ---
 title: Token Optimization Guide
+type: user-guide
+status: stable
 description: How to save 60-90% of tokens using Serena and GPT-5 integration
 version: 1.0.0
 created: 2025-08-09
@@ -220,3 +222,7 @@ Typical results:
 5. **Validate suggestions** - Always verify external recommendations
 
 Remember: The goal is not just to save tokens, but to work more efficiently by using the right tool for each job!
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/token-optimization.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `type` and `status` metadata during the Task 91 guide-standardization slice

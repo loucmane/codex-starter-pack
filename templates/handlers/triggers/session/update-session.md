@@ -1,9 +1,12 @@
 ---
 id: update-session
 name: Update Session
+title: Update Session
 role: trigger
+type: trigger
 domain: session
 stability: stable
+status: stable
 triggers:
   - "update session"
   - "record progress"
@@ -69,3 +72,7 @@ version: 2.0.0
 - "update session" → Add progress to current session file
 - "record that we fixed the bug" → Specific progress entry
 - "checkpoint our work" → Detailed state capture with goals update
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/update-session.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

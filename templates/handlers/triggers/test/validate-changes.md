@@ -1,9 +1,12 @@
 ---
 id: validate-changes
 name: Validate Changes
+title: Validate Changes
 role: trigger
+type: trigger
 domain: test
 stability: stable
+status: stable
 triggers:
   - "verify X works"
   - "validate the changes"
@@ -31,3 +34,7 @@ version: 1.0.0
 **Examples**:
 - "verify auth works" → Full auth validation
 - "validate the refactoring" → Behavior preservation
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/test/validate-changes.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

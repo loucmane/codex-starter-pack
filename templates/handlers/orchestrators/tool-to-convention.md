@@ -1,9 +1,12 @@
 ---
 id: tool-to-convention
 name: Tool to Convention Validator
+title: Tool to Convention Validator
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "Tool usage must follow conventions"
 dependencies: []
@@ -28,3 +31,7 @@ version: 1.0.0
 **Examples**:
 - Git commit → Check commit message conventions
 - File naming → Validate naming standards
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/tool-to-convention.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

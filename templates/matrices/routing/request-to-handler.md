@@ -1,7 +1,9 @@
 ---
 id: request-to-handler-matrix
+title: Request to Handler Matrix
 type: decision-matrix
 category: routing
+status: stable
 usage: Maps user request patterns to appropriate handlers
 version: 1.0.0
 ---
@@ -58,3 +60,7 @@ Handler name, location, and example usage
 - Unknown patterns → check templates/patterns/ for meta-routing
 - Ambiguous requests → ask for clarification
 - Missing handlers → document gap for future addition
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/routing/request-to-handler.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

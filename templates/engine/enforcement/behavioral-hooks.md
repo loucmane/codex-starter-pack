@@ -1,6 +1,8 @@
 ---
 id: behavioral-hooks
+title: Behavioral Hooks
 type: engine-component
+status: stable
 priority: critical
 dependencies:
   - templates/BEHAVIORS.md
@@ -66,3 +68,7 @@ Before EVERY action, state:
 ## Natural Enforcement
 
 Instead of "I should check templates", these hooks create "I cannot proceed without checking" - making template usage automatic and unavoidable. Like syntax checking prevents invalid code, behavioral hooks prevent protocol violations.
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/enforcement/behavioral-hooks.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

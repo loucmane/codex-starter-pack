@@ -1,9 +1,12 @@
 ---
 trigger: User mentions "gac" or asks for commit message
+title: Before Commit (gac Format)
 action: Validate commit format and ensure no double quotes
 blocks: Cannot provide message with wrong format or quotes
 category: git
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -172,3 +175,7 @@ No code blocks? ✓
 
 ## Remember
 **When user says "gac" they want ONLY the commit message - nothing else!**
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/git/before-commit.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

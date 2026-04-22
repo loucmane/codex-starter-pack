@@ -1,5 +1,6 @@
 ---
 id: meta-workflow-guard-ci-plan
+title: Meta Workflow Guard CI and Pre-commit Wiring Plan
 type: enforcement-plan
 category: ci
 status: draft
@@ -96,3 +97,4 @@ jobs:
 ## Progress Log
 
 - **2026-04-21 14:31** — [S:20260421|W:task90-complete-engine-migration|H:templates/engine/enforcement/meta-workflow-guard-ci-plan.md|E:templates/engine/enforcement/meta-workflow-guard-ci-plan.md] Removed the last trailing-punctuation reference so engine-path scanners treat the remediation guide link as a valid existing document
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/enforcement/meta-workflow-guard-ci-plan.md|E:templates/metadata/template-metadata-policy.json] Added the canonical `title` key during the Task 91 engine-module standardization slice

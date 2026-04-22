@@ -1,6 +1,8 @@
 ---
 id: ultrathink-protocol
+title: Ultrathink Protocol
 type: engine-component
+status: stable
 priority: critical
 dependencies:
   - templates/engine/core/enforcement-check.md
@@ -46,3 +48,7 @@ At task end, report status referencing the chosen handler:
 - `❌ Failed: handlers/refactor-feature (error at step 2 – test suite failing)`
 
 ULTRATHINK is executable protocol, not ceremony. Treat each field as verifiable state.
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/ultrathink-protocol.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

@@ -1,9 +1,12 @@
 ---
 trigger: About to use Edit/Write/MultiEdit on existing file
+title: Before Any File Edit
 action: Check file-specific conventions before editing
 blocks: Cannot edit until conventions checked
 category: file-operations
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -72,3 +75,7 @@ ACTION:
 - Prevents convention violations
 - Ensures special file requirements are met
 - Reduces need for correction commits
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/file-operations/before-edit.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

@@ -1,9 +1,12 @@
 ---
 id: start-new-work
 name: Start New Work
+title: Start New Work
 role: trigger
+type: trigger
 domain: development
 stability: stable
+status: stable
 triggers:
   - "I want to work on X"
   - "Let's build Y"
@@ -120,3 +123,7 @@ Extract feature/component name after "on" or "build" in user request.
 - Document assumptions in TRACKER.md
 - Set realistic initial milestones
 - Include research/exploration tasks
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/development/start-new-work.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

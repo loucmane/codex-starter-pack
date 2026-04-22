@@ -1,9 +1,12 @@
 ---
 id: debug-issue
 name: Debug Issue
+title: Debug Issue
 role: trigger
+type: trigger
 domain: debug
 stability: stable
+status: stable
 triggers:
   - "debug this"
   - "debug issue"
@@ -123,3 +126,7 @@ User reports a problem or error that needs debugging investigation.
 - Test hypotheses systematically
 - Document findings for future reference
 - Verify fixes don't introduce new issues
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/debug/debug-issue.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

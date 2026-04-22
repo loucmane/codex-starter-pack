@@ -1,9 +1,12 @@
 ---
 id: execute-ultrathink
 name: Execute Ultrathink
+title: Execute Ultrathink
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "Start of ANY development request"
 dependencies:
@@ -50,3 +53,7 @@ version: 1.0.0
 - "Create a login component" → [S:20250726|W:auth-feature|H:create-component]
 - "Fix the bug" → [S:20250726|W:VOID→workflows|H:fix-bug]
 - First request of day → [S:VOID→conventions|W:?|H:?]
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/execute-ultrathink.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

@@ -1,9 +1,12 @@
 ---
 id: resolve-work-void
 name: Resolve Work VOID
+title: Resolve Work VOID
 role: operator
+type: operator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "W = VOID"
   - "no work context"
@@ -51,3 +54,7 @@ version: 1.0.0
 - "Find all getUserData calls" → W = "investigating"
 - "Plan caching strategy" → W = "planning"
 - "Continue with tests" + test folder exists → W = "test-implementation"
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/workflow/resolve-work-void.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

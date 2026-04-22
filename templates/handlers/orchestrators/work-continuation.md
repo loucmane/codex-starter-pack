@@ -1,9 +1,12 @@
 ---
 id: work-continuation
 name: Work Continuation Orchestrator
+title: Work Continuation Orchestrator
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: beta
+status: beta
 triggers:
   - continue
   - resume
@@ -36,3 +39,7 @@ version: 2.0.0
 **Examples**
 - "Continue working on the timestamp guard" → Runs validation, syncs plan/tracker, and resumes Task 84/Task 85 work
 - "Where were we yesterday?" → Loads continuation workflow, surfaces guard log, and prepares next subtask
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/work-continuation.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

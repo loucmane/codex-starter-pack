@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260421-task91-standardize-template-metadata-ACTIVE has prefix 20260421; today's prefix is 20260422 (ensure multi-day reuse is intentional)

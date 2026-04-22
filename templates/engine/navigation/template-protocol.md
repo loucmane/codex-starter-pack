@@ -1,3 +1,10 @@
+---
+id: template-navigation-protocol
+title: Template Navigation Protocol
+type: engine-component
+status: stable
+---
+
 # Template Navigation Protocol
 
 ## Overview
@@ -133,3 +140,7 @@ Executing [N] steps...
 - Guess handler names
 - Load without verification
 - Hide navigation decisions
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/navigation/template-protocol.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

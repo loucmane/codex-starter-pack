@@ -1,8 +1,10 @@
 ---
 id: triggers-registry
+title: Trigger Handlers Registry
 type: registry-component
 name: Trigger Handlers Registry
 description: Complete registry of user-activated trigger handlers
+status: stable
 handler_count: 35
 cross_references:
   - ../index.md
@@ -192,3 +194,7 @@ User-activated handlers that respond to natural language triggers.
 **Discovery Methods**:
 - Direct Read: `templates/handlers/triggers/[domain]/[handler].md`
 - Serena Search: `--substring_pattern "id: [handler-name]" --relative_path "templates/handlers/triggers/"`
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/handlers/triggers-registry.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

@@ -1,5 +1,6 @@
 ---
 id: registry-index
+title: Claude Template System Registry Index
 type: registry-component
 name: Claude Template System Registry Index
 version: 3.0
@@ -58,3 +59,7 @@ Lightweight entry point to the complete template system registry.
 - S=VOID → [resolve-session-void](../templates/handlers/orchestrators/resolve-session-void.md)
 - W=VOID → [resolve-work-void](../templates/handlers/operators/workflow/resolve-work-void.md)
 - H=VOID → Search [Keywords](navigation/keywords.md) then registries
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/index.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` metadata while keeping the registry index policy-exempt as an aggregate navigation entry

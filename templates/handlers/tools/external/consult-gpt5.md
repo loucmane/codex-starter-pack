@@ -1,5 +1,8 @@
 ---
 name: consult-gpt5
+title: Consult GPT-5 Handler
+type: operator
+status: stable
 version: 1.0.0
 category: tools/external
 description: Consult GPT-5 (O1 Pro) via cursor-agent for second opinions and deep analysis
@@ -120,3 +123,7 @@ Typical token savings using this approach:
 - Keep GPT-5 queries focused and specific
 - Validate all suggestions against project conventions
 - Document insights in work tracking files
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/handlers/tools/external/consult-gpt5.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 outlier cleanup slice

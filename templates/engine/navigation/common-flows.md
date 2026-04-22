@@ -1,6 +1,8 @@
 ---
 id: common-request-flows
+title: Common Request Flows
 type: engine-component
+status: stable
 dependencies:
   - templates/REGISTRY
   - templates/handlers
@@ -52,3 +54,7 @@ exports:
    - Search: mcp__serena__search_for_pattern --substring_pattern "id: commit-changes" --relative_path "templates/handlers/"
 4. Execute: Check conventions → create message → commit
 ```
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/navigation/common-flows.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

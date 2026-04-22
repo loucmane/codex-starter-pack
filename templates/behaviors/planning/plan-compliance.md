@@ -1,9 +1,12 @@
 ---
 trigger: Beginning any workflow or modifying tracked files
+title: Plan Compliance Behavior
 action: Validate active plan using standard template and guard checks
 blocks: Cannot proceed with edits or guard validation failure until plan passes
 category: planning
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -50,3 +53,7 @@ This behavior fires whenever:
 - [`codex-guard` Plan Validation](../../metadata/workflow-guards.json)
 - [Session Lifecycle Workflow](../../workflows/session/lifecycle.md)
 - [Meta Workflow Authoring Draft](../../designs/meta-workflow-authoring-draft.md)
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/planning/plan-compliance.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

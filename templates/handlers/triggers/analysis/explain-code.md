@@ -1,9 +1,12 @@
 ---
 id: explain-code
 name: Explain Code
+title: Explain Code
 role: trigger
+type: trigger
 domain: analysis
 stability: stable
+status: stable
 triggers:
   - "explain this code"
   - "how does X work"
@@ -135,3 +138,7 @@ Code references (file paths, function names, code snippets) requiring explanatio
 - Point out patterns that appear elsewhere in codebase
 - Avoid overwhelming detail - focus on key insights
 - Ask follow-up questions to ensure understanding
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/analysis/explain-code.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

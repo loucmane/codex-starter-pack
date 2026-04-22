@@ -1,9 +1,12 @@
 ---
 id: orchestrate-complex
 name: Orchestrate Complex
+title: Orchestrate Complex
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "this needs multiple experts"
   - "orchestrate X"
@@ -32,3 +35,7 @@ version: 1.0.0
 **Examples**:
 - "orchestrate full feature" → Multi-specialist flow
 - "coordinate auth implementation" → Security + DB + API experts
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/orchestrate-complex.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

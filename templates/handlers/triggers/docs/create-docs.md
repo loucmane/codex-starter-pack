@@ -1,9 +1,12 @@
 ---
 id: create-docs
 name: Create Documentation
+title: Create Documentation
 role: trigger
+type: trigger
 domain: docs
 stability: stable
+status: stable
 triggers:
   - "document this"
   - "create docs"
@@ -53,3 +56,7 @@ version: 1.0.0
 - "document the API" → API reference docs
 - "write README for auth" → Module documentation
 - "create user guide" → End-user documentation
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/docs/create-docs.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

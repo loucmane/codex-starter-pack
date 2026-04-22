@@ -1,9 +1,12 @@
 ---
 id: optimize-code
 name: Optimize Code Performance
+title: Optimize Code Performance
 role: trigger
+type: trigger
 domain: development
 stability: stable
+status: stable
 triggers:
   - "optimize this"
   - "make faster"
@@ -119,3 +122,7 @@ Code sections, functions, or modules that need performance improvements.
 - Document optimization decisions
 - Use appropriate profiling tools
 - Test thoroughly after changes
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/development/optimize-code.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

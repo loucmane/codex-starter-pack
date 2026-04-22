@@ -1,9 +1,12 @@
 ---
 id: deploy-ultrathink
 name: Deploy Ultrathink
+title: Deploy Ultrathink
 role: trigger
+type: trigger
 domain: analysis
 stability: stable
+status: stable
 triggers:
   - "think deeply about X"
   - "ultrathink on Y"
@@ -31,3 +34,7 @@ version: 1.0.0
 **Examples**:
 - "think deeply about the architecture" → System design analysis
 - "ultrathink on performance issues" → Optimization insights
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/analysis/deploy-ultrathink.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

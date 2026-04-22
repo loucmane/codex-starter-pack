@@ -1,6 +1,8 @@
 ---
 name: integration-guide
+title: Ultrathink Enforcement Integration Guide
 type: documentation
+status: stable
 priority: critical
 version: 1.0.0
 dependencies:
@@ -514,3 +516,7 @@ The integration achieves 100% technical enforcement through:
 7. **Metrics and monitoring** - Track effectiveness and performance
 
 The system moves from voluntary compliance to mandatory enforcement, ensuring ULTRATHINK protocol is followed for all development work.
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/validation/integration-guide.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

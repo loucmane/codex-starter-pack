@@ -1,9 +1,12 @@
 ---
 trigger: About to make claims about code, dependencies, or functionality
+title: Evidence Before Claims
 action: Gather evidence from actual code before making statements
 blocks: Cannot make claims without proof
 category: validation
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -213,3 +216,7 @@ Proving something doesn't exist:
 
 ## Remember
 **No claim without evidence - every statement must be backed by actual code!**
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/validation/evidence-claims.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

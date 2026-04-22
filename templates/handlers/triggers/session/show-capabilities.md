@@ -1,9 +1,12 @@
 ---
 id: show-capabilities
 name: Show Capabilities
+title: Show Capabilities
 role: trigger
+type: trigger
 domain: session
 stability: stable
+status: stable
 triggers:
   - "what can you do"
   - "help"
@@ -38,3 +41,7 @@ version: 1.0.0
 **Examples**:
 - "what can you do?" → Full capability overview
 - "help with testing" → Testing-specific capabilities
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/show-capabilities.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

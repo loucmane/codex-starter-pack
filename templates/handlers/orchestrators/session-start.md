@@ -1,9 +1,12 @@
 ---
 id: session-start
 name: Session Start
+title: Session Start
 role: orchestrator
+type: orchestrator
 domain: session
 stability: stable
+status: stable
 triggers:
   - "start new session"
   - "begin session"
@@ -115,3 +118,7 @@ version: 2.0.0
 **Examples**:
 - "start new session" → Fresh session in sessions/YYYY/MM/
 - "begin work on auth" → Session with auth focus, may trigger auth handlers
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/session-start.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

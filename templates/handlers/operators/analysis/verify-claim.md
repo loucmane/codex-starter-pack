@@ -1,9 +1,12 @@
 ---
 id: verify-claim
 name: Verify Claim
+title: Verify Claim
 role: operator
+type: operator
 domain: analysis
 stability: stable
+status: stable
 triggers:
   - "prove X is true"
   - "verify that Y"
@@ -34,3 +37,7 @@ version: 1.0.0
 **Examples**:
 - "prove the auth system uses JWT" → Find JWT imports/usage
 - "verify all tests pass" → Run tests and show results
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/analysis/verify-claim.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

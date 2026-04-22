@@ -1,6 +1,8 @@
 ---
 id: pre-ultrathink-protocol
+title: Pre-Ultrathink Protocol
 type: critical-enforcement
+status: stable
 critical: true
 priority: highest
 enforcement-level: mandatory
@@ -63,3 +65,7 @@ Guards against fake compliance. Run it immediately after the ULTRATHINK handshak
 - For non-development tasks (documentation answers, greetings), state that the protocol is not applicable and explain why.
 
 This protocol makes ULTRATHINK compliance verifiable. Do not bypass it.
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/pre-ultrathink.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

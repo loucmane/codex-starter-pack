@@ -1,3 +1,10 @@
+---
+id: codex-readiness
+title: Codex Readiness Checklist
+type: critical-enforcement
+status: stable
+---
+
 # Codex Readiness Checklist
 
 Use this module before deep-work tasks to confirm the Codex runtime matches expectations.
@@ -32,3 +39,7 @@ Use this module before deep-work tasks to confirm the Codex runtime matches expe
   - Agent catalog status is understood (warning noted or file supplied).
 
 Document any discrepancies before continuing with ULTRATHINK planning. EOF
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/codex-readiness.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

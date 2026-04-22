@@ -1,9 +1,12 @@
 ---
 id: create-todos
 name: Create Todos
+title: Create Todos
 role: trigger
+type: trigger
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "plan out X"
   - "break down Y"
@@ -34,3 +37,7 @@ version: 1.0.0
 **Examples**:
 - "plan out the migration" → Detailed migration steps
 - "break down the feature" → Implementation tasks
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/workflow/create-todos.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

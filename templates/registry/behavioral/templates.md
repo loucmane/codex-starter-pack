@@ -1,8 +1,10 @@
 ---
 id: behavioral-templates
+title: Behavioral Templates Registry
 type: registry-component
 name: Behavioral Templates Registry
 description: Step-by-step guides that must be manually selected (no triggers)
+status: stable
 template_count: 6
 cross_references:
   - ../index.md
@@ -138,3 +140,7 @@ User: [Follows template steps]
 3. **Templates ensure consistency** - Same process every time
 4. **Templates are teaching tools** - Help users learn proper workflows
 5. **Templates can be referenced** - Don't always need to follow completely
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/behavioral/templates.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

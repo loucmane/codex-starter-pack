@@ -1,9 +1,12 @@
 ---
 id: start-session
 name: Start Session with Smart Title
+title: Start Session with Smart Title
 role: trigger
+type: trigger
 domain: session
 stability: stable
+status: stable
 triggers:
   - "let's start"
   - "begin work"
@@ -242,3 +245,7 @@ File: 2025-08-09-001-debug-api-errors.md
 
 ## Remember
 **Every session deserves a meaningful title that describes the work being done!**
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/start-session.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

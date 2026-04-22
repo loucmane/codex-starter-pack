@@ -1,0 +1,22 @@
+# Decisions
+
+- 2026-04-21 — Treat `title`, `type`, and `status` as the initial canonical rollout keys because they already drive registry/metadata discoverability and map directly to Task 91’s stated goal.
+- 2026-04-21 — Separate aggregate/generated/index-style docs from modular templates during the first rollout so Task 91 does not blindly force the same frontmatter policy onto materially different document classes.
+- 2026-04-21 — Preserve existing family-specific fields (`name`, `role`, `domain`, `stability`, `trigger`, `action`, `blocks`) while adding canonical keys, rather than doing destructive metadata renames in the first pass.
+- 2026-04-21 — Make metadata enforcement portable by moving scope, exemptions, and required-key rollout into `templates/metadata/template-metadata-policy.json` instead of hardcoding family rules in `scripts/codex-guard`.
+- 2026-04-22 — When work spans multiple days, close the prior day’s session during rollover with an explicit retroactive note instead of fabricating a previous-day end timestamp or skipping the closeout entirely.
+- 2026-04-22 — Treat the tracker `Started` date as the source of truth for legitimate multi-day reuse of an uncommitted active folder; do not force daily folder rotation just because the first commit has not landed yet.
+- 2026-04-22 — Keep `templates/matrices/index.md` policy-exempt as an aggregate navigation entry even though it now also carries canonical metadata for consistency with the family.
+- 2026-04-22 — Keep `templates/registry/index.md` and `templates/registry/MIGRATION-REPORT.md` policy-exempt as aggregate/narrative registry docs even though `index.md` now also carries canonical metadata for consistency.
+- 2026-04-22 — Run guard sequentially after pytest whenever the tests create temporary ACTIVE work-tracking fixtures; do not capture those two commands in parallel as verification evidence.
+- 2026-04-22 — Treat Task 91 as complete once the enforced metadata scan reaches zero remaining files and the final guard/test logs are stored under the active folder’s reports directory.
+
+## Progress Log
+- **2026-04-21 17:17** — [S:20260421|W:task91-standardize-template-metadata|H:docs/decisions|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-inventory.md] Recorded the initial Task 91 rollout boundary: standardize modular templates first, then decide what aggregate/generated docs require
+- **2026-04-21 17:27** — [S:20260421|W:task91-standardize-template-metadata|H:docs/decisions|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Chose additive schema mapping over destructive renames so existing metadata consumers keep working while canonical keys are introduced
+- **2026-04-21 17:50** — [S:20260421|W:task91-standardize-template-metadata|H:docs/decisions|E:templates/metadata/template-metadata-policy.json] Recorded the portability decision: generic guard behavior, repo-local policy configuration
+- **2026-04-22 15:16** — [S:20260422|W:task91-session-rollover|H:docs/decisions|E:sessions/2026/04/2026-04-21-002-task91-kickoff.md] Recorded the rollover decision so future cross-day work closes the prior day before opening a new session
+- **2026-04-22 15:41** — [S:20260422|W:task91-standardize-template-metadata|H:docs/decisions|E:scripts/codex-guard] Recorded the multi-day active-folder decision so same-task reuse survives across days even before the first commit
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:docs/decisions|E:templates/metadata/template-metadata-policy.json] Recorded the matrices rollout decision: enforce the family while keeping `templates/matrices/index.md` as an explicit policy exemption
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:docs/decisions|E:templates/metadata/template-metadata-policy.json] Recorded the registry rollout decision: enforce registry components while keeping the aggregate registry index and migration report exempt
+- **2026-04-22 16:22** — [S:20260422|W:task91-standardize-template-metadata|H:docs/decisions|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/reports/standardize-template-metadata/tests-2026-04-22-guard.txt] Recorded the final closeout decision: Task 91 is complete after storing sequential guard/test evidence and reaching zero remaining enforced metadata debt

@@ -1,7 +1,9 @@
 ---
 id: keyword-to-handler-matrix
+title: Keyword to Handler Matrix
 type: decision-matrix
 category: mapping
+status: stable
 usage: Maps keywords and phrases to specific handlers for quick lookup
 version: 1.0.0
 ---
@@ -161,3 +163,7 @@ Handler name and location
 - Context overrides keywords
 - Multiple keywords → most specific wins
 - Unknown keywords → document for addition
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/mapping/keyword-to-handler.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

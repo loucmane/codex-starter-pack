@@ -69,6 +69,36 @@ def test_validate_active_folder_allows_tracked_mismatch(monkeypatch) -> None:
     assert issues == []
 
 
+def test_validate_active_folder_allows_untracked_multi_day_started_folder(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    monkeypatch.setattr(module, 'DATE_PREFIX_EXPECTED', '20300102')
+    folder = _create_work_tracking_fixture(module, '20300101-task99-workflow-ACTIVE')
+    tracker = folder / 'TRACKER.md'
+    try:
+        tracker.write_text(
+            """
+# Tracker
+
+**Started**: 2030-01-01
+**Status**: ACTIVE
+**Last Updated**: 2030-01-02
+
+## Progress Log
+- **2030-01-02 09:00** — [S:20300102|W:task99-workflow|H:serena/memory|E:.serena/memories/2030-01-02_task99.md] Continued the existing active folder
+            """.strip()
+            + "\n",
+            encoding='utf-8',
+        )
+        monkeypatch.setattr(module, '_folder_tracked', lambda rel: False)
+        issues = module.validate_active_folder_edits([tracker])
+        assert issues == []
+    finally:
+        import shutil
+
+        shutil.rmtree(folder)
+
+
 def test_validate_work_tracking_folder_names_skips_tracked_existing(monkeypatch) -> None:
     module = load_guard_module()
     entries = [
@@ -80,6 +110,40 @@ def test_validate_work_tracking_folder_names_skips_tracked_existing(monkeypatch)
     monkeypatch.setattr(module, '_path_tracked', lambda rel: True)
     issues = module.validate_work_tracking_folder_names(entries)
     assert issues == []
+
+
+def test_validate_work_tracking_folder_names_allows_untracked_multi_day_started_folder(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    monkeypatch.setattr(module, 'DATE_PREFIX_EXPECTED', '20300102')
+    folder = _create_work_tracking_fixture(module, '20300101-task99-workflow-ACTIVE')
+    try:
+        (folder / 'TRACKER.md').write_text(
+            """
+# Tracker
+
+**Started**: 2030-01-01
+**Status**: ACTIVE
+**Last Updated**: 2030-01-02
+
+## Progress Log
+- **2030-01-02 09:00** — [S:20300102|W:task99-workflow|H:serena/memory|E:.serena/memories/2030-01-02_task99.md] Continued the existing active folder
+            """.strip()
+            + "\n",
+            encoding='utf-8',
+        )
+        entries = [
+            (
+                '??',
+                'docs/ai/work-tracking/active/20300101-task99-workflow-ACTIVE/reports/workflow/guard-2030-01-02-pass.txt',
+            )
+        ]
+        issues = module.validate_work_tracking_folder_names(entries)
+        assert issues == []
+    finally:
+        import shutil
+
+        shutil.rmtree(folder)
 
 
 def test_validate_session_allows_latest_completed(monkeypatch) -> None:
@@ -348,3 +412,151 @@ def test_detect_tracked_active_deletions_ignored_when_archived(monkeypatch) -> N
 
         shutil.rmtree(active_folder, ignore_errors=True)
         shutil.rmtree(archive_folder, ignore_errors=True)
+
+
+def test_select_template_metadata_rule_matches_handlers() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/handlers/orchestrators/session-start.md'))
+    assert rule is not None
+    assert rule.name == 'handlers'
+
+
+def test_select_template_metadata_rule_ignores_exemptions() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/TOOLS.md'))
+    assert rule is None
+
+
+def test_select_template_metadata_rule_matches_behaviors() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/behaviors/session/session-end.md'))
+    assert rule is not None
+    assert rule.name == 'behaviors'
+
+
+def test_select_template_metadata_rule_exempts_behavior_index() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/behaviors/index.md'))
+    assert rule is None
+
+
+def test_select_template_metadata_rule_matches_guides() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/guides/index.md'))
+    assert rule is not None
+    assert rule.name == 'guides'
+
+
+def test_select_template_metadata_rule_matches_matrices() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/matrices/routing/request-to-handler.md'))
+    assert rule is not None
+    assert rule.name == 'matrices'
+
+
+def test_select_template_metadata_rule_exempts_matrices_index() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/matrices/index.md'))
+    assert rule is None
+
+
+def test_select_template_metadata_rule_matches_registry_components() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/registry/navigation/keywords.md'))
+    assert rule is not None
+    assert rule.name == 'registry-components'
+
+
+def test_select_template_metadata_rule_exempts_registry_index() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/registry/index.md'))
+    assert rule is None
+
+
+def test_select_template_metadata_rule_matches_engine_modules() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/engine/core/session-resolver.md'))
+    assert rule is not None
+    assert rule.name == 'engine-modules'
+
+
+def test_select_template_metadata_rule_exempts_engine_readme() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/engine/README.md'))
+    assert rule is None
+
+
+def test_select_template_metadata_rule_matches_shared_core_pattern() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/shared/patterns/ultrathink-format.md'))
+    assert rule is not None
+    assert rule.name == 'shared-core-patterns'
+
+
+def test_validate_template_metadata_flags_missing_required_keys(monkeypatch) -> None:
+    module = load_guard_module()
+    fake_rule = module.TemplateMetadataRule(
+        name='handlers',
+        include=['templates/handlers/**/*.md'],
+        exclude=[],
+        required_keys=['title', 'type', 'status'],
+        frontmatter='required',
+        enforce=True,
+    )
+    monkeypatch.setattr(module, 'select_template_metadata_rule', lambda path: fake_rule)
+    text = """---
+id: sample
+name: Sample
+---
+
+# Sample
+"""
+    issues = module.validate_template_metadata(Path('templates/handlers/example.md'), text)
+    messages = [issue.message for issue in issues]
+    assert any("missing required key 'title'" in msg for msg in messages)
+    assert any("missing required key 'type'" in msg for msg in messages)
+    assert any("missing required key 'status'" in msg for msg in messages)
+
+
+def test_validate_template_metadata_flags_missing_frontmatter(monkeypatch) -> None:
+    module = load_guard_module()
+    fake_rule = module.TemplateMetadataRule(
+        name='handlers',
+        include=['templates/handlers/**/*.md'],
+        exclude=[],
+        required_keys=['title', 'type', 'status'],
+        frontmatter='required',
+        enforce=True,
+    )
+    monkeypatch.setattr(module, 'select_template_metadata_rule', lambda path: fake_rule)
+    issues = module.validate_template_metadata(Path('templates/handlers/example.md'), '# No frontmatter\n')
+    assert any('requires frontmatter' in issue.message for issue in issues)
+
+
+def test_validate_swhe_entries_ignores_fenced_placeholder_examples() -> None:
+    module = load_guard_module()
+    text = """
+```text
+[S:2025-09-20|W:~/codex|H:searching|E:pending]
+```
+
+## Progress Log
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/enforcement-check.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata
+    """.strip()
+    issues = module.validate_swhe_entries(
+        Path('templates/engine/core/enforcement-check.md'),
+        text,
+        expected_session='20260422',
+    )
+    assert issues == []
+
+
+def test_validate_swhe_entries_flags_placeholder_outside_code_fence() -> None:
+    module = load_guard_module()
+    text = "[S:2025-09-20|W:~/codex|H:searching|E:pending]"
+    issues = module.validate_swhe_entries(
+        Path('templates/engine/core/enforcement-check.md'),
+        text,
+        expected_session='20250920',
+    )
+    assert any('placeholder state' in issue.message for issue in issues)

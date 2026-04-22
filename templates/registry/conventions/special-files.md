@@ -1,8 +1,10 @@
 ---
 id: special-files
+title: Special Files Conventions
 type: registry-component
 name: Special Files Conventions
 description: File-specific rules and conventions for special system files
+status: stable
 cross_references:
   - ../index.md
   - ../matrices/decision-matrices.md
@@ -211,3 +213,7 @@ Before any file operation, verify:
 - [ ] Preserves critical content
 - [ ] Updates related indexes
 - [ ] Documents the change
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/conventions/special-files.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

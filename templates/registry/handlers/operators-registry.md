@@ -1,8 +1,10 @@
 ---
 id: operators-registry
+title: Operator Handlers Registry
 type: registry-component
 name: Operator Handlers Registry
 description: Complete registry of technical operation handlers
+status: stable
 handler_count: 31
 cross_references:
   - ../index.md
@@ -230,3 +232,7 @@ Technical operation handlers that perform specific tasks.
 
 - Direct Read: `templates/handlers/operators/[domain]/[handler].md`
 - Serena Search: `--substring_pattern "id: [handler-name]" --relative_path "templates/handlers/operators/"`
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/handlers/operators-registry.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

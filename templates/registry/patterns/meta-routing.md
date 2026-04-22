@@ -1,8 +1,10 @@
 ---
 id: meta-routing-patterns
+title: Meta-Routing Patterns Registry
 type: registry-component
 name: Meta-Routing Patterns Registry
 description: Patterns that route ambiguous requests to appropriate handlers
+status: stable
 pattern_count: 14
 cross_references:
   - ../index.md
@@ -233,3 +235,7 @@ When pattern routing seems wrong:
 3. Review pattern process steps
 4. Ensure handler compatibility
 5. Document pattern gaps for improvement
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/patterns/meta-routing.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

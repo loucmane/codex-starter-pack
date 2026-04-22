@@ -1,9 +1,12 @@
 ---
 id: continue-work
 name: Continue Work
+title: Continue Work
 role: trigger
+type: trigger
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "continue with X"
   - "back to Y"
@@ -33,3 +36,7 @@ version: 1.0.0
 **Examples**:
 - "continue with auth" → Finds *-authentication-ACTIVE folder
 - "back to the flow creator" → Resumes meta-flow-creator work
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/workflow/continue-work.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice
