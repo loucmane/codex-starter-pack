@@ -11,7 +11,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Set
 
@@ -88,6 +88,12 @@ PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
 TASK_IDS_PATTERN = re.compile(r"\*\*Task IDs\*\*:\s*(.+)")
 BRANCH_POLICY_PATTERN = re.compile(r"\*\*Branch Policy\*\*:\s*(.+)")
+TEMPLATE_METADATA_POLICY_PATH = Path(
+    os.environ.get(
+        "CODEX_TEMPLATE_METADATA_POLICY_PATH",
+        REPO_ROOT / "templates" / "metadata" / "template-metadata-policy.json",
+    )
+)
 
 
 @dataclass
@@ -98,6 +104,16 @@ class PlanDetails:
     task_ids: List[str]
     branch_policy: Optional[str]
     text: str
+
+
+@dataclass
+class TemplateMetadataRule:
+    name: str
+    include: List[str]
+    exclude: List[str]
+    required_keys: List[str]
+    frontmatter: str
+    enforce: bool
 
 @dataclass
 class ValidationIssue:
@@ -192,7 +208,22 @@ def _folder_tracked(relative: Path) -> bool:
         )
     except Exception:
         return False
-    return result.returncode == 0 and result.stdout.strip() != ''
+    if result.returncode == 0 and result.stdout.strip() != '':
+        return True
+    prefix = relative.as_posix().rstrip('/') + '/'
+    try:
+        fallback = subprocess.run(
+            ['git', 'ls-files'],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    if fallback.returncode != 0:
+        return False
+    return any(line.startswith(prefix) for line in fallback.stdout.splitlines())
 
 
 
@@ -208,6 +239,19 @@ def _path_tracked(relative: Path) -> bool:
     except Exception:
         return False
     return result.returncode == 0 and result.stdout.strip() != ''
+
+
+def _active_folder_started_with_prefix(relative: Path, prefix: str) -> bool:
+    tracker_path = REPO_ROOT / relative / 'TRACKER.md'
+    try:
+        text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    match = re.search(r'^\*\*Started\*\*:\s*(\d{4}-\d{2}-\d{2})\s*$', text, re.MULTILINE)
+    if not match:
+        return False
+    started_iso = match.group(1)
+    return started_iso.replace('-', '') == prefix
 
 
 
@@ -243,6 +287,8 @@ def validate_active_folder_edits(changed_paths: Iterable[Path]) -> List[Validati
             continue
         if prefix != DATE_PREFIX_EXPECTED:
             if _folder_tracked(folder_relative):
+                continue
+            if _active_folder_started_with_prefix(folder_relative, prefix):
                 continue
             issues.append(
                 ValidationIssue(
@@ -406,6 +452,8 @@ def validate_work_tracking_folder_names(entries: List[tuple[str, str]]) -> List[
             issues.append(ValidationIssue(relative_path, "Active work-tracking folders must end with -ACTIVE"))
             continue
         prefix = name.split("-", 1)[0]
+        if _active_folder_started_with_prefix(relative_path, prefix):
+            continue
         if prefix != DATE_PREFIX_EXPECTED:
             issues.append(
                 ValidationIssue(
@@ -509,6 +557,96 @@ def parse_front_matter_text(text: str) -> Dict[str, str]:
     return data
 
 
+def load_template_metadata_policy() -> tuple[List[TemplateMetadataRule], List[str]]:
+    path = TEMPLATE_METADATA_POLICY_PATH
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return [], []
+
+    defaults = data.get("defaults", {}) if isinstance(data, dict) else {}
+    default_required = defaults.get("required_keys", ["title", "type", "status"])
+    default_frontmatter = defaults.get("frontmatter", "required")
+    rules: List[TemplateMetadataRule] = []
+    raw_rules = data.get("rules", []) if isinstance(data, dict) else []
+    for raw in raw_rules:
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("name", "unnamed-rule"))
+        include = [str(item) for item in raw.get("include", [])]
+        exclude = [str(item) for item in raw.get("exclude", [])]
+        required = [str(item) for item in raw.get("required_keys", default_required)]
+        frontmatter = str(raw.get("frontmatter", default_frontmatter))
+        enforce = bool(raw.get("enforce", True))
+        rules.append(
+            TemplateMetadataRule(
+                name=name,
+                include=include,
+                exclude=exclude,
+                required_keys=required,
+                frontmatter=frontmatter,
+                enforce=enforce,
+            )
+        )
+    exemptions = [str(item) for item in data.get("exemptions", [])] if isinstance(data, dict) else []
+    return rules, exemptions
+
+
+def _metadata_policy_match(relative_path: str, pattern: str) -> bool:
+    path_obj = PurePosixPath(relative_path)
+    return path_obj.match(pattern)
+
+
+def select_template_metadata_rule(relative_path: Path) -> Optional[TemplateMetadataRule]:
+    rel = relative_path.as_posix()
+    rules, exemptions = load_template_metadata_policy()
+    for pattern in exemptions:
+        if _metadata_policy_match(rel, pattern):
+            return None
+    for rule in rules:
+        if not rule.enforce:
+            continue
+        if rule.include and not any(_metadata_policy_match(rel, pattern) for pattern in rule.include):
+            continue
+        if rule.exclude and any(_metadata_policy_match(rel, pattern) for pattern in rule.exclude):
+            continue
+        return rule
+    return None
+
+
+def validate_template_metadata(relative_path: Path, text: str) -> List[ValidationIssue]:
+    rule = select_template_metadata_rule(relative_path)
+    if rule is None:
+        return []
+
+    metadata = parse_front_matter_text(text)
+    issues: List[ValidationIssue] = []
+    if rule.frontmatter == "required" and not metadata:
+        issues.append(
+            ValidationIssue(
+                relative_path,
+                f"Template metadata policy '{rule.name}' requires frontmatter",
+                str(TEMPLATE_METADATA_POLICY_PATH.relative_to(REPO_ROOT))
+                if TEMPLATE_METADATA_POLICY_PATH.is_absolute() and str(TEMPLATE_METADATA_POLICY_PATH).startswith(str(REPO_ROOT))
+                else str(TEMPLATE_METADATA_POLICY_PATH),
+            )
+        )
+        return issues
+
+    for key in rule.required_keys:
+        if key not in metadata or not metadata[key].strip():
+            issues.append(
+                ValidationIssue(
+                    relative_path,
+                    f"Template metadata policy '{rule.name}' missing required key '{key}'",
+                    str(TEMPLATE_METADATA_POLICY_PATH.relative_to(REPO_ROOT))
+                    if TEMPLATE_METADATA_POLICY_PATH.is_absolute() and str(TEMPLATE_METADATA_POLICY_PATH).startswith(str(REPO_ROOT))
+                    else str(TEMPLATE_METADATA_POLICY_PATH),
+                )
+            )
+    return issues
+
+
 def derive_expected_session(meta: Dict[str, str]) -> Optional[str]:
     if "session_id" in meta:
         parts = meta["session_id"].split("-")
@@ -533,9 +671,13 @@ def handler_path_exists(handler_value: str) -> bool:
     return True
 
 
+def strip_fenced_code_blocks(text: str) -> str:
+    return re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+
+
 def validate_swhe_entries(path: Path, text: str, expected_session: Optional[str]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
-    matches = list(SWHE_PATTERN.finditer(text))
+    matches = list(SWHE_PATTERN.finditer(strip_fenced_code_blocks(text)))
     if not matches:
         issues.append(ValidationIssue(path, "No S:W:H:E entries detected"))
         return issues
@@ -1161,6 +1303,7 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
     if relative_path.parts and relative_path.parts[0] == "templates":
         for token, hint in find_legacy_monolith_references(text):
             issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
+        issues.extend(validate_template_metadata(relative_path, text))
 
     issues.extend(validate_swhe_entries(relative_path, text, expected_session))
     issues.extend(validate_timestamp_policy(relative_path, text, metadata))

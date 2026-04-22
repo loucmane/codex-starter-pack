@@ -1,6 +1,8 @@
 ---
 name: validation-framework
+title: Validation Framework
 type: enforcement
+status: stable
 priority: critical
 version: 1.0.0
 dependencies:
@@ -433,3 +435,7 @@ This validation framework provides:
 - **Graceful error handling** and recovery
 
 The framework ensures 100% technical enforcement of ULTRATHINK protocol through actual code barriers, not just documentation.
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/validation/validation-framework.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

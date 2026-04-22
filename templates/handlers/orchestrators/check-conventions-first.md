@@ -1,9 +1,12 @@
 ---
 id: check-conventions-first
 name: Check Conventions First
+title: Check Conventions First
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "Internal trigger before any action that has conventions"
 dependencies: []
@@ -34,3 +37,7 @@ version: 1.0.0
 - Before commit message → Check git conventions first
 - Before creating file → Check naming conventions first
 - Before using tool → Check tool router first
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/check-conventions-first.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

@@ -1,9 +1,12 @@
 ---
 id: enforce-pre-flight
 name: Enforce Pre-Flight
+title: Enforce Pre-Flight
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "enforce conventions"
   - "make sure I check"
@@ -36,3 +39,7 @@ version: 1.0.0
 **Examples**:
 - "Stop making git mistakes" → Enforce git pre-checks
 - "Always check first" → Universal pre-flight protocol
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/enforce-pre-flight.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

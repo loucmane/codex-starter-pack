@@ -1,3 +1,10 @@
+---
+id: error-handling-fallbacks
+title: Error Handling and Fallbacks
+type: engine-component
+status: stable
+---
+
 # Error Handling & Fallbacks
 
 ## Overview
@@ -166,3 +173,7 @@ ERROR: [Timestamp] [Component] [Operation]
 - **templates/matrices/**: Decision matrices for common patterns
 - **templates/conventions/**: Rules to prevent errors
 - **Work tracking**: Document recurring issues
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/fallbacks/error-handling.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

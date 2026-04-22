@@ -1,7 +1,9 @@
 ---
 id: file-to-convention-matrix
+title: File to Convention Matrix
 type: decision-matrix
 category: selection
+status: stable
 usage: Maps file types to their required conventions and rules
 version: 1.0.0
 ---
@@ -110,3 +112,7 @@ Applicable conventions, handler, and special rules
 3. **Documentation**: Update docs with code
 4. **Validation**: Test changes before commit
 5. **Reversibility**: Keep backups when uncertain
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/selection/file-to-convention.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

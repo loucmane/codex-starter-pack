@@ -1,6 +1,7 @@
 ---
 id: understanding-ultrathink
 type: user-guide
+status: stable
 audience: all-users
 skill-level: intermediate
 title: Understanding ULTRATHINK
@@ -57,7 +58,7 @@ This means:
 Sometimes you'll see VOID in the ULTRATHINK line:
 
 ```
-Let me ultrathink about this... [S:VOID→conventions|W:VOID→workflows|H:VOID→registry|E:searching]
+Let me ultrathink about this... ⟦S=VOID→conventions | W=VOID→workflows | H=VOID→registry | E=searching⟧
 ```
 
 ### What VOID Means
@@ -91,7 +92,7 @@ The Evidence field is crucial - it proves Claude actually read and understood th
 
 2. **During Search**
    ```
-   E:pending
+   E=searching
    ```
    Means: Still searching for the right handler
 
@@ -119,7 +120,7 @@ Before using any handler, Claude must:
 
 1. **Search for Handler**
    ```
-   Let me ultrathink about this... [S:20250730|W:auth|H:searching|E:pending]
+   Let me ultrathink about this... ⟦S=20250730 | W=auth | H=searching | E=searching⟧
    ```
 
 2. **Find and Read Handler**
@@ -159,7 +160,7 @@ Let me ultrathink about this... [S:20250730|W:feature-name|H:handler-name|E:X/"c
 
 ### Investigation/Debugging
 ```
-Let me ultrathink about this... [S:20250730|W:investigating|H:debug-issue|E:pending]
+Let me ultrathink about this... ⟦S=20250730 | W=investigating | H=debug-issue | E=searching⟧
 ```
 
 ### Quick Fixes
@@ -279,3 +280,7 @@ It's not just thinking - it's a commitment to quality and transparency in every 
 ---
 
 *Next: Learn practical workflows in [Common Workflows](../workflows/common.md) →*
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/ultrathink/understanding.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice

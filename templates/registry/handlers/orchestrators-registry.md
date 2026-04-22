@@ -1,8 +1,10 @@
 ---
 id: orchestrators-registry
+title: Orchestrator Handlers Registry
 type: registry-component
 name: Orchestrator Handlers Registry
 description: Complete registry of coordination and orchestration handlers
+status: stable
 handler_count: 8
 cross_references:
   - ../index.md
@@ -93,3 +95,7 @@ Coordination handlers that manage complex workflows and multi-handler operations
 **Discovery Methods**:
 - Direct Read: `templates/handlers/orchestrators/[handler].md`
 - Serena Search: `--substring_pattern "id: [handler-name]" --relative_path "templates/handlers/orchestrators/"`
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/handlers/orchestrators-registry.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

@@ -1,7 +1,9 @@
 ---
 id: context-to-mode-matrix
+title: Context to Mode Matrix
 type: decision-matrix
 category: routing
+status: stable
 usage: Determines operational mode based on context signals
 version: 1.0.0
 ---
@@ -81,3 +83,7 @@ Mode to activate, expected behavior, and examples
 - Testing → Git: Commit request
 - Any → Natural: Explicit casual topic
 - Emergency → Recovery: Error detection
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/routing/context-to-mode.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

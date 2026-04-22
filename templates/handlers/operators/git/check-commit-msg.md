@@ -1,9 +1,12 @@
 ---
 id: check-commit-msg
 name: Check Commit Message
+title: Check Commit Message
 role: operator
+type: operator
 domain: git
 stability: stable
+status: stable
 triggers:
   - "is this commit message valid"
   - "check commit format"
@@ -34,3 +37,7 @@ version: 1.0.0
 **Examples**:
 - "check: feat: add auth" → Validate prefix format
 - "is this message ok" → Full format check
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/git/check-commit-msg.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

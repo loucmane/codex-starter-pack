@@ -1,9 +1,12 @@
 ---
 id: meta-workflow-authoring
 name: Meta Workflow Authoring
+title: Meta Workflow Authoring
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: draft
+status: draft
 triggers:
   - "create workflow"
   - "new workflow"
@@ -38,3 +41,7 @@ version: 0.1.0
 **Examples**:
 - “Create a workflow for onboarding new microservices” → routes through this orchestrator before authoring.
 - Guard detects `templates/workflows/session/continuation.md` missing → orchestrator kicks off meta workflow authoring plan.
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/meta-workflow-authoring.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

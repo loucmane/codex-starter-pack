@@ -1,3 +1,10 @@
+---
+id: system-debug
+title: System Debugging Protocol
+type: engine-component
+status: stable
+---
+
 # System Debugging Protocol
 
 ## Overview
@@ -216,3 +223,7 @@ Options:
 
 Which would you prefer, or would you like me to try something else?"
 ```
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/debugging/system-debug.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

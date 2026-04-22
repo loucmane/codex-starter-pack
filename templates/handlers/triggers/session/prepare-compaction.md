@@ -1,9 +1,12 @@
 ---
 id: prepare-compaction
 name: Prepare Compaction
+title: Prepare Compaction
 role: trigger
+type: trigger
 domain: session
 stability: stable
+status: stable
 triggers:
   - "compaction"
   - "compact"
@@ -130,3 +133,7 @@ priority: high
 - Session remains active and work continues
 - No closure, just preservation
 - Focus on seamless resume, not handoff
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/prepare-compaction.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

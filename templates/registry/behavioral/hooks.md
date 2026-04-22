@@ -1,8 +1,10 @@
 ---
 id: behavioral-hooks
+title: Behavioral Hooks Registry
 type: registry-component
 name: Behavioral Hooks Registry
 description: Automatic enforcement gates that create "cannot proceed without" conditions
+status: stable
 hook_count: 9
 cross_references:
   - ../index.md
@@ -243,3 +245,7 @@ When hooks seem to interfere:
 - They ensure system integrity
 - They make the "right way" the "only way"
 - They eliminate decision fatigue
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/behavioral/hooks.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

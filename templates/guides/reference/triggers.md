@@ -1,6 +1,7 @@
 ---
 id: trigger-phrases
 type: user-guide
+status: stable
 audience: all-users
 skill-level: beginner
 title: Trigger Phrases and Commands
@@ -358,3 +359,7 @@ Best: "Refactor the user service to separate auth logic"
 ---
 
 *Back to hub: [Guide Index](../index.md) | Learn workflows: [Common Workflows](../workflows/common.md)*
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/reference/triggers.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice

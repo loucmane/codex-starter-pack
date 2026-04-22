@@ -1,7 +1,9 @@
 ---
 id: tool-selection-matrix
+title: Tool Selection Matrix
 type: decision-matrix
 category: selection
+status: stable
 usage: Determines which tool to use for specific tasks
 version: 1.0.0
 ---
@@ -99,3 +101,7 @@ Recommended tool(s) and usage approach
 | Refactor | find_referencing → MultiEdit all → Test |
 | Debug | Read error → Grep pattern → Edit fix |
 | Review | LS files → Read each → Comment |
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/selection/tool-selection.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

@@ -1,9 +1,12 @@
 ---
 id: code-review
 name: Review Code
+title: Review Code
 role: trigger
+type: trigger
 domain: analysis
 stability: stable
+status: stable
 triggers:
   - "review this code"
   - "code review"
@@ -123,3 +126,7 @@ User provides code to review either through file paths, code snippets, or reques
 - Consider the broader codebase architecture
 - Prioritize security and performance issues
 - Suggest incremental improvements for large issues
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/analysis/code-review.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

@@ -1,9 +1,12 @@
 ---
 trigger: Session end signals like "let's end", "thanks", "wrap up", "done for today"
+title: Session End Behavior
 action: Complete session end status and provide handoff messages
 blocks: Cannot end session without proper status
 category: session
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -213,3 +216,7 @@ These operations modify only the symlink, never the target.
 - [end-session handler](../../handlers/triggers/session/end-session.md)
 - [session lifecycle](../../workflows/session/lifecycle.md)
 - [compaction-preparation](./compaction-preparation.md)
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/session/session-end.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

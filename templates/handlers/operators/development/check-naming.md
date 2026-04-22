@@ -1,9 +1,12 @@
 ---
 id: check-naming
 name: Check Naming
+title: Check Naming
 role: operator
+type: operator
 domain: development
 stability: stable
+status: stable
 triggers:
   - "is X named correctly"
   - "check naming of Y"
@@ -38,3 +41,7 @@ version: 1.0.0
 **Examples**:
 - "is getUserData named correctly" → Check camelCase convention
 - "validate component name" → Check PascalCase rule
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/development/check-naming.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

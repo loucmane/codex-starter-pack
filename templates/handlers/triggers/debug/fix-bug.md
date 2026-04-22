@@ -1,9 +1,12 @@
 ---
 id: fix-bug
 name: Fix Code Bug
+title: Fix Code Bug
 role: trigger  
+type: trigger
 domain: debug
 stability: stable
+status: stable
 triggers: ['fix bug', 'bug in', 'fix the bug', 'bugfix', 'fix issue']
 dependencies: ['gather-evidence', 'check-conventions-first']
 tools: [mcp__serena__search_for_pattern, Read, Edit, Bash, mcp__serena__find_symbol]
@@ -117,3 +120,7 @@ Extract bug description and context from user request to understand the specific
 - Bug fixed with evidence of resolution
 - Tests passing
 - No regressions introduced
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/debug/fix-bug.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

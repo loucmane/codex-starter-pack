@@ -1,9 +1,12 @@
 ---
 id: multi-step-request
 name: Multi-step Request
+title: Multi-step Request
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "and then"
   - "after that"
@@ -28,3 +31,7 @@ version: 1.0.0
 **Examples**:
 - "Find bug and fix it" → Two separate operations
 - "Test, fix, and commit" → Three-step process
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/multi-step-request.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

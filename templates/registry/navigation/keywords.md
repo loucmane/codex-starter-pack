@@ -1,8 +1,10 @@
 ---
 id: navigation-keywords
+title: Navigation Keywords Mapping
 type: registry-component
 name: Navigation Keywords Mapping
 description: Natural language keyword to handler mapping for quick discovery
+status: stable
 cross_references:
   - ../index.md
   - ../handlers/triggers-registry.md
@@ -147,3 +149,7 @@ Quick keyword lookup for finding handlers based on natural language.
    - Check secondary options in table
    - Look for related domain keywords
    - Ask for clarification if ambiguous
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/navigation/keywords.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

@@ -1,9 +1,12 @@
 ---
 id: end-session
 name: End Session
+title: End Session
 role: trigger
+type: trigger
 domain: session
 stability: stable
+status: stable
 triggers:
   - "let's wrap up"
   - "end for today"
@@ -109,3 +112,7 @@ version: 2.0.0
 - "let's wrap up" → Full end-session with archive
 - "done for today" → Quick close, session remains in place
 - "finish and archive" → Move to archive/ directory
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/end-session.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

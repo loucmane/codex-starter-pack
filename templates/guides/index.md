@@ -1,6 +1,7 @@
 ---
 id: guide-index
 type: user-guide
+status: stable
 audience: all-users
 skill-level: all
 title: Claude User Guide Hub
@@ -19,12 +20,12 @@ Welcome to the Claude User Guide Hub! This is your starting point for learning h
 
 ### Development Workflows
 - **[Common Workflows](workflows/common.md)** - See Claude in action with real examples
-- **[Development Patterns](workflows/patterns.md)** - Best practices for development tasks
+- **[Trigger Phrases](reference/triggers.md)** - Command patterns and phrasing for common tasks
 
 ### Reference Guides
 - **[Trigger Phrases](reference/triggers.md)** - Complete list of commands and phrases
-- **[Request Patterns](reference/patterns.md)** - How to phrase requests effectively
-- **[Quick Actions](reference/quick-actions.md)** - Common one-line commands
+- **[Getting Started Guide](quickstart/getting-started.md)** - How to phrase the first useful requests
+- **[Common Workflows](workflows/common.md)** - Common request flows in practice
 
 ### Troubleshooting
 - **[Common Issues](troubleshooting/issues.md)** - Solutions to frequent problems
@@ -88,7 +89,7 @@ Our guides are organized by purpose and skill level:
 
 ### "I want to understand how Claude works"
 1. Read [Understanding ULTRATHINK](ultrathink/understanding.md)
-2. Explore [Request Patterns](reference/patterns.md)
+2. Explore [Trigger Phrases](reference/triggers.md)
 3. Study [Common Workflows](workflows/common.md)
 
 ## 🔗 Additional Resources
@@ -99,7 +100,7 @@ Our guides are organized by purpose and skill level:
 - **[Extending the Template System](templates/integration/guides/extending-templates.md#extending-the-template-system)** - Extending the system
 
 ### Quick Links
-- **Most common commands** → [Quick Actions](reference/quick-actions.md)
+- **Most common commands** → [Trigger Phrases](reference/triggers.md)
 - **Troubleshooting help** → [Common Issues](troubleshooting/issues.md)
 - **Learn by example** → [Common Workflows](workflows/common.md)
 
@@ -118,3 +119,7 @@ Find guides by topic: development, debugging, testing, git, refactoring, documen
 
 *Last updated: 2025-01-30*
 *Guide version: 2.0*
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice

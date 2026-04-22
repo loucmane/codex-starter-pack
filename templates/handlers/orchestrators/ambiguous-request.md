@@ -1,9 +1,12 @@
 ---
 id: ambiguous-request
 name: Ambiguous Request
+title: Ambiguous Request
 role: orchestrator
+type: orchestrator
 domain: workflow
 stability: stable
+status: stable
 triggers:
   - "vague terms like \"it\""
   - "that"
@@ -29,3 +32,7 @@ version: 1.0.0
 **Examples**:
 - "Fix it" → Check what "it" refers to
 - "Update that" → Resolve "that" from context
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/ambiguous-request.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

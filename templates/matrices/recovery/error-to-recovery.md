@@ -1,7 +1,9 @@
 ---
 id: error-to-recovery-matrix
+title: Error to Recovery Matrix
 type: decision-matrix
 category: recovery
+status: stable
 usage: Maps error patterns to recovery actions and prevention strategies
 version: 1.0.0
 ---
@@ -146,3 +148,7 @@ No handler match?
 3. **Level 3**: Check similar issues
 4. **Level 4**: Request expert help
 5. **Level 5**: Document for future
+
+## Progress Log
+
+- **2026-04-22 15:52** — [S:20260422|W:task91-standardize-template-metadata|H:templates/matrices/recovery/error-to-recovery.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 matrices-family standardization slice

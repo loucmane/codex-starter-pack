@@ -1,6 +1,8 @@
 ---
 id: enforcement-check
+title: Codex Enforcement Gate
 type: critical-enforcement
+status: stable
 critical: true
 priority: highest
 enforcement-level: mandatory
@@ -47,3 +49,7 @@ If you already emitted other content, delete/restate it and re-run this gate.
 Skipping any step above invalidates the response. Restart from Step 1 and document the correction in your next message.
 
 **This gate runs before every development task. Treat it as code, not documentation.**
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/enforcement-check.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

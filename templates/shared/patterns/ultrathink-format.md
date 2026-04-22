@@ -1,7 +1,9 @@
 ---
 id: ultrathink-format
+title: Ultrathink Format Pattern
 type: shared-pattern
 category: core
+status: stable
 version: 1.0.0
 description: Universal ULTRATHINK format and enforcement mechanisms for development mode
 stability: stable
@@ -44,7 +46,7 @@ Let me ultrathink about this... [S:X|W:Y|H:Z|E:steps/"criteria"]
 1. **First output**: "Searching for appropriate handler for [request type]..."
 2. **Show search**: Display actual search command + 1-2 results
 3. **Handler comprehension**: "Reading handler: [name]" then "Key steps: [list 2-3 critical steps from Process]"
-4. **Initial ULTRATHINK**: `Let me ultrathink about this... [S:X|W:Y|H:searching|E:pending]`
+4. **Initial ULTRATHINK**: `Let me ultrathink about this... (S=<date>, W=<work>, H=searching, E=pending)`
 5. **Final ULTRATHINK**: `Let me ultrathink about this... [S:X|W:Y|H:found-handler|E:n/key:"most critical step"]`
 
 ### Why This Protocol Exists
@@ -175,3 +177,7 @@ See: templates/shared/patterns/ultrathink-format.md
 ## Version History
 
 - 1.0.0 (2025-01-30): Initial extraction and consolidation from 17+ files
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/shared/patterns/ultrathink-format.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 outlier cleanup slice

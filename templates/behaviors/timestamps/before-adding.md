@@ -1,9 +1,12 @@
 ---
 trigger: Adding timestamp to any file
+title: Before Adding Timestamps
 action: Run date command to get actual system time
 blocks: Cannot add timestamp without checking actual time
 category: timestamps
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -145,3 +148,7 @@ When referencing past events:
 
 ## Remember
 **Every timestamp must come from the date command - no exceptions!**
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/timestamps/before-adding.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

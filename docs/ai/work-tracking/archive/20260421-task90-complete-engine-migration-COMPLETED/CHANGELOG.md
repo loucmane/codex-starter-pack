@@ -11,3 +11,4 @@
 - 2026-04-21 13:27 CEST — [S:20260421|W:task90-complete-engine-migration|H:docs/changelog|E:templates/engine/README.md] Logged the first Task 90 implementation slice: canonical engine README + verifier reconciliation
 - 2026-04-21 13:43 CEST — [S:20260421|W:task90-complete-engine-migration|H:docs/changelog|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/guard-2026-04-21-post-implement.txt] Logged the post-implementation verification pass (plan sync, guard, audit)
 - 2026-04-21 14:17 CEST — [S:20260421|W:task90-complete-engine-migration|H:docs/changelog|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/tests-2026-04-21-engine-metadata.txt] Logged the second Task 90 slice: metadata discoverability alignment + guard regression coverage
+- 2026-04-21 17:16 CEST — Archived active work-tracking folder.

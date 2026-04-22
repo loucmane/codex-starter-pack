@@ -1,6 +1,8 @@
 ---
 id: session-resolver
+title: Session Resolution Engine
 type: engine-component
+status: stable
 priority: critical
 dependencies:
   - sessions/ directory structure
@@ -229,3 +231,7 @@ S: Session ID via session-resolver
 - ✓ Transparent migration path
 - ✓ Performance maintained
 - ✓ Error handling comprehensive
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/session-resolver.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

@@ -1,9 +1,12 @@
 ---
 trigger: About to use Write on non-existent file
+title: Before Creating New Files
 action: Check if similar file exists that should be edited instead
 blocks: Cannot create without justification
 category: file-operations
+type: behavior
 enforcement: mandatory
+status: stable
 version: 1.0.0
 ---
 
@@ -128,3 +131,7 @@ These files can be created without extensive justification:
 - Prevents duplicate code
 - Simplifies maintenance
 - Follows "prefer editing" principle
+
+## Progress Log
+
+- **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/file-operations/before-create.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

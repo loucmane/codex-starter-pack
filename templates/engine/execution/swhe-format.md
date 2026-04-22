@@ -1,3 +1,10 @@
+---
+id: swhe-format
+title: Development Mode Execution S:W:H:E Format
+type: engine-component
+status: stable
+---
+
 # Development Mode Execution - S:W:H:E Format
 
 ## Overview
@@ -119,3 +126,7 @@ Let me ultrathink about this... [S:20250127|W:investigating|H:searching|E:pendin
 ```
 Let me ultrathink about this... [S:VOID→conventions|W:VOID→workflows|H:VOID→registry|E:searching]
 ```
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/execution/swhe-format.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

@@ -1,9 +1,12 @@
 ---
 id: tool-selection
 name: Tool Selection
+title: Tool Selection
 role: orchestrator
+type: orchestrator
 domain: search
 stability: stable
+status: stable
 triggers:
   - "search"
   - "find"
@@ -37,3 +40,7 @@ version: 1.0.0
 - "Find TODO comments" → Uses Grep
 - "How does auth work?" → Uses Serena
 - "Where is UserService?" → Uses Serena find_symbol
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/tool-selection.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

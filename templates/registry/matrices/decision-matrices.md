@@ -1,8 +1,10 @@
 ---
 id: decision-matrices
+title: Decision Matrices Registry
 type: registry-component
 name: Decision Matrices Registry
 description: Quick lookup tables for routing and decision making
+status: stable
 matrix_count: 5
 cross_references:
   - ../index.md
@@ -188,3 +190,7 @@ Matrices should be:
 ## S:W:H:E Examples
 - [S:20251027|W:task89-work-tracking|H:templates/registry/matrices/decision-matrices.md|E:templates/workflows/taskmaster/work-tracking-enforcement.md] Updated Work Tracking row with enforcement workflow reference
 - [S:20251027|W:task89-work-tracking|H:templates/registry/matrices/decision-matrices.md|E:cmd`python3 scripts/codex-task work-tracking update --preset changelog --handler auto --note "Documented matrix update"`] Logged matrix maintenance in tracker/session
+
+## Progress Log
+
+- **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/matrices/decision-matrices.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` and `status` metadata during the Task 91 registry-family standardization slice

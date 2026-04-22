@@ -1,6 +1,8 @@
 ---
 id: cannot-proceed
+title: Enforcement Mechanisms
 type: engine-component
+status: stable
 priority: critical
 dependencies:
   - templates/conventions/
@@ -82,3 +84,7 @@ The enforcement mechanisms are self-reinforcing:
 - To find it, must read the template
 - To proceed, must satisfy the gate
 - Gates create natural workflow compliance
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/enforcement/cannot-proceed.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

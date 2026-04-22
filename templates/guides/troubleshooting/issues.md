@@ -1,6 +1,7 @@
 ---
 id: troubleshooting-issues
 type: user-guide
+status: stable
 audience: all-users
 skill-level: intermediate
 title: Troubleshooting Common Issues
@@ -490,3 +491,7 @@ Remember: Most issues can be resolved by being more specific, providing context,
 ---
 
 *Next: Master trigger phrases in [Trigger Phrases](../reference/triggers.md) →*
+
+## Progress Log
+
+- **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/troubleshooting/issues.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice

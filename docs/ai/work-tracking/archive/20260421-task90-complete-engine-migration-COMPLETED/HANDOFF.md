@@ -31,3 +31,4 @@
 - **2026-04-21 13:43** — [S:20260421|W:task90-complete-engine-migration|H:docs/handoff|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/guard-2026-04-21-post-implement.txt] Handoff updated after recording the clean post-implementation guard/audit state
 - **2026-04-21 14:17** — [S:20260421|W:task90-complete-engine-migration|H:docs/handoff|E:docs/ai/work-tracking/active/20260421-task90-complete-engine-migration-ACTIVE/reports/complete-engine-migration/tests-2026-04-21-engine-metadata.txt] Handoff updated after metadata alignment, guard false-positive remediation, and passing regression coverage
 - **2026-04-21 14:37** — [S:20260421|W:task90-complete-engine-migration|H:task-master|E:.taskmaster/tasks/tasks.json] Handoff updated after Taskmaster Task 90 and all subtasks were marked done
+- Archived on 2026-04-21 17:16 CEST — Folder moved to archive and tracker marked COMPLETED.

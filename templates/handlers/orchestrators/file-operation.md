@@ -1,9 +1,12 @@
 ---
 id: file-operation
 name: File Operation
+title: File Operation
 role: orchestrator
+type: orchestrator
 domain: file
 stability: stable
+status: stable
 triggers:
   - "edit"
   - "update"
@@ -33,3 +36,7 @@ version: 1.0.0
 - "Update tracker" → Append-only rules
 - "Fix typo in code" → Standard edit
 - "Add to findings" → Append to discoveries
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/orchestrators/file-operation.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

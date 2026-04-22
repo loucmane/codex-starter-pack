@@ -1,0 +1,94 @@
+{
+  "version": "1.0.0",
+  "description": "Portable template-metadata enforcement policy. Repos can keep the same guard logic and customize scope by editing ordered rules here.",
+  "defaults": {
+    "required_keys": [
+      "title",
+      "type",
+      "status"
+    ],
+    "frontmatter": "required"
+  },
+  "rules": [
+    {
+      "name": "handlers",
+      "enforce": true,
+      "include": [
+        "templates/handlers/**/*.md"
+      ]
+    },
+    {
+      "name": "behaviors",
+      "enforce": true,
+      "include": [
+        "templates/behaviors/**/*.md"
+      ],
+      "exclude": [
+        "templates/behaviors/index.md"
+      ],
+      "notes": "Planned next rollout slice after handlers."
+    },
+    {
+      "name": "guides",
+      "enforce": true,
+      "include": [
+        "templates/guides/*.md",
+        "templates/guides/**/*.md"
+      ],
+      "notes": "Guides mostly need additive type/status keys."
+    },
+    {
+      "name": "matrices",
+      "enforce": true,
+      "include": [
+        "templates/matrices/**/*.md"
+      ],
+      "exclude": [
+        "templates/matrices/index.md"
+      ],
+      "notes": "Decision matrices are modular templates and the index stays exempt as an aggregate navigation entry."
+    },
+    {
+      "name": "registry-components",
+      "enforce": true,
+      "include": [
+        "templates/registry/**/*.md"
+      ],
+      "exclude": [
+        "templates/registry/index.md",
+        "templates/registry/MIGRATION-REPORT.md"
+      ],
+      "notes": "Registry component modules are enforced; the modular index and migration report stay exempt as aggregate references."
+    },
+    {
+      "name": "engine-modules",
+      "enforce": true,
+      "include": [
+        "templates/engine/**/*.md"
+      ],
+      "exclude": [
+        "templates/engine/README.md",
+        "templates/engine/MODULARIZATION-COMPLETE.md",
+        "templates/engine/enforcement/meta-workflow-guard-remediation.md",
+        "templates/engine/validation/ENFORCEMENT-SUMMARY.md"
+      ],
+      "notes": "Engine module docs are enforced; narrative/report docs stay exempt where they intentionally remain outside the modular policy."
+    },
+    {
+      "name": "shared-core-patterns",
+      "enforce": true,
+      "include": [
+        "templates/shared/patterns/ultrathink-format.md"
+      ],
+      "notes": "Singleton shared core pattern kept explicit so the portable policy still owns its canonical metadata requirements."
+    }
+  ],
+  "exemptions": [
+    "templates/*.md",
+    "templates/metadata/template-overview.md",
+    "templates/workflows/domain/README.md",
+    "templates/shared/reports/*.md",
+    "templates/prompts/*.md",
+    "templates/helpers/domain/*.md"
+  ]
+}

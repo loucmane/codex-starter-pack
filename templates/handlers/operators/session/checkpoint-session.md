@@ -1,9 +1,12 @@
 ---
 id: checkpoint-session
 name: Checkpoint Session
+title: Checkpoint Session
 role: operator
+type: operator
 domain: session
 stability: stable
+status: stable
 triggers: []
 dependencies:
   - session-resolver
@@ -73,3 +76,7 @@ version: 2.0.0
 - Other handlers call this during their execution
 - Designed to be lightweight and non-intrusive
 - Should complete in <1 second
+
+## Progress Log
+
+- **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/operators/session/checkpoint-session.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

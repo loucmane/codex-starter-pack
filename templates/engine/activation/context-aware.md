@@ -1,3 +1,10 @@
+---
+id: context-aware-activation
+title: Context-Aware Activation
+type: engine-component
+status: stable
+---
+
 # Context-Aware Activation
 
 ## Natural Conversation Mode (DEFAULT)
@@ -55,3 +62,7 @@ If triggers are ambiguous, ask: "Are you asking about code/development work, or 
 - Uses REGISTRY.md for handler mapping
 - Invokes investigation patterns from templates/patterns/
 - Natural mode bypasses all template protocols
+
+## Progress Log
+
+- **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/activation/context-aware.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice
