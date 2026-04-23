@@ -1,249 +1,50 @@
 ---
 trigger: DEPRECATED - See session-end.md and compaction-preparation.md
 title: Session Compaction Detection [DEPRECATED]
-action: DEPRECATED - Separated into two distinct behaviors
-blocks: DEPRECATED - Use new separated behaviors
+action: Redirect to the active session-end and compaction-preparation behaviors
+blocks: Do not use this file as executable workflow guidance
 category: session
 type: behavior
 enforcement: deprecated
-status: stable
-version: 2.0.0
+status: deprecated
+version: 3.0.0
 ---
 
 # Session Compaction Detection [DEPRECATED]
 
-> ⚠️ **DEPRECATED**: This behavior has been split into two separate behaviors:
-> - **[compaction-preparation.md](./compaction-preparation.md)** - For context limit handling
-> - **[session-end.md](./session-end.md)** - For actual session ending
-> 
-> This file is preserved for reference only. Use the new separated behaviors.
+> This file remains only as a compatibility tombstone for older references.
+>
+> Use these active sources instead:
+> - **[compaction-preparation.md](./compaction-preparation.md)** for context-limit checkpoints and resume instructions.
+> - **[session-end.md](./session-end.md)** for actual session closure, handoff, and commit guidance.
 
-## Original Trigger Conditions
-This behavior fires when detecting:
-- "X% left" (memory warnings)
-- "let's end here"
-- "thanks" (session conclusion)
-- "compaction" mentioned
-- "stop here" or "wrap up"
-- "good stopping point"
-- End of work signals
-- Memory limit approaching
+## Why This File Exists
 
-## Required Action
-```
-MUST complete ALL items before session end:
+Older docs and memories referred to a combined "compaction detection" behavior. That combined flow caused repeated confusion because it mixed two distinct operations:
 
-1. Update sessions/:
-   - Add final timestamp to progress log
-   - Update session status
-   - Note completion state
+1. **Compaction**: save state, keep the session active, and provide resume instructions.
+2. **Session end**: close the session/task work, update handoff state, and provide commit guidance.
 
-2. Update HANDOFF.md:
-   - Current exact state
-   - Next immediate steps
-   - Open questions/blockers
+Task 93 retires this file as executable behavior so the repo has one canonical source for each workflow.
 
-3. Update TRACKER.md:
-   - Check all completed todos
-   - Update progress log
-   - Note any incomplete items
+## Migration Rule
 
-4. Create session memory:
-   - Filename: session_YYYY-MM-DD_description.md
-   - Location: .serena/memories/
-   - Content: Key accomplishments and context
+- If the trigger is about context limits, capacity, or opening a new chat, follow `compaction-preparation.md`.
+- If the trigger is about stopping work, wrapping up for the day, or final handoff, follow `session-end.md`.
+- Do not treat compaction as implicit session ending.
+- Do not generate commit guidance from compaction-only prompts.
 
-5. Generate TWO required messages:
-   - Initialization message for next session
-   - Git commit message for work done
-```
+## Canonical Sources
 
-## Blocking Gate
-**CANNOT END** session without providing:
-- ✓ Initialization message
-- ✓ Git commit message  
-- ✓ All work files updated
-- ✓ Session memory created
-- ✓ Completion checklist shown
+- Compaction behavior: [compaction-preparation.md](./compaction-preparation.md)
+- Session ending behavior: [session-end.md](./session-end.md)
+- Compaction trigger handler: [../../handlers/triggers/session/prepare-compaction.md](../../handlers/triggers/session/prepare-compaction.md)
+- Session compaction workflow: [../../workflows/session/compaction.md](../../workflows/session/compaction.md)
 
-## Required Output Format
-```markdown
-## 📦 Session End / Compaction Ready
+## Compatibility Note
 
-**Initialization Message**:
-```
-mcp__serena__activate_project project="starter-pack-monorepo", 
-read memory session_YYYY-MM-DD_description and sessions/.
-[One line about what to continue].
-```
-
-**Git Commit Message**:
-```
-gac "type: one-line summary
-
-  Summary:
-  - Major change or accomplishment
-  - Another significant update
-  - Key feature or fix
-
-  Work tracking: active-folder-names"
-```
-
-CHECKLIST COMPLETED:
-✓ sessions/ updated with final timestamp
-✓ HANDOFF.md updated with current state
-✓ TRACKER.md checkboxes updated
-✓ Session memory created
-✓ Both messages provided above
-```
-
-## Detailed Steps
-
-### 1. Update sessions/
-```markdown
-## Progress Log
-- **HH:MM** - Session start
-- **HH:MM** - [Work done]
-- **HH:MM** - Session end, ready for compaction
-
-## Session Status
-- Duration: X hours
-- Completed: [List achievements]
-- Next: [What to continue]
-```
-
-### 2. Update HANDOFF.md
-```markdown
-## Session End State (YYYY-MM-DD HH:MM)
-
-### Work Completed
-- [Specific accomplishments]
-
-### Current State
-- [Exactly where we stopped]
-- [Any partial work status]
-
-### Next Steps
-1. [Immediate next action]
-2. [Following priority]
-
-### Open Questions
-- [Unresolved issues]
-
-### Files Modified
-- [List of changed files]
-```
-
-### 3. Update TRACKER.md
-```markdown
-## Todos
-- [x] Completed task (HH:MM)
-- [►] In progress task (partial)
-- [ ] Not started task
+If another document still links here, update that document to point directly to the relevant active source instead of reintroducing combined guidance in this file.
 
 ## Progress Log
-- **HH:MM** - Session end summary
-  - Completed: X tasks
-  - In progress: Y tasks
-  - Remaining: Z tasks
-```
 
-### 4. Create Session Memory
-```markdown
-# Session YYYY-MM-DD: [Description]
-
-## Key Accomplishments
-- [Major achievement 1]
-- [Major achievement 2]
-
-## Technical Details
-- [Important implementation details]
-- [Decisions made]
-- [Problems solved]
-
-## Context for Continuation
-- [What was being worked on]
-- [Current approach]
-- [Next priorities]
-
-## Important Notes
-- [Any warnings or considerations]
-- [Dependencies or blockers]
-```
-
-## Message Templates
-
-### Initialization Message Components
-```
-Base: Activate project [full path]
-Memory: read memory session_YYYY-MM-DD_description
-Current: and sessions/
-Context: [One line about what to continue]
-
-Example:
-mcp__serena__activate_project project="starter-pack-monorepo",
-read memory session_2025-01-27_auth-implementation and sessions/.
-Continue implementing JWT refresh token logic.
-```
-
-### Git Commit Message Components
-```
-Format: type: summary
-Types: feat|fix|docs|refactor|test|chore
-Body: Bullet points of changes
-Footer: Work tracking reference
-
-Example:
-feat: implement user authentication system
-
-- Add JWT token generation
-- Create login/logout endpoints  
-- Implement refresh token logic
-- Add authentication middleware
-
-Work tracking: 20250127-auth-system-ACTIVE
-```
-
-## Cross-References
-- [CONVENTIONS.md#session-management](../../templates/conventions/)
-- [work-tracking/update-tracker.md](../work-tracking/update-tracker.md)
-- [timestamps/before-adding.md](../timestamps/before-adding.md)
-- [git/before-commit.md](../git/before-commit.md)
-
-## Error Cases
-- **Sudden disconnection**: Partial checklist ok
-- **No work folder**: Skip work-specific updates
-- **Memory not created**: Note and continue
-- **Files not updated**: List what wasn't updated
-
-## Why This Gate Exists
-- Ensures clean session handoff
-- Preserves work context
-- Enables smooth continuation
-- Documents accomplishments
-- Maintains work continuity
-- Supports memory compaction
-
-## Special Considerations
-
-### Partial Sessions
-If session was brief or exploratory:
-- Still provide both messages
-- Note "exploratory session" in memory
-- Commit can be type "chore" or "docs"
-
-### Multiple Work Streams
-If worked on multiple things:
-- List all in commit message
-- Separate initialization focuses on next priority
-- Memory captures all streams
-
-### Emergency End
-If ending due to error or issue:
-- Note the problem in HANDOFF.md
-- Include error context in memory
-- Commit message includes "WIP" if incomplete
-
-## Remember
-**Every session needs proper closure - these messages enable seamless continuation!**
 - **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/session/compaction-detection.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

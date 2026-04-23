@@ -408,11 +408,23 @@ Work tracking: 20260422-task92-ACTIVE"
     assert any('Summary block' in issue.message for issue in issues)
 
 
+def test_validate_gac_guidance_ignores_deprecated_compaction_detection() -> None:
+    module = load_guard_module()
+    text = (module.REPO_ROOT / 'templates' / 'behaviors' / 'session' / 'compaction-detection.md').read_text(encoding='utf-8')
+    issues = module.validate_gac_guidance(Path('templates/behaviors/session/compaction-detection.md'), text)
+    assert issues == []
+
+
 def test_validate_gac_guidance_allows_canonical_docs() -> None:
     module = load_guard_module()
     text = (module.REPO_ROOT / 'templates' / 'conventions' / 'git' / 'commit-format.md').read_text(encoding='utf-8')
     issues = module.validate_gac_guidance(Path('templates/conventions/git/commit-format.md'), text)
     assert issues == []
+
+
+def test_deprecated_compaction_detection_not_canonical_gac_doc() -> None:
+    module = load_guard_module()
+    assert Path('templates/behaviors/session/compaction-detection.md') not in module.GAC_SUMMARY_DOCS
 
 
 def test_detect_tracked_active_deletions_flags(monkeypatch) -> None:

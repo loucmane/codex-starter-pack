@@ -7657,7 +7657,7 @@
         "dependencies": [
           "92"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -7665,7 +7665,7 @@
             "description": "Review current compaction detection behavior usage/failures.",
             "dependencies": [],
             "details": "Review current compaction detection behavior usage/failures.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Evaluation report stored.",
             "parentId": "undefined"
           },
@@ -7675,7 +7675,7 @@
             "description": "Determine whether to rewrite or retire compaction behavior.",
             "dependencies": [],
             "details": "Determine whether to rewrite or retire compaction behavior.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Decision recorded.",
             "parentId": "undefined"
           },
@@ -7685,7 +7685,7 @@
             "description": "Rewrite or remove compaction behavior and update references.",
             "dependencies": [],
             "details": "Rewrite or remove compaction behavior and update references.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Behavior update committed.",
             "parentId": "undefined"
           },
@@ -7695,7 +7695,7 @@
             "description": "Update work-tracking/HANDOFF with new compaction protocol.",
             "dependencies": [],
             "details": "Update work-tracking/HANDOFF with new compaction protocol.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Docs updated.",
             "parentId": "undefined"
           },
@@ -7705,7 +7705,7 @@
             "description": "Ensure compaction checkpoints behave correctly in new behavior.",
             "dependencies": [],
             "details": "Ensure compaction checkpoints behave correctly in new behavior.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/session/test_compaction_behavior.py",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-23T11:25:36.839Z"
+      "updated": "2026-04-23T15:00:42.200Z"
     }
   }
 }

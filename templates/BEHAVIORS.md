@@ -299,14 +299,17 @@ PROCESS: Complete, defer, or remove stale items
 
 ## Session Management {#session-management}
 
-### Detecting Session End / Compaction Need {#detecting-session-end}
+### Session End Signals {#detecting-session-end}
 ```
-TRIGGER: "X% left", "let's end", "thanks", "compaction", "stop here"
-ACTION: Complete session end checklist
-BLOCKS: Cannot stop without providing both messages
+TRIGGER: "let's end", "thanks", "wrap up", "done for today", "stop here"
+ACTION: Complete the session-end checklist
+BLOCKS: Cannot end without final handoff state and both session-end messages
 REQUIRED OUTPUTS:
 
-## 📦 Session End / Compaction Ready {#session-end-compaction}
+### 🚦 Session End Status
+- Update session closeout state
+- Update HANDOFF/TRACKER as needed
+- Provide initialization + GAC messages
 
 **Initialization Message**:
 ```
@@ -327,14 +330,28 @@ gac "type: one-line summary
   Work tracking: active-folder-names"
 ```
 
-CHECKLIST COMPLETED:
-✓ sessions/current updated
-✓ HANDOFF.md updated with current state
-✓ TRACKER.md checkboxes updated
-✓ Session memory created
-✓ Both messages provided above
+CROSS-REF: `templates/behaviors/session/session-end.md`
+```
 
-CROSS-REF: See templates/conventions/ "Session End / Compaction Requirements"
+### Compaction Signals {#session-end-compaction}
+```
+TRIGGER: "X% left", "compaction", "context getting long", "need new chat"
+ACTION: Create a compaction checkpoint only
+BLOCKS: Cannot compact without saving state and resume instructions
+REQUIRED OUTPUTS:
+
+## 🔄 Ready for Compaction
+- Save current work unit
+- Update current session with checkpoint state
+- Create checkpoint memory
+- Provide exact resume instruction
+
+DO NOT:
+- End the session
+- Generate commit guidance
+- Archive work
+
+CROSS-REF: `templates/behaviors/session/compaction-preparation.md`
 ```
 
 ### Before Creating New Session {#before-creating-new-session}
