@@ -1,5 +1,8 @@
 # Python virtual environments
 .venv/
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Codex runtime artifacts
 .codex/log/

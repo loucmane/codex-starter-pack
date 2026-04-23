@@ -193,6 +193,12 @@ def test_validate_session_respects_ignore(monkeypatch) -> None:
     assert issues == []
 
 
+def test_get_current_branch_uses_github_head_ref(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setenv('GITHUB_HEAD_REF', 'feat/task-92-expand-workflow-guard-coverage')
+    assert module.get_current_branch() == 'feat/task-92-expand-workflow-guard-coverage'
+
+
 def test_validate_runtime_artifacts_flags_pycache() -> None:
     module = load_guard_module()
     changed = [module.REPO_ROOT / 'tests' / '__pycache__' / 'example.cpython-312.pyc']

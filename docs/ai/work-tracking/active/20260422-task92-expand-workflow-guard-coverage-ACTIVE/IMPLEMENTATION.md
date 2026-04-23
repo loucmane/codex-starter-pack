@@ -14,3 +14,4 @@
   - [x] Re-run `plan sync`, targeted pytest, and `codex-guard`.
   - [x] Document the expanded guard coverage in `templates/TOOLS.md` and `designs/guard-coverage-audit.md`.
   - [x] Capture final Task 92 documentation/regression evidence for `92.4` and `92.5`.
+  - [x] Remediate CI guard failures by removing tracked bytecode, adding workflow plan sync, and making branch detection PR-aware.

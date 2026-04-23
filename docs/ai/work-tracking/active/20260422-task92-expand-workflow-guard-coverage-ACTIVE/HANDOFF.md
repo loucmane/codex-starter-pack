@@ -16,12 +16,15 @@
 - Final guard evidence is stored at `reports/guard-2026-04-23-pass.txt`.
 - Work-tracking audit evidence is stored at `reports/audit-2026-04-23.txt`; the only warning is intentional multi-day reuse of the `20260422...-ACTIVE` folder on April 23.
 - Serena completion memory: `.serena/memories/2026-04-23_task92_completion.md`.
+- PR check remediation was required after GitHub Actions failed on Python bytecode, missing CI plan sync, and detached `HEAD` branch policy. The follow-up fix removes tracked bytecode, ignores it, syncs the active plan before CI guard runs, and resolves PR branch names from `GITHUB_HEAD_REF`.
+- CI remediation evidence:
+  - `reports/tests-2026-04-23-ci-remediation.txt`
+  - `reports/tests-2026-04-23-timestamp.txt`
+  - `reports/guard-2026-04-23-ci-remediation-pass.txt`
 - April 22 ended with a terminal interruption before formal session closeout. April 23 recovery recorded that interruption and opened `sessions/2026/04/2026-04-23-001-task92-continuation.md`.
 
 ## Next Steps
-- Review the dirty tree and exclude runtime/tooling noise from the checkpoint commit.
-- Commit and push the completed Task 92 branch after final validation stays green.
-- Review and exclude local runtime/tooling noise before checkpoint commit (`.codex/config.toml`, `.serena/project.yml`, `.codex/plugins/` unless intentionally scoped).
+- Commit and push the PR-check remediation follow-up after final validation stays green.
 - After the branch is merged, switch back to `main`, pull, delete the Task 92 branch, and start the next task from a fresh branch.
 
 ## Progress Log
