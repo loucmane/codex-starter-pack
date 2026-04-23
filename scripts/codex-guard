@@ -66,7 +66,6 @@ GAC_SUMMARY_DOCS = {
     Path("templates/conventions/git/commit-format.md"),
     Path("templates/behaviors/git/before-commit.md"),
     Path("templates/behaviors/session/session-end.md"),
-    Path("templates/behaviors/session/compaction-detection.md"),
     Path("templates/BEHAVIORS.md"),
 }
 GAC_REQUIRED_RESPONSE_MARKERS = (
