@@ -81,11 +81,12 @@ read memory session_YYYY-MM-DD_description and sessions/.
 ```
 gac "type: one-line summary
 
-- Major change or accomplishment
-- Another significant update
-- Key feature or fix
+  Summary:
+  - Major change or accomplishment
+  - Another significant update
+  - Key feature or fix
 
-Work tracking: active-folder-names"
+  Work tracking: active-folder-names"
 ```
 
 CHECKLIST COMPLETED:

@@ -55,3 +55,6 @@ args = ["--from", "git+https://github.com/oraios/serena@229fac066237f7156c8fe2a9
 
 [projects."/home/loucmane/codex"]
 trust_level = "trusted"
+
+[plugins."github@openai-curated"]
+enabled = true

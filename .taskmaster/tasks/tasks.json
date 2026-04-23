@@ -7593,7 +7593,7 @@
         "dependencies": [
           "91"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -7601,7 +7601,7 @@
             "description": "Identify missing behavioural checks (commit format, scope, testing, etc.).",
             "dependencies": [],
             "details": "Identify missing behavioural checks (commit format, scope, testing, etc.).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Coverage audit logged.",
             "parentId": "undefined"
           },
@@ -7611,7 +7611,7 @@
             "description": "Select highest-priority guard enhancements and schedule follow-up tasks.",
             "dependencies": [],
             "details": "Select highest-priority guard enhancements and schedule follow-up tasks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Priority list approved.",
             "parentId": "undefined"
           },
@@ -7621,7 +7621,7 @@
             "description": "Add highest-priority guard checks and integrate with helpers.",
             "dependencies": [],
             "details": "Add highest-priority guard checks and integrate with helpers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard updates committed.",
             "parentId": "undefined"
           },
@@ -7631,7 +7631,7 @@
             "description": "Update enforcement documentation with new guard coverage.",
             "dependencies": [],
             "details": "Update enforcement documentation with new guard coverage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Docs updated.",
             "parentId": "undefined"
           },
@@ -7641,7 +7641,7 @@
             "description": "Create tests verifying new guard checks.",
             "dependencies": [],
             "details": "Create tests verifying new guard checks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/enforcement/test_guard_expansion.py",
             "parentId": "undefined"
           }
@@ -7968,6 +7968,71 @@
             "parentId": "undefined"
           }
         ]
+      },
+      {
+        "id": 98,
+        "title": "Externalize Repo Structure Configuration",
+        "description": "Move hardcoded repo-structure assumptions into repo-local configuration so the enforcement foundation can adapt to different project layouts.",
+        "details": "Extract assumptions from scripts/codex-guard and related helpers into config-driven settings, including template roots, session roots, plan roots, work-tracking roots, archive naming rules, and any path-based enforcement toggles. Update consuming helpers to read configuration instead of hardcoded repository paths, and capture the expected config contract in supporting docs.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          97
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 99,
+        "title": "Define Portable Foundation Specification",
+        "description": "Write the reusable contract for the metadata, guard, session, and work-tracking foundation so core behavior is clearly separated from repo-local configuration.",
+        "details": "Document the portable foundation specification, covering required metadata keys, policy-file schema, enforcement semantics, session/work-tracking lifecycle expectations, and the boundary between generic core logic and repo adapter configuration. Ensure the specification references the existing Task 91 policy model and can guide implementation in non-identical repositories.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          98
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 100,
+        "title": "Build Foundation Bootstrap Layer",
+        "description": "Provide a starter adoption layer so a new repository can initialize the shared foundation without hand-editing every file and path.",
+        "details": "Create bootstrap support for new repositories, including starter policy/config files, setup instructions, and migration-safe scaffolding for repos that already contain templates and workflow documents. Make the bootstrap layer rely on the portable specification and repo-structure configuration instead of this repository's hardcoded defaults.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          99
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 101,
+        "title": "Add Cross-Project Compatibility Fixtures",
+        "description": "Verify that the foundation works across multiple repository shapes instead of only this repo's structure.",
+        "details": "Add cross-project verification fixtures or tests that simulate different repository layouts, such as product-web, game, docs-heavy, and lightweight utility repos. Validate that the portable configuration, guard behavior, and workflow assumptions still work when paths and file families differ.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          100
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 102,
+        "title": "Document Foundation Migration and Adoption",
+        "description": "Write the migration and adoption guidance for applying the shared foundation to both existing repositories and brand-new projects.",
+        "details": "Document how to adopt the portable foundation in a new repository, how to migrate an existing repository onto the new config/policy model, what the minimal required setup is, and which optional layers can be adopted later. Ensure the guidance reflects the portable specification, bootstrap layer, and cross-project fixture findings.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          101
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -7980,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-22T14:30:47.067Z"
+      "updated": "2026-04-23T11:25:36.839Z"
     }
   }
 }

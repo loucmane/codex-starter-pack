@@ -49,12 +49,30 @@ IGNORE_PATH_PREFIXES = tuple(
 LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
 
 SERENA_MEMORY_PATTERN = re.compile(r"serena/memory|memories/\d{4}-\d{2}-\d{2}_", re.IGNORECASE)
+TASKMASTER_ACTIVITY_PATTERN = re.compile(r"task-master(?::|`|\b)|\.taskmaster/tasks/(tasks\.json|task_\d+\.txt)", re.IGNORECASE)
+MULTILINE_GAC_PATTERN = re.compile(r'gac "[^\n"]*\n.*?Work tracking: .*?"', re.DOTALL)
 WORK_TRACKING_REQUIRED_DOCS = (
     "FINDINGS.md",
     "DECISIONS.md",
     "CHANGELOG.md",
 )
 WORK_TRACKING_ARCHIVE_BASE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "archive"
+GAC_RESPONSE_MODE_DOCS = {
+    Path("templates/conventions/git/commit-format.md"),
+    Path("templates/behaviors/git/before-commit.md"),
+    Path("templates/handlers/operators/git/create-commit-message.md"),
+}
+GAC_SUMMARY_DOCS = {
+    Path("templates/conventions/git/commit-format.md"),
+    Path("templates/behaviors/git/before-commit.md"),
+    Path("templates/behaviors/session/session-end.md"),
+    Path("templates/behaviors/session/compaction-detection.md"),
+    Path("templates/BEHAVIORS.md"),
+}
+GAC_REQUIRED_RESPONSE_MARKERS = (
+    "full-gac-command",
+    "message-payload-only",
+)
 
 
 def should_ignore_relative(relative: Path) -> bool:
@@ -73,6 +91,7 @@ except FileNotFoundError:
     CURRENT_SESSION_PATH = None
 except RuntimeError:
     CURRENT_SESSION_PATH = None
+SESSION_STATE_PATH = REPO_ROOT / 'sessions' / 'state.json'
 
 
 
@@ -389,6 +408,7 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
     """Require that edited session markdown files belong to today's date."""
     issues: List[ValidationIssue] = []
     latest_prior = _find_latest_prior_session()
+    latest_prior_date = latest_prior.name[:10] if latest_prior else None
     for absolute in changed_paths:
         try:
             relative = absolute.relative_to(REPO_ROOT)
@@ -407,7 +427,7 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
         date_prefix = filename[:10]
         if date_prefix == TODAY_ISO:
             continue
-        if latest_prior and absolute == latest_prior and _session_marked_complete(absolute):
+        if latest_prior_date and date_prefix == latest_prior_date and _session_marked_complete(absolute):
             continue
         issues.append(
             ValidationIssue(
@@ -644,6 +664,39 @@ def validate_template_metadata(relative_path: Path, text: str) -> List[Validatio
                     else str(TEMPLATE_METADATA_POLICY_PATH),
                 )
             )
+    return issues
+
+
+def validate_gac_guidance(relative_path: Path, text: str) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+
+    if relative_path in GAC_RESPONSE_MODE_DOCS:
+        missing_markers = [marker for marker in GAC_REQUIRED_RESPONSE_MARKERS if marker not in text]
+        if missing_markers:
+            issues.append(
+                ValidationIssue(
+                    relative_path,
+                    "Canonical GAC guidance is missing required response-mode markers",
+                    entry=(
+                        "Document both `full-gac-command` and `message-payload-only` so commit-prep flows "
+                        "distinguish between returning the full gac command and returning only the payload."
+                    ),
+                )
+            )
+
+    if relative_path in GAC_SUMMARY_DOCS:
+        for match in MULTILINE_GAC_PATTERN.finditer(text):
+            block = match.group(0)
+            if "Summary:" not in block:
+                issues.append(
+                    ValidationIssue(
+                        relative_path,
+                        "Multi-line GAC example missing canonical Summary block",
+                        entry="Use the canonical multi-line format with `  Summary:` before bullets and `  Work tracking:` in the same block.",
+                    )
+                )
+                break
+
     return issues
 
 
@@ -1118,6 +1171,262 @@ def get_active_tracker_path() -> Path:
     return tracker
 
 
+def _display_path(path: Path) -> Path:
+    try:
+        return path.relative_to(REPO_ROOT)
+    except ValueError:
+        return path
+
+
+def _session_state_relevant(entries: List[tuple[str, str]], changed_paths: Iterable[Path]) -> bool:
+    for status, path_fragment in entries:
+        cleaned = path_fragment.split('->', 1)[1].strip() if '->' in path_fragment else path_fragment.strip()
+        if cleaned in {'sessions/current', 'sessions/state.json'}:
+            return True
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if relative.parts and relative.parts[0] == 'sessions':
+            return True
+    return False
+
+
+def _find_session_entry(name: str) -> Optional[Path]:
+    matches = list(SESSIONS_DIR.glob(f'**/{name}'))
+    if not matches:
+        return None
+    return matches[0]
+
+
+def validate_session_state(entries: List[tuple[str, str]], changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not _session_state_relevant(entries, changed_paths):
+        return issues
+
+    state_exists = SESSION_STATE_PATH.exists()
+    current_exists = CURRENT_SESSION_SYMLINK.exists() and CURRENT_SESSION_SYMLINK.is_symlink()
+
+    if not state_exists:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                'Session state helper missing',
+                entry='Create sessions/state.json and keep its current/paused fields aligned with sessions/current.',
+            )
+        )
+        return issues
+
+    try:
+        state = json.loads(SESSION_STATE_PATH.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as exc:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                f'Session state helper is not valid JSON: {exc.msg}',
+                entry='Repair sessions/state.json so it contains valid JSON with current, paused, and updated_at fields.',
+            )
+        )
+        return issues
+
+    current_value = state.get('current')
+    paused_value = state.get('paused')
+    updated_at = state.get('updated_at')
+
+    if current_value is not None and not isinstance(current_value, str):
+        issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json current field must be a string or null'))
+    if not isinstance(paused_value, list):
+        issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json paused field must be a list'))
+        paused_entries: List[str] = []
+    else:
+        paused_entries = paused_value
+    if updated_at is None:
+        issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json missing updated_at field'))
+    else:
+        try:
+            datetime.fromisoformat(updated_at)
+        except ValueError:
+            issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json updated_at must be ISO-8601'))
+
+    if current_exists:
+        try:
+            current_target = CURRENT_SESSION_SYMLINK.resolve()
+        except FileNotFoundError:
+            current_target = None
+        except RuntimeError:
+            current_target = None
+        if current_target is None or not current_target.exists():
+            issues.append(
+                ValidationIssue(
+                    Path('sessions/current'),
+                    'sessions/current points to a missing session file',
+                    entry='Repoint sessions/current to an existing session markdown file.',
+                )
+            )
+        else:
+            expected_name = current_target.name
+            if current_value != expected_name:
+                issues.append(
+                    ValidationIssue(
+                        _display_path(SESSION_STATE_PATH),
+                        f"sessions/state.json current '{current_value}' does not match sessions/current target '{expected_name}'",
+                        entry='Update sessions/state.json current to the basename referenced by sessions/current.',
+                    )
+                )
+    elif current_value not in {None, ''}:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                f"sessions/state.json current is '{current_value}' but sessions/current is missing",
+                entry='Clear the current field or recreate sessions/current so both point to the active session.',
+            )
+        )
+
+    if isinstance(current_value, str) and current_value in paused_entries:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                'sessions/state.json current entry must not also appear in paused',
+                entry='Remove the active session basename from the paused list.',
+            )
+        )
+
+    for paused_entry in paused_entries:
+        if not isinstance(paused_entry, str):
+            issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json paused entries must be strings'))
+            continue
+        if _find_session_entry(paused_entry) is None:
+            issues.append(
+                ValidationIssue(
+                    _display_path(SESSION_STATE_PATH),
+                    f"Paused session '{paused_entry}' does not exist under sessions/",
+                    entry='Remove stale paused entries or restore the missing session file.',
+                )
+            )
+
+    return issues
+
+
+def validate_runtime_artifacts(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+
+        if '__pycache__' in relative.parts or relative.suffix in {'.pyc', '.pyo'}:
+            issues.append(
+                ValidationIssue(
+                    relative,
+                    'Runtime artifact should not be committed',
+                    entry='Restore/remove generated __pycache__/ or .pyc/.pyo files before proceeding.',
+                )
+            )
+            continue
+
+        if relative.parts and relative.parts[0] == '.codex':
+            name = relative.name
+            if (
+                name.endswith('.sqlite')
+                or name.endswith('.sqlite-shm')
+                or name.endswith('.sqlite-wal')
+            ):
+                issues.append(
+                    ValidationIssue(
+                        relative,
+                        'Codex runtime database artifact should not be committed',
+                        entry='Keep .codex sqlite runtime artifacts unstaged or add them to ignore rules before proceeding.',
+                    )
+                )
+    return issues
+
+
+def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    taskmaster_changed = False
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if relative == Path('.taskmaster/tasks/tasks.json'):
+            taskmaster_changed = True
+            break
+        if len(relative.parts) >= 3 and relative.parts[0] == '.taskmaster' and relative.parts[1] == 'tasks':
+            if re.fullmatch(r'task_\d+\.txt', relative.name):
+                taskmaster_changed = True
+                break
+
+    if not taskmaster_changed:
+        return issues
+
+    if CURRENT_SESSION_PATH is None:
+        issues.append(
+            ValidationIssue(
+                Path('sessions/current'),
+                'Taskmaster files changed but sessions/current is missing or invalid',
+                entry='Point sessions/current at the active session and log the Taskmaster change there.',
+            )
+        )
+    else:
+        try:
+            session_text = CURRENT_SESSION_PATH.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            issues.append(
+                ValidationIssue(
+                    _display_path(CURRENT_SESSION_PATH),
+                    'Taskmaster files changed but the current session log is missing',
+                    entry='Recreate the current session file and log the Taskmaster change there.',
+                )
+            )
+        else:
+            if not TASKMASTER_ACTIVITY_PATTERN.search(session_text):
+                issues.append(
+                    ValidationIssue(
+                        _display_path(CURRENT_SESSION_PATH),
+                        'Taskmaster files changed but the current session lacks a Taskmaster activity entry',
+                        entry='Add an S:W:H:E entry with H:task-master:* or evidence pointing to .taskmaster/tasks/*.json/*.txt.',
+                    )
+                )
+
+    try:
+        tracker_path = get_active_tracker_path()
+    except SystemExit as exc:
+        issues.append(
+            ValidationIssue(
+                Path('docs/ai/work-tracking/active'),
+                f'Taskmaster files changed but active tracker lookup failed: {exc}',
+                entry='Ensure exactly one ACTIVE work-tracking folder exists and log the Taskmaster change in its tracker.',
+            )
+        )
+        return issues
+
+    try:
+        tracker_text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(
+            ValidationIssue(
+                _display_path(tracker_path),
+                'Taskmaster files changed but tracker file is missing',
+                entry='Restore the tracker and log the Taskmaster change there.',
+            )
+        )
+        return issues
+
+    if TODAY_ISO not in tracker_text or not TASKMASTER_ACTIVITY_PATTERN.search(tracker_text):
+        issues.append(
+            ValidationIssue(
+                _display_path(tracker_path),
+                'Taskmaster files changed but tracker lacks a same-day Taskmaster activity entry',
+                entry='Log the Taskmaster update in TRACKER.md using H:task-master:* and evidence under .taskmaster/tasks/...',
+            )
+        )
+
+    return issues
+
+
 def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
     branch = get_current_branch()
@@ -1304,6 +1613,7 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
         for token, hint in find_legacy_monolith_references(text):
             issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
         issues.extend(validate_template_metadata(relative_path, text))
+        issues.extend(validate_gac_guidance(relative_path, text))
 
     issues.extend(validate_swhe_entries(relative_path, text, expected_session))
     issues.extend(validate_timestamp_policy(relative_path, text, metadata))
@@ -1314,6 +1624,9 @@ def guard_validate(args: argparse.Namespace) -> int:
     entries = collect_git_status_entries(args.include_untracked)
     changed_files = compute_changed_files(entries, args.include_untracked)
     baseline_issues: List[ValidationIssue] = []
+    baseline_issues.extend(validate_session_state(entries, changed_files))
+    baseline_issues.extend(validate_runtime_artifacts(changed_files))
+    baseline_issues.extend(validate_taskmaster_activity(changed_files))
     baseline_issues.extend(validate_active_folder_edits(changed_files))
     baseline_issues.extend(validate_session_edit_dates(changed_files))
     baseline_issues.extend(detect_tracked_active_deletions(entries))

@@ -7,3 +7,4 @@
 - 2026-04-22 15:53 CEST — Standardized the matrices family, enabled the matrices policy rule, and validated the slice with targeted tests plus guard/audit/plan-sync.
 - 2026-04-22 16:00 CEST — Standardized the registry component family, enabled the registry policy rule, and validated the slice with targeted tests plus guard/audit.
 - 2026-04-22 16:22 CEST — Standardized the remaining engine modules and outliers, enabled the final metadata policy rules, and captured the final guard/test/audit evidence for Task 91 completion.
+- 2026-04-22 17:35 CEST — Archived active work-tracking folder.

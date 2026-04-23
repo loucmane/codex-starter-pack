@@ -75,7 +75,13 @@ Run `scripts/codex-guard validate [--include-untracked]` before handoff/compacti
 - S:W:H:E fields populated (no placeholders).
 - Handler paths resolve into `templates/` (when referenced).
 - Evidence fields not left `pending`.
+- Runtime artifacts stay out of commits (`__pycache__/`, `.pyc`/`.pyo`, `.codex/*.sqlite*`).
+- Taskmaster status/file changes include same-day session and tracker evidence.
+- Session state stays coherent (`sessions/current`, `sessions/state.json`, paused session references).
+- Canonical GAC guidance distinguishes `full-gac-command` from `message-payload-only` and uses the multi-line `Summary:` block.
 Roadmap: `--auto-fix` skeletons (document TODOs in work-tracking).
+
+Task 92 expanded this guard coverage to turn recurring workflow mistakes into enforceable checks. When adding new guard rules, update the relevant template/convention docs and add targeted regression coverage in `tests/meta_workflow_guard/test_guard_rules.py`.
 
 ### `view_image`
 Limited to image previews. Document file path and purpose.
@@ -101,3 +107,7 @@ Enabled when `.codex/config.toml` sets `tools.web_search = true` and network acc
 - `codex --dry-run -- <command>` – verify wrapper configuration outside the session.
 
 Tools are part of the protocol. Use them deliberately and leave a clear evidence trail every time.
+
+## Progress Log
+
+- **2026-04-23 13:15** — [S:20260423|W:task92-expand-workflow-guard-coverage|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260422-task92-expand-workflow-guard-coverage-ACTIVE/designs/guard-coverage-audit.md] Documented the expanded `scripts/codex-guard` coverage for runtime artifacts, Taskmaster evidence, session-state consistency, and canonical GAC guidance

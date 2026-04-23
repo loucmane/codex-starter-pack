@@ -1,0 +1,11 @@
+# Task ID: 99
+# Title: Define Portable Foundation Specification
+# Status: pending
+# Dependencies: 98
+# Priority: medium
+# Description: Write the reusable contract for the metadata, guard, session, and work-tracking foundation so core behavior is clearly separated from repo-local configuration.
+# Details:
+Document the portable foundation specification, covering required metadata keys, policy-file schema, enforcement semantics, session/work-tracking lifecycle expectations, and the boundary between generic core logic and repo adapter configuration. Ensure the specification references the existing Task 91 policy model and can guide implementation in non-identical repositories.
+
+# Test Strategy:
+

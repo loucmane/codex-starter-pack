@@ -56,6 +56,48 @@ Task 91 remains in progress on `feat/task-91-standardize-template-metadata`. The
 - **[16:35]** — [S:20260422|W:task91-continuation|H:scripts/codex-task|E:.plan_state/sync.log] Re-ran plan sync after Taskmaster closeout to keep the final plan and tracker state aligned
 - **[16:35]** — [S:20260422|W:task91-continuation|H:scripts/codex-guard|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Revalidated the guard after Taskmaster closeout; compliance still passes
 - **[16:35]** — [S:20260422|W:task91-continuation|H:scripts/codex-task|E:cmd`python3 scripts/codex-task work-tracking audit`] Re-ran the audit after Taskmaster closeout; only the expected informational warning about intentional multi-day reuse remains
+- **[17:25]** — [S:20260422|W:task91-continuation|H:docs/handoff|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/HANDOFF.md] Reviewed the final Task 91 handoff and confirmed the next workstream will shift to Task 92 plus explicit portability follow-on tasks
+- **[17:25]** — 🏁 Session ending - Task 91 metadata standardization is merged, archived next, and ready to hand off to Task 92
 
 ### Current Status
 Task 91 is now complete. The policy-driven rollout covers handlers, behaviors, guides, matrices, registry components, engine modules, the shared ULTRATHINK pattern, and the external GPT-5 handler; guard passes, targeted guard-rule tests pass, the enforced metadata scan is at zero remaining files, and Taskmaster now shows the parent task plus all subtasks as `done`. The next step is to review the branch diff, prepare the checkpoint commit, and open the Task 91 PR.
+
+### 🚦 Session End Status
+**SESSION COMPLETED** - Task 91 Template Metadata Standardization:
+- ✅ Finished the policy-driven metadata rollout across every enforced template family
+- ✅ Closed Taskmaster Task 91 and captured final guard, audit, and pytest evidence
+- ✅ Merged Task 91, cleaned up the feature branch, and prepared the Task 92 handoff point
+- 🎯 Ready to archive the Task 91 active folder and start Task 92 on a fresh branch
+
+### 📊 Session Metrics
+- Duration: ~2h 9m
+- Taskmaster tasks completed: 1 (`91`)
+- Validation passes rerun: 3 (`plan sync`, `codex-guard`, `work-tracking audit`)
+- Final commit scope: 166 files changed, 2384 insertions, 240 deletions
+
+### 📋 Next Session Should:
+1. Archive `docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE` and scaffold the Task 92 active folder.
+2. Start `feat/task-92-expand-workflow-guard-coverage` and audit the next guard gaps revealed by the Task 91 rollout.
+3. Convert the Task 91 portability roadmap into explicit Taskmaster follow-on tasks.
+
+### 🔄 Handoff Messages
+
+**Initialization**:
+```text
+read .serena/memories/session_2026-04-22_task91-closeout.md and sessions/current.
+Archive the completed Task 91 active folder, start Task 92 on a fresh branch/session, and add the portability follow-on tasks from the roadmap before deep implementation begins.
+```
+
+**Git Commit**:
+```text
+gac "feat(guard): start task 92 workflow guard expansion
+
+  Summary:
+  - archive the completed Task 91 workstream and scaffold Task 92 session, plan, and work-tracking state
+  - audit workflow guard coverage after the metadata-policy rollout and document the next high-priority gaps
+  - add explicit portability follow-on tasks so the backlog reflects the cross-project foundation roadmap
+
+  Work tracking: 20260422-task92-expand-workflow-guard-coverage-ACTIVE"
+```
+
+SESSION COMPLETE

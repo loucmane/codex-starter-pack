@@ -14,6 +14,7 @@
 .codex/installation_id
 .codex/logs_*.sqlite
 .codex/models_cache.json
+.codex/plugins/
 .codex/shell_snapshots/
 .codex/skills/
 .codex/state_*.sqlite*

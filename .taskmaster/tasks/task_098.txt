@@ -1,0 +1,11 @@
+# Task ID: 98
+# Title: Externalize Repo Structure Configuration
+# Status: pending
+# Dependencies: 97
+# Priority: medium
+# Description: Move hardcoded repo-structure assumptions into repo-local configuration so the enforcement foundation can adapt to different project layouts.
+# Details:
+Extract assumptions from scripts/codex-guard and related helpers into config-driven settings, including template roots, session roots, plan roots, work-tracking roots, archive naming rules, and any path-based enforcement toggles. Update consuming helpers to read configuration instead of hardcoded repository paths, and capture the expected config contract in supporting docs.
+
+# Test Strategy:
+

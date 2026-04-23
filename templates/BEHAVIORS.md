@@ -319,11 +319,12 @@ read memory session_YYYY-MM-DD_description and sessions/current.
 ```
 gac "type: one-line summary
 
-- Major change or accomplishment
-- Another significant update
-- Key feature or fix
+  Summary:
+  - Major change or accomplishment
+  - Another significant update
+  - Key feature or fix
 
-Work tracking: active-folder-names"
+  Work tracking: active-folder-names"
 ```
 
 CHECKLIST COMPLETED:
@@ -515,3 +516,7 @@ When adding a new behavior:
 7. Ensure corresponding workflow exists
 
 Remember: Behaviors are not suggestions - they are mandatory execution gates that ensure system integrity.
+
+## Progress Log
+
+- **2026-04-22 18:32** — [S:20260422|W:task92-expand-workflow-guard-coverage|H:templates/BEHAVIORS.md|E:docs/ai/work-tracking/active/20260422-task92-expand-workflow-guard-coverage-ACTIVE/designs/guard-coverage-audit.md] Aligned the session-end compaction GAC example with the canonical `Summary:` block while expanding Task 92 guard coverage
