@@ -155,6 +155,17 @@ def test_validate_session_allows_latest_completed(monkeypatch) -> None:
     assert issues == []
 
 
+def test_validate_session_allows_multiple_completed_sessions_from_latest_prior_date(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-03')
+    latest = module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-02-002-task.md'
+    sibling = module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-02-001-task.md'
+    monkeypatch.setattr(module, '_find_latest_prior_session', lambda: latest)
+    monkeypatch.setattr(module, '_session_marked_complete', lambda path: True)
+    issues = module.validate_session_edit_dates([sibling])
+    assert issues == []
+
+
 def test_validate_session_flags_older_completed(monkeypatch) -> None:
     module = load_guard_module()
     monkeypatch.setattr(module, 'TODAY_ISO', '2025-11-25')
@@ -179,6 +190,228 @@ def test_validate_session_respects_ignore(monkeypatch) -> None:
     module = load_guard_module()
     legacy_session = module.REPO_ROOT / 'sessions' / '1999' / '01' / '1999-01-01-legacy.md'
     issues = module.validate_session_edit_dates([legacy_session])
+    assert issues == []
+
+
+def test_get_current_branch_uses_github_head_ref(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setenv('GITHUB_HEAD_REF', 'feat/task-92-expand-workflow-guard-coverage')
+    assert module.get_current_branch() == 'feat/task-92-expand-workflow-guard-coverage'
+
+
+def test_validate_runtime_artifacts_flags_pycache() -> None:
+    module = load_guard_module()
+    changed = [module.REPO_ROOT / 'tests' / '__pycache__' / 'example.cpython-312.pyc']
+    issues = module.validate_runtime_artifacts(changed)
+    assert any('__pycache__' in issue.render() for issue in issues)
+
+
+def test_validate_runtime_artifacts_flags_codex_sqlite_wal() -> None:
+    module = load_guard_module()
+    changed = [module.REPO_ROOT / '.codex' / 'logs_2.sqlite-wal']
+    issues = module.validate_runtime_artifacts(changed)
+    assert any('.codex/logs_2.sqlite-wal' in issue.render() for issue in issues)
+
+
+def test_validate_session_state_flags_current_mismatch(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    sessions_dir.mkdir()
+    state_path = sessions_dir / 'state.json'
+    current_session = sessions_dir / '2026-04-22-002-task92-kickoff.md'
+    current_session.write_text('---\ndate: 2026-04-22\nsession_id: 2026-04-22-002\n---\n', encoding='utf-8')
+    current_link = sessions_dir / 'current'
+    current_link.symlink_to(current_session)
+    state_path.write_text(
+        '{"current":"2026-04-22-001-task91-continuation.md","paused":[],"updated_at":"2026-04-22T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(module, 'SESSIONS_DIR', sessions_dir)
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_PATH', current_session)
+    entries = [(' M', 'sessions/state.json')]
+    changed = [state_path]
+    issues = module.validate_session_state(entries, changed)
+    assert any('does not match sessions/current target' in issue.message for issue in issues)
+
+
+def test_validate_session_state_flags_current_in_paused(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    sessions_dir.mkdir()
+    state_path = sessions_dir / 'state.json'
+    current_session = sessions_dir / '2026-04-22-002-task92-kickoff.md'
+    current_session.write_text('---\ndate: 2026-04-22\nsession_id: 2026-04-22-002\n---\n', encoding='utf-8')
+    current_link = sessions_dir / 'current'
+    current_link.symlink_to(current_session)
+    state_path.write_text(
+        '{"current":"2026-04-22-002-task92-kickoff.md","paused":["2026-04-22-002-task92-kickoff.md"],"updated_at":"2026-04-22T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(module, 'SESSIONS_DIR', sessions_dir)
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_PATH', current_session)
+    entries = [(' M', 'sessions/state.json')]
+    changed = [state_path]
+    issues = module.validate_session_state(entries, changed)
+    assert any('must not also appear in paused' in issue.message for issue in issues)
+
+
+def test_validate_session_state_flags_missing_paused_target(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    sessions_dir.mkdir()
+    state_path = sessions_dir / 'state.json'
+    current_session = sessions_dir / '2026-04-22-002-task92-kickoff.md'
+    current_session.write_text('---\ndate: 2026-04-22\nsession_id: 2026-04-22-002\n---\n', encoding='utf-8')
+    current_link = sessions_dir / 'current'
+    current_link.symlink_to(current_session)
+    state_path.write_text(
+        '{"current":"2026-04-22-002-task92-kickoff.md","paused":["2026-04-22-001-task91-continuation.md"],"updated_at":"2026-04-22T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(module, 'SESSIONS_DIR', sessions_dir)
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_PATH', current_session)
+    entries = [(' M', 'sessions/state.json')]
+    changed = [state_path]
+    issues = module.validate_session_state(entries, changed)
+    assert any("Paused session '2026-04-22-001-task91-continuation.md' does not exist" in issue.message for issue in issues)
+
+
+def test_validate_session_state_allows_matching_helper(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    sessions_dir.mkdir()
+    state_path = sessions_dir / 'state.json'
+    paused_session = sessions_dir / '2026-04-22-001-task91-continuation.md'
+    paused_session.write_text('---\ndate: 2026-04-22\nsession_id: 2026-04-22-001\n---\n', encoding='utf-8')
+    current_session = sessions_dir / '2026-04-22-002-task92-kickoff.md'
+    current_session.write_text('---\ndate: 2026-04-22\nsession_id: 2026-04-22-002\n---\n', encoding='utf-8')
+    current_link = sessions_dir / 'current'
+    current_link.symlink_to(current_session)
+    state_path.write_text(
+        '{"current":"2026-04-22-002-task92-kickoff.md","paused":["2026-04-22-001-task91-continuation.md"],"updated_at":"2026-04-22T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(module, 'SESSIONS_DIR', sessions_dir)
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_PATH', current_session)
+    entries = [(' M', 'sessions/state.json')]
+    changed = [state_path]
+    issues = module.validate_session_state(entries, changed)
+    assert issues == []
+
+
+def test_validate_taskmaster_activity_requires_session_and_tracker_entries(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    session_path = tmp_path / '2030-01-02-001.md'
+    session_path.write_text(
+        """---
+date: 2030-01-02
+session_id: 2030-01-02-001
+---
+
+## Session
+- **[09:00]** — [S:20300102|W:task92|H:shell:date|E:cmd`date '+%Y-%m-%d %H:%M:%S %Z %z'`] Kickoff
+""",
+        encoding='utf-8',
+    )
+    tracker_path = tmp_path / 'TRACKER.md'
+    tracker_path.write_text(
+        """# Tracker
+
+**Started**: 2030-01-02
+**Status**: ACTIVE
+**Last Updated**: 2030-01-02
+
+## Progress Log
+- **2030-01-02 09:00** — [S:20300102|W:task92|H:serena/memory|E:.serena/memories/2030-01-02_task92.md] Kickoff
+""",
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(module, 'CURRENT_SESSION_PATH', session_path)
+    monkeypatch.setattr(module, 'get_active_tracker_path', lambda: tracker_path)
+    changed = [module.REPO_ROOT / '.taskmaster' / 'tasks' / 'tasks.json']
+    issues = module.validate_taskmaster_activity(changed)
+    rendered = [issue.render() for issue in issues]
+    assert any('current session lacks a Taskmaster activity entry' in item for item in rendered)
+    assert any('tracker lacks a same-day Taskmaster activity entry' in item for item in rendered)
+
+
+def test_validate_taskmaster_activity_allows_logged_entries(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    session_path = tmp_path / '2030-01-02-001.md'
+    session_path.write_text(
+        """---
+date: 2030-01-02
+session_id: 2030-01-02-001
+---
+
+## Session
+- **[09:15]** — [S:20300102|W:task92|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Task 92 in progress
+""",
+        encoding='utf-8',
+    )
+    tracker_path = tmp_path / 'TRACKER.md'
+    tracker_path.write_text(
+        """# Tracker
+
+**Started**: 2030-01-02
+**Status**: ACTIVE
+**Last Updated**: 2030-01-02
+
+## Progress Log
+- **2030-01-02 09:16** — [S:20300102|W:task92|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Logged Taskmaster status change
+""",
+        encoding='utf-8',
+    )
+    monkeypatch.setattr(module, 'CURRENT_SESSION_PATH', session_path)
+    monkeypatch.setattr(module, 'get_active_tracker_path', lambda: tracker_path)
+    changed = [module.REPO_ROOT / '.taskmaster' / 'tasks' / 'task_092.txt']
+    issues = module.validate_taskmaster_activity(changed)
+    assert issues == []
+
+
+def test_validate_gac_guidance_requires_response_modes() -> None:
+    module = load_guard_module()
+    relative = Path('templates/behaviors/git/before-commit.md')
+    text = """
+# Before Commit
+
+Return the raw message only.
+""".strip()
+    issues = module.validate_gac_guidance(relative, text)
+    assert any('response-mode markers' in issue.message for issue in issues)
+
+
+def test_validate_gac_guidance_requires_summary_block() -> None:
+    module = load_guard_module()
+    relative = Path('templates/behaviors/session/session-end.md')
+    text = """
+```bash
+gac "feat: close session
+
+- Captured handoff
+- Updated tracker
+
+Work tracking: 20260422-task92-ACTIVE"
+```
+""".strip()
+    issues = module.validate_gac_guidance(relative, text)
+    assert any('Summary block' in issue.message for issue in issues)
+
+
+def test_validate_gac_guidance_allows_canonical_docs() -> None:
+    module = load_guard_module()
+    text = (module.REPO_ROOT / 'templates' / 'conventions' / 'git' / 'commit-format.md').read_text(encoding='utf-8')
+    issues = module.validate_gac_guidance(Path('templates/conventions/git/commit-format.md'), text)
     assert issues == []
 
 

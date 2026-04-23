@@ -1,0 +1,11 @@
+# Task ID: 100
+# Title: Build Foundation Bootstrap Layer
+# Status: pending
+# Dependencies: 99
+# Priority: medium
+# Description: Provide a starter adoption layer so a new repository can initialize the shared foundation without hand-editing every file and path.
+# Details:
+Create bootstrap support for new repositories, including starter policy/config files, setup instructions, and migration-safe scaffolding for repos that already contain templates and workflow documents. Make the bootstrap layer rely on the portable specification and repo-structure configuration instead of this repository's hardcoded defaults.
+
+# Test Strategy:
+

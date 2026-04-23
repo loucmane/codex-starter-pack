@@ -41,15 +41,19 @@ version: 1.0.0
    - Map each change back to plan steps, tracker loglines, or evidence artifacts.
 4. **Draft Commit Message**
    - Compose `type(scope?): summary` line (<= 72 chars summary).
-   - Body: bullet list (`- `) describing the concrete changes; include file references or evidence paths where helpful.
+   - Body: canonical `Summary:` block with `- ` bullets describing the concrete changes; include file references or evidence paths where helpful.
    - Footer (optional): reference Taskmaster task IDs or follow-up TODOs.
-5. **Self-Check**
+5. **Choose Response Mode**
+   - `full-gac-command`: if the user explicitly asked for "the gac", return only the full `gac "..."` command.
+   - `message-payload-only`: if the user asked for a commit message or validation only, return only the message payload.
+6. **Self-Check**
    - Ensure message matches conventions (`templates/conventions/git/commit-format.md`).
    - Pass to `check-commit-msg` for validation before handing to the user.
 
 **Success Criteria**:
 - Message reflects actual diff and documented evidence.
 - Guard accepts format; no manual edits required before running `gac`.
+- Response mode matches the user request (`full-gac-command` or `message-payload-only`).
 
 **Failure Modes & Recovery**:
 - *Missing scope*: revisit tracker/plan to capture work correctly.

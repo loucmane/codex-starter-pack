@@ -70,11 +70,12 @@ read memory session_YYYY-MM-DD_description and sessions/current.
 ```
 gac "type: main achievement summary
 
-- Detailed change 1
-- Detailed change 2
-- Detailed change 3
+  Summary:
+  - Detailed change 1
+  - Detailed change 2
+  - Detailed change 3
 
-Work tracking: active-folder-name"
+  Work tracking: active-folder-name"
 ```
 ```
 
@@ -185,12 +186,13 @@ Continue with creating missing handlers and system optimization.
 ```
 gac "feat: complete session integration and separate compaction
 
-- Updated 5 session handlers to use sessions/ directory
-- Integrated session-resolver module across all handlers
-- Created prepare-compaction handler for context limits
-- Separated session-end from compaction-preparation behaviors
+  Summary:
+  - Update 5 session handlers to use sessions/ directory
+  - Integrate session-resolver module across all handlers
+  - Create prepare-compaction handler for context limits
+  - Separate session-end from compaction-preparation behaviors
 
-Work tracking: 20250730-template-migration-ACTIVE"
+  Work tracking: 20250730-template-migration-ACTIVE"
 ```
 ```
 

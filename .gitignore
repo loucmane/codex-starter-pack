@@ -1,5 +1,8 @@
 # Python virtual environments
 .venv/
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Codex runtime artifacts
 .codex/log/
@@ -14,6 +17,7 @@
 .codex/installation_id
 .codex/logs_*.sqlite
 .codex/models_cache.json
+.codex/plugins/
 .codex/shell_snapshots/
 .codex/skills/
 .codex/state_*.sqlite*

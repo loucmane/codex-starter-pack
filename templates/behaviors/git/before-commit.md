@@ -26,9 +26,9 @@ CRITICAL CHECKLIST - MUST VERIFY ALL:
 □ NO double quotes inside message (would break gac)
 □ Has type prefix (feat/fix/docs/chore/style/refactor/test)
 □ Subject line fits "type(scope): summary" format
-□ Multi-line body (when present) uses two-space bullet list
+□ Multi-line body (when present) uses the canonical `Summary:` block
 □ Any internal quotes use single quotes (')
-□ Message provided raw (no code blocks / wrappers)
+□ Output mode matches the request (`full-gac-command` vs `message-payload-only`)
 ```
 
 ### Step-by-Step Process
@@ -42,8 +42,9 @@ CRITICAL CHECKLIST - MUST VERIFY ALL:
    - Colon and space after type
    - Lowercase description
 
-3. **Output Format**
-   - Raw text only
+3. **Choose Output Mode**
+   - `full-gac-command`: if the user explicitly asks for "the gac", return only the raw `gac "..."` command
+   - `message-payload-only`: if the user asks for a commit message or validation only, return only the payload text
    - No code blocks
    - No markdown formatting
    - No "Here's your message:" prefix
@@ -52,14 +53,14 @@ CRITICAL CHECKLIST - MUST VERIFY ALL:
 **CANNOT PROCEED** with commit message until:
 - All double quotes removed/replaced
 - Conventional commit format verified
-- Raw output format confirmed
+- Correct output mode confirmed (`full-gac-command` or `message-payload-only`)
 - No formatting or wrappers
 
 ## Satisfaction Criteria
 ✓ Zero double quotes inside message
 ✓ Has valid type prefix
 ✓ Follows type: description format
-✓ Output is raw text only
+✓ Output matches the requested mode
 ✓ Any quotes are single quotes
 
 ## Example Workflows
@@ -85,10 +86,10 @@ Problem: Double quotes will break gac command
 ### ✅ Correct Approach
 ```
 User: "gac"
-AI: feat: add new feature with 'special' handling
+AI: gac "feat: add new feature with 'special' handling"
 
 User: "give me gac"
-AI: fix: resolve navigation bug in mobile view
+AI: gac "fix: resolve navigation bug in mobile view"
 
 User: "commit message"
 AI: docs: update README with installation steps
@@ -111,13 +112,15 @@ AI: docs: update README with installation steps
 ## Multi-line Commit Format
 When user needs detailed commit:
 ```
-type(scope): concise summary of change
+gac "type(scope): concise summary of change
 
+  Summary:
   - Primary outcome or change
   - Supporting detail (files, counts, measurements)
   - Follow-up actions or context (tests, docs, plans)
 
   Work tracking: YYYYMMDD-work-folder-ACTIVE
+"
 ```
 
 ## Special gac Considerations

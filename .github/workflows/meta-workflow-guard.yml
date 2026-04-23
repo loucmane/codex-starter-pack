@@ -31,6 +31,9 @@ jobs:
       - name: Run timestamp regression suite
         run: python3 -m unittest tests.timestamp_guard.test_timestamp_validation
 
+      - name: Sync active plan
+        run: python3 scripts/codex-task plan sync
+
       - name: Run codex-guard
         run: python3 scripts/codex-guard validate --include-untracked
 

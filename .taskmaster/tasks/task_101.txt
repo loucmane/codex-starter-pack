@@ -1,0 +1,11 @@
+# Task ID: 101
+# Title: Add Cross-Project Compatibility Fixtures
+# Status: pending
+# Dependencies: 100
+# Priority: medium
+# Description: Verify that the foundation works across multiple repository shapes instead of only this repo's structure.
+# Details:
+Add cross-project verification fixtures or tests that simulate different repository layouts, such as product-web, game, docs-heavy, and lightweight utility repos. Validate that the portable configuration, guard behavior, and workflow assumptions still work when paths and file families differ.
+
+# Test Strategy:
+

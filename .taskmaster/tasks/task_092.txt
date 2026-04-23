@@ -1,6 +1,6 @@
 # Task ID: 92
 # Title: Expand Workflow Guard Coverage
-# Status: pending
+# Status: done
 # Dependencies: 91
 # Priority: medium
 # Description: Close behavioural guard gaps identified during audit.
@@ -11,31 +11,31 @@ Improves guard breadth across workflows and commits.
 Guard enhancements deployed with regression tests.
 
 # Subtasks:
-## 1. Audit guard coverage [pending]
+## 1. Audit guard coverage [done]
 ### Dependencies: None
 ### Description: Identify missing behavioural checks (commit format, scope, testing, etc.).
 ### Details:
 Identify missing behavioural checks (commit format, scope, testing, etc.).
 
-## 2. Prioritize guard additions [pending]
+## 2. Prioritize guard additions [done]
 ### Dependencies: None
 ### Description: Select highest-priority guard enhancements and schedule follow-up tasks.
 ### Details:
 Select highest-priority guard enhancements and schedule follow-up tasks.
 
-## 3. Implement guard updates [pending]
+## 3. Implement guard updates [done]
 ### Dependencies: None
 ### Description: Add highest-priority guard checks and integrate with helpers.
 ### Details:
 Add highest-priority guard checks and integrate with helpers.
 
-## 4. Document guard changes [pending]
+## 4. Document guard changes [done]
 ### Dependencies: None
 ### Description: Update enforcement documentation with new guard coverage.
 ### Details:
 Update enforcement documentation with new guard coverage.
 
-## 5. Add regression tests [pending]
+## 5. Add regression tests [done]
 ### Dependencies: None
 ### Description: Create tests verifying new guard checks.
 ### Details:

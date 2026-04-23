@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260422-task92-expand-workflow-guard-coverage-ACTIVE has prefix 20260422; today's prefix is 20260423 (ensure multi-day reuse is intentional)

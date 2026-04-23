@@ -151,6 +151,12 @@ gac "chore: bootstrap codex ssot migration
 
 ## When User Asks for Commit Message
 
+## Response Modes
+
+Use these response modes consistently in commit-prep flows:
+- `full-gac-command` — when the user explicitly asks for "the gac", return only the complete `gac "..."` command.
+- `message-payload-only` — when the user asks for a commit message or validation only, return only the payload text without `gac`, code fences, or wrappers.
+
 ### Response Format
 **📋 When user asks for gac commit message:**
 - Give ONLY the raw commit message text
@@ -162,6 +168,25 @@ gac "chore: bootstrap codex ssot migration
 ```
 User: "Give me a commit message for the auth changes"
 AI: feat: implement OAuth2 authentication with Google and GitHub providers
+```
+
+### When User Asks for the gac
+**📋 Response mode: `full-gac-command`**
+- Give ONLY the raw `gac "..."` command
+- NO code blocks or formatting
+- Keep the canonical multi-line `Summary:` block when the change is substantial
+
+### Example Response
+```
+User: "Give me the gac"
+AI: gac "feat: implement OAuth2 authentication
+
+  Summary:
+  - Add Google and GitHub providers
+  - Wire the callback flow and account linking
+  - Capture guard and tracker evidence for the auth rollout
+
+  Work tracking: 20260422-auth-oauth-ACTIVE"
 ```
 
 ## Common Patterns
@@ -211,3 +236,7 @@ gac "test: update tests for refactored code"
 - **Changelog Generation**: Tools can parse format
 - **Team Understanding**: Standard format for all
 - **CI/CD Integration**: Automated version bumping
+
+## Progress Log
+
+- **2026-04-22 18:32** — [S:20260422|W:task92-expand-workflow-guard-coverage|H:templates/conventions/git/commit-format.md|E:docs/ai/work-tracking/active/20260422-task92-expand-workflow-guard-coverage-ACTIVE/designs/guard-coverage-audit.md] Added explicit `full-gac-command` vs `message-payload-only` response modes and documented the canonical multi-line `Summary:` block for Task 92 commit-prep guard coverage
