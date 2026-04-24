@@ -14,6 +14,7 @@ templates/engine/
 ├── core/
 │   ├── codex-readiness.md
 │   ├── enforcement-check.md
+│   ├── portable-foundation-spec.md
 │   ├── pre-ultrathink.md
 │   ├── session-resolver.md
 │   └── ultrathink-protocol.md
@@ -60,6 +61,7 @@ Those discovery surfaces align with the directory structure listed above.
 
 - `core/codex-readiness.md`
 - `core/enforcement-check.md`
+- `core/portable-foundation-spec.md`
 - `core/pre-ultrathink.md`
 - `core/session-resolver.md`
 - `core/ultrathink-protocol.md`

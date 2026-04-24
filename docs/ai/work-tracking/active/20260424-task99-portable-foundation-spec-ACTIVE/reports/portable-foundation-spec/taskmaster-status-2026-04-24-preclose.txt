@@ -1,0 +1,48 @@
+🏷️ tag: master
+
+╭──────────────────────────────────────────────────────╮
+│ Task: #99 - Define Portable Foundation Specification │
+╰──────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 99                                                         │
+│ Title:        │ Define Portable Foundation Specification                   │
+│ Status:       │ ► in-progress                                              │
+│ Priority:     │ medium                                                     │
+│ Dependencies: │ 98                                                         │
+│ Complexity:   │ N/A                                                        │
+│ Description:  │ Write the reusable contract for the metadata, guard,       │
+│               │ session, and work-tracking foundation so core behavior is  │
+│               │ clearly separated from repo-local configuration.           │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Document the portable foundation specification, covering required metadata   │
+│ keys, policy-file schema, enforcement semantics, session/work-tracking       │
+│ lifecycle expectations, and the boundary between generic core logic and repo │
+│ adapter configuration. Ensure the specification references the existing Task │
+│ 91 policy model and can guide implementation in non-identical repositories.  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────╮
+│ No subtasks found. Consider breaking down this task: │
+│ Run: task-master expand --id=99                      │
+╰──────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=99 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=99 --status=done │
+│ 3. Break down into subtasks: task-master expand --id=99                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

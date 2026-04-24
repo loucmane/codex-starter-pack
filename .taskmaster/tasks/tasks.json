@@ -7988,7 +7988,7 @@
         "description": "Write the reusable contract for the metadata, guard, session, and work-tracking foundation so core behavior is clearly separated from repo-local configuration.",
         "details": "Document the portable foundation specification, covering required metadata keys, policy-file schema, enforcement semantics, session/work-tracking lifecycle expectations, and the boundary between generic core logic and repo adapter configuration. Ensure the specification references the existing Task 91 policy model and can guide implementation in non-identical repositories.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           98
         ],
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T17:02:12.755Z"
+      "updated": "2026-04-24T17:18:38.874Z"
     }
   }
 }
