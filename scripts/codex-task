@@ -15,8 +15,17 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SESSIONS_DIR = REPO_ROOT / "sessions"
-WORK_TRACKING_BASE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from _repo_structure import load_repo_structure
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+SESSIONS_DIR = REPO_STRUCTURE.sessions_root
+PLANS_DIR = REPO_STRUCTURE.plans_root
+WORK_TRACKING_BASE = REPO_STRUCTURE.work_tracking_active_root
+WORK_TRACKING_ACTIVE_REL = WORK_TRACKING_BASE.relative_to(REPO_ROOT).as_posix()
+WORK_TRACKING_ARCHIVE_REL = REPO_STRUCTURE.work_tracking_archive_root.relative_to(REPO_ROOT).as_posix()
 WORK_TRACKING_DEFAULT_DOCS = {
     "FINDINGS.md": "# Findings\n\n- {today} — _Pending_ — document new findings here.\n",
     "DECISIONS.md": "# Decisions\n\n- {today} — _Pending_ — capture decisions with context.\n",
@@ -36,14 +45,19 @@ PROGRESS_HEADING_TRACKER = "## Progress Log"
 DEFAULT_TIME_FORMAT_SESSION = "%H:%M"
 DEFAULT_TIME_FORMAT_TRACKER = "%Y-%m-%d %H:%M"
 SCANNER_PATH = REPO_ROOT / "scripts" / "template-ssot-scanner"
-PLAN_CURRENT = REPO_ROOT / "plans" / "current"
-PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
-PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
+PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
+PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
+PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
-SESSION_STATE_PATH = SESSIONS_DIR / "state.json"
+SESSION_STATE_PATH = REPO_STRUCTURE.session_state_path
+TASKMASTER_TASKS_DIR = REPO_STRUCTURE.taskmaster_tasks_dir
+TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REPO_ROOT).as_posix()
+SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
+PLANS_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
+SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
 
 
 def _slugify(value: str) -> str:
@@ -103,7 +117,10 @@ def _next_session_id(now: datetime) -> str:
 
 def _task_file_path(task_id: str) -> Path:
     token = int(task_id)
-    return REPO_ROOT / ".taskmaster" / "tasks" / f"task_{token:03d}.txt"
+    tasks_dir = TASKMASTER_TASKS_DIR
+    if not tasks_dir.is_relative_to(REPO_ROOT):
+        tasks_dir = load_repo_structure(REPO_ROOT).taskmaster_tasks_dir
+    return tasks_dir / f"task_{token:03d}.txt"
 
 
 def _load_task_metadata(task_id: str) -> Dict[str, str]:
@@ -206,7 +223,7 @@ def _build_session_lines(
         "### Session Goals",
         f"- [x] Start a fresh Task {task_id} session on the Task {task_id} branch.",
         f"- [x] Scaffold Task {task_id} work tracking.",
-        f"- [x] Repoint `sessions/current` and `plans/current` to Task {task_id}.",
+        f"- [x] Repoint `{SESSIONS_CURRENT_REL}` and `{PLANS_CURRENT_REL}` to Task {task_id}.",
         f"- [x] Mark Taskmaster Task {task_id} in progress.",
         f"- [ ] Review the design baseline and implementation boundary for {title}.",
         "- [ ] Capture implementation and verification evidence.",
@@ -217,8 +234,8 @@ def _build_session_lines(
         "### 📝 Progress Log",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M:%S %Z %z\"`] Confirmed current timestamp as `{timestamp_full}`",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
-        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
-        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task {task_id} kickoff",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:{TASKMASTER_TASKS_JSON_REL}] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed `{SESSIONS_CURRENT_REL}`, `{PLANS_CURRENT_REL}`, and `{SESSION_STATE_REL}` to the new Task {task_id} kickoff",
     ]
 
 
@@ -233,8 +250,8 @@ def _build_tracker_entries(
     return [
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M %Z\"`] Confirmed current timestamp as `{now.strftime('%Y-%m-%d %H:%M %Z')}`",
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
-        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
-        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task {task_id} kickoff",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:{TASKMASTER_TASKS_JSON_REL}] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed `{SESSIONS_CURRENT_REL}`, `{PLANS_CURRENT_REL}`, and `{SESSION_STATE_REL}` to the new Task {task_id} kickoff",
     ]
 
 
@@ -301,7 +318,7 @@ def _build_plan_lines(
         "## Continuation & Handoff",
         "- Next owner: loucmane (default)",
         "- Context reload steps:",
-        "  1. Read `sessions/current` and this plan.",
+        f"  1. Read `{SESSIONS_CURRENT_REL}` and this plan.",
         f"  2. Review Taskmaster Task {task_id} and its subtasks.",
         "  3. Review the wizard design artifact before changing helper behavior.",
         "  4. Run `python3 scripts/codex-task plan sync` after tracker updates.",
@@ -354,7 +371,7 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
     session_id = _next_session_id(now)
     session_dir = SESSIONS_DIR / now.strftime("%Y") / now.strftime("%m")
     session_path = session_dir / f"{session_id}-task{task_id}-{slug}.md"
-    plan_path = REPO_ROOT / "plans" / f"{now.strftime('%Y-%m-%d')}-task{task_id}-{slug}.md"
+    plan_path = PLAN_CURRENT.parent / f"{now.strftime('%Y-%m-%d')}-task{task_id}-{slug}.md"
     tracker_relative = (WORK_TRACKING_BASE / f"{now.strftime('%Y%m%d')}-task{task_id}-{slug}-ACTIVE" / "TRACKER.md").relative_to(REPO_ROOT).as_posix()
 
     session_lines = _build_session_lines(
@@ -400,7 +417,7 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
     _run_checked_command(["task-master", "generate"])
     print(f"Created session: {session_path.relative_to(REPO_ROOT)}")
     print(f"Created plan: {plan_path.relative_to(REPO_ROOT)}")
-    print("Repointed sessions/current, plans/current, and sessions/state.json")
+    print(f"Repointed {SESSIONS_CURRENT_REL}, {PLANS_CURRENT_REL}, and {SESSION_STATE_REL}")
 
 
 def _resolve_plan_path(override: Optional[str] = None) -> Path:
@@ -570,7 +587,7 @@ def _resolve_current_session(explicit: Optional[str] = None) -> Path:
     # Fallback: find most recent session markdown in sessions directory.
     candidates = sorted(SESSIONS_DIR.glob("**/*.md"))
     if not candidates:
-        raise TaskError("No session files located under sessions/.")
+        raise TaskError(f"No session files located under {SESSIONS_DIR.relative_to(REPO_ROOT).as_posix()}/.")
     return candidates[-1]
 
 
@@ -583,7 +600,7 @@ def _resolve_active_work_tracking(explicit: Optional[str] = None) -> Path:
 
     candidates = [p for p in WORK_TRACKING_BASE.iterdir() if p.is_dir() and p.name.endswith("-ACTIVE")]
     if not candidates:
-        raise TaskError("No ACTIVE work-tracking folder found under docs/ai/work-tracking/active/.")
+        raise TaskError(f"No ACTIVE work-tracking folder found under {WORK_TRACKING_ACTIVE_REL}/.")
     if len(candidates) > 1:
         names = ", ".join(p.name for p in candidates)
         raise TaskError(f"Multiple ACTIVE work-tracking folders found ({names}); specify one via --folder.")
@@ -667,7 +684,7 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
         "- [ ] plan-step-emergency (if applicable)",
         "",
         "## Dependencies & Notes",
-        "- Session log: sessions/current",
+        f"- Session log: {SESSIONS_CURRENT_REL}",
     ]
     _write_file_lines(folder_path / "TRACKER.md", tracker_lines)
 
@@ -764,22 +781,22 @@ def handle_work_tracking_audit(args: argparse.Namespace) -> None:
 
     current_symlink = SESSIONS_DIR / 'current'
     if not current_symlink.exists() or not current_symlink.is_symlink():
-        issues.append("sessions/current symlink missing")
+        issues.append(f"{SESSIONS_CURRENT_REL} symlink missing")
     else:
         target = current_symlink.resolve()
         if target.exists():
             try:
                 relative = target.relative_to(SESSIONS_DIR)
             except ValueError:
-                warnings.append(f"sessions/current points outside sessions/: {target}")
+                warnings.append(f"{SESSIONS_CURRENT_REL} points outside {SESSIONS_DIR.relative_to(REPO_ROOT).as_posix()}/: {target}")
             else:
                 session_date = relative.name[:10]
                 if session_date != today:
                     warnings.append(
-                        f"sessions/current points to {relative} (date {session_date}); consider starting a new session for {today}"
+                        f"{SESSIONS_CURRENT_REL} points to {relative} (date {session_date}); consider starting a new session for {today}"
                     )
         else:
-            issues.append(f"sessions/current target missing: {target}")
+            issues.append(f"{SESSIONS_CURRENT_REL} target missing: {target}")
 
     if issues:
         print("Audit issues detected:")
@@ -1003,7 +1020,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan_parser = subparsers.add_parser("plan", help="Plan utilities")
     plan_sub = plan_parser.add_subparsers(dest="subcommand", required=True)
     plan_sync = plan_sub.add_parser("sync", help="Validate plan/tracker parity and log sync entry")
-    plan_sync.add_argument("--plan", help="Explicit plan file path (default: plans/current)")
+    plan_sync.add_argument("--plan", help=f"Explicit plan file path (default: {PLANS_CURRENT_REL})")
     plan_sync.add_argument("--tracker", help="Explicit tracker file path (default: active tracker)")
     plan_sync.set_defaults(func=handle_plan_sync)
 

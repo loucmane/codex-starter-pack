@@ -11,3 +11,4 @@
 - Commit the Task 97 branch changes with the task reports included.
 - Open and merge the Task 97 PR after CI passes.
 - Start Task 98 on a fresh branch after the normal archive rollover for this active folder.
+- Archived on 2026-04-24 18:44 CEST — Folder moved to archive and tracker marked COMPLETED.

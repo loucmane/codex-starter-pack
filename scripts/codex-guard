@@ -16,9 +16,16 @@ from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Set
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SESSIONS_PREFIX = Path("sessions")
-WORK_TRACKING_PREFIX = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from _repo_structure import load_repo_structure
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+SESSIONS_PREFIX = REPO_STRUCTURE.sessions_root.relative_to(REPO_ROOT)
+WORK_TRACKING_PREFIX = REPO_STRUCTURE.work_tracking_active_root
 WORK_TRACKING_RELATIVE = WORK_TRACKING_PREFIX.relative_to(REPO_ROOT)
+WORK_TRACKING_ARCHIVE_RELATIVE = REPO_STRUCTURE.work_tracking_archive_root.relative_to(REPO_ROOT)
 GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
 SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
 PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
@@ -49,14 +56,23 @@ IGNORE_PATH_PREFIXES = tuple(
 LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
 
 SERENA_MEMORY_PATTERN = re.compile(r"serena/memory|memories/\d{4}-\d{2}-\d{2}_", re.IGNORECASE)
-TASKMASTER_ACTIVITY_PATTERN = re.compile(r"task-master(?::|`|\b)|\.taskmaster/tasks/(tasks\.json|task_\d+\.txt)", re.IGNORECASE)
+TASKMASTER_TASKS_REL = REPO_STRUCTURE.taskmaster_tasks_dir.relative_to(REPO_ROOT).as_posix()
+TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REPO_ROOT).as_posix()
+TASKMASTER_ACTIVITY_PATTERN = re.compile(
+    rf"task-master(?::|`|\b)|{re.escape(TASKMASTER_TASKS_REL)}/(tasks\.json|task_\d+\.txt)",
+    re.IGNORECASE,
+)
 MULTILINE_GAC_PATTERN = re.compile(r'gac "[^\n"]*\n.*?Work tracking: .*?"', re.DOTALL)
 WORK_TRACKING_REQUIRED_DOCS = (
     "FINDINGS.md",
     "DECISIONS.md",
     "CHANGELOG.md",
 )
-WORK_TRACKING_ARCHIVE_BASE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "archive"
+WORK_TRACKING_ARCHIVE_BASE = REPO_STRUCTURE.work_tracking_archive_root
+SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
+SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
+PLAN_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
+CONTINUATION_GUARD_REL = REPO_STRUCTURE.continuation_guard_dir.relative_to(REPO_ROOT).as_posix()
 GAC_RESPONSE_MODE_DOCS = {
     Path("templates/conventions/git/commit-format.md"),
     Path("templates/behaviors/git/before-commit.md"),
@@ -84,24 +100,24 @@ def should_ignore_relative(relative: Path) -> bool:
 DATE_PREFIX_EXPECTED = TODAY_ISO.replace('-', '')
 
 
-CURRENT_SESSION_SYMLINK = REPO_ROOT / 'sessions' / 'current'
+CURRENT_SESSION_SYMLINK = REPO_STRUCTURE.current_session_link
 try:
     CURRENT_SESSION_PATH = CURRENT_SESSION_SYMLINK.resolve()
 except FileNotFoundError:
     CURRENT_SESSION_PATH = None
 except RuntimeError:
     CURRENT_SESSION_PATH = None
-SESSION_STATE_PATH = REPO_ROOT / 'sessions' / 'state.json'
+SESSION_STATE_PATH = REPO_STRUCTURE.session_state_path
 
 
 
-PLAN_CURRENT = REPO_ROOT / "plans" / "current"
+PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 EMERGENCY_PATTERN = re.compile(r"\*\*Emergency Bypass\*\*:\s*(true|false)", re.IGNORECASE)
-PLAN_STATE_DIR = REPO_ROOT / ".plan_state"
-PLAN_SYNC_LOG = PLAN_STATE_DIR / "sync.log"
-CONTINUATION_GUARD_DIR = REPO_ROOT / "reports" / "session-continuation"
-SESSIONS_DIR = REPO_ROOT / "sessions"
+PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
+PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
+CONTINUATION_GUARD_DIR = REPO_STRUCTURE.continuation_guard_dir
+SESSIONS_DIR = REPO_STRUCTURE.sessions_root
 PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
@@ -110,7 +126,7 @@ BRANCH_POLICY_PATTERN = re.compile(r"\*\*Branch Policy\*\*:\s*(.+)")
 TEMPLATE_METADATA_POLICY_PATH = Path(
     os.environ.get(
         "CODEX_TEMPLATE_METADATA_POLICY_PATH",
-        REPO_ROOT / "templates" / "metadata" / "template-metadata-policy.json",
+        REPO_STRUCTURE.template_metadata_policy_path,
     )
 )
 
@@ -1133,17 +1149,17 @@ def validate_continuation_requirements(plan_details: PlanDetails) -> List[Valida
 
     guard_dir = CONTINUATION_GUARD_DIR
     if not guard_dir.exists():
-        issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), 'Continuation guard directory missing reports/session-continuation/', entry='Create reports/session-continuation/ and store guard logs (e.g. guard-<timestamp>.txt).'))
+        issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), f'Continuation guard directory missing {CONTINUATION_GUARD_REL}/', entry=f'Create {CONTINUATION_GUARD_REL}/ and store guard logs (e.g. guard-<timestamp>.txt).'))
     else:
         logs = sorted(p for p in guard_dir.glob('guard-*.txt') if p.is_file())
         if not logs:
-            issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), 'No continuation guard logs found (expected guard-<timestamp>.txt)', entry='Run `python3 scripts/codex-guard validate --include-untracked` and keep the resulting log under reports/session-continuation/'))
+            issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), 'No continuation guard logs found (expected guard-<timestamp>.txt)', entry=f'Run `python3 scripts/codex-guard validate --include-untracked` and keep the resulting log under {CONTINUATION_GUARD_REL}/'))
 
     tracker_path = get_active_tracker_path()
     try:
         tracker_text = tracker_path.read_text(encoding='utf-8')
     except FileNotFoundError:
-        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing for continuation validation', entry='Ensure docs/ai/work-tracking/active/.../TRACKER.md exists before resuming.'))
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing for continuation validation', entry=f'Ensure {WORK_TRACKING_RELATIVE.as_posix()}/.../TRACKER.md exists before resuming.'))
     else:
         if 'continuation-validation' not in tracker_text:
             issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker missing continuation validation entry', entry='Log validation in the tracker (S:... |H:continuation-validation|E:guard log).'))
@@ -1153,12 +1169,12 @@ def validate_continuation_requirements(plan_details: PlanDetails) -> List[Valida
         try:
             session_text = session_path.read_text(encoding='utf-8')
         except FileNotFoundError:
-            issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), 'Session file referenced by sessions/current missing', entry='Recreate sessions/current symlink to an existing session log.'))
+            issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), f'Session file referenced by {SESSIONS_CURRENT_REL} missing', entry=f'Recreate {SESSIONS_CURRENT_REL} symlink to an existing session log.'))
         else:
-            if 'continuation-validation' not in session_text and 'reports/session-continuation/guard-' not in session_text:
+            if 'continuation-validation' not in session_text and f'{CONTINUATION_GUARD_REL}/guard-' not in session_text:
                 issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), 'Session log missing continuation validation or guard evidence entry', entry='Add S:W:H:E entry referencing continuation validation and guard log.'))
     else:
-        issues.append(ValidationIssue(Path('sessions/current'), 'sessions/current link missing for continuation validation', entry='Link sessions/current to the active session (e.g. ln -sf YYYY/MM/session-id.md sessions/current).'))
+        issues.append(ValidationIssue(Path(SESSIONS_CURRENT_REL), f'{SESSIONS_CURRENT_REL} link missing for continuation validation', entry=f'Link {SESSIONS_CURRENT_REL} to the active session (e.g. ln -sf YYYY/MM/session-id.md {SESSIONS_CURRENT_REL}).'))
 
     return issues
 
@@ -1187,7 +1203,7 @@ def get_current_branch() -> Optional[str]:
 def get_active_tracker_path() -> Path:
     candidates = [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
     if not candidates:
-        raise SystemExit('No ACTIVE work-tracking folder found under docs/ai/work-tracking/active/')
+        raise SystemExit(f'No ACTIVE work-tracking folder found under {WORK_TRACKING_RELATIVE.as_posix()}/')
     if len(candidates) > 1:
         names = ", ".join(p.name for p in candidates)
         raise SystemExit(f"Multiple ACTIVE work-tracking folders found ({names}); specify via override or clean up")
@@ -1207,7 +1223,7 @@ def _display_path(path: Path) -> Path:
 def _session_state_relevant(entries: List[tuple[str, str]], changed_paths: Iterable[Path]) -> bool:
     for status, path_fragment in entries:
         cleaned = path_fragment.split('->', 1)[1].strip() if '->' in path_fragment else path_fragment.strip()
-        if cleaned in {'sessions/current', 'sessions/state.json'}:
+        if cleaned in {SESSIONS_CURRENT_REL, SESSION_STATE_REL}:
             return True
     for path in changed_paths:
         try:
@@ -1377,10 +1393,10 @@ def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[Validati
             relative = path.relative_to(REPO_ROOT)
         except ValueError:
             continue
-        if relative == Path('.taskmaster/tasks/tasks.json'):
+        if relative == Path(TASKMASTER_TASKS_JSON_REL):
             taskmaster_changed = True
             break
-        if len(relative.parts) >= 3 and relative.parts[0] == '.taskmaster' and relative.parts[1] == 'tasks':
+        if len(relative.parts) >= len(Path(TASKMASTER_TASKS_REL).parts) and tuple(relative.parts[: len(Path(TASKMASTER_TASKS_REL).parts)]) == Path(TASKMASTER_TASKS_REL).parts:
             if re.fullmatch(r'task_\d+\.txt', relative.name):
                 taskmaster_changed = True
                 break
@@ -1391,9 +1407,9 @@ def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[Validati
     if CURRENT_SESSION_PATH is None:
         issues.append(
             ValidationIssue(
-                Path('sessions/current'),
-                'Taskmaster files changed but sessions/current is missing or invalid',
-                entry='Point sessions/current at the active session and log the Taskmaster change there.',
+                Path(SESSIONS_CURRENT_REL),
+                f'Taskmaster files changed but {SESSIONS_CURRENT_REL} is missing or invalid',
+                entry=f'Point {SESSIONS_CURRENT_REL} at the active session and log the Taskmaster change there.',
             )
         )
     else:
@@ -1413,7 +1429,7 @@ def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[Validati
                     ValidationIssue(
                         _display_path(CURRENT_SESSION_PATH),
                         'Taskmaster files changed but the current session lacks a Taskmaster activity entry',
-                        entry='Add an S:W:H:E entry with H:task-master:* or evidence pointing to .taskmaster/tasks/*.json/*.txt.',
+                        entry=f'Add an S:W:H:E entry with H:task-master:* or evidence pointing to {TASKMASTER_TASKS_REL}/*.json/*.txt.',
                     )
                 )
 
@@ -1422,7 +1438,7 @@ def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[Validati
     except SystemExit as exc:
         issues.append(
             ValidationIssue(
-                Path('docs/ai/work-tracking/active'),
+                WORK_TRACKING_RELATIVE,
                 f'Taskmaster files changed but active tracker lookup failed: {exc}',
                 entry='Ensure exactly one ACTIVE work-tracking folder exists and log the Taskmaster change in its tracker.',
             )
@@ -1446,7 +1462,7 @@ def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[Validati
             ValidationIssue(
                 _display_path(tracker_path),
                 'Taskmaster files changed but tracker lacks a same-day Taskmaster activity entry',
-                entry='Log the Taskmaster update in TRACKER.md using H:task-master:* and evidence under .taskmaster/tasks/...',
+                entry=f'Log the Taskmaster update in TRACKER.md using H:task-master:* and evidence under {TASKMASTER_TASKS_REL}/...',
             )
         )
 
@@ -1887,7 +1903,7 @@ def guard_validate(args: argparse.Namespace) -> int:
 
     plan_path = resolve_plan_path()
     if plan_path is None:
-        all_issues.append(ValidationIssue(Path('plans/current'), 'Active plan symlink missing or invalid'))
+        all_issues.append(ValidationIssue(Path(PLAN_CURRENT_REL), 'Active plan symlink missing or invalid'))
     else:
         plan_issues, plan_details = validate_plan(plan_path)
         all_issues.extend(plan_issues)
@@ -1908,7 +1924,7 @@ def guard_validate(args: argparse.Namespace) -> int:
             print('\nHints:')
             for hint in hints:
                 print(f"  * {hint}")
-            print('\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.')
+            print(f'\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under {CONTINUATION_GUARD_REL}/.')
             print('For CI enforcement see .github/workflows/meta-workflow-guard.yml.')
         return 1
 
@@ -1925,7 +1941,7 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser.set_defaults(func=guard_validate)
 
     drift_parser = subparsers.add_parser("drift-check", help="Scan canonical docs and templates for enforcement drift")
-    drift_parser.add_argument("--report-dir", default="reports/template-drift", help="Directory for generated drift reports")
+    drift_parser.add_argument("--report-dir", default=REPO_STRUCTURE.drift_report_dir.relative_to(REPO_ROOT).as_posix(), help="Directory for generated drift reports")
     drift_parser.add_argument("--report", help="Optional explicit text report output path")
     drift_parser.add_argument("--json-out", help="Optional explicit JSON report output path")
     drift_parser.add_argument("--strict", action="store_true", help="Exit nonzero when drift findings are present")

@@ -27,6 +27,7 @@ Use this module before deep-work tasks to confirm the Codex runtime matches expe
 - Confirm current working directory (expect `/home/loucmane/codex`).
 - Verify required folders exist: `templates/`, `.codex/`, `scripts/`, any task-specific directories.
 - If you need write access to new paths, note the request in the plan.
+- If the repo uses non-default workflow roots, inspect `[repo_structure]` in `.codex/config.toml` before running guard/task helpers.
 
 ## 4. Authentication & Secrets
 - Ensure required env vars (e.g., `OPENAI_API_KEY`) are present for the configured model provider.
@@ -36,9 +37,21 @@ Use this module before deep-work tasks to confirm the Codex runtime matches expe
 - If using `codex-wrapper`, run `codex --dry-run -- resume` (or equivalent) to validate:
   - `CODEX_HOME` points at this project’s `.codex/` directory.
   - `auth.json` linking mode is correct (symlink vs copy).
-  - Agent catalog status is understood (warning noted or file supplied).
+- Agent catalog status is understood (warning noted or file supplied).
 
 Document any discrepancies before continuing with ULTRATHINK planning. EOF
+
+## 6. Repo Structure Configuration
+- Review `.codex/config.toml` for a `[repo_structure]` section when portability work is in scope.
+- Default layout in this repo:
+  - `templates/`
+  - `sessions/`
+  - `plans/`
+  - `.plan_state/`
+  - `.taskmaster/`
+  - `docs/ai/work-tracking/`
+  - `reports/`
+- If these roots differ in another project, the workflow scripts should follow the config rather than hardcoded assumptions.
 
 ## Progress Log
 

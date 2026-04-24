@@ -1,6 +1,6 @@
 # Task ID: 98
 # Title: Externalize Repo Structure Configuration
-# Status: pending
+# Status: in-progress
 # Dependencies: 97
 # Priority: medium
 # Description: Move hardcoded repo-structure assumptions into repo-local configuration so the enforcement foundation can adapt to different project layouts.

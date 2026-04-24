@@ -1,0 +1,49 @@
+🏷️ tag: master
+
+╭──────────────────────────────────────────────────────╮
+│ Task: #98 - Externalize Repo Structure Configuration │
+╰──────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 98                                                         │
+│ Title:        │ Externalize Repo Structure Configuration                   │
+│ Status:       │ ✓ done                                                     │
+│ Priority:     │ medium                                                     │
+│ Dependencies: │ 97                                                         │
+│ Complexity:   │ N/A                                                        │
+│ Description:  │ Move hardcoded repo-structure assumptions into repo-local  │
+│               │ configuration so the enforcement foundation can adapt to   │
+│               │ different project layouts.                                 │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Extract assumptions from scripts/codex-guard and related helpers into        │
+│ config-driven settings, including template roots, session roots, plan roots, │
+│ work-tracking roots, archive naming rules, and any path-based enforcement    │
+│ toggles. Update consuming helpers to read configuration instead of hardcoded │
+│ repository paths, and capture the expected config contract in supporting     │
+│ docs.                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────╮
+│ No subtasks found. Consider breaking down this task: │
+│ Run: task-master expand --id=98                      │
+╰──────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=98 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=98 --status=done │
+│ 3. Break down into subtasks: task-master expand --id=98                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
