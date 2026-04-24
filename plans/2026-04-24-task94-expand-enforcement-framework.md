@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description                                                      | Evidence                                                                                              | Status    |
 |---------------------|------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|-----------|
 | plan-step-scope     | Review enforcement framework draft, portability roadmap, and current backlog shape | docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/designs/enforcement-framework-audit.md | completed |
-| plan-step-implement | Sequence the enforcement roadmap, update framework docs, and align follow-on tasks | docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify    | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Sequence the enforcement roadmap, update framework docs, and align follow-on tasks | docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify    | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260424-task94-expand-enforcement-framework-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required                             | Waiver + post-mortem plan                                                                             | n/a       |
 
 ## Scope
@@ -46,6 +46,8 @@ emergency_bypass: false
 ## Amendments & Versioning
 - 2026-04-24 - Fresh Task 94 kickoff after Task 93 completion and merge.
 - 2026-04-24 - Scope audit completed: Task 94 remains a framework sequencing/documentation bridge, with no dependency changes required for Tasks 95-102.
+- 2026-04-24 - Framework documentation, automation roadmap, and backlog coordination notes completed; Taskmaster status can now be verified against the documented outcome.
+- 2026-04-24 - Verification completed: plan sync passed, guard passed, and Taskmaster shows Task 94 plus subtasks 94.1-94.5 as done.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

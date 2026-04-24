@@ -7721,7 +7721,7 @@
         "dependencies": [
           "93"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -7729,7 +7729,7 @@
             "description": "Confirm scope and priorities for enforcement enhancements.",
             "dependencies": [],
             "details": "Confirm scope and priorities for enforcement enhancements.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Framework outline approved.",
             "parentId": "undefined"
           },
@@ -7739,7 +7739,7 @@
             "description": "Coordinate execution order for drift detection, wizard, dashboard.",
             "dependencies": [],
             "details": "Coordinate execution order for drift detection, wizard, dashboard.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Execution plan documented.",
             "parentId": "undefined"
           },
@@ -7749,7 +7749,7 @@
             "description": "Reflect guard chain progress and future enhancements.",
             "dependencies": [],
             "details": "Reflect guard chain progress and future enhancements.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated.",
             "parentId": "undefined"
           },
@@ -7759,7 +7759,7 @@
             "description": "Outline automation/CI/dashboard integration for enforcement metrics.",
             "dependencies": [],
             "details": "Outline automation/CI/dashboard integration for enforcement metrics.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Roadmap published.",
             "parentId": "undefined"
           },
@@ -7769,7 +7769,7 @@
             "description": "Ensure enhancement tasks have owners and evidence tracking.",
             "dependencies": [],
             "details": "Ensure enhancement tasks have owners and evidence tracking.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Backlog tracker updated.",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T11:29:03.375Z"
+      "updated": "2026-04-24T11:53:51.024Z"
     }
   }
 }
