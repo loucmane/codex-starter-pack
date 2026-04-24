@@ -72,6 +72,7 @@ GAC_REQUIRED_RESPONSE_MARKERS = (
     "full-gac-command",
     "message-payload-only",
 )
+DRIFT_REQUIRED_GUARD_COMMANDS = {"validate", "drift-check"}
 
 
 def should_ignore_relative(relative: Path) -> bool:
@@ -144,6 +145,26 @@ class ValidationIssue:
         if self.entry:
             return f"{prefix} | entry: {self.entry}"
         return prefix
+
+
+@dataclass
+class DriftFinding:
+    category: str
+    path: Path
+    message: str
+    blocking: bool = True
+    detail: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, object]:
+        payload: Dict[str, object] = {
+            "category": self.category,
+            "path": self.path.as_posix(),
+            "message": self.message,
+            "blocking": self.blocking,
+        }
+        if self.detail:
+            payload["detail"] = self.detail
+        return payload
 
 
 def collect_git_status_entries(include_untracked: bool) -> List[tuple[str, str]]:
@@ -1625,6 +1646,197 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
     return issues
 
 
+def iter_repo_markdown_files() -> List[Path]:
+    skipped_roots = {".git", ".venv", "venv", "node_modules", "__pycache__"}
+    files: List[Path] = []
+    for path in REPO_ROOT.rglob("*.md"):
+        if not path.is_file():
+            continue
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if any(part in skipped_roots for part in relative.parts):
+            continue
+        files.append(path)
+    return sorted(files)
+
+
+def collect_template_metadata_drift() -> List[DriftFinding]:
+    findings: List[DriftFinding] = []
+    for path in iter_repo_markdown_files():
+        relative = path.relative_to(REPO_ROOT)
+        if should_ignore_relative(relative):
+            continue
+        if select_template_metadata_rule(relative) is None:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue
+        for issue in validate_template_metadata(relative, text):
+            findings.append(
+                DriftFinding(
+                    category="template-metadata",
+                    path=issue.path,
+                    message=issue.message,
+                    blocking=True,
+                    detail=issue.entry,
+                )
+            )
+    return findings
+
+
+def collect_canonical_doc_drift() -> List[DriftFinding]:
+    findings: List[DriftFinding] = []
+    canonical_docs = sorted(GAC_RESPONSE_MODE_DOCS | GAC_SUMMARY_DOCS)
+    for relative in canonical_docs:
+        absolute = REPO_ROOT / relative
+        if not absolute.exists():
+            findings.append(
+                DriftFinding(
+                    category="canonical-doc",
+                    path=relative,
+                    message="Canonical guidance document is missing",
+                    blocking=True,
+                )
+            )
+            continue
+        try:
+            text = absolute.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            findings.append(
+                DriftFinding(
+                    category="canonical-doc",
+                    path=relative,
+                    message="Canonical guidance document could not be read",
+                    blocking=True,
+                )
+            )
+            continue
+        for issue in validate_gac_guidance(relative, text):
+            findings.append(
+                DriftFinding(
+                    category="canonical-doc",
+                    path=issue.path,
+                    message=issue.message,
+                    blocking=True,
+                    detail=issue.entry,
+                )
+            )
+    return findings
+
+
+def get_guard_subcommand_names(parser: argparse.ArgumentParser) -> Set[str]:
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return set(action.choices.keys())
+    return set()
+
+
+def collect_command_surface_drift() -> List[DriftFinding]:
+    parser = build_parser()
+    commands = get_guard_subcommand_names(parser)
+    findings: List[DriftFinding] = []
+    for command in sorted(DRIFT_REQUIRED_GUARD_COMMANDS - commands):
+        findings.append(
+            DriftFinding(
+                category="command-surface",
+                path=Path("scripts/codex-guard"),
+                message=f"Required guard subcommand '{command}' is missing from the live command surface",
+                blocking=True,
+            )
+        )
+    return findings
+
+
+def collect_drift_findings() -> List[DriftFinding]:
+    findings = []
+    findings.extend(collect_canonical_doc_drift())
+    findings.extend(collect_template_metadata_drift())
+    findings.extend(collect_command_surface_drift())
+    return sorted(findings, key=lambda item: (item.category, item.path.as_posix(), item.message))
+
+
+def render_drift_report(findings: List[DriftFinding], generated_at: str) -> str:
+    lines = [
+        "Template drift report",
+        "",
+        f"Generated: {generated_at}",
+        f"Findings: {len(findings)}",
+        "",
+    ]
+    if not findings:
+        lines.append("No drift findings detected.")
+        return "\n".join(lines) + "\n"
+
+    counts: Dict[str, int] = {}
+    for finding in findings:
+        counts[finding.category] = counts.get(finding.category, 0) + 1
+
+    lines.append("Counts by category:")
+    for category in sorted(counts):
+        lines.append(f"- {category}: {counts[category]}")
+    lines.append("")
+    lines.append("Findings:")
+    for finding in findings:
+        level = "blocking" if finding.blocking else "warning"
+        line = f"- [{finding.category}] [{level}] {finding.path.as_posix()} — {finding.message}"
+        lines.append(line)
+        if finding.detail:
+            lines.append(f"  detail: {finding.detail}")
+    return "\n".join(lines) + "\n"
+
+
+def _resolve_output_path(raw: Optional[str]) -> Optional[Path]:
+    if not raw:
+        return None
+    path = Path(raw)
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def determine_drift_output_paths(args: argparse.Namespace, timestamp: str) -> Tuple[Optional[Path], Optional[Path]]:
+    report_dir = _resolve_output_path(args.report_dir)
+    if report_dir:
+        report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = _resolve_output_path(args.report)
+    json_path = _resolve_output_path(args.json_out)
+    if report_path is None and report_dir is not None:
+        report_path = report_dir / f"summary-{timestamp}.txt"
+    if json_path is None and report_dir is not None:
+        json_path = report_dir / f"summary-{timestamp}.json"
+    return report_path, json_path
+
+
+def guard_drift_check(args: argparse.Namespace) -> int:
+    now = datetime.now().astimezone()
+    generated_at = now.isoformat()
+    timestamp = now.strftime("%Y%m%d-%H%M%S")
+    findings = collect_drift_findings()
+    report_text = render_drift_report(findings, generated_at)
+    sys.stdout.write(report_text)
+
+    report_path, json_path = determine_drift_output_paths(args, timestamp)
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(report_text, encoding="utf-8")
+        print(f"Saved text report to {report_path.relative_to(REPO_ROOT)}")
+    if json_path is not None:
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "generated_at": generated_at,
+            "finding_count": len(findings),
+            "categories": sorted({finding.category for finding in findings}),
+            "findings": [finding.to_dict() for finding in findings],
+        }
+        json_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"Saved JSON report to {json_path.relative_to(REPO_ROOT)}")
+
+    if args.strict and findings:
+        return 1
+    return 0
+
+
 def guard_validate(args: argparse.Namespace) -> int:
     entries = collect_git_status_entries(args.include_untracked)
     changed_files = compute_changed_files(entries, args.include_untracked)
@@ -1711,6 +1923,13 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser = subparsers.add_parser("validate", help="Validate S:W:H:E compliance in changed files")
     validate_parser.add_argument("--include-untracked", action="store_true", help="Include untracked markdown files")
     validate_parser.set_defaults(func=guard_validate)
+
+    drift_parser = subparsers.add_parser("drift-check", help="Scan canonical docs and templates for enforcement drift")
+    drift_parser.add_argument("--report-dir", default="reports/template-drift", help="Directory for generated drift reports")
+    drift_parser.add_argument("--report", help="Optional explicit text report output path")
+    drift_parser.add_argument("--json-out", help="Optional explicit JSON report output path")
+    drift_parser.add_argument("--strict", action="store_true", help="Exit nonzero when drift findings are present")
+    drift_parser.set_defaults(func=guard_drift_check)
 
     return parser
 
