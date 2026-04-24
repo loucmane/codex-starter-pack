@@ -34,6 +34,7 @@ REQUIRED_FILES=(
   "templates/engine/navigation/template-protocol.md"
   "templates/engine/structure/template-system.md"
   "templates/engine/validation/ENFORCEMENT-SUMMARY.md"
+  "templates/engine/validation/foundation-adoption-guide.md"
   "templates/engine/validation/integration-guide.md"
   "templates/engine/validation/validation-framework.md"
 )
@@ -49,6 +50,7 @@ FRONTMATTER_CHECKS=(
   "templates/engine/examples/practical.md|id|practical-examples|engine-component"
   "templates/engine/navigation/common-flows.md|id|common-request-flows|engine-component"
   "templates/engine/structure/template-system.md|id|template-system-structure|engine-component"
+  "templates/engine/validation/foundation-adoption-guide.md|name|foundation-adoption-guide|documentation"
   "templates/engine/validation/integration-guide.md|name|integration-guide|documentation"
   "templates/engine/validation/validation-framework.md|name|validation-framework|enforcement"
 )
@@ -57,14 +59,18 @@ DISCOVERY_REFERENCES=(
   "templates/registry/index.json|templates/engine/core/session-resolver.md"
   "templates/registry/index.json|templates/engine/enforcement/behavioral-hooks.md"
   "templates/registry/index.json|templates/engine/navigation/template-protocol.md"
+  "templates/registry/index.json|templates/engine/validation/foundation-adoption-guide.md"
   "templates/registry/index.json|templates/engine/validation/integration-guide.md"
   "templates/registry/index.json|templates/engine/validation/validation-framework.md"
   "templates/metadata/template-inventory.txt|templates/engine/core/codex-readiness.md"
   "templates/metadata/template-inventory.txt|templates/engine/core/session-resolver.md"
   "templates/metadata/template-inventory.txt|templates/engine/enforcement/behavioral-hooks.md"
+  "templates/metadata/template-inventory.txt|templates/engine/validation/foundation-adoption-guide.md"
   "templates/metadata/template-overview.md|templates/engine/core/session-resolver.md"
+  "templates/metadata/template-overview.md|templates/engine/validation/foundation-adoption-guide.md"
   "templates/metadata/template-overview.md|templates/engine/validation/validation-framework.md"
   "templates/metadata/template-summary.csv|templates/engine/core/session-resolver.md"
+  "templates/metadata/template-summary.csv|templates/engine/validation/foundation-adoption-guide.md"
   "templates/metadata/template-summary.csv|templates/engine/validation/validation-framework.md"
 )
 

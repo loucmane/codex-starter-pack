@@ -198,6 +198,16 @@
     "goodFirstHandler": false
   },
   {
+    "id": "engine-validation-foundation-adoption-guide",
+    "path": "templates/engine/validation/foundation-adoption-guide.md",
+    "tags": [
+      "engine",
+      "validation",
+      "foundation-adoption-guide"
+    ],
+    "goodFirstHandler": false
+  },
+  {
     "id": "engine-validation-integration-guide",
     "path": "templates/engine/validation/integration-guide.md",
     "tags": [

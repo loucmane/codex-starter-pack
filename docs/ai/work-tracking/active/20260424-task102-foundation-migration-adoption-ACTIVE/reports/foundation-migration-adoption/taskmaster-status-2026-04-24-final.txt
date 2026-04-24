@@ -1,0 +1,49 @@
+🏷️ tag: master
+
+╭─────────────────────────────────────────────────────────╮
+│ Task: #102 - Document Foundation Migration and Adoption │
+╰─────────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 102                                                        │
+│ Title:        │ Document Foundation Migration and Adoption                 │
+│ Status:       │ ✓ done                                                     │
+│ Priority:     │ medium                                                     │
+│ Dependencies: │ 101                                                        │
+│ Complexity:   │ N/A                                                        │
+│ Description:  │ Write the migration and adoption guidance for applying the │
+│               │ shared foundation to both existing repositories and        │
+│               │ brand-new projects.                                        │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Document how to adopt the portable foundation in a new repository, how to    │
+│ migrate an existing repository onto the new config/policy model, what the    │
+│ minimal required setup is, and which optional layers can be adopted later.   │
+│ Ensure the guidance reflects the portable specification, bootstrap layer,    │
+│ and cross-project fixture findings.                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────╮
+│ No subtasks found. Consider breaking down this task: │
+│ Run: task-master expand --id=102                     │
+╰──────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=102 --status=in-progress │
+│ 2. Mark as done when completed: task-master set-status --id=102              │
+│ --status=done                                                                │
+│ 3. Break down into subtasks: task-master expand --id=102                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

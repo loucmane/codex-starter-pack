@@ -65,6 +65,7 @@ templates/engine/navigation/common-flows.md,common-request-flows,engine-componen
 templates/engine/navigation/template-protocol.md,,,,,Template Navigation Protocol,no
 templates/engine/structure/template-system.md,template-system-structure,engine-component,,,Template System Structure,yes
 templates/engine/validation/ENFORCEMENT-SUMMARY.md,,,,,ULTRATHINK Enforcement System - Implementation Summary,no
+templates/engine/validation/foundation-adoption-guide.md,foundation-adoption-guide,documentation,stable,,Portable Foundation Migration and Adoption Guide,yes
 templates/engine/validation/integration-guide.md,integration-guide,documentation,,,ULTRATHINK Enforcement Integration Guide,yes
 templates/engine/validation/validation-framework.md,validation-framework,enforcement,,,Validation Framework,yes
 templates/engine/verify-phase1.sh,,,,,!/bin/bash,no

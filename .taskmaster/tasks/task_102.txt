@@ -1,6 +1,6 @@
 # Task ID: 102
 # Title: Document Foundation Migration and Adoption
-# Status: pending
+# Status: in-progress
 # Dependencies: 101
 # Priority: medium
 # Description: Write the migration and adoption guidance for applying the shared foundation to both existing repositories and brand-new projects.

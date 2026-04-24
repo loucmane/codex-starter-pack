@@ -8027,7 +8027,7 @@
         "description": "Write the migration and adoption guidance for applying the shared foundation to both existing repositories and brand-new projects.",
         "details": "Document how to adopt the portable foundation in a new repository, how to migrate an existing repository onto the new config/policy model, what the minimal required setup is, and which optional layers can be adopted later. Ensure the guidance reflects the portable specification, bootstrap layer, and cross-project fixture findings.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           101
         ],
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T18:59:00.492Z"
+      "updated": "2026-04-24T19:50:13.157Z"
     }
   }
 }

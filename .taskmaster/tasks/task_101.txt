@@ -1,6 +1,6 @@
 # Task ID: 101
 # Title: Add Cross-Project Compatibility Fixtures
-# Status: in-progress
+# Status: done
 # Dependencies: 100
 # Priority: medium
 # Description: Verify that the foundation works across multiple repository shapes instead of only this repo's structure.
