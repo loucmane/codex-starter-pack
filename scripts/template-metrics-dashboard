@@ -16,14 +16,20 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-REPORT_DIR = REPO_ROOT / "reports" / "template-metrics"
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from _repo_structure import load_repo_structure
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+REPORT_DIR = REPO_STRUCTURE.metrics_report_dir
 DEFAULT_REPORT_DIR = "reports/template-metrics"
-TASKMASTER_PATH = REPO_ROOT / ".taskmaster" / "tasks" / "tasks.json"
-PLAN_SYNC_LOG = REPO_ROOT / ".plan_state" / "sync.log"
-DRIFT_REPORT_DIR = REPO_ROOT / "reports" / "template-drift"
-WORK_TRACKING_ACTIVE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
-WORK_TRACKING_ARCHIVE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "archive"
-SESSIONS_DIR = REPO_ROOT / "sessions"
+TASKMASTER_PATH = REPO_STRUCTURE.taskmaster_tasks_json
+PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
+DRIFT_REPORT_DIR = REPO_STRUCTURE.drift_report_dir
+WORK_TRACKING_ACTIVE = REPO_STRUCTURE.work_tracking_active_root
+WORK_TRACKING_ARCHIVE = REPO_STRUCTURE.work_tracking_archive_root
+SESSIONS_DIR = REPO_STRUCTURE.sessions_root
 
 
 def load_codex_guard():

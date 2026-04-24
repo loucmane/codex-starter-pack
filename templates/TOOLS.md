@@ -71,6 +71,10 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
+Repo-structure note:
+- `scripts/codex-task` now derives its operational roots from `[repo_structure]` in `.codex/config.toml`.
+- Defaults still map to this repo’s current layout (`sessions/`, `plans/`, `.taskmaster/`, `docs/ai/work-tracking/`, `reports/`), but alternate repositories can override those roots without editing the script.
+
 Wizard guidance:
 - Use `python3 scripts/codex-task wizard kickoff --task <id>` when starting a new task on a feature branch that already matches `feat/task-<id>...`.
 - The wizard is intentionally narrow: it handles kickoff safely, but it does not replace Serena memory capture or later implementation logging.
@@ -87,6 +91,10 @@ Run `scripts/codex-guard validate [--include-untracked]` before handoff/compacti
 - Canonical GAC guidance distinguishes `full-gac-command` from `message-payload-only` and uses the multi-line `Summary:` block.
 Roadmap: `--auto-fix` skeletons (document TODOs in work-tracking).
 
+Repo-structure note:
+- `scripts/codex-guard` reads `[repo_structure]` from `.codex/config.toml` to resolve session roots, plan roots, Taskmaster roots, work-tracking roots, report directories, and the template metadata policy path.
+- Keep the configured roots repo-local and relative unless there is a deliberate reason to point at an absolute path.
+
 Task 92 expanded this guard coverage to turn recurring workflow mistakes into enforceable checks. When adding new guard rules, update the relevant template/convention docs and add targeted regression coverage in `tests/meta_workflow_guard/test_guard_rules.py`.
 
 ### `scripts/template-metrics-dashboard`
@@ -95,6 +103,9 @@ Repo-level metrics generator for workflow/template health. Use it to refresh:
 - `reports/template-metrics/latest.json`
 
 Inputs come from Taskmaster state, template-drift reports, plan-sync history, work-tracking folders, session logs, and the existing `codex-guard` metadata helpers. Run it locally before closeout when Task 97-style metrics changes are in scope, and keep CI artifact upload aligned with the output directory.
+
+Repo-structure note:
+- The metrics generator also reads `[repo_structure]` from `.codex/config.toml`, so alternate repos can relocate Taskmaster, reports, sessions, and work-tracking without patching the script.
 
 ### `view_image`
 Limited to image previews. Document file path and purpose.

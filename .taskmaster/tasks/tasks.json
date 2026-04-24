@@ -7975,7 +7975,7 @@
         "description": "Move hardcoded repo-structure assumptions into repo-local configuration so the enforcement foundation can adapt to different project layouts.",
         "details": "Extract assumptions from scripts/codex-guard and related helpers into config-driven settings, including template roots, session roots, plan roots, work-tracking roots, archive naming rules, and any path-based enforcement toggles. Update consuming helpers to read configuration instead of hardcoded repository paths, and capture the expected config contract in supporting docs.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           97
         ],
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T13:50:50.402Z"
+      "updated": "2026-04-24T17:02:12.755Z"
     }
   }
 }
