@@ -1,0 +1,22 @@
+Bootstrap target: /tmp/task100-bootstrap-demo
+created:
+  - file: .codex/config.toml
+  - dir: templates
+  - dir: templates/metadata
+  - dir: sessions
+  - dir: plans
+  - dir: .plan_state
+  - dir: .taskmaster
+  - dir: .taskmaster/tasks
+  - dir: .taskmaster/docs
+  - dir: .taskmaster/reports
+  - dir: docs/ai/work-tracking
+  - dir: docs/ai/work-tracking/active
+  - dir: docs/ai/work-tracking/archive
+  - dir: reports
+  - dir: reports/template-drift
+  - dir: reports/template-metrics
+  - dir: reports/session-continuation
+  - dir: .codex/bootstrap
+  - file: templates/metadata/template-metadata-policy.json
+  - file: .codex/bootstrap/FOUNDATION-SETUP.md

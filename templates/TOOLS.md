@@ -65,6 +65,7 @@ Lightweight structured plan tracker. Use it to:
 
 ### `scripts/codex-task`
 Local CLI for S:W:H:E scaffolding. Subcommands:
+- `bootstrap init` – scaffold starter portable-foundation assets into a target repo without overwriting existing config/policy files unless `--force` is passed.
 - `sessions update` – append to active session progress log.
 - `work-tracking update` – append to ACTIVE docs (default `TRACKER`).
 - `wizard kickoff` – guided task startup that scaffolds work tracking, creates a compliant session + plan, updates `sessions/current` / `plans/current` / `sessions/state.json`, seeds plan sync, and marks the Taskmaster task `in-progress`.
@@ -74,6 +75,11 @@ Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preser
 Repo-structure note:
 - `scripts/codex-task` now derives its operational roots from `[repo_structure]` in `.codex/config.toml`.
 - Defaults still map to this repo’s current layout (`sessions/`, `plans/`, `.taskmaster/`, `docs/ai/work-tracking/`, `reports/`), but alternate repositories can override those roots without editing the script.
+
+Bootstrap guidance:
+- Use `python3 scripts/codex-task bootstrap init --target-dir <repo>` to seed `.codex/config.toml`, the starter metadata policy, bootstrap setup notes, and the missing workflow roots in a new or existing repository.
+- Existing `.codex/config.toml` and metadata policy files are preserved by default so adoption stays migration-safe; pass `--force` only when you explicitly want to refresh starter files.
+- Override repo roots with `--templates-root`, `--sessions-root`, `--plans-root`, `--plan-state-dir`, `--taskmaster-root`, `--work-tracking-root`, or `--reports-root` when the target repository should not use the defaults.
 
 Wizard guidance:
 - Use `python3 scripts/codex-task wizard kickoff --task <id>` when starting a new task on a feature branch that already matches `feat/task-<id>...`.

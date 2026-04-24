@@ -10,3 +10,4 @@
 - Commit the Task 99 branch changes, including the Task 98 archive rollover.
 - Open and merge the Task 99 PR after CI passes.
 - Start Task 100 on a fresh branch after the normal archive rollover for the Task 99 active folder.
+- Archived on 2026-04-24 19:24 CEST — Folder moved to archive and tracker marked COMPLETED.
