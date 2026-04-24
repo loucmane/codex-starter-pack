@@ -89,6 +89,13 @@ Roadmap: `--auto-fix` skeletons (document TODOs in work-tracking).
 
 Task 92 expanded this guard coverage to turn recurring workflow mistakes into enforceable checks. When adding new guard rules, update the relevant template/convention docs and add targeted regression coverage in `tests/meta_workflow_guard/test_guard_rules.py`.
 
+### `scripts/template-metrics-dashboard`
+Repo-level metrics generator for workflow/template health. Use it to refresh:
+- `reports/template-metrics/latest.md`
+- `reports/template-metrics/latest.json`
+
+Inputs come from Taskmaster state, template-drift reports, plan-sync history, work-tracking folders, session logs, and the existing `codex-guard` metadata helpers. Run it locally before closeout when Task 97-style metrics changes are in scope, and keep CI artifact upload aligned with the output directory.
+
 ### `view_image`
 Limited to image previews. Document file path and purpose.
 

@@ -7915,7 +7915,7 @@
           "95",
           "96"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -7923,7 +7923,7 @@
             "description": "Finalize schema for usage/compliance/guard metrics.",
             "dependencies": [],
             "details": "Finalize schema for usage/compliance/guard metrics.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Schema document published.",
             "parentId": "undefined"
           },
@@ -7933,7 +7933,7 @@
             "description": "Create tooling to parse guard logs, plan sync logs, task history.",
             "dependencies": [],
             "details": "Create tooling to parse guard logs, plan sync logs, task history.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Collector implemented.",
             "parentId": "undefined"
           },
@@ -7943,7 +7943,7 @@
             "description": "Generate dashboard or Markdown report summarizing metrics.",
             "dependencies": [],
             "details": "Generate dashboard or Markdown report summarizing metrics.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Dashboard/report stored in reports/metrics.",
             "parentId": "undefined"
           },
@@ -7953,7 +7953,7 @@
             "description": "Add maintenance process and alert thresholds.",
             "dependencies": [],
             "details": "Add maintenance process and alert thresholds.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated.",
             "parentId": "undefined"
           },
@@ -7963,7 +7963,7 @@
             "description": "Outline CI/cron integration for metrics refresh.",
             "dependencies": [],
             "details": "Outline CI/cron integration for metrics refresh.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Automation plan documented.",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T13:14:15.668Z"
+      "updated": "2026-04-24T13:50:50.402Z"
     }
   }
 }

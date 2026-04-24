@@ -1,6 +1,6 @@
 # Task ID: 97
 # Title: Create Template Metrics Dashboard
-# Status: pending
+# Status: in-progress
 # Dependencies: 94, 95, 96
 # Priority: medium
 # Description: Summarize template usage/compliance metrics via dashboard/report.

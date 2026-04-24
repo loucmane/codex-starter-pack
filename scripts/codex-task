@@ -182,7 +182,7 @@ def _build_session_lines(
     date_iso = now.strftime("%Y-%m-%d")
     time_label = now.strftime("%H:%M %Z")
     timestamp_full = now.strftime("%Y-%m-%d %H:%M:%S %Z %z")
-    session_value = session_id.replace("-", "")
+    session_value = now.strftime("%Y%m%d")
     pretty_title = f"Task {task_id} - {title}"
     return [
         "---",
@@ -219,6 +219,22 @@ def _build_session_lines(
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task {task_id} kickoff",
+    ]
+
+
+def _build_tracker_entries(
+    now: datetime,
+    task_id: str,
+    work_context: str,
+    tracker_relative: str,
+) -> List[str]:
+    session_value = now.strftime("%Y%m%d")
+    timestamp = now.strftime("%Y-%m-%d %H:%M")
+    return [
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M %Z\"`] Confirmed current timestamp as `{now.strftime('%Y-%m-%d %H:%M %Z')}`",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task {task_id} kickoff",
     ]
 
 
@@ -374,6 +390,11 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
     _symlink_to(SESSIONS_DIR / "current", session_path)
     _symlink_to(PLAN_CURRENT, plan_path)
     _write_session_state(session_path.name, now)
+    tracker_path = REPO_ROOT / tracker_relative
+    tracker_lines = _load_file_lines(tracker_path)
+    for entry in _build_tracker_entries(now, task_id, work_context, tracker_relative):
+        tracker_lines = _insert_progress_entry(tracker_lines, PROGRESS_HEADING_TRACKER, entry)
+    _write_file_lines(tracker_path, tracker_lines)
     handle_plan_sync(argparse.Namespace(plan=plan_path.relative_to(REPO_ROOT).as_posix(), tracker=tracker_relative, dry_run=False))
     _run_checked_command(["task-master", "set-status", f"--id={task_id}", "--status=in-progress"])
     _run_checked_command(["task-master", "generate"])

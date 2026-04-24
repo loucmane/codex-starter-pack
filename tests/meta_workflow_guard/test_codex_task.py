@@ -118,7 +118,9 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
 
     tracker_text = (active_folder / "TRACKER.md").read_text(encoding="utf-8")
     assert "Define the scope and workflow boundary for Interactive Template Wizard" in tracker_text
+    assert "[S:20260424|W:task96-interactive-template-wizard|H:task-master:set-status|E:.taskmaster/tasks/tasks.json]" in tracker_text
     session_text = session_path.read_text(encoding="utf-8")
+    assert "[S:20260424|W:task96-interactive-template-wizard|H:shell:date|" in session_text
     assert "Marked Taskmaster Task 96 in progress" in session_text
     plan_text = plan_path.read_text(encoding="utf-8")
     assert "scripts/codex-task" in plan_text

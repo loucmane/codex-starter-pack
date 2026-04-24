@@ -1,0 +1,2 @@
+Wrote metrics dashboard to reports/template-metrics/latest.md
+Wrote metrics JSON to reports/template-metrics/latest.json

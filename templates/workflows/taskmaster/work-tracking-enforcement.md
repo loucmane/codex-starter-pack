@@ -30,6 +30,7 @@ Formalize the seven-file work-tracking process so every session captures tracker
 3. **Enforce guard coverage**
    - `python3 scripts/codex-guard validate --include-untracked` before/after significant edits.
    - Guard now fails if tracker lacks today’s entry, findings/decisions/changelog are stale, or no Serena memory reference is present.
+   - When dashboard/reporting automation changes, refresh repo-level metrics with `python3 scripts/template-metrics-dashboard` so CI and local evidence use the same output directory.
 4. **Capture Serena memory each session**
    - `serena.write_memory` for the day → log via `codex-task sessions update --handler serena/memory` and tracker entry.
 5. **Update documentation + implementation checklist**
@@ -55,6 +56,7 @@ Formalize the seven-file work-tracking process so every session captures tracker
 - `codex-task work-tracking scaffold --task <id> --slug <slug>` → creates full structure.
 - `codex-task work-tracking update --preset findings --handler auto --evidence <path> --note "..."` → appends standardized entries.
 - `codex-task work-tracking audit` → highlights stale active folders or missing `sessions/current` link.
+- `python3 scripts/template-metrics-dashboard` → refreshes the repo-level metrics snapshot under `reports/template-metrics/`.
 
 ## Evidence Checklist
 - Session log covering scaffold, guard runs, plan syncs, helper usage, tests.
