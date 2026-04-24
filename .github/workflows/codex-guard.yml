@@ -18,3 +18,11 @@ jobs:
         run: python3 scripts/codex-task plan sync
       - name: Run codex guard
         run: python3 scripts/codex-guard validate --include-untracked
+      - name: Run template drift check
+        run: python3 scripts/codex-guard drift-check --strict
+      - name: Upload drift artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-guard-template-drift
+          path: reports/template-drift/

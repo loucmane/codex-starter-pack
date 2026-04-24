@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.machinery
 import importlib.util
+import json
 import os
 import sys
 from pathlib import Path
@@ -805,3 +807,84 @@ def test_validate_swhe_entries_flags_placeholder_outside_code_fence() -> None:
         expected_session='20250920',
     )
     assert any('placeholder state' in issue.message for issue in issues)
+
+
+def test_collect_template_metadata_drift_reports_issues(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    target = tmp_path / 'templates' / 'handlers' / 'example.md'
+    target.parent.mkdir(parents=True)
+    target.write_text(
+        """---
+id: sample
+---
+""",
+        encoding='utf-8',
+    )
+    fake_rule = module.TemplateMetadataRule(
+        name='handlers',
+        include=['templates/handlers/**/*.md'],
+        exclude=[],
+        required_keys=['title', 'type', 'status'],
+        frontmatter='required',
+        enforce=True,
+    )
+    monkeypatch.setattr(module, 'REPO_ROOT', tmp_path)
+    monkeypatch.setattr(module, 'iter_repo_markdown_files', lambda: [target])
+    monkeypatch.setattr(module, 'select_template_metadata_rule', lambda path: fake_rule)
+    findings = module.collect_template_metadata_drift()
+    messages = [finding.message for finding in findings]
+    assert any("missing required key 'title'" in message for message in messages)
+    assert all(finding.category == 'template-metadata' for finding in findings)
+
+
+def test_collect_canonical_doc_drift_flags_missing_doc(monkeypatch) -> None:
+    module = load_guard_module()
+    missing = Path('templates/missing-canonical.md')
+    monkeypatch.setattr(module, 'GAC_RESPONSE_MODE_DOCS', {missing})
+    monkeypatch.setattr(module, 'GAC_SUMMARY_DOCS', set())
+    findings = module.collect_canonical_doc_drift()
+    assert any(finding.path == missing and 'missing' in finding.message.lower() for finding in findings)
+
+
+def test_collect_command_surface_drift_flags_missing_subcommand(monkeypatch) -> None:
+    module = load_guard_module()
+
+    def parser_without_drift():
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers(dest='command', required=True)
+        subparsers.add_parser('validate')
+        return parser
+
+    monkeypatch.setattr(module, 'build_parser', parser_without_drift)
+    findings = module.collect_command_surface_drift()
+    assert any("drift-check" in finding.message for finding in findings)
+
+
+def test_guard_drift_check_writes_reports(monkeypatch, tmp_path, capsys) -> None:
+    module = load_guard_module()
+    report_dir = tmp_path / 'reports' / 'template-drift'
+    finding = module.DriftFinding(
+        category='template-metadata',
+        path=Path('templates/handlers/example.md'),
+        message='Example drift',
+        blocking=True,
+    )
+    monkeypatch.setattr(module, 'collect_drift_findings', lambda: [finding])
+    monkeypatch.setattr(module, 'REPO_ROOT', tmp_path)
+    args = argparse.Namespace(
+        report_dir='reports/template-drift',
+        report=None,
+        json_out=None,
+        strict=True,
+    )
+    result = module.guard_drift_check(args)
+    captured = capsys.readouterr()
+    assert result == 1
+    assert 'Template drift report' in captured.out
+    text_reports = sorted(report_dir.glob('summary-*.txt'))
+    json_reports = sorted(report_dir.glob('summary-*.json'))
+    assert text_reports, 'expected drift text report'
+    assert json_reports, 'expected drift json report'
+    payload = json.loads(json_reports[0].read_text(encoding='utf-8'))
+    assert payload['finding_count'] == 1
+    assert payload['findings'][0]['message'] == 'Example drift'

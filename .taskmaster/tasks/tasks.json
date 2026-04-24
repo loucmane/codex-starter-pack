@@ -7785,7 +7785,7 @@
         "dependencies": [
           "94"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -7793,7 +7793,7 @@
             "description": "Review design draft and confirm scope, heuristics, output format.",
             "dependencies": [],
             "details": "Review design draft and confirm scope, heuristics, output format.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Design signed off.",
             "parentId": "undefined"
           },
@@ -7803,7 +7803,7 @@
             "description": "Build script integrating with codex-guard scanning.",
             "dependencies": [],
             "details": "Build script integrating with codex-guard scanning.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Script added under scripts/drift_detection.py.",
             "parentId": "undefined"
           },
@@ -7813,7 +7813,7 @@
             "description": "Capture outputs under reports/template-drift/ with README.",
             "dependencies": [],
             "details": "Capture outputs under reports/template-drift/ with README.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Reports directory populated.",
             "parentId": "undefined"
           },
@@ -7823,7 +7823,7 @@
             "description": "Verify drift detection accuracy via automated tests.",
             "dependencies": [],
             "details": "Verify drift detection accuracy via automated tests.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/enforcement/test_drift_detection.py",
             "parentId": "undefined"
           },
@@ -7833,7 +7833,7 @@
             "description": "Document CI/cron integration for drift reports.",
             "dependencies": [],
             "details": "Document CI/cron integration for drift reports.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Automation plan documented.",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T11:53:51.024Z"
+      "updated": "2026-04-24T12:24:09.954Z"
     }
   }
 }

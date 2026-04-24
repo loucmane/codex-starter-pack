@@ -1,6 +1,6 @@
 # Task ID: 94
 # Title: Expand Enforcement Framework
-# Status: in-progress
+# Status: done
 # Dependencies: 93
 # Priority: medium
 # Description: Coordinate enforcement enhancements (drift detection, wizard, metrics dashboard) following guard expansion.
@@ -11,31 +11,31 @@ Keeps enforcement roadmap aligned with new guard chain.
 Framework documentation updated and enhancement plan sequenced.
 
 # Subtasks:
-## 1. Review enforcement framework draft [pending]
+## 1. Review enforcement framework draft [done]
 ### Dependencies: None
 ### Description: Confirm scope and priorities for enforcement enhancements.
 ### Details:
 Confirm scope and priorities for enforcement enhancements.
 
-## 2. Sequence enhancement tasks [pending]
+## 2. Sequence enhancement tasks [done]
 ### Dependencies: None
 ### Description: Coordinate execution order for drift detection, wizard, dashboard.
 ### Details:
 Coordinate execution order for drift detection, wizard, dashboard.
 
-## 3. Update framework documentation [pending]
+## 3. Update framework documentation [done]
 ### Dependencies: None
 ### Description: Reflect guard chain progress and future enhancements.
 ### Details:
 Reflect guard chain progress and future enhancements.
 
-## 4. Plan automation roadmap [pending]
+## 4. Plan automation roadmap [done]
 ### Dependencies: None
 ### Description: Outline automation/CI/dashboard integration for enforcement metrics.
 ### Details:
 Outline automation/CI/dashboard integration for enforcement metrics.
 
-## 5. Coordinate backlog tracking [pending]
+## 5. Coordinate backlog tracking [done]
 ### Dependencies: None
 ### Description: Ensure enhancement tasks have owners and evidence tracking.
 ### Details:

@@ -1,0 +1,65 @@
+🏷️ tag: master
+
+╭────────────────────────────────────────────────╮
+│ Task: #95 - Implement Template Drift Detection │
+╰────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 95                                                         │
+│ Title:        │ Implement Template Drift Detection                         │
+│ Status:       │ ✓ done                                                     │
+│ Priority:     │ medium                                                     │
+│ Dependencies: │ 94                                                         │
+│ Complexity:   │ N/A                                                        │
+│ Description:  │ Add drift detection tooling and integrate with             │
+│               │ guard/automation.                                          │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────╮
+│ Implementation Details:                      │
+│                                              │
+│ Helps monitor template divergence over time. │
+╰──────────────────────────────────────────────╯
+
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ Test Strategy:                                                              │
+│                                                                             │
+│ Drift detection script executed with guard integration and evidence stored. │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌──────────┬───────────────┬──────────────────────────────────────────────────┬─────────────────────────┐
+│ ID       │ Status        │ Title                                            │ Deps                    │
+│ 95.1     │ done          │ Finalize drift detection design                  │ None                    │
+│ 95.2     │ done          │ Implement drift detection script                 │ None                    │
+│ 95.3     │ done          │ Store drift reports                              │ None                    │
+│ 95.4     │ done          │ Add regression tests                             │ None                    │
+│ 95.5     │ done          │ Plan automation                                  │ None                    │
+└──────────┴───────────────┴──────────────────────────────────────────────────┴─────────────────────────┘
+
+╭────────────────────────────────────────────────────────────────────╮
+│ Subtask Progress:                                                  │
+│                                                                    │
+│ Completed: 5/5 (100.0%)                                            │
+│ ✓ Done: 5  ► In Progress: 0  ○ Pending: 0                          │
+│ ! Blocked: 0  ⏱ Deferred: 0  ✗ Cancelled: 0                       │
+│ Progress: ████████████████████████████████████ 100%                │
+╰────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=95 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=95 --status=done │
+│ 3. Update subtask status: task-master set-status --id=95.1 --status=done     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
