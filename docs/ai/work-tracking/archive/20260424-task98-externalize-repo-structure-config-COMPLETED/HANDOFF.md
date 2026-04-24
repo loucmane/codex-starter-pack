@@ -11,3 +11,4 @@
 - Commit the Task 98 branch changes, including the Task 97 archive rollover and Task 96 plan normalization.
 - Open and merge the Task 98 PR after CI passes.
 - Start Task 99 on a fresh branch after the normal archive rollover for the Task 98 active folder.
+- Archived on 2026-04-24 19:08 CEST — Folder moved to archive and tracker marked COMPLETED.
