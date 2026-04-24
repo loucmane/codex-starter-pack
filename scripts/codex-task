@@ -18,7 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
-from _repo_structure import load_repo_structure
+from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
 
 REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
 SESSIONS_DIR = REPO_STRUCTURE.sessions_root
@@ -58,6 +58,8 @@ TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REP
 SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
 PLANS_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
 SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
+BOOTSTRAP_SETUP_REL = ".codex/bootstrap/FOUNDATION-SETUP.md"
+BOOTSTRAP_STRUCTURE_KEYS = tuple(DEFAULT_REPO_STRUCTURE.keys())
 
 
 def _slugify(value: str) -> str:
@@ -77,6 +79,13 @@ def _load_file_lines(path: Path) -> List[str]:
 def _write_file_lines(path: Path, lines: Iterable[str]) -> None:
     content = "\n".join(lines) + "\n"
     path.write_text(content, encoding="utf-8")
+
+
+def _relative_to_root(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def _symlink_to(link_path: Path, target_path: Path) -> None:
@@ -175,6 +184,196 @@ def _run_checked_command(cmd: List[str]) -> None:
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or f"Command failed: {' '.join(cmd)}"
         raise TaskError(message)
+
+
+def _target_path(target_root: Path, raw_value: str) -> Path:
+    path = Path(raw_value)
+    if not path.is_absolute():
+        path = target_root / path
+    return path.resolve()
+
+
+def _repo_structure_from_values(target_root: Path, values: Dict[str, str]) -> RepoStructure:
+    return RepoStructure(
+        repo_root=target_root.resolve(),
+        templates_root=_target_path(target_root, values["templates_root"]),
+        sessions_root=_target_path(target_root, values["sessions_root"]),
+        plans_root=_target_path(target_root, values["plans_root"]),
+        plan_state_dir=_target_path(target_root, values["plan_state_dir"]),
+        taskmaster_root=_target_path(target_root, values["taskmaster_root"]),
+        work_tracking_root=_target_path(target_root, values["work_tracking_root"]),
+        reports_root=_target_path(target_root, values["reports_root"]),
+    )
+
+
+def _bootstrap_values_from_args(args: argparse.Namespace) -> Dict[str, str]:
+    values = dict(DEFAULT_REPO_STRUCTURE)
+    for key in BOOTSTRAP_STRUCTURE_KEYS:
+        override = getattr(args, key, None)
+        if override:
+            values[key] = override
+    return values
+
+
+def _render_bootstrap_config(values: Dict[str, str]) -> str:
+    lines = [
+        "# Portable foundation bootstrap config",
+        "# Review and adjust repo-local roots before broad adoption.",
+        "",
+        "[repo_structure]",
+    ]
+    for key in BOOTSTRAP_STRUCTURE_KEYS:
+        lines.append(f'{key} = "{values[key]}"')
+    return "\n".join(lines) + "\n"
+
+
+def _render_bootstrap_setup_doc(target_root: Path, structure: RepoStructure) -> str:
+    lines = [
+        "# Foundation Bootstrap Setup",
+        "",
+        "This repository has been scaffolded with the portable Codex foundation starter assets.",
+        "",
+        "## Created Starter Assets",
+        "",
+        f"- `.codex/config.toml` — repo-local workflow roots for `{target_root.name or target_root.as_posix()}`",
+        f"- `{_relative_to_root(structure.template_metadata_policy_path, target_root)}` — starter metadata policy",
+        f"- `{_relative_to_root(structure.sessions_root, target_root)}/` — session root",
+        f"- `{_relative_to_root(structure.plans_root, target_root)}/` — plan root",
+        f"- `{_relative_to_root(structure.taskmaster_root, target_root)}/` — Taskmaster root scaffold",
+        f"- `{_relative_to_root(structure.work_tracking_root, target_root)}/` — work-tracking root scaffold",
+        f"- `{_relative_to_root(structure.reports_root, target_root)}/` — reports root scaffold",
+        "",
+        "## Next Steps",
+        "",
+        "1. Review `.codex/config.toml` and adjust `[repo_structure]` to match this repository if needed.",
+        "2. Review the metadata policy at the configured template path before enabling broad enforcement.",
+        "3. Initialize or reconcile Taskmaster content for this repository if it is part of the workflow.",
+        "4. Start the first task on a `feat/task-<id>-...` branch with `python3 scripts/codex-task wizard kickoff --task <id>`.",
+        "",
+        "## Migration Safety",
+        "",
+        "- Existing config and policy files are preserved unless bootstrap is re-run with `--force`.",
+        "- Existing workflow directories are treated as valid inputs and are not removed.",
+        "- Re-run bootstrap after changing repo roots if you need the starter layout refreshed.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _record_bootstrap_result(results: List[Tuple[str, str, str]], kind: str, path: Path, status: str, root: Path) -> None:
+    results.append((kind, _relative_to_root(path, root), status))
+
+
+def _ensure_directory(path: Path, root: Path, results: List[Tuple[str, str, str]], dry_run: bool) -> None:
+    if path.exists():
+        if not path.is_dir():
+            raise TaskError(f"Expected directory but found file: {path}")
+        _record_bootstrap_result(results, "dir", path, "existing", root)
+        return
+    if dry_run:
+        _record_bootstrap_result(results, "dir", path, "would-create", root)
+        return
+    path.mkdir(parents=True, exist_ok=True)
+    _record_bootstrap_result(results, "dir", path, "created", root)
+
+
+def _write_bootstrap_file(
+    path: Path,
+    content: str,
+    *,
+    force: bool,
+    root: Path,
+    results: List[Tuple[str, str, str]],
+    dry_run: bool,
+) -> None:
+    existed = path.exists()
+    if existed and not force:
+        _record_bootstrap_result(results, "file", path, "existing", root)
+        return
+    if dry_run:
+        _record_bootstrap_result(results, "file", path, "would-update" if existed else "would-create", root)
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    _record_bootstrap_result(results, "file", path, "updated" if existed else "created", root)
+
+
+def handle_bootstrap_init(args: argparse.Namespace) -> None:
+    target_root = Path(args.target_dir).expanduser()
+    if not target_root.is_absolute():
+        target_root = (REPO_ROOT / target_root).resolve()
+    else:
+        target_root = target_root.resolve()
+
+    if not args.dry_run:
+        target_root.mkdir(parents=True, exist_ok=True)
+
+    target_config = target_root / ".codex" / "config.toml"
+    bootstrap_values = _bootstrap_values_from_args(args)
+    should_write_config = args.force or not target_config.exists()
+    structure = _repo_structure_from_values(target_root, bootstrap_values) if should_write_config else load_repo_structure(target_root)
+
+    results: List[Tuple[str, str, str]] = []
+
+    _write_bootstrap_file(
+        target_config,
+        _render_bootstrap_config(bootstrap_values),
+        force=args.force,
+        root=target_root,
+        results=results,
+        dry_run=args.dry_run,
+    )
+
+    directories = [
+        structure.templates_root,
+        structure.template_metadata_policy_path.parent,
+        structure.sessions_root,
+        structure.plans_root,
+        structure.plan_state_dir,
+        structure.taskmaster_root,
+        structure.taskmaster_tasks_dir,
+        structure.taskmaster_root / "docs",
+        structure.taskmaster_root / "reports",
+        structure.work_tracking_root,
+        structure.work_tracking_active_root,
+        structure.work_tracking_archive_root,
+        structure.reports_root,
+        structure.drift_report_dir,
+        structure.metrics_report_dir,
+        structure.continuation_guard_dir,
+        (target_root / BOOTSTRAP_SETUP_REL).parent,
+    ]
+    for directory in directories:
+        _ensure_directory(directory, target_root, results, args.dry_run)
+
+    policy_source = REPO_STRUCTURE.template_metadata_policy_path
+    policy_content = policy_source.read_text(encoding="utf-8")
+    _write_bootstrap_file(
+        structure.template_metadata_policy_path,
+        policy_content,
+        force=args.force,
+        root=target_root,
+        results=results,
+        dry_run=args.dry_run,
+    )
+
+    _write_bootstrap_file(
+        target_root / BOOTSTRAP_SETUP_REL,
+        _render_bootstrap_setup_doc(target_root, structure),
+        force=args.force,
+        root=target_root,
+        results=results,
+        dry_run=args.dry_run,
+    )
+
+    status_order = ("created", "updated", "existing", "would-create", "would-update")
+    print(f"Bootstrap target: {target_root}")
+    for status in status_order:
+        matching = [(kind, rel) for kind, rel, item_status in results if item_status == status]
+        if not matching:
+            continue
+        print(f"{status}:")
+        for kind, rel in matching:
+            print(f"  - {kind}: {rel}")
 
 
 def _validate_branch_for_task(branch: str, task_id: str) -> None:
@@ -1023,6 +1222,20 @@ def build_parser() -> argparse.ArgumentParser:
     plan_sync.add_argument("--plan", help=f"Explicit plan file path (default: {PLANS_CURRENT_REL})")
     plan_sync.add_argument("--tracker", help="Explicit tracker file path (default: active tracker)")
     plan_sync.set_defaults(func=handle_plan_sync)
+
+    bootstrap_parser = subparsers.add_parser("bootstrap", help="Portable foundation bootstrap operations")
+    bootstrap_sub = bootstrap_parser.add_subparsers(dest="subcommand", required=True)
+    bootstrap_init = bootstrap_sub.add_parser("init", help="Scaffold starter foundation assets into a target repository")
+    bootstrap_init.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    bootstrap_init.add_argument("--force", action="store_true", help="Overwrite existing starter files")
+    bootstrap_init.add_argument("--templates-root", help="Repo-local templates root override")
+    bootstrap_init.add_argument("--sessions-root", help="Repo-local sessions root override")
+    bootstrap_init.add_argument("--plans-root", help="Repo-local plans root override")
+    bootstrap_init.add_argument("--plan-state-dir", help="Repo-local plan state directory override")
+    bootstrap_init.add_argument("--taskmaster-root", help="Repo-local Taskmaster root override")
+    bootstrap_init.add_argument("--work-tracking-root", help="Repo-local work-tracking root override")
+    bootstrap_init.add_argument("--reports-root", help="Repo-local reports root override")
+    bootstrap_init.set_defaults(func=handle_bootstrap_init)
 
     wizard_parser = subparsers.add_parser("wizard", help="Guided workflow operations")
     wizard_sub = wizard_parser.add_subparsers(dest="subcommand", required=True)

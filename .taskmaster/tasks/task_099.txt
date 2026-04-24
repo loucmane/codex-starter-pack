@@ -1,6 +1,6 @@
 # Task ID: 99
 # Title: Define Portable Foundation Specification
-# Status: in-progress
+# Status: done
 # Dependencies: 98
 # Priority: medium
 # Description: Write the reusable contract for the metadata, guard, session, and work-tracking foundation so core behavior is clearly separated from repo-local configuration.

@@ -52,11 +52,16 @@ Formalize the seven-file work-tracking process so every session captures tracker
 - Manual deletions of tracked ACTIVE folders fail unless archived via helper.
 
 ## Helper Shortcuts
+- `codex-task bootstrap init --target-dir <repo>` → seed portable-foundation starter assets in a new or existing repo without overwriting existing config/policy files unless `--force` is explicit.
 - `codex-task wizard kickoff --task <id>` → guided kickoff for a new task; creates the session, plan, active folder, current symlinks/state, and initial plan sync.
 - `codex-task work-tracking scaffold --task <id> --slug <slug>` → creates full structure.
 - `codex-task work-tracking update --preset findings --handler auto --evidence <path> --note "..."` → appends standardized entries.
 - `codex-task work-tracking audit` → highlights stale active folders or missing `sessions/current` link.
 - `python3 scripts/template-metrics-dashboard` → refreshes the repo-level metrics snapshot under `reports/template-metrics/`.
+
+Bootstrap note:
+- Bootstrap is the entrypoint for portable adoption; kickoff remains task-scoped. Use bootstrap first when a repository does not yet have `.codex/config.toml`, metadata policy, or workflow roots.
+- Bootstrap is intentionally migration-safe: existing starter files are skipped by default, while kickoff/archive/update flows continue to enforce same-day evidence once a repo is active.
 
 ## Evidence Checklist
 - Session log covering scaffold, guard runs, plan syncs, helper usage, tests.

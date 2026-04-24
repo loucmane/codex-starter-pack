@@ -127,3 +127,126 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
 
     assert ["task-master", "set-status", "--id=96", "--status=in-progress"] in commands
     assert ["task-master", "generate"] in commands
+
+
+def test_build_parser_accepts_bootstrap_init() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["bootstrap", "init", "--target-dir", "/tmp/bootstrap-target", "--templates-root", "ops/templates"])
+    assert args.command == "bootstrap"
+    assert args.subcommand == "init"
+    assert args.target_dir == "/tmp/bootstrap-target"
+    assert args.templates_root == "ops/templates"
+
+
+def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
+    module = load_task_module()
+    target = tmp_path / "storefront"
+    args = argparse.Namespace(
+        target_dir=str(target),
+        force=False,
+        templates_root=None,
+        sessions_root=None,
+        plans_root=None,
+        plan_state_dir=None,
+        taskmaster_root=None,
+        work_tracking_root=None,
+        reports_root=None,
+        dry_run=False,
+    )
+
+    module.handle_bootstrap_init(args)
+
+    config_path = target / ".codex" / "config.toml"
+    policy_path = target / "templates" / "metadata" / "template-metadata-policy.json"
+    setup_path = target / ".codex" / "bootstrap" / "FOUNDATION-SETUP.md"
+
+    assert config_path.exists()
+    assert policy_path.exists()
+    assert setup_path.exists()
+    assert "[repo_structure]" in config_path.read_text(encoding="utf-8")
+    assert '"required_keys"' in policy_path.read_text(encoding="utf-8")
+    assert "portable Codex foundation starter assets" in setup_path.read_text(encoding="utf-8")
+
+    assert (target / "sessions").is_dir()
+    assert (target / "plans").is_dir()
+    assert (target / ".plan_state").is_dir()
+    assert (target / ".taskmaster" / "tasks").is_dir()
+    assert (target / "docs" / "ai" / "work-tracking" / "active").is_dir()
+    assert (target / "docs" / "ai" / "work-tracking" / "archive").is_dir()
+    assert (target / "reports" / "template-drift").is_dir()
+    assert (target / "reports" / "template-metrics").is_dir()
+    assert (target / "reports" / "session-continuation").is_dir()
+
+
+def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
+    module = load_task_module()
+    target = tmp_path / "existing-repo"
+    (target / ".codex").mkdir(parents=True)
+    (target / "ops" / "templates" / "metadata").mkdir(parents=True)
+    existing_config = """
+[repo_structure]
+templates_root = "ops/templates"
+sessions_root = "ops/sessions"
+plans_root = "ops/plans"
+plan_state_dir = ".ops/plan-state"
+taskmaster_root = ".ops/taskmaster"
+work_tracking_root = "ops/work-tracking"
+reports_root = "ops/reports"
+""".strip() + "\n"
+    existing_policy = '{"version":"existing"}\n'
+    (target / ".codex" / "config.toml").write_text(existing_config, encoding="utf-8")
+    (target / "ops" / "templates" / "metadata" / "template-metadata-policy.json").write_text(existing_policy, encoding="utf-8")
+
+    args = argparse.Namespace(
+        target_dir=str(target),
+        force=False,
+        templates_root="ignored/templates",
+        sessions_root=None,
+        plans_root=None,
+        plan_state_dir=None,
+        taskmaster_root=None,
+        work_tracking_root=None,
+        reports_root=None,
+        dry_run=False,
+    )
+
+    module.handle_bootstrap_init(args)
+
+    assert (target / ".codex" / "config.toml").read_text(encoding="utf-8") == existing_config
+    assert (target / "ops" / "templates" / "metadata" / "template-metadata-policy.json").read_text(encoding="utf-8") == existing_policy
+    assert (target / "ops" / "sessions").is_dir()
+    assert (target / "ops" / "plans").is_dir()
+    assert (target / ".ops" / "plan-state").is_dir()
+    assert (target / ".ops" / "taskmaster" / "tasks").is_dir()
+    assert (target / "ops" / "work-tracking" / "active").is_dir()
+    assert (target / "ops" / "reports" / "template-drift").is_dir()
+
+
+def test_handle_bootstrap_init_force_overwrites_existing_starter_files(tmp_path) -> None:
+    module = load_task_module()
+    target = tmp_path / "force-repo"
+    (target / ".codex").mkdir(parents=True)
+    (target / "templates" / "metadata").mkdir(parents=True)
+    (target / ".codex" / "config.toml").write_text("[repo_structure]\ntemplates_root = \"legacy/templates\"\n", encoding="utf-8")
+    (target / "templates" / "metadata" / "template-metadata-policy.json").write_text('{"legacy":true}\n', encoding="utf-8")
+
+    args = argparse.Namespace(
+        target_dir=str(target),
+        force=True,
+        templates_root=None,
+        sessions_root=None,
+        plans_root=None,
+        plan_state_dir=None,
+        taskmaster_root=None,
+        work_tracking_root=None,
+        reports_root=None,
+        dry_run=False,
+    )
+
+    module.handle_bootstrap_init(args)
+
+    config_text = (target / ".codex" / "config.toml").read_text(encoding="utf-8")
+    policy_text = (target / "templates" / "metadata" / "template-metadata-policy.json").read_text(encoding="utf-8")
+    assert 'templates_root = "templates"' in config_text
+    assert '"required_keys"' in policy_text
