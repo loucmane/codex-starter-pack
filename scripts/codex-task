@@ -43,6 +43,7 @@ PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-veri
 PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
+SESSION_STATE_PATH = SESSIONS_DIR / "state.json"
 
 
 def _slugify(value: str) -> str:
@@ -64,12 +65,321 @@ def _write_file_lines(path: Path, lines: Iterable[str]) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _symlink_to(link_path: Path, target_path: Path) -> None:
+    link_path.parent.mkdir(parents=True, exist_ok=True)
+    if link_path.exists() or link_path.is_symlink():
+        link_path.unlink()
+    relative_target = Path(
+        *target_path.relative_to(link_path.parent).parts
+    ) if target_path.is_relative_to(link_path.parent) else Path(
+        *Path(
+            *(['..'] * len(link_path.parent.relative_to(REPO_ROOT).parts)),
+            *target_path.relative_to(REPO_ROOT).parts,
+        ).parts
+    )
+    link_path.symlink_to(relative_target)
+
+
 def _replace_line_with_prefix(lines: List[str], prefix: str, new_line: str) -> bool:
     for idx, line in enumerate(lines):
         if line.startswith(prefix):
             lines[idx] = new_line
             return True
     return False
+
+
+def _next_session_id(now: datetime) -> str:
+    date_prefix = now.strftime("%Y-%m-%d")
+    session_dir = SESSIONS_DIR / now.strftime("%Y") / now.strftime("%m")
+    session_dir.mkdir(parents=True, exist_ok=True)
+    pattern = re.compile(rf"^{re.escape(date_prefix)}-(\d{{3}})-")
+    max_suffix = 0
+    for candidate in session_dir.glob(f"{date_prefix}-*.md"):
+        match = pattern.match(candidate.name)
+        if match:
+            max_suffix = max(max_suffix, int(match.group(1)))
+    return f"{date_prefix}-{max_suffix + 1:03d}"
+
+
+def _task_file_path(task_id: str) -> Path:
+    token = int(task_id)
+    return REPO_ROOT / ".taskmaster" / "tasks" / f"task_{token:03d}.txt"
+
+
+def _load_task_metadata(task_id: str) -> Dict[str, str]:
+    task_file = _task_file_path(task_id)
+    data = {
+        "title": f"Task {task_id}",
+        "description": "",
+        "path": task_file.relative_to(REPO_ROOT).as_posix(),
+    }
+    if not task_file.exists():
+        return data
+    for raw in task_file.read_text(encoding="utf-8").splitlines():
+        if raw.startswith("# Title:"):
+            data["title"] = raw.split(":", 1)[1].strip()
+        elif raw.startswith("# Description:"):
+            data["description"] = raw.split(":", 1)[1].strip()
+    return data
+
+
+def _prompt_with_default(label: str, default: Optional[str] = None) -> str:
+    while True:
+        prompt = f"{label}"
+        if default:
+            prompt += f" [{default}]"
+        prompt += ": "
+        value = input(prompt).strip()
+        if value:
+            return value
+        if default is not None:
+            return default
+
+
+def _default_goals_for_title(title: str) -> List[str]:
+    return [
+        f"Define the scope and workflow boundary for {title}",
+        f"Implement {title} using the existing helper surface",
+        "Verify guard integration, documentation, and regression coverage",
+    ]
+
+
+def _write_session_state(current_session_name: str, now: datetime) -> None:
+    payload = {
+        "current": current_session_name,
+        "paused": [],
+        "updated_at": now.isoformat(timespec="seconds"),
+    }
+    SESSION_STATE_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _run_checked_command(cmd: List[str]) -> None:
+    result = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True)
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or f"Command failed: {' '.join(cmd)}"
+        raise TaskError(message)
+
+
+def _validate_branch_for_task(branch: str, task_id: str) -> None:
+    expected = f"feat/task-{task_id}"
+    if not branch.startswith(expected):
+        raise TaskError(
+            f"Current branch '{branch}' does not satisfy feature-required policy for task {task_id}; expected prefix '{expected}'"
+        )
+
+
+def _build_session_lines(
+    session_id: str,
+    now: datetime,
+    task_id: str,
+    title: str,
+    branch: str,
+    source: str,
+    task_file_relative: str,
+    work_context: str,
+    tracker_relative: str,
+) -> List[str]:
+    date_iso = now.strftime("%Y-%m-%d")
+    time_label = now.strftime("%H:%M %Z")
+    timestamp_full = now.strftime("%Y-%m-%d %H:%M:%S %Z %z")
+    session_value = session_id.replace("-", "")
+    pretty_title = f"Task {task_id} - {title}"
+    return [
+        "---",
+        f"session_id: {session_id}",
+        f"date: {date_iso}",
+        f"time: {time_label}",
+        f"title: {pretty_title}",
+        "---",
+        "",
+        f"## Session: {date_iso} {time_label}",
+        "**AI Assistant**: Codex GPT-5.4",
+        "**Developer**: loucmane",
+        f"**Task**: Start Task {task_id} via the guided kickoff flow and establish compliant session, plan, and work-tracking state for {title}.",
+        f"**Task Source**: {source}",
+        "",
+        "### Session Validation",
+        f"- [x] Date confirmed (`date '+%Y-%m-%d %H:%M:%S %Z %z'` -> `{timestamp_full}`)",
+        f"- [x] Git branch checked (`{branch}`)",
+        f"- [x] Taskmaster task reviewed (`{task_file_relative}`)",
+        "",
+        "### Session Goals",
+        f"- [x] Start a fresh Task {task_id} session on the Task {task_id} branch.",
+        f"- [x] Scaffold Task {task_id} work tracking.",
+        f"- [x] Repoint `sessions/current` and `plans/current` to Task {task_id}.",
+        f"- [x] Mark Taskmaster Task {task_id} in progress.",
+        f"- [ ] Review the design baseline and implementation boundary for {title}.",
+        "- [ ] Capture implementation and verification evidence.",
+        "",
+        "### Starting Context",
+        f"Task {task_id} was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, and work-tracking scaffolding in a guard-compliant state before implementation began.",
+        "",
+        "### 📝 Progress Log",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M:%S %Z %z\"`] Confirmed current timestamp as `{timestamp_full}`",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task {task_id} kickoff",
+    ]
+
+
+def _build_plan_lines(
+    session_id: str,
+    task_id: str,
+    title: str,
+    work_context: str,
+    handler_target: str,
+    tracker_relative: str,
+    task_file_relative: str,
+    branch: str,
+) -> List[str]:
+    return [
+        "---",
+        f"session_id: {session_id}",
+        f"work_context: {work_context}",
+        f"handler_target: {handler_target}",
+        f"task_ids: [{task_id}]",
+        "branch_policy: feature-required",
+        "evidence_summary:",
+        f"  - {tracker_relative.rsplit('/', 1)[0]}/",
+        f"  - {handler_target}",
+        f"  - {task_file_relative}",
+        f"  - {Path('scripts/codex-task').as_posix()}",
+        "plan_version: v1",
+        "emergency_bypass: false",
+        "---",
+        "",
+        f"# Plan - Task {task_id} {title}",
+        "",
+        "## Header",
+        f"- **Session ID (S)**: {session_id}",
+        f"- **Work Context (W)**: {work_context}",
+        f"- **Handler Target (H)**: {handler_target}",
+        f"- **Task IDs**: {task_id}",
+        "- **Branch Policy**: feature-required",
+        f"- **Evidence Summary (E)**: {tracker_relative.rsplit('/', 1)[0]}/, {handler_target}, {task_file_relative}, scripts/codex-task",
+        "- **Plan Version**: v1",
+        "- **Emergency Bypass**: false",
+        "",
+        "## Plan Table",
+        "| Step ID             | Description | Evidence | Status |",
+        "|---------------------|-------------|----------|--------|",
+        f"| plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for {title} | {tracker_relative.rsplit('/', 1)[0]}/designs/wizard-flow.md | pending |",
+        f"| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for {title} | scripts/codex-task; {tracker_relative.rsplit('/', 1)[0]}/IMPLEMENTATION.md | pending |",
+        f"| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | {tracker_relative.rsplit('/', 1)[0]}/HANDOFF.md; {tracker_relative} | pending |",
+        "| plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |",
+        "",
+        "## Scope",
+        f"- `{tracker_relative.rsplit('/', 1)[0]}/`",
+        f"- `{handler_target}`",
+        f"- `{task_file_relative}`",
+        "- `scripts/codex-task`",
+        "- `tests/`",
+        f"- Taskmaster Task `{task_id}`",
+        "",
+        "## Branch Policy",
+        f"- Working branch: `{branch}`",
+        "",
+        "## Amendments & Versioning",
+        f"- {datetime.now().date().isoformat()} - Task {task_id} kickoff created via the guided wizard flow.",
+        "",
+        "## Continuation & Handoff",
+        "- Next owner: loucmane (default)",
+        "- Context reload steps:",
+        "  1. Read `sessions/current` and this plan.",
+        f"  2. Review Taskmaster Task {task_id} and its subtasks.",
+        "  3. Review the wizard design artifact before changing helper behavior.",
+        "  4. Run `python3 scripts/codex-task plan sync` after tracker updates.",
+        "- Outstanding risks/todos: keep the wizard grounded in the existing helper commands rather than creating a parallel workflow engine.",
+        "",
+        "## Conflict & Scope Declaration",
+        "- Related plans: Tasks 94-95 enforcement groundwork, Task 97 dashboard follow-on.",
+        "- Guard cross-check: wizard flows must preserve plan/tracker/session compliance as the default path.",
+        "",
+        "## Evidence Checklist",
+        "- Wizard design note under `designs/`",
+        "- Tracker/session entries for kickoff and implementation progress",
+        "- Stored test and guard evidence once the wizard implementation lands",
+        "",
+        "## Emergency Bypass Protocol",
+        "- No bypass authorized.",
+    ]
+
+
+def handle_wizard_kickoff(args: argparse.Namespace) -> None:
+    now = datetime.now().astimezone()
+    task_id = args.task or _prompt_with_default("Task ID")
+    task_meta = _load_task_metadata(task_id)
+    title = args.title or _prompt_with_default("Task title", task_meta["title"])
+    slug = _slugify(args.slug or _prompt_with_default("Task slug", _slugify(title)))
+    goals = args.goal or _default_goals_for_title(title)
+    source = args.task_source or f"Guided kickoff for Task {task_id}"
+    task_file_relative = task_meta["path"]
+    handler_target = args.handler_target or task_file_relative
+    work_context = f"task{task_id}-{slug}"
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip() or f"feat/task-{task_id}-{slug}"
+    _validate_branch_for_task(branch, task_id)
+
+    scaffold_args = argparse.Namespace(
+        task=task_id,
+        slug=slug,
+        title=title,
+        goal=goals,
+        force=args.force,
+        dry_run=args.dry_run,
+    )
+    handle_work_tracking_scaffold(scaffold_args)
+
+    session_id = _next_session_id(now)
+    session_dir = SESSIONS_DIR / now.strftime("%Y") / now.strftime("%m")
+    session_path = session_dir / f"{session_id}-task{task_id}-{slug}.md"
+    plan_path = REPO_ROOT / "plans" / f"{now.strftime('%Y-%m-%d')}-task{task_id}-{slug}.md"
+    tracker_relative = (WORK_TRACKING_BASE / f"{now.strftime('%Y%m%d')}-task{task_id}-{slug}-ACTIVE" / "TRACKER.md").relative_to(REPO_ROOT).as_posix()
+
+    session_lines = _build_session_lines(
+        session_id=session_id,
+        now=now,
+        task_id=task_id,
+        title=title,
+        branch=branch,
+        source=source,
+        task_file_relative=task_file_relative,
+        work_context=work_context,
+        tracker_relative=tracker_relative,
+    )
+    plan_lines = _build_plan_lines(
+        session_id=session_id,
+        task_id=task_id,
+        title=title,
+        work_context=work_context,
+        handler_target=handler_target,
+        tracker_relative=tracker_relative,
+        task_file_relative=task_file_relative,
+        branch=branch,
+    )
+
+    if args.dry_run:
+        print(f"Would create session {session_path.relative_to(REPO_ROOT)}")
+        print(f"Would create plan {plan_path.relative_to(REPO_ROOT)}")
+        return
+
+    session_dir.mkdir(parents=True, exist_ok=True)
+    _write_file_lines(session_path, session_lines)
+    _write_file_lines(plan_path, plan_lines)
+    _symlink_to(SESSIONS_DIR / "current", session_path)
+    _symlink_to(PLAN_CURRENT, plan_path)
+    _write_session_state(session_path.name, now)
+    handle_plan_sync(argparse.Namespace(plan=plan_path.relative_to(REPO_ROOT).as_posix(), tracker=tracker_relative, dry_run=False))
+    _run_checked_command(["task-master", "set-status", f"--id={task_id}", "--status=in-progress"])
+    _run_checked_command(["task-master", "generate"])
+    print(f"Created session: {session_path.relative_to(REPO_ROOT)}")
+    print(f"Created plan: {plan_path.relative_to(REPO_ROOT)}")
+    print("Repointed sessions/current, plans/current, and sessions/state.json")
 
 
 def _resolve_plan_path(override: Optional[str] = None) -> Path:
@@ -675,6 +985,18 @@ def build_parser() -> argparse.ArgumentParser:
     plan_sync.add_argument("--plan", help="Explicit plan file path (default: plans/current)")
     plan_sync.add_argument("--tracker", help="Explicit tracker file path (default: active tracker)")
     plan_sync.set_defaults(func=handle_plan_sync)
+
+    wizard_parser = subparsers.add_parser("wizard", help="Guided workflow operations")
+    wizard_sub = wizard_parser.add_subparsers(dest="subcommand", required=True)
+    wizard_kickoff = wizard_sub.add_parser("kickoff", help="Interactively scaffold a task session, plan, and work-tracking state")
+    wizard_kickoff.add_argument("--task", help="Task ID (numeric)")
+    wizard_kickoff.add_argument("--slug", help="Slug for session/plan/work-tracking naming")
+    wizard_kickoff.add_argument("--title", help="Human-readable task title")
+    wizard_kickoff.add_argument("--goal", action="append", help="Goal checklist item (repeatable)")
+    wizard_kickoff.add_argument("--task-source", help="Human-readable source line for the session metadata")
+    wizard_kickoff.add_argument("--handler-target", help="Primary handler target/path for the generated plan")
+    wizard_kickoff.add_argument("--force", action="store_true", help="Allow kickoff even if another ACTIVE folder exists")
+    wizard_kickoff.set_defaults(func=handle_wizard_kickoff)
 
     scanner_parser = subparsers.add_parser("scanner", help="SSOT scanner operations")
     scanner_sub = scanner_parser.add_subparsers(dest="subcommand", required=True)

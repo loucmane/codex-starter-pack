@@ -1,0 +1,127 @@
+"""Unit tests for codex-task wizard helpers."""
+
+from __future__ import annotations
+
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import sys
+from datetime import datetime
+from pathlib import Path
+
+
+def load_task_module():
+    name = "codex_task_test_module"
+    if name in sys.modules:
+        del sys.modules[name]
+    path = Path("scripts/codex-task")
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[loader.name] = module
+    loader.exec_module(module)
+    return module
+
+
+class FakeCompletedProcess:
+    def __init__(self, returncode: int = 0, stdout: str = "", stderr: str = "") -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+class FixedDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        base = cls(2026, 4, 24, 15, 3, 13)
+        if tz is None:
+            return base
+        return base.replace(tzinfo=tz)
+
+
+def test_build_parser_accepts_wizard_kickoff() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["wizard", "kickoff", "--task", "96", "--slug", "interactive-template-wizard"])
+    assert args.command == "wizard"
+    assert args.subcommand == "kickoff"
+    assert args.task == "96"
+
+
+def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    task_dir = repo / ".taskmaster" / "tasks"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    task_dir.mkdir(parents=True)
+
+    task_file = task_dir / "task_096.txt"
+    task_file.write_text(
+        "# Task ID: 96\n# Title: Build Interactive Template Wizard\n# Description: Create a wizard CLI.\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", repo / ".plan_state")
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", repo / ".plan_state" / "sync.log")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    commands = []
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        commands.append(cmd)
+        if cmd[:3] == ["git", "branch", "--show-current"]:
+            return FakeCompletedProcess(stdout="feat/task-96-interactive-template-wizard\n")
+        if cmd[0] == "task-master":
+            return FakeCompletedProcess(stdout="")
+        return FakeCompletedProcess(stdout="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    args = argparse.Namespace(
+        task="96",
+        slug="interactive-template-wizard",
+        title="Interactive Template Wizard",
+        goal=None,
+        task_source="Test kickoff",
+        handler_target=None,
+        force=False,
+        dry_run=False,
+    )
+
+    module.handle_wizard_kickoff(args)
+
+    active_folder = active_dir / "20260424-task96-interactive-template-wizard-ACTIVE"
+    session_path = sessions_dir / "2026" / "04" / "2026-04-24-001-task96-interactive-template-wizard.md"
+    plan_path = plans_dir / "2026-04-24-task96-interactive-template-wizard.md"
+
+    assert active_folder.exists()
+    assert session_path.exists()
+    assert plan_path.exists()
+    assert (sessions_dir / "current").resolve() == session_path
+    assert (plans_dir / "current").resolve() == plan_path
+    assert (repo / ".plan_state" / "sync.log").exists()
+
+    state = json.loads((sessions_dir / "state.json").read_text(encoding="utf-8"))
+    assert state["current"] == session_path.name
+    assert state["paused"] == []
+
+    tracker_text = (active_folder / "TRACKER.md").read_text(encoding="utf-8")
+    assert "Define the scope and workflow boundary for Interactive Template Wizard" in tracker_text
+    session_text = session_path.read_text(encoding="utf-8")
+    assert "Marked Taskmaster Task 96 in progress" in session_text
+    plan_text = plan_path.read_text(encoding="utf-8")
+    assert "scripts/codex-task" in plan_text
+
+    assert ["task-master", "set-status", "--id=96", "--status=in-progress"] in commands
+    assert ["task-master", "generate"] in commands

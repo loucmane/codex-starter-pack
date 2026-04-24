@@ -1,0 +1,16 @@
+usage: codex-task wizard kickoff [-h] [--task TASK] [--slug SLUG]
+                                 [--title TITLE] [--goal GOAL]
+                                 [--task-source TASK_SOURCE]
+                                 [--handler-target HANDLER_TARGET] [--force]
+
+options:
+  -h, --help            show this help message and exit
+  --task TASK           Task ID (numeric)
+  --slug SLUG           Slug for session/plan/work-tracking naming
+  --title TITLE         Human-readable task title
+  --goal GOAL           Goal checklist item (repeatable)
+  --task-source TASK_SOURCE
+                        Human-readable source line for the session metadata
+  --handler-target HANDLER_TARGET
+                        Primary handler target/path for the generated plan
+  --force               Allow kickoff even if another ACTIVE folder exists

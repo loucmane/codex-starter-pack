@@ -10,3 +10,4 @@
 ## Next Steps
 - Commit and merge Task 95, then archive the Task 95 active folder after the branch lands on `main`.
 - Start Task 96 as the next follow-on enforcement task.
+- Archived on 2026-04-24 15:03 CEST — Folder moved to archive and tracker marked COMPLETED.

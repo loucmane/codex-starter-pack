@@ -67,8 +67,14 @@ Lightweight structured plan tracker. Use it to:
 Local CLI for S:W:H:E scaffolding. Subcommands:
 - `sessions update` – append to active session progress log.
 - `work-tracking update` – append to ACTIVE docs (default `TRACKER`).
+- `wizard kickoff` – guided task startup that scaffolds work tracking, creates a compliant session + plan, updates `sessions/current` / `plans/current` / `sessions/state.json`, seeds plan sync, and marks the Taskmaster task `in-progress`.
 - `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
+
+Wizard guidance:
+- Use `python3 scripts/codex-task wizard kickoff --task <id>` when starting a new task on a feature branch that already matches `feat/task-<id>...`.
+- The wizard is intentionally narrow: it handles kickoff safely, but it does not replace Serena memory capture or later implementation logging.
+- After kickoff, continue using `sessions update`, `work-tracking update`, and `plan sync` for same-day progress.
 
 ### `scripts/codex-guard`
 Run `scripts/codex-guard validate [--include-untracked]` before handoff/compaction. Confirms:

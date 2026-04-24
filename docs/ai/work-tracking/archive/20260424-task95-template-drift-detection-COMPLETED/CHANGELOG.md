@@ -6,3 +6,4 @@
 - 2026-04-24 14:22 CEST — Implemented `codex-guard drift-check`, added report documentation, passed the focused guard regression suite, and generated the first repo-level drift reports.
 - 2026-04-24 14:23 CEST — Added CI automation so both guard workflows execute `drift-check --strict` and upload drift artifacts.
 - 2026-04-24 14:25 CEST — Stored closeout evidence for drift-check, plan sync, guard validation, and Taskmaster completion.
+- 2026-04-24 15:03 CEST — Archived active work-tracking folder.
