@@ -1,6 +1,6 @@
 # Task ID: 94
 # Title: Expand Enforcement Framework
-# Status: pending
+# Status: in-progress
 # Dependencies: 93
 # Priority: medium
 # Description: Coordinate enforcement enhancements (drift detection, wizard, metrics dashboard) following guard expansion.
