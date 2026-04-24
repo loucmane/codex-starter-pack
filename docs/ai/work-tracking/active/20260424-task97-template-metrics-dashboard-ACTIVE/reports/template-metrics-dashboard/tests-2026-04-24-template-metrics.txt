@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+collected 62 items
+
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ...         [  4%]
+tests/meta_workflow_guard/test_codex_task.py ..                          [  8%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 50%]
+...............................                                          [100%]
+
+============================== 62 passed in 0.31s ==============================

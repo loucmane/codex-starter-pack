@@ -20,9 +20,17 @@ jobs:
         run: python3 scripts/codex-guard validate --include-untracked
       - name: Run template drift check
         run: python3 scripts/codex-guard drift-check --strict
+      - name: Generate template metrics dashboard
+        run: python3 scripts/template-metrics-dashboard
       - name: Upload drift artefacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codex-guard-template-drift
           path: reports/template-drift/
+      - name: Upload metrics artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-guard-template-metrics
+          path: reports/template-metrics/

@@ -1,0 +1,65 @@
+🏷️ tag: master
+
+╭───────────────────────────────────────────────╮
+│ Task: #97 - Create Template Metrics Dashboard │
+╰───────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 97                                                         │
+│ Title:        │ Create Template Metrics Dashboard                          │
+│ Status:       │ ► in-progress                                              │
+│ Priority:     │ medium                                                     │
+│ Dependencies: │ 94, 95, 96                                                 │
+│ Complexity:   │ N/A                                                        │
+│ Description:  │ Summarize template usage/compliance metrics via            │
+│               │ dashboard/report.                                          │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭───────────────────────────────────────────────────────╮
+│ Implementation Details:                               │
+│                                                       │
+│ Provides visibility into template enforcement health. │
+╰───────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────╮
+│ Test Strategy:                                           │
+│                                                          │
+│ Metrics dashboard/report generated with automation plan. │
+╰──────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌──────────┬───────────────┬──────────────────────────────────────────────────┬─────────────────────────┐
+│ ID       │ Status        │ Title                                            │ Deps                    │
+│ 97.1     │ pending       │ Define metrics schema                            │ None                    │
+│ 97.2     │ pending       │ Build data collector                             │ None                    │
+│ 97.3     │ pending       │ Implement dashboard/report                       │ None                    │
+│ 97.4     │ pending       │ Document maintenance                             │ None                    │
+│ 97.5     │ pending       │ Plan automation                                  │ None                    │
+└──────────┴───────────────┴──────────────────────────────────────────────────┴─────────────────────────┘
+
+╭────────────────────────────────────────────────────────────────────╮
+│ Subtask Progress:                                                  │
+│                                                                    │
+│ Completed: 0/5 (0.0%)                                              │
+│ ✓ Done: 0  ► In Progress: 0  ○ Pending: 5                          │
+│ ! Blocked: 0  ⏱ Deferred: 0  ✗ Cancelled: 0                       │
+│ Progress: ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0%                  │
+╰────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=97 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=97 --status=done │
+│ 3. Update subtask status: task-master set-status --id=97.1 --status=done     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

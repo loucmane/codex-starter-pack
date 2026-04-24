@@ -6,3 +6,4 @@
 - 2026-04-24 15:09 CEST — Documented the new wizard helper surface and workflow usage.
 - 2026-04-24 15:09 CEST — Repointed current session/plan/state pointers to Task 96, regenerated Taskmaster task files, and recorded the Serena kickoff memory.
 - 2026-04-24 15:10 CEST — Stored final wizard verification evidence and closed Taskmaster Task 96.
+- 2026-04-24 15:38 CEST — Archived active work-tracking folder.

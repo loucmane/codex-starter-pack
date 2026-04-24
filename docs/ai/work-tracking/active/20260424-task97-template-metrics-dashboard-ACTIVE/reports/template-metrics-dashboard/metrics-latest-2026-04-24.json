@@ -1,0 +1,90 @@
+{
+  "generated_at": "2026-04-24T15:47:45.893181+02:00",
+  "taskmaster": {
+    "total_tasks": 102,
+    "status_counts": {
+      "pending": 84,
+      "done": 17,
+      "in-progress": 1
+    },
+    "focus_chain": [
+      {
+        "id": 94,
+        "title": "Expand Enforcement Framework",
+        "status": "done"
+      },
+      {
+        "id": 95,
+        "title": "Implement Template Drift Detection",
+        "status": "done"
+      },
+      {
+        "id": 96,
+        "title": "Build Interactive Template Wizard",
+        "status": "done"
+      },
+      {
+        "id": 97,
+        "title": "Create Template Metrics Dashboard",
+        "status": "in-progress"
+      },
+      {
+        "id": 98,
+        "title": "Externalize Repo Structure Configuration",
+        "status": "pending"
+      },
+      {
+        "id": 99,
+        "title": "Define Portable Foundation Specification",
+        "status": "pending"
+      },
+      {
+        "id": 100,
+        "title": "Build Foundation Bootstrap Layer",
+        "status": "pending"
+      },
+      {
+        "id": 101,
+        "title": "Add Cross-Project Compatibility Fixtures",
+        "status": "pending"
+      },
+      {
+        "id": 102,
+        "title": "Document Foundation Migration and Adoption",
+        "status": "pending"
+      }
+    ]
+  },
+  "template_metadata": {
+    "governed_file_count": 78,
+    "drifted_file_count": 0,
+    "compliant_file_count": 78,
+    "coverage_pct": 100.0
+  },
+  "drift": {
+    "latest_report": "reports/template-drift/summary-20260424-142209.json",
+    "generated_at": "2026-04-24T14:22:09.488310+02:00",
+    "finding_count": 0,
+    "categories": []
+  },
+  "work_tracking": {
+    "active_folder_count": 1,
+    "active_folders": [
+      "20260424-task97-template-metrics-dashboard-ACTIVE"
+    ],
+    "archived_folder_count": 16,
+    "completed_archive_count": 11
+  },
+  "plan_sync": {
+    "entry_count": 234,
+    "latest_plan": "plans/2026-04-24-task97-template-metrics-dashboard.md",
+    "latest_synced_at": "2026-04-24T15:39:12.149138+02:00"
+  },
+  "wizard": {
+    "kickoff_session_count": 2,
+    "kickoff_sessions": [
+      "sessions/2026/04/2026-04-24-003-task96-interactive-template-wizard.md",
+      "sessions/2026/04/2026-04-24-004-task97-template-metrics-dashboard.md"
+    ]
+  }
+}

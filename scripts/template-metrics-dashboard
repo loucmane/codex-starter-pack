@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Generate template/workflow metrics dashboard artifacts."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import importlib.machinery
+import importlib.util
+import sys
+from collections import Counter
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+REPORT_DIR = REPO_ROOT / "reports" / "template-metrics"
+DEFAULT_REPORT_DIR = "reports/template-metrics"
+TASKMASTER_PATH = REPO_ROOT / ".taskmaster" / "tasks" / "tasks.json"
+PLAN_SYNC_LOG = REPO_ROOT / ".plan_state" / "sync.log"
+DRIFT_REPORT_DIR = REPO_ROOT / "reports" / "template-drift"
+WORK_TRACKING_ACTIVE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "active"
+WORK_TRACKING_ARCHIVE = REPO_ROOT / "docs" / "ai" / "work-tracking" / "archive"
+SESSIONS_DIR = REPO_ROOT / "sessions"
+
+
+def load_codex_guard():
+    name = "codex_guard_metrics_module"
+    if name in sys.modules:
+        del sys.modules[name]
+    path = REPO_ROOT / "scripts" / "codex-guard"
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[loader.name] = module
+    loader.exec_module(module)
+    return module
+
+
+@dataclass
+class MetricsSnapshot:
+    generated_at: str
+    taskmaster: Dict[str, object]
+    template_metadata: Dict[str, object]
+    drift: Dict[str, object]
+    work_tracking: Dict[str, object]
+    plan_sync: Dict[str, object]
+    wizard: Dict[str, object]
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "generated_at": self.generated_at,
+            "taskmaster": self.taskmaster,
+            "template_metadata": self.template_metadata,
+            "drift": self.drift,
+            "work_tracking": self.work_tracking,
+            "plan_sync": self.plan_sync,
+            "wizard": self.wizard,
+        }
+
+
+def load_taskmaster_tasks() -> List[Dict[str, object]]:
+    data = json.loads(TASKMASTER_PATH.read_text(encoding="utf-8"))
+    return data["master"]["tasks"]
+
+
+def collect_taskmaster_metrics() -> Dict[str, object]:
+    tasks = load_taskmaster_tasks()
+    status_counts = Counter(str(task.get("status", "unknown")) for task in tasks)
+    focus_ids = {94, 95, 96, 97, 98, 99, 100, 101, 102}
+    focus_chain = [
+        {
+            "id": task["id"],
+            "title": task["title"],
+            "status": task["status"],
+        }
+        for task in tasks
+        if int(task["id"]) in focus_ids
+    ]
+    return {
+        "total_tasks": len(tasks),
+        "status_counts": dict(status_counts),
+        "focus_chain": focus_chain,
+    }
+
+
+def collect_template_metadata_metrics() -> Dict[str, object]:
+    guard = load_codex_guard()
+    governed_files: List[str] = []
+    findings = guard.collect_template_metadata_drift()
+    issue_counts = Counter(finding.path.as_posix() for finding in findings)
+    for path in guard.iter_repo_markdown_files():
+        relative = path.relative_to(REPO_ROOT)
+        if guard.select_template_metadata_rule(relative) is not None:
+            governed_files.append(relative.as_posix())
+    compliant = len(governed_files) - len(issue_counts)
+    coverage_pct = 100.0 if not governed_files else round((compliant / len(governed_files)) * 100, 2)
+    return {
+        "governed_file_count": len(governed_files),
+        "drifted_file_count": len(issue_counts),
+        "compliant_file_count": compliant,
+        "coverage_pct": coverage_pct,
+    }
+
+
+def _latest_json_report(report_dir: Path) -> Optional[Path]:
+    candidates = sorted(report_dir.glob("summary-*.json"))
+    return candidates[-1] if candidates else None
+
+
+def collect_drift_metrics() -> Dict[str, object]:
+    latest = _latest_json_report(DRIFT_REPORT_DIR)
+    if latest is None:
+        return {
+            "latest_report": None,
+            "finding_count": None,
+            "categories": [],
+        }
+    payload = json.loads(latest.read_text(encoding="utf-8"))
+    return {
+        "latest_report": latest.relative_to(REPO_ROOT).as_posix(),
+        "generated_at": payload.get("generated_at"),
+        "finding_count": payload.get("finding_count"),
+        "categories": payload.get("categories", []),
+    }
+
+
+def _folder_status(folder: Path) -> str:
+    tracker = folder / "TRACKER.md"
+    if not tracker.exists():
+        return "missing-tracker"
+    for line in tracker.read_text(encoding="utf-8").splitlines():
+        if line.startswith("**Status**:"):
+            return line.split(":", 1)[1].strip()
+    return "unknown"
+
+
+def collect_work_tracking_metrics() -> Dict[str, object]:
+    active = sorted(p for p in WORK_TRACKING_ACTIVE.iterdir() if p.is_dir()) if WORK_TRACKING_ACTIVE.exists() else []
+    archived = sorted(p for p in WORK_TRACKING_ARCHIVE.iterdir() if p.is_dir()) if WORK_TRACKING_ARCHIVE.exists() else []
+    archived_completed = sum(1 for folder in archived if _folder_status(folder) == "COMPLETED")
+    return {
+        "active_folder_count": len(active),
+        "active_folders": [folder.name for folder in active],
+        "archived_folder_count": len(archived),
+        "completed_archive_count": archived_completed,
+    }
+
+
+def collect_plan_sync_metrics() -> Dict[str, object]:
+    if not PLAN_SYNC_LOG.exists():
+        return {
+            "entry_count": 0,
+            "latest_plan": None,
+            "latest_synced_at": None,
+        }
+    entries = json.loads(PLAN_SYNC_LOG.read_text(encoding="utf-8"))
+    latest = entries[-1] if entries else {}
+    return {
+        "entry_count": len(entries),
+        "latest_plan": latest.get("plan"),
+        "latest_synced_at": latest.get("synced_at"),
+    }
+
+
+def collect_wizard_metrics() -> Dict[str, object]:
+    usage_sessions: List[str] = []
+    for session_file in sorted(SESSIONS_DIR.glob("**/*.md")):
+        text = session_file.read_text(encoding="utf-8")
+        if "guided kickoff flow" in text or "wizard kickoff" in text:
+            usage_sessions.append(session_file.relative_to(REPO_ROOT).as_posix())
+    return {
+        "kickoff_session_count": len(usage_sessions),
+        "kickoff_sessions": usage_sessions[-5:],
+    }
+
+
+def build_snapshot() -> MetricsSnapshot:
+    generated_at = datetime.now().astimezone().isoformat()
+    return MetricsSnapshot(
+        generated_at=generated_at,
+        taskmaster=collect_taskmaster_metrics(),
+        template_metadata=collect_template_metadata_metrics(),
+        drift=collect_drift_metrics(),
+        work_tracking=collect_work_tracking_metrics(),
+        plan_sync=collect_plan_sync_metrics(),
+        wizard=collect_wizard_metrics(),
+    )
+
+
+def render_markdown(snapshot: MetricsSnapshot) -> str:
+    tm = snapshot.taskmaster
+    md = snapshot.template_metadata
+    drift = snapshot.drift
+    wt = snapshot.work_tracking
+    plan = snapshot.plan_sync
+    wizard = snapshot.wizard
+
+    lines = [
+        "# Template Metrics Dashboard",
+        "",
+        f"Generated: {snapshot.generated_at}",
+        "",
+        "## Taskmaster",
+        f"- Total tasks: {tm['total_tasks']}",
+        f"- Status counts: {tm['status_counts']}",
+        "",
+        "### Focus Chain",
+    ]
+    for item in tm["focus_chain"]:
+        lines.append(f"- Task {item['id']}: {item['title']} — {item['status']}")
+
+    lines.extend(
+        [
+            "",
+            "## Template Metadata Compliance",
+            f"- Governed files: {md['governed_file_count']}",
+            f"- Compliant files: {md['compliant_file_count']}",
+            f"- Drifted files: {md['drifted_file_count']}",
+            f"- Coverage: {md['coverage_pct']}%",
+            "",
+            "## Drift",
+            f"- Latest report: {drift['latest_report']}",
+            f"- Findings: {drift['finding_count']}",
+            f"- Categories: {drift['categories']}",
+            "",
+            "## Work Tracking",
+            f"- Active folders: {wt['active_folder_count']}",
+            f"- Active folder names: {wt['active_folders']}",
+            f"- Archived folders: {wt['archived_folder_count']}",
+            f"- Completed archives: {wt['completed_archive_count']}",
+            "",
+            "## Plan Sync",
+            f"- Entries recorded: {plan['entry_count']}",
+            f"- Latest plan: {plan['latest_plan']}",
+            f"- Latest synced at: {plan['latest_synced_at']}",
+            "",
+            "## Wizard Adoption",
+            f"- Kickoff sessions captured: {wizard['kickoff_session_count']}",
+            "- Recent kickoff sessions:",
+        ]
+    )
+    for item in wizard["kickoff_sessions"]:
+        lines.append(f"  - {item}")
+    return "\n".join(lines) + "\n"
+
+
+def write_outputs(snapshot: MetricsSnapshot, report_dir: Path) -> Tuple[Path, Path]:
+    report_dir.mkdir(parents=True, exist_ok=True)
+    json_path = report_dir / "latest.json"
+    md_path = report_dir / "latest.md"
+    json_path.write_text(json.dumps(snapshot.to_dict(), indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_markdown(snapshot), encoding="utf-8")
+    return md_path, json_path
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--report-dir",
+        default=DEFAULT_REPORT_DIR,
+        help="Directory for generated metrics dashboard outputs.",
+    )
+    return parser
+
+
+def _resolve_output_dir(raw_path: str) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    return path
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    snapshot = build_snapshot()
+    report_dir = _resolve_output_dir(args.report_dir)
+    md_path, json_path = write_outputs(snapshot, report_dir)
+    print(f"Wrote metrics dashboard to {md_path.relative_to(REPO_ROOT)}")
+    print(f"Wrote metrics JSON to {json_path.relative_to(REPO_ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
