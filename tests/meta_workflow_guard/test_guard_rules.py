@@ -10,6 +10,13 @@ import os
 import sys
 from pathlib import Path
 
+from tests.meta_workflow_guard.cross_project_fixtures import (
+    REPO_SHAPES,
+    write_governed_markdown,
+    write_metadata_policy,
+    write_repo_config,
+)
+
 
 def load_guard_module():
     name = 'codex_guard_test_module'
@@ -835,6 +842,23 @@ id: sample
     messages = [finding.message for finding in findings]
     assert any("missing required key 'title'" in message for message in messages)
     assert all(finding.category == 'template-metadata' for finding in findings)
+
+
+def test_collect_template_metadata_drift_supports_cross_project_template_roots(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+
+    for name, shape in REPO_SHAPES.items():
+        repo_root = tmp_path / name
+        write_repo_config(repo_root, shape)
+        policy_path = write_metadata_policy(repo_root, shape)
+        markdown_path = write_governed_markdown(repo_root, shape, with_metadata=False)
+
+        monkeypatch.setattr(module, 'REPO_ROOT', repo_root)
+        monkeypatch.setattr(module, 'TEMPLATE_METADATA_POLICY_PATH', policy_path)
+
+        findings = module.collect_template_metadata_drift()
+
+        assert any(finding.path == markdown_path.relative_to(repo_root) for finding in findings)
 
 
 def test_collect_canonical_doc_drift_flags_missing_doc(monkeypatch) -> None:

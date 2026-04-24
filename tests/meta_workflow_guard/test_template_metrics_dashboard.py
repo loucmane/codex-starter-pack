@@ -8,6 +8,8 @@ import json
 import sys
 from pathlib import Path
 
+from tests.meta_workflow_guard.cross_project_fixtures import REPO_SHAPES, seed_workflow_state, write_repo_config
+
 
 def load_metrics_module():
     name = "template_metrics_dashboard_test_module"
@@ -119,3 +121,24 @@ def test_main_writes_dashboard_outputs(monkeypatch, tmp_path, capsys) -> None:
     markdown = (report_dir / "latest.md").read_text(encoding="utf-8")
     assert "# Template Metrics Dashboard" in markdown
     assert "Task 97: Create Template Metrics Dashboard — in-progress" in markdown
+
+
+def test_collect_workflow_metrics_supports_cross_project_roots(monkeypatch, tmp_path) -> None:
+    module = load_metrics_module()
+
+    for name, shape in REPO_SHAPES.items():
+        repo_root = tmp_path / name
+        write_repo_config(repo_root, shape)
+        seed_workflow_state(repo_root, shape)
+
+        monkeypatch.setattr(module, "REPO_ROOT", repo_root)
+        monkeypatch.setattr(module, "WORK_TRACKING_ACTIVE", repo_root / shape.work_tracking_root / "active")
+        monkeypatch.setattr(module, "WORK_TRACKING_ARCHIVE", repo_root / shape.work_tracking_root / "archive")
+        monkeypatch.setattr(module, "SESSIONS_DIR", repo_root / shape.session_dir)
+
+        work_tracking = module.collect_work_tracking_metrics()
+        wizard = module.collect_wizard_metrics()
+
+        assert work_tracking["active_folder_count"] == 1
+        assert work_tracking["archived_folder_count"] == 1
+        assert wizard["kickoff_session_count"] == 1

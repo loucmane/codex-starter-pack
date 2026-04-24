@@ -6,6 +6,8 @@ import importlib.util
 from pathlib import Path
 import sys
 
+from tests.meta_workflow_guard.cross_project_fixtures import REPO_SHAPES, write_repo_config
+
 
 def load_repo_structure_module():
     name = "repo_structure_test_module"
@@ -57,3 +59,20 @@ reports_root = "state/reports"
     assert structure.taskmaster_tasks_dir == (tmp_path / "ops" / "taskmaster" / "tasks").resolve()
     assert structure.work_tracking_archive_root == (tmp_path / "state" / "work-tracking" / "archive").resolve()
     assert structure.metrics_report_dir == (tmp_path / "state" / "reports" / "template-metrics").resolve()
+
+
+def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> None:
+    module = load_repo_structure_module()
+
+    for name, shape in REPO_SHAPES.items():
+        repo_root = tmp_path / name
+        write_repo_config(repo_root, shape)
+        structure = module.load_repo_structure(repo_root)
+
+        assert structure.templates_root == (repo_root / shape.roots["templates_root"]).resolve()
+        assert structure.sessions_root == (repo_root / shape.roots["sessions_root"]).resolve()
+        assert structure.plans_root == (repo_root / shape.roots["plans_root"]).resolve()
+        assert structure.plan_state_dir == (repo_root / shape.roots["plan_state_dir"]).resolve()
+        assert structure.taskmaster_root == (repo_root / shape.roots["taskmaster_root"]).resolve()
+        assert structure.work_tracking_root == (repo_root / shape.roots["work_tracking_root"]).resolve()
+        assert structure.reports_root == (repo_root / shape.roots["reports_root"]).resolve()

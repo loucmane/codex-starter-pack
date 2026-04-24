@@ -1,0 +1,47 @@
+🏷️ tag: master
+
+╭───────────────────────────────────────────────────────╮
+│ Task: #101 - Add Cross-Project Compatibility Fixtures │
+╰───────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 101                                                        │
+│ Title:        │ Add Cross-Project Compatibility Fixtures                   │
+│ Status:       │ ✓ done                                                     │
+│ Priority:     │ medium                                                     │
+│ Dependencies: │ 100                                                        │
+│ Complexity:   │ N/A                                                        │
+│ Description:  │ Verify that the foundation works across multiple           │
+│               │ repository shapes instead of only this repo's structure.   │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Add cross-project verification fixtures or tests that simulate different     │
+│ repository layouts, such as product-web, game, docs-heavy, and lightweight   │
+│ utility repos. Validate that the portable configuration, guard behavior, and │
+│ workflow assumptions still work when paths and file families differ.         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────╮
+│ No subtasks found. Consider breaking down this task: │
+│ Run: task-master expand --id=101                     │
+╰──────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=101 --status=in-progress │
+│ 2. Mark as done when completed: task-master set-status --id=101              │
+│ --status=done                                                                │
+│ 3. Break down into subtasks: task-master expand --id=101                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

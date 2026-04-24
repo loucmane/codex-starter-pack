@@ -12,3 +12,4 @@
 - Commit the Task 100 branch changes.
 - Open and merge the Task 100 PR after CI passes.
 - Start Task 101 on a fresh branch after archiving the Task 100 active folder.
+- Archived on 2026-04-24 20:18 CEST — Folder moved to archive and tracker marked COMPLETED.
