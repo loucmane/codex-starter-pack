@@ -7849,7 +7849,7 @@
         "dependencies": [
           "94"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -7857,7 +7857,7 @@
             "description": "Finalize wizard prompts/flow based on design draft.",
             "dependencies": [],
             "details": "Finalize wizard prompts/flow based on design draft.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Wizard spec approved.",
             "parentId": "undefined"
           },
@@ -7867,7 +7867,7 @@
             "description": "Build interactive CLI leveraging workflow/handler metadata.",
             "dependencies": [],
             "details": "Build interactive CLI leveraging workflow/handler metadata.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Wizard CLI added under scripts/template_wizard.py",
             "parentId": "undefined"
           },
@@ -7877,7 +7877,7 @@
             "description": "Ensure wizard respects plan compliance and guard requirements.",
             "dependencies": [],
             "details": "Ensure wizard respects plan compliance and guard requirements.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Guard integration validated.",
             "parentId": "undefined"
           },
@@ -7887,7 +7887,7 @@
             "description": "Add usage guide, logging, troubleshooting notes.",
             "dependencies": [],
             "details": "Add usage guide, logging, troubleshooting notes.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Documentation updated.",
             "parentId": "undefined"
           },
@@ -7897,7 +7897,7 @@
             "description": "Add tests covering common wizard paths.",
             "dependencies": [],
             "details": "Add tests covering common wizard paths.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "pytest tests/tooling/test_template_wizard.py",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T12:24:09.954Z"
+      "updated": "2026-04-24T13:14:15.668Z"
     }
   }
 }

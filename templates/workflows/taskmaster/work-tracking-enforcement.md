@@ -51,6 +51,7 @@ Formalize the seven-file work-tracking process so every session captures tracker
 - Manual deletions of tracked ACTIVE folders fail unless archived via helper.
 
 ## Helper Shortcuts
+- `codex-task wizard kickoff --task <id>` → guided kickoff for a new task; creates the session, plan, active folder, current symlinks/state, and initial plan sync.
 - `codex-task work-tracking scaffold --task <id> --slug <slug>` → creates full structure.
 - `codex-task work-tracking update --preset findings --handler auto --evidence <path> --note "..."` → appends standardized entries.
 - `codex-task work-tracking audit` → highlights stale active folders or missing `sessions/current` link.

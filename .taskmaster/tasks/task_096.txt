@@ -1,6 +1,6 @@
 # Task ID: 96
 # Title: Build Interactive Template Wizard
-# Status: pending
+# Status: done
 # Dependencies: 94
 # Priority: medium
 # Description: Create a wizard CLI to guide template execution while honoring enforcement rules.
@@ -11,31 +11,31 @@ Improves developer experience with template workflows.
 Wizard CLI implemented with guard integration and tested.
 
 # Subtasks:
-## 1. Design wizard flow [pending]
+## 1. Design wizard flow [done]
 ### Dependencies: None
 ### Description: Finalize wizard prompts/flow based on design draft.
 ### Details:
 Finalize wizard prompts/flow based on design draft.
 
-## 2. Implement wizard CLI [pending]
+## 2. Implement wizard CLI [done]
 ### Dependencies: None
 ### Description: Build interactive CLI leveraging workflow/handler metadata.
 ### Details:
 Build interactive CLI leveraging workflow/handler metadata.
 
-## 3. Integrate guard checks [pending]
+## 3. Integrate guard checks [done]
 ### Dependencies: None
 ### Description: Ensure wizard respects plan compliance and guard requirements.
 ### Details:
 Ensure wizard respects plan compliance and guard requirements.
 
-## 4. Document wizard usage [pending]
+## 4. Document wizard usage [done]
 ### Dependencies: None
 ### Description: Add usage guide, logging, troubleshooting notes.
 ### Details:
 Add usage guide, logging, troubleshooting notes.
 
-## 5. Regression tests [pending]
+## 5. Regression tests [done]
 ### Dependencies: None
 ### Description: Add tests covering common wizard paths.
 ### Details:
