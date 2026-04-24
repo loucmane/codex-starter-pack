@@ -10,6 +10,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from tests.meta_workflow_guard.cross_project_fixtures import REPO_SHAPES
+
 
 def load_task_module():
     name = "codex_task_test_module"
@@ -250,3 +252,32 @@ def test_handle_bootstrap_init_force_overwrites_existing_starter_files(tmp_path)
     policy_text = (target / "templates" / "metadata" / "template-metadata-policy.json").read_text(encoding="utf-8")
     assert 'templates_root = "templates"' in config_text
     assert '"required_keys"' in policy_text
+
+
+def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> None:
+    module = load_task_module()
+
+    for name, shape in REPO_SHAPES.items():
+        target = tmp_path / name
+        args = argparse.Namespace(
+            target_dir=str(target),
+            force=False,
+            templates_root=shape.roots["templates_root"],
+            sessions_root=shape.roots["sessions_root"],
+            plans_root=shape.roots["plans_root"],
+            plan_state_dir=shape.roots["plan_state_dir"],
+            taskmaster_root=shape.roots["taskmaster_root"],
+            work_tracking_root=shape.roots["work_tracking_root"],
+            reports_root=shape.roots["reports_root"],
+            dry_run=False,
+        )
+
+        module.handle_bootstrap_init(args)
+
+        assert (target / ".codex" / "config.toml").exists()
+        assert (target / shape.roots["templates_root"] / "metadata" / "template-metadata-policy.json").exists()
+        assert (target / shape.roots["sessions_root"]).is_dir()
+        assert (target / shape.roots["plans_root"]).is_dir()
+        assert (target / shape.roots["taskmaster_root"] / "tasks").is_dir()
+        assert (target / shape.roots["work_tracking_root"] / "active").is_dir()
+        assert (target / shape.roots["reports_root"] / "template-metrics").is_dir()
