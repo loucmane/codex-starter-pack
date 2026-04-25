@@ -1,0 +1,30 @@
+templates/PATTERNS.md:1:# System Patterns Library
+templates/PATTERNS.md:9:## 📁 Module Organization
+templates/PATTERNS.md:11:### Routing Patterns
+templates/PATTERNS.md:16:### Selection Patterns
+templates/PATTERNS.md:21:### Evidence Patterns
+templates/PATTERNS.md:26:### Work Tracking Patterns
+templates/PATTERNS.md:31:### Session Patterns
+templates/PATTERNS.md:36:### Integration Patterns
+templates/PATTERNS.md:40:## 🔗 Shared Patterns
+templates/PATTERNS.md:46:## 📚 Quick Reference
+templates/PATTERNS.md:48:### By Complexity
+templates/PATTERNS.md:64:### By Frequency of Use
+templates/PATTERNS.md:80:## 🚀 Handler Migration Notice
+templates/PATTERNS.md:89:## 📖 Using This Library
+templates/WORKFLOWS.md:3:# Universal Development Workflows
+templates/WORKFLOWS.md:12:## 📁 Module Organization
+templates/WORKFLOWS.md:14:### Core Components
+templates/WORKFLOWS.md:18:### Workflow Patterns
+templates/WORKFLOWS.md:22:### Session & Memory
+templates/WORKFLOWS.md:27:### Analysis & Testing
+templates/WORKFLOWS.md:33:### Templates & Examples
+templates/WORKFLOWS.md:38:### Guides
+templates/WORKFLOWS.md:41:## 🚀 Quick Start
+templates/WORKFLOWS.md:43:### For New Sessions
+templates/WORKFLOWS.md:48:### For Development Work
+templates/WORKFLOWS.md:53:### For Testing
+templates/WORKFLOWS.md:58:## 🔍 Finding Specific Workflows
+templates/WORKFLOWS.md:60:### By Task Type
+templates/WORKFLOWS.md:65:### By Problem
+templates/WORKFLOWS.md:70:## 📚 See Also

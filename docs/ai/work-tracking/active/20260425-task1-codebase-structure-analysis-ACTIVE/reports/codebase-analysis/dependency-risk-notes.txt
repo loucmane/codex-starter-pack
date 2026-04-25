@@ -1,0 +1,10 @@
+scripts/template-ssot-scanner/README.md:26:### 3. Reference Analyzer (`analyze_references.py`)
+scripts/template-ssot-scanner/README.md:27:Analyzes file references to find broken links and dependencies.
+scripts/template-ssot-scanner/README.md:29:- **Purpose**: Validates reference integrity and finds circular dependencies
+scripts/template-ssot-scanner/README.md:96:python3 analyze_references.py
+scripts/template-ssot-scanner/README.md:113:# Exit with error if too many broken references
+scripts/template-ssot-scanner/README.md:114:python3 analyze_references.py --broken-threshold 50
+docs/ai/work-tracking/active/20260425-task1-codebase-structure-analysis-ACTIVE/reports/codebase-analysis/scanner-suite-capabilities.md:9:- `analyze_references.py` - builds reference and dependency analysis from scanner output.
+docs/ai/work-tracking/active/20260425-task1-codebase-structure-analysis-ACTIVE/reports/codebase-analysis/scanner-suite-capabilities.md:18:- `analyze_references.py`: completed
+docs/ai/work-tracking/active/20260425-task1-codebase-structure-analysis-ACTIVE/reports/codebase-analysis/scanner-suite-capabilities.md:26:- Reference analyzer reported 1180 broken references, 17 circular dependencies, and 1757 orphaned files.
+docs/ai/work-tracking/active/20260425-task1-codebase-structure-analysis-ACTIVE/reports/codebase-analysis/scanner-suite-capabilities.md:37:The scanner suite is useful for broad migration and dependency analysis, but its default output is too noisy for direct enforcement. Task 1 should treat these outputs as diagnostic inputs, then filter or scope them before turning findings into downstream tasks.

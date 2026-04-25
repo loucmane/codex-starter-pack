@@ -26,7 +26,10 @@ __pycache__/
 # Serena runtime artifacts
 .serena/memories/*.tmp
 
-# Scanner generated scripts/reports can be regenerated but kept (no ignore)
+# Scanner generated runtime artifacts
+scripts/template-ssot-scanner/output/.checkpoints/
+scripts/template-ssot-scanner/output/data/
+scripts/template-ssot-scanner/output/scripts/
 
 # OS/editor junk
 .DS_Store
