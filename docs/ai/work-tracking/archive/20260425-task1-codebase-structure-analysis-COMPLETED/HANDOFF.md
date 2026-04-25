@@ -13,3 +13,4 @@
 - Checkpoint/commit the Task 1 analysis branch.
 - Next downstream work should reconcile Tasks 2-80 before executing them literally.
 - Scanner follow-up should fix CLI help behavior and default excludes before scanner outputs become CI-grade enforcement.
+- Archived on 2026-04-25 18:05 CEST — Folder moved to archive and tracker marked COMPLETED.
