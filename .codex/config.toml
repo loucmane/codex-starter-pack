@@ -19,9 +19,9 @@ inherit = "core"
 include_only = ["PATH", "HOME", "USER", "SHELL", "CODEX_HOME", "OPENAI_API_KEY"]
 
 [profiles.deep-work]
-model = "gpt-5.4"
+model = "gpt-5.5"
 approval_policy = "on-request"
-model_reasoning_effort = "high"
+model_reasoning_effort = "xhigh"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 
