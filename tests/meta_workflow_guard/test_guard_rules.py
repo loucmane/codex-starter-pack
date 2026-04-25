@@ -316,6 +316,67 @@ def test_validate_session_state_allows_matching_helper(monkeypatch, tmp_path) ->
     assert issues == []
 
 
+def test_between_sessions_state_allows_cleared_session_pointers(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    active_dir = tmp_path / 'active'
+    sessions_dir.mkdir()
+    active_dir.mkdir()
+    state_path = sessions_dir / 'state.json'
+    current_link = sessions_dir / 'current'
+    state_path.write_text(
+        '{"current":null,"paused":[],"updated_at":"2030-01-02T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'WORK_TRACKING_PREFIX', active_dir)
+
+    assert module.is_between_sessions_state()
+
+
+def test_between_sessions_state_rejects_missing_symlink_with_active_session(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    active_dir = tmp_path / 'active'
+    sessions_dir.mkdir()
+    active_dir.mkdir()
+    state_path = sessions_dir / 'state.json'
+    current_link = sessions_dir / 'current'
+    state_path.write_text(
+        '{"current":"2030-01-02-001-task.md","paused":[],"updated_at":"2030-01-02T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'WORK_TRACKING_PREFIX', active_dir)
+
+    assert not module.is_between_sessions_state()
+
+
+def test_between_sessions_state_rejects_active_work_tracking(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    sessions_dir = tmp_path / 'sessions'
+    active_dir = tmp_path / 'active'
+    sessions_dir.mkdir()
+    active_dir.mkdir()
+    (active_dir / '20300102-task99-workflow-ACTIVE').mkdir()
+    state_path = sessions_dir / 'state.json'
+    current_link = sessions_dir / 'current'
+    state_path.write_text(
+        '{"current":null,"paused":[],"updated_at":"2030-01-02T17:35:49+02:00"}\n',
+        encoding='utf-8',
+    )
+
+    monkeypatch.setattr(module, 'SESSION_STATE_PATH', state_path)
+    monkeypatch.setattr(module, 'CURRENT_SESSION_SYMLINK', current_link)
+    monkeypatch.setattr(module, 'WORK_TRACKING_PREFIX', active_dir)
+
+    assert not module.is_between_sessions_state()
+
+
 def test_validate_taskmaster_activity_requires_session_and_tracker_entries(monkeypatch, tmp_path) -> None:
     module = load_guard_module()
     monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')

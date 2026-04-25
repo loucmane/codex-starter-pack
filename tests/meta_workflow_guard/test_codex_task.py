@@ -181,6 +181,32 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert (target / "reports" / "session-continuation").is_dir()
 
 
+def test_work_tracking_audit_allows_between_sessions_state(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    sessions_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    state_path = sessions_dir / "state.json"
+    state_path.write_text(
+        '{"current":null,"paused":[],"updated_at":"2030-01-02T17:35:49+02:00"}\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", state_path)
+    monkeypatch.setattr(module, "SESSIONS_CURRENT_REL", "sessions/current")
+
+    module.handle_work_tracking_audit(argparse.Namespace())
+
+    output = capsys.readouterr().out
+    assert "Audit issues detected" not in output
+    assert "between sessions" in output
+
+
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
     module = load_task_module()
     target = tmp_path / "existing-repo"

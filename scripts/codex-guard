@@ -131,6 +131,36 @@ TEMPLATE_METADATA_POLICY_PATH = Path(
 )
 
 
+def _session_state_current_value() -> object:
+    try:
+        state = json.loads(SESSION_STATE_PATH.read_text(encoding='utf-8'))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return object()
+    return state.get('current')
+
+
+def _has_active_work_tracking_folder() -> bool:
+    try:
+        return any(
+            path.is_dir() and path.name.endswith('-ACTIVE')
+            for path in WORK_TRACKING_PREFIX.iterdir()
+        )
+    except FileNotFoundError:
+        return False
+
+
+def is_between_sessions_state() -> bool:
+    """Return true when session-end cleanup has intentionally cleared active pointers."""
+    current_value = _session_state_current_value()
+    if current_value not in {None, ''}:
+        return False
+    if CURRENT_SESSION_SYMLINK.exists():
+        return False
+    if _has_active_work_tracking_folder():
+        return False
+    return True
+
+
 @dataclass
 class PlanDetails:
     steps: Dict[str, Dict[str, str]]
@@ -1903,7 +1933,8 @@ def guard_validate(args: argparse.Namespace) -> int:
 
     plan_path = resolve_plan_path()
     if plan_path is None:
-        all_issues.append(ValidationIssue(Path(PLAN_CURRENT_REL), 'Active plan symlink missing or invalid'))
+        if not is_between_sessions_state():
+            all_issues.append(ValidationIssue(Path(PLAN_CURRENT_REL), 'Active plan symlink missing or invalid'))
     else:
         plan_issues, plan_details = validate_plan(plan_path)
         all_issues.extend(plan_issues)

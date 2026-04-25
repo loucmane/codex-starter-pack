@@ -11,3 +11,4 @@
 - Documented new-repo adoption, existing-repo migration, phased rollout, optional layers, and verification steps.
 - Updated the engine README, verifier, registry, and metadata summaries so the new guide is part of the canonical engine surface.
 - Verified the engine surface, plan sync, and guard compliance after the documentation set landed.
+- Updated guard/audit enforcement during delayed closeout so the documented between-sessions state is valid when active symlinks are cleared and no active work-tracking folder remains.

@@ -980,7 +980,15 @@ def handle_work_tracking_audit(args: argparse.Namespace) -> None:
 
     current_symlink = SESSIONS_DIR / 'current'
     if not current_symlink.exists() or not current_symlink.is_symlink():
-        issues.append(f"{SESSIONS_CURRENT_REL} symlink missing")
+        current_state = object()
+        try:
+            current_state = json.loads(SESSION_STATE_PATH.read_text(encoding='utf-8')).get('current')
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        if current_state in {None, ''}:
+            warnings.append(f"{SESSIONS_CURRENT_REL} symlink missing because repository is between sessions")
+        else:
+            issues.append(f"{SESSIONS_CURRENT_REL} symlink missing")
     else:
         target = current_symlink.resolve()
         if target.exists():
