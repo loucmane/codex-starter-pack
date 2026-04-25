@@ -1,0 +1,51 @@
+[project]
+name = "codex-starter-pack"
+version = "0.1.0"
+description = "Portable Codex workflow foundation, guard tooling, and template migration utilities."
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1.0,<9.0.0",
+    "pyyaml>=6.0,<7.0",
+    "rich>=13.5.0,<16.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=24.0.0,<27.0.0",
+    "mypy>=1.8.0,<2.0.0",
+    "pre-commit>=3.6.0,<5.0.0",
+    "pytest>=7.4.0,<8.0.0",
+    "pytest-benchmark>=4.0.0,<5.0.0",
+    "pytest-cov>=4.1.0,<5.0.0",
+    "ruff>=0.4.0,<1.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "scripts/template-ssot-scanner",
+]
+python_files = [
+    "test_*.py",
+]
+addopts = "-ra"
+markers = [
+    "integration: marks integration tests",
+    "performance: marks performance-sensitive tests",
+    "mutation: marks mutation tests",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

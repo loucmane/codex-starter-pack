@@ -446,7 +446,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -454,7 +454,7 @@
             "description": "Confirm Python 3.12.3 is installed and accessible on the system.",
             "dependencies": [],
             "details": "Run 'python --version' and 'which python' to verify Python 3.12.3 is available and in PATH. Document output in setup log.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -464,7 +464,7 @@
             "description": "Ensure required system packages (pip, venv) and build tools are present.",
             "dependencies": [],
             "details": "Run 'python -m pip --version' and 'python -m venv --help'. If missing, install pip via 'python -m ensurepip --upgrade'. Verify build-essential tools if needed for native dependencies.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -474,7 +474,7 @@
             "description": "Set up the project root folder and standard subdirectories.",
             "dependencies": [],
             "details": "Create main project folder (e.g., 'scanner-suite'). Add subfolders: 'src', 'tests', and '.venv' (virtual environment will be placed here).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -484,7 +484,7 @@
             "description": "Initialize a new virtual environment with a custom shell prompt for clarity.",
             "dependencies": [],
             "details": "Run 'python -m venv .venv --prompt scanner-suite'. Activate with 'source .venv/bin/activate' (Linux/macOS) or '.venv\\Scripts\\activate' (Windows). Confirm prompt displays '(scanner-suite)'.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -494,7 +494,7 @@
             "description": "Create a pyproject.toml file specifying all required dependencies and their versions.",
             "dependencies": [],
             "details": "Add sections for [project] and [tool] as needed. Specify dependencies: pytest>=7.4.0, pytest-benchmark>=4.0.0, pytest-cov>=4.1.0, pyyaml>=6.0, click>=8.1.0, rich>=13.5.0. Pin dev tools: black, ruff, mypy, pre-commit.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -504,7 +504,7 @@
             "description": "Install uv for fast dependency management and compile requirements.lock from pyproject.toml.",
             "dependencies": [],
             "details": "Run 'pip install uv'. Then execute 'uv pip compile pyproject.toml -o requirements.lock'. Verify requirements.lock contains all specified packages with correct versions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -514,7 +514,7 @@
             "description": "Install all core dependencies and development tools into the virtual environment.",
             "dependencies": [],
             "details": "Run 'uv pip install -r requirements.lock'. Confirm installation of pytest, pyyaml, click, rich, black, ruff, mypy, pre-commit. Use 'pip list' to verify package versions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -524,7 +524,7 @@
             "description": "Test the environment by importing all key packages and running sample tests.",
             "dependencies": [],
             "details": "Activate environment. Run 'python -c \"import pytest, pyyaml, click, rich\"' to check imports. Execute 'pytest --version' and a sample test in 'tests/'. Confirm all tools (black, ruff, mypy, pre-commit) run without errors.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-25T11:58:58.642Z"
+      "updated": "2026-04-25T16:24:29.300Z"
     }
   }
 }

@@ -1,0 +1,25 @@
+🏷️ tag: master
+[INFO] Checking for invalid dependencies in task files...
+[INFO] Analyzing dependencies for 102 tasks and 528 subtasks...
+[SUCCESS] No invalid dependencies found - all dependencies are valid
+
+╭──────────────────────────────────────╮
+│                                      │
+│   All Dependencies Are Valid         │
+│                                      │
+│   Tasks checked: 102                 │
+│   Subtasks checked: 528              │
+│   Total dependencies verified: 842   │
+│                                      │
+╰──────────────────────────────────────╯
+
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

@@ -1,0 +1,20 @@
+2026-04-25 18:16:34 CEST +0200
+--- python
+Python 3.12.3
+--- uv
+uv 0.7.8
+--- pip
+pip 25.2 from /home/loucmane/codex/.venv/lib/python3.12/site-packages/pip (python 3.12)
+--- pytest
+pytest 7.4.4
+--- imports
+pytest 7.4.4
+pyyaml 6.0.3
+click 8.3.3
+rich 15.0.0
+--- tools
+black, 26.3.1 (compiled: yes)
+Python (CPython) 3.12.3
+ruff 0.15.12
+mypy 1.20.2 (compiled: yes)
+pre-commit 4.6.0

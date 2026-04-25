@@ -1,0 +1,23 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+testpaths: tests, scripts/template-ssot-scanner
+plugins: cov-4.1.0, benchmark-4.0.0
+collected 98 items
+
+tests/meta_workflow_guard/test_codex_task.py ........                    [  8%]
+tests/meta_workflow_guard/test_guard_integration.py .                    [  9%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 35%]
+...................................                                      [ 71%]
+tests/meta_workflow_guard/test_registration.py .....                     [ 76%]
+tests/meta_workflow_guard/test_repo_structure_config.py ...              [ 79%]
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ....        [ 83%]
+tests/session_continuation/test_engine_metadata_alignment.py ...         [ 86%]
+tests/session_continuation/test_guard_stub.py .                          [ 87%]
+tests/session_continuation/test_metadata.py ...                          [ 90%]
+tests/timestamp_guard/test_timestamp_validation.py .....                 [ 95%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py ....        [100%]
+
+============================== 98 passed in 0.45s ==============================
