@@ -10,7 +10,10 @@
 - Guard evidence passes in `reports/python-environment/guard-2026-04-25.txt`.
 - Taskmaster Task 2 and subtasks 2.1-2.8 are marked done.
 - Taskmaster dependency validation passes in `reports/python-environment/taskmaster-validate-dependencies-2026-04-25.txt`.
+- Draft PR #24 is open: https://github.com/loucmane/codex-starter-pack/pull/24
+- Today's session is closed as `SESSION COMPLETE`.
 
 ## Next Steps
-- Review the diff, commit Task 2, push, and open the PR.
+- Review and merge PR #24.
 - After merge, switch back to `main`, pull, delete the Task 2 branch, and inspect Task 3 with the same stale-baseline reconciliation lens.
+- Keep `docs/ai/work-tracking/active/20260425-task2-python-environment-dependencies-ACTIVE/` active until PR #24 is merged.
