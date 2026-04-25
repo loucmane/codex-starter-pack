@@ -1,0 +1,3 @@
+sessions/2025/09/2025-09-20-001-codex-migration.md:80:- Serena memories include `compaction_2025-09-20_codex_migration` and `enforcement_2025-09-20_codex_helpers` for context.
+templates/workflows/taskmaster/alignment.md:57:- Trackers must include `**Last Updated**: <today>` whenever they are modified.
+templates/workflows/processes/meta-workflow-authoring.md:63:   - Run `python3 scripts/codex-guard validate` (include `--include-untracked` when drafting new files).

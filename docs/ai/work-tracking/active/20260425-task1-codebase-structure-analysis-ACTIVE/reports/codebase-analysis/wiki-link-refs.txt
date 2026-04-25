@@ -1,0 +1,1 @@
+templates/integration/architecture/template-architecture.md:309:    - direct_link: [[Handler: handler-name]]

@@ -9,7 +9,7 @@
         "testStrategy": "Verify inventory completeness by cross-referencing with git ls-files, ensure all template references are captured, validate file paths and accessibility",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -17,7 +17,7 @@
             "description": "Systematically discover all template-related files (.md, .py, YAML configs, and files under /templates/) in the Codex repository using optimized glob and ripgrep commands.",
             "dependencies": [],
             "details": "Run:\n\nfind /home/loucmane/codex -type f \\( -name \"*.md\" -o -name \"*.py\" -o -name \"*.yml\" -o -path \"*/templates/*\" \\ ) > /home/loucmane/codex/docs/analysis/template-file-list.txt\n\nUse ripgrep for performance:\nrg --files --type-add 'template:*.md' --type-add 'template:*.yml' --type-add 'template:*.py' --glob '**/templates/**' /home/loucmane/codex > /home/loucmane/codex/docs/analysis/template-file-list-fast.txt\n\nExpected output: List of all template-related files.\n\nTest: pytest tests/test_analysis.py::test_file_inventory_completeness (should find 15+ template files)\n\nPerformance: Each directory scan <50ms, memory usage <500MB.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -29,7 +29,7 @@
               "1.1"
             ],
             "details": "Run:\n\nfind /home/loucmane/codex -name \"*.md\" -size +100k > /home/loucmane/codex/docs/analysis/monolithic-files-inventory.txt\n\nSegment files:\npython scripts/segment_monoliths.py --input /home/loucmane/codex/WORKFLOWS.md --output /home/loucmane/codex/docs/analysis/WORKFLOWS_segments.json\n\nExpected output: /home/loucmane/codex/docs/analysis/monolithic-files-inventory.json\n\nTest: pytest tests/test_analysis.py::test_monolithic_file_detection (should find 3+ files >100KB)\n\nValidation: python scripts/validate_inventory.py --check-git-consistency",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -41,7 +41,7 @@
               "1.1"
             ],
             "details": "Run:\n\ngrep -r '\\[\\[.*\\]\\]' --include='*.md' /home/loucmane/codex > /home/loucmane/codex/docs/analysis/wiki-link-refs.txt\ngrep -r '{% *include' --include='*.md' /home/loucmane/codex > /home/loucmane/codex/docs/analysis/include-refs.txt\npython scripts/scan_imports.py --root /home/loucmane/codex --output /home/loucmane/codex/docs/analysis/import-refs.json\n\nExpected output: Mapped references in /home/loucmane/codex/docs/analysis/reference-patterns.json\n\nTest: pytest tests/test_analysis.py::test_reference_pattern_mapping (should capture all reference types)\n\nPerformance: Use ripgrep for 10x faster search if available.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -53,7 +53,7 @@
               "1.1"
             ],
             "details": "Review all files in scripts/template-ssot-scanner/:\nls -lh scripts/template-ssot-scanner/\n\nRun:\npython scripts/template-ssot-scanner/scan_templates.py --dry-run --output /home/loucmane/codex/docs/analysis/scanner-suite-report.json\n\nExpected output: Capability matrix in /home/loucmane/codex/docs/analysis/scanner-suite-capabilities.md\n\nTest: pytest tests/test_analysis.py::test_scanner_suite_coverage\n\nValidation: Confirm all discovered templates are covered by at least one scanner.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -65,7 +65,7 @@
               "1.3"
             ],
             "details": "Run:\npython scripts/generate_dependency_graph.py --input /home/loucmane/codex/docs/analysis/reference-patterns.json --output /home/loucmane/codex/docs/analysis/template-dependency-graph.json\n\nVisualize:\npython scripts/visualize_graph.py --input /home/loucmane/codex/docs/analysis/template-dependency-graph.json --output /home/loucmane/codex/docs/analysis/template-dependency-graph.png\n\nExpected output: JSON and PNG graph files.\n\nTest: pytest tests/test_analysis.py::test_dependency_graph_integrity\n\nPerformance: Graph generation <2s for full codebase.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -78,7 +78,7 @@
               "1.4"
             ],
             "details": "Run:\npytest --benchmark-only tests/test_analysis.py::test_template_discovery_speed\n\nMeasure memory:\n/usr/bin/time -v python scripts/template-ssot-scanner/scan_templates.py --output /dev/null\n\nExpected output: /home/loucmane/codex/docs/analysis/performance-benchmarks.md\n\nTarget: <50ms per directory scan, <500MB RAM for full scan.\n\nTest: pytest-benchmark output must meet targets.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -92,7 +92,7 @@
               "1.5"
             ],
             "details": "Run:\npython scripts/score_migration_readiness.py --input /home/loucmane/codex/docs/analysis/template-file-list.txt --output /home/loucmane/codex/docs/analysis/migration-readiness-scores.json\n\nCriteria: Structure, modularity, dependency complexity, scanner coverage.\n\nExpected output: JSON file with readiness scores for each component.\n\nTest: pytest tests/test_analysis.py::test_migration_readiness_scoring (all files scored 0-10, no missing entries).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -109,7 +109,7 @@
               "1.7"
             ],
             "details": "Run:\npython scripts/generate_analysis_report.py --inputs /home/loucmane/codex/docs/analysis/ --output /home/loucmane/codex/.taskmaster/reports/codebase-analysis.md\n\nExpected output: Markdown report with tables, charts, and recommendations.\n\nTest: pytest tests/test_analysis.py::test_report_generation (report must include all required sections and reference all prior outputs).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-24T19:50:13.157Z"
+      "updated": "2026-04-25T11:58:58.642Z"
     }
   }
 }
