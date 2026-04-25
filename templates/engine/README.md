@@ -38,6 +38,7 @@ templates/engine/
 │   └── template-system.md
 └── validation/
     ├── ENFORCEMENT-SUMMARY.md
+    ├── foundation-adoption-guide.md
     ├── integration-guide.md
     └── validation-framework.md
 ```
@@ -84,6 +85,7 @@ Those discovery surfaces align with the directory structure listed above.
 - `enforcement/meta-workflow-guard-ci-plan.md`
 - `enforcement/meta-workflow-guard-remediation.md`
 - `validation/ENFORCEMENT-SUMMARY.md`
+- `validation/foundation-adoption-guide.md`
 - `validation/integration-guide.md`
 - `validation/validation-framework.md`
 

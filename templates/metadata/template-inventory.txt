@@ -64,6 +64,7 @@ templates/engine/navigation/common-flows.md
 templates/engine/navigation/template-protocol.md
 templates/engine/structure/template-system.md
 templates/engine/validation/ENFORCEMENT-SUMMARY.md
+templates/engine/validation/foundation-adoption-guide.md
 templates/engine/validation/integration-guide.md
 templates/engine/validation/validation-framework.md
 templates/engine/verify-phase1.sh

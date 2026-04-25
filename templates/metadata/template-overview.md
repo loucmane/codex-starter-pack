@@ -110,6 +110,7 @@
 - `templates/engine/navigation/template-protocol.md` — heading: Template Navigation Protocol
 - `templates/engine/structure/template-system.md` — title: template-system-structure; type: engine-component; heading: Template System Structure
 - `templates/engine/validation/ENFORCEMENT-SUMMARY.md` — heading: ULTRATHINK Enforcement System - Implementation Summary
+- `templates/engine/validation/foundation-adoption-guide.md` — title: foundation-adoption-guide; type: documentation; status: stable; heading: Portable Foundation Migration and Adoption Guide
 - `templates/engine/validation/integration-guide.md` — title: integration-guide; type: documentation; heading: ULTRATHINK Enforcement Integration Guide
 - `templates/engine/validation/validation-framework.md` — title: validation-framework; type: enforcement; heading: Validation Framework
 - `templates/engine/verify-phase1.sh` — heading: !/bin/bash
