@@ -1,0 +1,47 @@
+[
+  {
+    "category": "references",
+    "severity": "error",
+    "message": "Broken references detected",
+    "details": {
+      "count": 176,
+      "threshold": 0
+    }
+  },
+  {
+    "category": "migration",
+    "severity": "info",
+    "message": "References to fully migrated monoliths detected",
+    "details": {
+      "count": 0,
+      "threshold": 0
+    }
+  },
+  {
+    "category": "dependencies",
+    "severity": "warning",
+    "message": "Circular dependencies detected",
+    "details": {
+      "count": 11,
+      "threshold": 0
+    }
+  },
+  {
+    "category": "coverage",
+    "severity": "warning",
+    "message": "Orphaned files detected",
+    "details": {
+      "count": 67,
+      "threshold": 0
+    }
+  },
+  {
+    "category": "references",
+    "severity": "info",
+    "message": "Duplicate references detected",
+    "details": {
+      "count": 0,
+      "threshold": 0
+    }
+  }
+]

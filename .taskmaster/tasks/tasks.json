@@ -543,7 +543,7 @@
         "dependencies": [
           "2"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -551,7 +551,7 @@
             "description": "Analyze scanner.py, reference_validator.py, duplicate_detector.py, and migration_tracker.py in /home/loucmane/codex/scripts/template-ssot-scanner/. Document all functions, classes, dependencies, and external library usage. Produce a markdown file (MODULE_AUDIT.md) summarizing findings.",
             "dependencies": [],
             "details": "List all function signatures, class hierarchies, and module-level dependencies. Include code samples for complex logic. Note any hardcoded paths or configuration assumptions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -563,7 +563,7 @@
               "3.1"
             ],
             "details": "Create modules: scan_core.py, validation_interface.py, report_generator.py. Refactor scanner.py to use these modules. Provide code samples for interface definitions and usage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -575,7 +575,7 @@
               "3.2"
             ],
             "details": "Define metadata_v1.json and metadata_v2.json schema files. Update report_generator.py to support both. Add CLI flag --metadata-version. Provide code samples for schema selection logic.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -587,7 +587,7 @@
               "3.3"
             ],
             "details": "Install jsonschema in requirements.txt. Create schemas/metadata_v1.schema.json and schemas/metadata_v2.schema.json. Add validate_output() function in report_generator.py. Provide test commands and expected validation errors.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -599,7 +599,7 @@
               "3.2"
             ],
             "details": "Add config loading from /home/loucmane/codex/scripts/template-ssot-scanner/scanner_config.yaml. Implement severity handling in validation_interface.py. Provide code samples for rule configuration and severity mapping.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -611,7 +611,7 @@
               "3.2"
             ],
             "details": "Add legacy_format_detector.py. Update scanner.py to use compatibility layer. Provide code samples for format detection and transformation logic.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -627,7 +627,7 @@
               "3.6"
             ],
             "details": "Create tests/ directory with test_scanner.py, test_validation.py, test_metadata.py, test_compatibility.py. Add coverage configuration. Provide pytest and coverage run commands.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -640,7 +640,7 @@
               "3.7"
             ],
             "details": "Use cProfile for profiling. Add multiprocessing in scan_core.py. Implement file-level caching. Provide before/after benchmarks and code samples for parallel execution.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           }
@@ -8045,7 +8045,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-04-25T16:24:29.300Z"
+      "updated": "2026-04-26T10:23:21.744Z"
     }
   }
 }

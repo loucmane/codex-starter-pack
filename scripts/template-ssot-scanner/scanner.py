@@ -6,14 +6,20 @@ Scans all template files and collects metadata for SSOT analysis
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-from scan_metadata import save_with_metadata
+from typing import Any, Dict, List, Optional
+from report_generator import save_scanner_report
+from scan_core import (
+    DEFAULT_EXCLUDE_PATTERNS,
+    ScannerConfig,
+    collect_scannable_files,
+    discover_config_dirs,
+)
+
 
 class TemplateScanner:
     """Scanner for template system files"""
@@ -23,14 +29,8 @@ class TemplateScanner:
         self.base_path = base_path
         self.checkpoint_interval = checkpoint_interval
         self.templates_dir = base_path / "templates"
-        # Support both historical `.claude` and Codex `.codex` configuration directories.
-        self.config_dirs: List[Path] = []
-        for dir_name in (".codex", ".claude"):
-            config_path = base_path / dir_name
-            if config_path.exists():
-                self.config_dirs.append(config_path)
-        self.include_pattern = include_pattern
-        self.exclude_pattern = exclude_pattern
+        self.config_dirs = discover_config_dirs(base_path)
+        self.config = ScannerConfig.from_cli(base_path, include_pattern, exclude_pattern)
         self.results = {
             "scan_metadata": {
                 "timestamp": datetime.now().isoformat(),
@@ -74,34 +74,9 @@ class TemplateScanner:
         if not directory.exists():
             print(f"Warning: {directory} does not exist")
             return
-            
+
         files_processed = 0
-        md_files = list(directory.rglob("*.md"))
-        json_files = list(directory.rglob("*.json"))
-        yaml_files = list(directory.rglob("*.yml")) + list(directory.rglob("*.yaml"))
-        all_files = md_files + json_files + yaml_files
-        
-        # Apply include/exclude filters
-        if self.include_pattern or self.exclude_pattern:
-            filtered_files = []
-            for file_path in all_files:
-                relative_str = str(file_path.relative_to(self.base_path))
-                
-                # Check include pattern (if specified, file must match)
-                if self.include_pattern:
-                    from fnmatch import fnmatch
-                    if not fnmatch(relative_str, self.include_pattern):
-                        continue
-                
-                # Check exclude pattern (if specified, file must not match)
-                if self.exclude_pattern:
-                    from fnmatch import fnmatch
-                    if fnmatch(relative_str, self.exclude_pattern):
-                        continue
-                
-                filtered_files.append(file_path)
-            
-            all_files = filtered_files
+        all_files = collect_scannable_files(directory, self.config)
         
         print(f"\nFound {len(all_files)} files in {category} (after filtering)")
         
@@ -492,7 +467,10 @@ Examples:
         print(f"  Base path: {base_path}")
         print(f"  Output: {args.out}")
         print(f"  Include: {args.include or 'all'}")
-        print(f"  Exclude: {args.exclude or 'none'}")
+        exclude_summary = ", ".join(DEFAULT_EXCLUDE_PATTERNS)
+        if args.exclude:
+            exclude_summary = f"{exclude_summary}, {args.exclude}"
+        print(f"  Exclude: {exclude_summary}")
         print(f"  Checkpoints: {'disabled' if args.no_checkpoints else f'every {args.checkpoint} files'}")
         print()
     
@@ -519,7 +497,7 @@ Examples:
     
     # Save with metadata
     output_path = Path(args.out)
-    save_with_metadata(
+    save_scanner_report(
         data=results,
         output_file=output_path,
         scanner_name="template_scanner",

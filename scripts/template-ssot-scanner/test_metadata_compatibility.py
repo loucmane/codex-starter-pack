@@ -11,7 +11,13 @@ import sys
 # Add current directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from scan_metadata import save_with_metadata, load_with_metadata
+from scan_metadata import (
+    MetadataSchemaError,
+    load_with_metadata,
+    save_with_metadata,
+    validate_output_file,
+    validate_output_structure,
+)
 
 
 def test_backward_compatibility():
@@ -82,13 +88,36 @@ def test_new_format_roundtrip():
         assert loaded_metadata is not None, "Metadata missing"
         assert loaded_metadata["scanner"] == "test_scanner", "Scanner name mismatch"
         assert loaded_metadata["scanner_version"] == "1.0.0", "Version mismatch"
+        assert loaded_metadata["output_format_version"] == "2.0.0", "Format version mismatch"
         assert loaded_metadata["stats"] == test_stats, "Stats mismatch"
         assert loaded_metadata["duration_seconds"] == 1.23, "Duration mismatch"
+        validate_output_file(output_file)
         
         print("✅ New format roundtrip: PASSED")
         
     finally:
         output_file.unlink()
+
+
+def test_schema_validation_rejects_missing_metadata_fields():
+    """Test that malformed v2 outputs fail schema validation."""
+    print("Testing schema validation rejection...")
+
+    invalid_output = {
+        "metadata": {
+            "scan_timestamp": "2026-04-26T11:56:00",
+            "scanner": "test_scanner",
+            "output_format_version": "2.0.0",
+        },
+        "data": {},
+    }
+
+    try:
+        validate_output_structure(invalid_output)
+    except MetadataSchemaError:
+        print("✅ Schema rejection: PASSED")
+    else:
+        raise AssertionError("Malformed metadata output was accepted")
 
 
 def test_incremental_updates():
@@ -179,7 +208,8 @@ def main():
         test_backward_compatibility,
         test_new_format_roundtrip,
         test_incremental_updates,
-        test_mixed_environment
+        test_mixed_environment,
+        test_schema_validation_rejects_missing_metadata_fields,
     ]
     
     failed = 0

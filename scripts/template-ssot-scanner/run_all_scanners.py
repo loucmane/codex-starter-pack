@@ -4,24 +4,33 @@ Template Scanner Runner
 Executes all scanner scripts in the correct sequence
 """
 
-import json
+from __future__ import annotations
+
+import argparse
+import shlex
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
+REQUIRED_PYTHON = (3, 11)
 
-def run_command(cmd: str, description: str) -> bool:
+
+def format_command(cmd: list[str]) -> str:
+    """Return a shell-readable command string for display only."""
+    return " ".join(shlex.quote(part) for part in cmd)
+
+
+def run_command(cmd: list[str], description: str) -> bool:
     """Run a command and return success status"""
     print(f"\n{'=' * 60}")
     print(f"Running: {description}")
-    print(f"Command: {cmd}")
+    print(f"Command: {format_command(cmd)}")
     print(f"{'=' * 60}")
     
     try:
         result = subprocess.run(
             cmd,
-            shell=True,
             capture_output=True,
             text=True,
             cwd=Path(__file__).parent
@@ -43,14 +52,15 @@ def run_command(cmd: str, description: str) -> bool:
 
 
 def check_dependencies() -> bool:
-    """Check if Python 3.8+ is available"""
+    """Check if the Codex project Python version is available."""
     try:
         import platform
         version = platform.python_version()
         major, minor = map(int, version.split('.')[:2])
         
-        if major < 3 or (major == 3 and minor < 8):
-            print(f"❌ Python 3.8+ required, found {version}")
+        if (major, minor) < REQUIRED_PYTHON:
+            required = ".".join(str(part) for part in REQUIRED_PYTHON)
+            print(f"❌ Python {required}+ required, found {version}")
             return False
         
         print(f"✅ Python version: {version}")
@@ -60,55 +70,97 @@ def check_dependencies() -> bool:
         return False
 
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Run the Template SSOT scanner suite in dependency order.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                         # Run all scanners without checkpoints
+  %(prog)s --base /path/to/repo     # Scan a specific repository root
+  %(prog)s --with-checkpoints       # Opt in to checkpoint generation
+        """,
+    )
+    parser.add_argument(
+        "--base",
+        type=Path,
+        default=None,
+        help="Repository root to scan (default: auto-detect from this script location)",
+    )
+    parser.add_argument(
+        "--python",
+        default=sys.executable,
+        help="Python executable used to run scanner scripts (default: current interpreter)",
+    )
+    parser.add_argument(
+        "--with-checkpoints",
+        action="store_true",
+        help="Allow scanner.py to generate checkpoint files (disabled by default)",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=int,
+        default=25,
+        help="Checkpoint interval when --with-checkpoints is enabled (default: 25)",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None):
     """Main runner function"""
+    args = build_parser().parse_args(argv)
+    project_root = (args.base or Path(__file__).parent.parent.parent).resolve()
+    scanner_args = ["--base", str(project_root)]
+    if args.with_checkpoints:
+        scanner_args.extend(["--checkpoint", str(args.checkpoint)])
+    else:
+        scanner_args.append("--no-checkpoints")
+
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║          Template SSOT Scanner Suite - Full Analysis        ║
 ╚══════════════════════════════════════════════════════════════╝
 
 Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Directory: {Path.cwd()}
+Directory: {project_root}
 """)
     
     # Check dependencies
     if not check_dependencies():
-        print("\n❌ Dependency check failed. Please install Python 3.8+")
+        print("\n❌ Dependency check failed. Please install Python 3.11+")
         sys.exit(1)
     
-    # Get project root (2 levels up from scripts/template-ssot-scanner/)
-    project_root = Path(__file__).parent.parent.parent
     print(f"Project root: {project_root}")
     
     # Define execution sequence - MIGRATION DETECTOR MUST RUN FIRST
     scripts = [
         {
             "script": "migration_detector.py",
-            "args": "",
+            "args": [],
             "description": "Detecting true migration status of monolithic files",
             "required": True
         },
         {
             "script": "scanner.py",
-            "args": f"--base {project_root}",
+            "args": scanner_args,
             "description": "Scanning all template files and collecting metadata",
             "required": True
         },
         {
             "script": "analyze_references.py",
-            "args": "",
+            "args": [],
             "description": "Analyzing file references and dependencies",
             "required": True
         },
         {
             "script": "find_duplicates.py", 
-            "args": "",
+            "args": [],
             "description": "Finding duplicate content and migration status",
             "required": True
         },
         {
             "script": "generate_fixes.py",
-            "args": "",
+            "args": [],
             "description": "Generating fix scripts and recommendations",
             "required": False
         }
@@ -129,7 +181,7 @@ Directory: {Path.cwd()}
                 break
             continue
         
-        cmd = f"python3 {script_info['script']} {script_info['args']}"
+        cmd = [args.python, script_info["script"], *script_info["args"]]
         
         success = run_command(cmd, f"[{i}/{len(scripts)}] {script_info['description']}")
         

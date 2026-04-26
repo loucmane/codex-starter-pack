@@ -1,0 +1,17 @@
+scripts/template-ssot-scanner/README.md
+scripts/template-ssot-scanner/analyze_references.py
+scripts/template-ssot-scanner/find_duplicates.py
+scripts/template-ssot-scanner/generate_fixes.py
+scripts/template-ssot-scanner/migration_detector.py
+scripts/template-ssot-scanner/report_generator.py
+scripts/template-ssot-scanner/run_all_scanners.py
+scripts/template-ssot-scanner/safe_reorganize.py
+scripts/template-ssot-scanner/scan_core.py
+scripts/template-ssot-scanner/scan_metadata.py
+scripts/template-ssot-scanner/scanner.py
+scripts/template-ssot-scanner/scanner_config.yaml
+scripts/template-ssot-scanner/test_ci_integration.sh
+scripts/template-ssot-scanner/test_cli_behavior.py
+scripts/template-ssot-scanner/test_integration.py
+scripts/template-ssot-scanner/test_metadata_compatibility.py
+scripts/template-ssot-scanner/validation_interface.py

@@ -1,0 +1,13 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+plugins: cov-4.1.0, benchmark-4.0.0
+collected 18 items
+
+scripts/template-ssot-scanner/test_cli_behavior.py ........              [ 44%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py .....       [ 72%]
+scripts/template-ssot-scanner/test_scanner_modules.py .....              [100%]
+
+============================== 18 passed in 0.57s ==============================

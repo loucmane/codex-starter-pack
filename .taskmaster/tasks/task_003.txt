@@ -1,6 +1,6 @@
 # Task ID: 3
 # Title: Port SSOT Scanner Suite to Codex
-# Status: pending
+# Status: in-progress
 # Dependencies: 2
 # Priority: high
 # Description: Migrate the Python scanner suite from FPL MCP repository to Codex environment

@@ -25,6 +25,8 @@ from enum import Enum
 import shutil
 from datetime import datetime
 
+from scan_metadata import load_with_metadata
+
 
 class FileCategory(Enum):
     """File movement safety categories"""
@@ -87,9 +89,9 @@ class SafeReorganizer:
         # Load migration status
         migration_path = self.project_root / "scripts/template-ssot-scanner/output/data/migration_status.json"
         if migration_path.exists():
-            with open(migration_path) as f:
-                self.migration_status = json.load(f)
-                print(f"  Loaded migration status for {len(self.migration_status)} files")
+            data, _ = load_with_metadata(migration_path)
+            self.migration_status = data or {}
+            print(f"  Loaded migration status for {len(self.migration_status)} files")
         
         # Load scan results - try multiple possible locations
         scan_paths = [
@@ -100,11 +102,11 @@ class SafeReorganizer:
         
         for scan_path in scan_paths:
             if scan_path.exists():
-                with open(scan_path) as f:
-                    self.scan_results = json.load(f)
-                    print(f"  Loaded scan results from {scan_path.name}")
-                    print(f"  Found {len(self.scan_results.get('files', {}))} files")
-                    break
+                data, _ = load_with_metadata(scan_path)
+                self.scan_results = data or {}
+                print(f"  Loaded scan results from {scan_path.name}")
+                print(f"  Found {len(self.scan_results.get('files', {}))} files")
+                break
         else:
             print("  ⚠️  No scan results found - run scanner.py first")
     

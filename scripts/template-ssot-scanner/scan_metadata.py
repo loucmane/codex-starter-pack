@@ -5,10 +5,66 @@ Provides consistent metadata tracking across all scanner outputs
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+
+from jsonschema import ValidationError, validate
+
+OUTPUT_FORMAT_VERSION = "2.0.0"
+
+SCANNER_OUTPUT_SCHEMA: Dict[str, Any] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Template SSOT Scanner Output",
+    "type": "object",
+    "required": ["metadata", "data"],
+    "properties": {
+        "metadata": {
+            "type": "object",
+            "required": [
+                "scan_timestamp",
+                "scanner",
+                "scanner_version",
+                "output_format_version",
+            ],
+            "properties": {
+                "scan_timestamp": {"type": "string", "minLength": 1},
+                "scanner": {"type": "string", "minLength": 1},
+                "scanner_version": {"type": "string", "minLength": 1},
+                "output_format_version": {"const": OUTPUT_FORMAT_VERSION},
+                "duration_seconds": {"type": "number", "minimum": 0},
+                "stats": {"type": "object"},
+                "previous_scan": {"type": ["string", "null"]},
+                "changes_from_previous": {"type": "object"},
+            },
+            "additionalProperties": True,
+        },
+        "data": {},
+    },
+    "additionalProperties": False,
+}
+
+
+class MetadataSchemaError(ValueError):
+    """Raised when scanner metadata output does not match the v2 schema."""
+
+
+def validate_output_structure(output: Dict[str, Any]) -> None:
+    """Validate a wrapped scanner output against the v2 metadata schema."""
+    try:
+        validate(instance=output, schema=SCANNER_OUTPUT_SCHEMA)
+    except ValidationError as exc:
+        path = ".".join(str(part) for part in exc.path)
+        location = f" at {path}" if path else ""
+        raise MetadataSchemaError(f"Invalid scanner output schema{location}: {exc.message}") from exc
+
+
+def validate_output_file(filepath: Path) -> None:
+    """Validate a scanner output file that should use the v2 metadata wrapper."""
+    with open(filepath, 'r') as f:
+        output = json.load(f)
+
+    validate_output_structure(output)
 
 
 def load_with_metadata(filepath: Path) -> Tuple[Any, Optional[Dict[str, Any]]]:
@@ -61,7 +117,7 @@ def save_with_metadata(
         "scan_timestamp": datetime.now().isoformat(),
         "scanner": scanner_name,
         "scanner_version": version,
-        "output_format_version": "2.0.0"  # Version of the metadata format itself
+        "output_format_version": OUTPUT_FORMAT_VERSION  # Version of the metadata format itself
     }
     
     # Add optional fields
@@ -93,6 +149,7 @@ def save_with_metadata(
         "metadata": metadata,
         "data": data
     }
+    validate_output_structure(output)
     
     # Ensure output directory exists
     output_file.parent.mkdir(parents=True, exist_ok=True)
