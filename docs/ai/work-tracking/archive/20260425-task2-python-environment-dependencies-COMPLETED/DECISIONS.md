@@ -5,3 +5,4 @@
 - 2026-04-25 — Use `pyproject.toml` for supported dependency ranges and `uv.lock`/`requirements.lock` for exact resolved versions. This avoids floating major-version upgrades while keeping the dependency policy readable.
 - 2026-04-25 — Do not create a synthetic `src/` tree or require a custom virtualenv prompt just to satisfy stale Taskmaster wording. The current repository uses `scripts/`, `tests/`, and template/workflow directories; Task 2 completion is based on reproducible environment evidence.
 - 2026-04-25 — End today's session without archiving the Task 2 work-tracking folder. The task is implementation-complete, but the PR remains open; archive should happen after merge or when starting the next completed-task transition.
+- 2026-04-25 — After PR #24 merged, archive Task 2 work-tracking and clear `sessions/current`/`plans/current` into an explicit between-sessions state.

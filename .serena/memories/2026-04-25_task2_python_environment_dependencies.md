@@ -1,12 +1,17 @@
 # Task 2 Python Environment Dependencies - 2026-04-25
 
-Task 2 was completed on branch `feat/task-2-python-environment-dependencies`. Commit: `a79dd31 feat(env): complete task 2 python environment setup`. Draft PR: https://github.com/loucmane/codex-starter-pack/pull/24.
+Task 2 is complete and merged to `main`.
 
-Active session: `sessions/2026/04/2026-04-25-002-task2-python-environment-dependencies.md` is marked `SESSION COMPLETE` with `ended_at: 2026-04-25 21:13:54 CEST +0200`.
-Active plan: `plans/2026-04-25-task2-python-environment-dependencies.md` has scope/implement/verify completed.
-Active tracker: `docs/ai/work-tracking/active/20260425-task2-python-environment-dependencies-ACTIVE/TRACKER.md` has all goals and plan steps checked.
+Merge PR: https://github.com/loucmane/codex-starter-pack/pull/24
+Merge commit on `main`: `0641b93 Merge pull request #24 from loucmane/feat/task-2-python-environment-dependencies`.
+Feature commits:
+- `a79dd31 feat(env): complete task 2 python environment setup`
+- `b8da039 chore(session): close task 2 session`
 
-Do not archive the Task 2 work-tracking folder until PR #24 is merged. It remains active intentionally while the PR is open.
+Session: `sessions/2026/04/2026-04-25-002-task2-python-environment-dependencies.md` is marked `SESSION COMPLETE` with `ended_at: 2026-04-25 21:13:54 CEST +0200`.
+Plan: `plans/2026-04-25-task2-python-environment-dependencies.md` has scope/implement/verify completed.
+Work tracking: archived after PR merge at `docs/ai/work-tracking/archive/20260425-task2-python-environment-dependencies-COMPLETED/`.
+Session pointers were cleared into between-sessions state: `sessions/current` and `plans/current` are absent, `sessions/state.json` has `current: null`.
 
 What changed:
 - Added `pyproject.toml` with Python `>=3.11`, runtime automation dependencies (`click`, `pyyaml`, `rich`), dev/test dependency group (`pytest`, `pytest-benchmark`, `pytest-cov`, `black`, `ruff`, `mypy`, `pre-commit`), pytest config, and basic tool config.
@@ -15,7 +20,7 @@ What changed:
 - Archived completed Task 1 work-tracking folder through the helper before starting Task 2.
 - Marked Taskmaster Task 2 and subtasks 2.1-2.8 done, then regenerated Taskmaster files.
 
-Evidence under `docs/ai/work-tracking/active/20260425-task2-python-environment-dependencies-ACTIVE/reports/python-environment/`:
+Evidence under the archived reports folder:
 - `environment-2026-04-25.txt`: Python 3.12.3, uv 0.7.8, pytest 7.4.4, pyyaml 6.0.3, click 8.3.3, rich 15.0.0, black/ruff/mypy/pre-commit versions.
 - `uv-sync-2026-04-25.txt`: locked sync audited 31 packages.
 - `pip-freeze-2026-04-25.txt`: installed package list.
@@ -23,9 +28,6 @@ Evidence under `docs/ai/work-tracking/active/20260425-task2-python-environment-d
 - `guard-2026-04-25.txt`: guard passed with untracked files included.
 - `taskmaster-validate-dependencies-2026-04-25.txt`: valid dependency graph for 102 tasks and 528 subtasks.
 
-PR note: Initial `gh pr create --body` had shell quoting issues because markdown backticks were interpreted by zsh; the PR body was corrected via GitHub REST API. Future PR creation with multiline markdown/backticks should use a body file or REST JSON input.
+Post-merge closeout state needs a final commit on `main` for the archive move and cleared session pointers. The stale remote branch `origin/feat/task-2-python-environment-dependencies` may still exist and can be deleted after the closeout commit.
 
-Next after merge:
-1. Switch to `main`, pull, delete `feat/task-2-python-environment-dependencies` locally/remotely if desired.
-2. Archive Task 2 work-tracking folder if the PR is merged.
-3. Inspect Task 3 (`Port SSOT Scanner Suite to Codex`) with the same stale-baseline reconciliation lens before implementation.
+Next task: inspect Task 3 (`Port SSOT Scanner Suite to Codex`) with the same stale-baseline reconciliation lens before implementation.
