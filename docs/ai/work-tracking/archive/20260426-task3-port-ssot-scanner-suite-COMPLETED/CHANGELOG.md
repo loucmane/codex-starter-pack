@@ -7,3 +7,4 @@
 - 2026-04-26 11:56 CEST — Completed scanner foundation audit and initial hardening.
 - 2026-04-26 12:10 CEST — Completed Taskmaster subtasks 3.1-3.8 with scanner modularization, metadata/schema validation, severity config, compatibility fixes, tests, and performance evidence.
 - 2026-04-26 12:19 CEST — Completed verification and marked Taskmaster parent Task 3 done.
+- 2026-04-30 13:18 CEST — Archived active work-tracking folder.

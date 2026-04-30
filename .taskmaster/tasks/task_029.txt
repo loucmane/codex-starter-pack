@@ -11,51 +11,13 @@ Create lifecycle states: draft → review → stable → deprecated → archived
 Test state transitions, verify deprecation warnings appear, test grace period enforcement, validate archival process
 
 # Subtasks:
-## 1. Implement Template Version Control System [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop a semantic versioning system for templates with automatic version bumping, version comparison, compatibility checks, migration path management, Git integration for version tagging, and ensure version lookup performance is under 10ms.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Files: src/codex/lifecycle/versioning.py, src/codex/lifecycle/models/version.py. Include error handling for version conflicts, monitoring for versioning operations, unit/integration tests for version logic, and performance benchmarks for lookup speed.
 
-## 2. Build Template Registry Implementation [pending]
-### Dependencies: 29.1
-### Description: Create a central registry for all template versions with metadata storage, search/filter capabilities, dependency resolution, PostgreSQL backend, and Redis caching.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Files: src/codex/lifecycle/registry.py, src/codex/lifecycle/storage/registry_store.py. Implement error handling for registry operations, monitoring for registry health, test strategies for search/filter/dependency logic, and performance benchmarks for registry queries.
-
-## 3. Develop Template Deployment Pipeline [pending]
-### Dependencies: 29.2
-### Description: Implement a multi-stage deployment pipeline (dev → staging → prod) with automated validation, rollback, blue-green deployment support, and deployment metrics/logging.
-### Details:
-Files: src/codex/lifecycle/deployment.py, src/codex/lifecycle/pipeline/stages.py. Add error handling for deployment failures, monitoring for deployment events, automated tests for stage transitions and rollback, and performance benchmarks for deployment speed.
-
-## 4. Create Template Testing Framework [pending]
-### Dependencies: 29.3
-### Description: Build a framework for unit, integration, performance, and regression testing of templates, including test coverage reporting.
-### Details:
-Files: src/codex/lifecycle/testing/framework.py, src/codex/lifecycle/testing/validators.py. Include error handling for test failures, monitoring for test execution, automated test suites for all template states, and benchmarks for test execution time.
-
-## 5. Implement Template Documentation Generator [pending]
-### Dependencies: 29.4
-### Description: Develop an automatic documentation generator for templates, producing API docs, usage examples, changelogs, and supporting Markdown/HTML outputs.
-### Details:
-Files: src/codex/lifecycle/docs/generator.py, src/codex/lifecycle/docs/templates/. Add error handling for doc generation failures, monitoring for doc generation jobs, tests for doc accuracy and completeness, and performance benchmarks for doc build time.
-
-## 6. Establish Template Deprecation System [pending]
-### Dependencies: 29.5
-### Description: Create a system for deprecation warnings, migration guides, grace period management, usage tracking, and automated notifications for deprecated templates.
-### Details:
-Files: src/codex/lifecycle/deprecation.py, src/codex/lifecycle/notifications.py. Implement error handling for notification failures, monitoring for deprecated template usage, tests for grace period enforcement and warning accuracy, and performance benchmarks for notification delivery.
-
-## 7. Develop Template Analytics Dashboard [pending]
-### Dependencies: 29.6
-### Description: Build a real-time dashboard for usage and performance metrics, error tracking, and consumer mapping, integrated with Grafana.
-### Details:
-Files: src/codex/lifecycle/analytics/collector.py, src/codex/lifecycle/analytics/dashboard.py. Include error handling for metric collection failures, monitoring for dashboard uptime, tests for metric accuracy and visualization, and performance benchmarks for dashboard refresh rates.
-
-## 8. Implement Template Governance Controls [pending]
-### Dependencies: 29.7
-### Description: Establish governance controls including approval workflows, code review, security scanning, compliance checks, and a full audit trail for all lifecycle events.
-### Details:
-Files: src/codex/lifecycle/governance/policies.py, src/codex/lifecycle/governance/approval.py. Add error handling for workflow failures, monitoring for compliance events, tests for approval and audit trail integrity, and performance benchmarks for workflow processing.
-

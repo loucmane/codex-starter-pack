@@ -14,3 +14,4 @@
 
 ## Next Steps
 - Prepare commit/PR handoff.
+- Archived on 2026-04-30 13:18 CEST — Folder moved to archive and tracker marked COMPLETED.

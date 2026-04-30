@@ -11,51 +11,13 @@ Install pre-commit framework: pip install pre-commit. Create .pre-commit-config.
 Test hooks trigger on commit, verify validation failures prevent commit, test bypass mechanism, ensure hooks run in CI environment
 
 # Subtasks:
-## 1. Implement Template Validation Framework Core [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop the main validation framework at `src/codex/validation/framework.py` to orchestrate template validation, rule execution, and error aggregation.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Design the framework to load templates, apply schema and custom validations, and collect results. Ensure modularity for easy integration of new validators and performance monitoring.
 
-## 2. Define and Maintain JSON Schema for Templates [pending]
-### Dependencies: 9.1
-### Description: Create and manage comprehensive schema definitions for templates at `schemas/template_schema.json`.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Include all required fields, types, and constraints. Support ajv-like features: type checks, required fields, pattern matching, enum validation, and custom error messages. Version and document the schema.
-
-## 3. Develop PyYAML-Based YAML Frontmatter Validator [pending]
-### Dependencies: 9.1, 9.2
-### Description: Implement strict YAML frontmatter validation at `src/codex/validation/yaml_validator.py` using PyYAML.
-### Details:
-Parse YAML frontmatter, enforce schema compliance, and reject non-conforming or ambiguous YAML. Add error codes for missing or malformed fields.
-
-## 4. Build Custom Rule Engine for Codex-Specific Validation [pending]
-### Dependencies: 9.1, 9.2, 9.3
-### Description: Create a custom rule engine at `src/codex/validation/rules.py` to enforce codex-specific patterns and business logic.
-### Details:
-Implement rules for naming conventions, forbidden patterns, and required metadata. Allow easy addition of new rules. Assign unique error codes and document each rule.
-
-## 5. Optimize Validation Performance for Scale [pending]
-### Dependencies: 9.1, 9.2, 9.3, 9.4
-### Description: Ensure the framework validates at least 100 templates in under 1 second.
-### Details:
-Profile validation steps, parallelize where possible, and minimize I/O. Add benchmarks and automated performance tests to the test suite.
-
-## 6. Implement Detailed Error Reporting and Suggestions [pending]
-### Dependencies: 9.1, 9.2, 9.3, 9.4
-### Description: Develop error reporting at `src/codex/validation/errors.py` with detailed messages, error codes, and actionable fix suggestions.
-### Details:
-Format errors for both CLI and CI output. Include context, line numbers, and recommended fixes. Support output in JSON and human-readable formats.
-
-## 7. Add Auto-Fix Capabilities for Common Issues [pending]
-### Dependencies: 9.1, 9.2, 9.3, 9.4, 9.6
-### Description: Implement auto-fix logic at `src/codex/validation/auto_fix.py` to automatically correct common validation errors.
-### Details:
-Support auto-fix for whitespace, field ordering, and simple pattern corrections. Provide a dry-run mode and detailed logs of changes.
-
-## 8. Integrate Validation Framework with Pre-Commit and CI/CD [pending]
-### Dependencies: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7
-### Description: Configure `.pre-commit-config.yaml` to run the validation framework, and add tests at `tests/validation/test_framework.py` for CI compatibility.
-### Details:
-Add pre-commit hook entry, ensure SKIP_HOOKS=1 bypass works, and validate output formatting for CI. Test hook triggering, bypass, and CI integration.
-

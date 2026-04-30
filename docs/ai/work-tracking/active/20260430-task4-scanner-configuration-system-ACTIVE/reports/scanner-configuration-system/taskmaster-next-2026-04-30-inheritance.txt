@@ -1,0 +1,33 @@
+🏷️ tag: master
+
+╭────────────────────────────────────────────────────────────────────────────╮
+│ Next Task: #4.6 - Add Schema Validation with jsonschema (Compile-Time and  │
+│ Runtime)                                                                   │
+╰────────────────────────────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 4.6                                                        │
+│ Title:        │ Add Schema Validation with jsonschema (Compile-Time and    │
+│               │ Runtime)                                                   │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 4.1, 4.2                                                   │
+│ Complexity:   │ ● 5                                                        │
+│ Description:  │                                                            │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=4.6 --status=in-progress │
+│ 2. Mark as done when completed: task-master set-status --id=4.6              │
+│ --status=done                                                                │
+│ 3. View parent task: task-master show --id=4                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

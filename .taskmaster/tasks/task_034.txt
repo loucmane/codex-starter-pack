@@ -11,51 +11,13 @@ Implement feature flag system using LaunchDarkly SDK or custom solution. Create 
 Test feature flag toggling, verify metrics separation, test auto-rollback trigger, validate gradual rollout
 
 # Subtasks:
-## 1. Design Feature Flag Management System [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Establish a centralized and consistent feature flag management system using LaunchDarkly SDK or a custom solution. Define naming conventions, abstraction layers, and flag lifecycle policies.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Include comprehensive error handling for flag evaluation failures, data retention for flag usage logs, performance optimization for flag state caching, and integration tests for flag toggling and rollback triggers.
 
-## 2. Implement Canary Deployment Logic [pending]
-### Dependencies: 34.1
-### Description: Develop canary deployment mechanism to roll out new templates to 10% of users initially, with support for progressive rollout and rollback.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Ensure error handling for deployment failures, retention of deployment logs, optimize for minimal latency in user targeting, and test canary group assignment and rollback scenarios.
-
-## 3. Develop Metrics Collection for A/B Groups [pending]
-### Dependencies: 34.2
-### Description: Create metrics pipeline to collect, separate, and aggregate data for A/B testing groups, including business and technical metrics.
-### Details:
-Implement error handling for metric ingestion failures, retention policies for metrics data, optimize for high-cardinality metrics, and run integration tests for metrics separation and accuracy.
-
-## 4. Implement Automatic Rollback Mechanism [pending]
-### Dependencies: 34.3
-### Description: Build system to monitor error rates and automatically trigger rollback if error threshold (>5%) is exceeded for any group.
-### Details:
-Include error handling for rollback failures, retention of rollback event logs, optimize rollback trigger latency, and test rollback activation under simulated error conditions.
-
-## 5. Create Comparison Dashboards [pending]
-### Dependencies: 34.3
-### Description: Develop dashboards to visualize and compare metrics, error rates, and user engagement between A/B groups in real time.
-### Details:
-Ensure error handling for dashboard data streaming, retention of dashboard configuration, optimize dashboard load time (<2 seconds), and perform integration testing for data accuracy and responsiveness.
-
-## 6. Implement User Segment Targeting [pending]
-### Dependencies: 34.1
-### Description: Add logic to target feature rollout to specific user segments based on attributes, supporting dynamic segment updates.
-### Details:
-Handle errors in segment evaluation, retain segment assignment logs, optimize segment matching performance, and test targeting accuracy and segment update propagation.
-
-## 7. Enable Gradual Rollout Progression [pending]
-### Dependencies: 34.2, 34.4
-### Description: Automate progression of rollout stages (10% → 50% → 100%) based on health metrics and feedback, with configurable thresholds.
-### Details:
-Implement error handling for rollout progression failures, retain rollout stage history, optimize progression logic for minimal downtime, and test stage transitions and rollback integration.
-
-## 8. Test Rollback Triggers and System Integration [pending]
-### Dependencies: 34.1, 34.2, 34.3, 34.4, 34.5, 34.6, 34.7
-### Description: Conduct comprehensive integration testing of feature flag toggling, canary deployment, metrics separation, rollback triggers, dashboards, and segment targeting.
-### Details:
-Include error scenario simulations, verify data retention across all modules, optimize test coverage for performance, and validate system behavior under edge cases.
-

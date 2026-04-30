@@ -11,51 +11,13 @@ Update CODEX.md with new template system. Create AGENTS.md for agent-specific gu
 Review documentation for accuracy, test code examples, verify cross-references, get user feedback on clarity
 
 # Subtasks:
-## 1. Pipeline Infrastructure Setup [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Establish dual-support CI/CD pipeline infrastructure using GitHub Actions and Jenkins X, with self-hosted GPU runners, container registry integration (ECR/GCR), and HashiCorp Vault for secrets management. Ensure full build execution completes in under 10 minutes.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Create and configure `ci/pipelines/main.yaml` and `ci/pipelines/shared/templates.yaml`. Integrate monitoring, error handling, rollback procedures, and optimize for performance.
 
-## 2. Build Automation System [pending]
-### Dependencies: 32.1
-### Description: Implement automated build system supporting multi-stage Docker builds with layer caching, parallel microservice builds, dependency caching via BuildKit, artifact versioning, and 70% build time reduction.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Develop `ci/build/builder.py` and `ci/build/docker/multi-stage.dockerfile`. Integrate error handling, monitoring, rollback, and performance optimization.
-
-## 3. Test Automation Framework [pending]
-### Dependencies: 32.2
-### Description: Develop test automation framework enabling parallel test execution with pytest-xdist, result aggregation, flaky test detection/retry, code coverage enforcement (>80%), and unit test execution under 5 minutes.
-### Details:
-Create `ci/testing/runner.py` and `ci/testing/strategies/parallel.py`. Integrate error handling, monitoring, rollback, and performance optimization.
-
-## 4. Security Scanning Pipeline [pending]
-### Dependencies: 32.3
-### Description: Establish security scanning pipeline with SAST (SonarQube), DAST (OWASP ZAP), container scanning (Trivy), license compliance checks, and security gate enforcement.
-### Details:
-Implement `ci/security/scanner.py` and `ci/security/policies/compliance.yaml`. Integrate error handling, monitoring, rollback, and performance optimization.
-
-## 5. Deployment Automation [pending]
-### Dependencies: 32.4
-### Description: Automate deployments to Kubernetes using Helm, supporting blue-green and canary strategies, environment-specific configs, and rollback automation. Ensure deployment time under 3 minutes per environment.
-### Details:
-Develop `ci/deploy/orchestrator.py` and `ci/deploy/strategies/bluegreen.py`. Integrate error handling, monitoring, rollback, and performance optimization.
-
-## 6. Pipeline Monitoring System [pending]
-### Dependencies: 32.5
-### Description: Implement monitoring system for build metrics, deployment success rates, pipeline analytics, CI resource cost tracking, and real-time failure alerts.
-### Details:
-Create `ci/monitoring/collector.py` and `ci/monitoring/dashboard/grafana.json`. Integrate error handling, rollback, and performance optimization.
-
-## 7. Release Management Tools [pending]
-### Dependencies: 32.6
-### Description: Develop release management tools for semantic versioning automation, changelog generation, release notes compilation, asset packaging/distribution, and GitHub/GitLab release creation.
-### Details:
-Implement `ci/release/manager.py` and `ci/release/changelog/generator.py`. Integrate error handling, monitoring, rollback, and performance optimization.
-
-## 8. Pipeline Testing Framework [pending]
-### Dependencies: 32.7
-### Description: Create framework for pipeline-as-code validation, local pipeline execution testing, mock service dependencies, performance benchmarking, and >99.9% pipeline reliability.
-### Details:
-Develop `ci/testing/pipeline_tests.py` and `ci/testing/mocks/services.py`. Integrate error handling, monitoring, rollback, and performance optimization.
-

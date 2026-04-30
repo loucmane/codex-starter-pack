@@ -11,51 +11,13 @@ Define board composition and roles. Create charter document with responsibilitie
 Test decision tracking, verify notification system, validate escalation procedures, ensure meeting tools work
 
 # Subtasks:
-## 1. Define Board Composition and Roles [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Determine the optimal number of board members, required expertise, and assign specific roles (e.g., chair, secretary, voting members). Document responsibilities and expectations for each role.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Include diversity considerations, independence requirements, and committee structures as needed. Reference best practices for board structure and role clarity.
 
-## 2. Draft Governance Charter Document [pending]
-### Dependencies: 36.1
-### Description: Create a formal charter outlining the board's purpose, scope, authority, and key responsibilities. Include code of ethics, decision-making protocols, and compliance requirements.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Ensure the charter aligns with organizational mission and includes measurable objectives, performance metrics, and amendment procedures.
-
-## 3. Establish Meeting Schedule and Protocols [pending]
-### Dependencies: 36.2
-### Description: Set up a recurring weekly meeting schedule for the board during the migration period. Define agenda structure, time limits, and attendance expectations.
-### Details:
-Incorporate virtual/hybrid meeting options, agenda templates, and record-keeping standards. Ensure protocols support transparency and accountability.
-
-## 4. Implement Change Review and Approval Process [pending]
-### Dependencies: 36.3
-### Description: Design and document a process for reviewing and approving proposed template changes, including criteria for review and escalation triggers.
-### Details:
-Define submission, evaluation, and feedback steps. Integrate compliance checks and risk assessment into the review workflow.
-
-## 5. Create Voting Mechanism for Breaking Changes [pending]
-### Dependencies: 36.4
-### Description: Develop a structured voting system for board decisions on breaking changes, specifying quorum, voting thresholds, and tie-breaking procedures.
-### Details:
-Document voting rules in the charter. Implement secure digital voting tools if meetings are virtual.
-
-## 6. Add Decision Tracking and Documentation System [pending]
-### Dependencies: 36.5
-### Description: Implement a system to record, track, and archive all board decisions, including rationale, votes, and follow-up actions.
-### Details:
-Utilize dashboard reports or board management software for real-time updates and historical reference. Ensure auditability and accessibility.
-
-## 7. Define Escalation and Conflict Resolution Procedures [pending]
-### Dependencies: 36.6
-### Description: Establish clear procedures for escalating unresolved issues or conflicts, including criteria, escalation paths, and resolution timelines.
-### Details:
-Document steps for mediation, arbitration, or external review if necessary. Communicate procedures to all stakeholders.
-
-## 8. Implement Stakeholder Notification and Communication System [pending]
-### Dependencies: 36.7
-### Description: Set up a notification system to inform stakeholders of key board decisions, upcoming changes, and meeting outcomes.
-### Details:
-Define notification triggers, channels (e.g., email, dashboard), and message templates. Ensure compliance with transparency and engagement standards.
-

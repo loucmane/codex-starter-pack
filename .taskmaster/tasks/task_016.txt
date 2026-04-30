@@ -11,51 +11,13 @@ Create performance_tests.py with pytest-benchmark. Implement tests: test_templat
 Run benchmarks against current baseline, verify metrics collection accuracy, test regression detection thresholds, ensure CI integration works
 
 # Subtasks:
-## 1. Implement Checklist Manager Core [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop the core checklist manager at `src/codex/checklist/manager.py` to handle checklist creation, retrieval, and updates.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Design a class-based engine to manage checklists, supporting CRUD operations and interfacing with state persistence and dependency modules. Ensure extensibility for future checklist types.
 
-## 2. Implement State Persistence Layer [pending]
-### Dependencies: 16.1
-### Description: Create state management and persistence at `src/codex/checklist/storage.py` to store checklist progress and state.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Use a file-based (e.g., JSON or SQLite) or pluggable backend to persist checklist state. Implement atomic save/load operations and support for resuming interrupted sessions.
-
-## 3. Develop Dependency Resolver with Topological Sorting [pending]
-### Dependencies: 16.1
-### Description: Build a dependency resolver at `src/codex/checklist/dependencies.py` that supports task dependencies and topological sorting.
-### Details:
-Implement a directed acyclic graph (DAG) model for checklist items. Use Kahn's algorithm or depth-first search for topological sorting to resolve execution order and detect cycles.
-
-## 4. Implement Progress Tracking Engine [pending]
-### Dependencies: 16.1, 16.2, 16.3
-### Description: Create a progress calculator at `src/codex/checklist/progress.py` to compute completion percentages.
-### Details:
-Design a formula: progress = (completed_items / total_items) * 100. Support weighted items and dependency-aware progress calculation. Expose API for real-time progress updates.
-
-## 5. Develop Validation Engine for Checklist Items [pending]
-### Dependencies: 16.1, 16.2, 16.3
-### Description: Implement validation rules at `src/codex/checklist/validator.py` for checklist item correctness and completeness.
-### Details:
-Support rule-based and custom Python validation functions. Validate required fields, dependency satisfaction, and custom constraints. Integrate with manager for real-time feedback.
-
-## 6. Build Interactive CLI with Rich [pending]
-### Dependencies: 16.1, 16.2, 16.3, 16.4, 16.5
-### Description: Create an interactive CLI at `src/codex/checklist/cli.py` using Rich for terminal UI.
-### Details:
-Implement commands for checklist navigation, item completion, progress display, and validation feedback. Use Rich for tables, progress bars, and colored output.
-
-## 7. Implement Report Generator for Multiple Formats [pending]
-### Dependencies: 16.1, 16.2, 16.3, 16.4, 16.5
-### Description: Develop a report generator at `src/codex/checklist/reports.py` to export checklists in Markdown, JSON, and HTML.
-### Details:
-Support export of checklist state, progress, and validation results. Use Jinja2 templates for HTML/Markdown and standard library for JSON. Place templates in `templates/checklists/`.
-
-## 8. Integrate Checklist System with CI/CD [pending]
-### Dependencies: 16.1, 16.2, 16.3, 16.4, 16.5, 16.7
-### Description: Add CI/CD integration for automated checklist verification.
-### Details:
-Provide CLI and API hooks for CI pipelines (e.g., GitHub Actions, GitLab CI). Fail builds on incomplete or invalid checklists. Output machine-readable status for pipeline consumption.
-

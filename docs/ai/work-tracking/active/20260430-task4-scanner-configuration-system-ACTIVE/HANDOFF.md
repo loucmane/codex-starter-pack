@@ -1,0 +1,121 @@
+# Task 4 Scanner Configuration System – Handoff Summary
+
+## Current State
+- Task 4 started on `feat/task-4-scanner-configuration-system`.
+- Task 3 work-tracking was archived because Task 3 is merged and complete.
+- The Task 4 plan has been corrected from generic wizard wording to backlog alignment plus scanner configuration reconciliation.
+- Backlog alignment audit lives at `designs/backlog-alignment-audit.md`.
+- Pending Tasks 5-80 now have stale subtasks cleared and two mandatory scope gates: `Scope reconciliation against portable foundation` and `Implement proven current-state gap with evidence`.
+- Task 4.9 records this backlog alignment pass and is marked done.
+- Verification is green for the backlog alignment pass:
+  - `reports/backlog-alignment/guard-2026-04-30-final.txt`
+  - `reports/backlog-alignment/work-tracking-audit-2026-04-30-final.txt`
+  - `reports/backlog-alignment/plan-sync-2026-04-30-final.txt`
+  - `reports/backlog-alignment/taskmaster-dependencies-2026-04-30.txt`
+  - `reports/backlog-alignment/taskmaster-normalization-2026-04-30.txt`
+  - `reports/backlog-alignment/git-diff-check-2026-04-30-final.txt`
+- Task 4.1 is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/scanner_config.schema.json`
+  - `scripts/template-ssot-scanner/config/examples/scanner_config.example.yaml`
+  - `scripts/template-ssot-scanner/config/README.md`
+  - `scripts/template-ssot-scanner/scanner_config.yaml`
+  - `scripts/template-ssot-scanner/test_config_schema.py`
+- Task 4.1 verification is green:
+  - `reports/scanner-configuration-system/tests-2026-04-30-config-schema.txt`
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-04-30-config-schema.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-04-30-config-schema.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-04-30-config-schema-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-04-30-config-schema-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-04-30-config-schema-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-04-30-config-schema-final.txt`
+- Task 4.2 is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/__init__.py`
+  - `scripts/template-ssot-scanner/config/config_loader.py`
+  - `scripts/template-ssot-scanner/test_config_loader.py`
+  - `scripts/template-ssot-scanner/config/README.md`
+  - `scripts/template-ssot-scanner/README.md`
+- Task 4.2 verification is green:
+  - `reports/scanner-configuration-system/tests-2026-04-30-config-loader.txt`
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-04-30-config-loader.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-04-30-config-loader.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-04-30-config-loader.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-04-30-config-loader-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-04-30-config-loader-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-04-30-config-loader-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-04-30-config-loader-final.txt`
+- Task 4.3 is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/rule_engine.py`
+  - `scripts/template-ssot-scanner/test_rule_engine.py`
+  - `scripts/template-ssot-scanner/config/scanner_config.schema.json`
+  - `scripts/template-ssot-scanner/scanner_config.yaml`
+  - `scripts/template-ssot-scanner/config/examples/scanner_config.example.yaml`
+  - `scripts/template-ssot-scanner/config/README.md`
+  - `scripts/template-ssot-scanner/README.md`
+- Task 4.3 verification is green:
+  - `reports/scanner-configuration-system/tests-2026-04-30-rule-engine.txt`
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-04-30-rule-engine.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-04-30-rule-engine.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-04-30-rule-engine.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-04-30-rule-engine-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-04-30-rule-engine-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-04-30-rule-engine-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-04-30-rule-engine-final.txt`
+- Task 4.4 is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/pattern_matcher.py`
+  - `scripts/template-ssot-scanner/test_pattern_matcher.py`
+  - `scripts/template-ssot-scanner/config/__init__.py`
+  - `scripts/template-ssot-scanner/config/examples/scanner_config.example.yaml`
+  - `scripts/template-ssot-scanner/config/README.md`
+  - `scripts/template-ssot-scanner/README.md`
+- Task 4.4 verification is green:
+  - `reports/scanner-configuration-system/tests-2026-04-30-pattern-matcher.txt`
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-04-30-pattern-matcher.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-04-30-pattern-matcher.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-04-30-pattern-matcher.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-04-30-pattern-matcher-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-04-30-pattern-matcher-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-04-30-pattern-matcher-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-04-30-pattern-matcher-final.txt`
+- Task 4.5 is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/inheritance.py`
+  - `scripts/template-ssot-scanner/test_inheritance.py`
+  - `scripts/template-ssot-scanner/config/config_loader.py`
+  - `scripts/template-ssot-scanner/config/__init__.py`
+  - `scripts/template-ssot-scanner/config/README.md`
+  - `scripts/template-ssot-scanner/README.md`
+- Task 4.5 verification is green:
+  - `reports/scanner-configuration-system/tests-2026-04-30-inheritance.txt`
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-04-30-inheritance.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-04-30-inheritance.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-04-30-inheritance.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-04-30-inheritance-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-04-30-inheritance-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-04-30-inheritance-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-04-30-inheritance-final.txt`
+- Serena checkpoint for Task 4.5:
+  - `.serena/memories/2026-04-30_task4_inheritance_checkpoint.md`
+- Session closeout memory:
+  - `.serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md`
+- The 2026-04-30 session is completed:
+  - `sessions/2026/04/2026-04-30-001-task4-scanner-configuration-system.md`
+  - Task 4 work-tracking remains active and must not be archived until Task 4 is complete and merged.
+- `sessions/current` and `plans/current` remain pointed at the completed April 30 session/plan as recovery pointers because guard requires active session/plan links while Taskmaster files are changed.
+
+## Next Steps
+- Start a new dated session before continuing work.
+- Continue Task 4 implementation with subtask 4.6: add compile-time and runtime schema validation hardening. Use the Task 4.1 schema plus the Task 4.2 loader, Task 4.3 rule engine, Task 4.4 pattern matcher, and Task 4.5 resolver contracts, but keep environment variable overrides and scanner dependency injection for later subtasks.
+
+
+
+## Progress Log
+
+- **2026-04-30 15:38** — [S:20260430|W:task4-scanner-configuration-system|H:docs/handoff|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/backlog-alignment/guard-2026-04-30-backlog.txt] Backlog alignment verification is green; next Task 4 step is subtask 4.1 scanner configuration schema design.
+- **2026-04-30 15:53** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-04-30-config-schema.txt] Task 4.1 is done and recorded; next Task 4 subtask is 4.2 ConfigLoader implementation against the schema contract.
+- **2026-04-30 16:04** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-04-30-config-loader.txt] Task 4.2 is done and recorded; next Task 4 subtask is 4.3 Rule Engine with Severity Taxonomy and Rule Definitions.
+- **2026-04-30 17:20** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-04-30-rule-engine.txt] Task 4.3 is done and recorded; next Task 4 subtask is 4.4 Pattern Matcher for Allowlist and Blocklist.
+- **2026-04-30 17:34** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-04-30-pattern-matcher.txt] Task 4.4 is done and recorded; next Task 4 subtask is 4.5 Configuration Inheritance, Environment Overlays, and Profiles.
+- **2026-04-30 18:02** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-04-30-inheritance.txt] Task 4.5 is done and recorded; next Task 4 subtask is 4.6 Schema Validation with jsonschema.
+- **2026-04-30 18:05** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-04-30-inheritance-final.txt] Task 4.5 final closeout evidence is green: Taskmaster show, dependency validation, next-task report, plan sync, audit, guard, and diff check all passed.
+- **2026-04-30 18:07** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:.serena/memories/2026-04-30_task4_inheritance_checkpoint.md] Task 4.5 Serena checkpoint recorded for compaction-safe recovery.
+- **2026-04-30 18:11** — [S:20260430|W:task4-scanner-configuration-system|H:templates/behaviors/session/session-end.md|E:.serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md] Session closeout recorded; next session should start fresh and continue with Task 4.6.
+- **2026-04-30 18:16** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-04-30-between-sessions.txt] Guard rejected a fully cleared between-sessions state for this active-task commit, so current session/plan links were restored as recovery pointers.

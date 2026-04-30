@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Create Scanner Configuration System
-# Status: pending
+# Status: in-progress
 # Dependencies: 3
 # Priority: high
 # Description: Implement YAML-based configuration for scanner rules, severities, and allowlists
@@ -59,3 +59,7 @@ File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/env_overrid
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/integration.py. Provide integration examples for all scanner modules. Unit and integration tests for config-driven behavior. Benchmark scanner startup and config access.
 
+## 9. Audit and normalize pending backlog scope gates [pending]
+### Dependencies: None
+### Description: Audit remaining pending Taskmaster tasks against the portable foundation spec, document stale/corrupted subtask findings, and normalize pending tasks with mandatory current-scope gates before Task 4 scanner configuration implementation continues.
+### Details:

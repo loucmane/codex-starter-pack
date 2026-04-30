@@ -11,51 +11,13 @@ Update documentation, guard rules, and work-tracking flows so Serena is the mand
 Run an end-to-end template change using Serena queries, guard validation, and recorded evidence across sessions/work-tracking.
 
 # Subtasks:
-## 1. Update Template System Documentation for Serena Routing [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Document mandatory Serena usage across CODEX.md, CLAUDE.md, templates/TOOLS.md, and work-tracking guidance.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Update references so developers must use Serena for registry-first discovery and evidence collection, citing command examples and logging requirements.
 
-## 2. Configure Serena Activation in MCP and Session Workflows [pending]
-### Dependencies: 15.1
-### Description: Ensure Serena project activation is automatic in .mcp.json, session templates, and handoff docs.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Document activation via `serena activate_project codex` and add checkpoints to session/handoff templates so activation is never skipped.
-
-## 3. Create Serena Query Reference [pending]
-### Dependencies: 15.1
-### Description: Provide quick-reference scripts for Serena commands (find_symbol, search_for_pattern, memories).
-### Details:
-Write docs/reference/serena_queries.md showing command usage, output expectations, and evidence logging patterns.
-
-## 4. Seed and Maintain Serena Memories [pending]
-### Dependencies: 15.3
-### Description: Ensure baseline scanner outputs and compaction checkpoints are stored as Serena memories with retention policies.
-### Details:
-Create/maintain memories (compaction, enforcement, template baselines) and document naming/retention (180 days active).
-
-## 5. Update codex-guard to Require Serena Evidence [pending]
-### Dependencies: 15.2, 15.3
-### Description: Modify guard validation to fail template edits lacking Serena-backed evidence.
-### Details:
-Add checks ensuring changed templates include Serena evidence references; include clear diagnostics and allowlist rules.
-
-## 6. Embed Serena Usage in Work-Tracking Templates [pending]
-### Dependencies: 15.1
-### Description: Add Serena checkpoints to TRACKER, HANDOFF, and session templates.
-### Details:
-Update work-tracking files so every template change checklist includes Serena search/memory logging steps.
-
-## 7. Provide Serena-Driven S:W:H:E Examples [pending]
-### Dependencies: 15.3, 15.6
-### Description: Create sample S:W:H:E entries demonstrating Serena query snippets and evidence logs.
-### Details:
-Document examples in docs/examples/serena_evidence.md showing how to cite Serena output in sessions/work-tracking logs.
-
-## 8. Execute End-to-End Serena Validation [pending]
-### Dependencies: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7
-### Description: Perform a dry run applying a template edit using Serena queries, guard validation, and work-tracking logging.
-### Details:
-Run a sample template modification, document Serena searches/memories, capture guard output, and update session/work-tracking evidence.
-

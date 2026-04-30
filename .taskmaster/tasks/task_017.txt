@@ -11,51 +11,13 @@ Set up Prometheus exporters for metrics. Create Grafana dashboards for migration
 Verify metrics are being collected, test alert triggering, validate dashboard accuracy, ensure data retention policies work
 
 # Subtasks:
-## 1. Implement Main Code Generator [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop the core code generation logic at `src/codex/codegen/generator.py` to orchestrate template rendering, AST manipulation, formatting, and file output.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Ensure the generator supports batch operations, integrates with context manager, and triggers formatting and scaffolding modules. Include CLI hooks for invocation.
 
-## 2. Develop Jinja2 Template Engine with Custom Filters [pending]
-### Dependencies: 17.1
-### Description: Create a template engine at `src/codex/codegen/templates.py` using Jinja2, supporting custom filters for code idioms, variable substitution, and context-aware rendering.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Define template syntax for Python, JavaScript, and YAML. Implement filters for type conversion, naming conventions, and code block formatting.
-
-## 3. Integrate Code Formatters [pending]
-### Dependencies: 17.1, 17.2
-### Description: Set up code formatters at `src/codex/codegen/formatters/` for Python (Black), JavaScript (Prettier), and YAML to ensure generated code adheres to style guides.
-### Details:
-Configure formatter settings for each language. Automate formatting post-generation. Validate output against linting rules.
-
-## 4. Implement AST Manipulation for Intelligent Code Generation [pending]
-### Dependencies: 17.1, 17.2
-### Description: Build AST transformation logic at `src/codex/codegen/ast_builder.py` to enable context-aware code modifications and template expansion.
-### Details:
-Define AST transformation rules for Python and JavaScript. Support code injection, refactoring, and validation of generated structures.
-
-## 5. Create Project Scaffolding System [pending]
-### Dependencies: 17.1, 17.2
-### Description: Develop a scaffolding module at `src/codex/codegen/scaffold.py` to generate project structures, directories, and boilerplate files based on predefined patterns.
-### Details:
-Implement scaffolding patterns for common project types. Support custom structure definitions and integration with generator and template engine.
-
-## 6. Build Code Snippets Library with Categorization [pending]
-### Dependencies: 17.2, 17.5
-### Description: Establish a code snippets repository at `src/codex/codegen/snippets/` with categorized reusable code blocks for templates and scaffolding.
-### Details:
-Organize snippets by language, use case, and complexity. Provide API for snippet retrieval and insertion during generation.
-
-## 7. Implement Context-Aware Variable Substitution [pending]
-### Dependencies: 17.2, 17.6
-### Description: Develop a context manager at `src/codex/codegen/context.py` to handle variable substitution, ensuring context sensitivity and template accuracy.
-### Details:
-Support hierarchical context resolution, environment overrides, and dynamic variable injection for templates and snippets.
-
-## 8. Enforce Performance Requirements and CLI Integration [pending]
-### Dependencies: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7
-### Description: Optimize the generator and related modules to meet the requirement of generating 100 files in under 5 seconds, with CLI entry point at `src/codex/codegen/cli.py`.
-### Details:
-Profile generation pipeline, parallelize tasks where feasible, and implement CLI commands for batch generation and performance testing.
-

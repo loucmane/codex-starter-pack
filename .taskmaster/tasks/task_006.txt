@@ -11,51 +11,13 @@ Create scripts/codex-guard with validation engine. Implement S:W:H:E format chec
 Test against valid/invalid S:W:H:E formats, verify frontmatter validation catches missing fields, test auto-fix corrections, ensure git hook integration works
 
 # Subtasks:
-## 1. Create Mocking Boundary Scanner Module [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Establish the main scanner module at `src/codex/validation/mocking_scanner.py` with entry points for scanning Python files for mocking boundary violations.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Set up the file structure and initial class/function stubs. Include CLI entry point and docstrings. Prepare for integration with the validation suite.
 
-## 2. Implement AST Parsing and Visitor Pattern [pending]
-### Dependencies: 6.1
-### Description: Develop a complete AST-based parser using Python's ast module to traverse code and identify mocking constructs.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Implement an AST visitor class that walks the syntax tree, capturing all import and usage nodes related to mocking libraries. Include test cases for parsing sample files.
-
-## 3. Develop Mock Detection Patterns [pending]
-### Dependencies: 6.2
-### Description: Add detection logic for unittest.mock, pytest-mock, and custom mocking frameworks using regex and AST node analysis.
-### Details:
-Recognize patterns such as @patch decorators, MagicMock, Mock, create_autospec, and custom wrappers. Provide code examples and unit tests for each pattern.
-
-## 4. Implement Boundary Validation Logic [pending]
-### Dependencies: 6.3
-### Description: Define and enforce rules for mocking boundaries (e.g., service layer → infrastructure, domain → external) and flag violations.
-### Details:
-Configure boundary definitions and implement logic to detect when mocks cross forbidden boundaries. Include severity levels (ERROR, WARNING, INFO) and test cases for each rule.
-
-## 5. Optimize Scanner Performance [pending]
-### Dependencies: 6.2, 6.4
-### Description: Ensure the scanner can process 10,000 lines of code in under 500ms by implementing AST caching and efficient traversal.
-### Details:
-Profile scanner performance, add caching for parsed ASTs, and optimize detection algorithms. Provide benchmarks and regression tests.
-
-## 6. Integrate with SSOT Scanner Suite [pending]
-### Dependencies: 6.1, 6.4, 6.5
-### Description: Wire the mocking boundary scanner into the main validation suite at `src/codex/validation/__init__.py`.
-### Details:
-Expose scanner APIs, register with the validation engine, and ensure compatibility with pre-commit hooks. Add integration tests.
-
-## 7. Implement Rich Terminal Output and Reporting [pending]
-### Dependencies: 6.4, 6.6
-### Description: Add color-coded output for boundary violations and support report generation in JSON, HTML, and terminal formats.
-### Details:
-Use libraries like colorama or rich for terminal output. Implement report serialization and formatting. Include sample outputs and tests.
-
-## 8. Add Configuration and Custom Exception Handling [pending]
-### Dependencies: 6.3, 6.4, 6.6
-### Description: Provide configuration for allowed/disallowed mock patterns and implement custom exceptions at `src/codex/validation/exceptions.py`.
-### Details:
-Support YAML/JSON config files for pattern allowlists. Define and raise custom exceptions for scanner errors. Add configuration tests and exception handling coverage.
-

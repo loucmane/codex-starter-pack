@@ -1,0 +1,18 @@
+# Findings
+
+- 2026-04-30 — The original pending backlog is mixed with the newer foundation work: Tasks 81-102 are current and complete, while many pending Tasks 4-80 still reflect older monolith-migration assumptions.
+- 2026-04-30 — Task 4 is aligned in capability but stale in wording: Task 3 already introduced `scanner_config.yaml`, validation rules, metadata validation, and scanner hardening, so Task 4 should formalize configuration rather than create it from scratch.
+- 2026-04-30 — Many pending task subtasks are not just stale; they are corrupted or unrelated to the repository domain, including ML pipelines, Kubernetes manifests, GraphQL APIs, edge deployments, and PWA subtasks under template-system tasks.
+- 2026-04-30 — `task-master update-task --append` failed through the configured Claude Code provider, so this alignment pass must use deterministic Taskmaster commands rather than AI-assisted task rewriting.
+
+
+
+## Progress Log
+
+- **2026-04-30 15:52** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/validation_interface.py|E:scripts/template-ssot-scanner/scanner_config.yaml] Existing scanner runtime accepts extra validation rule metadata without breaking because load_validation_rules reads only category, severity, and threshold.
+- **2026-04-30 16:04** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/config_loader.py|E:scripts/template-ssot-scanner/test_config_loader.py] Hot reload detection uses content digest in addition to mtime/size, which avoids timestamp-resolution false negatives and is covered by a same-size content-change regression test.
+- **2026-04-30 17:20** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/rule_engine.py|E:scripts/template-ssot-scanner/scanner_config.yaml] Task 4.3 required five priority levels, while the existing scanner interface only supports three output severities. The implemented taxonomy keeps both: priorities drive rule intent, output severities remain compatible.
+- **2026-04-30 17:34** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/pattern_matcher.py|E:scripts/template-ssot-scanner/test_pattern_matcher.py] Initial matcher test run exposed an over-aggressive path normalization bug where `.codex` was stripped to `codex`; fixed normalization to remove only an explicit `./` prefix and covered it with regression tests.
+- **2026-04-30 18:02** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/inheritance.py|E:scripts/template-ssot-scanner/test_inheritance.py] Task 4.5 exposed an ambiguity when an environment overlay and a profile share the same name; resolver `extends` now prefers the profile in same-name cases so `environment_overlays.ci.extends: ci` does not self-cycle.
+- **2026-04-30 18:02** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/inheritance.py|E:scripts/template-ssot-scanner/test_inheritance.py] Overlay inheritance initially duplicated applied profile metadata; resolved snapshot metadata now deduplicates profile and overlay names while preserving resolution order.
+- **2026-04-30 18:16** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-04-30-between-sessions.txt] Current guard rules do not allow missing `sessions/current` or `plans/current` while this active-task commit includes Taskmaster file changes; active tasks should keep recovery symlinks until the next kickoff repoints them.

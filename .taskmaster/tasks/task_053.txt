@@ -11,51 +11,13 @@ Implement Redis cache for template storage. Add in-memory LRU cache as L1. Creat
 Test cache hit rates, verify invalidation, test distributed cache sync, measure performance improvement
 
 # Subtasks:
-## 1. Design and Implement Cloud Abstraction Layer [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop provider-agnostic APIs for caching, resource normalization, service mapping, and credential management to enable seamless multi-cloud integration with <100ms API overhead.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Implement in `src/codex/multicloud/abstraction/provider.py` and `src/codex/multicloud/abstraction/resources.py`. Ensure abstraction supports Redis, in-memory LRU, and distributed cache operations across multiple cloud providers. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
 
-## 2. Establish Multi-Cloud Networking Mesh [pending]
-### Dependencies: 53.1
-### Description: Set up cross-cloud VPNs, network peering, global load balancing, and traffic optimization to ensure cache nodes communicate with <50ms latency between clouds.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Implement in `src/codex/multicloud/network/mesh.py` and `src/codex/multicloud/network/vpn.py`. Validate secure, low-latency connectivity for distributed cache synchronization. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-
-## 3. Develop Data Replication and Synchronization Strategy [pending]
-### Dependencies: 53.2
-### Description: Implement cross-cloud data synchronization, consistency models, conflict resolution, and bandwidth optimization to maintain replication lag under 5 seconds.
-### Details:
-Implement in `src/codex/multicloud/data/replicator.py` and `src/codex/multicloud/data/sync.py`. Ensure cache data is consistent and available across all cloud regions. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-
-## 4. Integrate Multi-Cloud Security Controls [pending]
-### Dependencies: 53.1
-### Description: Implement federated identity, cross-cloud RBAC, secret synchronization, and compliance mapping with authentication overhead under 10ms.
-### Details:
-Implement in `src/codex/multicloud/security/identity.py` and `src/codex/multicloud/security/policies.py`. Secure cache access and operations across all clouds. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-
-## 5. Build Cost Management and Optimization Platform [pending]
-### Dependencies: 53.1
-### Description: Aggregate multi-cloud billing, enable cost allocation/tagging, manage reserved/spot instances, and optimize for >30% cost savings.
-### Details:
-Implement in `src/codex/multicloud/cost/analyzer.py` and `src/codex/multicloud/cost/optimizer.py`. Monitor and optimize cache infrastructure costs across providers. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-
-## 6. Implement Disaster Recovery Orchestration [pending]
-### Dependencies: 53.3, 53.4
-### Description: Enable cross-cloud backup, automated failover, data consistency validation, and recovery testing with RTO under 1 hour.
-### Details:
-Implement in `src/codex/multicloud/dr/orchestrator.py` and `src/codex/multicloud/dr/failover.py`. Ensure cache layer resilience and rapid recovery. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-
-## 7. Deploy Multi-Cloud Monitoring and Observability [pending]
-### Dependencies: 53.1, 53.2, 53.3
-### Description: Implement unified metrics collection, cross-cloud tracing, centralized logging, and alert correlation with monitoring lag under 30 seconds.
-### Details:
-Implement in `src/codex/multicloud/monitoring/aggregator.py` and `src/codex/multicloud/monitoring/normalizer.py`. Track cache hit/miss, latency, and health across all clouds. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-
-## 8. Develop Cloud Migration and Validation Tools [pending]
-### Dependencies: 53.1, 53.3, 53.4, 53.5
-### Description: Create tools for workload/data migration, application refactoring, and migration validation to achieve migration speeds of 100GB/hour.
-### Details:
-Implement in `src/codex/multicloud/migration/mover.py` and `src/codex/multicloud/migration/validator.py`. Ensure seamless migration of cache data and logic between cloud providers. Include comprehensive testing, vendor lock-in avoidance, cost optimization, and compliance validation.
-

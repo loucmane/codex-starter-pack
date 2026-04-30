@@ -9,3 +9,15 @@ Profile current discovery bottlenecks. Implement bloom filters for quick existen
 
 # Test Strategy:
 Benchmark discovery <50ms, test prediction accuracy, verify cache effectiveness, validate async behavior
+
+# Subtasks:
+## 1. Scope reconciliation against portable foundation [pending]
+### Dependencies: None
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
+### Details:
+
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
+### Details:

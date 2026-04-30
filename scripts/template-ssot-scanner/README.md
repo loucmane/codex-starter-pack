@@ -138,6 +138,34 @@ save_with_metadata(
 data, metadata = load_with_metadata("output.json")
 ```
 
+## Configuration
+
+The scanner configuration contract is defined in `config/scanner_config.schema.json`.
+The current default config is `scanner_config.yaml`, and a full example lives at
+`config/examples/scanner_config.example.yaml`.
+`config/config_loader.py` provides the Task 4.2 loader boundary for thread-safe singleton
+access, lazy loading, schema validation, default fallback, and hot reload detection.
+`config/inheritance.py` provides the Task 4.5 profile and environment overlay resolver.
+`config/rule_engine.py` provides the Task 4.3 rule registry and execution layer.
+`config/pattern_matcher.py` provides the Task 4.4 allowlist/blocklist matcher.
+
+The Task 4 configuration model covers:
+
+- scan include/exclude patterns and config directories
+- validation rule categories, scanner output severities, rule-engine priorities, thresholds, enablement, parameters, and future auto-fix intent
+- path/reference allowlists and blocklists using `glob` or `regex`
+- profile and environment overlay inheritance metadata for later merge behavior
+
+Profiles and environment overlays resolve with explicit `deep_merge` or `replace` strategies. Deep
+merge recursively merges mapping values and replaces lists/scalars; replace swaps top-level sections
+from the override. The resolver detects unknown parents and inheritance cycles before returning a
+validated config.
+
+The rule engine maps `critical`, `high`, `medium`, `low`, and `info` priorities onto the existing
+`error`, `warning`, and `info` scanner finding contract. The pattern matcher supports path/reference
+targets, rule-scoped entries, expiration dates, and blocklist precedence. Profile merging,
+environment override, and dependency-injection integration belong to later Task 4 subtasks.
+
 ## Output Directory Structure
 ```
 output/

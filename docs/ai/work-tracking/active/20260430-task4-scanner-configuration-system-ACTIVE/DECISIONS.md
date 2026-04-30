@@ -1,0 +1,17 @@
+# Decisions
+
+- 2026-04-30 — Preserve pending top-level Taskmaster task IDs for continuity, but do not trust old subtasks as execution guidance unless they pass a current-state scope gate.
+- 2026-04-30 — Normalize pending old-backlog tasks by clearing stale subtask layers and adding mandatory scope/implementation gates through Taskmaster CLI commands, not by manually editing `.taskmaster/tasks/tasks.json`.
+- 2026-04-30 — Keep Task 4 active and use it as the backlog-alignment checkpoint before scanner configuration implementation continues.
+
+
+
+## Progress Log
+
+- **2026-04-30 15:52** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/scanner_config.schema.json|E:scripts/template-ssot-scanner/validation_interface.py] Kept Task 4.1 at the schema/design boundary: current runtime still consumes validation_rules only, while loader merging, profile behavior, environment overlays, and dependency injection remain later Task 4 subtasks.
+- **2026-04-30 16:04** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/config_loader.py|E:plans/2026-04-30-task4-scanner-configuration-system.md] Kept Task 4.2 focused on the loader boundary: ConfigLoader validates and reloads config data, while rule-engine behavior, pattern matching, profile merge execution, environment variable overrides, and scanner dependency injection remain later subtasks.
+- **2026-04-30 17:20** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/rule_engine.py|E:scripts/template-ssot-scanner/validation_interface.py] Preserved existing scanner finding severities (`error`, `warning`, `info`) by introducing rule-engine `priority` (`critical`, `high`, `medium`, `low`, `info`) and mapping priorities to output severities instead of widening the current ValidationFinding contract.
+- **2026-04-30 17:34** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/pattern_matcher.py|E:scripts/template-ssot-scanner/config/examples/scanner_config.example.yaml] PatternMatcher uses blocklist precedence over allowlist matches and keeps path/reference matching separate so later scanner integration can make deterministic decisions without conflating target types.
+- **2026-04-30 18:02** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/inheritance.py|E:scripts/template-ssot-scanner/test_inheritance.py] Config inheritance uses recursive dictionary deep merge with list/scalar replacement, while the explicit `replace` strategy replaces top-level overridden sections. This keeps rule lists deterministic and avoids accidental concatenation across profiles.
+- **2026-04-30 18:02** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/config_loader.py|E:scripts/template-ssot-scanner/test_config_loader.py] ConfigLoader exposes `resolve()` and `resolved_snapshot()` as read-only integration points for later scanner dependency injection; direct environment variable override application remains deferred to the dedicated Task 4 subtask.
+- **2026-04-30 18:16** — [S:20260430|W:task4-scanner-configuration-system|H:sessions/current|E:sessions/state.json] Keep `sessions/current` and `plans/current` pointed at the completed April 30 Task 4 artifacts as guard-compliant recovery pointers; tomorrow's new session must repoint them instead of treating this session as still open.
