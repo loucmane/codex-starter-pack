@@ -5,20 +5,28 @@ Analyzes template references to find broken links and create dependency graphs
 """
 
 import argparse
-import json
-import os
 import sys
 import time
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional
+from typing import Dict, List, Optional
 from scan_metadata import save_with_metadata, load_with_metadata
+from validation_interface import finding_from_count, load_validation_rules
 
 class ReferenceAnalyzer:
     """Analyzes references between template files"""
     
-    def __init__(self, scan_results_file: str = "output/data/template_scan_results.json"):
+    def __init__(
+        self,
+        scan_results_file: str = "output/data/template_scan_results.json",
+        config_file: str = "scanner_config.yaml",
+    ):
         self.scan_results_file = scan_results_file
+        config_path = Path(config_file)
+        if not config_path.is_absolute() and not config_path.exists():
+            config_path = Path(__file__).parent / config_path
+        self.config_file = str(config_path)
+        self.validation_rules = load_validation_rules(config_path)
         self.results = None
         self.base_path = None
         self.analysis = {
@@ -30,7 +38,8 @@ class ReferenceAnalyzer:
             "most_referenced": [],
             "reference_stats": {},
             "duplicate_references": [],
-            "monolith_reference_after_migration": []  # New violation type
+            "monolith_reference_after_migration": [],  # New violation type
+            "validation_findings": [],
         }
     
     def load_scan_results(self) -> bool:
@@ -88,6 +97,9 @@ class ReferenceAnalyzer:
         
         # Find duplicate references
         self._find_duplicate_references()
+
+        # Generate configured severity findings
+        self._generate_validation_findings()
         
         # Store duration for metadata
         self._duration = time.time() - start_time
@@ -102,8 +114,10 @@ class ReferenceAnalyzer:
         migration_file = Path("output/data/migration_status.json")
         if migration_file.exists():
             print("Loading migration status for monolith reference checking...")
-            with open(migration_file, 'r') as f:
-                return json.load(f)
+            data, _ = load_with_metadata(migration_file)
+            if isinstance(data, dict):
+                return data
+            print("Warning: migration status file did not contain a JSON object")
         return {}
     
     def _build_dependency_graph(self) -> None:
@@ -293,6 +307,43 @@ class ReferenceAnalyzer:
                     self.analysis["monolith_reference_after_migration"].append(violation)
         
         print(f"  Found {len(self.analysis['monolith_reference_after_migration'])} violations")
+
+    def _add_validation_finding(self, rule_name: str, count: int, message: str) -> None:
+        rule = self.validation_rules.get(rule_name)
+        if not rule:
+            return
+
+        self.analysis["validation_findings"].append(
+            finding_from_count(rule, count, message).to_dict()
+        )
+
+    def _generate_validation_findings(self) -> None:
+        """Attach configured severity findings to the analysis report."""
+        self._add_validation_finding(
+            "broken_references",
+            len(self.analysis["broken_references"]),
+            "Broken references detected",
+        )
+        self._add_validation_finding(
+            "migrated_monolith_references",
+            len(self.analysis["monolith_reference_after_migration"]),
+            "References to fully migrated monoliths detected",
+        )
+        self._add_validation_finding(
+            "circular_dependencies",
+            len(self.analysis["circular_dependencies"]),
+            "Circular dependencies detected",
+        )
+        self._add_validation_finding(
+            "orphaned_files",
+            len(self.analysis["orphaned_files"]),
+            "Orphaned files detected",
+        )
+        self._add_validation_finding(
+            "duplicate_references",
+            len(self.analysis["duplicate_references"]),
+            "Duplicate references detected",
+        )
     
     def _find_circular_dependencies(self) -> None:
         """Find circular dependencies in the graph"""
@@ -465,7 +516,8 @@ class ReferenceAnalyzer:
             "circular_dependencies": len(self.analysis['circular_dependencies']),
             "orphaned_files": len(self.analysis['orphaned_files']),
             "monolith_violations": len(self.analysis.get('monolith_reference_after_migration', [])),
-            "duplicate_references": len(self.analysis.get('duplicate_references', []))
+            "duplicate_references": len(self.analysis.get('duplicate_references', [])),
+            "validation_findings": len(self.analysis.get('validation_findings', []))
         }
         
         # Save with metadata wrapper
@@ -530,6 +582,12 @@ Examples:
         default='output/data/reference_analysis.json'
     )
     parser.add_argument(
+        '--config',
+        type=Path,
+        help='Validation rule config file (default: scanner_config.yaml next to this script)',
+        default='scanner_config.yaml'
+    )
+    parser.add_argument(
         '--broken-threshold',
         type=int,
         help='Exit with error if broken references exceed this threshold',
@@ -578,7 +636,7 @@ Examples:
     # Track timing
     start_time = time.time()
     
-    analyzer = ReferenceAnalyzer(str(args.input))
+    analyzer = ReferenceAnalyzer(str(args.input), str(args.config))
     
     # Set custom output path if specified (the _save_analysis method already handles metadata)
     if args.out != Path('output/data/reference_analysis.json'):

@@ -1,0 +1,22 @@
+usage: run_all_scanners.py [-h] [--base BASE] [--python PYTHON]
+                           [--with-checkpoints] [--checkpoint CHECKPOINT]
+
+Run the Template SSOT scanner suite in dependency order.
+
+options:
+  -h, --help            show this help message and exit
+  --base BASE           Repository root to scan (default: auto-detect from
+                        this script location)
+  --python PYTHON       Python executable used to run scanner scripts
+                        (default: current interpreter)
+  --with-checkpoints    Allow scanner.py to generate checkpoint files
+                        (disabled by default)
+  --checkpoint CHECKPOINT
+                        Checkpoint interval when --with-checkpoints is enabled
+                        (default: 25)
+
+Examples:
+  run_all_scanners.py                         # Run all scanners without checkpoints
+  run_all_scanners.py --base /path/to/repo     # Scan a specific repository root
+  run_all_scanners.py --with-checkpoints       # Opt in to checkpoint generation
+        

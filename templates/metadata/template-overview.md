@@ -5,9 +5,9 @@
 ## Improvement & Extension
 
 - `templates/handlers/orchestrators/system-improvement.md` — heading: System Improvement Orchestrator
-## CONVENTIONS.md
+## Convention Modules
 
-- `templates/CONVENTIONS.md` — heading: Development Conventions & Standards
+- Modular convention files are listed under the `## conventions` section below.
 
 ## HANDLERS.md
 

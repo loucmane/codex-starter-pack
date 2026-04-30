@@ -1,0 +1,35 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+plugins: cov-4.1.0, benchmark-4.0.0
+collected 18 items
+
+scripts/template-ssot-scanner/test_cli_behavior.py ........              [ 44%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py .....       [ 72%]
+scripts/template-ssot-scanner/test_scanner_modules.py .....              [100%]
+
+---------- coverage: platform linux, python 3.12.3-final-0 -----------
+Name                                                           Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------------------------------
+scripts/template-ssot-scanner/analyze_references.py              321    117    64%   48-49, 54-55, 61-62, 73, 120-121, 151-173, 185, 189, 206-211, 214, 229-271, 284-285, 314, 359-365, 368, 377, 388-396, 503, 541-543, 546-549, 632-681
+scripts/template-ssot-scanner/find_duplicates.py                 290    235    19%   56-71, 81-84, 88-114, 118-139, 143-168, 172-207, 214-312, 319-335, 340-348, 352-367, 371-413, 426-440, 455-485, 561-634
+scripts/template-ssot-scanner/generate_fixes.py                  421    365    13%   51, 57, 63, 71, 76-78, 82-112, 116-173, 178-189, 193-211, 215-253, 264-273, 277-287, 291-295, 300-322, 326-339, 349-406, 413, 427-448, 452-618, 623-758, 762
+scripts/template-ssot-scanner/migration_detector.py              140     80    43%   78, 140, 148-180, 184-223, 228-314, 318
+scripts/template-ssot-scanner/report_generator.py                  6      0   100%
+scripts/template-ssot-scanner/run_all_scanners.py                114     92    19%   21, 26-51, 56-70, 112-254
+scripts/template-ssot-scanner/safe_reorganize.py                 327    251    23%   111, 115-169, 173-204, 208-227, 231-286, 290-314, 318-373, 377-435, 439-460, 464-533, 537
+scripts/template-ssot-scanner/scan_core.py                        40      2    95%   46, 66
+scripts/template-ssot-scanner/scan_metadata.py                    75      9    88%   81, 192, 197, 214, 227-232
+scripts/template-ssot-scanner/scanner.py                         265     98    63%   58, 75-76, 91, 95-100, 109-110, 143-145, 154-160, 162, 164, 166, 168, 170, 172, 176, 178, 180, 182, 184, 186, 190, 192, 194, 196, 198, 200, 236-242, 253-265, 270-271, 308, 313, 323, 329, 331, 352-357, 377-378, 446-511
+scripts/template-ssot-scanner/test_cli_behavior.py                66      1    98%   16
+scripts/template-ssot-scanner/test_integration.py                 50     50     0%   4-78
+scripts/template-ssot-scanner/test_metadata_compatibility.py     100     25    75%   120, 191, 203-234, 238
+scripts/template-ssot-scanner/test_scanner_modules.py             64      1    98%   9
+scripts/template-ssot-scanner/validation_interface.py             56      5    91%   60-61, 65, 78, 83
+--------------------------------------------------------------------------------------------
+TOTAL                                                           2335   1331    43%
+
+
+============================== 18 passed in 1.49s ==============================

@@ -1,0 +1,13 @@
+Files scripts/template-ssot-scanner/analyze_references.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/analyze_references.py differ
+Files scripts/template-ssot-scanner/find_duplicates.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/find_duplicates.py differ
+Files scripts/template-ssot-scanner/generate_fixes.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/generate_fixes.py differ
+Files scripts/template-ssot-scanner/migration_detector.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/migration_detector.py differ
+Only in scripts/template-ssot-scanner: report_generator.py
+Only in /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner: requirements.txt
+Files scripts/template-ssot-scanner/run_all_scanners.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/run_all_scanners.py differ
+Only in scripts/template-ssot-scanner: scan_core.py
+Files scripts/template-ssot-scanner/scan_metadata.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/scan_metadata.py differ
+Files scripts/template-ssot-scanner/scanner.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/scanner.py differ
+Only in scripts/template-ssot-scanner: test_cli_behavior.py
+Files scripts/template-ssot-scanner/test_metadata_compatibility.py and /home/loucmane/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/test_metadata_compatibility.py differ
+Only in scripts/template-ssot-scanner: validation_interface.py

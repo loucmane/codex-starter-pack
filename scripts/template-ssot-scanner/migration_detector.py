@@ -7,6 +7,7 @@ Properly identifies files that have been successfully migrated to modular struct
 import json
 import re
 import time
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -280,10 +281,16 @@ def main():
         detector.print_summary()
     
     # Prepare statistics for metadata
+    status_counts = defaultdict(int)
+    for status in migration_status.values():
+        status_counts[status.get("status", "UNKNOWN").lower()] += 1
+
     stats = {
-        "files_scanned": len(migration_status.get("files", {})),
-        "fully_migrated": len(migration_status.get("fully_migrated", [])),
-        "pending_migration": len(migration_status.get("pending_migration", [])),
+        "files_scanned": len(migration_status),
+        "fully_migrated": status_counts["fully_migrated"],
+        "partially_migrated": status_counts["partially_migrated"],
+        "not_migrated": status_counts["not_migrated"],
+        "pending_migration": status_counts["partially_migrated"] + status_counts["not_migrated"],
         "base_path": str(base_path)
     }
     

@@ -75,11 +75,13 @@ class DuplicateFinder:
         migration_file = Path("output/data/migration_status.json")
         if migration_file.exists():
             print("Loading migration status from detector...")
-            with open(migration_file, 'r') as f:
-                return json.load(f)
+            data, _ = load_with_metadata(migration_file)
+            if isinstance(data, dict):
+                return data
+            print("Warning: migration status file did not contain a JSON object")
         else:
             print("No migration detector results found, using similarity-based detection")
-            return {}
+        return {}
     
     def analyze(self) -> Dict:
         """Main analysis method"""
@@ -492,8 +494,8 @@ def main():
 Examples:
   %(prog)s                              # Basic duplicate detection
   %(prog)s --section-matching          # Compare section by section
-  %(prog)s --threshold 0.9             # Only flag >90% similar as duplicates
-  %(prog)s --migration-threshold 80    # Exit error if migration <80% complete
+  %(prog)s --threshold 0.9             # Only flag >90%% similar as duplicates
+  %(prog)s --migration-threshold 80    # Exit error if migration <80%% complete
   %(prog)s --quiet                     # Suppress output for automation
         """
     )

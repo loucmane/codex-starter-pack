@@ -5,6 +5,7 @@ description = "Portable Codex workflow foundation, guard tooling, and template m
 requires-python = ">=3.11"
 dependencies = [
     "click>=8.1.0,<9.0.0",
+    "jsonschema>=4.22,<5.0",
     "pyyaml>=6.0,<7.0",
     "rich>=13.5.0,<16.0.0",
 ]

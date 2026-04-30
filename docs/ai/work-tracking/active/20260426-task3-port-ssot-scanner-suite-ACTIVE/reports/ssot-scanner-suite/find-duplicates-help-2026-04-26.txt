@@ -1,0 +1,37 @@
+usage: find_duplicates.py [-h] [--input INPUT] [--out OUT]
+                          [--section-matching] [--threshold THRESHOLD]
+                          [--migration-threshold MIGRATION_THRESHOLD]
+                          [--duplicate-threshold DUPLICATE_THRESHOLD]
+                          [--generate-diffs] [--verbose] [--quiet] [--version]
+
+Duplicate Content Finder - Identifies duplicate content across templates
+
+options:
+  -h, --help            show this help message and exit
+  --input INPUT, -i INPUT
+                        Input scan results file (default:
+                        output/data/template_scan_results.json)
+  --out OUT, -o OUT     Output analysis file (default:
+                        output/data/duplicate_analysis.json)
+  --section-matching, -s
+                        Enable section-by-section comparison for more granular
+                        matching
+  --threshold THRESHOLD, -t THRESHOLD
+                        Similarity threshold for duplicates (0.0-1.0, default:
+                        0.7)
+  --migration-threshold MIGRATION_THRESHOLD
+                        Exit with error if migration percentage is below this
+  --duplicate-threshold DUPLICATE_THRESHOLD
+                        Exit with error if duplicate count exceeds this
+  --generate-diffs, -d  Generate diff snippets for high-similarity duplicates
+  --verbose, -v         Enable verbose output
+  --quiet, -q           Suppress all output except errors
+  --version             show program's version number and exit
+
+Examples:
+  find_duplicates.py                              # Basic duplicate detection
+  find_duplicates.py --section-matching          # Compare section by section
+  find_duplicates.py --threshold 0.9             # Only flag >90% similar as duplicates
+  find_duplicates.py --migration-threshold 80    # Exit error if migration <80% complete
+  find_duplicates.py --quiet                     # Suppress output for automation
+        

@@ -1,0 +1,21 @@
+validation_rules:
+  broken_references:
+    category: references
+    severity: error
+    threshold: 0
+  migrated_monolith_references:
+    category: migration
+    severity: error
+    threshold: 0
+  circular_dependencies:
+    category: dependencies
+    severity: warning
+    threshold: 0
+  orphaned_files:
+    category: coverage
+    severity: warning
+    threshold: 0
+  duplicate_references:
+    category: references
+    severity: info
+    threshold: 0
