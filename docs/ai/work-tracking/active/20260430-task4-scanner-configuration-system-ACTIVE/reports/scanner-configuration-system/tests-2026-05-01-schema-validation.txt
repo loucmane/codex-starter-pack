@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+collected 103 items
+
+scripts/template-ssot-scanner/test_config_validation.py ........         [  7%]
+scripts/template-ssot-scanner/test_inheritance.py ..............         [ 21%]
+scripts/template-ssot-scanner/test_pattern_matcher.py .................. [ 38%]
+...                                                                      [ 41%]
+scripts/template-ssot-scanner/test_rule_engine.py ...................    [ 60%]
+scripts/template-ssot-scanner/test_config_loader.py ............         [ 71%]
+scripts/template-ssot-scanner/test_config_schema.py ................     [ 87%]
+scripts/template-ssot-scanner/test_cli_behavior.py ........              [ 95%]
+scripts/template-ssot-scanner/test_scanner_modules.py .....              [100%]
+
+============================= 103 passed in 2.00s ==============================

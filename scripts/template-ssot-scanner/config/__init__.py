@@ -41,6 +41,18 @@ from .rule_engine import (
     RuleExecutionError,
     RulePriority,
 )
+from .validation import (
+    ConfigDataValidationError,
+    ConfigSchemaDefinitionError,
+    ConfigSchemaReadError,
+    ConfigValidationIssue,
+    ConfigValidationReport,
+    ScannerConfigValidationError,
+    ScannerConfigValidator,
+    load_config_file,
+    validate_config_data,
+    validate_config_file,
+)
 
 __all__ = [
     "ConfigFileState",
@@ -76,4 +88,14 @@ __all__ = [
     "RuleEvaluation",
     "RuleExecutionError",
     "RulePriority",
+    "ConfigDataValidationError",
+    "ConfigSchemaDefinitionError",
+    "ConfigSchemaReadError",
+    "ConfigValidationIssue",
+    "ConfigValidationReport",
+    "ScannerConfigValidationError",
+    "ScannerConfigValidator",
+    "load_config_file",
+    "validate_config_data",
+    "validate_config_file",
 ]

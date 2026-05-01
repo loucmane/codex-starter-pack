@@ -145,6 +145,8 @@ The current default config is `scanner_config.yaml`, and a full example lives at
 `config/examples/scanner_config.example.yaml`.
 `config/config_loader.py` provides the Task 4.2 loader boundary for thread-safe singleton
 access, lazy loading, schema validation, default fallback, and hot reload detection.
+`config/validation.py` provides the Task 4.6 jsonschema validation layer with normalized
+issue reports, file/data validation helpers, schema preflight checks, and validation timing.
 `config/inheritance.py` provides the Task 4.5 profile and environment overlay resolver.
 `config/rule_engine.py` provides the Task 4.3 rule registry and execution layer.
 `config/pattern_matcher.py` provides the Task 4.4 allowlist/blocklist matcher.
@@ -163,8 +165,8 @@ validated config.
 
 The rule engine maps `critical`, `high`, `medium`, `low`, and `info` priorities onto the existing
 `error`, `warning`, and `info` scanner finding contract. The pattern matcher supports path/reference
-targets, rule-scoped entries, expiration dates, and blocklist precedence. Profile merging,
-environment override, and dependency-injection integration belong to later Task 4 subtasks.
+targets, rule-scoped entries, expiration dates, and blocklist precedence. Environment variable
+overrides and dependency-injection integration belong to later Task 4 subtasks.
 
 ## Output Directory Structure
 ```

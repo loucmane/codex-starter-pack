@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import json
 import threading
 import time
 from dataclasses import dataclass
@@ -13,7 +12,12 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import yaml
-from jsonschema import Draft202012Validator, FormatChecker, SchemaError, ValidationError
+from config.validation import (
+    ConfigDataValidationError,
+    ConfigSchemaDefinitionError,
+    ConfigSchemaReadError,
+    ScannerConfigValidator,
+)
 
 SCANNER_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = SCANNER_DIR / "scanner_config.yaml"
@@ -180,7 +184,7 @@ class ConfigLoader:
         self.validate = bool(validate)
         self._lock = threading.RLock()
         self._snapshot: ConfigSnapshot | None = None
-        self._validator: Draft202012Validator | None = None
+        self._validator: ScannerConfigValidator | None = None
         self._initialized = True
 
     @classmethod
@@ -331,25 +335,22 @@ class ConfigLoader:
 
         try:
             self._schema_validator().validate(data)
-        except ValidationError as exc:
-            location = ".".join(str(part) for part in exc.absolute_path) or "<root>"
-            raise ConfigValidationError(f"Invalid scanner config at {location}: {exc.message}") from exc
+        except ConfigDataValidationError as exc:
+            raise ConfigValidationError(f"Invalid scanner config: {exc.summary()}") from exc
 
-    def _schema_validator(self) -> Draft202012Validator:
+    def _schema_validator(self) -> ScannerConfigValidator:
         if self._validator is not None:
             return self._validator
 
         try:
-            schema = json.loads(self.schema_path.read_text(encoding="utf-8"))
-            Draft202012Validator.check_schema(schema)
-        except json.JSONDecodeError as exc:
-            raise ConfigLoadError(f"Unable to parse JSON schema {self.schema_path}: {exc}") from exc
-        except OSError as exc:
-            raise ConfigLoadError(f"Unable to read JSON schema {self.schema_path}: {exc}") from exc
-        except SchemaError as exc:
-            raise ConfigValidationError(f"Invalid scanner config schema {self.schema_path}: {exc.message}") from exc
+            validator = ScannerConfigValidator(self.schema_path)
+            validator.check_schema()
+        except ConfigSchemaReadError as exc:
+            raise ConfigLoadError(str(exc)) from exc
+        except ConfigSchemaDefinitionError as exc:
+            raise ConfigValidationError(str(exc)) from exc
 
-        self._validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        self._validator = validator
         return self._validator
 
     def _file_state(self, path: Path) -> ConfigFileState:

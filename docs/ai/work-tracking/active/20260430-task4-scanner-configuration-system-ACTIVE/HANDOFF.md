@@ -99,11 +99,34 @@
 - The 2026-04-30 session is completed:
   - `sessions/2026/04/2026-04-30-001-task4-scanner-configuration-system.md`
   - Task 4 work-tracking remains active and must not be archived until Task 4 is complete and merged.
-- `sessions/current` and `plans/current` remain pointed at the completed April 30 session/plan as recovery pointers because guard requires active session/plan links while Taskmaster files are changed.
+- May 1 continuation is active:
+  - `sessions/2026/05/2026-05-01-001-task4-schema-validation.md`
+  - `plans/2026-05-01-task4-schema-validation.md`
+  - `sessions/current` and `plans/current` now point at the May 1 Task 4.6 continuation state.
+- Task 4.6 is in progress in Taskmaster.
+- Serena checkpoint for Task 4.6 start:
+  - `.serena/memories/2026-05-01_task4_schema_validation_start.md`
+- Task 4.6 implementation is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/validation.py`
+  - `scripts/template-ssot-scanner/test_config_validation.py`
+  - `scripts/template-ssot-scanner/config/config_loader.py`
+  - `scripts/template-ssot-scanner/config/__init__.py`
+  - `scripts/template-ssot-scanner/config/README.md`
+- Task 4.6 tests are green:
+  - `reports/scanner-configuration-system/tests-2026-05-01-schema-validation.txt`
+- Serena checkpoint for Task 4.6 completion:
+  - `.serena/memories/2026-05-01_task4_schema_validation_complete.md`
+- Task 4.6 verification is green:
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-05-01-schema-validation.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-05-01-schema-validation.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-05-01-schema-validation.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-05-01-schema-validation-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-05-01-schema-validation-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-05-01-schema-validation-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-05-01-schema-validation-final.txt`
 
 ## Next Steps
-- Start a new dated session before continuing work.
-- Continue Task 4 implementation with subtask 4.6: add compile-time and runtime schema validation hardening. Use the Task 4.1 schema plus the Task 4.2 loader, Task 4.3 rule engine, Task 4.4 pattern matcher, and Task 4.5 resolver contracts, but keep environment variable overrides and scanner dependency injection for later subtasks.
+- Continue Task 4 implementation with subtask 4.7: create the `CODEX_SCANNER_` environment variable override system. Keep scanner dependency injection for Task 4.8.
 
 
 
@@ -119,3 +142,10 @@
 - **2026-04-30 18:07** — [S:20260430|W:task4-scanner-configuration-system|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:.serena/memories/2026-04-30_task4_inheritance_checkpoint.md] Task 4.5 Serena checkpoint recorded for compaction-safe recovery.
 - **2026-04-30 18:11** — [S:20260430|W:task4-scanner-configuration-system|H:templates/behaviors/session/session-end.md|E:.serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md] Session closeout recorded; next session should start fresh and continue with Task 4.6.
 - **2026-04-30 18:16** — [S:20260430|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-04-30-between-sessions.txt] Guard rejected a fully cleared between-sessions state for this active-task commit, so current session/plan links were restored as recovery pointers.
+- **2026-05-01 18:37** — [S:20260501|W:task4-scanner-configuration-system|H:sessions/current|E:sessions/2026/05/2026-05-01-001-task4-schema-validation.md] May 1 continuation session started for Task 4.6; active work tracking remains the Task 4 folder.
+- **2026-05-01 18:39** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:set-status|E:.taskmaster/tasks/task_004.txt] Task 4.6 marked in progress; implementation should begin with the validation module and loader hooks.
+- **2026-05-01 18:39** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_schema_validation_start.md] Task 4.6 startup memory recorded with scope, non-scope, and guard-start findings.
+- **2026-05-01 18:46** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/validation.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-schema-validation.txt] Task 4.6 implementation and tests are done; final closeout evidence remains.
+- **2026-05-01 18:48** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_schema_validation_complete.md] Task 4.6 completion memory recorded for compaction-safe recovery.
+- **2026-05-01 18:49** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-schema-validation-final.txt] Task 4.6 final verification is green; next Task 4 subtask is 4.7.
+- **2026-05-01 18:51** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:generate|E:.taskmaster/tasks/task_004.txt] Taskmaster generated task file refreshed after the 4.6 status update.

@@ -11,37 +11,37 @@ Create scanner_config.yaml with rule definitions: reference_validation (severity
 Test configuration loading with valid/invalid YAML, verify rule application with different severities, test allowlist pattern matching, ensure defaults work when config missing
 
 # Subtasks:
-## 1. Design YAML Configuration Schema and JSON Schema Validation [pending]
+## 1. Design YAML Configuration Schema and JSON Schema Validation [done]
 ### Dependencies: None
 ### Description: Define a comprehensive YAML schema for scanner rules, severities, allowlists, blocklists, inheritance, and environment overlays. Create a corresponding JSON Schema for validation.
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/scanner_config.schema.json. Include YAML examples for all rule types, allowlist/blocklist patterns, and overlays. Provide test cases for schema validation (valid/invalid configs). Benchmark schema validation performance.
 
-## 2. Implement ConfigLoader Class with Singleton, Lazy Loading, and Hot Reload [pending]
+## 2. Implement ConfigLoader Class with Singleton, Lazy Loading, and Hot Reload [done]
 ### Dependencies: 4.1
 ### Description: Develop a ConfigLoader class in Python using the singleton pattern, supporting lazy loading and hot reload of YAML configuration files.
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/config_loader.py. Complete class implementation with thread safety. Include YAML config reload detection. Provide unit tests for singleton, lazy load, and reload. Benchmark load/reload performance.
 
-## 3. Create Rule Engine with Severity Taxonomy and Rule Definitions [pending]
+## 3. Create Rule Engine with Severity Taxonomy and Rule Definitions [done]
 ### Dependencies: 4.1, 4.2
 ### Description: Implement a rule engine supporting severity levels (critical, high, medium, low, info) and rule definitions with parameters, thresholds, and auto-fix options.
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/rule_engine.py. Include class for rule registration, severity mapping, and execution. YAML examples for all severity levels. Test cases for rule evaluation and severity handling. Benchmark rule engine performance.
 
-## 4. Build Pattern Matcher for Allowlist and Blocklist (Glob and Regex) [pending]
+## 4. Build Pattern Matcher for Allowlist and Blocklist (Glob and Regex) [done]
 ### Dependencies: 4.1, 4.2
 ### Description: Develop a pattern matcher supporting glob and regex for allowlist and blocklist path matching, integrated with the configuration system.
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/pattern_matcher.py. Implement support for both glob and regex patterns. YAML examples for allowlist/blocklist. Test cases for pattern matching accuracy. Benchmark matcher performance.
 
-## 5. Implement Configuration Inheritance, Environment Overlays, and Profiles [pending]
+## 5. Implement Configuration Inheritance, Environment Overlays, and Profiles [done]
 ### Dependencies: 4.1, 4.2
 ### Description: Enable configuration inheritance with base configs, environment overlays, and profile support for flexible scanner configuration.
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/inheritance.py. Implement merging logic for base, overlay, and profile configs. YAML examples for inheritance and overlays. Test cases for config resolution. Benchmark inheritance logic.
 
-## 6. Add Schema Validation with jsonschema (Compile-Time and Runtime) [pending]
+## 6. Add Schema Validation with jsonschema (Compile-Time and Runtime) [done]
 ### Dependencies: 4.1, 4.2
 ### Description: Integrate jsonschema-based validation for YAML configs at both compile-time and runtime, with detailed error reporting.
 ### Details:
@@ -59,7 +59,7 @@ File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/env_overrid
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/integration.py. Provide integration examples for all scanner modules. Unit and integration tests for config-driven behavior. Benchmark scanner startup and config access.
 
-## 9. Audit and normalize pending backlog scope gates [pending]
+## 9. Audit and normalize pending backlog scope gates [done]
 ### Dependencies: None
 ### Description: Audit remaining pending Taskmaster tasks against the portable foundation spec, document stale/corrupted subtask findings, and normalize pending tasks with mandatory current-scope gates before Task 4 scanner configuration implementation continues.
 ### Details:
