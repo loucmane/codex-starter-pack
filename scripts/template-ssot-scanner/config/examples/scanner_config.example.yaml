@@ -131,3 +131,8 @@ environment_overlays:
         checkpointing:
           enabled: false
           interval: 0
+
+# Environment variables can override any config key at runtime using CODEX_SCANNER_.
+# Use double underscores to separate nested path segments:
+# CODEX_SCANNER_VALIDATION_RULES__BROKEN_REFERENCES__SEVERITY=warning
+# CODEX_SCANNER_SCAN_SCOPE__CHECKPOINTING__INTERVAL=15

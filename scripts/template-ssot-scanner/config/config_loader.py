@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import yaml
+from config.env_override import apply_env_overrides
 from config.validation import (
     ConfigDataValidationError,
     ConfigSchemaDefinitionError,
@@ -258,10 +259,25 @@ class ConfigLoader:
             raise ConfigValidationError("scanner configuration field 'validation_rules' must be a mapping")
         return copy.deepcopy(rules)
 
+    def load_with_env_overrides(
+        self,
+        environ: dict[str, str] | None = None,
+        force_reload: bool = False,
+    ) -> dict[str, Any]:
+        """Load config and apply CODEX_SCANNER_ environment overrides."""
+        overridden = apply_env_overrides(
+            self.load(force_reload=force_reload),
+            environ=environ,
+        )
+        self._validate_config(overridden.data)
+        return copy.deepcopy(overridden.data)
+
     def resolve(
         self,
         profile: str | None = None,
         environment: str | None = None,
+        apply_environment_overrides: bool = False,
+        environ: dict[str, str] | None = None,
         force_reload: bool = False,
     ) -> dict[str, Any]:
         """Resolve config inheritance for an optional profile and environment."""
@@ -271,13 +287,18 @@ class ConfigLoader:
             profile=profile,
             environment=environment,
         )
-        self._validate_config(resolved.data)
-        return copy.deepcopy(resolved.data)
+        data = resolved.data
+        if apply_environment_overrides:
+            data = apply_env_overrides(data, environ=environ).data
+        self._validate_config(data)
+        return copy.deepcopy(data)
 
     def resolved_snapshot(
         self,
         profile: str | None = None,
         environment: str | None = None,
+        apply_environment_overrides: bool = False,
+        environ: dict[str, str] | None = None,
         force_reload: bool = False,
     ):
         """Return resolved config plus inheritance metadata."""
@@ -287,6 +308,16 @@ class ConfigLoader:
             profile=profile,
             environment=environment,
         )
+        if apply_environment_overrides:
+            env_result = apply_env_overrides(resolved.data, environ=environ)
+            resolved = type(resolved)(
+                data=env_result.data,
+                profile=resolved.profile,
+                environment=resolved.environment,
+                applied_profiles=resolved.applied_profiles,
+                applied_overlays=resolved.applied_overlays,
+                duration_seconds=resolved.duration_seconds + env_result.duration_seconds,
+            )
         self._validate_config(resolved.data)
         return resolved
 

@@ -124,9 +124,30 @@
   - `reports/scanner-configuration-system/work-tracking-audit-2026-05-01-schema-validation-final.txt`
   - `reports/scanner-configuration-system/guard-2026-05-01-schema-validation-final.txt`
   - `reports/scanner-configuration-system/git-diff-check-2026-05-01-schema-validation-final.txt`
+- Task 4.7 is now in progress in Taskmaster.
+- Task 4.7 implementation is complete and marked done in Taskmaster:
+  - `scripts/template-ssot-scanner/config/env_override.py`
+  - `scripts/template-ssot-scanner/test_env_override.py`
+  - `scripts/template-ssot-scanner/config/config_loader.py`
+  - `scripts/template-ssot-scanner/config/__init__.py`
+  - `scripts/template-ssot-scanner/config/examples/scanner_config.example.yaml`
+  - `scripts/template-ssot-scanner/config/README.md`
+  - `scripts/template-ssot-scanner/README.md`
+- Task 4.7 tests are green:
+  - `reports/scanner-configuration-system/tests-2026-05-01-env-override.txt`
+- Serena checkpoint for Task 4.7 completion:
+  - `.serena/memories/2026-05-01_task4_env_override_complete.md`
+- Task 4.7 verification is green:
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-05-01-env-override.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-05-01-env-override.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-05-01-env-override.txt`
+  - `reports/scanner-configuration-system/plan-sync-2026-05-01-env-override-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-05-01-env-override-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-05-01-env-override-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-05-01-env-override-final.txt`
 
 ## Next Steps
-- Continue Task 4 implementation with subtask 4.7: create the `CODEX_SCANNER_` environment variable override system. Keep scanner dependency injection for Task 4.8.
+- Continue Task 4 implementation with subtask 4.8: integrate configuration with scanner modules via dependency injection.
 
 
 
@@ -149,3 +170,7 @@
 - **2026-05-01 18:48** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_schema_validation_complete.md] Task 4.6 completion memory recorded for compaction-safe recovery.
 - **2026-05-01 18:49** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-schema-validation-final.txt] Task 4.6 final verification is green; next Task 4 subtask is 4.7.
 - **2026-05-01 18:51** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:generate|E:.taskmaster/tasks/task_004.txt] Taskmaster generated task file refreshed after the 4.6 status update.
+- **2026-05-01 18:59** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:set-status|E:.taskmaster/tasks/task_004.txt] Task 4.7 marked in progress.
+- **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/env_override.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-env-override.txt] Task 4.7 implementation and tests are done; final closeout evidence remains.
+- **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_env_override_complete.md] Task 4.7 completion memory recorded for compaction-safe recovery.
+- **2026-05-01 19:06** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-env-override-final.txt] Task 4.7 final verification is green; next Task 4 subtask is 4.8.

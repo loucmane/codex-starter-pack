@@ -13,7 +13,7 @@ plan_version: v1
 emergency_bypass: false
 ---
 
-# Plan - Task 4.6 Schema Validation with jsonschema
+# Plan - Task 4.6/4.7 Scanner Configuration Continuation
 
 ## Header
 - **Session ID (S)**: 2026-05-01-001
@@ -36,13 +36,20 @@ emergency_bypass: false
 | plan-step-46-test | Add compile-time/runtime validation tests and validation overhead evidence | scripts/template-ssot-scanner/test_config_validation.py; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-schema-validation.txt | completed |
 | plan-step-46-verify | Capture Taskmaster status, plan sync, work-tracking audit, guard, diff check, and handoff updates | docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-schema-validation-final.txt; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md | completed |
 | plan-step-46-emergency | _Optional_ - only if bypass required | docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md | n/a |
+| plan-step-47-scope | Confirm Task 4.7 boundary and defer scanner dependency injection to Task 4.8 | sessions/2026/05/2026-05-01-001-task4-schema-validation.md; .taskmaster/tasks/task_004.txt | completed |
+| plan-step-47-implement | Add CODEX_SCANNER_ environment override resolver with nested key support and ConfigLoader integration | scripts/template-ssot-scanner/config/env_override.py; scripts/template-ssot-scanner/config/config_loader.py; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-47-test | Add override precedence tests, nested key tests, examples, and benchmark evidence | scripts/template-ssot-scanner/test_env_override.py; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-env-override.txt | completed |
+| plan-step-47-verify | Capture Taskmaster status, plan sync, work-tracking audit, guard, diff check, and handoff updates | docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-env-override-final.txt; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md | completed |
+| plan-step-47-emergency | _Optional_ - only if bypass required | docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md | n/a |
 
 ## Scope
 - `scripts/template-ssot-scanner/config/validation.py`
 - `scripts/template-ssot-scanner/config/config_loader.py`
 - `scripts/template-ssot-scanner/config/__init__.py`
 - `scripts/template-ssot-scanner/config/README.md`
+- `scripts/template-ssot-scanner/config/env_override.py`
 - `scripts/template-ssot-scanner/test_config_validation.py`
+- `scripts/template-ssot-scanner/test_env_override.py`
 - Existing scanner/config regression tests
 - `docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/`
 - Taskmaster subtask `4.6`
@@ -62,6 +69,9 @@ emergency_bypass: false
 - 2026-05-01 - Added canonical required plan rows as completed startup wrapper rows because `codex-task plan sync` requires `plan-step-scope`, `plan-step-implement`, and `plan-step-verify`.
 - 2026-05-01 - Completed Task 4.6 by adding the reusable validation module, ConfigLoader runtime hooks, exports, docs, tests, and 103-test scanner/config regression evidence.
 - 2026-05-01 - Verified Task 4.6 with Taskmaster status/dependency/next reports, plan sync, work-tracking audit, guard, and diff check.
+- 2026-05-01 - Started Task 4.7 environment override implementation after pushing the Task 4.6 checkpoint.
+- 2026-05-01 - Completed Task 4.7 by adding CODEX_SCANNER_ override parsing, nested path support, ConfigLoader hooks, examples, docs, tests, and 114-test scanner/config regression evidence.
+- 2026-05-01 - Verified Task 4.7 with Taskmaster status/dependency/next reports, plan sync, work-tracking audit, guard, and diff check.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
@@ -70,7 +80,7 @@ emergency_bypass: false
   2. Review Taskmaster Task 4.6.
   3. Continue jsonschema validation work without changing Task 4.7/4.8 scope.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: Task 4.6 is complete and verified. Continue with Task 4.7 environment variable overrides before Task 4.8 scanner dependency injection.
+- Outstanding risks/todos: Task 4.6 and 4.7 are complete and verified. Continue with Task 4.8 scanner dependency injection.
 
 ## Conflict & Scope Declaration
 - This plan builds on Task 4.1 schema, Task 4.2 ConfigLoader, and Task 4.5 ConfigResolver behavior.

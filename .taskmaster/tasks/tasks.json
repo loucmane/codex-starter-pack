@@ -744,7 +744,7 @@
               "4.2"
             ],
             "details": "File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/env_override.py. Support nested key overrides. YAML and env var examples. Test cases for override precedence. Benchmark override resolution.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "",
             "parentId": "undefined"
           },
@@ -4546,7 +4546,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-05-01T16:46:33.517Z"
+      "updated": "2026-05-01T17:02:36.022Z"
     }
   }
 }

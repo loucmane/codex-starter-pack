@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260430-task4-scanner-configuration-system-ACTIVE has prefix 20260430; today's prefix is 20260501 (ensure multi-day reuse is intentional)

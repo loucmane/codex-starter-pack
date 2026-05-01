@@ -147,6 +147,7 @@ The current default config is `scanner_config.yaml`, and a full example lives at
 access, lazy loading, schema validation, default fallback, and hot reload detection.
 `config/validation.py` provides the Task 4.6 jsonschema validation layer with normalized
 issue reports, file/data validation helpers, schema preflight checks, and validation timing.
+`config/env_override.py` provides the Task 4.7 `CODEX_SCANNER_` environment override layer.
 `config/inheritance.py` provides the Task 4.5 profile and environment overlay resolver.
 `config/rule_engine.py` provides the Task 4.3 rule registry and execution layer.
 `config/pattern_matcher.py` provides the Task 4.4 allowlist/blocklist matcher.
@@ -157,16 +158,18 @@ The Task 4 configuration model covers:
 - validation rule categories, scanner output severities, rule-engine priorities, thresholds, enablement, parameters, and future auto-fix intent
 - path/reference allowlists and blocklists using `glob` or `regex`
 - profile and environment overlay inheritance metadata for later merge behavior
+- `CODEX_SCANNER_` environment variable overrides using double underscores for nested keys
 
 Profiles and environment overlays resolve with explicit `deep_merge` or `replace` strategies. Deep
 merge recursively merges mapping values and replaces lists/scalars; replace swaps top-level sections
 from the override. The resolver detects unknown parents and inheritance cycles before returning a
-validated config.
+validated config. Environment variables are applied after YAML/profile/overlay resolution and before
+runtime validation, so they take precedence over file-based values.
 
 The rule engine maps `critical`, `high`, `medium`, `low`, and `info` priorities onto the existing
 `error`, `warning`, and `info` scanner finding contract. The pattern matcher supports path/reference
-targets, rule-scoped entries, expiration dates, and blocklist precedence. Environment variable
-overrides and dependency-injection integration belong to later Task 4 subtasks.
+targets, rule-scoped entries, expiration dates, and blocklist precedence. Dependency-injection
+integration belongs to a later Task 4 subtask.
 
 ## Output Directory Structure
 ```

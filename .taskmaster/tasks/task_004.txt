@@ -47,7 +47,7 @@ File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/inheritance
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/validation.py. Implement validation hooks in ConfigLoader. Provide test cases for error detection. Benchmark validation overhead.
 
-## 7. Create Environment Variable Override System (CODEX_SCANNER_ Namespace) [pending]
+## 7. Create Environment Variable Override System (CODEX_SCANNER_ Namespace) [done]
 ### Dependencies: 4.1, 4.2
 ### Description: Implement environment variable overrides for all configuration keys using the CODEX_SCANNER_ namespace, with precedence over YAML values.
 ### Details:

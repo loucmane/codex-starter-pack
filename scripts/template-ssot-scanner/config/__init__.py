@@ -8,6 +8,17 @@ from .config_loader import (
     ConfigSnapshot,
     ConfigValidationError,
 )
+from .env_override import (
+    DEFAULT_ENV_PREFIX,
+    EnvOverride,
+    EnvOverrideError,
+    EnvOverrideNameError,
+    EnvOverrideResult,
+    EnvOverrideValueError,
+    apply_env_overrides,
+    parse_env_overrides,
+    parse_env_value,
+)
 from .inheritance import (
     ConfigInheritanceCycleError,
     ConfigInheritanceError,
@@ -61,6 +72,15 @@ __all__ = [
     "ConfigLoaderError",
     "ConfigSnapshot",
     "ConfigValidationError",
+    "DEFAULT_ENV_PREFIX",
+    "EnvOverride",
+    "EnvOverrideError",
+    "EnvOverrideNameError",
+    "EnvOverrideResult",
+    "EnvOverrideValueError",
+    "apply_env_overrides",
+    "parse_env_overrides",
+    "parse_env_value",
     "ConfigInheritanceCycleError",
     "ConfigInheritanceError",
     "ConfigMergeStrategyError",
