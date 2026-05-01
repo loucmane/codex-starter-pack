@@ -151,6 +151,7 @@ issue reports, file/data validation helpers, schema preflight checks, and valida
 `config/inheritance.py` provides the Task 4.5 profile and environment overlay resolver.
 `config/rule_engine.py` provides the Task 4.3 rule registry and execution layer.
 `config/pattern_matcher.py` provides the Task 4.4 allowlist/blocklist matcher.
+`config/integration.py` provides the Task 4.8 dependency-injection context for scanner modules.
 
 The Task 4 configuration model covers:
 
@@ -168,8 +169,33 @@ runtime validation, so they take precedence over file-based values.
 
 The rule engine maps `critical`, `high`, `medium`, `low`, and `info` priorities onto the existing
 `error`, `warning`, and `info` scanner finding contract. The pattern matcher supports path/reference
-targets, rule-scoped entries, expiration dates, and blocklist precedence. Dependency-injection
-integration belongs to a later Task 4 subtask.
+targets, rule-scoped entries, expiration dates, and blocklist precedence. `ScannerConfigContext`
+packages the loader, rule engine, pattern matcher, and file-discovery settings so scanner modules
+can receive resolved config explicitly. `scanner.py`, `analyze_references.py`, and
+`run_all_scanners.py` accept `--config`, `--profile`, `--environment`, and `--env-overrides` for
+config-driven runs.
+
+```python
+from pathlib import Path
+
+from config.integration import (
+    create_reference_analyzer,
+    create_scanner_config_context,
+    create_template_scanner,
+    scanner_module_examples,
+)
+
+context = create_scanner_config_context(
+    Path("scanner_config.yaml"),
+    profile="ci",
+    apply_environment_overrides=True,
+)
+scanner = create_template_scanner(Path.cwd(), context=context, checkpoint_interval=0)
+analyzer = create_reference_analyzer(context=context)
+examples = scanner_module_examples()
+```
+
+`scanner_module_examples()` lists the integration entry point for each scanner module in the suite.
 
 ## Output Directory Structure
 ```

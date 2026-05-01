@@ -25,16 +25,26 @@ class TemplateScanner:
     """Scanner for template system files"""
     
     def __init__(self, base_path: Path, checkpoint_interval: int = 25, 
-                 include_pattern: Optional[str] = None, exclude_pattern: Optional[str] = None):
+                 include_pattern: Optional[str] = None, exclude_pattern: Optional[str] = None,
+                 scanner_config: Optional[ScannerConfig] = None, config_context: Any = None):
         self.base_path = base_path
         self.checkpoint_interval = checkpoint_interval
         self.templates_dir = base_path / "templates"
-        self.config_dirs = discover_config_dirs(base_path)
-        self.config = ScannerConfig.from_cli(base_path, include_pattern, exclude_pattern)
+        self.config_context = config_context
+        if scanner_config is not None:
+            self.config = scanner_config
+        elif config_context is not None:
+            self.config = config_context.file_discovery_config(base_path, include_pattern, exclude_pattern)
+        else:
+            self.config = ScannerConfig.from_cli(base_path, include_pattern, exclude_pattern)
+        self.config_dirs = discover_config_dirs(base_path, self.config.config_dirs)
         self.results = {
             "scan_metadata": {
                 "timestamp": datetime.now().isoformat(),
                 "base_path": str(base_path),
+                "config_source": getattr(config_context, "source", None),
+                "config_profile": getattr(config_context, "profile", None),
+                "config_environment": getattr(config_context, "environment", None),
                 "total_files": 0,
                 "total_lines": 0,
                 "checkpoints_saved": 0
@@ -435,6 +445,29 @@ Examples:
         help='Enable verbose output'
     )
     parser.add_argument(
+        '--config',
+        type=Path,
+        help='Scanner config YAML path (default: scanner_config.yaml next to this script)',
+        default=Path(__file__).parent / 'scanner_config.yaml'
+    )
+    parser.add_argument(
+        '--profile',
+        type=str,
+        help='Named scanner config profile to resolve before scanning',
+        default=None
+    )
+    parser.add_argument(
+        '--environment',
+        type=str,
+        help='Named scanner config environment overlay to resolve before scanning',
+        default=None
+    )
+    parser.add_argument(
+        '--env-overrides',
+        action='store_true',
+        help='Apply CODEX_SCANNER_ environment overrides after profile/environment resolution'
+    )
+    parser.add_argument(
         '--version',
         action='version',
         version='%(prog)s 1.1.0'
@@ -475,9 +508,18 @@ Examples:
         print()
     
     checkpoint_interval = 0 if args.no_checkpoints else args.checkpoint
+    from config.integration import create_scanner_config_context
+
+    config_context = create_scanner_config_context(
+        args.config,
+        profile=args.profile,
+        environment=args.environment,
+        apply_environment_overrides=args.env_overrides,
+    )
     scanner = TemplateScanner(base_path, checkpoint_interval, 
                             include_pattern=args.include, 
-                            exclude_pattern=args.exclude)
+                            exclude_pattern=args.exclude,
+                            config_context=config_context)
     
     # Track timing
     start_time = time.time()

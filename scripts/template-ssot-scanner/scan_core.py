@@ -4,9 +4,10 @@
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 SCANNABLE_SUFFIXES = (".md", ".json", ".yml", ".yaml")
+DEFAULT_CONFIG_DIRS = (".codex", ".claude")
 
 DEFAULT_EXCLUDE_PATTERNS = (
     ".codex/.tmp/**",
@@ -32,7 +33,12 @@ class ScannerConfig:
 
     base_path: Path
     include_pattern: Optional[str] = None
+    include_patterns: Sequence[str] = field(default_factory=tuple)
     exclude_patterns: Sequence[str] = field(default_factory=lambda: DEFAULT_EXCLUDE_PATTERNS)
+    supported_suffixes: Sequence[str] = field(default_factory=lambda: SCANNABLE_SUFFIXES)
+    config_dirs: Sequence[str] = field(default_factory=lambda: DEFAULT_CONFIG_DIRS)
+    pattern_matcher: Any = None
+    scan_rule_name: Optional[str] = "scan_scope"
 
     @classmethod
     def from_cli(
@@ -50,6 +56,24 @@ class ScannerConfig:
             )
         return cls(base_path=base_path, include_pattern=include_pattern, exclude_patterns=tuple(excludes))
 
+    @property
+    def effective_include_patterns(self) -> tuple[str, ...]:
+        """Return configured include patterns with CLI include taking precedence."""
+        if self.include_pattern:
+            return (self.include_pattern,)
+        return tuple(self.include_patterns)
+
+    def should_scan(self, relative_path: str) -> bool:
+        """Return whether a relative path should be included in scanner diagnostics."""
+        return should_scan_relative_path(
+            relative_path,
+            include_pattern=self.include_pattern,
+            exclude_patterns=self.exclude_patterns,
+            include_patterns=self.include_patterns,
+            pattern_matcher=self.pattern_matcher,
+            rule_name=self.scan_rule_name,
+        )
+
 
 def relative_posix_path(base_path: Path, file_path: Path) -> str:
     """Return a stable POSIX-style path relative to the scan base."""
@@ -60,9 +84,20 @@ def should_scan_relative_path(
     relative_path: str,
     include_pattern: Optional[str] = None,
     exclude_patterns: Sequence[str] = DEFAULT_EXCLUDE_PATTERNS,
+    include_patterns: Sequence[str] = (),
+    pattern_matcher: Any = None,
+    rule_name: Optional[str] = "scan_scope",
 ) -> bool:
     """Return whether a relative path belongs in scanner diagnostics."""
-    if include_pattern and not fnmatch(relative_path, include_pattern):
+    if pattern_matcher is not None:
+        decision = pattern_matcher.decide(relative_path, "paths", rule_name)
+        if decision.blocked:
+            return False
+        if decision.allowed:
+            return True
+
+    effective_include_patterns = (include_pattern,) if include_pattern else tuple(include_patterns)
+    if effective_include_patterns and not any(fnmatch(relative_path, pattern) for pattern in effective_include_patterns):
         return False
 
     return not any(fnmatch(relative_path, pattern) for pattern in exclude_patterns)
@@ -71,23 +106,23 @@ def should_scan_relative_path(
 def collect_scannable_files(directory: Path, config: ScannerConfig) -> list[Path]:
     """Collect markdown/config files in deterministic scanner order."""
     files: list[Path] = []
-    for suffix in SCANNABLE_SUFFIXES:
+    for suffix in tuple(dict.fromkeys(config.supported_suffixes)):
         files.extend(directory.rglob(f"*{suffix}"))
 
     filtered_files = []
     for file_path in files:
         relative_path = relative_posix_path(config.base_path, file_path)
-        if should_scan_relative_path(relative_path, config.include_pattern, config.exclude_patterns):
+        if config.should_scan(relative_path):
             filtered_files.append(file_path)
 
     return filtered_files
 
 
-def discover_config_dirs(base_path: Path) -> list[Path]:
+def discover_config_dirs(base_path: Path, config_dirs: Sequence[str] = DEFAULT_CONFIG_DIRS) -> list[Path]:
     """Return supported project config directories in scan order."""
-    config_dirs = []
-    for dir_name in (".codex", ".claude"):
+    discovered = []
+    for dir_name in config_dirs:
         config_path = base_path / dir_name
         if config_path.exists():
-            config_dirs.append(config_path)
-    return config_dirs
+            discovered.append(config_path)
+    return discovered

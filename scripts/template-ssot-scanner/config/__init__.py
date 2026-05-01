@@ -30,6 +30,14 @@ from .inheritance import (
     UnknownEnvironmentOverlayError,
     merge_config,
 )
+from .integration import (
+    ScannerConfigContext,
+    ScannerConfigIntegrationError,
+    create_reference_analyzer,
+    create_scanner_config_context,
+    create_template_scanner,
+    scanner_module_examples,
+)
 from .pattern_matcher import (
     ALL_RULES,
     PatternConfigError,
@@ -90,6 +98,12 @@ __all__ = [
     "UnknownConfigProfileError",
     "UnknownEnvironmentOverlayError",
     "merge_config",
+    "ScannerConfigContext",
+    "ScannerConfigIntegrationError",
+    "create_reference_analyzer",
+    "create_scanner_config_context",
+    "create_template_scanner",
+    "scanner_module_examples",
     "ALL_RULES",
     "PatternConfigError",
     "PatternDecision",

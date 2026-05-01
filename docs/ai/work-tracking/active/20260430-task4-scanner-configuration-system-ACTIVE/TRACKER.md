@@ -15,6 +15,7 @@
 - [x] Complete Task 4.5 configuration inheritance, profiles, environment overlays, merge strategies, cycle detection, loader resolve helpers, and performance tests
 - [x] Complete Task 4.6 jsonschema validation module, ConfigLoader runtime hooks, detailed error reporting, file/runtime validation tests, and validation overhead evidence
 - [x] Complete Task 4.7 CODEX_SCANNER_ environment override parsing, nested key support, loader integration, examples, precedence tests, and benchmark evidence
+- [x] Complete Task 4.8 scanner-module dependency injection, config context helpers, config-driven scanner integration tests, and startup/config access benchmark evidence
 
 ## Progress Log
 - **2026-04-30 13:18** — [S:20260430|W:task4-scanner-configuration-system|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-04-30 13:18 CEST`
@@ -54,6 +55,11 @@
 - **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/env_override.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-env-override.txt] Completed Task 4.7 environment override module and ConfigLoader hooks; scanner/config regression tests passed with 114 tests.
 - **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_env_override_complete.md] Captured Serena memory 2026-05-01_task4_env_override_complete for Task 4.7 implementation, evidence, and Task 4.8 continuation context.
 - **2026-05-01 19:06** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-env-override-final.txt] Final Task 4.7 verification is green: Taskmaster dependencies valid, next task is 4.8, plan sync passed, guard passed, and diff check passed; audit only warns about intentional multi-day Task 4 folder reuse.
+- **2026-05-01 19:11** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster subtask 4.8 in progress; scope is scanner configuration integration via dependency injection, module wiring, integration examples, tests, and startup/config access evidence.
+- **2026-05-01 19:12** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-start.txt] Startup guard failed once because pending plan rows referenced future implementation/test/final report files before they existed; plan evidence was corrected to existing tracking artifacts and the corrected startup guard passed.
+- **2026-05-01 19:24** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/integration.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-dependency-injection.txt] Completed Task 4.8 dependency-injection integration: added ScannerConfigContext, config-driven file discovery, optional scanner/analyzer injection, config-aware runner CLI forwarding, module examples, docs, and 125 passing scanner/config tests.
+- **2026-05-01 19:35** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:show|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/taskmaster-show-4-2026-05-01-dependency-injection.txt] Marked Taskmaster Task 4.8 and parent Task 4 done; Task 4 now shows 9/9 subtasks complete, dependencies valid, final plan sync/guard/diff check green, and next Taskmaster task is Task 5.
+- **2026-05-01 19:37** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_scanner_configuration_complete.md] Captured Serena memory 2026-05-01_task4_scanner_configuration_complete for compaction-safe Task 4 completion context.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Audit pending Taskmaster backlog and reconcile Task 4 with the portable foundation vision
@@ -74,10 +80,15 @@
 - [x] plan-step-47-test — Task 4.7 override precedence tests, examples, and benchmark evidence completed
 - [x] plan-step-47-verify — Task 4.7 final Taskmaster/plan/audit/guard/diff evidence completed
 - [ ] plan-step-47-emergency (if applicable)
+- [x] plan-step-48-scope — Task 4.8 boundary confirmed and subtask marked in progress
+- [x] plan-step-48-implement — Task 4.8 scanner dependency-injection integration completed
+- [x] plan-step-48-test — Task 4.8 integration tests and startup/config access benchmark evidence completed
+- [x] plan-step-48-verify — Task 4.8 final Taskmaster/plan/audit/guard/diff evidence completed
+- [ ] plan-step-48-emergency (if applicable)
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
 - Session log: `sessions/2026/04/2026-04-30-001-task4-scanner-configuration-system.md`
 - Current session log: `sessions/2026/05/2026-05-01-001-task4-schema-validation.md`
-- Taskmaster Task 4 remains active; subtasks 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, and 4.9 are done; 4.8 is next.
+- Taskmaster Task 4 is done; subtasks 4.1 through 4.9 are done, and Taskmaster next reports Task 5.
 - `sessions/current` and `plans/current` now point at the May 1 Task 4.6 continuation session/plan.

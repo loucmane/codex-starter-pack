@@ -1,0 +1,14 @@
+Guard validation failed:
+  - plans/2026-05-01-task4-schema-validation.md: plan-step-48-implement evidence path not found | entry: scripts/template-ssot-scanner/config/integration.py
+  - plans/2026-05-01-task4-schema-validation.md: plan-step-48-test evidence path not found | entry: scripts/template-ssot-scanner/test_config_integration.py
+  - plans/2026-05-01-task4-schema-validation.md: plan-step-48-test evidence path not found | entry: docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-dependency-injection.txt
+  - plans/2026-05-01-task4-schema-validation.md: plan-step-48-verify evidence path not found | entry: docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-final.txt
+
+Hints:
+  * docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-final.txt
+  * docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-dependency-injection.txt
+  * scripts/template-ssot-scanner/config/integration.py
+  * scripts/template-ssot-scanner/test_config_integration.py
+
+Reminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.
+For CI enforcement see .github/workflows/meta-workflow-guard.yml.

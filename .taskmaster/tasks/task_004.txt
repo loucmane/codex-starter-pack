@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Create Scanner Configuration System
-# Status: in-progress
+# Status: done
 # Dependencies: 3
 # Priority: high
 # Description: Implement YAML-based configuration for scanner rules, severities, and allowlists
@@ -53,7 +53,7 @@ File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/validation.
 ### Details:
 File path: /home/loucmane/codex/scripts/template-ssot-scanner/config/env_override.py. Support nested key overrides. YAML and env var examples. Test cases for override precedence. Benchmark override resolution.
 
-## 8. Integrate Configuration with Scanner Modules via Dependency Injection [pending]
+## 8. Integrate Configuration with Scanner Modules via Dependency Injection [done]
 ### Dependencies: 4.2, 4.3, 4.4, 4.5, 4.6, 4.7
 ### Description: Refactor scanner modules to consume configuration via dependency injection, ensuring seamless integration and testability.
 ### Details:

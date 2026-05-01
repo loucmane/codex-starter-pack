@@ -103,6 +103,27 @@ Examples:
         default=25,
         help="Checkpoint interval when --with-checkpoints is enabled (default: 25)",
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Scanner config YAML path passed to config-aware scanner modules",
+    )
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help="Named scanner config profile passed to config-aware scanner modules",
+    )
+    parser.add_argument(
+        "--environment",
+        default=None,
+        help="Named scanner config environment overlay passed to config-aware scanner modules",
+    )
+    parser.add_argument(
+        "--env-overrides",
+        action="store_true",
+        help="Apply CODEX_SCANNER_ environment overrides in config-aware scanner modules",
+    )
     return parser
 
 
@@ -115,6 +136,16 @@ def main(argv: list[str] | None = None):
         scanner_args.extend(["--checkpoint", str(args.checkpoint)])
     else:
         scanner_args.append("--no-checkpoints")
+    config_module_args = []
+    if args.config:
+        config_module_args.extend(["--config", str(args.config)])
+    if args.profile:
+        config_module_args.extend(["--profile", args.profile])
+    if args.environment:
+        config_module_args.extend(["--environment", args.environment])
+    if args.env_overrides:
+        config_module_args.append("--env-overrides")
+    scanner_args.extend(config_module_args)
 
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
@@ -148,7 +179,7 @@ Directory: {project_root}
         },
         {
             "script": "analyze_references.py",
-            "args": [],
+            "args": config_module_args,
             "description": "Analyzing file references and dependencies",
             "required": True
         },

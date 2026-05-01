@@ -145,9 +145,28 @@
   - `reports/scanner-configuration-system/work-tracking-audit-2026-05-01-env-override-final.txt`
   - `reports/scanner-configuration-system/guard-2026-05-01-env-override-final.txt`
   - `reports/scanner-configuration-system/git-diff-check-2026-05-01-env-override-final.txt`
+- Task 4.8 is implemented and verified.
+- Task 4.8 implementation:
+  - Add `scripts/template-ssot-scanner/config/integration.py`.
+  - Refactor scanner modules to accept optional injected configuration/context dependencies while preserving existing CLI behavior.
+  - Provide integration examples for scanner modules.
+  - Add unit/integration tests for config-driven behavior and benchmark scanner startup/config access.
+- Task 4.8 tests are green:
+  - `reports/scanner-configuration-system/tests-2026-05-01-dependency-injection.txt`
+- Task 4 is complete and marked done in Taskmaster:
+  - `reports/scanner-configuration-system/taskmaster-show-4-2026-05-01-dependency-injection.txt`
+  - `reports/scanner-configuration-system/taskmaster-dependencies-2026-05-01-dependency-injection.txt`
+  - `reports/scanner-configuration-system/taskmaster-next-2026-05-01-dependency-injection.txt`
+- Task 4.8 final verification is green:
+  - `reports/scanner-configuration-system/plan-sync-2026-05-01-dependency-injection-final.txt`
+  - `reports/scanner-configuration-system/work-tracking-audit-2026-05-01-dependency-injection-final.txt`
+  - `reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-final.txt`
+  - `reports/scanner-configuration-system/git-diff-check-2026-05-01-dependency-injection-final.txt`
+- Serena checkpoint for Task 4 completion:
+  - `.serena/memories/2026-05-01_task4_scanner_configuration_complete.md`
 
 ## Next Steps
-- Continue Task 4 implementation with subtask 4.8: integrate configuration with scanner modules via dependency injection.
+- Commit and push the Task 4 completion branch, open/merge the PR, then archive the Task 4 work-tracking folder after the merge. Taskmaster next reports Task 5.
 
 
 
@@ -174,3 +193,7 @@
 - **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/env_override.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-env-override.txt] Task 4.7 implementation and tests are done; final closeout evidence remains.
 - **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_env_override_complete.md] Task 4.7 completion memory recorded for compaction-safe recovery.
 - **2026-05-01 19:06** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-env-override-final.txt] Task 4.7 final verification is green; next Task 4 subtask is 4.8.
+- **2026-05-01 19:11** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Task 4.8 marked in progress; next implementation work is scanner-module dependency injection via the completed config stack.
+- **2026-05-01 19:24** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/integration.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-dependency-injection.txt] Task 4.8 implementation and tests are complete; final Taskmaster/guard closeout remains.
+- **2026-05-01 19:35** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-final.txt] Task 4 is complete in Taskmaster with final verification green; active work tracking should remain until this branch is merged.
+- **2026-05-01 19:37** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_scanner_configuration_complete.md] Task 4 completion memory recorded for compaction-safe recovery.
