@@ -10,3 +10,4 @@
 - **2026-05-04 11:25** — [S:20260504|W:task5-codex-task-cli-tool|H:task-master:set-status|E:.taskmaster/tasks/task_005.txt] Started Task 5 scope reconciliation after Task 4 merge cleanup and archive.
 - **2026-05-04 11:32** — [S:20260504|W:task5-codex-task-cli-tool|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate-2026-05-04.txt] Added the missing `report generate` command and verified a real all-report run under Task 5 reports.
 - **2026-05-04 11:40** — [S:20260504|W:task5-codex-task-cli-tool|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/guard-2026-05-04-final.txt] Closed Task 5 verification with passing tests, plan sync, audit, guard, and diff check.
+- 2026-05-04 12:22 CEST — Archived active work-tracking folder.

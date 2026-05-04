@@ -97,6 +97,11 @@ Run `scripts/codex-guard validate [--include-untracked]` before handoff/compacti
 - Canonical GAC guidance distinguishes `full-gac-command` from `message-payload-only` and uses the multi-line `Summary:` block.
 Roadmap: `--auto-fix` skeletons (document TODOs in work-tracking).
 
+Local hook support:
+- `.pre-commit-config.yaml` provides local hooks for `python3 scripts/codex-guard validate --include-untracked` and `python3 scripts/codex-guard drift-check --strict --report-dir ""`.
+- The local drift hook disables report output so pre-commit validation does not mutate the working tree; CI still writes drift artifacts.
+- Install with `pre-commit install` when the local environment has pre-commit available; CI remains the authoritative merge gate.
+
 Repo-structure note:
 - `scripts/codex-guard` reads `[repo_structure]` from `.codex/config.toml` to resolve session roots, plan roots, Taskmaster roots, work-tracking roots, report directories, and the template metadata policy path.
 - Keep the configured roots repo-local and relative unless there is a deliberate reason to point at an absolute path.

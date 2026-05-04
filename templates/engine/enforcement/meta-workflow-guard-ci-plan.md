@@ -80,8 +80,8 @@ jobs:
 - On repeated failures, escalate via Taskmaster task referencing guard failure.
 
 ## 6. Rollout Checklist
-- [ ] Add pre-commit hook entry and document installation in README/plan.
-- [ ] Update CI workflow (meta-workflow-guard job) and enforce branch protection rule.
+- [x] Add pre-commit hook entry and document installation in README/plan.
+- [x] Update CI workflow (meta-workflow-guard job) and enforce branch protection rule.
 - [ ] Announce change in changelog + handoff.
 - [ ] Monitor first week of runs; collect feedback.
 
@@ -98,3 +98,4 @@ jobs:
 
 - **2026-04-21 14:31** — [S:20260421|W:task90-complete-engine-migration|H:templates/engine/enforcement/meta-workflow-guard-ci-plan.md|E:templates/engine/enforcement/meta-workflow-guard-ci-plan.md] Removed the last trailing-punctuation reference so engine-path scanners treat the remediation guide link as a valid existing document
 - **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/enforcement/meta-workflow-guard-ci-plan.md|E:templates/metadata/template-metadata-policy.json] Added the canonical `title` key during the Task 91 engine-module standardization slice
+- **2026-05-04 12:34** — [S:20260504|W:task6-codex-guard-validation-tool|H:.pre-commit-config.yaml|E:docs/ai/work-tracking/active/20260504-task6-codex-guard-validation-tool-ACTIVE/designs/task6-scope-audit.md] Added local pre-commit hook wiring for guard validation and drift checks during the Task 6 current-state gap implementation

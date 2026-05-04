@@ -1,6 +1,6 @@
 # Task ID: 6
 # Title: Implement Codex-Guard Validation Tool
-# Status: pending
+# Status: done
 # Dependencies: 4
 # Priority: high
 # Description: Create enforcement helper for template compliance and S:W:H:E format validation
@@ -11,13 +11,13 @@ Create scripts/codex-guard with validation engine. Implement S:W:H:E format chec
 Test against valid/invalid S:W:H:E formats, verify frontmatter validation catches missing fields, test auto-fix corrections, ensure git hook integration works
 
 # Subtasks:
-## 1. Scope reconciliation against portable foundation [pending]
+## 1. Scope reconciliation against portable foundation [done]
 ### Dependencies: None
 ### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
 
 
-## 2. Implement proven current-state gap with evidence [pending]
+## 2. Implement proven current-state gap with evidence [done]
 ### Dependencies: None
 ### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:

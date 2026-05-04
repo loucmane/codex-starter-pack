@@ -973,3 +973,11 @@ def test_guard_drift_check_writes_reports(monkeypatch, tmp_path, capsys) -> None
     payload = json.loads(json_reports[0].read_text(encoding='utf-8'))
     assert payload['finding_count'] == 1
     assert payload['findings'][0]['message'] == 'Example drift'
+
+
+def test_pre_commit_config_runs_codex_guard_validate_and_drift() -> None:
+    config = Path('.pre-commit-config.yaml').read_text(encoding='utf-8')
+    assert 'python3 scripts/codex-guard validate --include-untracked' in config
+    assert 'python3 scripts/codex-guard drift-check --strict --report-dir ""' in config
+    assert config.count('pass_filenames: false') >= 2
+    assert config.count('always_run: true') >= 2
