@@ -11,51 +11,13 @@ Create template bundle format (ZIP with manifest). Implement export with depende
 Test bundle creation and extraction, verify dependency resolution, test conflict detection, validate signatures
 
 # Subtasks:
-## 1. Design Template Bundle Format and Manifest Schema [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Define the ZIP-based template bundle structure, including manifest schema for metadata, dependencies, and versioning. Specify file layout, required fields, and extensibility for future features.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Produce detailed documentation and schema definitions. Include comprehensive tests for bundle creation, extraction, and manifest validation. Validate against edge cases and malformed bundles.
 
-## 2. Implement Template Export with Dependency Resolution [pending]
-### Dependencies: 46.1
-### Description: Develop export logic to package templates and all referenced dependencies into the bundle format. Ensure recursive dependency resolution and accurate manifest population.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Include tests for exporting templates with complex dependency graphs, circular references, and missing dependencies. Benchmark export performance and validate data consistency.
-
-## 3. Develop Template Import with Conflict Detection [pending]
-### Dependencies: 46.1
-### Description: Create import functionality that unpacks bundles, validates manifests, and detects conflicts (e.g., name/version clashes, incompatible dependencies) before applying changes.
-### Details:
-Test with bundles containing conflicting templates, missing dependencies, and invalid manifests. Simulate failover and rollback scenarios. Measure import latency and correctness.
-
-## 4. Integrate Template Marketplace for Discovery and Sharing [pending]
-### Dependencies: 46.2, 46.3
-### Description: Build integration with a template marketplace, enabling users to browse, search, download, and upload template bundles directly from the system UI.
-### Details:
-Test marketplace connectivity, authentication, and error handling. Validate bulk operations and ensure data consistency between local and remote repositories.
-
-## 5. Implement Template Signing and Authenticity Verification [pending]
-### Dependencies: 46.1, 46.2
-### Description: Add cryptographic signing to template bundles and verify signatures during import to ensure authenticity and integrity.
-### Details:
-Test with valid, tampered, and unsigned bundles. Simulate key rotation and revocation. Benchmark signature verification overhead and validate failover handling.
-
-## 6. Add Version Compatibility and Migration Checks [pending]
-### Dependencies: 46.1, 46.3
-### Description: Implement version compatibility validation during import/export, including migration logic for older template formats and manifest versions.
-### Details:
-Test with bundles from multiple versions, simulate migration failures, and validate backward/forward compatibility. Benchmark migration performance and data integrity.
-
-## 7. Create Template Preview and Validation System [pending]
-### Dependencies: 46.1, 46.3
-### Description: Develop a preview system to render templates and validate their structure and dependencies before import or export.
-### Details:
-Test preview rendering for various template types, malformed templates, and missing assets. Validate performance and correctness under load.
-
-## 8. Implement Bulk Import/Export Operations [pending]
-### Dependencies: 46.2, 46.3, 46.6
-### Description: Enable efficient bulk import and export of multiple templates, ensuring atomicity, error reporting, and rollback on failure.
-### Details:
-Test with large-scale bulk operations, simulate partial failures, and validate consistency and performance benchmarks. Include stress and concurrency tests.
-

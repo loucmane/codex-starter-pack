@@ -11,51 +11,13 @@ Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create h
 Test stage progression, verify health checks, test rollback triggers, validate traffic splitting
 
 # Subtasks:
-## 1. Refactor Handlers to Async Pattern [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Convert all handler logic to use async/await, implement concurrent execution, add connection pooling, enforce error boundaries, and ensure handler latency is below 50ms p99.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Update `src/codex/handlers/async/base.py` and `src/codex/handlers/async/executor.py` to fully support asynchronous operations. Integrate connection pooling and concurrency primitives. Implement robust error handling boundaries. Profile and optimize for <50ms p99 latency. Include comprehensive tests, performance profiling, backward compatibility, and rollback mechanisms.
 
-## 2. Implement Handler Dependency Injection [pending]
-### Dependencies: 40.1
-### Description: Develop an IoC container with service registration, resolution, lifecycle management, and circular dependency detection, ensuring DI resolution under 1ms.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Work on `src/codex/handlers/di/container.py` and `src/codex/handlers/di/injector.py`. Implement singleton, scoped, and transient lifecycles. Add circular dependency detection. Profile DI resolution for <1ms. Ensure comprehensive testing, performance profiling, backward compatibility, and rollback.
-
-## 3. Build Handler Middleware Pipeline [pending]
-### Dependencies: 40.2
-### Description: Create a middleware pipeline supporting request/response chains, authentication, validation, and caching, with total middleware overhead under 10ms.
-### Details:
-Develop in `src/codex/handlers/middleware/pipeline.py` and `src/codex/handlers/middleware/standard/`. Implement middleware chaining, authentication, validation, and caching. Profile for <10ms overhead. Include comprehensive tests, performance profiling, backward compatibility, and rollback.
-
-## 4. Develop Handler Event System [pending]
-### Dependencies: 40.3
-### Description: Implement event-driven communication, event sourcing, replay, and dead letter queue handling, supporting 50k events/second.
-### Details:
-Work on `src/codex/handlers/events/bus.py` and `src/codex/handlers/events/dispatcher.py`. Add event sourcing, replay, and DLQ. Profile for 50k events/sec throughput. Ensure comprehensive testing, performance profiling, backward compatibility, and rollback.
-
-## 5. Implement Handler State Management [pending]
-### Dependencies: 40.4
-### Description: Enable distributed state management with Redis persistence, cross-node synchronization, and optimistic concurrency control, targeting <100ms sync latency.
-### Details:
-Develop in `src/codex/handlers/state/manager.py` and `src/codex/handlers/state/store.py`. Integrate Redis, implement state sync and concurrency control. Profile for <100ms latency. Include comprehensive tests, performance profiling, backward compatibility, and rollback.
-
-## 6. Create Handler Testing Framework [pending]
-### Dependencies: 40.5
-### Description: Build mocking utilities, integration test harness, load testing, and contract testing support, with test execution under 1 second per handler.
-### Details:
-Work on `src/codex/handlers/testing/mock.py` and `src/codex/handlers/testing/harness.py`. Implement mocking, integration, load, and contract testing. Profile for <1s execution. Ensure comprehensive tests, performance profiling, backward compatibility, and rollback.
-
-## 7. Generate Handler Documentation [pending]
-### Dependencies: 40.6
-### Description: Automate API documentation, OpenAPI/Swagger generation, example request/response, and interactive UI, with doc generation under 10 seconds.
-### Details:
-Develop in `src/codex/handlers/docs/generator.py` and `src/codex/handlers/docs/openapi.py`. Automate doc generation, OpenAPI, and interactive UI. Profile for <10s generation. Include comprehensive tests, performance profiling, backward compatibility, and rollback.
-
-## 8. Build Handler Migration Orchestrator [pending]
-### Dependencies: 40.7
-### Description: Implement phased migration, gradual traffic shifting, rollback automation, and migration progress tracking, ensuring migration completes in under 2 hours.
-### Details:
-Work on `src/codex/handlers/migration/orchestrator.py` and `src/codex/handlers/migration/tracker.py`. Implement phased rollout, traffic splitting, rollback, and progress tracking. Profile for <2h migration. Ensure comprehensive tests, performance profiling, backward compatibility, and rollback.
-

@@ -11,51 +11,13 @@ Create TemplateAPI class with REST-like interface. Implement methods: get_templa
 Test API methods with various inputs, verify caching behavior, test pagination limits, validate GraphQL queries, benchmark response times
 
 # Subtasks:
-## 1. Implement Gateway Router [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop the main API gateway router at src/codex/gateway/router.py to handle incoming requests and route them based on path and headers.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Define routing rules for REST endpoints and GraphQL queries. Support path-based and header-based routing. Integrate with downstream TemplateAPI services.
 
-## 2. Develop Rate Limiter with Redis Token Bucket [pending]
-### Dependencies: 22.1
-### Description: Create a rate limiting middleware at src/codex/gateway/rate_limiter.py using a Redis-backed token bucket algorithm.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Implement per-client and per-endpoint rate limits. Use Redis for distributed token bucket state. Expose configuration via config/gateway.yaml.
-
-## 3. Build Authentication and Authorization Middleware [pending]
-### Dependencies: 22.1
-### Description: Implement authentication and authorization at src/codex/gateway/auth.py using JWT and OAuth2 flows.
-### Details:
-Validate JWT tokens, support OAuth2 authorization code flow, enforce role-based access control. Integrate with identity provider configuration in config/gateway.yaml.
-
-## 4. Integrate Circuit Breaker for Downstream Services [pending]
-### Dependencies: 22.1
-### Description: Add circuit breaker logic at src/codex/gateway/circuit.py to protect backend TemplateAPI services from overload and cascading failures.
-### Details:
-Monitor error rates and latency, trip breaker on threshold, implement fallback responses. Configure thresholds in config/gateway.yaml.
-
-## 5. Implement Response Caching with ETags and Cache-Control [pending]
-### Dependencies: 22.1
-### Description: Create response caching layer at src/codex/gateway/cache.py supporting ETag validation and Cache-Control headers.
-### Details:
-Cache idempotent GET responses, support conditional requests with ETag, manage cache invalidation. Configure cache policies in config/gateway.yaml.
-
-## 6. Design API Versioning Strategies [pending]
-### Dependencies: 22.1
-### Description: Develop versioning handler at src/codex/gateway/versioning.py to support URL-based, header-based, and content negotiation versioning.
-### Details:
-Route requests to correct API version using path, Accept header, or custom headers. Document versioning rules in api/openapi.yaml.
-
-## 7. Define OpenAPI Specification and Gateway Configuration [pending]
-### Dependencies: 22.1
-### Description: Create and maintain OpenAPI spec at api/openapi.yaml and gateway configuration at config/gateway.yaml.
-### Details:
-Document all endpoints, authentication flows, rate limits, versioning, and error responses. Ensure config/gateway.yaml covers all gateway policies and integration points.
-
-## 8. Enforce Performance Requirements and Latency Budget [pending]
-### Dependencies: 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7
-### Description: Optimize gateway implementation to ensure added latency is less than 10ms per request.
-### Details:
-Profile gateway code paths, minimize middleware overhead, benchmark with representative traffic, and document latency metrics.
-

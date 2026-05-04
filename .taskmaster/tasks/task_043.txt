@@ -11,51 +11,13 @@ Create TemplateTestCase base class. Implement template execution mocking. Add as
 Test framework with sample templates, verify coverage accuracy, test mutation detection, validate benchmarks
 
 # Subtasks:
-## 1. Design TemplateTestCase Base Class [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop a reusable TemplateTestCase base class to standardize template test structure, setup/teardown, and result reporting.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Define core test lifecycle methods (setup, teardown, class-level fixtures). Integrate with chosen test runner. Ensure extensibility for future test types. Include comprehensive unit tests, simulate test failures, validate recovery from test errors, and assess performance overhead.
 
-## 2. Implement Template Execution Mocking [pending]
-### Dependencies: 43.1
-### Description: Create a robust mocking system to simulate template execution environments and isolate template logic from external dependencies.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Develop mock objects for template inputs, outputs, and external services. Support configurable mock behaviors for edge cases and failures. Test with various template scenarios, simulate execution errors, validate fallback mechanisms, and measure mocking overhead.
-
-## 3. Add Assertion Methods for Template Behavior [pending]
-### Dependencies: 43.1, 43.2
-### Description: Develop a comprehensive set of assertion methods tailored for template output, side effects, and error handling.
-### Details:
-Implement assertions for output equality, structure, and error conditions. Support custom assertion extensions. Test assertion accuracy, simulate assertion failures, validate error reporting, and benchmark assertion performance.
-
-## 4. Create Fixture System for Template Test Data [pending]
-### Dependencies: 43.1, 43.2
-### Description: Build a fixture management system to provide reusable, isolated test data for template tests.
-### Details:
-Support static and dynamic fixtures, parameterized data, and cleanup hooks. Integrate with test runner for automatic fixture injection. Test fixture isolation, simulate data corruption, validate fixture recovery, and assess fixture loading speed.
-
-## 5. Implement Template Coverage Tracking [pending]
-### Dependencies: 43.1, 43.2, 43.3, 43.4
-### Description: Develop a coverage tracking module to measure which template logic paths are exercised during tests.
-### Details:
-Instrument template execution for line, branch, and condition coverage. Generate detailed coverage reports. Test with partial and full coverage scenarios, simulate missed paths, validate report accuracy, and measure tracking overhead.
-
-## 6. Add Mutation Testing for Template Logic [pending]
-### Dependencies: 43.1, 43.2, 43.3, 43.4, 43.5
-### Description: Integrate mutation testing to assess the effectiveness of template tests by introducing controlled changes and verifying test failure.
-### Details:
-Automate mutation generation for template logic. Track mutation detection rates. Test with various mutation types, simulate undetected mutations, validate mutation rollback, and benchmark mutation test execution time.
-
-## 7. Create Template Benchmark Suite [pending]
-### Dependencies: 43.1, 43.2, 43.3, 43.4
-### Description: Develop a benchmarking suite to measure template execution performance under different scenarios.
-### Details:
-Implement performance metrics collection (latency, throughput, resource usage). Support configurable benchmark scenarios. Test with large-scale templates, simulate performance regressions, validate benchmark accuracy, and assess benchmarking overhead.
-
-## 8. Implement Visual Regression Testing for UI Templates [pending]
-### Dependencies: 43.1, 43.2, 43.3, 43.4
-### Description: Build a visual regression testing system to detect unintended UI changes in template rendering.
-### Details:
-Capture and compare template render outputs using image diffing. Support baseline management and threshold configuration. Test with intentional and accidental UI changes, simulate rendering failures, validate diff accuracy, and measure visual test execution time.
-

@@ -1,0 +1,14 @@
+normalized_task_count=75
+misaligned_task_count=0
+task4_status=in-progress
+task4_subtasks=9
+task4_subtasks_detail=
+  4.1 pending Design YAML Configuration Schema and JSON Schema Validation
+  4.2 pending Implement ConfigLoader Class with Singleton, Lazy Loading, and Hot Reload
+  4.3 pending Create Rule Engine with Severity Taxonomy and Rule Definitions
+  4.4 pending Build Pattern Matcher for Allowlist and Blocklist (Glob and Regex)
+  4.5 pending Implement Configuration Inheritance, Environment Overlays, and Profiles
+  4.6 pending Add Schema Validation with jsonschema (Compile-Time and Runtime)
+  4.7 pending Create Environment Variable Override System (CODEX_SCANNER_ Namespace)
+  4.8 pending Integrate Configuration with Scanner Modules via Dependency Injection
+  4.9 done Audit and normalize pending backlog scope gates

@@ -1,0 +1,9 @@
+Guard validation failed:
+  - sessions/current: Taskmaster files changed but the current session log is missing | entry: Recreate the current session file and log the Taskmaster change there.
+  - plans/current: Active plan symlink missing or invalid
+
+Hints:
+  * Recreate the current session file and log the Taskmaster change there.
+
+Reminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.
+For CI enforcement see .github/workflows/meta-workflow-guard.yml.

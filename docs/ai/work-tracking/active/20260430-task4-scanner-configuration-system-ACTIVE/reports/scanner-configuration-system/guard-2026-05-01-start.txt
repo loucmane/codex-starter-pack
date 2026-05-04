@@ -1,0 +1,19 @@
+Guard validation failed:
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Serena memory reference missing for today in tracker progress log
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/FINDINGS.md: FINDINGS.md missing entry for 2026-05-01
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/DECISIONS.md: DECISIONS.md missing entry for 2026-05-01
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/CHANGELOG.md: CHANGELOG.md missing entry for 2026-05-01
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Tracker Last Updated 2026-04-30 does not match today's date 2026-05-01
+  - plans/2026-05-01-task4-schema-validation.md: plan-step-implement evidence path not found | entry: scripts/template-ssot-scanner/config/validation.py
+  - plans/2026-05-01-task4-schema-validation.md: plan-step-test evidence path not found | entry: scripts/template-ssot-scanner/test_config_validation.py
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Tracker checkbox for plan-step-implement should remain unchecked for status pending
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Tracker missing checkbox for plan-step-test
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Tracker checkbox for plan-step-verify should remain unchecked for status pending
+  - .plan_state/sync.log: No sync entry recorded for plans/2026-05-01-task4-schema-validation.md
+
+Hints:
+  * scripts/template-ssot-scanner/config/validation.py
+  * scripts/template-ssot-scanner/test_config_validation.py
+
+Reminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.
+For CI enforcement see .github/workflows/meta-workflow-guard.yml.

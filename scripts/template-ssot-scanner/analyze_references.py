@@ -20,13 +20,31 @@ class ReferenceAnalyzer:
         self,
         scan_results_file: str = "output/data/template_scan_results.json",
         config_file: str = "scanner_config.yaml",
+        config_context=None,
+        validation_rules: Dict | None = None,
+        profile: str | None = None,
+        environment: str | None = None,
+        apply_environment_overrides: bool = False,
+        environ: dict[str, str] | None = None,
     ):
         self.scan_results_file = scan_results_file
+        self.config_context = config_context
         config_path = Path(config_file)
         if not config_path.is_absolute() and not config_path.exists():
             config_path = Path(__file__).parent / config_path
         self.config_file = str(config_path)
-        self.validation_rules = load_validation_rules(config_path)
+        if validation_rules is not None:
+            self.validation_rules = validation_rules
+        elif config_context is not None:
+            self.validation_rules = config_context.validation_rules()
+        else:
+            self.validation_rules = load_validation_rules(
+                config_path,
+                profile=profile,
+                environment=environment,
+                apply_environment_overrides=apply_environment_overrides,
+                environ=environ,
+            )
         self.results = None
         self.base_path = None
         self.analysis = {
@@ -588,6 +606,23 @@ Examples:
         default='scanner_config.yaml'
     )
     parser.add_argument(
+        '--profile',
+        type=str,
+        help='Named scanner config profile to resolve before analysis',
+        default=None
+    )
+    parser.add_argument(
+        '--environment',
+        type=str,
+        help='Named scanner config environment overlay to resolve before analysis',
+        default=None
+    )
+    parser.add_argument(
+        '--env-overrides',
+        action='store_true',
+        help='Apply CODEX_SCANNER_ environment overrides after profile/environment resolution'
+    )
+    parser.add_argument(
         '--broken-threshold',
         type=int,
         help='Exit with error if broken references exceed this threshold',
@@ -636,7 +671,13 @@ Examples:
     # Track timing
     start_time = time.time()
     
-    analyzer = ReferenceAnalyzer(str(args.input), str(args.config))
+    analyzer = ReferenceAnalyzer(
+        str(args.input),
+        str(args.config),
+        profile=args.profile,
+        environment=args.environment,
+        apply_environment_overrides=args.env_overrides,
+    )
     
     # Set custom output path if specified (the _save_analysis method already handles metadata)
     if args.out != Path('output/data/reference_analysis.json'):

@@ -11,51 +11,13 @@ Run 'taskmaster-ai init' in project root. Configure .taskmaster/config.json with
 Verify Taskmaster initialization completes, test task creation from PRD, ensure API connectivity, validate task dependency graph
 
 # Subtasks:
-## 1. Implement Dependency Analyzer Core [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop the core logic for parsing and analyzing task dependencies using NetworkX in Python.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Create `src/codex/graph/dependency_analyzer.py` to parse `.taskmaster/tasks/tasks.json` and build a directed graph of tasks and their dependencies using NetworkX. Ensure support for large graphs (1000+ nodes).
 
-## 2. Build Graph Construction Module [pending]
-### Dependencies: 12.1
-### Description: Develop a module to construct dependency graphs from parsed data.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Implement `src/codex/graph/builder.py` to transform parsed task data into a NetworkX DiGraph, supporting attributes for status, priority, and milestones.
-
-## 3. Integrate Cycle Detection Algorithms [pending]
-### Dependencies: 12.2
-### Description: Add cycle detection using Tarjan's SCC and Kosaraju's algorithms to identify circular dependencies.
-### Details:
-Create `src/codex/graph/cycle_detector.py` with implementations of Tarjan's and Kosaraju's algorithms. Highlight cycles and provide actionable feedback for resolution.
-
-## 4. Develop Graph Layout Engine [pending]
-### Dependencies: 12.2
-### Description: Implement multiple graph layout algorithms for optimal visualization.
-### Details:
-Build `src/codex/graph/layout.py` supporting force-directed, hierarchical, and circular layouts. Optimize for clarity and scalability with large graphs.
-
-## 5. Create Visualization Frontend with Interactive Features [pending]
-### Dependencies: 12.4
-### Description: Develop an interactive frontend using D3.js and Cytoscape.js for graph rendering and user interaction.
-### Details:
-Implement `src/codex/graph/frontend/` with D3.js/Cytoscape.js for rendering. Add zoom, pan, node details on click, and path highlighting. Integrate with WebGL renderer at `src/codex/graph/frontend/webgl_renderer.js` for performance.
-
-## 6. Optimize Rendering Performance [pending]
-### Dependencies: 12.5
-### Description: Ensure the visualization engine can render 1000+ nodes in under 3 seconds.
-### Details:
-Profile and optimize frontend rendering, leveraging WebGL and efficient data structures. Test with synthetic large graphs to validate performance targets.
-
-## 7. Implement Export Capabilities [pending]
-### Dependencies: 12.2, 12.4
-### Description: Enable exporting of dependency graphs to SVG, PNG, GraphML, and DOT formats.
-### Details:
-Develop `src/codex/graph/export.py` to support exporting graphs in multiple formats. Integrate export options into the frontend UI.
-
-## 8. Integrate Graph Database Storage [pending]
-### Dependencies: 12.2, 12.3
-### Description: Persist dependency graphs and analysis results using a graph database module.
-### Details:
-Implement `src/codex/graph/storage.py` to store and retrieve graph structures, cycles, and layout metadata for fast reload and analysis.
-

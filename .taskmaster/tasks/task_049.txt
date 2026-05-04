@@ -11,51 +11,13 @@ Create weekly status template with metrics placeholders. Design breaking change 
 Test template generation, verify distribution, test feedback collection, validate archive completeness
 
 # Subtasks:
-## 1. Edge Node Deployment [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Set up edge nodes using lightweight Kubernetes (K3s) with support for ARM and x86 architectures. Implement node discovery, registration, and provisioning within 5 minutes, ensuring resource constraints are handled. Include comprehensive testing, offline scenarios, resource optimization, and failover handling.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Create and configure `infrastructure/edge/deployment/nodes.yaml` and `infrastructure/edge/deployment/k3s.yaml`. Validate node auto-registration and provisioning speed. Test on both ARM and x86 hardware. Simulate offline and failover scenarios.
 
-## 2. Edge-Cloud Synchronization [pending]
-### Dependencies: 49.1
-### Description: Implement bidirectional data synchronization between edge and cloud, supporting conflict resolution, offline operation, and delta sync with latency under 500ms. Ensure robust testing, resource optimization, and failover handling.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Develop `src/codex/edge/sync/manager.py` and `src/codex/edge/sync/conflict.py`. Test sync under network interruptions, simulate conflicts, and validate delta sync efficiency. Measure and optimize sync latency.
-
-## 3. Edge Workload Orchestration [pending]
-### Dependencies: 49.1, 49.2
-### Description: Design and implement workload placement algorithms for resource-aware scheduling, locality optimization, and failover management at the edge, ensuring scheduling decisions within 100ms. Include comprehensive testing, offline scenarios, and resource optimization.
-### Details:
-Build `src/codex/edge/orchestration/scheduler.py` and `src/codex/edge/orchestration/placement.py`. Test placement under varying loads, simulate node failures, and validate locality-aware scheduling.
-
-## 4. Edge Security Framework [pending]
-### Dependencies: 49.1
-### Description: Implement device attestation, end-to-end encryption, certificate management, and secure boot validation for edge nodes, ensuring security overhead remains below 10%. Include comprehensive testing, offline scenarios, resource optimization, and failover handling.
-### Details:
-Develop `src/codex/edge/security/attestation.py` and `src/codex/edge/security/encryption.py`. Test certificate rotation, simulate attacks, and validate secure boot. Measure security overhead.
-
-## 5. Edge Analytics Pipeline [pending]
-### Dependencies: 49.1, 49.2, 49.3
-### Description: Build a local analytics pipeline for stream processing, ML inference, and result aggregation at the edge, ensuring processing latency under 50ms. Include comprehensive testing, offline scenarios, resource optimization, and failover handling.
-### Details:
-Implement `src/codex/edge/analytics/processor.py` and `src/codex/edge/analytics/aggregator.py`. Test with real-time data streams, validate ML inference accuracy, and simulate node isolation.
-
-## 6. Edge Network Optimization [pending]
-### Dependencies: 49.1, 49.2
-### Description: Develop mesh networking, bandwidth optimization, protocol selection, and connection pooling for edge nodes, ensuring network overhead stays below 15%. Include comprehensive testing, offline scenarios, resource optimization, and failover handling.
-### Details:
-Create `src/codex/edge/network/optimizer.py` and `src/codex/edge/network/mesh.py`. Test mesh formation, bandwidth usage, and protocol switching under varying network conditions.
-
-## 7. Edge Monitoring System [pending]
-### Dependencies: 49.1, 49.2, 49.3
-### Description: Implement distributed monitoring, metric aggregation, alert correlation, and resource tracking for edge nodes, ensuring monitoring latency under 1 second. Include comprehensive testing, offline scenarios, resource optimization, and failover handling.
-### Details:
-Develop `src/codex/edge/monitoring/collector.py` and `src/codex/edge/monitoring/aggregator.py`. Test metric collection under load, simulate alert conditions, and validate monitoring during node failures.
-
-## 8. Edge Configuration Management [pending]
-### Dependencies: 49.1, 49.2, 49.3
-### Description: Implement configuration distribution, version management, rollback, and A/B testing support for edge nodes, ensuring config updates propagate within 30 seconds. Include comprehensive testing, offline scenarios, resource optimization, and failover handling.
-### Details:
-Build `src/codex/edge/config/manager.py` and `src/codex/edge/config/propagator.py`. Test version rollbacks, A/B deployments, and config propagation under network partitions.
-

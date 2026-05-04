@@ -11,51 +11,13 @@ Create CAB meeting structure and cadence. Define change request template. Implem
 Test change submission process, verify approval workflow, test communication delivery, validate metrics collection
 
 # Subtasks:
-## 1. Define CAB Structure and Membership [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Establish the formal structure of the Change Advisory Board, including roles, responsibilities, and membership criteria. Document the process for rotating members and ensuring representation from key stakeholder groups.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Specify CAB chair, regular members, alternates, and escalation paths. Include procedures for onboarding and offboarding members. Ensure compliance with governance and audit requirements.
 
-## 2. Develop Change Request Template [pending]
-### Dependencies: 44.1
-### Description: Design and implement a standardized change request template capturing all required information for CAB review, including risk assessment, rollback plan, and stakeholder impact.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Template must include fields for change title, description, business justification, risk/impact analysis, implementation plan, rollback strategy, and required approvals. Validate template usability with pilot users.
-
-## 3. Implement Change Tracking System [pending]
-### Dependencies: 44.2
-### Description: Deploy a system to log, track, and manage all change requests from submission through closure, ensuring auditability and transparency.
-### Details:
-Integrate with existing ITSM or project management tools if possible. Include automated notifications, status updates, and change history. Test for data integrity and access controls.
-
-## 4. Establish CAB Meeting Cadence and Agenda [pending]
-### Dependencies: 44.1, 44.3
-### Description: Define the frequency, scheduling, and agenda structure for regular and emergency CAB meetings, including pre-meeting documentation distribution and post-meeting follow-up.
-### Details:
-Set standard meeting intervals (e.g., weekly, bi-weekly) and criteria for emergency meetings. Create agenda templates and procedures for distributing materials in advance. Document decision-making and voting rules.
-
-## 5. Create Risk Assessment and Approval Workflow [pending]
-### Dependencies: 44.2, 44.3
-### Description: Develop a formal workflow for risk assessment, stakeholder review, and approval of change requests, including escalation and exception handling.
-### Details:
-Define risk scoring methodology, required approvers by risk level, and automated routing for reviews. Implement workflow in the tracking system and validate with sample changes.
-
-## 6. Implement Change Communication Plan [pending]
-### Dependencies: 44.4, 44.5
-### Description: Design and execute a communication plan to inform stakeholders of upcoming changes, decisions, and outcomes, ensuring transparency and readiness.
-### Details:
-Specify notification channels, timing, and message templates for different change types. Include feedback mechanisms and escalation contacts. Test delivery and comprehension with sample communications.
-
-## 7. Establish Change Metrics and Reporting [pending]
-### Dependencies: 44.3, 44.6
-### Description: Define, collect, and report on key change management metrics such as approval times, change success rates, and incident correlation.
-### Details:
-Implement automated metric collection in the tracking system. Create dashboards and regular reports for CAB and stakeholders. Validate metric accuracy and usefulness.
-
-## 8. Implement Post-Implementation Review Process [pending]
-### Dependencies: 44.7
-### Description: Create a structured process for post-implementation reviews to assess change outcomes, capture lessons learned, and drive continuous improvement.
-### Details:
-Define review criteria, schedule, and documentation requirements. Integrate review findings into CAB meetings and change process updates. Ensure follow-up actions are tracked and completed.
-

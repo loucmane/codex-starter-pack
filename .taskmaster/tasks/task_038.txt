@@ -11,51 +11,13 @@ Run dry-run of reference fixes. Review and approve changes. Execute fixes in ord
 All references must resolve, guard validation passes, performance targets met, rollback tested successfully
 
 # Subtasks:
-## 1. Localization Framework Setup [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Implement the core internationalization framework with locale detection, fallback chains, pluralization/gender rules, and formatting for numbers, dates, and currencies. Integrate React-intl and i18next. Ensure translation loading under 100ms.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Create and configure `src/codex/i18n/core/translator.py` and `src/codex/i18n/core/locale_manager.py`. Integrate React-intl and i18next for frontend and backend support. Implement locale detection and fallback logic. Add pluralization and gender rule support. Format numbers, dates, and currencies per locale. Optimize translation loading for <100ms. Include comprehensive locale testing, accessibility compliance, cultural sensitivity validation, and performance benchmarks.
 
-## 2. Translation Management System Integration [pending]
-### Dependencies: 38.1
-### Description: Set up translation management portal and workflow, integrating Crowdin/Lokalise, translation memory, machine translation with review queue, and version control. Ensure translation sync every 6 hours.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Develop `src/codex/i18n/management/portal.py` and `src/codex/i18n/management/workflow.py`. Integrate Crowdin/Lokalise APIs. Implement translation memory and machine translation queue with human review. Add version control for translation files. Automate translation sync every 6 hours. Validate with locale tests, accessibility, cultural checks, and performance benchmarks.
-
-## 3. Content Extraction Pipeline Implementation [pending]
-### Dependencies: 38.2
-### Description: Build automated pipeline for extracting translatable strings, preserving context, detecting duplicates, merging, and generating translation keys. Ensure extraction time <2 minutes for full codebase.
-### Details:
-Implement `src/codex/i18n/extraction/scanner.py` and `src/codex/i18n/extraction/validator.py`. Automate string extraction from codebase, preserve context for translators, detect and merge duplicates, and generate translation keys. Optimize for extraction time <2 minutes. Include locale coverage tests, accessibility, cultural validation, and performance benchmarks.
-
-## 4. Right-to-Left (RTL) Support Enablement [pending]
-### Dependencies: 38.3
-### Description: Add RTL support with automatic CSS flipping, bidirectional text handling, mirrored assets, and RTL-aware components. Ensure layout switching under 50ms.
-### Details:
-Develop `src/codex/i18n/rtl/layout_manager.py` and `src/codex/i18n/rtl/css_flipper.py`. Implement CSS flipping for RTL, handle bidirectional text, mirror image assets, and create RTL-aware UI components. Optimize layout switching for <50ms. Test all locales, accessibility, cultural sensitivity, and performance.
-
-## 5. Language Pack Distribution System [pending]
-### Dependencies: 38.4
-### Description: Set up CDN hosting for language packs, enable lazy loading, delta updates, and Brotli compression. Ensure pack size <100KB per language.
-### Details:
-Create `src/codex/i18n/distribution/cdn_pusher.py` and `src/codex/i18n/distribution/bundler.py`. Host language packs on CDN, implement lazy loading and delta updates, compress with Brotli, and keep pack size <100KB. Validate with locale tests, accessibility, cultural checks, and performance benchmarks.
-
-## 6. Localization Testing Framework Development [pending]
-### Dependencies: 38.5
-### Description: Develop testing framework for pseudo-localization, screenshot comparison, text overflow, and missing translation detection. Achieve 100% UI string test coverage.
-### Details:
-Build `src/codex/i18n/testing/pseudo_translator.py` and `src/codex/i18n/testing/validator.py`. Implement pseudo-localization, screenshot comparison, text overflow detection, and missing translation checks. Ensure 100% UI string coverage. Include locale, accessibility, cultural, and performance validation.
-
-## 7. Geo-targeting and Region Detection Implementation [pending]
-### Dependencies: 38.6
-### Description: Implement IP-based location detection, Accept-Language header parsing, user preference persistence, and regional content filtering. Achieve >95% detection accuracy.
-### Details:
-Develop `src/codex/i18n/geo/detector.py` and `src/codex/i18n/geo/rules_engine.py`. Add IP-based detection, parse Accept-Language headers, persist user preferences, and filter content regionally. Target >95% detection accuracy. Validate with locale, accessibility, cultural, and performance benchmarks.
-
-## 8. Performance Optimization for Internationalization [pending]
-### Dependencies: 38.7
-### Description: Optimize translation caching, compile-time and bundle size, and memory usage. Ensure i18n overhead is <5%.
-### Details:
-Implement `src/codex/i18n/optimization/cache.py` and `src/codex/i18n/optimization/precompiler.py`. Design caching strategies, compile-time optimizations, bundle size reduction, and memory usage improvements. Ensure total i18n overhead <5%. Validate with locale, accessibility, cultural, and performance benchmarks.
-

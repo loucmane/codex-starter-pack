@@ -11,51 +11,13 @@ Implement daily diff detection using git. Create drift scanner for template dive
 Test diff detection accuracy, verify PR generation, test conflict resolution, validate sync completeness
 
 # Subtasks:
-## 1. Implement Snapshot Management System [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Develop a system to create and manage full and incremental snapshots before deployments, with zstd compression and S3 storage using lifecycle policies. Ensure snapshot creation completes in under 30 seconds for 1GB data.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Files: src/codex/rollback/snapshot.py, src/codex/rollback/storage/snapshot_store.py. Include comprehensive error handling for snapshot failures, monitoring hooks for snapshot status, automated tests for snapshot integrity and performance, and recovery procedures for failed snapshot restoration.
 
-## 2. Implement State Tracking System [pending]
-### Dependencies: 30.1
-### Description: Build a system to track all system state changes, including database schema versioning, configuration state, and application state, with a Redis-backed state cache.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Files: src/codex/rollback/state_tracker.py, src/codex/rollback/models/state.py. Add error handling for state inconsistencies, monitoring hooks for state change events, unit and integration tests for state tracking accuracy, and recovery procedures for restoring previous states.
-
-## 3. Develop Rollback Orchestrator [pending]
-### Dependencies: 30.2
-### Description: Create an orchestrator to automate rollback execution, sequence rollbacks based on dependencies, enable parallel rollback for independent components, and perform health checks during rollback. Ensure full system rollback completes in under 5 minutes.
-### Details:
-Files: src/codex/rollback/orchestrator.py, src/codex/rollback/engine/rollback_engine.py. Implement error handling for rollback failures, monitoring hooks for rollback progress, automated tests for rollback sequencing and health checks, and recovery procedures for incomplete rollbacks.
-
-## 4. Implement Data Migration Reversal System [pending]
-### Dependencies: 30.3
-### Description: Track all data migrations and generate reversal scripts automatically, handle partial migration failures, validate data integrity, and support ACID transactions.
-### Details:
-Files: src/codex/rollback/data/reversal.py, src/codex/rollback/data/migration_tracker.py. Add error handling for migration reversal errors, monitoring hooks for migration status, automated tests for reversal script generation and data integrity, and recovery procedures for failed reversals.
-
-## 5. Integrate Service Mesh Rollback [pending]
-### Dependencies: 30.4
-### Description: Integrate with Istio/Envoy for traffic control, enable canary rollback triggers, activate circuit breakers, shift traffic during rollback, and guarantee zero-downtime rollback.
-### Details:
-Files: src/codex/rollback/mesh/controller.py, src/codex/rollback/mesh/traffic.py. Implement error handling for mesh integration failures, monitoring hooks for traffic events, automated tests for traffic shifting and circuit breaker activation, and recovery procedures for rollback-induced service disruptions.
-
-## 6. Build Rollback Testing Framework [pending]
-### Dependencies: 30.5
-### Description: Develop a testing framework for chaos engineering rollback scenarios, automated rollback drills, failure injection, and recovery time measurement. Achieve >95% test coverage for rollback paths.
-### Details:
-Files: src/codex/rollback/testing/simulator.py, src/codex/rollback/testing/scenarios.py. Add error handling for test failures, monitoring hooks for test execution, automated tests for all rollback scenarios, and recovery procedures for failed rollback drills.
-
-## 7. Create Rollback Monitoring Dashboard [pending]
-### Dependencies: 30.6
-### Description: Develop a dashboard for real-time rollback status tracking, rollback history visualization, performance metrics, and alert generation for rollback failures. Integrate with PagerDuty and Slack.
-### Details:
-Files: src/codex/rollback/monitoring/dashboard.py, src/codex/rollback/monitoring/alerts.py. Implement error handling for dashboard failures, monitoring hooks for rollback events, automated tests for dashboard accuracy and alerting, and recovery procedures for missed alerts.
-
-## 8. Develop Rollback Automation Scripts [pending]
-### Dependencies: 30.7
-### Description: Create scripts for automatic rollback triggers based on health, SLA violation detection, error rate monitoring, resource anomaly detection, and a one-click emergency rollback button.
-### Details:
-Files: scripts/rollback/auto_rollback.py, scripts/rollback/health_checker.py. Add error handling for automation failures, monitoring hooks for trigger events, automated tests for trigger accuracy and emergency rollback, and recovery procedures for failed automated rollbacks.
-

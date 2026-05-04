@@ -1,0 +1,33 @@
+🏷️ tag: master
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Next Task: #4.8 - Integrate Configuration with Scanner Modules via           │
+│ Dependency Injection                                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 4.8                                                        │
+│ Title:        │ Integrate Configuration with Scanner Modules via           │
+│               │ Dependency Injection                                       │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 4.2, 4.3, 4.4, 4.5, 4.6, 4.7                               │
+│ Complexity:   │ ● 5                                                        │
+│ Description:  │                                                            │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=4.8 --status=in-progress │
+│ 2. Mark as done when completed: task-master set-status --id=4.8              │
+│ --status=done                                                                │
+│ 3. View parent task: task-master show --id=4                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

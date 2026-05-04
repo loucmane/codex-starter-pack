@@ -11,51 +11,13 @@ Create migration-rehearsal branches with git worktree. Set up Docker containers 
 Verify environment isolation, test data seeding completeness, validate simulator responses, run load tests at 100x volume
 
 # Subtasks:
-## 1. Set Up Git Worktree for Migration Branches [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Create isolated migration-rehearsal branches using git worktree for parallel development and testing.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Create branches under `environments/rehearsal/` using `git worktree add environments/rehearsal migration-rehearsal`. Ensure branch naming follows `migration-rehearsal-*` convention. Document branch setup in `environments/rehearsal/README.md`.
 
-## 2. Provision Dockerized Test Environment with IaC [pending]
-### Dependencies: 23.1
-### Description: Configure Docker containers for isolated testing using Terraform and Ansible.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Write Terraform configs in `infrastructure/rehearsal/terraform/` and Ansible playbooks in `infrastructure/rehearsal/ansible/` to provision Docker containers. Store Docker Compose files at `environments/rehearsal/docker-compose.yaml`. Ensure containers are network-isolated and use rehearsal-specific configs.
-
-## 3. Configure Test API Keys and Rate Limits [pending]
-### Dependencies: 23.2
-### Description: Set up test API keys with strict rate limits for all external integrations.
-### Details:
-Store API key configurations in `environments/rehearsal/config.yaml`. Use Ansible to automate key provisioning. Document rate limit policies and ensure keys are restricted to rehearsal environment endpoints.
-
-## 4. Implement Data Anonymization and Seeding Scripts [pending]
-### Dependencies: 23.2
-### Description: Create scripts to anonymize production data and seed the rehearsal environment with safe, representative datasets.
-### Details:
-Develop anonymization logic in `scripts/data/anonymize.py`. Store seed data templates in `environments/rehearsal/data/`. Integrate anonymization into provisioning pipeline and validate with sample runs.
-
-## 5. Enforce Environment Isolation and Network Segmentation [pending]
-### Dependencies: 23.2
-### Description: Ensure the rehearsal environment is fully isolated from production via network segmentation and access controls.
-### Details:
-Define network policies in `infrastructure/rehearsal/terraform/network.tf`. Use firewall rules and private subnets. Document isolation guarantees in `environments/rehearsal/README.md` and validate with connectivity tests.
-
-## 6. Automate One-Click Provisioning and Rollback [pending]
-### Dependencies: 23.2, 23.4, 23.5
-### Description: Develop scripts for automated, one-click deployment and teardown of the rehearsal environment, including rollback procedures.
-### Details:
-Implement deployment script at `scripts/deploy/rehearsal.sh`. Include rollback logic to revert to previous state using snapshots. Document usage and rollback steps in `environments/rehearsal/runbook.md`.
-
-## 7. Implement State Management and Snapshotting [pending]
-### Dependencies: 23.6
-### Description: Set up state management for rehearsal environment, enabling snapshot creation and restoration.
-### Details:
-Store state files in `infrastructure/rehearsal/state/`. Use Terraform state backends and snapshot scripts. Document snapshot/restore procedures in `environments/rehearsal/runbook.md`.
-
-## 8. Configure Monitoring and Performance Validation [pending]
-### Dependencies: 23.6, 23.7
-### Description: Set up monitoring for rehearsal metrics and enforce environment readiness within 15 minutes.
-### Details:
-Deploy monitoring stack using configs in `infrastructure/rehearsal/monitoring/`. Integrate with load testing tools (k6/locust). Add readiness checks to deployment script and alert if provisioning exceeds 15 minutes.
-

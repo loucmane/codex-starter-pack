@@ -1,0 +1,2 @@
+Audit warnings:
+- sessions/current symlink missing because repository is between sessions

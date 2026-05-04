@@ -11,51 +11,13 @@ Create error classification taxonomy. Implement recovery strategies for each err
 Test each recovery strategy, verify backoff behavior, test error reporting, validate automatic resolution
 
 # Subtasks:
-## 1. GraphQL Server Setup [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Configure Apollo Server for the API gateway, including federation support, WebSocket subscriptions, playground, introspection, and ensure server startup time is under 3 seconds.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Implement in `src/codex/graphql/server/apollo.js` and `src/codex/graphql/server/config.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
 
-## 2. Schema Design and Management [pending]
-### Dependencies: 47.1
-### Description: Define and manage a type-safe GraphQL schema, implement schema stitching and federation, versioning, breaking change detection, and ensure schema validation under 100ms.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Implement in `src/codex/graphql/schema/types.graphql` and `src/codex/graphql/schema/builder.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-
-## 3. Resolver Implementation [pending]
-### Dependencies: 47.2
-### Description: Develop resolvers with DataLoader for N+1 prevention, async patterns, error handling/formatting, field-level logic, and ensure resolver execution under 50ms p95.
-### Details:
-Implement in `src/codex/graphql/resolvers/index.js` and `src/codex/graphql/resolvers/dataloader.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-
-## 4. Authentication and Authorization [pending]
-### Dependencies: 47.1
-### Description: Implement JWT authentication, field-level authorization, custom auth directives, and per-user rate limiting with auth overhead under 5ms.
-### Details:
-Implement in `src/codex/graphql/auth/middleware.js` and `src/codex/graphql/auth/directives.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-
-## 5. Query Optimization [pending]
-### Dependencies: 47.2, 47.3
-### Description: Integrate query complexity analysis, automatic persisted queries, response caching, query batching, and achieve cache hit rate over 80%.
-### Details:
-Implement in `src/codex/graphql/optimization/analyzer.js` and `src/codex/graphql/optimization/cache.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-
-## 6. Real-time Subscriptions [pending]
-### Dependencies: 47.1, 47.3
-### Description: Implement WebSocket connection management, pub/sub, subscription filtering, and scalable connection handling with latency under 100ms.
-### Details:
-Implement in `src/codex/graphql/subscriptions/pubsub.js` and `src/codex/graphql/subscriptions/handlers.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-
-## 7. GraphQL Testing Framework [pending]
-### Dependencies: 47.1, 47.2, 47.3, 47.4, 47.5, 47.6
-### Description: Develop integration and mock tests for queries, mutations, subscriptions, schema validation, and performance benchmarks to achieve over 95% test coverage.
-### Details:
-Implement in `tests/graphql/integration/` and `tests/graphql/mocks/`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-
-## 8. Monitoring and Analytics [pending]
-### Dependencies: 47.1, 47.2, 47.3, 47.4, 47.5, 47.6
-### Description: Implement query performance tracking, error rate monitoring, field usage analytics, client identification, and ensure monitoring overhead is under 3%.
-### Details:
-Implement in `src/codex/graphql/monitoring/tracer.js` and `src/codex/graphql/monitoring/metrics.js`. Include comprehensive testing, security validation, performance optimization, and documentation generation.
-

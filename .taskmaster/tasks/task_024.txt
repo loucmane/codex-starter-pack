@@ -11,51 +11,13 @@ Create CostTracker class for API usage monitoring. Implement Anthropic API usage
 Test cost calculation accuracy, verify alert triggering, test caching reduces API calls, validate throttling behavior
 
 # Subtasks:
-## 1. Develop CostTracker Core Class [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Implement the main CostTracker class at src/codex/cost/tracker.py to aggregate and manage cost data for all monitored resources.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Define interfaces for cost data ingestion, normalization, and aggregation. Ensure extensibility for future resource types. Integrate configuration from config/cost_tracking.yaml.
 
-## 2. Implement API Usage Monitoring for Anthropic, OpenAI, Perplexity [pending]
-### Dependencies: 24.1
-### Description: Create API monitoring logic at src/codex/cost/api_monitor.py to track usage and costs for Anthropic, OpenAI, and Perplexity APIs, including rate calculations and token-based cost formulas.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Integrate token counting (e.g., tiktoken), apply provider-specific pricing formulas, and enforce rate limits. Log API calls and costs in real time.
-
-## 3. Integrate CI Minutes and Resource Monitoring [pending]
-### Dependencies: 24.1
-### Description: Extend CostTracker to monitor CI minutes and other resource usage, mapping usage to cost at src/codex/cost/tracker.py.
-### Details:
-Fetch CI usage data, apply cost formulas, and aggregate with API costs. Support multiple CI providers and configurable cost rates.
-
-## 4. Implement Budget Manager with Configurable Alerts [pending]
-### Dependencies: 24.1, 24.2, 24.3
-### Description: Develop budget management logic at src/codex/cost/budget.py to trigger alerts at configurable thresholds (e.g., 80%) and support auto-throttling.
-### Details:
-Read thresholds from config/cost_tracking.yaml, send notifications, and trigger throttling logic when approaching limits.
-
-## 5. Build Cost Allocation Engine by Project, Team, Feature [pending]
-### Dependencies: 24.1, 24.2, 24.3
-### Description: Create allocation algorithms at src/codex/cost/allocation.py to assign costs to projects, teams, or features based on usage data.
-### Details:
-Implement mapping logic, support custom allocation rules, and integrate with organizational metadata. Ensure allocation accuracy for reporting.
-
-## 6. Design Real-Time Cost Dashboard with Visualizations [pending]
-### Dependencies: 24.1, 24.2, 24.3, 24.4, 24.5
-### Description: Develop a dashboard at src/codex/cost/dashboard/ to visualize real-time cost data, usage trends, and budget status.
-### Details:
-Implement charts for API usage, CI minutes, allocation breakdowns, and budget alerts. Ensure dashboard updates within 1 minute of data changes.
-
-## 7. Implement Forecasting Models for Cost Projection [pending]
-### Dependencies: 24.1, 24.2, 24.3, 24.5
-### Description: Create forecasting logic at src/codex/cost/forecast.py to predict future costs using historical usage and growth models.
-### Details:
-Apply time-series analysis, support configurable growth rates, and integrate with dashboard for budget planning. Validate model accuracy against actuals.
-
-## 8. Develop Export Module for Financial Reporting [pending]
-### Dependencies: 24.1, 24.5, 24.6, 24.7
-### Description: Build export capabilities at src/codex/cost/export.py to generate monthly cost reports and support integration with financial systems.
-### Details:
-Support CSV, PDF, and API export formats. Include allocation breakdowns, budget status, and forecast summaries. Ensure cost calculations complete in <50ms per request.
-

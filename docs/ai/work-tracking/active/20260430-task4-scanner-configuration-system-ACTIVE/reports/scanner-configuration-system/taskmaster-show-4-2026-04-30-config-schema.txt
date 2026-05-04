@@ -1,0 +1,87 @@
+🏷️ tag: master
+
+╭────────────────────────────────────────────────╮
+│ Task: #4 - Create Scanner Configuration System │
+╰────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 4                                                          │
+│ Title:        │ Create Scanner Configuration System                        │
+│ Status:       │ ► in-progress                                              │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 3                                                          │
+│ Complexity:   │ ● 5                                                        │
+│ Description:  │ Implement YAML-based configuration for scanner rules,      │
+│               │ severities, and allowlists                                 │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Create scanner_config.yaml with rule definitions: reference_validation       │
+│ (severity: error, auto_fix: true), duplicate_detection (severity: warning,   │
+│ threshold: 0.8), migration_tracking (severity: info). Implement ConfigLoader │
+│ class using PyYAML. Add allowlist support for paths like templates/legacy/,  │
+│ docs/examples/. Create rule severity taxonomy (error, warning, info).        │
+│ Implement configuration validation and defaults.                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Test Strategy:                                                               │
+│                                                                              │
+│ Test configuration loading with valid/invalid YAML, verify rule application  │
+│ with different severities, test allowlist pattern matching, ensure defaults  │
+│ work when config missing                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌──────────┬───────────────┬──────────────────────────────────────────────────┬─────────────────────────┐
+│ ID       │ Status        │ Title                                            │ Deps                    │
+│ 4.1      │ done          │ Design YAML Configuration Schema and JSON Schema │ None                    │
+│          │               │ Validation                                       │                         │
+│ 4.2      │ pending       │ Implement ConfigLoader Class with Singleton,     │ 4.1                     │
+│          │               │ Lazy Loading, and Hot Reload                     │                         │
+│ 4.3      │ pending       │ Create Rule Engine with Severity Taxonomy and    │ 4.1, 4.2                │
+│          │               │ Rule Definitions                                 │                         │
+│ 4.4      │ pending       │ Build Pattern Matcher for Allowlist and          │ 4.1, 4.2                │
+│          │               │ Blocklist (Glob and Regex)                       │                         │
+│ 4.5      │ pending       │ Implement Configuration Inheritance, Environment │ 4.1, 4.2                │
+│          │               │ Overlays, and Profiles                           │                         │
+│ 4.6      │ pending       │ Add Schema Validation with jsonschema            │ 4.1, 4.2                │
+│          │               │ (Compile-Time and Runtime)                       │                         │
+│ 4.7      │ pending       │ Create Environment Variable Override System      │ 4.1, 4.2                │
+│          │               │ (CODEX_SCANNER_ Namespace)                       │                         │
+│ 4.8      │ pending       │ Integrate Configuration with Scanner Modules via │ 4.2, 4.3, 4.4, 4.5,     │
+│          │               │ Dependency Injection                             │ 4.6, 4.7                │
+│ 4.9      │ done          │ Audit and normalize pending backlog scope gates  │ None                    │
+└──────────┴───────────────┴──────────────────────────────────────────────────┴─────────────────────────┘
+
+╭────────────────────────────────────────────────────────────────────╮
+│ Subtask Progress:                                                  │
+│                                                                    │
+│ Completed: 2/9 (22.2%)                                             │
+│ ✓ Done: 2  ► In Progress: 0  ○ Pending: 7                          │
+│ ! Blocked: 0  ⏱ Deferred: 0  ✗ Cancelled: 0                       │
+│ Progress: ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 22%                 │
+╰────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=4 --status=in-progress   │
+│ 2. Mark as done when completed: task-master set-status --id=4 --status=done  │
+│ 3. Update subtask status: task-master set-status --id=4.1 --status=done      │
+│ 4. Re-analyze complexity: task-master analyze-complexity --id=4              │
+│ 5. Scope up/down: task-master scope-up --id=4 --strength=light or scope-down │
+│ --id=4 --strength=light                                                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

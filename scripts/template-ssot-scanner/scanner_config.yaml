@@ -1,21 +1,99 @@
+schema_version: "1.0.0"
+
+metadata:
+  name: codex-default-scanner-config
+  description: Default scanner configuration for the portable Codex foundation.
+
+scan_scope:
+  include:
+    - "**/*.md"
+    - "**/*.json"
+    - "**/*.yml"
+    - "**/*.yaml"
+  exclude:
+    - ".codex/.tmp/**"
+    - ".codex/cache/**"
+    - ".codex/log/**"
+    - ".codex/plugins/**"
+    - ".codex/sessions/**"
+    - ".codex/shell_snapshots/**"
+    - ".codex/skills/**"
+    - ".codex/tmp/**"
+    - ".codex/auth.json"
+    - ".codex/history.jsonl"
+    - ".codex/installation_id"
+    - ".codex/models_cache.json"
+    - ".codex/state_*.sqlite*"
+    - ".codex/version.json"
+  config_dirs:
+    - ".codex"
+    - ".claude"
+
 validation_rules:
   broken_references:
     category: references
     severity: error
+    priority: critical
     threshold: 0
+    enabled: true
+    auto_fix: false
+    description: References must resolve to existing files or anchors.
   migrated_monolith_references:
     category: migration
     severity: error
+    priority: high
     threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Fully migrated monoliths should not receive new direct references.
   circular_dependencies:
     category: dependencies
     severity: warning
+    priority: medium
     threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Circular template dependencies should be reviewed before automation relies on them.
   orphaned_files:
     category: coverage
     severity: warning
+    priority: low
     threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Orphaned files are allowed temporarily but should be visible in reports.
   duplicate_references:
     category: references
     severity: info
+    priority: info
     threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Duplicate references are informational until a downstream task promotes them.
+
+allowlists:
+  paths: []
+  references: []
+
+blocklists:
+  paths: []
+  references: []
+
+profiles:
+  default:
+    description: Local development and ad hoc scanner runs.
+    extends: null
+    merge_strategy: deep_merge
+    overrides: {}
+  ci:
+    description: CI validation uses the same default thresholds unless a future task tightens them.
+    extends: default
+    merge_strategy: deep_merge
+    overrides: {}
+
+environment_overlays:
+  local:
+    description: Developer-local overlay placeholder.
+    extends: default
+    merge_strategy: deep_merge
+    overrides: {}

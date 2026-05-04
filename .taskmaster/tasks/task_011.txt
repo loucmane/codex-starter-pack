@@ -11,51 +11,13 @@ Create RoadmapGenerator class reading scanner JSON outputs. Implement priority a
 Verify roadmap covers all scanner findings, test priority ordering logic, validate Taskmaster format compatibility, ensure estimates are reasonable
 
 # Subtasks:
-## 1. Draft Main Migration Guide Structure [pending]
+## 1. Scope reconciliation against portable foundation [pending]
 ### Dependencies: None
-### Description: Create the main migration guide at `docs/migration/guide.md` with a clear structure: Introduction, Migration Roadmap Overview, Priority Algorithm Explanation, Step-by-Step Migration Process, Risk Assessment, and Post-Migration Validation.
+### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
-Include navigation links to related sections (API, troubleshooting, examples). Ensure each section has a summary and actionable checklist.
 
-## 2. Develop API Reference Documentation [pending]
-### Dependencies: 11.1
-### Description: Document the RoadmapGenerator API at `docs/api/reference.md` using OpenAPI/Swagger specs, covering all endpoints, input/output schemas, and error codes.
+
+## 2. Implement proven current-state gap with evidence [pending]
+### Dependencies: None
+### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
-Include code snippets for API usage, authentication details, and example requests/responses for each endpoint.
-
-## 3. Create Migration Code Example Library [pending]
-### Dependencies: 11.1
-### Description: Populate `docs/examples/` with before/after migration code patterns, including handling of broken refs, monolith refs, duplicates, and optimizations.
-### Details:
-Each example should have a description, context, and annotated code blocks showing both legacy and migrated approaches.
-
-## 4. Design Visual Diagrams for Migration Process [pending]
-### Dependencies: 11.1
-### Description: Add visual diagrams to `docs/diagrams/` using Mermaid.js or PlantUML, illustrating the migration workflow, dependency graph, and Gantt chart structure.
-### Details:
-Include diagrams for the priority algorithm, task dependencies, and risk assessment flows. Reference these diagrams in the main guide.
-
-## 5. Write Troubleshooting and FAQ Guide [pending]
-### Dependencies: 11.1
-### Description: Develop `docs/migration/troubleshooting.md` with common migration issues, error messages, and step-by-step solutions.
-### Details:
-Include a FAQ section, diagnostic flowcharts, and escalation procedures for unresolved issues.
-
-## 6. Document Performance Benchmarks [pending]
-### Dependencies: 11.1
-### Description: Create `docs/benchmarks/` with performance comparison tables showing pre- and post-migration metrics, including migration time, resource usage, and error rates.
-### Details:
-Include methodology, test scenarios, and interpretation of results. Reference benchmarks in the main guide and API docs.
-
-## 7. Configure Documentation Site and Interactive Examples [pending]
-### Dependencies: 11.1, 11.3
-### Description: Set up documentation site configuration in `mkdocs.yml` or `docusaurus.config.js`, enabling navigation, search, and interactive code examples.
-### Details:
-Integrate interactive migration scenarios using Docusaurus or MkDocs plugins. Ensure all documentation sections are linked and discoverable.
-
-## 8. Implement CI/CD Workflow for Documentation Publishing [pending]
-### Dependencies: 11.7
-### Description: Create `.github/workflows/docs.yml` for automated building, testing, and publishing of the documentation site on every push to main.
-### Details:
-Include steps for linting Markdown, validating OpenAPI specs, building diagrams, and deploying to the chosen documentation hosting platform.
-

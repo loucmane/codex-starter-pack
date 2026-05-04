@@ -1,0 +1,138 @@
+schema_version: "1.0.0"
+
+metadata:
+  name: example-scanner-config
+  description: Example config showing all Task 4.1 schema sections.
+  owner: template-foundation
+
+scan_scope:
+  include:
+    - "**/*.md"
+    - "**/*.json"
+    - "**/*.yml"
+    - "**/*.yaml"
+  exclude:
+    - ".codex/cache/**"
+    - ".codex/plugins/**"
+    - "docs/ai/work-tracking/archive/**"
+    - "scripts/template-ssot-scanner/output/**"
+  config_dirs:
+    - ".codex"
+    - ".claude"
+  scannable_suffixes:
+    - ".md"
+    - ".json"
+    - ".yml"
+    - ".yaml"
+  checkpointing:
+    enabled: false
+    interval: 0
+
+validation_rules:
+  broken_references:
+    category: references
+    severity: error
+    priority: critical
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: References must resolve to existing files or anchors.
+  migrated_monolith_references:
+    category: migration
+    severity: error
+    priority: high
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Fully migrated monoliths should not receive new direct references.
+  circular_dependencies:
+    category: dependencies
+    severity: warning
+    priority: medium
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Circular dependencies should be reviewed before downstream automation relies on them.
+  duplicate_references:
+    category: references
+    severity: info
+    priority: info
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Duplicate references stay informational until a stricter profile promotes them.
+
+allowlists:
+  paths:
+    - pattern: "templates/legacy/**"
+      kind: glob
+      rules:
+        - migrated_monolith_references
+      reason: Temporary legacy area while a task-specific migration is active.
+      expires: null
+  references:
+    - pattern: "^https://example\\.invalid/"
+      kind: regex
+      rules:
+        - broken_references
+      reason: Example external reference exemption.
+      expires: null
+
+blocklists:
+  paths:
+    - pattern: ".codex/cache/**"
+      kind: glob
+      rules:
+        - all
+      reason: Runtime cache output must not be scanned or committed as template evidence.
+      expires: null
+  references:
+    - pattern: "^mdc:"
+      kind: regex
+      rules:
+        - broken_references
+      reason: Protocol references require a dedicated resolver before file-reference validation can treat them as local files.
+      expires: null
+
+profiles:
+  default:
+    description: Local development profile.
+    extends: null
+    merge_strategy: deep_merge
+    overrides: {}
+  ci:
+    description: CI profile can tighten thresholds without changing the base config.
+    extends: default
+    merge_strategy: deep_merge
+    overrides:
+      validation_rules:
+        duplicate_references:
+          severity: warning
+          priority: low
+          threshold: 0
+
+environment_overlays:
+  local:
+    description: Local developer overlay.
+    extends: default
+    merge_strategy: deep_merge
+    overrides:
+      scan_scope:
+        exclude:
+          - ".codex/cache/**"
+          - ".codex/plugins/**"
+          - ".codex/sessions/**"
+  ci:
+    description: CI overlay for generated artifacts.
+    extends: ci
+    merge_strategy: deep_merge
+    overrides:
+      scan_scope:
+        checkpointing:
+          enabled: false
+          interval: 0
+
+# Environment variables can override any config key at runtime using CODEX_SCANNER_.
+# Use double underscores to separate nested path segments:
+# CODEX_SCANNER_VALIDATION_RULES__BROKEN_REFERENCES__SEVERITY=warning
+# CODEX_SCANNER_SCAN_SCOPE__CHECKPOINTING__INTERVAL=15

@@ -1,0 +1,51 @@
+🏷️ tag: master
+
+╭───────────────────────────────────────────────╮
+│ Next Task: #5 - Implement Codex-Task CLI Tool │
+╰───────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 5                                                          │
+│ Title:        │ Implement Codex-Task CLI Tool                              │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 2                                                          │
+│ Complexity:   │ ● 6                                                        │
+│ Description:  │ Create command-line utility for task management and        │
+│               │ work-tracking integration                                  │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Create scripts/codex-task using Click framework. Implement commands:         │
+│ 'sessions update' for work-tracking, 'scanner run' with --log-note flag,     │
+│ 'report generate' for outputs. Add S:W:H:E structured logging support.       │
+│ Integrate with git for automatic session detection. Add --dry-run flag for   │
+│ all destructive operations. Implement progress bars using Rich library for   │
+│ long-running operations.                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌────────┬───────────────┬────────────────────────────────────────────────────┬─────────────────────────┐
+│ ID     │ Status        │ Title                                              │ Deps                    │
+│ 5.1    │ pending       │ Scope reconciliation against portable foundation   │ None                    │
+│ 5.2    │ pending       │ Implement proven current-state gap with evidence   │ None                    │
+└────────┴───────────────┴────────────────────────────────────────────────────┴─────────────────────────┘
+
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                          │
+│ 1. Mark as in-progress: task-master set-status --id=5 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=5 --status=done │
+│ 3. Update subtask status: task-master set-status --id=5.1 --status=done     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
