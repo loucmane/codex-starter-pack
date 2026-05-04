@@ -1,0 +1,6 @@
+Template drift report
+
+Generated: 2026-05-04T12:47:52.815391+02:00
+Findings: 0
+
+No drift findings detected.

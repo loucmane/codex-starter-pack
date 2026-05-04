@@ -1,0 +1,8 @@
+Template drift report
+
+Generated: 2026-05-04T12:47:52.815391+02:00
+Findings: 0
+
+No drift findings detected.
+Saved text report to docs/ai/work-tracking/active/20260504-task6-codex-guard-validation-tool-ACTIVE/reports/scope-audit/drift-final/summary-20260504-124752.txt
+Saved JSON report to docs/ai/work-tracking/active/20260504-task6-codex-guard-validation-tool-ACTIVE/reports/scope-audit/drift-final/summary-20260504-124752.json

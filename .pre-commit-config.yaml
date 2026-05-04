@@ -1,0 +1,17 @@
+minimum_pre_commit_version: "3.0.0"
+
+repos:
+  - repo: local
+    hooks:
+      - id: codex-guard-validate
+        name: Codex Guard Validate
+        entry: python3 scripts/codex-guard validate --include-untracked
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: codex-guard-drift-check
+        name: Codex Guard Drift Check
+        entry: python3 scripts/codex-guard drift-check --strict --report-dir ""
+        language: system
+        pass_filenames: false
+        always_run: true
