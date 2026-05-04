@@ -4,6 +4,7 @@
 - 2026-04-30 — Task 4 is aligned in capability but stale in wording: Task 3 already introduced `scanner_config.yaml`, validation rules, metadata validation, and scanner hardening, so Task 4 should formalize configuration rather than create it from scratch.
 - 2026-04-30 — Many pending task subtasks are not just stale; they are corrupted or unrelated to the repository domain, including ML pipelines, Kubernetes manifests, GraphQL APIs, edge deployments, and PWA subtasks under template-system tasks.
 - 2026-04-30 — `task-master update-task --append` failed through the configured Claude Code provider, so this alignment pass must use deterministic Taskmaster commands rather than AI-assisted task rewriting.
+- 2026-05-02 — Delayed next-day session closeout entries must not use bare `**[HH:MM]**` labels inside the previous day's progress log; guard treats those labels as same-day chronological entries and can correctly flag them as going backward.
 
 
 
@@ -21,3 +22,4 @@
 - **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:task-master:generate|E:.taskmaster/tasks/task_004.txt] `task-master generate` rewrites trailing blank lines across generated task files; unrelated generated-file whitespace must be restored so only Task 4 status changes remain in scope.
 - **2026-05-01 19:12** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-start.txt] Guard validates evidence paths even for pending plan rows, so pending rows must reference existing tracking artifacts until implementation/test/final reports exist.
 - **2026-05-01 19:24** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/validation_interface.py|E:scripts/template-ssot-scanner/test_config_integration.py] Reference analysis had a legacy rule-only config path; Task 4.8 preserved it while routing full scanner configs through ConfigLoader/RuleEngine.
+- **2026-05-02 12:26** — [S:20260502|W:task4-pr-handoff|H:scripts/codex-guard|E:sessions/2026/05/2026-05-01-001-task4-schema-validation.md] Corrected the delayed closeout labels to include the full date so May 1 implementation chronology remains intact while the real May 2 closeout timestamp is preserved.

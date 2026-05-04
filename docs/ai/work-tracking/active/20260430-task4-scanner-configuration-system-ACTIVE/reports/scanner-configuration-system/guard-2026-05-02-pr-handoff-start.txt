@@ -1,0 +1,13 @@
+Guard validation failed:
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Serena memory reference missing for today in tracker progress log
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/FINDINGS.md: FINDINGS.md missing entry for 2026-05-02
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/DECISIONS.md: DECISIONS.md missing entry for 2026-05-02
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/CHANGELOG.md: CHANGELOG.md missing entry for 2026-05-02
+  - docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/TRACKER.md: Tracker Last Updated 2026-05-01 does not match today's date 2026-05-02
+  - sessions/2026/05/2026-05-01-001-task4-schema-validation.md: Session timestamps must be non-decreasing | entry: **[12:22]**
+
+Hints:
+  * **[12:22]**
+
+Reminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.
+For CI enforcement see .github/workflows/meta-workflow-guard.yml.

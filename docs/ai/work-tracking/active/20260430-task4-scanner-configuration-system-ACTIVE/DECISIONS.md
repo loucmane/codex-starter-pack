@@ -3,6 +3,7 @@
 - 2026-04-30 — Preserve pending top-level Taskmaster task IDs for continuity, but do not trust old subtasks as execution guidance unless they pass a current-state scope gate.
 - 2026-04-30 — Normalize pending old-backlog tasks by clearing stale subtask layers and adding mandatory scope/implementation gates through Taskmaster CLI commands, not by manually editing `.taskmaster/tasks/tasks.json`.
 - 2026-04-30 — Keep Task 4 active and use it as the backlog-alignment checkpoint before scanner configuration implementation continues.
+- 2026-05-02 — Keep the Task 4 active work-tracking folder active through PR creation and merge; archive only after the PR is merged, main is pulled, and branch hygiene is complete.
 
 
 
@@ -20,3 +21,4 @@
 - **2026-05-01 19:04** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/env_override.py|E:scripts/template-ssot-scanner/config/config_loader.py] Apply CODEX_SCANNER_ overrides after YAML/profile/overlay resolution and before runtime validation so environment values have precedence but cannot bypass the schema contract.
 - **2026-05-01 19:24** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/integration.py|E:scripts/template-ssot-scanner/scan_core.py] Use an explicit `ScannerConfigContext` as the dependency-injection boundary instead of importing ConfigLoader directly inside every scanner module; scanner modules can accept the context optionally and keep existing constructors/CLI behavior compatible.
 - **2026-05-01 19:24** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/scan_core.py|E:scripts/template-ssot-scanner/test_config_integration.py] Apply path blocklists before allowlists, and allow explicit path allowlists to override include/exclude filters only when not blocked; this keeps blocklist precedence deterministic while supporting config-driven scope exceptions.
+- **2026-05-02 12:26** — [S:20260502|W:task4-pr-handoff|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:.serena/memories/2026-05-02_task4_pr_handoff_start.md] Use the May 2 session only for PR handoff and cleanup readiness; do not start Task 5 on the Task 4 branch.

@@ -167,6 +167,27 @@
 
 ## Next Steps
 - Commit and push the Task 4 completion branch, open/merge the PR, then archive the Task 4 work-tracking folder after the merge. Taskmaster next reports Task 5.
+- 2026-05-02 update: Task 4 completion commit `7e1a8e9` is pushed to `origin/feat/task-4-scanner-configuration-system`. Next action is opening the PR; archive this folder only after the PR is merged.
+
+## PR Draft
+
+**Title**: Complete Task 4 scanner configuration system
+
+**Short Description**:
+Completes Taskmaster Task 4 by adding the scanner configuration system, including schema validation, ConfigLoader integration, rule engine, pattern matcher, inheritance/profile overlays, environment overrides, and scanner-module dependency injection.
+
+**Extended Description**:
+- Completed Task 4.1 through Task 4.8 and preserved Task 4.9 as the backlog-normalization checkpoint.
+- Added scanner configuration schema/default/example/docs coverage.
+- Added ConfigLoader singleton/lazy loading, default fallback, schema validation, hot reload detection, and thread-safety coverage.
+- Added RuleEngine priority/severity behavior and PatternMatcher allowlist/blocklist path/reference behavior.
+- Added ConfigResolver inheritance, profiles, environment overlays, merge strategies, and cycle detection.
+- Added centralized jsonschema validation helpers and ConfigLoader runtime validation hooks.
+- Added `CODEX_SCANNER_` environment override parsing with nested key support and validation.
+- Added `ScannerConfigContext` dependency injection plus config-aware scanner and CLI integration.
+- Verified scanner/config regression coverage: 125 tests passed.
+- Captured Taskmaster, plan sync, work-tracking audit, guard, and diff-check evidence under the active Task 4 reports folder.
+- Keep this Task 4 work-tracking folder active until the PR is merged; archive it only after main is updated and branch cleanup is complete.
 
 
 
@@ -197,3 +218,6 @@
 - **2026-05-01 19:24** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/template-ssot-scanner/config/integration.py|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/tests-2026-05-01-dependency-injection.txt] Task 4.8 implementation and tests are complete; final Taskmaster/guard closeout remains.
 - **2026-05-01 19:35** — [S:20260501|W:task4-scanner-configuration-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-01-dependency-injection-final.txt] Task 4 is complete in Taskmaster with final verification green; active work tracking should remain until this branch is merged.
 - **2026-05-01 19:37** — [S:20260501|W:task4-scanner-configuration-system|H:serena/memory|E:.serena/memories/2026-05-01_task4_scanner_configuration_complete.md] Task 4 completion memory recorded for compaction-safe recovery.
+- **2026-05-02 12:22** — [S:20260502|W:task4-pr-handoff|H:sessions/current|E:sessions/2026/05/2026-05-02-001-task4-pr-handoff.md] Delayed closeout completed and May 2 PR handoff session started; branch is pushed and ready for PR creation.
+- **2026-05-02 12:26** — [S:20260502|W:task4-pr-handoff|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:.serena/memories/2026-05-02_task4_pr_handoff_start.md] Prepared PR title/descriptions and captured a May 2 Serena memory; Task 4 active folder remains unarchived until merge.
+- **2026-05-02 12:29** — [S:20260502|W:task4-pr-handoff|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-02-pr-handoff-complete.txt] May 2 PR handoff verification passed; create the PR next, then archive only after merge and main/branch cleanup.
