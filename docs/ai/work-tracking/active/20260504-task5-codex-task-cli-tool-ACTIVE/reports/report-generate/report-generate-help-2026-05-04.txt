@@ -1,0 +1,15 @@
+usage: codex-task report generate [-h] [--kind {metrics,drift,all}]
+                                  [--report-dir REPORT_DIR]
+                                  [--drift-report-dir DRIFT_REPORT_DIR]
+                                  [--strict-drift]
+
+options:
+  -h, --help            show this help message and exit
+  --kind {metrics,drift,all}
+                        Report type to generate (default: metrics)
+  --report-dir REPORT_DIR
+                        Output directory for metrics reports
+  --drift-report-dir DRIFT_REPORT_DIR
+                        Output directory for drift reports
+  --strict-drift        Exit nonzero when drift findings are present while
+                        generating drift reports

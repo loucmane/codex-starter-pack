@@ -1,0 +1,51 @@
+🏷️ tag: master
+
+╭───────────────────────────────────────────────────────╮
+│ Next Task: #6 - Implement Codex-Guard Validation Tool │
+╰───────────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 6                                                          │
+│ Title:        │ Implement Codex-Guard Validation Tool                      │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 4                                                          │
+│ Complexity:   │ ● 7                                                        │
+│ Description:  │ Create enforcement helper for template compliance and      │
+│               │ S:W:H:E format validation                                  │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Create scripts/codex-guard with validation engine. Implement S:W:H:E format  │
+│ checker using regex patterns. Add frontmatter schema validation (id, type,   │
+│ category, dependencies, triggers, exports, version, status). Create auto-fix │
+│ mode for common issues. Implement allowlist configuration for exceptions.    │
+│ Add git hook integration support. Use colorized output for validation        │
+│ results.                                                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌────────┬───────────────┬────────────────────────────────────────────────────┬─────────────────────────┐
+│ ID     │ Status        │ Title                                              │ Deps                    │
+│ 6.1    │ pending       │ Scope reconciliation against portable foundation   │ None                    │
+│ 6.2    │ pending       │ Implement proven current-state gap with evidence   │ None                    │
+└────────┴───────────────┴────────────────────────────────────────────────────┴─────────────────────────┘
+
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                          │
+│ 1. Mark as in-progress: task-master set-status --id=6 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=6 --status=done │
+│ 3. Update subtask status: task-master set-status --id=6.1 --status=done     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

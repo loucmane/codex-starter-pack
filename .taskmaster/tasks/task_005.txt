@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Implement Codex-Task CLI Tool
-# Status: pending
+# Status: done
 # Dependencies: 2
 # Priority: high
 # Description: Create command-line utility for task management and work-tracking integration
@@ -11,13 +11,13 @@ Create scripts/codex-task using Click framework. Implement commands: 'sessions u
 Test all CLI commands with various arguments, verify output formatting, test dry-run mode prevents changes, ensure proper error handling and help text
 
 # Subtasks:
-## 1. Scope reconciliation against portable foundation [pending]
+## 1. Scope reconciliation against portable foundation [done]
 ### Dependencies: None
 ### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
 
 
-## 2. Implement proven current-state gap with evidence [pending]
+## 2. Implement proven current-state gap with evidence [done]
 ### Dependencies: None
 ### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:

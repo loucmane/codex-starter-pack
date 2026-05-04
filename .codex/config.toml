@@ -53,6 +53,9 @@ type = "stdio"
 command = "uvx"
 args = ["--from", "git+https://github.com/oraios/serena@229fac066237f7156c8fe2a9fa7166f95715e0b3", "serena", "start-mcp-server", "--project-from-cwd"]
 
+[mcp_servers.serena.tools.write_memory]
+approval_mode = "approve"
+
 [projects."/home/loucmane/codex"]
 trust_level = "trusted"
 
