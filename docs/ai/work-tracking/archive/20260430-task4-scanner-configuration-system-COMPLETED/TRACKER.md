@@ -1,8 +1,8 @@
 # Task 4 Scanner Configuration System Tracker
 
 **Started**: 2026-04-30
-**Status**: ACTIVE
-**Last Updated**: 2026-05-02
+**Status**: COMPLETED
+**Last Updated**: 2026-05-04
 
 ## Goals
 - [x] Reconcile Taskmaster backlog against the portable foundation vision before implementing scanner configuration
@@ -64,6 +64,10 @@
 - **2026-05-02 12:22** — [S:20260502|W:task4-pr-handoff|H:sessions/current|E:sessions/2026/05/2026-05-02-001-task4-pr-handoff.md] Started the May 2 Task 4 PR handoff session; Task 4 work tracking remains active until the PR is merged and branch hygiene is complete.
 - **2026-05-02 12:26** — [S:20260502|W:task4-pr-handoff|H:serena/memory|E:.serena/memories/2026-05-02_task4_pr_handoff_start.md] Captured Serena memory 2026-05-02_task4_pr_handoff_start so the delayed closeout, active-folder rule, pushed commit, and PR-before-archive sequence survive compaction.
 - **2026-05-02 12:29** — [S:20260502|W:task4-pr-handoff|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-02-pr-handoff-complete.txt] May 2 handoff verification passed: plan sync passed, guard passed, diff check passed, and audit reported only the expected intentional multi-day active-folder warning.
+- **2026-05-04 11:16** — [S:20260504|W:task4-merge-cleanup-task5-kickoff|H:shell:date|E:cmd`date '+%Y-%m-%d %H:%M:%S %Z %z'`] Confirmed current timestamp as `2026-05-04 11:16:26 CEST +0200` before closing the May 2 handoff and starting the May 4 cleanup session.
+- **2026-05-04 11:16** — [S:20260504|W:task4-merge-cleanup-task5-kickoff|H:git:log|E:cmd`git log --oneline --decorate -8`] Confirmed Task 4 is merged into `main` at `97029dc`.
+- **2026-05-04 11:16** — [S:20260504|W:task4-merge-cleanup-task5-kickoff|H:serena/memory|E:.serena/memories/2026-05-04_task4_merge_task5_kickoff.md] Captured Serena memory 2026-05-04_task4_merge_task5_kickoff with merge state, branch cleanup commands, archive ordering, and Task 5 kickoff guardrails.
+- **2026-05-04 11:20** — [S:20260504|W:task4-merge-cleanup-task5-kickoff|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-04-kickoff.txt] May 4 startup verification passed after setting the cleanup plan branch policy to `main-only`; audit warning is the expected intentional multi-day Task 4 active-folder reuse.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Audit pending Taskmaster backlog and reconcile Task 4 with the portable foundation vision
@@ -92,11 +96,18 @@
 - [x] plan-step-scope — May 2 Task 4 PR handoff scope confirmed
 - [x] plan-step-implement — May 2 PR description and branch hygiene handoff completed
 - [x] plan-step-verify — May 2 handoff guard/audit checks completed
+- [x] plan-step-scope — May 4 Task 4 merge cleanup and Task 5 kickoff scope confirmed
+- [ ] plan-step-implement — May 4 cleanup sequence and Task 5 kickoff preparation completed
+- [ ] plan-step-branch-cleanup — Task 4 branch cleanup confirmed
+- [ ] plan-step-archive-task4 — Task 4 work tracking archived after cleanup
+- [ ] plan-step-task5-scope — Task 5 scope reconciliation started
+- [ ] plan-step-verify — May 4 cleanup/kickoff guard/audit checks completed
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
 - Session log: `sessions/2026/04/2026-04-30-001-task4-scanner-configuration-system.md`
 - Current session log: `sessions/2026/05/2026-05-01-001-task4-schema-validation.md`
 - Taskmaster Task 4 is done; subtasks 4.1 through 4.9 are done, and Taskmaster next reports Task 5.
-- `sessions/current` and `plans/current` now point at the May 2 Task 4 PR handoff session/plan.
-- Do not archive this folder until the Task 4 PR is merged.
+- `sessions/current` and `plans/current` now point at the May 4 Task 4 merge cleanup / Task 5 kickoff session/plan.
+- Task 4 is merged into `main` at `97029dc`.
+- Archive this folder only after branch cleanup is confirmed.

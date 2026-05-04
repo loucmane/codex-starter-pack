@@ -1,0 +1,2 @@
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/codex-guard drift-check --report-dir reports/template-drift --strict
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-metrics-dashboard --report-dir reports/template-metrics

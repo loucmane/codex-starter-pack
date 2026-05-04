@@ -168,6 +168,18 @@
 ## Next Steps
 - Commit and push the Task 4 completion branch, open/merge the PR, then archive the Task 4 work-tracking folder after the merge. Taskmaster next reports Task 5.
 - 2026-05-02 update: Task 4 completion commit `7e1a8e9` is pushed to `origin/feat/task-4-scanner-configuration-system`. Next action is opening the PR; archive this folder only after the PR is merged.
+- 2026-05-04 update: Task 4 is merged into `main` at `97029dc`. Finish branch cleanup, archive this folder, then start Task 5 scope reconciliation on a dedicated Task 5 branch.
+
+## Branch Cleanup Commands
+
+```bash
+git switch main
+git pull --ff-only
+git branch -d feat/task-4-scanner-configuration-system
+git push origin --delete feat/task-4-scanner-configuration-system
+```
+
+If GitHub already deleted the remote branch, skip the final command or run `git fetch --prune` after cleanup.
 
 ## PR Draft
 
@@ -221,3 +233,6 @@ Completes Taskmaster Task 4 by adding the scanner configuration system, includin
 - **2026-05-02 12:22** — [S:20260502|W:task4-pr-handoff|H:sessions/current|E:sessions/2026/05/2026-05-02-001-task4-pr-handoff.md] Delayed closeout completed and May 2 PR handoff session started; branch is pushed and ready for PR creation.
 - **2026-05-02 12:26** — [S:20260502|W:task4-pr-handoff|H:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/HANDOFF.md|E:.serena/memories/2026-05-02_task4_pr_handoff_start.md] Prepared PR title/descriptions and captured a May 2 Serena memory; Task 4 active folder remains unarchived until merge.
 - **2026-05-02 12:29** — [S:20260502|W:task4-pr-handoff|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-02-pr-handoff-complete.txt] May 2 PR handoff verification passed; create the PR next, then archive only after merge and main/branch cleanup.
+- **2026-05-04 11:16** — [S:20260504|W:task4-merge-cleanup-task5-kickoff|H:git:log|E:.serena/memories/2026-05-04_task4_merge_task5_kickoff.md] Task 4 merge confirmed on `main` at `97029dc`; branch cleanup commands provided and archive remains pending until cleanup is confirmed.
+- **2026-05-04 11:20** — [S:20260504|W:task4-merge-cleanup-task5-kickoff|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260430-task4-scanner-configuration-system-ACTIVE/reports/scanner-configuration-system/guard-2026-05-04-kickoff.txt] Startup guard is green for May 4; next action is user branch cleanup confirmation, then archive Task 4 and create Task 5 branch/work tracking.
+- Archived on 2026-05-04 11:22 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -141,6 +141,66 @@ def test_build_parser_accepts_bootstrap_init() -> None:
     assert args.templates_root == "ops/templates"
 
 
+def test_build_parser_accepts_report_generate() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["report", "generate", "--kind", "all", "--strict-drift"])
+    assert args.command == "report"
+    assert args.subcommand == "generate"
+    assert args.kind == "all"
+    assert args.strict_drift is True
+
+
+def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
+    module = load_task_module()
+    commands = []
+
+    def fake_run(cmd, cwd=None):
+        commands.append(cmd)
+        return FakeCompletedProcess(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    args = argparse.Namespace(
+        kind="all",
+        report_dir="reports/template-metrics",
+        drift_report_dir="reports/template-drift",
+        strict_drift=True,
+        dry_run=False,
+    )
+
+    module.handle_report_generate(args)
+
+    assert len(commands) == 2
+    assert Path(commands[0][1]).name == "codex-guard"
+    assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
+    assert Path(commands[1][1]).name == "template-metrics-dashboard"
+    assert commands[1][2:] == ["--report-dir", "reports/template-metrics"]
+
+
+def test_handle_report_generate_dry_run_does_not_execute(monkeypatch, capsys) -> None:
+    module = load_task_module()
+
+    def fake_run(cmd, cwd=None):  # pragma: no cover - should never be called
+        raise AssertionError("dry-run should not execute report commands")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    args = argparse.Namespace(
+        kind="metrics",
+        report_dir="reports/template-metrics",
+        drift_report_dir="reports/template-drift",
+        strict_drift=False,
+        dry_run=True,
+    )
+
+    module.handle_report_generate(args)
+
+    output = capsys.readouterr().out
+    assert "Would run:" in output
+    assert "template-metrics-dashboard" in output
+
+
 def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     module = load_task_module()
     target = tmp_path / "storefront"

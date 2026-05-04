@@ -1,0 +1,12 @@
+Template drift report
+
+Generated: 2026-05-04T11:31:52.739428+02:00
+Findings: 0
+
+No drift findings detected.
+Saved text report to docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/drift/summary-20260504-113152.txt
+Saved JSON report to docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/drift/summary-20260504-113152.json
+Wrote metrics dashboard to docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/metrics/latest.md
+Wrote metrics JSON to docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/metrics/latest.json
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/codex-guard drift-check --report-dir docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/drift
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-metrics-dashboard --report-dir docs/ai/work-tracking/active/20260504-task5-codex-task-cli-tool-ACTIVE/reports/report-generate/metrics
