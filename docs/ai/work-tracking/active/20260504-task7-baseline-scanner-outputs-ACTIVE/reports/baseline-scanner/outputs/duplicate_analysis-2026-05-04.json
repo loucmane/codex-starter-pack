@@ -1,0 +1,2473 @@
+{
+  "metadata": {
+    "scan_timestamp": "2026-05-04T18:44:08.670703",
+    "scanner": "duplicate_finder",
+    "scanner_version": "1.1.0",
+    "output_format_version": "2.0.0",
+    "duration_seconds": 0.09,
+    "stats": {
+      "total_duplicates": 0,
+      "migration_pending": 0,
+      "fully_migrated": 0,
+      "migration_progress_percent": 0,
+      "section_matching": false,
+      "similarity_threshold": 0.7
+    }
+  },
+  "data": {
+    "content_duplicates": [
+      {
+        "hash": "c464e61a8d84afa96817e0b85ca42c0d",
+        "files": [
+          {
+            "file": ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+            "line_count": 86,
+            "type": "command"
+          },
+          {
+            "file": ".claude/commands/tm/remove-subtasks/remove-subtasks.md",
+            "line_count": 86,
+            "type": "command"
+          }
+        ],
+        "duplicate_count": 2
+      },
+      {
+        "hash": "4160598d923221bfff6f4632763dd0ad",
+        "files": [
+          {
+            "file": ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+            "line_count": 93,
+            "type": "command"
+          },
+          {
+            "file": ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md",
+            "line_count": 93,
+            "type": "command"
+          }
+        ],
+        "duplicate_count": 2
+      }
+    ],
+    "partial_duplicates": [
+      {
+        "monolithic_file": "templates/MATRICES.md",
+        "modular_file": "templates/matrices/index.md",
+        "similarity": 0.356
+      }
+    ],
+    "monolithic_files": {
+      "templates/REGISTRY.md": {
+        "line_count": 835,
+        "section_count": 18,
+        "sections": [
+          "header",
+          "\ud83d\udcda Essential Documentation",
+          "\ud83c\udfaf Quick Navigation",
+          "\ud83e\udde0 ULTRATHINK Resolution {#ultrathink-resolution}",
+          "\ud83d\udd0d Navigation Keywords",
+          "Intent Handlers (63 existing + 6 to add = 69 total)",
+          "Behavioral Templates (6 total)",
+          "Meta-Routing Patterns (13 total)",
+          "Behavioral Hooks (10 categories)",
+          "Decision Matrices (5 total)",
+          "Special Files",
+          "Common Commands",
+          "Tool Selection Matrix",
+          "Statistics",
+          "Registry Maintenance",
+          "Key Improvements in This Registry",
+          "Usage Guide",
+          "Summary: Why This Registry is Better"
+        ],
+        "content_hash": "28b0849d1c900e673ea75aa3737e67ed"
+      },
+      "templates/WORKFLOWS.md": {
+        "line_count": 80,
+        "section_count": 5,
+        "sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\ude80 Quick Start",
+          "\ud83d\udd0d Finding Specific Workflows",
+          "\ud83d\udcda See Also"
+        ],
+        "content_hash": "4bc1c671e4ca7bcf9c1bcc115dacfe25"
+      },
+      "templates/PATTERNS.md": {
+        "line_count": 103,
+        "section_count": 6,
+        "sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udd17 Shared Patterns",
+          "\ud83d\udcda Quick Reference",
+          "\ud83d\ude80 Handler Migration Notice",
+          "\ud83d\udcd6 Using This Library"
+        ],
+        "content_hash": "78226af214ce24edf7af4af7fa572adb"
+      },
+      "templates/HANDLERS.md": {
+        "line_count": 253,
+        "section_count": 8,
+        "sections": [
+          "header",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "\ud83d\udccd Handler Registry {#handler-registry}",
+          "\ud83d\udd04 Disambiguation Guide {#disambiguation-guide}",
+          "\ud83c\udfaf Common Patterns & Examples {#common-patterns}",
+          "\ud83d\udd0d Search Tips {#search-tips}",
+          "\ud83d\udcca Coverage Matrix {#coverage-matrix}",
+          "\ud83d\udd17 Adding New Handlers {#adding-new-handlers}"
+        ],
+        "content_hash": "93bbf769f0dae26a1fa98c36093276f2"
+      },
+      "templates/CONVENTIONS.md": {
+        "line_count": 89,
+        "section_count": 6,
+        "sections": [
+          "header",
+          "\ud83d\udcc1 Module Organization",
+          "\ud83d\udea8 Critical Rules",
+          "Quick Command Reference",
+          "Handler Migration Notice",
+          "See Also"
+        ],
+        "content_hash": "ad0435bf19becef80ec254d41b6d9c11"
+      },
+      "templates/BEHAVIORS.md": {
+        "line_count": 539,
+        "section_count": 19,
+        "sections": [
+          "header",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "ULTRATHINK Integration {#ultrathink-integration}",
+          "ULTRATHINK Enforcement {#ultrathink-enforcement}",
+          "Work Tracking {#work-tracking}",
+          "File Operations {#file-operations}",
+          "Development Work {#development-work}",
+          "Tool Selection {#tool-selection}",
+          "Evidence & Claims {#evidence-claims}",
+          "Task Management {#task-management}",
+          "Session Management {#session-management}",
+          "\ud83d\udd04 Ready for Compaction",
+          "Git Operations {#git-operations}",
+          "Testing & Validation {#testing-validation}",
+          "Special Behaviors {#special-behaviors}",
+          "Cross-Reference Map {#cross-reference-map}",
+          "Integration with CLAUDE.md {#integration-claude}",
+          "Adding New Behaviors {#adding-new-behaviors}",
+          "Progress Log"
+        ],
+        "content_hash": "6ae0a3d64ddd3ac4c90cd8f5acf532a9"
+      },
+      "templates/MATRICES.md": {
+        "line_count": 237,
+        "section_count": 12,
+        "sections": [
+          "header",
+          "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+          "ULTRATHINK Integration {#ultrathink-integration}",
+          "Request Type \u2192 Handler Matrix {#request-type-handler-matrix}",
+          "File Type \u2192 Convention Matrix {#file-type-convention-matrix}",
+          "Problem Type \u2192 Solution Matrix {#problem-type-solution-matrix}",
+          "Context \u2192 Mode Matrix {#context-mode-matrix}",
+          "Error \u2192 Recovery Matrix {#error-recovery-matrix}",
+          "Behavior \u2192 Workflow Coverage Matrix {#behavior-workflow-matrix}",
+          "Matrix Usage Patterns {#matrix-usage-patterns}",
+          "Integration Points {#integration-points}",
+          "Common Matrix Queries {#common-matrix-queries}"
+        ],
+        "content_hash": "967349f8078e0e1a5bd4c38c4682cc2a"
+      },
+      "templates/TOOLS.md": {
+        "line_count": 148,
+        "section_count": 7,
+        "sections": [
+          "header",
+          "\ud83d\udea6 Decision Router",
+          "Built-in Tools",
+          "Evidence Expectations",
+          "Anti-Patterns",
+          "Quick Reference",
+          "Progress Log"
+        ],
+        "content_hash": "55eae3c937e6183cdb58ab6c3193fede"
+      }
+    },
+    "migration_status": {
+      "templates/REGISTRY.md": {
+        "total_sections": 18,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/WORKFLOWS.md": {
+        "migration_percentage": 100.0,
+        "migrated_sections": "ALL",
+        "total_sections": "ALL",
+        "status": "FULLY_MIGRATED",
+        "reason": "detector",
+        "markers": [
+          "Status.*:.*\u2705.*MODULARIZED",
+          "Migration Complete",
+          "MODULARIZED.*All.*extracted to",
+          "This file now serves as an index"
+        ],
+        "link_ratio": 0.813953488372093,
+        "nonempty_lines": 43,
+        "modular_files": 27
+      },
+      "templates/PATTERNS.md": {
+        "migration_percentage": 100.0,
+        "migrated_sections": "ALL",
+        "total_sections": "ALL",
+        "status": "FULLY_MIGRATED",
+        "reason": "detector",
+        "markers": [
+          "MODULARIZED.*All.*extracted to",
+          "PATTERNS MODULARIZED"
+        ],
+        "link_ratio": 0.3125,
+        "nonempty_lines": 64,
+        "modular_files": 18
+      },
+      "templates/HANDLERS.md": {
+        "total_sections": 8,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/CONVENTIONS.md": {
+        "migration_percentage": 100.0,
+        "migrated_sections": "ALL",
+        "total_sections": "ALL",
+        "status": "FULLY_MIGRATED",
+        "reason": "detector",
+        "markers": [
+          "This file now serves as an index"
+        ],
+        "link_ratio": 0.5102040816326531,
+        "nonempty_lines": 49,
+        "modular_files": 22
+      },
+      "templates/BEHAVIORS.md": {
+        "total_sections": 19,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/MATRICES.md": {
+        "total_sections": 12,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      },
+      "templates/TOOLS.md": {
+        "total_sections": 7,
+        "migrated_sections": 0,
+        "migration_percentage": 0.0,
+        "migrated_section_names": [],
+        "related_modular_files": [],
+        "related_file_count": 0,
+        "status": "NOT_MIGRATED",
+        "reason": "similarity"
+      }
+    },
+    "content_hashes": {
+      "ed933466579b779a904de840a796b397": [
+        {
+          "file": "templates/PROJECT-BLOG.md",
+          "line_count": 445,
+          "type": "other"
+        }
+      ],
+      "c7f7af887bc9ef705174b90fa5176e72": [
+        {
+          "file": "templates/USER-GUIDE.md",
+          "line_count": 1207,
+          "type": "guide"
+        }
+      ],
+      "b4082e25b1ca4d822961c34b91dcf9f0": [
+        {
+          "file": "templates/BUILDING-BETTER.md",
+          "line_count": 654,
+          "type": "workflow"
+        }
+      ],
+      "4409d998183caa37b0719331d938c933": [
+        {
+          "file": "templates/coordination/session-integration-collaboration.md",
+          "line_count": 60,
+          "type": "integration"
+        }
+      ],
+      "cf4b319a990566e231a393430c2a7f55": [
+        {
+          "file": "templates/coordination/enforcement-enhancement-session.md",
+          "line_count": 347,
+          "type": "other"
+        }
+      ],
+      "1830153ec4efa7f6e41a5e0775778307": [
+        {
+          "file": "templates/coordination/session-swhe-integration.md",
+          "line_count": 572,
+          "type": "integration"
+        }
+      ],
+      "6ef98588be73c2ebaf7ec60e7babdb5f": [
+        {
+          "file": "templates/coordination/specialist-collaboration-session.md",
+          "line_count": 543,
+          "type": "other"
+        }
+      ],
+      "0b7eec5ccb89de59c2f0f4bfe8971c70": [
+        {
+          "file": "templates/guides/token-optimization.md",
+          "line_count": 228,
+          "type": "guide"
+        }
+      ],
+      "9c62f6b7e9d5bfce4a015a75a8bb782a": [
+        {
+          "file": "templates/guides/index.md",
+          "line_count": 125,
+          "type": "guide"
+        }
+      ],
+      "ff0a31285bce629dbaa3ee819c51dd5f": [
+        {
+          "file": "templates/tools/index.md",
+          "line_count": 95,
+          "type": "workflow"
+        }
+      ],
+      "e85e5d8949cd32bde8fe59a64f0c7280": [
+        {
+          "file": "templates/behaviors/index.md",
+          "line_count": 144,
+          "type": "behavior"
+        }
+      ],
+      "a146275482616d3900810323b0ff1422": [
+        {
+          "file": "templates/engine/MODULARIZATION-COMPLETE.md",
+          "line_count": 114,
+          "type": "engine"
+        }
+      ],
+      "8e438c30ddf5349d9a18309440d561ac": [
+        {
+          "file": "templates/engine/README.md",
+          "line_count": 144,
+          "type": "engine"
+        }
+      ],
+      "b7eaef02a1555d12f618dbb3a21f032f": [
+        {
+          "file": "templates/prompts/subagent-blind-test-prompt.md",
+          "line_count": 115,
+          "type": "agent"
+        }
+      ],
+      "ebb57b9213bdfb2b89c21841eef65298": [
+        {
+          "file": "templates/prompts/claude-md-specialist-collab-prompt.md",
+          "line_count": 81,
+          "type": "prompt"
+        }
+      ],
+      "d53430b54c1baf0bdfa9ed8a6e5f5f5e": [
+        {
+          "file": "templates/prompts/zero-context-system-test-prompt.md",
+          "line_count": 162,
+          "type": "prompt"
+        }
+      ],
+      "3a1a5c41cf3c004d3a863dbd982684bb": [
+        {
+          "file": "templates/prompts/session-integration-scanner-specialist.md",
+          "line_count": 123,
+          "type": "prompt"
+        }
+      ],
+      "15e974cc0f1949c6e1008eeeba69400d": [
+        {
+          "file": "templates/prompts/hook-specialist-collab-prompt.md",
+          "line_count": 95,
+          "type": "hook"
+        }
+      ],
+      "b9e7602b6c2cec4ccc9d4a6078cd7aae": [
+        {
+          "file": "templates/prompts/session-integration-claude-specialist.md",
+          "line_count": 93,
+          "type": "prompt"
+        }
+      ],
+      "a889a501a18ebf7f9345fbc690242564": [
+        {
+          "file": "templates/prompts/session-integration-coordinator-prompt.md",
+          "line_count": 147,
+          "type": "prompt"
+        }
+      ],
+      "3eb77053c4ad81479992759186afcddb": [
+        {
+          "file": "templates/prompts/ultrathink-discovery-test-prompt.md",
+          "line_count": 169,
+          "type": "prompt"
+        }
+      ],
+      "ddc28a03792c4db91a4aafa41a3ac241": [
+        {
+          "file": "templates/registry/index.md",
+          "line_count": 65,
+          "type": "registry"
+        }
+      ],
+      "3b5862da8abff462d36bc7ca6c4eb63e": [
+        {
+          "file": "templates/registry/MIGRATION-REPORT.md",
+          "line_count": 159,
+          "type": "registry"
+        }
+      ],
+      "9600bb170c563a812a41a31ed4e5ea3d": [
+        {
+          "file": "templates/matrices/index.md",
+          "line_count": 116,
+          "type": "matrix"
+        }
+      ],
+      "48739e4ae9e196f3fd7d4acfffd84f00": [
+        {
+          "file": "templates/metadata/template-overview.md",
+          "line_count": 331,
+          "type": "workflow"
+        }
+      ],
+      "fe741d6e3d9004cc25b34f8f3c38b2e1": [
+        {
+          "file": "templates/workflows/patterns/multi-agent-orchestration.md",
+          "line_count": 259,
+          "type": "workflow"
+        }
+      ],
+      "da232faf1b51785da90004e56e99d56b": [
+        {
+          "file": "templates/workflows/patterns/task-management.md",
+          "line_count": 147,
+          "type": "workflow"
+        }
+      ],
+      "41def3e25b946af7323cf5440f6f3396": [
+        {
+          "file": "templates/workflows/session/state-management.md",
+          "line_count": 77,
+          "type": "workflow"
+        }
+      ],
+      "c304cd6dbd82f36f3c0f616e11cbef8b": [
+        {
+          "file": "templates/workflows/session/continuation.md",
+          "line_count": 73,
+          "type": "workflow"
+        }
+      ],
+      "68d2f96188fae94bcef46cc57f2e7f7e": [
+        {
+          "file": "templates/workflows/session/lifecycle.md",
+          "line_count": 197,
+          "type": "workflow"
+        }
+      ],
+      "7523c2985abd0e27b13e00e80c2763c6": [
+        {
+          "file": "templates/workflows/session/compaction.md",
+          "line_count": 165,
+          "type": "workflow"
+        }
+      ],
+      "2e85ec821891d269f3f71705cbdf2b42": [
+        {
+          "file": "templates/workflows/guides/common-mistakes.md",
+          "line_count": 295,
+          "type": "workflow"
+        }
+      ],
+      "7f220f76bf311def7584725deefbdd8b": [
+        {
+          "file": "templates/workflows/domain/development.md",
+          "line_count": 56,
+          "type": "workflow"
+        }
+      ],
+      "4745d6bbc02779f90758fc6000bdb80a": [
+        {
+          "file": "templates/workflows/domain/README.md",
+          "line_count": 17,
+          "type": "workflow"
+        }
+      ],
+      "b55e056f7443a466d089809fe16964af": [
+        {
+          "file": "templates/workflows/domain/docs.md",
+          "line_count": 52,
+          "type": "workflow"
+        }
+      ],
+      "2189f2348a2c90811960f76e8f464562": [
+        {
+          "file": "templates/workflows/domain/test.md",
+          "line_count": 55,
+          "type": "workflow"
+        }
+      ],
+      "f41596e4c422110c4920149b23388e9f": [
+        {
+          "file": "templates/workflows/domain/session.md",
+          "line_count": 56,
+          "type": "workflow"
+        }
+      ],
+      "9713cf5a7d1aea8ce4a65d0b2da8a0d3": [
+        {
+          "file": "templates/workflows/domain/analysis.md",
+          "line_count": 52,
+          "type": "workflow"
+        }
+      ],
+      "52c22a6bea41cba1e9df46fca9b3959f": [
+        {
+          "file": "templates/workflows/processes/meta-workflow-authoring.md",
+          "line_count": 88,
+          "type": "workflow"
+        }
+      ],
+      "2b87548a3115c6a578a3d6ea92ec984f": [
+        {
+          "file": "templates/workflows/processes/plan-template.md",
+          "line_count": 79,
+          "type": "workflow"
+        }
+      ],
+      "64f46179f02c67a5f6dad6f3b8dd362b": [
+        {
+          "file": "templates/workflows/taskmaster/alignment.md",
+          "line_count": 85,
+          "type": "workflow"
+        }
+      ],
+      "891254cbb0ef6811de39220af732df47": [
+        {
+          "file": "templates/workflows/taskmaster/work-tracking-enforcement.md",
+          "line_count": 87,
+          "type": "workflow"
+        }
+      ],
+      "70e6d5b8a4cf94906db155b25b53533f": [
+        {
+          "file": "templates/workflows/templates/behavioral-templates.md",
+          "line_count": 350,
+          "type": "workflow"
+        }
+      ],
+      "afb4a3984920249269c8b9e58578d02a": [
+        {
+          "file": "templates/workflows/handlers/intent-handlers.md",
+          "line_count": 530,
+          "type": "handler"
+        }
+      ],
+      "cef978afd3181b01b4831c2f43960a53": [
+        {
+          "file": "templates/workflows/memory/serena-patterns.md",
+          "line_count": 183,
+          "type": "workflow"
+        }
+      ],
+      "edfe7be059c45e3a11beaffb96cba542": [
+        {
+          "file": "templates/workflows/examples/common-workflows.md",
+          "line_count": 283,
+          "type": "workflow"
+        }
+      ],
+      "7339019c10cbf5b48beb2847fc3db6b8": [
+        {
+          "file": "templates/workflows/testing/subagent-simulation.md",
+          "line_count": 252,
+          "type": "workflow"
+        }
+      ],
+      "3d54bc7b7d37464193bd532ab4bbbf90": [
+        {
+          "file": "templates/workflows/testing/simulation-testing.md",
+          "line_count": 258,
+          "type": "workflow"
+        }
+      ],
+      "0b3f51a08b39b41d599cd7beef43eb5f": [
+        {
+          "file": "templates/workflows/testing/test-checkpoints.md",
+          "line_count": 190,
+          "type": "workflow"
+        }
+      ],
+      "71dcd74b86a9dfb4096aa4fd73ac9b60": [
+        {
+          "file": "templates/workflows/protocols/universal-flight.md",
+          "line_count": 79,
+          "type": "workflow"
+        }
+      ],
+      "eb5384bb80ee30e451936e3e06a76415": [
+        {
+          "file": "templates/workflows/core/ultrathink-reference.md",
+          "line_count": 105,
+          "type": "workflow"
+        }
+      ],
+      "01ad4bd640ed3164712b149bb20f34fc": [
+        {
+          "file": "templates/workflows/analysis/evidence-gathering.md",
+          "line_count": 225,
+          "type": "workflow"
+        }
+      ],
+      "b1ac31bd2754bd851516ee98a5e419c3": [
+        {
+          "file": "templates/patterns/session/continuation-patterns.md",
+          "line_count": 403,
+          "type": "pattern"
+        }
+      ],
+      "1e9691ed00b80b757a09f348084662c2": [
+        {
+          "file": "templates/patterns/session/session-patterns.md",
+          "line_count": 375,
+          "type": "pattern"
+        }
+      ],
+      "0e3eeb9fbddce191d355ad8062d81f21": [
+        {
+          "file": "templates/patterns/session/state-patterns.md",
+          "line_count": 365,
+          "type": "pattern"
+        }
+      ],
+      "dc03be13fe80fd4f2a7c4faedc142423": [
+        {
+          "file": "templates/patterns/evidence/validation-patterns.md",
+          "line_count": 311,
+          "type": "pattern"
+        }
+      ],
+      "3be9c095c6236285c08ee84d079b95bb": [
+        {
+          "file": "templates/patterns/evidence/proof-patterns.md",
+          "line_count": 313,
+          "type": "pattern"
+        }
+      ],
+      "cc726fad2f1bb37f87e29a5d42dbdd72": [
+        {
+          "file": "templates/patterns/evidence/evidence-patterns.md",
+          "line_count": 274,
+          "type": "pattern"
+        }
+      ],
+      "626572458f3df4098b4a764ac4d48b63": [
+        {
+          "file": "templates/patterns/selection/handler-selection.md",
+          "line_count": 176,
+          "type": "handler"
+        }
+      ],
+      "f5e7d8dccbcb5448142721105a744cc3": [
+        {
+          "file": "templates/patterns/selection/tool-selection.md",
+          "line_count": 164,
+          "type": "pattern"
+        }
+      ],
+      "9c99a98cba8018c8801f580d6b342e3c": [
+        {
+          "file": "templates/patterns/selection/agent-selection.md",
+          "line_count": 249,
+          "type": "pattern"
+        }
+      ],
+      "2b8f5d24be9ae19cec9c8bf24bca8287": [
+        {
+          "file": "templates/patterns/integration/composition.md",
+          "line_count": 455,
+          "type": "pattern"
+        }
+      ],
+      "15dfd1326a7b8f9470d0a571f1bba6ff": [
+        {
+          "file": "templates/patterns/integration/workflow-gap-detection.md",
+          "line_count": 55,
+          "type": "workflow"
+        }
+      ],
+      "da24e9d61a7c4c25b67119262535ea68": [
+        {
+          "file": "templates/patterns/integration/cross-system.md",
+          "line_count": 455,
+          "type": "pattern"
+        }
+      ],
+      "9c6f22b09c725eade2a1539c3bfa84b0": [
+        {
+          "file": "templates/patterns/work-tracking/progress-patterns.md",
+          "line_count": 335,
+          "type": "pattern"
+        }
+      ],
+      "f3bd3bda6060aebabb9c9b143f8e238b": [
+        {
+          "file": "templates/patterns/work-tracking/work-patterns.md",
+          "line_count": 326,
+          "type": "pattern"
+        }
+      ],
+      "5fb64e4606fb6c311a6d7de53487bb3c": [
+        {
+          "file": "templates/patterns/work-tracking/documentation-patterns.md",
+          "line_count": 410,
+          "type": "pattern"
+        }
+      ],
+      "cb8bfc22cfd40555bac375e17a742e06": [
+        {
+          "file": "templates/patterns/routing/request-analysis.md",
+          "line_count": 131,
+          "type": "pattern"
+        }
+      ],
+      "3df07f24aa802c5af31c784570aa783a": [
+        {
+          "file": "templates/patterns/routing/intent-detection.md",
+          "line_count": 160,
+          "type": "pattern"
+        }
+      ],
+      "ee5cd3c5df2efab61b16a89e5cf05cb0": [
+        {
+          "file": "templates/patterns/routing/meta-routing.md",
+          "line_count": 105,
+          "type": "pattern"
+        }
+      ],
+      "20b809020ed6093818743034ffcf4d5d": [
+        {
+          "file": "templates/guides/troubleshooting/issues.md",
+          "line_count": 497,
+          "type": "guide"
+        }
+      ],
+      "ce1ec645f0ecd70734e2c50b28b248e4": [
+        {
+          "file": "templates/guides/workflows/common.md",
+          "line_count": 370,
+          "type": "workflow"
+        }
+      ],
+      "6df7cb77ec2324f17e388aee0bf57916": [
+        {
+          "file": "templates/guides/reference/triggers.md",
+          "line_count": 365,
+          "type": "guide"
+        }
+      ],
+      "1439ae0518b83291f35dea2f4b47dd64": [
+        {
+          "file": "templates/guides/ultrathink/understanding.md",
+          "line_count": 286,
+          "type": "guide"
+        }
+      ],
+      "5050646f58fa96e7d3239835f266a303": [
+        {
+          "file": "templates/guides/quickstart/getting-started.md",
+          "line_count": 240,
+          "type": "guide"
+        }
+      ],
+      "177c03f8928d5adb9bcc90365e38dcdd": [
+        {
+          "file": "templates/conventions/files/special-files.md",
+          "line_count": 234,
+          "type": "convention"
+        }
+      ],
+      "f67e5cd78da59ccea18d7d80ef55799d": [
+        {
+          "file": "templates/conventions/files/directory-structure.md",
+          "line_count": 204,
+          "type": "convention"
+        }
+      ],
+      "6da516faf8dfe31a78728e8486d92204": [
+        {
+          "file": "templates/conventions/files/organization.md",
+          "line_count": 203,
+          "type": "convention"
+        }
+      ],
+      "bffdabb7a58a3e7c5e191cb2cede3c55": [
+        {
+          "file": "templates/conventions/work-tracking/folder-structure.md",
+          "line_count": 345,
+          "type": "convention"
+        }
+      ],
+      "981f096b4503c9ae9a75bccdbb0ae311": [
+        {
+          "file": "templates/conventions/work-tracking/handoff-format.md",
+          "line_count": 281,
+          "type": "convention"
+        }
+      ],
+      "140ac8b8250281f94a01d59f2bd70df0": [
+        {
+          "file": "templates/conventions/work-tracking/tracker-format.md",
+          "line_count": 278,
+          "type": "convention"
+        }
+      ],
+      "f23810f6f92195a8bed9d75217242a2e": [
+        {
+          "file": "templates/conventions/git/commit-format.md",
+          "line_count": 242,
+          "type": "convention"
+        }
+      ],
+      "07dcc12bf7342df58741ab26d89fe37a": [
+        {
+          "file": "templates/conventions/git/pr-conventions.md",
+          "line_count": 239,
+          "type": "convention"
+        }
+      ],
+      "9ee2e0baf0385db57e19b297fef41c1e": [
+        {
+          "file": "templates/conventions/git/branch-naming.md",
+          "line_count": 227,
+          "type": "convention"
+        }
+      ],
+      "89e8160fbc5664dce5f770743ecaafa2": [
+        {
+          "file": "templates/conventions/naming/variables.md",
+          "line_count": 157,
+          "type": "convention"
+        }
+      ],
+      "4f0f8e7d1abe7bf40ca9a04ebcf038e9": [
+        {
+          "file": "templates/conventions/naming/functions.md",
+          "line_count": 182,
+          "type": "convention"
+        }
+      ],
+      "3d82582288fb9836973450569bc7121d": [
+        {
+          "file": "templates/conventions/naming/files.md",
+          "line_count": 132,
+          "type": "convention"
+        }
+      ],
+      "9f941a176069d60c994822dc14299ee5": [
+        {
+          "file": "templates/conventions/testing/test-naming.md",
+          "line_count": 256,
+          "type": "convention"
+        }
+      ],
+      "ce2a00c0ea3bac9ae9bc1fcdd247a55f": [
+        {
+          "file": "templates/conventions/testing/test-structure.md",
+          "line_count": 369,
+          "type": "convention"
+        }
+      ],
+      "59a1934de400ab25d537d1df108ec324": [
+        {
+          "file": "templates/conventions/docs/readme-format.md",
+          "line_count": 383,
+          "type": "convention"
+        }
+      ],
+      "76fc1b21748ccaa6eb736964b84e12a7": [
+        {
+          "file": "templates/conventions/docs/comment-format.md",
+          "line_count": 307,
+          "type": "convention"
+        }
+      ],
+      "020defdc8a58562da7afbd1caa463aa8": [
+        {
+          "file": "templates/conventions/docs/documentation-standards.md",
+          "line_count": 326,
+          "type": "convention"
+        }
+      ],
+      "70d397b08d91a5dc78b17b40f5b249a8": [
+        {
+          "file": "templates/conventions/timestamps/usage-patterns.md",
+          "line_count": 321,
+          "type": "pattern"
+        }
+      ],
+      "66bee6940b84dd5ad82477107dcd5b69": [
+        {
+          "file": "templates/conventions/timestamps/format-rules.md",
+          "line_count": 320,
+          "type": "convention"
+        }
+      ],
+      "648dbb3225908ab269b8d4dd638b2a31": [
+        {
+          "file": "templates/conventions/code-style/typescript.md",
+          "line_count": 351,
+          "type": "convention"
+        }
+      ],
+      "25315eedf87714aff5d663f62a4c8357": [
+        {
+          "file": "templates/conventions/code-style/javascript.md",
+          "line_count": 307,
+          "type": "convention"
+        }
+      ],
+      "8e30000163757b894803120bab35d89a": [
+        {
+          "file": "templates/conventions/code-style/general.md",
+          "line_count": 352,
+          "type": "convention"
+        }
+      ],
+      "5e17c93c45c67c64f178c57bfb9ba847": [
+        {
+          "file": "templates/tools/file/multi-edit.md",
+          "line_count": 299,
+          "type": "other"
+        }
+      ],
+      "803c936bd50bad6cbfe6c757c7cfb86b": [
+        {
+          "file": "templates/tools/file/edit-strategies.md",
+          "line_count": 264,
+          "type": "other"
+        }
+      ],
+      "a094d20efa75f7ae846a024072418d6b": [
+        {
+          "file": "templates/tools/git/commands.md",
+          "line_count": 344,
+          "type": "command"
+        }
+      ],
+      "a1c4a8796a30e132b1d558895ef8dfb9": [
+        {
+          "file": "templates/tools/search/grep-patterns.md",
+          "line_count": 248,
+          "type": "pattern"
+        }
+      ],
+      "feca928fae5ba5d2590af578dcf77737": [
+        {
+          "file": "templates/tools/search/serena-guide.md",
+          "line_count": 167,
+          "type": "guide"
+        }
+      ],
+      "fdd990834ae393f55b4a78f5b535fe08": [
+        {
+          "file": "templates/tools/task/agent-usage.md",
+          "line_count": 344,
+          "type": "agent"
+        }
+      ],
+      "8a222b2530ed88548dd9ba80aeb22ff0": [
+        {
+          "file": "templates/integration/guides/extending-templates.md",
+          "line_count": 389,
+          "type": "guide"
+        }
+      ],
+      "52adeae125997efb13bc6bd286747b06": [
+        {
+          "file": "templates/integration/guides/system-integration.md",
+          "line_count": 454,
+          "type": "guide"
+        }
+      ],
+      "de6be1118e04746763d5372534b0ba4c": [
+        {
+          "file": "templates/integration/guides/adding-agents.md",
+          "line_count": 447,
+          "type": "agent"
+        }
+      ],
+      "3a61dfaff109ebe7eb0a918c7683993f": [
+        {
+          "file": "templates/integration/guides/creating-handlers.md",
+          "line_count": 369,
+          "type": "handler"
+        }
+      ],
+      "3bc6f537d0d2afdc08583be5fab3f985": [
+        {
+          "file": "templates/integration/architecture/template-architecture.md",
+          "line_count": 587,
+          "type": "integration"
+        }
+      ],
+      "0619466850e21fb80944fd2a8bc5da63": [
+        {
+          "file": "templates/integration/architecture/system-architecture.md",
+          "line_count": 531,
+          "type": "integration"
+        }
+      ],
+      "0dfbe9f71c9f12c40944809c299d6d46": [
+        {
+          "file": "templates/integration/architecture/handler-architecture.md",
+          "line_count": 634,
+          "type": "handler"
+        }
+      ],
+      "0793bc0999e82bc1c4cb84d083fd9cc4": [
+        {
+          "file": "templates/integration/cross-system/agent-coordination.md",
+          "line_count": 500,
+          "type": "agent"
+        }
+      ],
+      "e32defc39dc7e14abdea442811eea291": [
+        {
+          "file": "templates/integration/cross-system/tool-integration.md",
+          "line_count": 462,
+          "type": "integration"
+        }
+      ],
+      "495a9d370d3c38cf8cca18bac83dcfcc": [
+        {
+          "file": "templates/integration/cross-system/mcp-integration.md",
+          "line_count": 489,
+          "type": "integration"
+        }
+      ],
+      "b8782de319f6ab053c0e582444dacaa9": [
+        {
+          "file": "templates/integration/composition/handler-chaining.md",
+          "line_count": 625,
+          "type": "handler"
+        }
+      ],
+      "8ab5f8a54e8a91bf73ef66166ec5273c": [
+        {
+          "file": "templates/integration/composition/workflow-composition.md",
+          "line_count": 563,
+          "type": "workflow"
+        }
+      ],
+      "a574662fc096139d4382fbd9db722344": [
+        {
+          "file": "templates/integration/composition/pattern-composition.md",
+          "line_count": 544,
+          "type": "pattern"
+        }
+      ],
+      "143871fb79370ae7e4cbe2bf847ed1a3": [
+        {
+          "file": "templates/integration/best-practices/integration-patterns.md",
+          "line_count": 685,
+          "type": "pattern"
+        }
+      ],
+      "846a9050983cb5c8afcdc2c7c9c97056": [
+        {
+          "file": "templates/integration/best-practices/template-design.md",
+          "line_count": 601,
+          "type": "integration"
+        }
+      ],
+      "ff2e378a17f968f607cdfe81320c80e4": [
+        {
+          "file": "templates/integration/best-practices/handler-design.md",
+          "line_count": 569,
+          "type": "handler"
+        }
+      ],
+      "a536478721547eb4841ec2fed8b55182": [
+        {
+          "file": "templates/behaviors/planning/plan-compliance.md",
+          "line_count": 59,
+          "type": "behavior"
+        }
+      ],
+      "bfa858361b7c0746648cb8079b98d328": [
+        {
+          "file": "templates/behaviors/file-operations/before-edit.md",
+          "line_count": 81,
+          "type": "behavior"
+        }
+      ],
+      "72e963501444e8efc1a22327bd68f5f9": [
+        {
+          "file": "templates/behaviors/file-operations/before-create.md",
+          "line_count": 137,
+          "type": "behavior"
+        }
+      ],
+      "d78b7139ee8e834146d382cd8e23b1a5": [
+        {
+          "file": "templates/behaviors/session/compaction-detection.md",
+          "line_count": 50,
+          "type": "behavior"
+        }
+      ],
+      "b126af03bd3a4ab1bf1ffdc44bb6fc0f": [
+        {
+          "file": "templates/behaviors/session/continuation-validation.md",
+          "line_count": 63,
+          "type": "behavior"
+        }
+      ],
+      "a42715ff0c5e9522f24c332ed4325a44": [
+        {
+          "file": "templates/behaviors/session/session-end.md",
+          "line_count": 224,
+          "type": "behavior"
+        }
+      ],
+      "c71a84b74cc3a84beb8b85e409f8dd17": [
+        {
+          "file": "templates/behaviors/session/compaction-preparation.md",
+          "line_count": 142,
+          "type": "behavior"
+        }
+      ],
+      "3e18b3cb7ac3cfb52a38073cda24c88e": [
+        {
+          "file": "templates/behaviors/task-management/todo-write.md",
+          "line_count": 264,
+          "type": "behavior"
+        }
+      ],
+      "03669ea66e58f034acfbc5ba2570bd67": [
+        {
+          "file": "templates/behaviors/work-tracking/update-tracker.md",
+          "line_count": 259,
+          "type": "behavior"
+        }
+      ],
+      "7b9c57554e4921b7585b886c2536223f": [
+        {
+          "file": "templates/behaviors/git/before-commit.md",
+          "line_count": 184,
+          "type": "behavior"
+        }
+      ],
+      "411c2028dd33d3bddb5c45644e045967": [
+        {
+          "file": "templates/behaviors/validation/evidence-claims.md",
+          "line_count": 222,
+          "type": "behavior"
+        }
+      ],
+      "8eba0bbc5b86b7fe0f8e264434f4cb3c": [
+        {
+          "file": "templates/behaviors/timestamps/before-adding.md",
+          "line_count": 154,
+          "type": "behavior"
+        }
+      ],
+      "17825284ff868e73860e14b6d070fdfe": [
+        {
+          "file": "templates/handlers/orchestrators/tool-selection.md",
+          "line_count": 46,
+          "type": "orchestrator"
+        }
+      ],
+      "865f41c55b92e1476254ce49ab3d1b7c": [
+        {
+          "file": "templates/handlers/orchestrators/resolve-session-void.md",
+          "line_count": 50,
+          "type": "orchestrator"
+        }
+      ],
+      "63fa729bd1bbfdc5660ccdd3573568c5": [
+        {
+          "file": "templates/handlers/orchestrators/file-operation.md",
+          "line_count": 42,
+          "type": "orchestrator"
+        }
+      ],
+      "61bf2f7897d17ba537c40cc990da8404": [
+        {
+          "file": "templates/handlers/orchestrators/check-conventions-first.md",
+          "line_count": 43,
+          "type": "orchestrator"
+        }
+      ],
+      "4456ff13f431506d794d173ad08b4674": [
+        {
+          "file": "templates/handlers/orchestrators/switch-context.md",
+          "line_count": 41,
+          "type": "orchestrator"
+        }
+      ],
+      "2083838cffde9404df6e54a576541799": [
+        {
+          "file": "templates/handlers/orchestrators/meta-workflow-authoring.md",
+          "line_count": 47,
+          "type": "orchestrator"
+        }
+      ],
+      "1a539bb9a64dc062ea8a09352695d300": [
+        {
+          "file": "templates/handlers/orchestrators/convention-to-workflow.md",
+          "line_count": 39,
+          "type": "orchestrator"
+        }
+      ],
+      "4bd905d754ab02845a0cc0c9c077de86": [
+        {
+          "file": "templates/handlers/orchestrators/multi-step-request.md",
+          "line_count": 37,
+          "type": "orchestrator"
+        }
+      ],
+      "3a58401ad05a48479d59e386eeca2ce0": [
+        {
+          "file": "templates/handlers/orchestrators/file-creation.md",
+          "line_count": 37,
+          "type": "orchestrator"
+        }
+      ],
+      "b7742f541ea0886d3ad772d30fa265c9": [
+        {
+          "file": "templates/handlers/orchestrators/execute-ultrathink.md",
+          "line_count": 59,
+          "type": "orchestrator"
+        }
+      ],
+      "8b1d5c016458874756187ca58bedc37a": [
+        {
+          "file": "templates/handlers/orchestrators/architecture-claim.md",
+          "line_count": 35,
+          "type": "orchestrator"
+        }
+      ],
+      "67d9c573b0b02448441eb946e357737e": [
+        {
+          "file": "templates/handlers/orchestrators/work-continuation.md",
+          "line_count": 45,
+          "type": "orchestrator"
+        }
+      ],
+      "318fdbb840eeffc71e1d423fcafff089": [
+        {
+          "file": "templates/handlers/orchestrators/tool-to-convention.md",
+          "line_count": 37,
+          "type": "orchestrator"
+        }
+      ],
+      "aa15515a9d8b543efc50559aafb909c9": [
+        {
+          "file": "templates/handlers/orchestrators/session-start.md",
+          "line_count": 124,
+          "type": "orchestrator"
+        }
+      ],
+      "31af1a2de108c76767e992a5dea26dd9": [
+        {
+          "file": "templates/handlers/orchestrators/system-improvement.md",
+          "line_count": 35,
+          "type": "orchestrator"
+        }
+      ],
+      "cbf53d5466dcc5079a05bba35af5a996": [
+        {
+          "file": "templates/handlers/orchestrators/orchestrate-complex.md",
+          "line_count": 41,
+          "type": "orchestrator"
+        }
+      ],
+      "4c1f45d728dc683d53b9ee5eaed924e1": [
+        {
+          "file": "templates/handlers/orchestrators/evidence-check.md",
+          "line_count": 37,
+          "type": "orchestrator"
+        }
+      ],
+      "25d9daeb9a0b8bc05333e62e0131bc6b": [
+        {
+          "file": "templates/handlers/orchestrators/workflow-to-tool.md",
+          "line_count": 39,
+          "type": "orchestrator"
+        }
+      ],
+      "621d5058701afd8a2d1b64ca3f237b25": [
+        {
+          "file": "templates/handlers/orchestrators/work-activity.md",
+          "line_count": 45,
+          "type": "orchestrator"
+        }
+      ],
+      "348aadce8408451ff60865593e5f467b": [
+        {
+          "file": "templates/handlers/orchestrators/lost-context.md",
+          "line_count": 39,
+          "type": "orchestrator"
+        }
+      ],
+      "35272220560c9520dbb46e258851a98f": [
+        {
+          "file": "templates/handlers/orchestrators/enforce-pre-flight.md",
+          "line_count": 45,
+          "type": "orchestrator"
+        }
+      ],
+      "07b25b48430f1d87884571b5b4d980cc": [
+        {
+          "file": "templates/handlers/orchestrators/code-creation.md",
+          "line_count": 38,
+          "type": "orchestrator"
+        }
+      ],
+      "7f39367c95fe7a52fc13b4d5ad9e3330": [
+        {
+          "file": "templates/handlers/orchestrators/standard-dev-workflow.md",
+          "line_count": 44,
+          "type": "orchestrator"
+        }
+      ],
+      "4a08b3855535c3e189d22258ac8a5f8a": [
+        {
+          "file": "templates/handlers/orchestrators/ambiguous-request.md",
+          "line_count": 38,
+          "type": "orchestrator"
+        }
+      ],
+      "6b0214321adb10122c2066414479aba4": [
+        {
+          "file": "templates/handlers/operators/workflow/resolve-work-void.md",
+          "line_count": 60,
+          "type": "operator"
+        }
+      ],
+      "0794a76c01b99005c5886bd7b45a3057": [
+        {
+          "file": "templates/handlers/operators/workflow/resolve-handler-void.md",
+          "line_count": 75,
+          "type": "operator"
+        }
+      ],
+      "92682993ceae437ce68636eccd561861": [
+        {
+          "file": "templates/handlers/operators/workflow/create-work-folder.md",
+          "line_count": 46,
+          "type": "operator"
+        }
+      ],
+      "c3c9dc0b31c899b8c4c3f1e2c4062946": [
+        {
+          "file": "templates/handlers/operators/file/validate-path.md",
+          "line_count": 43,
+          "type": "operator"
+        }
+      ],
+      "4813f5229e25664feb2fac8677d5ab0c": [
+        {
+          "file": "templates/handlers/operators/session/restore-context.md",
+          "line_count": 39,
+          "type": "operator"
+        }
+      ],
+      "bf9e0e6bd084721c036c1ea333628087": [
+        {
+          "file": "templates/handlers/operators/session/save-context.md",
+          "line_count": 40,
+          "type": "operator"
+        }
+      ],
+      "57e1b056c92bcdd0169fe24f0d9f7758": [
+        {
+          "file": "templates/handlers/operators/session/checkpoint-session.md",
+          "line_count": 82,
+          "type": "operator"
+        }
+      ],
+      "c8d2ec49706ed11935091940b25f99ce": [
+        {
+          "file": "templates/handlers/operators/development/check-style.md",
+          "line_count": 44,
+          "type": "operator"
+        }
+      ],
+      "318a11d0073655ae0617c4fce514adb8": [
+        {
+          "file": "templates/handlers/operators/development/review-patterns.md",
+          "line_count": 43,
+          "type": "operator"
+        }
+      ],
+      "65137594b971d8ceb6189e24a7b7fd56": [
+        {
+          "file": "templates/handlers/operators/development/suggest-name.md",
+          "line_count": 44,
+          "type": "operator"
+        }
+      ],
+      "1c97b37fec6e81fa29cc5201caceabb3": [
+        {
+          "file": "templates/handlers/operators/development/edit-file.md",
+          "line_count": 97,
+          "type": "operator"
+        }
+      ],
+      "da562eadb6c0d6ced4d5d4477ae7fec0": [
+        {
+          "file": "templates/handlers/operators/development/check-naming.md",
+          "line_count": 47,
+          "type": "operator"
+        }
+      ],
+      "77eb6918763ec98d33851579d0e252be": [
+        {
+          "file": "templates/handlers/operators/development/format-code.md",
+          "line_count": 45,
+          "type": "operator"
+        }
+      ],
+      "a798a314605b67b35be26de20397bf3c": [
+        {
+          "file": "templates/handlers/operators/external/time-capture.md",
+          "line_count": 37,
+          "type": "operator"
+        }
+      ],
+      "d1a3daa579bd61519efe5c43b100c9d0": [
+        {
+          "file": "templates/handlers/operators/git/suggest-commit-type.md",
+          "line_count": 45,
+          "type": "operator"
+        }
+      ],
+      "c1820e733ab6eb349148bc6175e2e6cc": [
+        {
+          "file": "templates/handlers/operators/git/check-commit-msg.md",
+          "line_count": 43,
+          "type": "operator"
+        }
+      ],
+      "359a4ceb2068ec0bd49146856082f37d": [
+        {
+          "file": "templates/handlers/operators/git/create-commit-message.md",
+          "line_count": 89,
+          "type": "operator"
+        }
+      ],
+      "ccc49ce6b097dc27d6c43d621823b919": [
+        {
+          "file": "templates/handlers/operators/docs/validate-comments.md",
+          "line_count": 46,
+          "type": "operator"
+        }
+      ],
+      "793c228a4a3725183dea186b4cdb32eb": [
+        {
+          "file": "templates/handlers/operators/docs/check-docs-needed.md",
+          "line_count": 47,
+          "type": "operator"
+        }
+      ],
+      "1e81ad476005790cd786107ffeddfde8": [
+        {
+          "file": "templates/handlers/operators/analysis/verify-claim.md",
+          "line_count": 43,
+          "type": "operator"
+        }
+      ],
+      "586c6cd30e988c5ebfb8b9f016ffbeb6": [
+        {
+          "file": "templates/handlers/operators/analysis/gather-evidence.md",
+          "line_count": 47,
+          "type": "operator"
+        }
+      ],
+      "cdfed320f871420d9cacb1cbd5b7e8eb": [
+        {
+          "file": "templates/handlers/operators/analysis/cite-source.md",
+          "line_count": 44,
+          "type": "operator"
+        }
+      ],
+      "7d46b8f6c38a4109591202a55300e4c9": [
+        {
+          "file": "templates/handlers/tools/external/consult-gpt5.md",
+          "line_count": 129,
+          "type": "handler"
+        }
+      ],
+      "bf408899935773c94ac00266254dc08c": [
+        {
+          "file": "templates/handlers/triggers/workflow/update-tracker.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "be51ee42ded7c95392303c33a05df4d0": [
+        {
+          "file": "templates/handlers/triggers/workflow/check-progress.md",
+          "line_count": 42,
+          "type": "trigger"
+        }
+      ],
+      "523ae8de812eb96362221e778673f73c": [
+        {
+          "file": "templates/handlers/triggers/workflow/continue-work.md",
+          "line_count": 42,
+          "type": "trigger"
+        }
+      ],
+      "18eb8473c037c77690da9e02a292dc45": [
+        {
+          "file": "templates/handlers/triggers/workflow/create-todos.md",
+          "line_count": 43,
+          "type": "trigger"
+        }
+      ],
+      "8bf5afd209855e52532cc257567c9561": [
+        {
+          "file": "templates/handlers/triggers/workflow/update-todos.md",
+          "line_count": 42,
+          "type": "trigger"
+        }
+      ],
+      "3b3ae292c1cb40fcaf139227a89a9e68": [
+        {
+          "file": "templates/handlers/triggers/session/start-session.md",
+          "line_count": 251,
+          "type": "trigger"
+        }
+      ],
+      "59c5078af28961a10c09a0262229b667": [
+        {
+          "file": "templates/handlers/triggers/session/update-session.md",
+          "line_count": 78,
+          "type": "trigger"
+        }
+      ],
+      "328b563475491058837c3301e2178bed": [
+        {
+          "file": "templates/handlers/triggers/session/end-session.md",
+          "line_count": 118,
+          "type": "trigger"
+        }
+      ],
+      "765d2ddaf41228720c7f4193d81eb18d": [
+        {
+          "file": "templates/handlers/triggers/session/prepare-compaction.md",
+          "line_count": 139,
+          "type": "trigger"
+        }
+      ],
+      "1ef00c8cceb2e9bea8131e8e5920c750": [
+        {
+          "file": "templates/handlers/triggers/session/show-capabilities.md",
+          "line_count": 47,
+          "type": "trigger"
+        }
+      ],
+      "97bfc231b088d635c6f872a1293d360a": [
+        {
+          "file": "templates/handlers/triggers/development/start-new-work.md",
+          "line_count": 129,
+          "type": "trigger"
+        }
+      ],
+      "b0f64ad416c1620c297cf5dba24bf5d4": [
+        {
+          "file": "templates/handlers/triggers/development/refactor-code.md",
+          "line_count": 42,
+          "type": "trigger"
+        }
+      ],
+      "4668cef7c38a55f230157a87a42e423d": [
+        {
+          "file": "templates/handlers/triggers/development/optimize-code.md",
+          "line_count": 128,
+          "type": "trigger"
+        }
+      ],
+      "4a6f270cdfb43ba71f11f243c6525d9d": [
+        {
+          "file": "templates/handlers/triggers/development/create-component.md",
+          "line_count": 42,
+          "type": "trigger"
+        }
+      ],
+      "b8eb596be07602bf9d228552c790c0cc": [
+        {
+          "file": "templates/handlers/triggers/test/create-test-checkpoint.md",
+          "line_count": 42,
+          "type": "trigger"
+        }
+      ],
+      "122a157b20a50b9b0217a85948705135": [
+        {
+          "file": "templates/handlers/triggers/test/simulation-test.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "50c1c70287ac13700aa038fec3c51169": [
+        {
+          "file": "templates/handlers/triggers/test/validate-changes.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "483a7826f8459477245f0a56f88a47a2": [
+        {
+          "file": "templates/handlers/triggers/debug/debug-issue.md",
+          "line_count": 132,
+          "type": "trigger"
+        }
+      ],
+      "3d51b931df9438b4d2f858b6d0cacc30": [
+        {
+          "file": "templates/handlers/triggers/debug/fix-bug.md",
+          "line_count": 126,
+          "type": "trigger"
+        }
+      ],
+      "211152b5a15b8e15c1e6da1145c30045": [
+        {
+          "file": "templates/handlers/triggers/docs/create-docs.md",
+          "line_count": 62,
+          "type": "trigger"
+        }
+      ],
+      "ba6a0e407ea89046851164b1dffc3ea8": [
+        {
+          "file": "templates/handlers/triggers/docs/document-findings.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "bfebf723f20999c0c9e7fe85ea1f6c88": [
+        {
+          "file": "templates/handlers/triggers/docs/record-decision.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "2497021dfc1f668c432cb8ec83ebd25d": [
+        {
+          "file": "templates/handlers/triggers/analysis/deploy-ultrathink.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "ae9bebdffd443c91ac7ab74aab893dc2": [
+        {
+          "file": "templates/handlers/triggers/analysis/explain-code.md",
+          "line_count": 144,
+          "type": "trigger"
+        }
+      ],
+      "259f95f3761549da72871275cfd6759b": [
+        {
+          "file": "templates/handlers/triggers/analysis/code-review.md",
+          "line_count": 132,
+          "type": "trigger"
+        }
+      ],
+      "b26ffed11eff31367555580814840e05": [
+        {
+          "file": "templates/handlers/triggers/analysis/deploy-specialist.md",
+          "line_count": 40,
+          "type": "trigger"
+        }
+      ],
+      "50bca80d36648249f5cc7281d8affb56": [
+        {
+          "file": "templates/engine/activation/context-aware.md",
+          "line_count": 68,
+          "type": "engine"
+        }
+      ],
+      "b57b614de7ff872cde941e71ba8a98d1": [
+        {
+          "file": "templates/engine/execution/swhe-format.md",
+          "line_count": 132,
+          "type": "engine"
+        }
+      ],
+      "70eb6710438588f8860e5819280dbc02": [
+        {
+          "file": "templates/engine/fallbacks/error-handling.md",
+          "line_count": 179,
+          "type": "engine"
+        }
+      ],
+      "58168a1c394aead9aa99a65c5353f527": [
+        {
+          "file": "templates/engine/validation/validation-framework.md",
+          "line_count": 441,
+          "type": "engine"
+        }
+      ],
+      "c72b23e4ab5a0d4265ca0b568a5cc2fc": [
+        {
+          "file": "templates/engine/validation/ENFORCEMENT-SUMMARY.md",
+          "line_count": 250,
+          "type": "engine"
+        }
+      ],
+      "471250cbcc9b33fd1a2040db5505c348": [
+        {
+          "file": "templates/engine/validation/foundation-adoption-guide.md",
+          "line_count": 257,
+          "type": "engine"
+        }
+      ],
+      "0d803cb1b5e19f1d0545e0260ecca494": [
+        {
+          "file": "templates/engine/validation/integration-guide.md",
+          "line_count": 522,
+          "type": "engine"
+        }
+      ],
+      "0db9f715ce5f796caa526ef18613abac": [
+        {
+          "file": "templates/engine/navigation/common-flows.md",
+          "line_count": 60,
+          "type": "engine"
+        }
+      ],
+      "557df9d1eb621d5bf94d16e5916be0c7": [
+        {
+          "file": "templates/engine/navigation/template-protocol.md",
+          "line_count": 146,
+          "type": "engine"
+        }
+      ],
+      "24fd7bec37abff6f3a8b7dec3a133822": [
+        {
+          "file": "templates/engine/examples/practical.md",
+          "line_count": 68,
+          "type": "engine"
+        }
+      ],
+      "365e800916baec8a5649167e242ba371": [
+        {
+          "file": "templates/engine/debugging/system-debug.md",
+          "line_count": 229,
+          "type": "engine"
+        }
+      ],
+      "988a7956f0b95875e2901359a2b6c9f9": [
+        {
+          "file": "templates/engine/core/codex-readiness.md",
+          "line_count": 58,
+          "type": "engine"
+        }
+      ],
+      "8fe4b7d4f89f31dd3b22c156c5a033e7": [
+        {
+          "file": "templates/engine/core/enforcement-check.md",
+          "line_count": 55,
+          "type": "engine"
+        }
+      ],
+      "a8a756c4e4e7c00b8020642b18bf2936": [
+        {
+          "file": "templates/engine/core/session-resolver.md",
+          "line_count": 237,
+          "type": "engine"
+        }
+      ],
+      "1fb8aae3cde3ea806253dafb53063c16": [
+        {
+          "file": "templates/engine/core/portable-foundation-spec.md",
+          "line_count": 252,
+          "type": "engine"
+        }
+      ],
+      "882a7e1c558511b1395f4b8436056153": [
+        {
+          "file": "templates/engine/core/ultrathink-protocol.md",
+          "line_count": 54,
+          "type": "engine"
+        }
+      ],
+      "6b7255895024dc807653ec0e2eb288fc": [
+        {
+          "file": "templates/engine/core/pre-ultrathink.md",
+          "line_count": 71,
+          "type": "engine"
+        }
+      ],
+      "12c1a4e6b826029aefd62bfa292647e8": [
+        {
+          "file": "templates/engine/structure/template-system.md",
+          "line_count": 71,
+          "type": "engine"
+        }
+      ],
+      "60d7da6c16ff311d850f03cf45bb7bd2": [
+        {
+          "file": "templates/engine/enforcement/meta-workflow-guard-ci-plan.md",
+          "line_count": 101,
+          "type": "workflow"
+        }
+      ],
+      "0d91f81102ff53233a636117ddfa5d79": [
+        {
+          "file": "templates/engine/enforcement/cannot-proceed.md",
+          "line_count": 90,
+          "type": "engine"
+        }
+      ],
+      "d915d6a27d804fcea646e86c0f076f5d": [
+        {
+          "file": "templates/engine/enforcement/meta-workflow-guard-remediation.md",
+          "line_count": 34,
+          "type": "workflow"
+        }
+      ],
+      "935d6a069ef0205a7b62b75afc817f16": [
+        {
+          "file": "templates/engine/enforcement/behavioral-hooks.md",
+          "line_count": 74,
+          "type": "behavior"
+        }
+      ],
+      "257ec8441e23613d9feaad8dbd802539": [
+        {
+          "file": "templates/helpers/domain/development.md",
+          "line_count": 7,
+          "type": "workflow"
+        }
+      ],
+      "34bbd747abce22fc9f39d543dacc6515": [
+        {
+          "file": "templates/helpers/domain/docs.md",
+          "line_count": 7,
+          "type": "workflow"
+        }
+      ],
+      "4c32c04c79b4dd310abeedf812046d04": [
+        {
+          "file": "templates/helpers/domain/test.md",
+          "line_count": 8,
+          "type": "workflow"
+        }
+      ],
+      "03d61fc05910086d4e9c877694f82d0a": [
+        {
+          "file": "templates/helpers/domain/session.md",
+          "line_count": 10,
+          "type": "workflow"
+        }
+      ],
+      "fd1f0e292c2415cfb53862b0a7fb15db": [
+        {
+          "file": "templates/helpers/domain/analysis.md",
+          "line_count": 7,
+          "type": "workflow"
+        }
+      ],
+      "04c52ea896719082cfea15374d64e316": [
+        {
+          "file": "templates/registry/patterns/meta-routing.md",
+          "line_count": 241,
+          "type": "pattern"
+        }
+      ],
+      "10241b0d3b1c7a79f1c71b7538b09498": [
+        {
+          "file": "templates/registry/conventions/special-files.md",
+          "line_count": 219,
+          "type": "convention"
+        }
+      ],
+      "c3960d3f1dfde32bfc7b7b5b090a2536": [
+        {
+          "file": "templates/registry/handlers/triggers-registry.md",
+          "line_count": 200,
+          "type": "trigger"
+        }
+      ],
+      "db55ddb6b2bcb1f20242cde35af042d9": [
+        {
+          "file": "templates/registry/handlers/operators-registry.md",
+          "line_count": 238,
+          "type": "operator"
+        }
+      ],
+      "d68d4cff309c65a89486f175ece81f8b": [
+        {
+          "file": "templates/registry/handlers/orchestrators-registry.md",
+          "line_count": 101,
+          "type": "orchestrator"
+        }
+      ],
+      "cf47895711836c1b6af076b2ef85aea3": [
+        {
+          "file": "templates/registry/navigation/keywords.md",
+          "line_count": 155,
+          "type": "registry"
+        }
+      ],
+      "ac205095bebd9a4ae4c017bff0a195ce": [
+        {
+          "file": "templates/registry/matrices/decision-matrices.md",
+          "line_count": 196,
+          "type": "matrix"
+        }
+      ],
+      "581b2d31fe12112d16e61d5fb6eaf7a7": [
+        {
+          "file": "templates/registry/behavioral/hooks.md",
+          "line_count": 251,
+          "type": "behavior"
+        }
+      ],
+      "5a79b3925078e186430873017fc8aa49": [
+        {
+          "file": "templates/registry/behavioral/templates.md",
+          "line_count": 146,
+          "type": "behavior"
+        }
+      ],
+      "daa436fd9eef7e67942bec62835d4342": [
+        {
+          "file": "templates/matrices/recovery/error-to-recovery.md",
+          "line_count": 154,
+          "type": "matrix"
+        }
+      ],
+      "4f166a554cc663bb470120e113d3817f": [
+        {
+          "file": "templates/matrices/mapping/keyword-to-handler.md",
+          "line_count": 169,
+          "type": "handler"
+        }
+      ],
+      "21a673b21eab8b63275c68a37e67e93c": [
+        {
+          "file": "templates/matrices/mapping/trigger-to-action.md",
+          "line_count": 131,
+          "type": "matrix"
+        }
+      ],
+      "d882ab16d0017d73e2714992202aa39a": [
+        {
+          "file": "templates/matrices/selection/tool-selection.md",
+          "line_count": 107,
+          "type": "matrix"
+        }
+      ],
+      "19d4e6d2d019e50e189d5c510660d28b": [
+        {
+          "file": "templates/matrices/selection/file-to-convention.md",
+          "line_count": 118,
+          "type": "convention"
+        }
+      ],
+      "3a22b7dc4f7fabf15cef16ed25b610fd": [
+        {
+          "file": "templates/matrices/routing/context-to-mode.md",
+          "line_count": 89,
+          "type": "matrix"
+        }
+      ],
+      "1e107a5d14d26c89601f22145b6ff39f": [
+        {
+          "file": "templates/matrices/routing/request-to-handler.md",
+          "line_count": 66,
+          "type": "handler"
+        }
+      ],
+      "d64b379bb7458a460ab514400615b574": [
+        {
+          "file": "templates/shared/patterns/ultrathink-format.md",
+          "line_count": 183,
+          "type": "pattern"
+        }
+      ],
+      "1c725c1679f225243039fc38ba34cded": [
+        {
+          "file": "templates/shared/reports/claude-analysis-report.md",
+          "line_count": 169,
+          "type": "other"
+        }
+      ],
+      "5bff0a95563d77bfbcc001335654553a": [
+        {
+          "file": "templates/shared/tools/tool-selection-matrix.md",
+          "line_count": 173,
+          "type": "matrix"
+        }
+      ],
+      "214ca948276434010339b6fefbcebe25": [
+        {
+          "file": "templates/registry/index.json",
+          "line_count": 1038,
+          "type": "registry"
+        }
+      ],
+      "ee958e66d758136e81e01331ae7b5735": [
+        {
+          "file": "templates/metadata/template-metadata-policy.json",
+          "line_count": 94,
+          "type": "json-config"
+        }
+      ],
+      "6a3f0c6b8d85cafe0c1077d6935385ac": [
+        {
+          "file": "templates/metadata/workflow-guards.json",
+          "line_count": 1186,
+          "type": "workflow"
+        }
+      ],
+      "cfa2f15225d8f906cceaad02cdc15721": [
+        {
+          "file": "templates/metadata/handler-rules.json",
+          "line_count": 80,
+          "type": "handler"
+        }
+      ],
+      "392713ec33b60d9190cb97505828e60a": [
+        {
+          "file": "templates/shared/reports/claude-analysis.json",
+          "line_count": 451,
+          "type": "json-config"
+        }
+      ],
+      "71b43a26b645dcb73be1da85860dbe2a": [
+        {
+          "file": ".codex/AGENTS.md",
+          "line_count": 13,
+          "type": "agent"
+        }
+      ],
+      "bdaf817150826e3c6279188a0c5001c0": [
+        {
+          "file": ".claude/TM_COMMANDS_GUIDE.md",
+          "line_count": 147,
+          "type": "command"
+        }
+      ],
+      "18f610e09926e9aa6841a4d53b7062f5": [
+        {
+          "file": ".claude/agents/task-checker.md",
+          "line_count": 162,
+          "type": "agent"
+        }
+      ],
+      "6fff053ed813e44977c683d47eb68ddb": [
+        {
+          "file": ".claude/agents/task-executor.md",
+          "line_count": 70,
+          "type": "agent"
+        }
+      ],
+      "d8c58bffc8bdb0b989ffe094d14b3a7b": [
+        {
+          "file": ".claude/agents/task-orchestrator.md",
+          "line_count": 130,
+          "type": "agent"
+        }
+      ],
+      "0cfb576b5e1d05b9b3fbcdf6f874b723": [
+        {
+          "file": ".claude/commands/tm/tm-main.md",
+          "line_count": 146,
+          "type": "command"
+        }
+      ],
+      "09244d0da49ae234d275796ad9a2c75f": [
+        {
+          "file": ".claude/commands/tm/learn.md",
+          "line_count": 103,
+          "type": "command"
+        }
+      ],
+      "2550f6c4136a6ee1b09384d22de752c6": [
+        {
+          "file": ".claude/commands/tm/help.md",
+          "line_count": 81,
+          "type": "command"
+        }
+      ],
+      "b0882b4dec09bcbd433ae63f46193809": [
+        {
+          "file": ".claude/commands/tm/show/show-task.md",
+          "line_count": 82,
+          "type": "command"
+        }
+      ],
+      "9fc9a75428256dbce24bf8c9e56c8438": [
+        {
+          "file": ".claude/commands/tm/workflows/command-pipeline.md",
+          "line_count": 77,
+          "type": "workflow"
+        }
+      ],
+      "fbdf7290cd6569bdb606697a62b434c2": [
+        {
+          "file": ".claude/commands/tm/workflows/auto-implement-tasks.md",
+          "line_count": 97,
+          "type": "workflow"
+        }
+      ],
+      "bb67ab80d328c5289d96bf9ef3b18dc6": [
+        {
+          "file": ".claude/commands/tm/workflows/smart-workflow.md",
+          "line_count": 55,
+          "type": "workflow"
+        }
+      ],
+      "65ee6c477551e01080f2671a11e71e94": [
+        {
+          "file": ".claude/commands/tm/parse-prd/parse-prd.md",
+          "line_count": 49,
+          "type": "command"
+        }
+      ],
+      "e9632d9804dfa917940f73dfdd72e2f1": [
+        {
+          "file": ".claude/commands/tm/parse-prd/parse-prd-with-research.md",
+          "line_count": 48,
+          "type": "command"
+        }
+      ],
+      "69a56960bd298cffa1dd16c57eaf5e25": [
+        {
+          "file": ".claude/commands/tm/complexity-report/complexity-report.md",
+          "line_count": 117,
+          "type": "command"
+        }
+      ],
+      "f9e63d76b8e7f88b49e1bd5aea2f6c82": [
+        {
+          "file": ".claude/commands/tm/sync-readme/sync-readme.md",
+          "line_count": 117,
+          "type": "command"
+        }
+      ],
+      "563eeb460e3d90a31bb3f2a4bf5abc30": [
+        {
+          "file": ".claude/commands/tm/add-subtask/add-subtask.md",
+          "line_count": 76,
+          "type": "command"
+        }
+      ],
+      "277dfb8eaa114897c0465cb12cbba6a6": [
+        {
+          "file": ".claude/commands/tm/add-subtask/convert-task-to-subtask.md",
+          "line_count": 71,
+          "type": "command"
+        }
+      ],
+      "74baa1aeb520e3cf1abf3edea07c8662": [
+        {
+          "file": ".claude/commands/tm/list/list-tasks.md",
+          "line_count": 43,
+          "type": "command"
+        }
+      ],
+      "d73b13f483e5ea9dde436b2e1c2a046e": [
+        {
+          "file": ".claude/commands/tm/list/list-tasks-with-subtasks.md",
+          "line_count": 29,
+          "type": "command"
+        }
+      ],
+      "aec6bbd25e876e875965a92b4806123b": [
+        {
+          "file": ".claude/commands/tm/list/list-tasks-by-status.md",
+          "line_count": 39,
+          "type": "command"
+        }
+      ],
+      "0bde89ba3203abe207771b8776c38914": [
+        {
+          "file": ".claude/commands/tm/remove-dependency/remove-dependency.md",
+          "line_count": 62,
+          "type": "command"
+        }
+      ],
+      "1c426e873620b84748480a77c4d5ad88": [
+        {
+          "file": ".claude/commands/tm/analyze-complexity/analyze-complexity.md",
+          "line_count": 121,
+          "type": "command"
+        }
+      ],
+      "523fc5818a90232576f68ead49d36e49": [
+        {
+          "file": ".claude/commands/tm/add-task/add-task.md",
+          "line_count": 78,
+          "type": "command"
+        }
+      ],
+      "02dcce4b66212f6944a9cc47ae9c4ae1": [
+        {
+          "file": ".claude/commands/tm/init/init-project.md",
+          "line_count": 50,
+          "type": "command"
+        }
+      ],
+      "7a59321056bc85070cfe98fffc813e43": [
+        {
+          "file": ".claude/commands/tm/init/init-project-quick.md",
+          "line_count": 46,
+          "type": "command"
+        }
+      ],
+      "0cd3c3a896f7a72379c6eefb7e89a0f0": [
+        {
+          "file": ".claude/commands/tm/set-status/to-done.md",
+          "line_count": 44,
+          "type": "command"
+        }
+      ],
+      "13f7a5be0ff6968d073d106562351abd": [
+        {
+          "file": ".claude/commands/tm/set-status/to-cancelled.md",
+          "line_count": 55,
+          "type": "command"
+        }
+      ],
+      "56733bf86a91076488fa397d076b440c": [
+        {
+          "file": ".claude/commands/tm/set-status/to-in-progress.md",
+          "line_count": 36,
+          "type": "command"
+        }
+      ],
+      "bd72c7bfd4c167c94334dccf0743cdd1": [
+        {
+          "file": ".claude/commands/tm/set-status/to-pending.md",
+          "line_count": 32,
+          "type": "command"
+        }
+      ],
+      "c923088689431768451a2ac89fb0351d": [
+        {
+          "file": ".claude/commands/tm/set-status/to-deferred.md",
+          "line_count": 47,
+          "type": "command"
+        }
+      ],
+      "3556d1e7707c71f9bbdbb5e71ffb6221": [
+        {
+          "file": ".claude/commands/tm/set-status/to-review.md",
+          "line_count": 40,
+          "type": "command"
+        }
+      ],
+      "f2450aa3919136b62978d6dc16eaf02e": [
+        {
+          "file": ".claude/commands/tm/update/update-single-task.md",
+          "line_count": 119,
+          "type": "command"
+        }
+      ],
+      "808b73123869a196576286eb057723b0": [
+        {
+          "file": ".claude/commands/tm/update/update-tasks-from-id.md",
+          "line_count": 108,
+          "type": "command"
+        }
+      ],
+      "09bb64599e0b913ef06ffe7fbf8a00c8": [
+        {
+          "file": ".claude/commands/tm/update/update-task.md",
+          "line_count": 72,
+          "type": "command"
+        }
+      ],
+      "7ee662fa4b1728b289351a8c816128c2": [
+        {
+          "file": ".claude/commands/tm/expand/expand-all-tasks.md",
+          "line_count": 51,
+          "type": "command"
+        }
+      ],
+      "a5f7f94b4183e55652f6525a96b31ab3": [
+        {
+          "file": ".claude/commands/tm/expand/expand-task.md",
+          "line_count": 49,
+          "type": "command"
+        }
+      ],
+      "fddd8c1eb3742989fc4876cde109a49e": [
+        {
+          "file": ".claude/commands/tm/remove-task/remove-task.md",
+          "line_count": 107,
+          "type": "command"
+        }
+      ],
+      "8dcf4c9796cd84ca43278779aa16e6b2": [
+        {
+          "file": ".claude/commands/tm/status/project-status.md",
+          "line_count": 64,
+          "type": "command"
+        }
+      ],
+      "c464e61a8d84afa96817e0b85ca42c0d": [
+        {
+          "file": ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+          "line_count": 86,
+          "type": "command"
+        },
+        {
+          "file": ".claude/commands/tm/remove-subtasks/remove-subtasks.md",
+          "line_count": 86,
+          "type": "command"
+        }
+      ],
+      "4160598d923221bfff6f4632763dd0ad": [
+        {
+          "file": ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+          "line_count": 93,
+          "type": "command"
+        },
+        {
+          "file": ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md",
+          "line_count": 93,
+          "type": "command"
+        }
+      ],
+      "833e5b50e17e15d2ff42fa47df20b14c": [
+        {
+          "file": ".claude/commands/tm/remove-subtask/remove-subtask.md",
+          "line_count": 84,
+          "type": "command"
+        }
+      ],
+      "e7e1e4b60d7b9477cba1e8cbbf930725": [
+        {
+          "file": ".claude/commands/tm/fix-dependencies/fix-dependencies.md",
+          "line_count": 81,
+          "type": "command"
+        }
+      ],
+      "7b6e5ad7052b0aa187528977063de4b4": [
+        {
+          "file": ".claude/commands/tm/validate-dependencies/validate-dependencies.md",
+          "line_count": 71,
+          "type": "command"
+        }
+      ],
+      "318dc303dd397bd9d225f7907ff774ee": [
+        {
+          "file": ".claude/commands/tm/generate/generate-tasks.md",
+          "line_count": 121,
+          "type": "command"
+        }
+      ],
+      "75d4e203a52e579559db4950a708b8c4": [
+        {
+          "file": ".claude/commands/tm/setup/quick-install-taskmaster.md",
+          "line_count": 22,
+          "type": "command"
+        }
+      ],
+      "14908d5d49ea5446948569a0c465b355": [
+        {
+          "file": ".claude/commands/tm/setup/install-taskmaster.md",
+          "line_count": 117,
+          "type": "command"
+        }
+      ],
+      "0e0d5b855d08d8d3e02101888cb29f54": [
+        {
+          "file": ".claude/commands/tm/models/setup-models.md",
+          "line_count": 51,
+          "type": "command"
+        }
+      ],
+      "d7b65c92feefcb49a5a2e8d9caf77d74": [
+        {
+          "file": ".claude/commands/tm/models/view-models.md",
+          "line_count": 51,
+          "type": "command"
+        }
+      ],
+      "23cb61e30534a88867f877f9c2d6a638": [
+        {
+          "file": ".claude/commands/tm/add-dependency/add-dependency.md",
+          "line_count": 55,
+          "type": "command"
+        }
+      ],
+      "d2f1ee63afc61ce263eaae1782177f74": [
+        {
+          "file": ".claude/commands/tm/next/next-task.md",
+          "line_count": 66,
+          "type": "command"
+        }
+      ],
+      "e1a0d07e61768d6caf7425a178d00296": [
+        {
+          "file": ".claude/commands/tm/utils/analyze-project.md",
+          "line_count": 97,
+          "type": "command"
+        }
+      ],
+      "cc049ddc8e0f07c1afc8d4fe0747c71a": [
+        {
+          "file": ".claude/settings.local.json",
+          "line_count": 11,
+          "type": "json-config"
+        }
+      ]
+    },
+    "section_mapping": [],
+    "statistics": {
+      "total_files_scanned": 318,
+      "monolithic_files": 8,
+      "modular_files": 310,
+      "exact_duplicate_groups": 2,
+      "partial_duplicate_pairs": 1,
+      "section_mappings": 0,
+      "overall_migration_percentage": 37.5,
+      "files_with_duplicates": 4
+    }
+  }
+}

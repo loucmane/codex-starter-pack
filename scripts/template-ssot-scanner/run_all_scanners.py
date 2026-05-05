@@ -13,6 +13,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from baseline_summary import write_baseline_summary
+
 REQUIRED_PYTHON = (3, 11)
 
 
@@ -235,6 +237,23 @@ Directory: {project_root}
     for result in results:
         status = "✅" if result["success"] else "❌"
         print(f"{status} {result['script']}")
+
+    if all_success:
+        try:
+            summary_path = Path(__file__).parent / "output/data/baseline_summary.json"
+            summary = write_baseline_summary(
+                Path(__file__).parent / "output/data",
+                summary_path,
+            )
+            print("\nBaseline summary generated:")
+            print(f"  output/data/baseline_summary.json ({summary_path.stat().st_size:,} bytes)")
+            print(f"  Total references: {summary['metrics'].get('total_references')}")
+            print(f"  Broken references: {summary['metrics'].get('broken_references')}")
+            print(f"  Duplicate count: {summary['metrics'].get('duplicate_count')}")
+            print(f"  Migration percentage: {summary['metrics'].get('migration_percentage')}")
+        except Exception as exc:
+            print(f"\n❌ Failed to generate baseline summary: {exc}")
+            all_success = False
     
     # Check for output files
     print(f"\n{'=' * 60}")
@@ -247,6 +266,7 @@ Directory: {project_root}
         "output/data/reference_analysis.json",
         "output/data/duplicate_analysis.json",
         "output/data/fix_recommendations.json",
+        "output/data/baseline_summary.json",
         "output/scripts/apply_reference_fixes.py",
         "output/scripts/archive_duplicates.sh",
         "output/scripts/apply_all_fixes.sh"

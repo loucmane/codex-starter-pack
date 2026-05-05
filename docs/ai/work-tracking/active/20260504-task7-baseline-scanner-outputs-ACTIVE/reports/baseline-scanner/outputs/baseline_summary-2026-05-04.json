@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "scan_timestamp": "2026-05-04T18:44:08.849185",
+    "scanner": "baseline_summary",
+    "scanner_version": "1.0.0",
+    "output_format_version": "2.0.0",
+    "stats": {
+      "total_files": 318,
+      "total_lines": 55683,
+      "checkpoints_saved": 0,
+      "total_references": 696,
+      "unique_references": 423,
+      "files_with_references": 104,
+      "broken_references": 176,
+      "circular_dependencies": 11,
+      "orphaned_files": 67,
+      "duplicate_count": 4,
+      "exact_duplicate_groups": 2,
+      "partial_duplicate_pairs": 1,
+      "migration_percentage": 37.5,
+      "monolithic_files": 8,
+      "modular_files": 310,
+      "total_fixes": 178,
+      "broken_reference_fixes": 176,
+      "duplicate_removals": 2,
+      "recommendations": 5,
+      "migration_files_scanned": 11,
+      "fully_migrated": 4,
+      "partially_migrated": 5,
+      "not_migrated": 2,
+      "pending_migration": 7
+    }
+  },
+  "data": {
+    "generated_at": "2026-05-04T18:44:08.848845",
+    "output_format_version": "2.0.0",
+    "baseline_summary_version": "1.0.0",
+    "data_dir": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data",
+    "metrics": {
+      "total_files": 318,
+      "total_lines": 55683,
+      "checkpoints_saved": 0,
+      "total_references": 696,
+      "unique_references": 423,
+      "files_with_references": 104,
+      "broken_references": 176,
+      "circular_dependencies": 11,
+      "orphaned_files": 67,
+      "duplicate_count": 4,
+      "exact_duplicate_groups": 2,
+      "partial_duplicate_pairs": 1,
+      "migration_percentage": 37.5,
+      "monolithic_files": 8,
+      "modular_files": 310,
+      "total_fixes": 178,
+      "broken_reference_fixes": 176,
+      "duplicate_removals": 2,
+      "recommendations": 5,
+      "migration_files_scanned": 11,
+      "fully_migrated": 4,
+      "partially_migrated": 5,
+      "not_migrated": 2,
+      "pending_migration": 7
+    },
+    "outputs": {
+      "migration_status": {
+        "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/migration_status.json",
+        "size_bytes": 3269,
+        "scanner": "migration_detector",
+        "scanner_version": "1.0.0",
+        "output_format_version": "2.0.0",
+        "scan_timestamp": "2026-05-04T18:44:07.956154"
+      },
+      "template_scan_results": {
+        "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/template_scan_results.json",
+        "size_bytes": 894245,
+        "scanner": "template_scanner",
+        "scanner_version": "1.1.0",
+        "output_format_version": "2.0.0",
+        "scan_timestamp": "2026-05-04T18:44:08.344076"
+      },
+      "reference_analysis": {
+        "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/reference_analysis.json",
+        "size_bytes": 191128,
+        "scanner": "reference_analyzer",
+        "scanner_version": "1.1.0",
+        "output_format_version": "2.0.0",
+        "scan_timestamp": "2026-05-04T18:44:08.508157"
+      },
+      "duplicate_analysis": {
+        "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/duplicate_analysis.json",
+        "size_bytes": 71951,
+        "scanner": "duplicate_finder",
+        "scanner_version": "1.1.0",
+        "output_format_version": "2.0.0",
+        "scan_timestamp": "2026-05-04T18:44:08.670703"
+      },
+      "fix_recommendations": {
+        "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/fix_recommendations.json",
+        "size_bytes": 47141,
+        "scanner": "fix_generator",
+        "scanner_version": "1.1.0",
+        "output_format_version": "2.0.0",
+        "scan_timestamp": "2026-05-04T18:44:08.829260"
+      }
+    }
+  }
+}

@@ -1,0 +1,357 @@
+
+╔══════════════════════════════════════════════════════════════╗
+║          Template SSOT Scanner Suite - Full Analysis        ║
+╚══════════════════════════════════════════════════════════════╝
+
+Started: 2026-05-04 18:41:04
+Directory: /home/loucmane/codex
+
+✅ Python version: 3.12.3
+Project root: /home/loucmane/codex
+
+============================================================
+Running: [1/5] Detecting true migration status of monolithic files
+Command: /usr/bin/python3 migration_detector.py
+============================================================
+Migration Status Detector v1.0.0
+Base path: /home/loucmane/codex
+
+============================================================
+MIGRATION STATUS DETECTION SUMMARY
+============================================================
+
+📊 Files Analyzed: 11
+
+✅ Fully Migrated (4):
+  - templates/WORKFLOWS.md
+    Markers: Status.*:.*✅.*MODULARIZED, Migration Complete
+    Lines: 43 (link ratio: 0.81)
+    Modular files: 27
+  - templates/PATTERNS.md
+    Markers: MODULARIZED.*All.*extracted to, PATTERNS MODULARIZED
+    Lines: 64 (link ratio: 0.31)
+    Modular files: 18
+  - templates/CONVENTIONS.md
+    Markers: This file now serves as an index
+    Lines: 49 (link ratio: 0.51)
+    Modular files: 22
+  - templates/BUILDING-BETTER.md
+    Markers: This file now serves as an index
+    Lines: 446 (link ratio: 0.08)
+    Modular files: 0
+
+⚠️  Partially Migrated (5):
+  - templates/REGISTRY.md
+    Lines: 540
+    Modular files: 11
+  - templates/HANDLERS.md
+    Lines: 154
+    Modular files: 73
+  - templates/BEHAVIORS.md
+    Lines: 391
+    Modular files: 13
+  - templates/MATRICES.md
+    Lines: 175
+    Modular files: 8
+  - templates/TOOLS.md
+    Lines: 95
+    Modular files: 7
+
+❌ Not Migrated (2):
+  - templates/USER-GUIDE.md
+    Lines: 759
+  - templates/PROJECT-BLOG.md
+    Lines: 289
+
+📈 True Migration Status:
+  Fully Migrated: 36.4%
+  Partially Migrated: 45.5%
+  Not Migrated: 18.2%
+
+============================================================
+
+Results saved to: output/data/migration_status.json
+
+
+============================================================
+Running: [2/5] Scanning all template files and collecting metadata
+Command: /usr/bin/python3 scanner.py --base /home/loucmane/codex --no-checkpoints
+============================================================
+Template System Scanner v1.1.0
+==================================================
+Starting scan of /home/loucmane/codex
+Templates dir: /home/loucmane/codex/templates
+Config dirs: /home/loucmane/codex/.codex, /home/loucmane/codex/.claude
+
+Found 263 files in templates (after filtering)
+  Processed 10/263 files...
+  Processed 20/263 files...
+  Processed 30/263 files...
+  Processed 40/263 files...
+  Processed 50/263 files...
+  Processed 60/263 files...
+  Processed 70/263 files...
+  Processed 80/263 files...
+  Processed 90/263 files...
+  Processed 100/263 files...
+  Processed 110/263 files...
+  Processed 120/263 files...
+  Processed 130/263 files...
+  Processed 140/263 files...
+  Processed 150/263 files...
+  Processed 160/263 files...
+  Processed 170/263 files...
+  Processed 180/263 files...
+  Processed 190/263 files...
+  Processed 200/263 files...
+  Processed 210/263 files...
+  Processed 220/263 files...
+  Processed 230/263 files...
+  Processed 240/263 files...
+  Processed 250/263 files...
+  Processed 260/263 files...
+
+Found 1 files in codex (after filtering)
+
+Found 54 files in claude (after filtering)
+  Processed 10/54 files...
+  Processed 20/54 files...
+  Processed 30/54 files...
+  Processed 40/54 files...
+  Processed 50/54 files...
+
+✅ Scan complete!
+  Total files: 318
+  Total lines: 55683
+  Results saved to: output/data/template_scan_results.json
+
+File type distribution:
+  agent: 8 files, 1781 lines
+  behavior: 17 files, 2993 lines
+  command: 48 files, 3847 lines
+  convention: 24 files, 6121 lines
+  engine: 21 files, 3498 lines
+  guide: 10 files, 3958 lines
+  handler: 11 files, 3600 lines
+  hook: 1 files, 95 lines
+  integration: 7 files, 3302 lines
+  json-config: 3 files, 556 lines
+  matrix: 8 files, 1203 lines
+  operator: 23 files, 1384 lines
+  orchestrator: 25 files, 1184 lines
+  other: 7 files, 2215 lines
+  pattern: 23 files, 7156 lines
+  prompt: 6 files, 775 lines
+  registry: 5 files, 2252 lines
+  trigger: 27 files, 2261 lines
+  workflow: 44 files, 7502 lines
+
+Results saved to: output/data/template_scan_results.json
+
+==================================================
+Scan complete. Use analyze_references.py for detailed analysis.
+
+
+============================================================
+Running: [3/5] Analyzing file references and dependencies
+Command: /usr/bin/python3 analyze_references.py
+============================================================
+Template Reference Analyzer v1.1.0
+==================================================
+Loading migration status for monolith reference checking...
+Analyzing references from 318 files...
+Building dependency graph...
+Finding broken references...
+Checking for references to migrated monoliths...
+  Found 4 fully migrated monoliths
+  Found 0 violations
+Finding circular dependencies...
+Finding orphaned files...
+Calculating reference statistics...
+Finding duplicate references...
+
+✅ Analysis complete!
+  Broken references: 176
+  Circular dependencies: 11
+  Orphaned files: 67
+  Results saved to: output/data/reference_analysis.json
+
+⚠️  Top broken references:
+  templates/BEHAVIORS.md -> CONVENTIONS.md#resolve-session-void
+  templates/BEHAVIORS.md -> registry/index.md#resolve-handler-void
+  templates/BUILDING-BETTER.md -> ../../agent-outputs/template-migrator/migration-mapping.md
+  templates/BUILDING-BETTER.md -> CONVENTIONS.md#resolve-session-void
+  templates/HANDLERS.md -> TOOLS.md#handler-debug
+
+🔄 Circular dependencies found:
+  templates/patterns/selection/handler-selection.md -> templates/patterns/routing/intent-detection.md -> templates/patterns/selection/handler-selection.md
+  templates/REGISTRY.md -> templates/USER-GUIDE.md -> templates/REGISTRY.md
+  templates/integration/guides/creating-handlers.md -> templates/integration/best-practices/handler-design.md -> templates/integration/guides/creating-handlers.md
+
+📊 Most referenced files:
+  templates/integration/architecture/handler-architecture.md: 11 references
+  templates/integration/architecture/system-architecture.md: 9 references
+  templates/patterns/work-tracking/work-patterns.md: 7 references
+  templates/REGISTRY.md: 7 references
+  templates/integration/guides/creating-handlers.md: 7 references
+
+==================================================
+Analysis complete. Use find_duplicates.py to compare with monolithic files.
+
+
+============================================================
+Running: [4/5] Finding duplicate content and migration status
+Command: /usr/bin/python3 find_duplicates.py
+============================================================
+Template Duplicate Finder v1.1.0
+==================================================
+  Similarity threshold: 0.7
+
+Loading migration status from detector...
+Finding duplicates and analyzing migration status...
+Analyzing monolithic files...
+  templates/REGISTRY.md: 18 sections
+  templates/WORKFLOWS.md: 5 sections
+  templates/PATTERNS.md: 6 sections
+  templates/HANDLERS.md: 8 sections
+  templates/CONVENTIONS.md: 6 sections
+  templates/BEHAVIORS.md: 19 sections
+  templates/MATRICES.md: 12 sections
+  templates/TOOLS.md: 7 sections
+Finding exact content duplicates...
+Finding partial duplicates and section mappings...
+  Skipping templates/WORKFLOWS.md - marked as FULLY_MIGRATED by detector
+  Skipping templates/PATTERNS.md - marked as FULLY_MIGRATED by detector
+  Skipping templates/CONVENTIONS.md - marked as FULLY_MIGRATED by detector
+Calculating migration status...
+Generating statistics...
+
+✅ Duplicate analysis complete!
+  Exact duplicate groups: 2
+  Partial duplicates: 1
+  Section mappings: 0
+  Overall migration: 37.5%
+  Results saved to: output/data/duplicate_analysis.json
+
+📊 Migration Status:
+  REGISTRY.md: 0.0% migrated
+    - 0/18 sections
+    - 0 related modular files
+  WORKFLOWS.md: 100.0% migrated
+    - ALL/ALL sections
+    - FULLY MIGRATED (detector confirmed)
+  PATTERNS.md: 100.0% migrated
+    - ALL/ALL sections
+    - FULLY MIGRATED (detector confirmed)
+  HANDLERS.md: 0.0% migrated
+    - 0/8 sections
+    - 0 related modular files
+  CONVENTIONS.md: 100.0% migrated
+    - ALL/ALL sections
+    - FULLY MIGRATED (detector confirmed)
+  BEHAVIORS.md: 0.0% migrated
+    - 0/19 sections
+    - 0 related modular files
+  MATRICES.md: 0.0% migrated
+    - 0/12 sections
+    - 0 related modular files
+  TOOLS.md: 0.0% migrated
+    - 0/7 sections
+    - 0 related modular files
+
+⚠️  Top exact duplicates:
+  2 files with identical content:
+    - .claude/commands/tm/clear-subtasks/clear-subtasks.md
+    - .claude/commands/tm/remove-subtasks/remove-subtasks.md
+  2 files with identical content:
+    - .claude/commands/tm/clear-subtasks/clear-all-subtasks.md
+    - .claude/commands/tm/remove-subtasks/remove-all-subtasks.md
+Results saved to: output/data/duplicate_analysis.json
+
+==================================================
+Analysis complete. Use generate_fixes.py to create fix scripts.
+
+
+============================================================
+Running: [5/5] Generating fix scripts and recommendations
+Command: /usr/bin/python3 generate_fixes.py
+============================================================
+Template Fix Generator v1.1.0
+==================================================
+
+Loaded migration status for 11 files
+Generating fixes...
+Generating fixes for broken references...
+Generating fixes for duplicates...
+File organization has been moved to safe_reorganize.py
+  Use: python3 safe_reorganize.py --dry-run
+  This ensures migration-aware, safe file moves
+Generating content update recommendations...
+Generating recommendations...
+
+✅ Fix generation complete!
+  Broken reference fixes: 176
+  Duplicate removals: 2
+  File moves: 0
+  Results saved to: output/data/fix_recommendations.json
+
+Generating shell scripts...
+  Created: output/scripts/apply_reference_fixes.py
+  Created: output/scripts/archive_duplicates.sh
+  Created: output/scripts/apply_all_fixes.sh
+
+📋 Recommendations:
+  [HIGH] 176 broken references found
+    → Run python3 apply_reference_fixes.py to update references
+  [HIGH] 11 circular dependencies found
+    → Refactor to remove circular dependencies
+  [MEDIUM] 4 duplicate files found
+    → Review and run ./archive_duplicates.sh carefully
+  [MEDIUM] Migration 37.5% complete
+    → Complete migration from monolithic to modular files
+  [LOW] 67 orphaned files found
+    → Review orphaned files and add references or remove
+
+==================================================
+Fix generation complete!
+
+Next steps:
+  1. Review fix_recommendations.json
+  2. Backup your templates directory
+  3. Run ./output/scripts/apply_all_fixes.sh (or individual scripts)
+  4. Test the system after applying fixes
+
+
+============================================================
+EXECUTION SUMMARY
+============================================================
+✅ migration_detector.py
+✅ scanner.py
+✅ analyze_references.py
+✅ find_duplicates.py
+✅ generate_fixes.py
+
+============================================================
+OUTPUT FILES
+============================================================
+✅ output/data/migration_status.json (3,155 bytes)
+✅ output/data/template_scan_results.json (894,245 bytes)
+✅ output/data/reference_analysis.json (191,014 bytes)
+✅ output/data/duplicate_analysis.json (71,951 bytes)
+✅ output/data/fix_recommendations.json (47,027 bytes)
+✅ output/scripts/apply_reference_fixes.py (36,187 bytes)
+✅ output/scripts/archive_duplicates.sh (908 bytes)
+✅ output/scripts/apply_all_fixes.sh (533 bytes)
+
+============================================================
+✅ ALL SCANNERS COMPLETED SUCCESSFULLY!
+
+Next steps:
+1. Review the generated JSON files in output/data/ directory
+2. Check output/data/fix_recommendations.json for prioritized actions
+3. Review the generated scripts in output/scripts/ before running
+4. Backup your templates directory before applying fixes
+5. Run ./output/scripts/apply_all_fixes.sh to apply all fixes (with caution)
+
+Completed: 2026-05-04 18:41:05
+============================================================

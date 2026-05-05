@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260504-task7-baseline-scanner-outputs-ACTIVE has prefix 20260504; today's prefix is 20260505 (ensure multi-day reuse is intentional)

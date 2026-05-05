@@ -1,0 +1,51 @@
+🏷️ tag: master
+
+╭─────────────────────────────────────────────────╮
+│ Next Task: #8 - Create Template Registry System │
+╰─────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 8                                                          │
+│ Title:        │ Create Template Registry System                            │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 1                                                          │
+│ Complexity:   │ ● 8                                                        │
+│ Description:  │ Build centralized registry for template discovery and      │
+│               │ management                                                 │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Create TemplateRegistry class with in-memory index. Implement template       │
+│ discovery using glob patterns. Add caching layer with TTL for performance    │
+│ (<50ms target). Create fallback chain: modular → compatibility map → legacy  │
+│ → Serena → error. Implement template metadata parsing from frontmatter. Add  │
+│ search capabilities (by id, type, category, tags). Use functools.lru_cache   │
+│ for frequently accessed templates.                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌────────┬───────────────┬────────────────────────────────────────────────────┬─────────────────────────┐
+│ ID     │ Status        │ Title                                              │ Deps                    │
+│ 8.1    │ pending       │ Scope reconciliation against portable foundation   │ None                    │
+│ 8.2    │ pending       │ Implement proven current-state gap with evidence   │ None                    │
+└────────┴───────────────┴────────────────────────────────────────────────────┴─────────────────────────┘
+
+╭─────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                          │
+│ 1. Mark as in-progress: task-master set-status --id=8 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=8 --status=done │
+│ 3. Update subtask status: task-master set-status --id=8.1 --status=done     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
