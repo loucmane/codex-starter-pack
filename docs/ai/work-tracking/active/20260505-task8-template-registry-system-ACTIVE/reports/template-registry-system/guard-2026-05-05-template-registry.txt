@@ -1,0 +1,3 @@
+Guard validation failed:
+  - .plan_state/sync.log: Plan hash mismatch; run plan sync
+  - .plan_state/sync.log: Tracker hash mismatch; run plan sync

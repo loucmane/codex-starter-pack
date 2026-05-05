@@ -1,0 +1,49 @@
+🏷️ tag: master
+
+╭──────────────────────────────────────────────────╮
+│ Next Task: #10 - Implement Reference Fix Scripts │
+╰──────────────────────────────────────────────────╯
+┌───────────────┬────────────────────────────────────────────────────────────┐
+│ ID:           │ 10                                                         │
+│ Title:        │ Implement Reference Fix Scripts                            │
+│ Priority:     │ high                                                       │
+│ Dependencies: │ 7                                                          │
+│ Complexity:   │ ● 6                                                        │
+│ Description:  │ Create automated scripts for fixing template references    │
+└───────────────┴────────────────────────────────────────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Implementation Details:                                                      │
+│                                                                              │
+│ Port apply_reference_fixes.py from FPL repo. Implement safe mode with backup │
+│ creation. Add dry-run capability with detailed preview. Create               │
+│ apply_all_fixes.sh wrapper for batch operations. Implement rollback          │
+│ mechanism using git. Add progress tracking and logging. Handle special       │
+│ cases: symlinks, circular references, external references.                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+┌────────┬───────────────┬────────────────────────────────────────────────────┬─────────────────────────┐
+│ ID     │ Status        │ Title                                              │ Deps                    │
+│ 10.1   │ pending       │ Scope reconciliation against portable foundation   │ None                    │
+│ 10.2   │ pending       │ Implement proven current-state gap with evidence   │ None                    │
+└────────┴───────────────┴────────────────────────────────────────────────────┴─────────────────────────┘
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Suggested Actions:                                                           │
+│ 1. Mark as in-progress: task-master set-status --id=10 --status=in-progress  │
+│ 2. Mark as done when completed: task-master set-status --id=10 --status=done │
+│ 3. Update subtask status: task-master set-status --id=10.1 --status=done     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Update Available! 0.26.0 → 0.43.1                                          │
+│                                                                              │
+│   Run npm i task-master-ai@latest -g to update to the latest version with    │
+│   new features and bug fixes.                                                │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
