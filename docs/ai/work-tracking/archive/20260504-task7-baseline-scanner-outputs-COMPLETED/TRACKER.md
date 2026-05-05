@@ -1,7 +1,7 @@
 # Task 7 Baseline Scanner Outputs Tracker
 
 **Started**: 2026-05-04
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-05
 
 ## Goals
@@ -50,6 +50,14 @@
 - **2026-05-05 11:33** - [S:20260505|W:task7-baseline-scanner-outputs|H:scripts/codex-task:work-tracking-audit|E:docs/ai/work-tracking/active/20260504-task7-baseline-scanner-outputs-ACTIVE/reports/baseline-scanner/work-tracking-audit-2026-05-05-post-closeout.txt] Post-closeout work-tracking audit passed with the expected intentional multi-day active-folder reuse warning.
 - **2026-05-05 11:33** - [S:20260505|W:task7-baseline-scanner-outputs|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260504-task7-baseline-scanner-outputs-ACTIVE/reports/baseline-scanner/guard-2026-05-05-post-closeout.txt] Post-closeout guard validation passed.
 - **2026-05-05 11:33** - [S:20260505|W:task7-baseline-scanner-outputs|H:git:diff-check|E:docs/ai/work-tracking/active/20260504-task7-baseline-scanner-outputs-ACTIVE/reports/baseline-scanner/git-diff-check-2026-05-05-post-closeout.txt] Post-closeout `git diff --check` passed.
+- **2026-05-05 12:18** - [S:20260505|W:task7-baseline-scanner-outputs|H:git:log|E:cmd`git log -1 --oneline --decorate`] Verified Task 7 PR merge on `main`: `8f9edbb (HEAD -> main, origin/main) Merge pull request #29 from loucmane/feat/task-7-baseline-scanner-outputs`.
+- **2026-05-05 12:18** - [S:20260505|W:task7-baseline-scanner-outputs|H:git:branch|E:cmd`git branch --all --list '*task-7*'`] Confirmed no local or remote Task 7 branches remain after branch cleanup.
+- **2026-05-05 12:18** - [S:20260505|W:task7-baseline-scanner-outputs|H:scripts/codex-task:archive|E:docs/ai/work-tracking/archive/20260504-task7-baseline-scanner-outputs-COMPLETED/HANDOFF.md] Archived Task 7 work tracking only after merge and branch cleanup confirmation.
+- **2026-05-05 12:20** - [S:20260505|W:task7-baseline-scanner-outputs|H:shell:date|E:cmd`date '+%Y-%m-%d %H:%M:%S %Z %z'`] Confirmed current timestamp as `2026-05-05 12:20:00 CEST +0200` before archive cleanup documentation.
+- **2026-05-05 12:24** - [S:20260505|W:task7-baseline-scanner-outputs|H:shell:date|E:cmd`date '+%Y-%m-%d %H:%M:%S %Z %z'`] Confirmed current timestamp as `2026-05-05 12:24:14 CEST +0200` before after-archive verification.
+- **2026-05-05 12:24** - [S:20260505|W:task7-baseline-scanner-outputs|H:scripts/codex-task:work-tracking-audit|E:docs/ai/work-tracking/archive/20260504-task7-baseline-scanner-outputs-COMPLETED/reports/baseline-scanner/work-tracking-audit-2026-05-05-after-archive.txt] After-archive work-tracking audit passed with expected between-session warnings for no active folder and no `sessions/current` symlink.
+- **2026-05-05 12:24** - [S:20260505|W:task7-baseline-scanner-outputs|H:scripts/codex-guard|E:docs/ai/work-tracking/archive/20260504-task7-baseline-scanner-outputs-COMPLETED/reports/baseline-scanner/guard-2026-05-05-after-archive.txt] After-archive guard validation passed in the between-session state.
+- **2026-05-05 12:24** - [S:20260505|W:task7-baseline-scanner-outputs|H:git:diff-check|E:docs/ai/work-tracking/archive/20260504-task7-baseline-scanner-outputs-COMPLETED/reports/baseline-scanner/git-diff-check-2026-05-05-after-archive.txt] After-archive `git diff --check` passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope - Task 7 kickoff boundary, branch policy, and scope-reconciliation-first rule confirmed
@@ -61,10 +69,13 @@
 ## Dependencies & Notes
 - Session log: `sessions/2026/05/2026-05-05-001-task7-baseline-scanner-outputs.md`
 - Current plan: `plans/2026-05-04-task7-baseline-scanner-outputs.md`
-- Current branch: `feat/task-7-baseline-scanner-outputs`
+- Current branch: `main`
 - Taskmaster Task 7 status: done
 - Taskmaster subtask 7.1 status: done
 - Taskmaster subtask 7.2 status: done
 - Baseline metrics: 318 files, 696 references, 176 broken references, 4 duplicate files, 37.5 percent migration.
 - Runtime scanner outputs remain ignored under `scripts/template-ssot-scanner/output/data/`; durable Task 7 evidence lives under `reports/baseline-scanner/`.
 - Taskmaster next: Task 8.
+- Archived work tracking: `docs/ai/work-tracking/archive/20260504-task7-baseline-scanner-outputs-COMPLETED/`.
+- Branch cleanup: no local or remote `task-7` branches remain.
+- After-archive verification: work-tracking audit, guard, and `git diff --check` passed on 2026-05-05.

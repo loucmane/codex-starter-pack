@@ -9,3 +9,6 @@
 - 2026-05-05 11:02 CEST - Started May 5 continuation session, captured Serena continuation memory, and logged same-folder multi-day work-tracking continuation.
 - 2026-05-05 11:07 CEST - Completed final verification and marked Taskmaster Task 7 done.
 - 2026-05-05 11:33 CEST - Captured post-closeout verification after Taskmaster and tracker updates.
+- 2026-05-05 12:18 CEST - Archived active work-tracking folder after Task 7 PR merge and branch cleanup confirmation.
+- 2026-05-05 12:20 CEST - Replaced stale pre-merge handoff steps with the actual merged and archived Task 7 state.
+- 2026-05-05 12:24 CEST - Captured after-archive audit, guard, and diff-check evidence for the between-session state.
