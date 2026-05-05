@@ -1,0 +1,4 @@
+baseline_summary-2026-05-04.json: metadata=True data=True size=3693
+duplicate_analysis-2026-05-04.json: metadata=True data=True size=71951
+fix_recommendations-2026-05-04.json: metadata=True data=True size=47141
+migration_status-2026-05-04.json: metadata=True data=True size=3269
