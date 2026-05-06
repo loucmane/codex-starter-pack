@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -47,6 +48,13 @@ DEFAULT_TIME_FORMAT_TRACKER = "%Y-%m-%d %H:%M"
 SCANNER_PATH = REPO_ROOT / "scripts" / "template-ssot-scanner"
 METRICS_DASHBOARD_SCRIPT = REPO_ROOT / "scripts" / "template-metrics-dashboard"
 CODEX_GUARD_SCRIPT = REPO_ROOT / "scripts" / "codex-guard"
+PRE_COMMIT_CONFIG = REPO_ROOT / ".pre-commit-config.yaml"
+PRE_COMMIT_HOOK = REPO_ROOT / ".git" / "hooks" / "pre-commit"
+PRE_COMMIT_REQUIRED_SNIPPETS = (
+    "python3 scripts/codex-guard validate --include-untracked",
+    'python3 scripts/codex-guard drift-check --strict --report-dir ""',
+)
+PRE_COMMIT_INSTALL_COMMAND = ".venv/bin/pre-commit install"
 PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
 PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
 PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
@@ -1215,6 +1223,114 @@ def handle_report_generate(args: argparse.Namespace) -> None:
             raise TaskError(f"Report command failed with exit code {result.returncode}: {printable}")
 
 
+def _path_display(path: Path) -> str:
+    return _relative_to_root(path, REPO_ROOT)
+
+
+def _is_executable_file(path: Path) -> bool:
+    return path.is_file() and os.access(path, os.X_OK)
+
+
+def _find_pre_commit_binary() -> Optional[Path]:
+    local_binary = REPO_ROOT / ".venv" / "bin" / "pre-commit"
+    if _is_executable_file(local_binary):
+        return local_binary
+
+    found = shutil.which("pre-commit")
+    if found:
+        return Path(found)
+    return None
+
+
+def _pre_commit_version(binary: Path) -> str:
+    result = subprocess.run(
+        [str(binary), "--version"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return "version unavailable"
+    return result.stdout.strip() or "version unavailable"
+
+
+def _verify_pre_commit_config() -> List[str]:
+    issues: List[str] = []
+    if not PRE_COMMIT_CONFIG.exists():
+        return [f"Missing {PRE_COMMIT_CONFIG.relative_to(REPO_ROOT).as_posix()}"]
+
+    config_text = PRE_COMMIT_CONFIG.read_text(encoding="utf-8")
+    for snippet in PRE_COMMIT_REQUIRED_SNIPPETS:
+        if snippet not in config_text:
+            issues.append(f"{PRE_COMMIT_CONFIG.relative_to(REPO_ROOT).as_posix()} missing required entry: {snippet}")
+    if config_text.count("pass_filenames: false") < len(PRE_COMMIT_REQUIRED_SNIPPETS):
+        issues.append(f"{PRE_COMMIT_CONFIG.relative_to(REPO_ROOT).as_posix()} should keep guard hooks filename-independent")
+    if config_text.count("always_run: true") < len(PRE_COMMIT_REQUIRED_SNIPPETS):
+        issues.append(f"{PRE_COMMIT_CONFIG.relative_to(REPO_ROOT).as_posix()} should keep guard hooks always-on")
+    return issues
+
+
+def _pre_commit_hook_status() -> Tuple[bool, str]:
+    if not PRE_COMMIT_HOOK.exists():
+        return False, f"{_path_display(PRE_COMMIT_HOOK)} is not installed"
+    if not PRE_COMMIT_HOOK.is_file():
+        return False, f"{_path_display(PRE_COMMIT_HOOK)} exists but is not a file"
+    if not os.access(PRE_COMMIT_HOOK, os.X_OK):
+        return False, f"{_path_display(PRE_COMMIT_HOOK)} exists but is not executable"
+    try:
+        hook_text = PRE_COMMIT_HOOK.read_text(encoding="utf-8", errors="ignore")
+    except OSError as exc:
+        return False, f"{_path_display(PRE_COMMIT_HOOK)} could not be read: {exc}"
+    if "pre-commit" not in hook_text and "PRE_COMMIT" not in hook_text:
+        return False, f"{_path_display(PRE_COMMIT_HOOK)} does not look like a pre-commit managed hook"
+    return True, f"{_path_display(PRE_COMMIT_HOOK)} is installed"
+
+
+def handle_hooks_verify(args: argparse.Namespace) -> None:
+    issues = _verify_pre_commit_config()
+    warnings: List[str] = []
+    detail_lines: List[str] = []
+
+    if issues:
+        detail_lines.append(f"- {_path_display(PRE_COMMIT_CONFIG)}: failed")
+    else:
+        detail_lines.append(f"- {_path_display(PRE_COMMIT_CONFIG)}: ok")
+
+    binary = _find_pre_commit_binary()
+    if binary is None:
+        issues.append("pre-commit executable not found; install dev dependencies or ensure .venv/bin/pre-commit exists")
+        detail_lines.append("- pre-commit binary: missing")
+    else:
+        version = _pre_commit_version(binary)
+        detail_lines.append(f"- pre-commit binary: ok ({_path_display(binary)}, {version})")
+
+    hook_installed, hook_message = _pre_commit_hook_status()
+    if hook_installed:
+        detail_lines.append(f"- local pre-commit hook: ok ({hook_message})")
+    else:
+        message = f"local pre-commit hook: {hook_message}; run `{PRE_COMMIT_INSTALL_COMMAND}`"
+        if args.require_installed:
+            issues.append(message)
+            detail_lines.append(f"- local pre-commit hook: failed ({hook_message})")
+        else:
+            warnings.append(message)
+            detail_lines.append(f"- local pre-commit hook: warning ({hook_message})")
+
+    print("Hook verification:")
+    for line in detail_lines:
+        print(line)
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
+    if issues:
+        print("Issues:")
+        for issue in issues:
+            print(f"- {issue}")
+        raise TaskError("Hook verification failed")
+    print("Hook verification passed.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Codex task helper")
     parser.add_argument("--session", help="Override S field session value", default=None)
@@ -1292,6 +1408,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Exit nonzero when drift findings are present while generating drift reports",
     )
     report_generate.set_defaults(func=handle_report_generate)
+
+    hooks_parser = subparsers.add_parser("hooks", help="Git hook verification operations")
+    hooks_sub = hooks_parser.add_subparsers(dest="subcommand", required=True)
+    hooks_verify = hooks_sub.add_parser("verify", help="Verify tracked pre-commit hook configuration and local install state")
+    hooks_verify.add_argument(
+        "--require-installed",
+        action="store_true",
+        help="Fail when the local .git/hooks/pre-commit entry is not installed",
+    )
+    hooks_verify.set_defaults(func=handle_hooks_verify)
 
     bootstrap_parser = subparsers.add_parser("bootstrap", help="Portable foundation bootstrap operations")
     bootstrap_sub = bootstrap_parser.add_subparsers(dest="subcommand", required=True)

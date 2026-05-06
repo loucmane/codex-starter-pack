@@ -1,0 +1,7 @@
+Hook verification:
+- .pre-commit-config.yaml: ok
+- pre-commit binary: ok (.venv/bin/pre-commit, pre-commit 4.6.0)
+- local pre-commit hook: warning (.git/hooks/pre-commit is not installed)
+Warnings:
+- local pre-commit hook: .git/hooks/pre-commit is not installed; run `.venv/bin/pre-commit install`
+Hook verification passed.

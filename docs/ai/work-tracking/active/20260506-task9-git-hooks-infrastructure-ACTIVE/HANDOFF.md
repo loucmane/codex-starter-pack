@@ -12,8 +12,18 @@
 - Scope evidence passed: project-virtualenv pre-commit run, focused pre-commit config pytest, plan sync, guard, work-tracking audit, and `git diff --check`.
 - `task-master update-subtask --id=9.1` failed due the configured Claude Code provider, but `task-master set-status --id=9.1 --status=done` succeeded and the scope notes are captured in this work-tracking folder.
 - Final Task 9.1 evidence passed: plan sync, work-tracking audit, guard, and `git diff --check`.
-- Full Task 9 hook implementation is not complete yet; this checkpoint establishes the active workflow container and auth-cache baseline.
+- `python3 scripts/codex-task hooks verify` has been added as the tracked local-hook parity verifier.
+- Hook verifier evidence:
+  - Default mode passed while warning that `.git/hooks/pre-commit` was missing.
+  - Strict `--require-installed` mode failed before local install, proving the current-state gap was detected.
+  - `.venv/bin/pre-commit install` installed `.git/hooks/pre-commit`.
+  - Strict `--require-installed` mode passed after installation.
+- Focused hook-verifier and pre-commit config regression tests passed.
+- Final completed-state evidence passed: plan sync, work-tracking audit, guard, pre-commit, and `git diff --check`.
+- Serena completion memory: `.serena/memories/2026-05-06_task9_git_hooks_completion.md`.
+- Taskmaster subtask 9.2 status: done.
+- Taskmaster parent Task 9 status: done.
 
 ## Next Steps
-- Start Taskmaster subtask 9.2 from the proven current gap: local hook installation/parity and missing coverage.
-- Taskmaster Task 10 remains next after Task 9 is completed or explicitly paused.
+- After Task 9 PR merge, archive this work-tracking folder in a separate workflow/archive commit.
+- Taskmaster Task 10 is the next queued task after Task 9 merges and archives.

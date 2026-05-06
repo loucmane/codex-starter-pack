@@ -10,6 +10,8 @@ evidence_summary:
   - templates/engine/core/codex-readiness.md
   - templates/workflows/session/lifecycle.md
   - templates/guides/troubleshooting/issues.md
+  - scripts/codex-task
+  - tests/meta_workflow_guard/test_codex_task.py
   - .taskmaster/tasks/task_009.txt
 plan_version: v1
 emergency_bypass: false
@@ -23,7 +25,7 @@ emergency_bypass: false
 - **Handler Target (H)**: templates/tools/git/commands.md
 - **Task IDs**: 9
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/, templates/tools/git/commands.md, templates/engine/core/codex-readiness.md, templates/workflows/session/lifecycle.md, templates/guides/troubleshooting/issues.md, .taskmaster/tasks/task_009.txt
+- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/, templates/tools/git/commands.md, templates/engine/core/codex-readiness.md, templates/workflows/session/lifecycle.md, templates/guides/troubleshooting/issues.md, scripts/codex-task, tests/meta_workflow_guard/test_codex_task.py, .taskmaster/tasks/task_009.txt
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
@@ -31,8 +33,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Reconcile Task 9 against current Git hook/auth infrastructure and the post-Task-8 archive state | docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/designs/task9-scope-reconciliation.md | completed |
-| plan-step-implement | Update reusable Git/auth readiness templates and keep Task 8 archive cleanup under active Task 9 tracking | templates/tools/git/commands.md; templates/engine/core/codex-readiness.md; templates/workflows/session/lifecycle.md; templates/guides/troubleshooting/issues.md; templates/TOOLS.md | in-progress |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm guard/audit/diff-check status | docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Add tracked local hook parity verification, install the workspace pre-commit hook, and keep Git/auth template updates under active Task 9 tracking | scripts/codex-task; tests/meta_workflow_guard/test_codex_task.py; templates/tools/git/commands.md; templates/engine/core/codex-readiness.md; templates/workflows/session/lifecycle.md; templates/guides/troubleshooting/issues.md; templates/TOOLS.md | completed |
+| plan-step-verify | Store hook/test evidence, refresh handoff docs, and confirm guard/audit/diff-check status | docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/hooks-verify-require-installed-2026-05-06-final.txt; docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/tests-2026-05-06-hooks.txt | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -42,6 +44,8 @@ emergency_bypass: false
 - `templates/workflows/session/lifecycle.md`
 - `templates/guides/troubleshooting/issues.md`
 - `templates/TOOLS.md`
+- `scripts/codex-task`
+- `tests/meta_workflow_guard/test_codex_task.py`
 - `.taskmaster/tasks/task_009.txt`
 - `tests/`
 - Taskmaster Task `9`
@@ -60,7 +64,7 @@ emergency_bypass: false
   2. Review Taskmaster Task 9 and its subtasks.
   3. Review `designs/task9-scope-reconciliation.md` before changing hook or Git/auth behavior.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: avoid implementing full hook infrastructure until scope reconciliation confirms the current pre-commit, guard, and auth/signing baseline.
+- Outstanding risks/todos: secret scanning, ruff, pre-push enforcement, and protected-path policy remain candidate follow-up extensions that require their own baseline evidence before implementation.
 
 ## Conflict & Scope Declaration
 - Related plans: Tasks 94-95 enforcement groundwork, Task 97 dashboard follow-on.
@@ -70,6 +74,7 @@ emergency_bypass: false
 - Scope reconciliation note under `designs/`
 - Tracker/session entries for kickoff and implementation progress
 - Stored audit, guard, and diff-check evidence for each checkpoint
+- Hook verifier evidence before and after local pre-commit hook installation
 
 ## Emergency Bypass Protocol
 - No bypass authorized.

@@ -10,6 +10,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from tests.meta_workflow_guard.cross_project_fixtures import REPO_SHAPES
 
 
@@ -151,6 +153,15 @@ def test_build_parser_accepts_report_generate() -> None:
     assert args.strict_drift is True
 
 
+def test_build_parser_accepts_hooks_verify() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["hooks", "verify", "--require-installed"])
+    assert args.command == "hooks"
+    assert args.subcommand == "verify"
+    assert args.require_installed is True
+
+
 def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
     module = load_task_module()
     commands = []
@@ -176,6 +187,125 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
     assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
     assert Path(commands[1][1]).name == "template-metrics-dashboard"
     assert commands[1][2:] == ["--report-dir", "reports/template-metrics"]
+
+
+def _write_pre_commit_test_repo(
+    module,
+    monkeypatch,
+    tmp_path,
+    config_text: str | None = None,
+    create_binary: bool = True,
+) -> tuple[Path, Path]:
+    repo = tmp_path
+    config = repo / ".pre-commit-config.yaml"
+    hook = repo / ".git" / "hooks" / "pre-commit"
+    binary = repo / ".venv" / "bin" / "pre-commit"
+    config.write_text(
+        config_text
+        or """
+repos:
+  - repo: local
+    hooks:
+      - id: codex-guard-validate
+        entry: python3 scripts/codex-guard validate --include-untracked
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: codex-guard-drift-check
+        entry: python3 scripts/codex-guard drift-check --strict --report-dir ""
+        language: system
+        pass_filenames: false
+        always_run: true
+""".lstrip(),
+        encoding="utf-8",
+    )
+    if create_binary:
+        binary.parent.mkdir(parents=True)
+        binary.write_text("#!/bin/sh\nprintf 'pre-commit 4.6.0\\n'\n", encoding="utf-8")
+        binary.chmod(0o755)
+    hook.parent.mkdir(parents=True)
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "PRE_COMMIT_CONFIG", config)
+    monkeypatch.setattr(module, "PRE_COMMIT_HOOK", hook)
+    monkeypatch.setattr(module, "_pre_commit_version", lambda path: "pre-commit 4.6.0")
+    return repo, hook
+
+
+def test_handle_hooks_verify_warns_when_local_hook_missing(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    _write_pre_commit_test_repo(module, monkeypatch, tmp_path)
+
+    module.handle_hooks_verify(argparse.Namespace(require_installed=False))
+
+    output = capsys.readouterr().out
+    assert ".pre-commit-config.yaml: ok" in output
+    assert "pre-commit binary: ok" in output
+    assert "local pre-commit hook: warning" in output
+    assert ".venv/bin/pre-commit install" in output
+    assert "Hook verification passed" in output
+
+
+def test_handle_hooks_verify_can_require_installed_hook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _write_pre_commit_test_repo(module, monkeypatch, tmp_path)
+
+    with pytest.raises(module.TaskError):
+        module.handle_hooks_verify(argparse.Namespace(require_installed=True))
+
+
+def test_handle_hooks_verify_accepts_installed_pre_commit_hook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    _, hook = _write_pre_commit_test_repo(module, monkeypatch, tmp_path)
+    hook.write_text("#!/bin/sh\n# pre-commit hook\n", encoding="utf-8")
+    hook.chmod(0o755)
+
+    module.handle_hooks_verify(argparse.Namespace(require_installed=True))
+
+    output = capsys.readouterr().out
+    assert "local pre-commit hook: ok" in output
+    assert "Hook verification passed" in output
+
+
+def test_handle_hooks_verify_rejects_missing_pre_commit_binary(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _write_pre_commit_test_repo(module, monkeypatch, tmp_path, create_binary=False)
+    monkeypatch.setattr(module.shutil, "which", lambda name: None)
+
+    with pytest.raises(module.TaskError):
+        module.handle_hooks_verify(argparse.Namespace(require_installed=False))
+
+
+def test_handle_hooks_verify_rejects_unmanaged_hook_file(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _, hook = _write_pre_commit_test_repo(module, monkeypatch, tmp_path)
+    hook.write_text("#!/bin/sh\nprintf 'custom hook\\n'\n", encoding="utf-8")
+    hook.chmod(0o755)
+
+    with pytest.raises(module.TaskError):
+        module.handle_hooks_verify(argparse.Namespace(require_installed=True))
+
+
+def test_handle_hooks_verify_rejects_missing_guard_entry(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _write_pre_commit_test_repo(
+        module,
+        monkeypatch,
+        tmp_path,
+        config_text="""
+repos:
+  - repo: local
+    hooks:
+      - id: codex-guard-validate
+        entry: python3 scripts/codex-guard validate --include-untracked
+        language: system
+        pass_filenames: false
+        always_run: true
+""".lstrip(),
+    )
+
+    with pytest.raises(module.TaskError):
+        module.handle_hooks_verify(argparse.Namespace(require_installed=False))
 
 
 def test_handle_report_generate_dry_run_does_not_execute(monkeypatch, capsys) -> None:

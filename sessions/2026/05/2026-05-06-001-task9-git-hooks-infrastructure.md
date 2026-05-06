@@ -21,8 +21,8 @@ title: Task 9 - Setup Git Hooks Infrastructure
 - [x] Scaffold Task 9 work tracking.
 - [x] Repoint `sessions/current` and `plans/current` to Task 9.
 - [x] Mark Taskmaster Task 9 in progress.
-- [ ] Review the design baseline and implementation boundary for Setup Git Hooks Infrastructure.
-- [ ] Capture implementation and verification evidence.
+- [x] Review the design baseline and implementation boundary for Setup Git Hooks Infrastructure.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 9 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, and work-tracking scaffolding in a guard-compliant state before implementation began.
@@ -42,3 +42,11 @@ Task 9 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cre
 - **[14:33]** — [S:20260506|W:task9-git-hooks-infrastructure|H:task-master:update-subtask|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/FINDINGS.md] Taskmaster AI-backed subtask note update failed because the configured Claude Code provider errored, so the scope notes remain in tracked repo artifacts.
 - **[14:33]** — [S:20260506|W:task9-git-hooks-infrastructure|H:task-master:set-status|E:.taskmaster/tasks/task_009.txt] Marked Taskmaster subtask 9.1 done after scope evidence passed.
 - **[14:34]** — [S:20260506|W:task9-git-hooks-infrastructure|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/guard-2026-05-06-scope.txt] Final Task 9.1 evidence passed: plan sync, work-tracking audit, guard, and `git diff --check`.
+- **[14:43]** — [S:20260506|W:task9-git-hooks-infrastructure|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M:%S %Z %z"`] Confirmed continuation timestamp as `2026-05-06 14:43:41 CEST +0200`.
+- **[14:44]** — [S:20260506|W:task9-git-hooks-infrastructure|H:scripts/codex-task:hooks-verify|E:scripts/codex-task] Added `codex-task hooks verify` to validate the tracked pre-commit config, detect the project virtualenv pre-commit binary, and report local `.git/hooks/pre-commit` install state.
+- **[14:45]** — [S:20260506|W:task9-git-hooks-infrastructure|H:pytest|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/tests-2026-05-06-hooks.txt] Focused hook-verifier regression tests passed with 19 tests covering parser support, config validation, missing binary, default warning mode, strict installed-hook mode, unmanaged hook rejection, and the existing pre-commit config regression.
+- **[14:45]** — [S:20260506|W:task9-git-hooks-infrastructure|H:scripts/codex-task:hooks-verify|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/hooks-verify-require-installed-2026-05-06-expected-fail.txt] Captured the expected strict verifier failure before local hook install; `.git/hooks/pre-commit` was missing.
+- **[14:46]** — [S:20260506|W:task9-git-hooks-infrastructure|H:pre-commit:install|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/hooks-verify-require-installed-2026-05-06-final.txt] Installed the local pre-commit hook through `.venv/bin/pre-commit install`; strict verifier now passes.
+- **[14:46]** — [S:20260506|W:task9-git-hooks-infrastructure|H:task-master:set-status|E:.taskmaster/tasks/task_009.txt] Marked Taskmaster subtask 9.2 and parent Task 9 done after the verifier, tests, local hook install, and evidence passed.
+- **[14:52]** — [S:20260506|W:task9-git-hooks-infrastructure|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/reports/git-hooks-infrastructure/guard-2026-05-06-final.txt] Final validation stack passed: plan sync, work-tracking audit, guard, pre-commit, and `git diff --check`.
+- **[14:53]** — [S:20260506|W:task9-git-hooks-infrastructure|H:serena/memory|E:.serena/memories/2026-05-06_task9_git_hooks_completion.md] Captured Serena completion memory for Task 9 hook verifier, evidence, and next-step recovery.
