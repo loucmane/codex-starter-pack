@@ -937,7 +937,7 @@
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 9
           },
@@ -4546,7 +4546,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-05-06T11:52:37.372Z"
+      "updated": "2026-05-06T12:31:31.015Z"
     }
   }
 }
