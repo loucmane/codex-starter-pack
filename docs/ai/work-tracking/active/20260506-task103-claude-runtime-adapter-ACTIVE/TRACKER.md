@@ -72,6 +72,8 @@
 - **2026-05-06 18:51** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/task-103-show-2026-05-06-final.txt] Marked subtask 103.5 done, then restored parent Task 103 to `in-progress` so the active PR branch remains readiness-compatible.
 - **2026-05-06 18:52** — [S:20260506|W:task103-claude-runtime-adapter|H:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/MEMORY-REFS.md|E:.serena/memories/2026-05-06_task103_claude_runtime_adapter_completion.md] Added memory references and completion-handoff structure.
 - **2026-05-06 18:55** — [S:20260506|W:task103-claude-runtime-adapter|H:verification:final-stack|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-final.txt] Reran the final verification stack after all handoff updates: pytest, readiness, plan sync, work-tracking audit, guard, diff-check, Taskmaster dependency validation, and pre-commit passed.
+- **2026-05-06 19:12** — [S:20260506|W:task103-claude-runtime-adapter|H:github:pr-merge|E:github.com/loucmane/codex-starter-pack/pull/32] Merged PR #32 into `main` with merge commit `86ef5be019f2c35fc3c98759ddcb95f6648e5576`.
+- **2026-05-06 19:12** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked parent Taskmaster Task 103 done after merge while the active tracker still exists, so the Taskmaster status change remains auditable before archive.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile bootstrap branch, runtime contract, ownership boundaries, and mutation taxonomy
