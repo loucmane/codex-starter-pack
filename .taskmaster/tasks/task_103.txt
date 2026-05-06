@@ -35,9 +35,8 @@ Outputs: .claude/scripts/pretooluse-gate.sh orchestrator, codex-path guard, bash
 ### Details:
 Outputs: CLAUDE.md, .claude/engine docs, .claude/commands wrappers, .claude/agents executor/orchestrator/checker, .claude/AGENTS.md, .claude/settings.json, and S:W:H:E entries citing source commit SHAs or rejection rationale for each bootstrap file.
 
-## 5. Tests, evidence, and handoff [pending]
+## 5. Tests, evidence, and handoff [done]
 ### Dependencies: None
 ### Description: Prove the Claude runtime adapter works as a system with focused tests, final guard evidence, documented policy-only surfaces, Serena memory, and clean handoff.
 ### Details:
 Outputs: tests/claude_adapter/ or equivalent focused pytest suite, cold-session zero-mutation integration evidence, hookability taxonomy results, plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, HANDOFF/MEMORY-REFS, and final GAC/PR description. Parent acceptance requires every enforcement claim to be backed by a passing test or documented policy-only label.
-

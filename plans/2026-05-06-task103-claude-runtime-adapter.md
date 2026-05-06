@@ -30,7 +30,7 @@ emergency_bypass: false
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Reconcile `feat/claude-port-bootstrap`, current `.claude` state, ownership boundaries, mutation taxonomy, and the permanent runtime contract | docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/claude-runtime-file-contract.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/mutation-taxonomy.md; .claude/engine/runtime-contract.md | completed |
 | plan-step-implement | Implement Claude readiness, PreToolUse mutation gates, adapter commands/agents/settings, and approved bootstrap ports | .claude/engine/runtime-contract.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Store hookability/test evidence, refresh handoff docs, and confirm Taskmaster/guard/pre-commit status | docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/ | pending |
+| plan-step-verify | Store hookability/test evidence, refresh handoff docs, and confirm Taskmaster/guard/pre-commit status | docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/MEMORY-REFS.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/ | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -55,7 +55,7 @@ emergency_bypass: false
   2. Review Taskmaster Task 103 and its subtasks.
   3. Review `designs/claude-runtime-file-contract.md` and `designs/mutation-taxonomy.md` before changing Claude adapter behavior.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: do not port `feat/claude-port-bootstrap` directly; classify every file and prove every enforcement claim with a test or policy-only label.
+- Outstanding risks/todos: parent Task 103 intentionally remains `in-progress` while the PR is active so Claude readiness stays `READY`; after merge/archive, close the parent task and continue with Task 104 for targeted Taskmaster generation.
 
 ## Conflict & Scope Declaration
 - Related plans: Task 9 hook verification, Tasks 94-95 enforcement groundwork, Task 97 dashboard follow-on, deferred Task 10.
@@ -64,7 +64,7 @@ emergency_bypass: false
 ## Evidence Checklist
 - Runtime contract and mutation taxonomy notes under `designs/`
 - Tracker/session entries for kickoff and implementation progress
-- Stored hookability, pytest, guard, pre-commit, audit, and diff-check evidence once implementation lands
+- Stored hookability, pytest, guard, pre-commit, audit, and diff-check evidence under `reports/claude-runtime-adapter/`
 
 ## Emergency Bypass Protocol
 - No bypass authorized.

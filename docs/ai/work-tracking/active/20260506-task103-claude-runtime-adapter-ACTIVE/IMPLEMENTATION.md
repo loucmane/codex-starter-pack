@@ -35,3 +35,12 @@
 - Updated `.mcp.json` and `.cursor/mcp.json` to use `--package=task-master-ai@latest`.
 - Added Taskmaster Task 104 as the follow-up for a targeted task-file generation helper; evidence is stored in `reports/claude-runtime-adapter/task-104-show-2026-05-06.txt`.
 - Confirmed `task-master generate` still lacks a single-task generation flag in `0.43.1`; evidence is stored in `reports/claude-runtime-adapter/taskmaster-generate-help-2026-05-06.txt`.
+- Confirmed Taskmaster `0.43.1` also changes generated task files from `task_*.txt` to `task_*.md` when using `generate --output`. Task 103 does not perform the extension transition; Task 104 owns the compatibility helper.
+- Confirmed Taskmaster `0.43.1` auto-completes the parent when the last subtask is marked done. Parent Task 103 was restored to `in-progress` so the active branch remains readiness-compatible until PR merge/archive.
+
+## Subtask 103.5 - Tests, Evidence, and Handoff
+- Captured final Claude adapter pytest evidence in `reports/claude-runtime-adapter/tests-2026-05-06-final.txt` (`28 passed`).
+- Captured final readiness evidence in `reports/claude-runtime-adapter/readiness-2026-05-06-final.txt` (`STATE: READY`).
+- Captured final Taskmaster state evidence in `reports/claude-runtime-adapter/task-103-show-2026-05-06-final.txt`, showing parent Task 103 `in-progress` and all five subtasks done.
+- Captured final plan sync, work-tracking audit, guard, diff-check, Taskmaster dependency validation, and pre-commit evidence under `reports/claude-runtime-adapter/`.
+- Added `MEMORY-REFS.md` so Serena and private-memory references are file-backed and auditable instead of relying on loose memory state.

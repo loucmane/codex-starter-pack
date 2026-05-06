@@ -7,6 +7,8 @@
 - Taskmaster subtask 103.2 status: done.
 - Taskmaster subtask 103.3 status: done.
 - Taskmaster subtask 103.4 status: done.
+- Taskmaster subtask 103.5 status: done.
+- Parent Task 103 intentionally remains `in-progress` while this PR branch is active because Claude readiness requires the active parent task to be in progress. Close it after PR merge/archive, not before final PR validation.
 - Taskmaster Task 104 exists as a high-priority follow-up for targeted Taskmaster task-file generation.
 - Task 103 was created manually through Taskmaster after the AI-backed `add-task` provider failed.
 - Active session: `sessions/2026/05/2026-05-06-002-task103-claude-runtime-adapter.md`.
@@ -60,9 +62,23 @@
   - `reports/claude-runtime-adapter/guard-2026-05-06-adapter-port.txt`
   - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-adapter-port.txt`
   - `reports/claude-runtime-adapter/pre-commit-2026-05-06-adapter-port.txt`
+- Final verification evidence is green:
+  - `reports/claude-runtime-adapter/tests-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/task-103-show-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/taskmaster-validate-dependencies-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-final.txt`
+- Memory references:
+  - `MEMORY-REFS.md`
+  - `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`
+  - `.serena/memories/2026-05-06_task103_claude_runtime_adapter_completion.md`
 
 ## Next Steps
-- Start subtask 103.5: final tests, evidence, and handoff.
-- Use temp-output Taskmaster generation until Task 104 implements the helper:
-  `task-master generate --output <tmpdir>` then copy only the intended `task_<id>.txt`.
-- Continue treating `feat/claude-port-bootstrap` as raw material, not a source to merge directly.
+- Commit and push the final Task 103.5 verification/handoff changes.
+- Open the Task 103 PR from `feat/task-103-claude-runtime-adapter`.
+- After merge, archive the active work-tracking folder and then close parent Task 103.
+- Continue with Task 104 next: targeted Taskmaster generation helper, including the newly observed Taskmaster `0.43.1` `.md` generation and `tasks.json` serialization behavior.

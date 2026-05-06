@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Analyze Current Codebase Structure",
         "description": "Perform comprehensive analysis of the existing Codex repository to understand current template system, monolithic files, and migration readiness",
         "details": "Use Glob to explore project structure ('**/*.md', '**/*.py', '**/templates/**'), Grep to search for template references and patterns, Read key files (CLAUDE.md, CODEX.md, package.json). Document existing monolithic files (WORKFLOWS.md, PATTERNS.md), current template locations, reference patterns, and integration points. Create baseline inventory of all template-related files and their dependencies.",
@@ -119,7 +119,7 @@
         "expansionPrompt": "Break down the codebase analysis into systematic discovery of existing template infrastructure, monolithic files inventory, reference pattern mapping, and baseline documentation creation. Focus on understanding the current state before migration."
       },
       {
-        "id": 81,
+        "id": "81",
         "title": "Implement Plan Compliance Enforcement",
         "description": "Implement guard and behavior to enforce plan-first workflow execution before any edits occur.",
         "details": "Completes the plan compliance enforcement loop (behavior, guard validation, plan/tracker sync, evidence logging).",
@@ -213,7 +213,7 @@
         ]
       },
       {
-        "id": 82,
+        "id": "82",
         "title": "Integrate Meta Workflow Authoring Enforcement",
         "description": "Wire the meta workflow orchestrator and gap-detection pattern into guard automation, Taskmaster alignment, and helper tooling.",
         "details": "Ensures meta workflow authoring process runs before any workflow/handler changes.",
@@ -297,7 +297,7 @@
         ]
       },
       {
-        "id": 83,
+        "id": "83",
         "title": "Build Meta Workflow Regression Test Suite",
         "description": "Add automated coverage to ensure meta workflow orchestrator/pattern registration and guard behavior remain intact.",
         "details": "Creates unit and integration tests plus documentation for ongoing enforcement.",
@@ -361,7 +361,7 @@
         ]
       },
       {
-        "id": 84,
+        "id": "84",
         "title": "Implement Timestamp Guard",
         "description": "Enforce real timestamp commands before logging session/work-tracking entries and add regression coverage.",
         "details": "Extends timestamp behavior, guard checks, templates, helper messaging, and testing.",
@@ -437,7 +437,7 @@
         ]
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Setup Python Environment and Dependencies",
         "description": "Configure Python 3.11+ environment with required dependencies for scanner suite and automation tools",
         "details": "Install Python 3.11+ via pyenv or system package manager. Create virtual environment using 'python -m venv .venv'. Install dependencies: pip install pytest>=7.4.0 pytest-benchmark>=4.0.0 pytest-cov>=4.1.0 pyyaml>=6.0 click>=8.1.0 rich>=13.5.0. Create pyproject.toml with pinned versions. Setup uv for faster dependency management: pip install uv, then uv pip compile pyproject.toml -o requirements.lock",
@@ -534,7 +534,7 @@
         "expansionPrompt": "Create tasks for Python environment setup (already have 3.12.3), dependency installation with requirements file creation, and verification testing. Include virtual environment setup and package management configuration."
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Port SSOT Scanner Suite to Codex",
         "description": "Migrate the Python scanner suite from FPL MCP repository to Codex environment",
         "details": "Copy scanner modules from ~/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/ to scripts/template-ssot-scanner/. Port main scanner.py, reference_validator.py, duplicate_detector.py, migration_tracker.py. Update import paths and configuration for Codex structure. Implement versioned metadata output format 2.0.0 with compatibility field. Add JSON schema validation using jsonschema library.",
@@ -650,7 +650,7 @@
         "expansionPrompt": "Organize porting of scanner modules including core scanner.py, validation modules, metadata handling, JSON schema implementation, and compatibility testing. Scanner already exists but needs enhancement and versioning."
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Create Scanner Configuration System",
         "description": "Implement YAML-based configuration for scanner rules, severities, and allowlists",
         "details": "Create scanner_config.yaml with rule definitions: reference_validation (severity: error, auto_fix: true), duplicate_detection (severity: warning, threshold: 0.8), migration_tracking (severity: info). Implement ConfigLoader class using PyYAML. Add allowlist support for paths like templates/legacy/, docs/examples/. Create rule severity taxonomy (error, warning, info). Implement configuration validation and defaults.",
@@ -772,7 +772,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 4
+            "parentTaskId": 4,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -780,7 +781,7 @@
         "expansionPrompt": "Design and implement YAML configuration loader, rule definition system with severities, allowlist pattern matching, configuration validation, default handling, and integration with existing scanner infrastructure."
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Implement Codex-Task CLI Tool",
         "description": "Create command-line utility for task management and work-tracking integration",
         "details": "Create scripts/codex-task using Click framework. Implement commands: 'sessions update' for work-tracking, 'scanner run' with --log-note flag, 'report generate' for outputs. Add S:W:H:E structured logging support. Integrate with git for automatic session detection. Add --dry-run flag for all destructive operations. Implement progress bars using Rich library for long-running operations.",
@@ -798,7 +799,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 5
+            "parentTaskId": 5,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -807,7 +809,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 5
+            "parentTaskId": 5,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -815,7 +818,7 @@
         "expansionPrompt": "Build CLI framework with Click, implement core commands (sessions, scanner, report), add S:W:H:E logging integration, git integration for session detection, dry-run capabilities, progress visualization with Rich, and comprehensive testing."
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Implement Codex-Guard Validation Tool",
         "description": "Create enforcement helper for template compliance and S:W:H:E format validation",
         "details": "Create scripts/codex-guard with validation engine. Implement S:W:H:E format checker using regex patterns. Add frontmatter schema validation (id, type, category, dependencies, triggers, exports, version, status). Create auto-fix mode for common issues. Implement allowlist configuration for exceptions. Add git hook integration support. Use colorized output for validation results.",
@@ -833,7 +836,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 6
+            "parentTaskId": 6,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -842,7 +846,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 6
+            "parentTaskId": 6,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -850,7 +855,7 @@
         "expansionPrompt": "Create validation engine architecture, S:W:H:E format validator with regex, frontmatter schema validation system, auto-fix mode implementation, allowlist configuration, git hook integration, colorized output formatting, and comprehensive error handling."
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Generate Baseline Scanner Outputs",
         "description": "Run scanner suite on current codebase to establish migration baseline",
         "details": "Execute full scanner suite on existing templates. Generate output/data/migration_status.json with current state. Create duplicate_analysis.json for duplicate detection results. Generate fix_recommendations.json with prioritized fixes. Include versioned metadata (scanner_version: 2.0.0, generated_at timestamp). Calculate metrics: total references, broken references, duplicate count, migration percentage.",
@@ -869,7 +874,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 7
+            "parentTaskId": 7,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -878,7 +884,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 7
+            "parentTaskId": 7,
+            "parentId": "undefined"
           }
         ],
         "complexity": 3,
@@ -886,7 +893,7 @@
         "expansionPrompt": "Execute scanner suite, generate migration_status.json, create duplicate_analysis.json, compile fix_recommendations.json with versioned metadata, and calculate comprehensive metrics report."
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Create Template Registry System",
         "description": "Build centralized registry for template discovery and management",
         "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular → compatibility map → legacy → Serena → error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
@@ -904,7 +911,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 8
+            "parentTaskId": 8,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -913,7 +921,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 8
+            "parentTaskId": 8,
+            "parentId": "undefined"
           }
         ],
         "complexity": 8,
@@ -921,7 +930,7 @@
         "expansionPrompt": "Design TemplateRegistry class architecture, implement discovery mechanism with glob patterns, build caching layer with TTL management, create fallback chain logic, implement metadata parsing, add search capabilities, optimize with functools.lru_cache, ensure thread-safety, and benchmark performance."
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Setup Git Hooks Infrastructure",
         "description": "Configure pre-commit hooks for automated validation",
         "details": "Install pre-commit framework: pip install pre-commit. Create .pre-commit-config.yaml with hooks for codex-guard, scanner incremental mode, secret scanning (detect-secrets), Python linting (ruff). Add custom hook scripts in .git/hooks/. Implement bypass mechanism with SKIP_HOOKS=1 environment variable. Configure hook output formatting for CI compatibility.",
@@ -939,7 +948,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 9
+            "parentTaskId": 9,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -948,7 +958,8 @@
             "details": "",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 9
+            "parentTaskId": 9,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -956,7 +967,7 @@
         "expansionPrompt": "Install pre-commit framework, create .pre-commit-config.yaml configuration, implement codex-guard hook, add scanner incremental mode, integrate secret scanning, configure Python linting, implement bypass mechanism, and test CI compatibility."
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Implement Reference Fix Scripts",
         "description": "Create automated scripts for fixing template references",
         "details": "Port apply_reference_fixes.py from FPL repo. Implement safe mode with backup creation. Add dry-run capability with detailed preview. Create apply_all_fixes.sh wrapper for batch operations. Implement rollback mechanism using git. Add progress tracking and logging. Handle special cases: symlinks, circular references, external references.",
@@ -974,7 +985,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 10
+            "parentTaskId": 10,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -983,7 +995,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 10
+            "parentTaskId": 10,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -991,7 +1004,7 @@
         "expansionPrompt": "Port apply_reference_fixes.py (already exists in output/scripts/), implement safe mode with backups, add dry-run preview, create batch wrapper script, implement git-based rollback, add progress tracking, handle special cases for symlinks and circular references."
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Create Migration Roadmap Generator",
         "description": "Build tool to generate prioritized migration plan from scanner outputs",
         "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) → high (monolith refs) → medium (duplicates) → low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
@@ -1009,7 +1022,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 11
+            "parentTaskId": 11,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1018,7 +1032,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 11
+            "parentTaskId": 11,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1026,7 +1041,7 @@
         "expansionPrompt": "Design RoadmapGenerator class, implement priority algorithm, generate markdown reports, add Gantt visualization with matplotlib, create Taskmaster export format, implement risk assessment logic, and integrate with existing scanner outputs."
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Setup Taskmaster Integration",
         "description": "Configure Taskmaster-AI for migration task management",
         "details": "Run 'taskmaster-ai init' in project root. Configure .taskmaster/config.json with API keys. Parse PRD using 'taskmaster-ai parse-prd .taskmaster/docs/prd.txt'. Set up MCP configuration in .mcp.json. Configure models with 'taskmaster-ai models --setup'. Create custom task templates for migration workflow. Set up task dependencies and milestones.",
@@ -1044,7 +1059,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 12
+            "parentTaskId": 12,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1053,7 +1069,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 12
+            "parentTaskId": 12,
+            "parentId": "undefined"
           }
         ],
         "complexity": 2,
@@ -1061,7 +1078,7 @@
         "expansionPrompt": "Verify Taskmaster initialization (already done), review existing configuration, validate API connectivity, and document any customizations needed for migration workflow."
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Implement Compatibility Mapping Table",
         "description": "Create mapping system for backward compatibility during migration",
         "details": "Create CompatibilityMap class with bidirectional mapping. Store mappings in JSON format: {monolith_anchor: modular_path}. Implement lookup methods with O(1) performance. Add version tracking for mapping changes. Create update mechanism for incremental migrations. Implement conflict resolution for duplicate mappings. Add validation to ensure all mappings resolve.",
@@ -1079,7 +1096,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 13
+            "parentTaskId": 13,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1088,7 +1106,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 13
+            "parentTaskId": 13,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1096,7 +1115,7 @@
         "expansionPrompt": "Design CompatibilityMap class with bidirectional mapping, implement JSON storage format, create O(1) lookup methods, add version tracking system, build incremental update mechanism, implement conflict resolution, add validation logic, and create comprehensive testing suite."
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Create Work-Tracking Template Structure",
         "description": "Establish standardized work-tracking directory and file structure",
         "details": "Create docs/ai/work-tracking/active/ directory structure. Set up 7 canonical files: TRACKER.md, HANDOFF.md, FINDINGS.md, IMPLEMENTATION.md, MEMORY-REFS.md, CHANGELOG.md, plans/. Create templates for each file type with S:W:H:E format. Implement auto-generation script for new work items. Add validation for required sections. Create archival process for completed work.",
@@ -1213,7 +1232,7 @@
         "expansionPrompt": "Create directory structure (partially exists), design canonical file templates, implement S:W:H:E format validation, create auto-generation scripts, and establish archival process."
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Enforce Serena Integration for Template System",
         "description": "Guarantee that template discovery, analysis, and evidence gathering are always routed through Serena MCP, with enforcement across docs, guard, and workflows.",
         "details": "Update documentation, guard rules, and work-tracking flows so Serena is the mandatory entry point for template discovery and evidence gathering. Provide reference queries, ensure memories (scanner baselines, compaction checkpoints) are maintained, and remove manual workarounds.",
@@ -1232,7 +1251,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 15
+            "parentTaskId": 15,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1241,7 +1261,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 15
+            "parentTaskId": 15,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1249,7 +1270,7 @@
         "expansionPrompt": "Install Serena MCP server, configure .mcp.json connection, implement SerenaClient wrapper, add memory storage system, create search indices, implement regex/symbol analysis, configure compaction, and set retention policies."
       },
       {
-        "id": 16,
+        "id": "16",
         "title": "Create Performance Testing Harness",
         "description": "Build comprehensive performance testing suite for migration validation",
         "details": "Create performance_tests.py with pytest-benchmark. Implement tests: test_template_discovery_time (<50ms target), test_context_token_usage (30% reduction target), test_scanner_incremental (<10s), test_guard_validation (<5s). Add profiling for top 20 templates. Create baseline capture mechanism. Implement regression detection (warning +20%, critical +50%). Add CI integration with performance gates.",
@@ -1270,7 +1291,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 16
+            "parentTaskId": 16,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1279,7 +1301,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 16
+            "parentTaskId": 16,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1287,7 +1310,7 @@
         "expansionPrompt": "Set up pytest-benchmark framework, implement discovery time tests, create token usage tests, add incremental scanner tests, implement profiling for templates, create baseline capture, add regression detection, and configure CI integration."
       },
       {
-        "id": 17,
+        "id": "17",
         "title": "Setup Monitoring Infrastructure",
         "description": "Establish metrics collection and monitoring dashboards",
         "details": "Set up Prometheus exporters for metrics. Create Grafana dashboards for migration health, template usage, performance metrics. Implement StatsD client for application metrics. Add log aggregation with Elasticsearch. Configure alerts: discovery >100ms, guard failures >5/hr, cost >80% budget. Create migration progress tracker. Add telemetry decorators for template loads.",
@@ -1307,7 +1330,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 17
+            "parentTaskId": 17,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1316,7 +1340,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 17
+            "parentTaskId": 17,
+            "parentId": "undefined"
           }
         ],
         "complexity": 8,
@@ -1324,7 +1349,7 @@
         "expansionPrompt": "Configure Prometheus exporters, create Grafana dashboards, implement StatsD client, set up Elasticsearch logging, configure alerts with thresholds, create migration tracker, add telemetry decorators, implement data retention, and test alert routing."
       },
       {
-        "id": 18,
+        "id": "18",
         "title": "Implement Security Validation Framework",
         "description": "Create security scanning and validation tools for templates",
         "details": "Implement path traversal detection using pathlib. Add template injection scanner with regex patterns. Create secret detection using detect-secrets library. Implement input sanitization functions. Add security audit checklist automation. Create vulnerability reporting format. Implement allowlist for false positives. Add SAST integration for template code.",
@@ -1344,7 +1369,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 18
+            "parentTaskId": 18,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1353,7 +1379,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 18
+            "parentTaskId": 18,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1361,7 +1388,7 @@
         "expansionPrompt": "Implement path traversal detection, create template injection scanner, integrate detect-secrets, build sanitization functions, automate security checklist, create vulnerability reporting, implement allowlist system, and add SAST integration."
       },
       {
-        "id": 19,
+        "id": "19",
         "title": "Create Rollback Mechanism",
         "description": "Build comprehensive rollback system for migration safety",
         "details": "Implement git-based checkpoint system with tags. Create rollback script with state restoration. Add Taskmaster milestone snapshots. Implement Serena memory backups. Create compatibility map versioning. Add rollback decision matrix. Implement emergency toggle for legacy mode. Create rollback validation tests.",
@@ -1381,7 +1408,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 19
+            "parentTaskId": 19,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1390,7 +1418,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 19
+            "parentTaskId": 19,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1398,7 +1427,7 @@
         "expansionPrompt": "Implement git checkpoint system, create rollback script, add Taskmaster snapshots, implement Serena backups, version compatibility maps, create decision matrix, implement emergency toggle, and build validation tests."
       },
       {
-        "id": 20,
+        "id": "20",
         "title": "Setup CI/CD Pipeline",
         "description": "Configure continuous integration for automated validation",
         "details": "Create .github/workflows/migration.yml for GitHub Actions (or equivalent for your CI). Add jobs: scanner validation, guard enforcement, performance tests, security scans. Implement matrix testing for multiple Python versions. Add artifact storage for reports. Configure branch protection rules. Set up deployment gates for each phase. Add cost monitoring for CI minutes.",
@@ -1419,7 +1448,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 20
+            "parentTaskId": 20,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1428,7 +1458,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 20
+            "parentTaskId": 20,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1436,7 +1467,7 @@
         "expansionPrompt": "Create GitHub Actions workflow, configure scanner validation job, add guard enforcement, implement performance tests, set up security scans, configure matrix testing, add artifact storage, and implement deployment gates."
       },
       {
-        "id": 21,
+        "id": "21",
         "title": "Implement Template Frontmatter Schema",
         "description": "Create and enforce standardized frontmatter for all templates",
         "details": "Define YAML schema with required fields: id, type (trigger|operator|orchestrator|guide), category, dependencies[], triggers[], exports[], version (semver), status (stable|beta|deprecated), tags[]. Create JSON Schema validator. Implement frontmatter parser using python-frontmatter. Add migration tool for existing templates. Create frontmatter generator CLI command.",
@@ -1454,7 +1485,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 21
+            "parentTaskId": 21,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1463,7 +1495,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 21
+            "parentTaskId": 21,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -1471,7 +1504,7 @@
         "expansionPrompt": "Define YAML schema with required fields, create JSON Schema validator, implement frontmatter parser, build migration tool for existing templates, create generator CLI, and add validation tests."
       },
       {
-        "id": 22,
+        "id": "22",
         "title": "Build Template Discovery API",
         "description": "Create programmatic interface for template discovery and access",
         "details": "Create TemplateAPI class with REST-like interface. Implement methods: get_template(id), search_templates(query), list_by_category(category), get_dependencies(id). Add response caching with Redis or in-memory LRU. Implement pagination for large results. Add filtering by status, version, tags. Create GraphQL schema for complex queries.",
@@ -1490,7 +1523,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 22
+            "parentTaskId": 22,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1499,7 +1533,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 22
+            "parentTaskId": 22,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1507,7 +1542,7 @@
         "expansionPrompt": "Design TemplateAPI class, implement REST-like methods, add caching with Redis/LRU, implement pagination, add filtering capabilities, create GraphQL schema, optimize response times, and build comprehensive tests."
       },
       {
-        "id": 23,
+        "id": "23",
         "title": "Create Migration Rehearsal Environment",
         "description": "Set up isolated environment for migration testing",
         "details": "Create migration-rehearsal branches with git worktree. Set up Docker containers for isolated testing. Configure test API keys with rate limits. Create data seeding scripts for templates. Implement agent simulators for Claude/Codex. Add load testing harness with k6 or locust. Create rehearsal runbook with checkpoints.",
@@ -1525,7 +1560,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 23
+            "parentTaskId": 23,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1534,7 +1570,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 23
+            "parentTaskId": 23,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1542,7 +1579,7 @@
         "expansionPrompt": "Set up git worktrees, configure Docker containers, set up test API keys, create data seeding scripts, implement agent simulators, add load testing with k6/locust, create rehearsal runbook, and validate isolation."
       },
       {
-        "id": 24,
+        "id": "24",
         "title": "Implement Cost Tracking System",
         "description": "Build system to monitor and control API and resource costs",
         "details": "Create CostTracker class for API usage monitoring. Implement Anthropic API usage tracking with rate limits. Add CI minutes monitoring. Create budget alerts at 80% threshold. Implement caching strategy to reduce API calls. Add cost projection based on current usage. Create monthly cost reports. Implement auto-throttling when approaching limits.",
@@ -1560,7 +1597,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 24
+            "parentTaskId": 24,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1569,7 +1607,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 24
+            "parentTaskId": 24,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1577,7 +1616,7 @@
         "expansionPrompt": "Create CostTracker class, implement API usage tracking, add CI minutes monitoring, create budget alerts, implement caching strategies, add cost projections, generate monthly reports, and implement auto-throttling."
       },
       {
-        "id": 25,
+        "id": "25",
         "title": "Execute Phase 0 Scanner Validation",
         "description": "Complete Phase 0 validation gate for scanner suite",
         "details": "Run comprehensive scanner unit tests with pytest. Execute security validation checks. Generate baseline performance metrics. Document scanner accuracy metrics. Create compatibility baseline report. Set up monitoring infrastructure verification. Prepare Phase 0 gate review documentation. Schedule stakeholder review meeting.",
@@ -1598,7 +1637,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 25
+            "parentTaskId": 25,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1607,7 +1647,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 25
+            "parentTaskId": 25,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -1615,7 +1656,7 @@
         "expansionPrompt": "Run comprehensive scanner tests, execute security validation, generate performance metrics, document accuracy metrics, create compatibility baseline, verify monitoring, and prepare gate review documentation."
       },
       {
-        "id": 26,
+        "id": "26",
         "title": "Migrate Critical Handler Templates",
         "description": "Phase 2.1 - Migrate core handler templates to modular structure",
         "details": "Identify critical handlers: start-new-work, fix-problem, test-implementation. Extract from monolithic files. Create modular files with proper frontmatter. Update all references using fix scripts. Validate with guard tool. Update compatibility mapping. Run performance tests on migrated handlers. Document migration decisions.",
@@ -1634,7 +1675,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 26
+            "parentTaskId": 26,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1643,7 +1685,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 26
+            "parentTaskId": 26,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1651,7 +1694,7 @@
         "expansionPrompt": "Identify critical handlers, extract from monolithic files, create modular structures with frontmatter, update references using fix scripts, validate with guard, update compatibility mapping, and run performance benchmarks."
       },
       {
-        "id": 27,
+        "id": "27",
         "title": "Migrate Pattern Templates",
         "description": "Phase 2.2 - Migrate pattern templates including work-tracking and session",
         "details": "Extract patterns from PATTERNS.md monolith. Create pattern-workflow-variant.md naming structure. Migrate work-tracking patterns with S:W:H:E format. Update session management patterns. Create pattern index file. Update discovery fallback chain. Validate pattern dependencies. Run regression tests.",
@@ -1669,7 +1712,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 27
+            "parentTaskId": 27,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1678,7 +1722,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 27
+            "parentTaskId": 27,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1686,7 +1731,7 @@
         "expansionPrompt": "Extract patterns from PATTERNS.md, create modular pattern files, migrate work-tracking patterns, update session patterns, create pattern index, update discovery chain, and run regression tests."
       },
       {
-        "id": 28,
+        "id": "28",
         "title": "Implement Dual-Path Discovery",
         "description": "Create fallback system for template discovery during migration",
         "details": "Implement discovery chain: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
@@ -1705,7 +1750,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 28
+            "parentTaskId": 28,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1714,7 +1760,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 28
+            "parentTaskId": 28,
+            "parentId": "undefined"
           }
         ],
         "complexity": 8,
@@ -1722,7 +1769,7 @@
         "expansionPrompt": "Implement discovery chain logic, add fallback logging, create path usage metrics, implement circuit breaker pattern, add cache warming, create hint system, optimize performance, ensure correct ordering, and test all paths."
       },
       {
-        "id": 29,
+        "id": "29",
         "title": "Create Template Lifecycle Management",
         "description": "Implement system for template creation, versioning, and deprecation",
         "details": "Create lifecycle states: draft → review → stable → deprecated → archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
@@ -1740,7 +1787,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 29
+            "parentTaskId": 29,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1749,7 +1797,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 29
+            "parentTaskId": 29,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -1757,7 +1806,7 @@
         "expansionPrompt": "Define lifecycle states, implement version bumping, add deprecation warnings, create grace period system, implement auto-archival, add migration notices, create audit trail, and build state transition tests."
       },
       {
-        "id": 30,
+        "id": "30",
         "title": "Build Cross-Repository Sync System",
         "description": "Create automated synchronization between legacy and Codex repos",
         "details": "Implement daily diff detection using git. Create drift scanner for template divergence. Generate auto PRs for required fixes. Implement conflict resolution with manual review queue. Add sync status dashboard. Create bidirectional sync for transition period. Implement sync audit logging.",
@@ -1775,7 +1824,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 30
+            "parentTaskId": 30,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1784,7 +1834,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 30
+            "parentTaskId": 30,
+            "parentId": "undefined"
           }
         ],
         "complexity": 8,
@@ -1792,7 +1843,7 @@
         "expansionPrompt": "Implement diff detection, create drift scanner, build PR generation system, implement conflict resolution, add sync dashboard, create bidirectional sync, implement audit logging, test sync accuracy, and handle edge cases."
       },
       {
-        "id": 31,
+        "id": "31",
         "title": "Implement Compaction Protocol",
         "description": "Create system for preserving migration state during context resets",
         "details": "Create CompactionManager class. Implement checkpoint creation before compaction. Store state in: sessions/current, Serena memories, Taskmaster tasks. Create restoration protocol for post-compaction. Add compaction detection triggers. Implement incremental checkpoint updates. Create compaction history tracking.",
@@ -1811,7 +1862,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 31
+            "parentTaskId": 31,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1820,7 +1872,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 31
+            "parentTaskId": 31,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1828,7 +1881,7 @@
         "expansionPrompt": "Create CompactionManager class, implement checkpoint creation, integrate with sessions/Serena/Taskmaster storage, create restoration protocol, add detection triggers, implement incremental updates, create history tracking, and test data preservation."
       },
       {
-        "id": 32,
+        "id": "32",
         "title": "Create Documentation Suite",
         "description": "Phase 4 - Generate comprehensive documentation for migration",
         "details": "Update CODEX.md with new template system. Create AGENTS.md for agent-specific guidance. Write templates/TOOLS.md for tooling docs. Generate user guides with examples. Create migration guide for developers. Write FAQ and troubleshooting guide. Add API documentation. Create video walkthrough scripts.",
@@ -1846,7 +1899,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 32
+            "parentTaskId": 32,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1855,7 +1909,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 32
+            "parentTaskId": 32,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -1863,7 +1918,7 @@
         "expansionPrompt": "Update CODEX.md, create AGENTS.md, write TOOLS.md documentation, generate user guides, create migration guide, write FAQ/troubleshooting, add API docs, and prepare video scripts."
       },
       {
-        "id": 33,
+        "id": "33",
         "title": "Setup Training Materials",
         "description": "Create training resources for template system users",
         "details": "Create interactive tutorial templates. Record video walkthroughs using OBS or similar. Write quickstart guide for new developers. Create office hours schedule. Build knowledge base articles. Design hands-on exercises. Create certification checklist. Prepare training feedback surveys.",
@@ -1881,7 +1936,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 33
+            "parentTaskId": 33,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1890,7 +1946,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 33
+            "parentTaskId": 33,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -1898,7 +1955,7 @@
         "expansionPrompt": "Create interactive tutorials, record video walkthroughs, write quickstart guide, schedule office hours, build knowledge base, design exercises, create certification checklist, and prepare feedback surveys."
       },
       {
-        "id": 34,
+        "id": "34",
         "title": "Implement A/B Testing Framework",
         "description": "Create system for gradual template rollout and testing",
         "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% → 50% → 100%).",
@@ -1917,7 +1974,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 34
+            "parentTaskId": 34,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1926,7 +1984,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 34
+            "parentTaskId": 34,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1934,7 +1993,7 @@
         "expansionPrompt": "Implement feature flag system, configure canary deployment, add metrics collection for groups, implement auto-rollback, create comparison dashboards, add user segmentation, implement gradual rollout, and test rollback triggers."
       },
       {
-        "id": 35,
+        "id": "35",
         "title": "Create Emergency Response System",
         "description": "Build incident response infrastructure for migration issues",
         "details": "Create incident classification (P0-P3) with response SLAs. Implement PagerDuty integration for P0/P1 alerts. Add Slack webhooks for P2/P3 notifications. Create emergency halt mechanism. Write incident response runbook. Set up war room procedures. Create post-mortem template. Add incident tracking dashboard.",
@@ -1953,7 +2012,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 35
+            "parentTaskId": 35,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1962,7 +2022,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 35
+            "parentTaskId": 35,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -1970,7 +2031,7 @@
         "expansionPrompt": "Define incident classification, integrate PagerDuty for P0/P1, configure Slack webhooks, implement emergency halt, write response runbook, establish war room procedures, create post-mortem template, and build incident dashboard."
       },
       {
-        "id": 36,
+        "id": "36",
         "title": "Implement Template Governance Board",
         "description": "Establish governance structure for template management",
         "details": "Define board composition and roles. Create charter document with responsibilities. Set up weekly meeting schedule during migration. Implement change review process. Create voting mechanism for breaking changes. Add decision tracking system. Create escalation procedures. Implement stakeholder notification system.",
@@ -1988,7 +2049,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 36
+            "parentTaskId": 36,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1997,7 +2059,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 36
+            "parentTaskId": 36,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -2005,7 +2068,7 @@
         "expansionPrompt": "Define board composition, create charter document, establish meeting schedule, implement review process, create voting mechanism, add decision tracking, and implement stakeholder notifications."
       },
       {
-        "id": 37,
+        "id": "37",
         "title": "Build Telemetry Pipeline",
         "description": "Create comprehensive telemetry collection and analysis system",
         "details": "Implement OpenTelemetry SDK integration. Add trace context propagation. Create custom metrics for template usage. Set up Elasticsearch for log aggregation. Implement Grafana dashboards for visualization. Add anomaly detection with statistical analysis. Create data retention policies (90 days). Implement GDPR compliance for telemetry.",
@@ -2023,7 +2086,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 37
+            "parentTaskId": 37,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2032,7 +2096,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 37
+            "parentTaskId": 37,
+            "parentId": "undefined"
           }
         ],
         "complexity": 8,
@@ -2040,7 +2105,7 @@
         "expansionPrompt": "Integrate OpenTelemetry SDK, add trace propagation, create custom metrics, set up Elasticsearch, configure Grafana dashboards, implement anomaly detection, create retention policies, ensure GDPR compliance, and test data flow."
       },
       {
-        "id": 38,
+        "id": "38",
         "title": "Execute Phase 1 Reference Remediation",
         "description": "Complete Phase 1 reference fixes and validation",
         "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine → patterns → remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
@@ -2059,7 +2124,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 38
+            "parentTaskId": 38,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2068,7 +2134,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 38
+            "parentTaskId": 38,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -2076,7 +2143,7 @@
         "expansionPrompt": "Run fix dry-run, review changes, execute fixes in priority order, validate with scanner/guard, update compatibility mapping, capture rollback checkpoint, and document fixes applied."
       },
       {
-        "id": 39,
+        "id": "39",
         "title": "Implement Auto-Fix Mode for Guard",
         "description": "Add automatic correction capabilities to guard tool",
         "details": "Identify common fixable issues (formatting, frontmatter, references). Implement fix strategies for each issue type. Add --auto-fix flag to guard CLI. Create fix preview mode. Implement fix validation post-application. Add fix history tracking. Create fix configuration options. Implement selective auto-fix.",
@@ -2095,7 +2162,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 39
+            "parentTaskId": 39,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2104,7 +2172,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 39
+            "parentTaskId": 39,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2112,7 +2181,7 @@
         "expansionPrompt": "Identify fixable issues, implement fix strategies per issue type, add --auto-fix CLI flag, create preview mode, implement validation, add history tracking, and create selective fix options."
       },
       {
-        "id": 40,
+        "id": "40",
         "title": "Create Canary Deployment System",
         "description": "Build infrastructure for gradual migration rollout",
         "details": "Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
@@ -2131,7 +2200,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 40
+            "parentTaskId": 40,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2140,7 +2210,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 40
+            "parentTaskId": 40,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2148,7 +2219,7 @@
         "expansionPrompt": "Implement stage progression logic, create health check metrics, add automatic promotion, implement rollback triggers, create status dashboard, add notifications, implement traffic splitting, and generate analysis reports."
       },
       {
-        "id": 41,
+        "id": "41",
         "title": "Build Migration Health Dashboard",
         "description": "Create real-time dashboard for migration monitoring",
         "details": "Create React/Vue dashboard with real-time updates. Add migration progress bar with phase indicators. Display scanner/guard status. Show performance metrics graphs. Add cost usage gauge. Implement alert status panel. Create error rate trending. Add team blockers section. Use WebSocket for live updates.",
@@ -2167,7 +2238,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 41
+            "parentTaskId": 41,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2176,7 +2248,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 41
+            "parentTaskId": 41,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2184,7 +2257,7 @@
         "expansionPrompt": "Create React/Vue dashboard, add real-time updates via WebSocket, implement progress indicators, display scanner/guard status, add performance graphs, create alert panel, implement error trending, and ensure mobile responsiveness."
       },
       {
-        "id": 42,
+        "id": "42",
         "title": "Implement Session Management System",
         "description": "Create robust session tracking for work continuity",
         "details": "Create SessionManager class with state persistence. Implement session creation/restoration. Add session metadata tracking. Create session archival process. Implement session search capabilities. Add session handoff mechanism. Create session analytics. Implement session recovery after crashes.",
@@ -2203,7 +2276,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 42
+            "parentTaskId": 42,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2212,7 +2286,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 42
+            "parentTaskId": 42,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2220,7 +2295,7 @@
         "expansionPrompt": "Create SessionManager class, implement persistence, add metadata tracking, create archival process, implement search capabilities, add handoff mechanism, create analytics, and implement crash recovery."
       },
       {
-        "id": 43,
+        "id": "43",
         "title": "Create Template Testing Framework",
         "description": "Build comprehensive testing system for templates",
         "details": "Create TemplateTestCase base class. Implement template execution mocking. Add assertion methods for template behavior. Create fixture system for test data. Implement coverage tracking for templates. Add mutation testing for template logic. Create template benchmark suite. Implement visual regression testing for UI templates.",
@@ -2239,7 +2314,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 43
+            "parentTaskId": 43,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2248,7 +2324,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 43
+            "parentTaskId": 43,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2256,7 +2333,7 @@
         "expansionPrompt": "Create TemplateTestCase base class, implement execution mocking, add assertion methods, create fixture system, implement coverage tracking, add mutation testing, create benchmark suite, and implement visual regression testing."
       },
       {
-        "id": 44,
+        "id": "44",
         "title": "Setup Change Advisory Board Process",
         "description": "Implement formal change management for migration",
         "details": "Create CAB meeting structure and cadence. Define change request template. Implement change tracking system. Create risk assessment framework. Add stakeholder approval workflow. Implement change communication plan. Create change metrics tracking. Add post-implementation reviews.",
@@ -2274,7 +2351,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 44
+            "parentTaskId": 44,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2283,7 +2361,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 44
+            "parentTaskId": 44,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -2291,7 +2370,7 @@
         "expansionPrompt": "Create CAB structure, define change request template, implement tracking system, create risk assessment framework, add approval workflow, implement communication plan, and establish review process."
       },
       {
-        "id": 45,
+        "id": "45",
         "title": "Implement Scanner Optimization",
         "description": "Optimize scanner performance for large-scale operations",
         "details": "Add parallel processing using multiprocessing.Pool. Implement incremental scanning with file change detection. Add caching layer with invalidation. Optimize regex patterns for performance. Implement streaming JSON output. Add memory profiling and optimization. Create scanner profiling mode. Implement lazy loading for large files.",
@@ -2310,7 +2389,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 45
+            "parentTaskId": 45,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2319,7 +2399,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 45
+            "parentTaskId": 45,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2327,7 +2408,7 @@
         "expansionPrompt": "Add parallel processing with multiprocessing, implement incremental scanning, add caching with invalidation, optimize regex patterns, implement streaming JSON, add memory profiling, create profiling mode, and implement lazy loading."
       },
       {
-        "id": 46,
+        "id": "46",
         "title": "Create Template Import/Export System",
         "description": "Build system for template portability and sharing",
         "details": "Create template bundle format (ZIP with manifest). Implement export with dependency resolution. Add import with conflict detection. Create template marketplace integration. Implement template signing for authenticity. Add version compatibility checking. Create template preview system. Implement bulk import/export.",
@@ -2346,7 +2427,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 46
+            "parentTaskId": 46,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2355,7 +2437,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 46
+            "parentTaskId": 46,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2363,7 +2446,7 @@
         "expansionPrompt": "Design bundle format with manifest, implement export with dependencies, add import with conflict detection, create marketplace integration, implement signing, add version checking, and create preview system."
       },
       {
-        "id": 47,
+        "id": "47",
         "title": "Build Error Recovery System",
         "description": "Create comprehensive error handling and recovery",
         "details": "Create error classification taxonomy. Implement recovery strategies for each error type. Add exponential backoff for transient errors. Create error context capture. Implement error reporting to monitoring. Add user-friendly error messages. Create error recovery flowchart. Implement automatic error resolution where possible.",
@@ -2381,7 +2464,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 47
+            "parentTaskId": 47,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2390,7 +2474,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 47
+            "parentTaskId": 47,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2398,7 +2483,7 @@
         "expansionPrompt": "Create error taxonomy, implement recovery strategies per type, add exponential backoff, create context capture, implement error reporting, add user-friendly messages, create recovery flowchart, and implement automatic resolution."
       },
       {
-        "id": 48,
+        "id": "48",
         "title": "Execute Phase 2.3 Remaining Templates",
         "description": "Complete migration of all remaining templates",
         "details": "Identify remaining unmigrated templates. Apply modular structure to each. Update all references and dependencies. Validate with guard and scanner. Update compatibility map completely. Run comprehensive regression tests. Document edge cases found. Prepare Phase 2 gate documentation.",
@@ -2416,7 +2501,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 48
+            "parentTaskId": 48,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2425,7 +2511,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 48
+            "parentTaskId": 48,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -2433,7 +2520,7 @@
         "expansionPrompt": "Identify unmigrated templates, apply modular structure, update references, validate with guard/scanner, update compatibility map, run regression tests, and document edge cases."
       },
       {
-        "id": 49,
+        "id": "49",
         "title": "Implement Communication Templates",
         "description": "Create standardized communication for migration updates",
         "details": "Create weekly status template with metrics placeholders. Design breaking change notification template. Build incident communication template. Create milestone announcement format. Implement automated template filling. Add distribution list management. Create communication archive. Implement feedback collection.",
@@ -2451,7 +2538,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 49
+            "parentTaskId": 49,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2460,7 +2548,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 49
+            "parentTaskId": 49,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -2468,7 +2557,7 @@
         "expansionPrompt": "Create status template, design change notification, build incident template, create announcement format, implement automated filling, manage distribution lists, and implement feedback collection."
       },
       {
-        "id": 50,
+        "id": "50",
         "title": "Setup Security Audit Process",
         "description": "Create comprehensive security validation framework",
         "details": "Define security audit checklist. Implement automated SAST scanning. Add dependency vulnerability checking. Create penetration test scenarios. Implement security metrics collection. Add compliance validation (GDPR, etc.). Create security report generation. Implement remediation tracking.",
@@ -2487,7 +2576,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 50
+            "parentTaskId": 50,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2496,7 +2586,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 50
+            "parentTaskId": 50,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2504,7 +2595,7 @@
         "expansionPrompt": "Define audit checklist, implement SAST scanning, add vulnerability checking, create penetration scenarios, implement metrics collection, add compliance validation, generate security reports, and track remediation."
       },
       {
-        "id": 51,
+        "id": "51",
         "title": "Build Template Usage Analytics",
         "description": "Create analytics system for template usage patterns",
         "details": "Implement usage tracking decorators. Create analytics data model. Add usage aggregation pipeline. Build usage dashboards. Implement trend analysis. Add anomaly detection for usage patterns. Create usage reports. Implement predictive analytics for capacity planning.",
@@ -2523,7 +2614,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 51
+            "parentTaskId": 51,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2532,7 +2624,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 51
+            "parentTaskId": 51,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2540,7 +2633,7 @@
         "expansionPrompt": "Implement tracking decorators, create data model, add aggregation pipeline, build dashboards, implement trend analysis, add anomaly detection, create usage reports, and implement predictive analytics."
       },
       {
-        "id": 52,
+        "id": "52",
         "title": "Implement CI/CD Gates",
         "description": "Phase 3 - Create automated quality gates for CI/CD",
         "details": "Add scanner gate with zero tolerance for errors. Implement guard gate with auto-fix. Add performance gate with regression detection. Create security gate with vulnerability scanning. Implement cost gate with budget checks. Add approval gate for production. Create gate override mechanism. Implement gate metrics collection.",
@@ -2559,7 +2652,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 52
+            "parentTaskId": 52,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2568,7 +2662,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 52
+            "parentTaskId": 52,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2576,7 +2671,7 @@
         "expansionPrompt": "Add scanner gate, implement guard gate with auto-fix, add performance gate, create security gate, implement cost gate, add approval gate, create override mechanism, and collect gate metrics."
       },
       {
-        "id": 53,
+        "id": "53",
         "title": "Create Template Caching Layer",
         "description": "Implement high-performance caching for template access",
         "details": "Implement Redis cache for template storage. Add in-memory LRU cache as L1. Create cache warming on startup. Implement cache invalidation on changes. Add cache hit/miss metrics. Create distributed cache for multi-instance. Implement cache persistence. Add cache debugging tools.",
@@ -2595,7 +2690,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 53
+            "parentTaskId": 53,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2604,7 +2700,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 53
+            "parentTaskId": 53,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2612,7 +2709,7 @@
         "expansionPrompt": "Implement Redis cache, add in-memory LRU as L1, create cache warming, implement invalidation, add hit/miss metrics, create distributed cache, implement persistence, and add debugging tools."
       },
       {
-        "id": 54,
+        "id": "54",
         "title": "Setup Knowledge Transfer Process",
         "description": "Create knowledge transfer infrastructure for post-migration",
         "details": "Create knowledge base with searchable articles. Record video tutorials for common tasks. Write troubleshooting guides. Create expert contact list. Implement Q&A system. Add knowledge tracking metrics. Create knowledge retention plan. Implement succession planning.",
@@ -2631,7 +2728,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 54
+            "parentTaskId": 54,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2640,7 +2738,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 54
+            "parentTaskId": 54,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -2648,7 +2747,7 @@
         "expansionPrompt": "Create searchable knowledge base, record video tutorials, write troubleshooting guides, create expert contact list, implement Q&A system, and establish retention plan."
       },
       {
-        "id": 55,
+        "id": "55",
         "title": "Implement Migration Metrics Collection",
         "description": "Create comprehensive metrics system for migration tracking",
         "details": "Define KPI metrics for migration success. Implement metric collection agents. Create metric aggregation pipeline. Build metric storage with time-series DB. Add metric visualization dashboards. Implement metric alerting. Create metric reports. Add metric export capabilities.",
@@ -2667,7 +2766,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 55
+            "parentTaskId": 55,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2676,7 +2776,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 55
+            "parentTaskId": 55,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2684,7 +2785,7 @@
         "expansionPrompt": "Define KPI metrics, implement collection agents, create aggregation pipeline, build time-series storage, add visualization dashboards, implement alerting, and add export capabilities."
       },
       {
-        "id": 56,
+        "id": "56",
         "title": "Execute Phase 3 Automation Integration",
         "description": "Complete automation and tooling integration phase",
         "details": "Deploy CI/CD gates to production. Monitor gate performance for 5 days. Implement auto-fix in production. Validate cost tracking accuracy. Execute canary deployment. Monitor canary metrics. Update automation documentation. Prepare Phase 3 gate review.",
@@ -2703,7 +2804,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 56
+            "parentTaskId": 56,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2712,7 +2814,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 56
+            "parentTaskId": 56,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -2720,7 +2823,7 @@
         "expansionPrompt": "Deploy CI/CD gates, monitor performance for 5 days, implement production auto-fix, validate cost tracking, execute canary deployment, and update documentation."
       },
       {
-        "id": 57,
+        "id": "57",
         "title": "Create Operational Runbook",
         "description": "Build comprehensive operational procedures documentation",
         "details": "Document daily operational tasks. Create weekly maintenance procedures. Write monthly review process. Define incident response procedures. Create troubleshooting flowcharts. Add contact escalation tree. Document emergency procedures. Create runbook validation checklist.",
@@ -2739,7 +2842,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 57
+            "parentTaskId": 57,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2748,7 +2852,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 57
+            "parentTaskId": 57,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -2756,7 +2861,7 @@
         "expansionPrompt": "Document daily tasks, create maintenance procedures, write review process, define incident response, create troubleshooting flowcharts, and add escalation tree."
       },
       {
-        "id": 58,
+        "id": "58",
         "title": "Implement Template Versioning System",
         "description": "Create robust versioning for template changes",
         "details": "Implement semantic versioning for templates. Create version comparison logic. Add backward compatibility checking. Implement version migration tools. Create version history tracking. Add version conflict resolution. Implement version rollback capability. Create version documentation.",
@@ -2775,7 +2880,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 58
+            "parentTaskId": 58,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2784,7 +2890,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 58
+            "parentTaskId": 58,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -2792,7 +2899,7 @@
         "expansionPrompt": "Implement semantic versioning, create comparison logic, add compatibility checking, implement migration tools, create version history, add conflict resolution, and implement rollback capability."
       },
       {
-        "id": 59,
+        "id": "59",
         "title": "Build Feedback Collection System",
         "description": "Create infrastructure for user feedback during migration",
         "details": "Create feedback form with categorization. Implement feedback API endpoints. Add sentiment analysis for feedback. Create feedback dashboard. Implement feedback routing to owners. Add feedback metrics tracking. Create feedback response system. Implement feedback archive.",
@@ -2811,7 +2918,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 59
+            "parentTaskId": 59,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2820,7 +2928,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 59
+            "parentTaskId": 59,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -2828,7 +2937,7 @@
         "expansionPrompt": "Create feedback form with categories, implement API endpoints, add sentiment analysis, create dashboard, implement routing to owners, and create response system."
       },
       {
-        "id": 60,
+        "id": "60",
         "title": "Setup Post-Migration Monitoring",
         "description": "Phase 6 - Establish ongoing monitoring post-migration",
         "details": "Configure production monitoring dashboards. Set up weekly scanner health checks. Implement monthly usage reviews. Create quarterly benchmark updates. Add yearly planning reviews. Set up automated reports. Create monitoring playbooks. Implement monitoring automation.",
@@ -2846,7 +2955,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 60
+            "parentTaskId": 60,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2855,7 +2965,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 60
+            "parentTaskId": 60,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -2863,7 +2974,7 @@
         "expansionPrompt": "Configure production dashboards, set up health checks, implement usage reviews, create benchmark updates, add planning reviews, and implement monitoring automation."
       },
       {
-        "id": 61,
+        "id": "61",
         "title": "Implement Template Discovery Optimization",
         "description": "Optimize template discovery for <50ms performance",
         "details": "Profile current discovery bottlenecks. Implement bloom filters for quick existence checks. Add predictive prefetching based on usage patterns. Create discovery result caching. Optimize file I/O operations. Implement async discovery API. Add discovery performance metrics. Create discovery debugging mode.",
@@ -2882,7 +2993,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 61
+            "parentTaskId": 61,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2891,7 +3003,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 61
+            "parentTaskId": 61,
+            "parentId": "undefined"
           }
         ],
         "complexity": 8,
@@ -2899,7 +3012,7 @@
         "expansionPrompt": "Profile bottlenecks, implement bloom filters, add predictive prefetching, create result caching, optimize I/O operations, implement async API, add performance metrics, create debugging mode, and achieve <50ms target."
       },
       {
-        "id": 62,
+        "id": "62",
         "title": "Create Agent Compatibility Layer",
         "description": "Build compatibility system for different agent requirements",
         "details": "Create agent capability detection. Implement version negotiation protocol. Add feature flag per agent. Create compatibility matrix validation. Implement fallback strategies per agent. Add agent-specific transformations. Create compatibility testing suite. Implement compatibility metrics.",
@@ -2918,7 +3031,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 62
+            "parentTaskId": 62,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2927,7 +3041,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 62
+            "parentTaskId": 62,
+            "parentId": "undefined"
           }
         ],
         "complexity": 7,
@@ -2935,7 +3050,7 @@
         "expansionPrompt": "Implement capability detection, create version negotiation, add per-agent feature flags, validate compatibility matrix, implement fallback strategies, add agent transformations, create testing suite, and collect compatibility metrics."
       },
       {
-        "id": 63,
+        "id": "63",
         "title": "Execute Phase 4 Documentation Delivery",
         "description": "Complete documentation and training phase",
         "details": "Publish all documentation to production. Deploy training materials. Schedule office hours. Execute communication plan. Deliver training sessions. Collect training feedback. Update documentation based on feedback. Prepare Phase 4 gate documentation.",
@@ -2955,7 +3070,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 63
+            "parentTaskId": 63,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2964,7 +3080,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 63
+            "parentTaskId": 63,
+            "parentId": "undefined"
           }
         ],
         "complexity": 3,
@@ -2972,7 +3089,7 @@
         "expansionPrompt": "Publish documentation, deploy training materials, schedule office hours, execute communication plan, deliver training, and collect feedback."
       },
       {
-        "id": 64,
+        "id": "64",
         "title": "Implement Cleanup Automation",
         "description": "Create automated cleanup for legacy artifacts",
         "details": "Create cleanup scheduler with cron. Implement legacy file detection. Add safe deletion with backups. Create cleanup audit trail. Implement cleanup dry-run mode. Add cleanup metrics collection. Create cleanup rollback capability. Implement cleanup notifications.",
@@ -2990,7 +3107,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 64
+            "parentTaskId": 64,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -2999,7 +3117,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 64
+            "parentTaskId": 64,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3007,7 +3126,7 @@
         "expansionPrompt": "Create cleanup scheduler, implement legacy detection, add safe deletion with backups, create audit trail, implement dry-run mode, and add rollback capability."
       },
       {
-        "id": 65,
+        "id": "65",
         "title": "Build Template Quality Scoring",
         "description": "Create quality metrics system for templates",
         "details": "Define quality metrics (complexity, maintainability, performance). Implement static analysis for templates. Add quality score calculation. Create quality dashboards. Implement quality gates for new templates. Add quality improvement suggestions. Create quality trends tracking. Implement quality benchmarks.",
@@ -3026,7 +3145,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 65
+            "parentTaskId": 65,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3035,7 +3155,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 65
+            "parentTaskId": 65,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -3043,7 +3164,7 @@
         "expansionPrompt": "Define quality metrics, implement static analysis, calculate quality scores, create dashboards, implement quality gates, add improvement suggestions, and establish benchmarks."
       },
       {
-        "id": 66,
+        "id": "66",
         "title": "Setup Deprecation Management",
         "description": "Implement systematic deprecation process",
         "details": "Create deprecation timeline tracker. Implement deprecation warnings in logs. Add grace period enforcement. Create migration path documentation. Implement automatic archival. Add deprecation metrics. Create deprecation notifications. Implement deprecation override for emergencies.",
@@ -3062,7 +3183,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 66
+            "parentTaskId": 66,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3071,7 +3193,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 66
+            "parentTaskId": 66,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3079,7 +3202,7 @@
         "expansionPrompt": "Create deprecation timeline, implement warning system, enforce grace periods, document migration paths, implement auto-archival, and add emergency override."
       },
       {
-        "id": 67,
+        "id": "67",
         "title": "Create Success Metrics Dashboard",
         "description": "Build comprehensive success tracking dashboard",
         "details": "Implement KPI tracking widgets. Add trend analysis graphs. Create comparative analysis views. Implement success score calculation. Add predictive success metrics. Create executive summary view. Implement metric drill-down capability. Add metric export functionality.",
@@ -3098,7 +3221,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 67
+            "parentTaskId": 67,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3107,7 +3231,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 67
+            "parentTaskId": 67,
+            "parentId": "undefined"
           }
         ],
         "complexity": 6,
@@ -3115,7 +3240,7 @@
         "expansionPrompt": "Implement KPI widgets, add trend graphs, create comparative views, calculate success scores, add predictive metrics, create executive summary, and implement drill-down capability."
       },
       {
-        "id": 68,
+        "id": "68",
         "title": "Implement Final Validation Suite",
         "description": "Create comprehensive validation for migration completion",
         "details": "Create validation checklist automation. Implement reference integrity checks. Add performance validation suite. Create security validation tests. Implement compatibility validation. Add cost validation checks. Create validation report generation. Implement validation sign-off workflow.",
@@ -3134,7 +3259,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 68
+            "parentTaskId": 68,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3143,7 +3269,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 68
+            "parentTaskId": 68,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3151,7 +3278,7 @@
         "expansionPrompt": "Create automated checklist, implement integrity checks, add performance validation, create security tests, generate validation report, and implement sign-off workflow."
       },
       {
-        "id": 69,
+        "id": "69",
         "title": "Execute Phase 5 Enhancement Planning",
         "description": "Plan and initiate post-MVP enhancements",
         "details": "Identify enhancement opportunities. Create enhancement roadmap. Implement auto-compaction triggers. Add semantic search enhancements. Create AI-assisted template generation. Implement advanced optimizations. Plan additional MCP integrations. Create enhancement metrics.",
@@ -3169,7 +3296,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 69
+            "parentTaskId": 69,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3178,7 +3306,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 69
+            "parentTaskId": 69,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -3186,7 +3315,7 @@
         "expansionPrompt": "Identify enhancement opportunities, create roadmap, implement auto-compaction, add semantic search, plan AI-assisted generation, and create enhancement metrics."
       },
       {
-        "id": 70,
+        "id": "70",
         "title": "Setup Long-term Maintenance",
         "description": "Establish sustainable maintenance processes",
         "details": "Create maintenance schedule automation. Implement health check routines. Add performance baseline updates. Create security patch process. Implement dependency updates. Add maintenance metrics tracking. Create maintenance documentation. Implement maintenance alerts.",
@@ -3205,7 +3334,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 70
+            "parentTaskId": 70,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3214,7 +3344,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 70
+            "parentTaskId": 70,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3222,7 +3353,7 @@
         "expansionPrompt": "Automate maintenance schedule, implement health checks, update performance baselines, create patch process, implement dependency updates, and add maintenance tracking."
       },
       {
-        "id": 71,
+        "id": "71",
         "title": "Create Migration Archive",
         "description": "Build comprehensive archive of migration artifacts",
         "details": "Collect all migration documents. Archive scanner outputs and reports. Store fix scripts and tools. Create migration timeline. Archive decision records. Store performance baselines. Create lessons learned document. Implement archive search capability.",
@@ -3241,7 +3372,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 71
+            "parentTaskId": 71,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3250,7 +3382,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 71
+            "parentTaskId": 71,
+            "parentId": "undefined"
           }
         ],
         "complexity": 3,
@@ -3258,7 +3391,7 @@
         "expansionPrompt": "Collect migration documents, archive outputs and tools, create timeline documentation, compile lessons learned, and implement search capability."
       },
       {
-        "id": 72,
+        "id": "72",
         "title": "Implement Post-Mortem Process",
         "description": "Create systematic post-mortem for incidents",
         "details": "Create post-mortem template. Implement incident timeline reconstruction. Add root cause analysis tools. Create action item tracking. Implement follow-up automation. Add post-mortem metrics. Create knowledge extraction. Implement prevention measures tracking.",
@@ -3277,7 +3410,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 72
+            "parentTaskId": 72,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3286,7 +3420,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 72
+            "parentTaskId": 72,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3294,7 +3429,7 @@
         "expansionPrompt": "Create post-mortem template, implement timeline reconstruction, add root cause analysis, track action items, implement follow-up automation, and track prevention measures."
       },
       {
-        "id": 73,
+        "id": "73",
         "title": "Build Stakeholder Reporting",
         "description": "Create executive-level reporting system",
         "details": "Create executive dashboard. Implement automated report generation. Add cost-benefit analysis. Create ROI calculations. Implement risk reporting. Add compliance reporting. Create stakeholder notifications. Implement report scheduling.",
@@ -3313,7 +3448,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 73
+            "parentTaskId": 73,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3322,7 +3458,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 73
+            "parentTaskId": 73,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3330,7 +3467,7 @@
         "expansionPrompt": "Create executive dashboard, automate report generation, add cost-benefit analysis, calculate ROI, implement risk reporting, and schedule report delivery."
       },
       {
-        "id": 74,
+        "id": "74",
         "title": "Execute Phase 6 Cleanup",
         "description": "Complete final cleanup and maintenance setup",
         "details": "Remove all monolithic files. Archive legacy artifacts. Clean temporary files. Update all documentation. Verify zero legacy references. Establish maintenance cadence. Create final report. Schedule celebration event.",
@@ -3349,7 +3486,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 74
+            "parentTaskId": 74,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3358,7 +3496,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 74
+            "parentTaskId": 74,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -3366,7 +3505,7 @@
         "expansionPrompt": "Remove monolithic files, archive legacy artifacts, clean temporary files, update documentation, verify zero legacy references, and establish maintenance cadence."
       },
       {
-        "id": 75,
+        "id": "75",
         "title": "Create Knowledge Base",
         "description": "Build searchable knowledge repository",
         "details": "Set up knowledge base platform (Confluence/GitBook). Import all documentation. Create search indexing. Add categorization system. Implement access controls. Create contribution guidelines. Add version control. Implement analytics.",
@@ -3385,7 +3524,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 75
+            "parentTaskId": 75,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3394,7 +3534,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 75
+            "parentTaskId": 75,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3402,7 +3543,7 @@
         "expansionPrompt": "Set up knowledge platform, import documentation, create search indexing, add categorization, implement access controls, and establish contribution guidelines."
       },
       {
-        "id": 76,
+        "id": "76",
         "title": "Implement Celebration Planning",
         "description": "Organize migration success celebration",
         "details": "Plan celebration event. Create success announcement. Prepare team recognition. Document achievements. Create success blog post. Prepare demos. Organize retrospective. Plan future roadmap presentation.",
@@ -3420,7 +3561,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 76
+            "parentTaskId": 76,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3429,7 +3571,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 76
+            "parentTaskId": 76,
+            "parentId": "undefined"
           }
         ],
         "complexity": 2,
@@ -3437,7 +3580,7 @@
         "expansionPrompt": "Plan celebration event, prepare team recognition, create success announcement, document achievements, and organize retrospective."
       },
       {
-        "id": 77,
+        "id": "77",
         "title": "Setup Continuous Improvement",
         "description": "Establish ongoing improvement processes",
         "details": "Create improvement suggestion system. Implement metric-driven improvements. Add A/B testing for changes. Create improvement tracking. Implement feedback loops. Add innovation pipeline. Create improvement metrics. Implement change validation.",
@@ -3456,7 +3599,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 77
+            "parentTaskId": 77,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3465,7 +3609,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 77
+            "parentTaskId": 77,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3473,7 +3618,7 @@
         "expansionPrompt": "Create suggestion system, implement metric-driven improvements, add A/B testing, track improvements, implement feedback loops, and create innovation pipeline."
       },
       {
-        "id": 78,
+        "id": "78",
         "title": "Create Final Documentation",
         "description": "Generate comprehensive final documentation set",
         "details": "Create architecture documentation. Write operation manual. Generate API documentation. Create troubleshooting guide. Write disaster recovery plan. Create capacity planning guide. Generate compliance documentation. Create handover documentation.",
@@ -3492,7 +3637,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 78
+            "parentTaskId": 78,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3501,7 +3647,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 78
+            "parentTaskId": 78,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3509,7 +3656,7 @@
         "expansionPrompt": "Write architecture documentation, create operation manual, generate API docs, write troubleshooting guide, create disaster recovery plan, and prepare handover documentation."
       },
       {
-        "id": 79,
+        "id": "79",
         "title": "Implement Production Verification",
         "description": "Final production readiness verification",
         "details": "Run final security audit. Execute performance benchmarks. Verify cost projections. Test disaster recovery. Validate compliance. Check monitoring coverage. Verify documentation. Obtain stakeholder sign-off.",
@@ -3529,7 +3676,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 79
+            "parentTaskId": 79,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3538,7 +3686,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 79
+            "parentTaskId": 79,
+            "parentId": "undefined"
           }
         ],
         "complexity": 5,
@@ -3546,7 +3695,7 @@
         "expansionPrompt": "Run security audit, execute performance benchmarks, verify cost projections, test disaster recovery, validate compliance, and obtain stakeholder sign-off."
       },
       {
-        "id": 80,
+        "id": "80",
         "title": "Execute Production Deployment",
         "description": "Final production deployment and migration completion",
         "details": "Execute final deployment checklist. Enable production monitoring. Activate maintenance automation. Remove migration flags. Update status communications. Archive migration project. Transition to BAU. Celebrate success.",
@@ -3564,7 +3713,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 80
+            "parentTaskId": 80,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -3573,7 +3723,8 @@
             "details": "",
             "status": "pending",
             "dependencies": [],
-            "parentTaskId": 80
+            "parentTaskId": 80,
+            "parentId": "undefined"
           }
         ],
         "complexity": 4,
@@ -3581,7 +3732,7 @@
         "expansionPrompt": "Execute deployment checklist, enable production monitoring, activate maintenance automation, remove migration flags, update status communications, and transition to BAU."
       },
       {
-        "id": 85,
+        "id": "85",
         "title": "Author Session Continuation & State Workflows",
         "description": "Create dedicated workflows for session continuation and state management with guard integration.",
         "details": "Formalize continuation/state workflows to replace ad-hoc handlers and ensure guard coverage.",
@@ -3665,7 +3816,7 @@
         ]
       },
       {
-        "id": 86,
+        "id": "86",
         "title": "Author Domain Workflow Modules",
         "description": "Create modular workflows for key domains and wire them into enforcement.",
         "details": "Ensures each domain has a workflow with guard and helper support.",
@@ -3749,7 +3900,7 @@
         ]
       },
       {
-        "id": 87,
+        "id": "87",
         "title": "Replace Legacy Monolithic References",
         "description": "Remove references to monolithic template files and enforce modular paths via guard.",
         "details": "Completes migration away from WORKFLOWS.md/PATTERNS.md references.",
@@ -3823,7 +3974,7 @@
         ]
       },
       {
-        "id": 88,
+        "id": "88",
         "title": "Implement Taskmaster Alignment Workflow",
         "description": "Create workflow/guard ensuring task edits follow alignment checklist.",
         "details": "Prevents task.json edits without plan compliance and registry checks.",
@@ -3887,7 +4038,7 @@
         ]
       },
       {
-        "id": 89,
+        "id": "89",
         "title": "Expand Work-Tracking Workflow Enforcement",
         "description": "Formalize work-tracking orchestration with guard and helper support.",
         "details": "Ensures documentation workflow is enforced alongside plan compliance.",
@@ -3951,7 +4102,7 @@
         ]
       },
       {
-        "id": 90,
+        "id": "90",
         "title": "Complete Engine Migration (Phase 2/3)",
         "description": "Finish outstanding engine modules and ensure discoverability.",
         "details": "Completes migration roadmap for engine templates.",
@@ -4021,7 +4172,7 @@
         "updatedAt": "2026-04-21T12:59:29.851Z"
       },
       {
-        "id": 91,
+        "id": "91",
         "title": "Standardize Template Metadata",
         "description": "Ensure all templates carry consistent metadata and guard enforces presence.",
         "details": "Prevents templates from missing status/type information.",
@@ -4085,7 +4236,7 @@
         ]
       },
       {
-        "id": 92,
+        "id": "92",
         "title": "Expand Workflow Guard Coverage",
         "description": "Close behavioural guard gaps identified during audit.",
         "details": "Improves guard breadth across workflows and commits.",
@@ -4149,7 +4300,7 @@
         ]
       },
       {
-        "id": 93,
+        "id": "93",
         "title": "Remediate Compaction Detection Behavior",
         "description": "Rewrite or retire compaction behavior to align with new enforcement pipeline.",
         "details": "Prevents stale compaction hooks from causing confusion.",
@@ -4213,7 +4364,7 @@
         ]
       },
       {
-        "id": 94,
+        "id": "94",
         "title": "Expand Enforcement Framework",
         "description": "Coordinate enforcement enhancements (drift detection, wizard, metrics dashboard) following guard expansion.",
         "details": "Keeps enforcement roadmap aligned with new guard chain.",
@@ -4277,7 +4428,7 @@
         ]
       },
       {
-        "id": 95,
+        "id": "95",
         "title": "Implement Template Drift Detection",
         "description": "Add drift detection tooling and integrate with guard/automation.",
         "details": "Helps monitor template divergence over time.",
@@ -4341,7 +4492,7 @@
         ]
       },
       {
-        "id": 96,
+        "id": "96",
         "title": "Build Interactive Template Wizard",
         "description": "Create a wizard CLI to guide template execution while honoring enforcement rules.",
         "details": "Improves developer experience with template workflows.",
@@ -4405,7 +4556,7 @@
         ]
       },
       {
-        "id": 97,
+        "id": "97",
         "title": "Create Template Metrics Dashboard",
         "description": "Summarize template usage/compliance metrics via dashboard/report.",
         "details": "Provides visibility into template enforcement health.",
@@ -4471,79 +4622,79 @@
         ]
       },
       {
-        "id": 98,
+        "id": "98",
         "title": "Externalize Repo Structure Configuration",
         "description": "Move hardcoded repo-structure assumptions into repo-local configuration so the enforcement foundation can adapt to different project layouts.",
         "details": "Extract assumptions from scripts/codex-guard and related helpers into config-driven settings, including template roots, session roots, plan roots, work-tracking roots, archive naming rules, and any path-based enforcement toggles. Update consuming helpers to read configuration instead of hardcoded repository paths, and capture the expected config contract in supporting docs.",
         "testStrategy": "",
         "status": "done",
         "dependencies": [
-          97
+          "97"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 99,
+        "id": "99",
         "title": "Define Portable Foundation Specification",
         "description": "Write the reusable contract for the metadata, guard, session, and work-tracking foundation so core behavior is clearly separated from repo-local configuration.",
         "details": "Document the portable foundation specification, covering required metadata keys, policy-file schema, enforcement semantics, session/work-tracking lifecycle expectations, and the boundary between generic core logic and repo adapter configuration. Ensure the specification references the existing Task 91 policy model and can guide implementation in non-identical repositories.",
         "testStrategy": "",
         "status": "done",
         "dependencies": [
-          98
+          "98"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 100,
+        "id": "100",
         "title": "Build Foundation Bootstrap Layer",
         "description": "Provide a starter adoption layer so a new repository can initialize the shared foundation without hand-editing every file and path.",
         "details": "Create bootstrap support for new repositories, including starter policy/config files, setup instructions, and migration-safe scaffolding for repos that already contain templates and workflow documents. Make the bootstrap layer rely on the portable specification and repo-structure configuration instead of this repository's hardcoded defaults.",
         "testStrategy": "",
         "status": "done",
         "dependencies": [
-          99
+          "99"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 101,
+        "id": "101",
         "title": "Add Cross-Project Compatibility Fixtures",
         "description": "Verify that the foundation works across multiple repository shapes instead of only this repo's structure.",
         "details": "Add cross-project verification fixtures or tests that simulate different repository layouts, such as product-web, game, docs-heavy, and lightweight utility repos. Validate that the portable configuration, guard behavior, and workflow assumptions still work when paths and file families differ.",
         "testStrategy": "",
         "status": "done",
         "dependencies": [
-          100
+          "100"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 102,
+        "id": "102",
         "title": "Document Foundation Migration and Adoption",
         "description": "Write the migration and adoption guidance for applying the shared foundation to both existing repositories and brand-new projects.",
         "details": "Document how to adopt the portable foundation in a new repository, how to migrate an existing repository onto the new config/policy model, what the minimal required setup is, and which optional layers can be adopted later. Ensure the guidance reflects the portable specification, bootstrap layer, and cross-project fixture findings.",
         "testStrategy": "",
         "status": "done",
         "dependencies": [
-          101
+          "101"
         ],
         "priority": "medium",
         "subtasks": []
       },
       {
-        "id": 103,
+        "id": "103",
         "title": "Claude Runtime Adapter and Multimodal Workflow Enforcement",
         "description": "Build the Claude Code adapter for the portable Codex foundation as a gated runtime, not a manual or memory-only guide. This task is intentionally prioritized ahead of Task 10 because the foundation must support multimodal and multi-agent workflows across Codex, Claude, shell, MCP, memory, GitHub, and future agent/tool surfaces.",
         "details": "Create a Claude-owned runtime contract and implementation that makes Claude follow task/session/plan/work-tracking discipline mechanically. Required outputs include CLAUDE.md entry guidance, .claude/engine runtime contract/readiness/tool-mapping docs, .claude/scripts readiness and PreToolUse gate scripts, .claude/commands slash-command wrappers, .claude/agents executor/orchestrator/checker agents, .claude/AGENTS.md catalog, .claude/settings.json hook/allowlist configuration, and tests/evidence proving cold-session zero-mutation behavior where hookable. Ownership boundary: do not modify CODEX.md, templates/**, scripts/codex-*, scripts/template-*, or .codex/** unless explicitly scoped as a Codex-led follow-up. Reference branch feat/claude-port-bootstrap is raw material only; every useful file must be ported or rejected during scope reconciliation with S:W:H:E provenance. Acceptance: a fresh Claude session without matching Taskmaster task, task branch, sessions/current, plans/current, and ACTIVE work tracking cannot perform hookable persistent mutations; readiness exits READY only when branch/task/session/plan/tracker align; protected Codex-owned paths are blocked; Bash write-surface bypasses are blocked where hookable; every enforcement claim is backed by tests or documented as policy-only; plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, and focused Claude adapter pytest evidence pass.",
         "testStrategy": "",
         "status": "in-progress",
         "dependencies": [
-          9
+          "9"
         ],
         "priority": "high",
         "subtasks": [
@@ -4554,7 +4705,8 @@
             "details": "Outputs: task-local designs/claude-runtime-file-contract.md and designs/mutation-taxonomy.md, permanent .claude/engine/runtime-contract.md draft, DECISIONS/FINDINGS entries for Task 10 queue-jump and policy-only surfaces, and S:W:H:E provenance for every bootstrap reference.",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 103
+            "parentTaskId": 103,
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -4563,7 +4715,8 @@
             "details": "Outputs: .claude/scripts/readiness.sh or equivalent, .claude/engine/claude-readiness.md, tests proving READY/WARN/BLOCKED behavior, and evidence for invalid state classes. From this subtask onward, later subtasks must pass readiness before edits.",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 103
+            "parentTaskId": 103,
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -4572,7 +4725,8 @@
             "details": "Outputs: .claude/scripts/pretooluse-gate.sh orchestrator, codex-path guard, bash-command guard, settings hook registration, and tests for cold-session zero-mutation, protected path edits, Bash redirect/sed bypasses, and safe allowed paths. Repo-level pre-commit/pre-push policy remains out of scope unless assigned to a Codex-led follow-up.",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 103
+            "parentTaskId": 103,
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -4581,28 +4735,32 @@
             "details": "Outputs: CLAUDE.md, .claude/engine docs, .claude/commands wrappers, .claude/agents executor/orchestrator/checker, .claude/AGENTS.md, .claude/settings.json, and S:W:H:E entries citing source commit SHAs or rejection rationale for each bootstrap file.",
             "status": "done",
             "dependencies": [],
-            "parentTaskId": 103
+            "parentTaskId": 103,
+            "parentId": "undefined"
           },
           {
             "id": 5,
             "title": "Tests, evidence, and handoff",
             "description": "Prove the Claude runtime adapter works as a system with focused tests, final guard evidence, documented policy-only surfaces, Serena memory, and clean handoff.",
             "details": "Outputs: tests/claude_adapter/ or equivalent focused pytest suite, cold-session zero-mutation integration evidence, hookability taxonomy results, plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, HANDOFF/MEMORY-REFS, and final GAC/PR description. Parent acceptance requires every enforcement claim to be backed by a passing test or documented policy-only label.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 103
+            "parentTaskId": 103,
+            "updatedAt": "2026-05-06T16:51:40.287Z",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-05-06T16:52:19.460Z"
       },
       {
-        "id": 104,
+        "id": "104",
         "title": "Add Targeted Taskmaster Task-File Generation Helper",
         "description": "Add a shared workflow helper that updates only the current Taskmaster task file after Taskmaster state changes, avoiding broad in-place task-master generate drift and repeated cleanup of unrelated .taskmaster/tasks/task_*.txt files.",
         "details": "Implement a Codex-led/shared helper such as python3 scripts/codex-task taskmaster generate-one --id <task-id>. The helper should run task-master generate into a temporary output directory, copy only the requested .taskmaster/tasks/task_<id>.txt into the repo, fail if unrelated task files are modified, and document the workflow in the relevant templates/docs. Add tests proving unrelated generated task files are not dirtied and update the standard Taskmaster workflow instructions to use the helper instead of broad in-place task-master generate for status-only task updates.",
         "testStrategy": "",
         "status": "pending",
         "dependencies": [
-          103
+          "103"
         ],
         "priority": "high",
         "subtasks": []
@@ -4610,15 +4768,12 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-21T12:59:29.851Z",
-      "taskCount": 97,
-      "completedCount": 11,
+      "lastModified": "2026-05-06T16:52:19.461Z",
+      "taskCount": 104,
+      "completedCount": 32,
       "tags": [
         "master"
-      ],
-      "created": "2026-04-21T15:14:40.150Z",
-      "description": "Tasks for master context",
-      "updated": "2026-05-06T16:10:35.249Z"
+      ]
     }
   }
 }

@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+collected 28 items
+
+tests/claude_adapter/test_adapter_contract_files.py .......              [ 25%]
+tests/claude_adapter/test_pretooluse_gates.py ..........                 [ 60%]
+tests/claude_adapter/test_readiness_gate.py ...........                  [100%]
+
+============================== 28 passed in 1.62s ==============================

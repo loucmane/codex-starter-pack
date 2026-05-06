@@ -8,8 +8,8 @@
 - [x] Reconcile bootstrap branch and define the Claude runtime contract
 - [x] Implement readiness as mechanical enforcement
 - [x] Implement tool-use gates as mechanical enforcement
-- [ ] Port Claude adapter files without crossing Codex-owned boundaries
-- [ ] Prove cold-session and hookability behavior with tests and evidence
+- [x] Port Claude adapter files without crossing Codex-owned boundaries
+- [x] Prove cold-session and hookability behavior with tests and evidence
 
 ## Progress Log
 - **2026-05-06 16:49** — [S:20260506|W:task103-claude-runtime-adapter|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-05-06 16:49 CEST`
@@ -65,11 +65,18 @@
 - **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/guard-2026-05-06-adapter-port.txt] Adapter-port checkpoint guard validation passed.
 - **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-adapter-port.txt] Adapter-port checkpoint `git diff --check` passed.
 - **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-adapter-port.txt] Adapter-port checkpoint pre-commit run passed.
+- **2026-05-06 18:46** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Started subtask 103.5 for final tests, evidence, and handoff.
+- **2026-05-06 18:49** — [S:20260506|W:task103-claude-runtime-adapter|H:pytest:claude-adapter|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-final.txt] Final Claude adapter pytest passed (`28 passed`).
+- **2026-05-06 18:49** — [S:20260506|W:task103-claude-runtime-adapter|H:.claude/scripts/readiness.sh|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/readiness-2026-05-06-final.txt] Final readiness returned `READY`.
+- **2026-05-06 18:50** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:0.43.1|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/FINDINGS.md] Recorded Taskmaster `0.43.1` behavior: `set-status` reserializes `tasks.json`, auto-completes the parent when all subtasks are done, and `generate` now emits `task_*.md` files.
+- **2026-05-06 18:51** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/task-103-show-2026-05-06-final.txt] Marked subtask 103.5 done, then restored parent Task 103 to `in-progress` so the active PR branch remains readiness-compatible.
+- **2026-05-06 18:52** — [S:20260506|W:task103-claude-runtime-adapter|H:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/MEMORY-REFS.md|E:.serena/memories/2026-05-06_task103_claude_runtime_adapter_completion.md] Added memory references and completion-handoff structure.
+- **2026-05-06 18:55** — [S:20260506|W:task103-claude-runtime-adapter|H:verification:final-stack|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-final.txt] Reran the final verification stack after all handoff updates: pytest, readiness, plan sync, work-tracking audit, guard, diff-check, Taskmaster dependency validation, and pre-commit passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile bootstrap branch, runtime contract, ownership boundaries, and mutation taxonomy
 - [x] plan-step-implement — Implement readiness, PreToolUse gates, adapter port, and focused tests
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
@@ -79,6 +86,8 @@
 - Taskmaster subtask 103.2 status: done
 - Taskmaster subtask 103.3 status: done
 - Taskmaster subtask 103.4 status: done
+- Taskmaster subtask 103.5 status: done
+- Taskmaster parent Task 103 remains `in-progress` while the PR branch is active so `.claude/scripts/readiness.sh` stays `READY`; close the parent after PR merge/archive.
 - Taskmaster Task 104 added as high-priority follow-up: targeted Taskmaster task-file generation helper.
 - Taskmaster Task 10 remains deferred by explicit user priority until the Claude multimodal/multi-agent adapter system is scaffolded and underway.
 - Serena kickoff memory: `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`
