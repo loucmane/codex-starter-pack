@@ -102,6 +102,11 @@ Local hook support:
 - The local drift hook disables report output so pre-commit validation does not mutate the working tree; CI still writes drift artifacts.
 - Install with `pre-commit install` when the local environment has pre-commit available; CI remains the authoritative merge gate.
 
+GitHub auth/signing support:
+- GitHub fetch, push, branch cleanup, PR, and signed commit operations depend on the local SSH/GPG agent state.
+- This environment may keep SSH/GPG auth cached for 24 hours after the user refreshes it; if auth starts failing after the cache expires, refresh the agent cache and retry the same operation.
+- Do not bypass workflow gates, disable signing, change remotes, or use `--no-verify` to work around expired auth unless the user explicitly authorizes and the bypass is recorded in work tracking.
+
 Repo-structure note:
 - `scripts/codex-guard` reads `[repo_structure]` from `.codex/config.toml` to resolve session roots, plan roots, Taskmaster roots, work-tracking roots, report directories, and the template metadata policy path.
 - Keep the configured roots repo-local and relative unless there is a deliberate reason to point at an absolute path.

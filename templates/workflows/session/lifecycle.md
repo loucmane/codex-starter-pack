@@ -50,10 +50,17 @@ status: stable
    git config user.name || echo "Unknown"  # Save as $GIT_USER
    git log --oneline -5            # Save recent commits
    git status                      # Check for changes
+   ssh-add -l || echo "No SSH identities loaded"
+   gpg-connect-agent /bye || echo "GPG agent unavailable"
    
    # If using Serena for this session
    echo "Serena memories:" && ls -la .serena/memories/ 2>/dev/null || echo "No Serena memories yet"
    ```
+
+   GitHub auth note:
+   - When the user has refreshed SSH/GPG auth, this environment may keep the cache warm for 24 hours.
+   - If GitHub fetch/push/branch cleanup or signed commits fail after the cache expires, refresh the SSH/GPG agents and retry the same operation.
+   - Never work around cache expiry by disabling signing, changing remotes, using `--no-verify`, or skipping normal workflow gates.
 
 2. **Git Branch Naming Convention:**
    - Format: `feat/{task-id}-{descriptive-name}`
@@ -195,3 +202,7 @@ status: stable
 - **[HH:MM]** - ✅ User approved: Header component complete
 - **[HH:MM]** - Moving to subtask 7.3
 ```
+
+## Progress Log
+
+- **2026-05-06 13:47** — [S:20260506|W:task9-git-hooks-infrastructure|H:templates/workflows/session/lifecycle.md|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/designs/task9-scope-reconciliation.md] Added SSH/GPG auth-cache checks to session startup so GitHub fetch, push, branch cleanup, and signed commit failures route to cache refresh instead of workflow bypasses.

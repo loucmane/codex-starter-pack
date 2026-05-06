@@ -1,8 +1,8 @@
 # Task 8 Create Template Registry System Tracker
 
 **Started**: 2026-05-05
-**Status**: ACTIVE
-**Last Updated**: 2026-05-05
+**Status**: COMPLETED
+**Last Updated**: 2026-05-06
 
 ## Goals
 - [x] Reconcile Task 8 registry requirements against the portable foundation and existing template discovery surfaces
@@ -39,6 +39,8 @@
 - **2026-05-05 13:19** — [S:20260505|W:task8-template-registry-system|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260505-task8-template-registry-system-ACTIVE/reports/template-registry-system/guard-2026-05-05-final.txt] Final guard validation passed.
 - **2026-05-05 13:19** — [S:20260505|W:task8-template-registry-system|H:git:diff-check|E:docs/ai/work-tracking/active/20260505-task8-template-registry-system-ACTIVE/reports/template-registry-system/git-diff-check-2026-05-05-final.txt] Final `git diff --check` passed.
 - **2026-05-05 13:19** — [S:20260505|W:task8-template-registry-system|H:task-master:next|E:docs/ai/work-tracking/active/20260505-task8-template-registry-system-ACTIVE/reports/template-registry-system/taskmaster-next-2026-05-05-final.txt] Taskmaster next is Task 10.
+- **2026-05-06 13:40** — [S:20260506|W:task8-post-merge-archive|H:git:merge-cleanup|E:docs/ai/work-tracking/archive/20260505-task8-template-registry-system-COMPLETED/HANDOFF.md] Confirmed PR merge, fast-forwarded `main`, deleted the local feature branch, and deleted the remote feature branch.
+- **2026-05-06 13:40** — [S:20260506|W:task8-post-merge-archive|H:templates/tools/git/commands.md|E:docs/ai/work-tracking/archive/20260505-task8-template-registry-system-COMPLETED/FINDINGS.md] Recorded the 24-hour SSH/GPG cache as reusable Git/readiness/session/troubleshooting guidance.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile registry scope against current surfaces
@@ -49,6 +51,7 @@
 ## Dependencies & Notes
 - Session log: sessions/current
 - Current branch: `feat/task-8-template-registry-system`
+- Post-merge branch state: merged to `main`; feature branch deleted locally and remotely.
 - Scope boundary: implement a portable registry API over current discovery surfaces; do not replace the static registry or metadata surfaces during Task 8.
 - Taskmaster subtask 8.1 status: done
 - Taskmaster Task 8 status: done
