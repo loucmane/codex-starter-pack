@@ -17,7 +17,7 @@ Create a Claude-owned runtime contract and implementation that makes Claude foll
 ### Details:
 Outputs: task-local designs/claude-runtime-file-contract.md and designs/mutation-taxonomy.md, permanent .claude/engine/runtime-contract.md draft, DECISIONS/FINDINGS entries for Task 10 queue-jump and policy-only surfaces, and S:W:H:E provenance for every bootstrap reference.
 
-## 2. Readiness hard gate [pending]
+## 2. Readiness hard gate [done]
 ### Dependencies: None
 ### Description: Implement Claude readiness as a hard gate that verifies branch, Taskmaster task, sessions/current, plans/current, active work-tracking folder, and tracker/plan alignment before Claude work proceeds.
 ### Details:

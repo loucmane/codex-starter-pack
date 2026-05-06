@@ -4561,7 +4561,7 @@
             "title": "Readiness hard gate",
             "description": "Implement Claude readiness as a hard gate that verifies branch, Taskmaster task, sessions/current, plans/current, active work-tracking folder, and tracker/plan alignment before Claude work proceeds.",
             "details": "Outputs: .claude/scripts/readiness.sh or equivalent, .claude/engine/claude-readiness.md, tests proving READY/WARN/BLOCKED behavior, and evidence for invalid state classes. From this subtask onward, later subtasks must pass readiness before edits.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 103
           },
@@ -4605,7 +4605,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-05-06T14:59:40.521Z"
+      "updated": "2026-05-06T15:16:00.106Z"
     }
   }
 }

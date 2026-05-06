@@ -5,8 +5,9 @@
 **Last Updated**: 2026-05-06
 
 ## Goals
-- [ ] Reconcile bootstrap branch and define the Claude runtime contract
-- [ ] Implement readiness and tool-use gates as mechanical enforcement
+- [x] Reconcile bootstrap branch and define the Claude runtime contract
+- [x] Implement readiness as mechanical enforcement
+- [ ] Implement tool-use gates as mechanical enforcement
 - [ ] Port Claude adapter files without crossing Codex-owned boundaries
 - [ ] Prove cold-session and hookability behavior with tests and evidence
 
@@ -28,6 +29,16 @@
 - **2026-05-06 16:57** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/guard-2026-05-06-scope.txt] Scope checkpoint guard validation passed.
 - **2026-05-06 16:57** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-scope.txt] Scope checkpoint `git diff --check` passed.
 - **2026-05-06 16:58** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-scope.txt] Scope checkpoint pre-commit run passed.
+- **2026-05-06 17:10** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/task_103.txt] Marked subtask 103.2 in progress.
+- **2026-05-06 17:15** — [S:20260506|W:task103-claude-runtime-adapter|H:.claude/scripts/readiness.sh|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/readiness-2026-05-06-pass.txt] Added the read-only Claude readiness hard gate and confirmed it returns `READY` for the live Task 103 state.
+- **2026-05-06 17:15** — [S:20260506|W:task103-claude-runtime-adapter|H:tests/claude_adapter/test_readiness_gate.py|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-readiness.txt] Added and ran focused readiness pytest coverage.
+- **2026-05-06 17:16** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/task_103.txt] Marked subtask 103.2 done.
+- **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-task:plan-sync|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/plan-sync-2026-05-06-readiness.txt] Readiness checkpoint plan sync passed.
+- **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-task:work-tracking-audit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-readiness.txt] Readiness checkpoint work-tracking audit passed.
+- **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/guard-2026-05-06-readiness.txt] Readiness checkpoint guard validation passed.
+- **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-readiness.txt] Readiness checkpoint `git diff --check` passed.
+- **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-readiness.txt] Readiness checkpoint pre-commit run passed.
+- **2026-05-06 17:23** — [S:20260506|W:task103-claude-runtime-adapter|H:tests/claude_adapter/test_readiness_gate.py|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-readiness.txt] Added a linked Git worktree regression and refreshed readiness test evidence (`11 passed`).
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile bootstrap branch, runtime contract, ownership boundaries, and mutation taxonomy
@@ -39,5 +50,6 @@
 - Session log: sessions/current
 - Taskmaster parent Task 103 status: in-progress
 - Taskmaster subtask 103.1 status: done
+- Taskmaster subtask 103.2 status: done
 - Taskmaster Task 10 remains deferred by explicit user priority until the Claude multimodal/multi-agent adapter system is scaffolded and underway.
 - Serena kickoff memory: `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`
