@@ -29,7 +29,7 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Reconcile `feat/claude-port-bootstrap`, current `.claude` state, ownership boundaries, mutation taxonomy, and the permanent runtime contract | docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/claude-runtime-file-contract.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/mutation-taxonomy.md; .claude/engine/runtime-contract.md | completed |
-| plan-step-implement | Implement Claude readiness, PreToolUse mutation gates, adapter commands/agents/settings, and approved bootstrap ports | .claude/engine/runtime-contract.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/IMPLEMENTATION.md | pending |
+| plan-step-implement | Implement Claude readiness, PreToolUse mutation gates, adapter commands/agents/settings, and approved bootstrap ports | .claude/engine/runtime-contract.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/IMPLEMENTATION.md | completed |
 | plan-step-verify | Store hookability/test evidence, refresh handoff docs, and confirm Taskmaster/guard/pre-commit status | docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/ | pending |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 

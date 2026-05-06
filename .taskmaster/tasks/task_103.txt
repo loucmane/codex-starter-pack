@@ -29,7 +29,7 @@ Outputs: .claude/scripts/readiness.sh or equivalent, .claude/engine/claude-readi
 ### Details:
 Outputs: .claude/scripts/pretooluse-gate.sh orchestrator, codex-path guard, bash-command guard, settings hook registration, and tests for cold-session zero-mutation, protected path edits, Bash redirect/sed bypasses, and safe allowed paths. Repo-level pre-commit/pre-push policy remains out of scope unless assigned to a Codex-led follow-up.
 
-## 4. Claude adapter port [pending]
+## 4. Claude adapter port [done]
 ### Dependencies: None
 ### Description: Port or rewrite approved Claude adapter files from feat/claude-port-bootstrap into the proper runtime contract shape without crossing Codex-owned boundaries.
 ### Details:

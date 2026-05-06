@@ -14,3 +14,7 @@
 - 2026-05-06 17:43 CEST - Updated mutation taxonomy and runtime contract with verified hookable labels for tested gate behavior.
 - 2026-05-06 17:44 CEST - Marked Taskmaster subtask 103.3 done.
 - 2026-05-06 17:47 CEST - Captured passing PreToolUse checkpoint evidence for settings JSON, plan sync, work-tracking audit, guard, diff-check, and pre-commit.
+- 2026-05-06 18:09 CEST - Completed Taskmaster subtask 103.4 after porting/reworking Claude adapter docs, commands, agents, catalog, and Stop hook.
+- 2026-05-06 18:24 CEST - Updated Taskmaster CLI to `0.43.1`, made MCP configs explicit with `task-master-ai@latest`, and added Taskmaster Task 104 for targeted task-file generation.
+- 2026-05-06 18:25 CEST - Marked `plan-step-implement` completed.
+- 2026-05-06 18:26 CEST - Captured passing adapter-port checkpoint evidence for pytest, readiness, plan sync, work-tracking audit, guard, diff-check, and pre-commit.

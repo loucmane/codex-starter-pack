@@ -28,3 +28,10 @@
 - Added `tests/claude_adapter/test_pretooluse_gates.py` with isolated temporary git repositories so hook behavior is tested without mutating the real project.
 - Captured focused pytest evidence in `reports/claude-runtime-adapter/tests-2026-05-06-pretooluse.txt`.
 - Captured `.claude/settings.json` syntax evidence in `reports/claude-runtime-adapter/settings-json-2026-05-06-pretooluse.txt`.
+
+## Taskmaster/MCP Runtime Update
+- Verified npm registry stable latest for `task-master-ai` as `0.43.1` in `reports/claude-runtime-adapter/taskmaster-npm-view-2026-05-06.json`.
+- Updated the installed `task-master` CLI from `0.26.0` to `0.43.1`; evidence is stored in `reports/claude-runtime-adapter/taskmaster-version-2026-05-06.txt`.
+- Updated `.mcp.json` and `.cursor/mcp.json` to use `--package=task-master-ai@latest`.
+- Added Taskmaster Task 104 as the follow-up for a targeted task-file generation helper; evidence is stored in `reports/claude-runtime-adapter/task-104-show-2026-05-06.txt`.
+- Confirmed `task-master generate` still lacks a single-task generation flag in `0.43.1`; evidence is stored in `reports/claude-runtime-adapter/taskmaster-generate-help-2026-05-06.txt`.

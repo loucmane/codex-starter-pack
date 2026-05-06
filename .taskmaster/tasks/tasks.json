@@ -4579,7 +4579,7 @@
             "title": "Claude adapter port",
             "description": "Port or rewrite approved Claude adapter files from feat/claude-port-bootstrap into the proper runtime contract shape without crossing Codex-owned boundaries.",
             "details": "Outputs: CLAUDE.md, .claude/engine docs, .claude/commands wrappers, .claude/agents executor/orchestrator/checker, .claude/AGENTS.md, .claude/settings.json, and S:W:H:E entries citing source commit SHAs or rejection rationale for each bootstrap file.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 103
           },
@@ -4593,6 +4593,19 @@
             "parentTaskId": 103
           }
         ]
+      },
+      {
+        "id": 104,
+        "title": "Add Targeted Taskmaster Task-File Generation Helper",
+        "description": "Add a shared workflow helper that updates only the current Taskmaster task file after Taskmaster state changes, avoiding broad in-place task-master generate drift and repeated cleanup of unrelated .taskmaster/tasks/task_*.txt files.",
+        "details": "Implement a Codex-led/shared helper such as python3 scripts/codex-task taskmaster generate-one --id <task-id>. The helper should run task-master generate into a temporary output directory, copy only the requested .taskmaster/tasks/task_<id>.txt into the repo, fail if unrelated task files are modified, and document the workflow in the relevant templates/docs. Add tests proving unrelated generated task files are not dirtied and update the standard Taskmaster workflow instructions to use the helper instead of broad in-place task-master generate for status-only task updates.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          103
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -4605,7 +4618,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-05-06T15:44:40.283Z"
+      "updated": "2026-05-06T16:10:35.249Z"
     }
   }
 }

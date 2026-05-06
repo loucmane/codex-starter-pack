@@ -5,7 +5,7 @@
 			"command": "npx",
 			"args": [
 				"-y",
-				"--package=task-master-ai",
+				"--package=task-master-ai@latest",
 				"task-master-ai"
 			],
 			"env": {

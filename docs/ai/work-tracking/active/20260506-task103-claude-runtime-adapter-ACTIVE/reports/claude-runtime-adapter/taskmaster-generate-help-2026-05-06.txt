@@ -1,0 +1,11 @@
+Usage: task-master generate [options]
+
+Generate individual task files from tasks.json
+
+Options:
+  -t, --tag <tag>        Tag context for task operations
+  -o, --output <dir>     Output directory for generated files (defaults to
+                         .taskmaster/tasks)
+  -p, --project <path>   Project root directory (auto-detected if not provided)
+  -f, --format <format>  Output format (text, json) (default: "text")
+  -h, --help             display help for command

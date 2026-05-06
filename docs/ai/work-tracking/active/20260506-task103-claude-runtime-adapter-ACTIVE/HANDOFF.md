@@ -6,6 +6,8 @@
 - Taskmaster subtask 103.1 status: done.
 - Taskmaster subtask 103.2 status: done.
 - Taskmaster subtask 103.3 status: done.
+- Taskmaster subtask 103.4 status: done.
+- Taskmaster Task 104 exists as a high-priority follow-up for targeted Taskmaster task-file generation.
 - Task 103 was created manually through Taskmaster after the AI-backed `add-task` provider failed.
 - Active session: `sessions/2026/05/2026-05-06-002-task103-claude-runtime-adapter.md`.
 - Active plan: `plans/2026-05-06-task103-claude-runtime-adapter.md`.
@@ -44,8 +46,23 @@
   - `reports/claude-runtime-adapter/guard-2026-05-06-pretooluse.txt`
   - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-pretooluse.txt`
   - `reports/claude-runtime-adapter/pre-commit-2026-05-06-pretooluse.txt`
+- Taskmaster/MCP update evidence:
+  - `reports/claude-runtime-adapter/taskmaster-npm-view-2026-05-06.json`
+  - `reports/claude-runtime-adapter/taskmaster-version-2026-05-06.txt`
+  - `reports/claude-runtime-adapter/taskmaster-generate-help-2026-05-06.txt`
+  - `reports/claude-runtime-adapter/mcp-json-check-2026-05-06.txt`
+  - `reports/claude-runtime-adapter/task-104-show-2026-05-06.txt`
+- Adapter-port checkpoint evidence is green:
+  - `reports/claude-runtime-adapter/tests-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-adapter-port.txt`
 
 ## Next Steps
-- Start subtask 103.4: Claude adapter port.
-- Port or rewrite `CLAUDE.md`, `.claude/engine/tool-mapping.md`, `.claude/commands/*.md`, `.claude/agents/*.md`, and `.claude/AGENTS.md` from `feat/claude-port-bootstrap` only after classifying each file against the runtime contract.
+- Start subtask 103.5: final tests, evidence, and handoff.
+- Use temp-output Taskmaster generation until Task 104 implements the helper:
+  `task-master generate --output <tmpdir>` then copy only the intended `task_<id>.txt`.
 - Continue treating `feat/claude-port-bootstrap` as raw material, not a source to merge directly.

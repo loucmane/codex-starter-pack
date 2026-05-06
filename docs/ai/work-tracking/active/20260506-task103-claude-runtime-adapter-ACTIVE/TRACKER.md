@@ -50,10 +50,25 @@
 - **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/guard-2026-05-06-pretooluse.txt] PreToolUse checkpoint guard validation passed.
 - **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-pretooluse.txt] PreToolUse checkpoint `git diff --check` passed.
 - **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-pretooluse.txt] PreToolUse checkpoint pre-commit run passed.
+- **2026-05-06 17:56** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/task_103.txt] Marked subtask 103.4 in progress.
+- **2026-05-06 18:05** — [S:20260506|W:task103-claude-runtime-adapter|H:CLAUDE.md|E:tests/claude_adapter/test_adapter_contract_files.py] Rewrote the Claude entrypoint, runtime command docs, AGENTS catalog, sub-agent instructions, tool mapping, and Stop hook around the implemented readiness and PreToolUse gates.
+- **2026-05-06 18:08** — [S:20260506|W:task103-claude-runtime-adapter|H:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/claude-runtime-file-contract.md|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-adapter-port.txt] Recorded Task 103.4 port/rewrite decisions with source commit provenance from `feat/claude-port-bootstrap`.
+- **2026-05-06 18:09** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/task_103.txt] Marked subtask 103.4 done.
+- **2026-05-06 18:24** — [S:20260506|W:task103-claude-runtime-adapter|H:npm:task-master-ai|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/taskmaster-npm-view-2026-05-06.json] Verified npm stable latest for `task-master-ai` is `0.43.1` and updated the installed `task-master` CLI to `0.43.1`.
+- **2026-05-06 18:24** — [S:20260506|W:task103-claude-runtime-adapter|H:.mcp.json|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/mcp-json-check-2026-05-06.txt] Updated `.mcp.json` and `.cursor/mcp.json` to request `task-master-ai@latest` explicitly.
+- **2026-05-06 18:24** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:add-task|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/task-104-show-2026-05-06.txt] Added Taskmaster Task 104 as a high-priority follow-up for targeted Taskmaster task-file generation.
+- **2026-05-06 18:25** — [S:20260506|W:task103-claude-runtime-adapter|H:plans/current|E:plans/2026-05-06-task103-claude-runtime-adapter.md] Marked `plan-step-implement` completed after subtasks 103.2, 103.3, and 103.4 were done.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:pytest:claude-adapter|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-adapter-port.txt] Adapter-port checkpoint pytest passed.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:.claude/scripts/readiness.sh|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/readiness-2026-05-06-adapter-port.txt] Adapter-port checkpoint readiness passed.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-task:plan-sync|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/plan-sync-2026-05-06-adapter-port.txt] Adapter-port checkpoint plan sync passed.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-task:work-tracking-audit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-adapter-port.txt] Adapter-port checkpoint work-tracking audit passed.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/guard-2026-05-06-adapter-port.txt] Adapter-port checkpoint guard validation passed.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-adapter-port.txt] Adapter-port checkpoint `git diff --check` passed.
+- **2026-05-06 18:26** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-adapter-port.txt] Adapter-port checkpoint pre-commit run passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile bootstrap branch, runtime contract, ownership boundaries, and mutation taxonomy
-- [ ] plan-step-implement — Implement readiness, PreToolUse gates, adapter port, and focused tests
+- [x] plan-step-implement — Implement readiness, PreToolUse gates, adapter port, and focused tests
 - [ ] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
@@ -63,5 +78,7 @@
 - Taskmaster subtask 103.1 status: done
 - Taskmaster subtask 103.2 status: done
 - Taskmaster subtask 103.3 status: done
+- Taskmaster subtask 103.4 status: done
+- Taskmaster Task 104 added as high-priority follow-up: targeted Taskmaster task-file generation helper.
 - Taskmaster Task 10 remains deferred by explicit user priority until the Claude multimodal/multi-agent adapter system is scaffolded and underway.
 - Serena kickoff memory: `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`

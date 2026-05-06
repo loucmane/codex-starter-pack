@@ -24,6 +24,19 @@ Task 103 exists to make Claude operate inside the same workflow engine as Codex 
 | `601ff3c` | `.claude/AGENTS.md` | Port after agent responsibilities are aligned to the runtime contract. |
 | `ba520e8` | `.claude/agents/task-checker.md`, `.claude/agents/task-executor.md`, `.claude/agents/task-orchestrator.md` | Rewrite/port after sub-agent first-action gates are defined. |
 
+## Task 103.4 Port Decisions
+Task 103.4 used the bootstrap branch for intent and file inventory, then rewrote files around the implemented readiness and PreToolUse gates.
+
+| Target | Source commit(s) | Decision | Evidence |
+| --- | --- | --- | --- |
+| `CLAUDE.md` | `4261ea8` | Rewritten. The entrypoint now leads with the gated runtime and multimodal mutation rule instead of relying on a manual readiness reminder. | `tests/claude_adapter/test_adapter_contract_files.py` |
+| `.claude/engine/tool-mapping.md` | `4261ea8` | Ported and simplified. Kept Codex-to-Claude translation, removed stale tool assumptions, and preserved the "do not edit templates" invariant. | `tests/claude_adapter/test_adapter_contract_files.py` |
+| `.claude/commands/*.md` | `34fe103` | Rewritten as thin wrappers around current `scripts/codex-task` and `scripts/codex-guard` commands. | `tests/claude_adapter/test_adapter_contract_files.py` |
+| `.claude/AGENTS.md` | `601ff3c` | Rewritten to reflect the implemented dispatcher, Stop hook, current commands, and sub-agent first-action rule. | `tests/claude_adapter/test_adapter_contract_files.py` |
+| `.claude/agents/task-*.md` | `ba520e8` | Rewritten to make readiness, audit trail, and Codex-owned path boundaries mandatory for every sub-agent. | `tests/claude_adapter/test_adapter_contract_files.py` |
+| `.claude/scripts/handoff-nudge.sh` | `b41c860` | Ported and tightened. It remains non-blocking, but now warns when dirty workflow state exists or dirty non-`.claude` files exist without an ACTIVE folder. | `tests/claude_adapter/test_adapter_contract_files.py` |
+| `.claude/settings.json` | `dff61f4`, `e689759`, `b41c860` | Updated rather than copied. PreToolUse now routes through the dispatcher, and Stop routes through the nudge. | `tests/claude_adapter/test_adapter_contract_files.py`; `settings-json-2026-05-06-adapter-port.txt` |
+
 ## Permanent Claude-Owned Files
 These files are owned by Task 103 unless later split:
 - `CLAUDE.md`
