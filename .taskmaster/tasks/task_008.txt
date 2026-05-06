@@ -1,6 +1,6 @@
 # Task ID: 8
 # Title: Create Template Registry System
-# Status: pending
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Build centralized registry for template discovery and management
@@ -11,13 +11,13 @@ Create TemplateRegistry class with in-memory index. Implement template discovery
 Benchmark discovery time (<50ms), test fallback chain order, verify cache invalidation, test search functionality, ensure thread-safety
 
 # Subtasks:
-## 1. Scope reconciliation against portable foundation [pending]
+## 1. Scope reconciliation against portable foundation [done]
 ### Dependencies: None
 ### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
 ### Details:
 
 
-## 2. Implement proven current-state gap with evidence [pending]
+## 2. Implement proven current-state gap with evidence [done]
 ### Dependencies: None
 ### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
 ### Details:
