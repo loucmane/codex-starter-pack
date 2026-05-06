@@ -1,0 +1,84 @@
+# Task 103 Claude Runtime Adapter and Multimodal Workflow Enforcement – Handoff Summary
+
+## Current State
+- Branch: `feat/task-103-claude-runtime-adapter`.
+- Taskmaster Task 103 status: in-progress.
+- Taskmaster subtask 103.1 status: done.
+- Taskmaster subtask 103.2 status: done.
+- Taskmaster subtask 103.3 status: done.
+- Taskmaster subtask 103.4 status: done.
+- Taskmaster subtask 103.5 status: done.
+- Parent Task 103 intentionally remains `in-progress` while this PR branch is active because Claude readiness requires the active parent task to be in progress. Close it after PR merge/archive, not before final PR validation.
+- Taskmaster Task 104 exists as a high-priority follow-up for targeted Taskmaster task-file generation.
+- Task 103 was created manually through Taskmaster after the AI-backed `add-task` provider failed.
+- Active session: `sessions/2026/05/2026-05-06-002-task103-claude-runtime-adapter.md`.
+- Active plan: `plans/2026-05-06-task103-claude-runtime-adapter.md`.
+- Active work tracking: `docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/`.
+- Task 10 is intentionally deferred by user priority until this Claude multimodal/multi-agent adapter is scaffolded and underway.
+- Scope artifacts are present:
+  - `designs/claude-runtime-file-contract.md`
+  - `designs/mutation-taxonomy.md`
+  - `.claude/engine/runtime-contract.md`
+- Serena kickoff memory: `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`.
+- Readiness hard gate is implemented:
+  - `.claude/scripts/readiness.sh`
+  - `.claude/engine/claude-readiness.md`
+  - `tests/claude_adapter/test_readiness_gate.py`
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-pass.txt`
+  - `reports/claude-runtime-adapter/tests-2026-05-06-readiness.txt`
+- Readiness checkpoint evidence is green:
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-readiness.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-readiness.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-readiness.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-readiness.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-readiness.txt`
+- PreToolUse mutation gates are implemented:
+  - `.claude/scripts/pretooluse-gate.sh`
+  - `.claude/scripts/gate_lib.py`
+  - `.claude/scripts/codex-path-guard.sh`
+  - `.claude/scripts/bash-command-guard.sh`
+  - `.claude/settings.json`
+  - `tests/claude_adapter/test_pretooluse_gates.py`
+  - `reports/claude-runtime-adapter/tests-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/settings-json-2026-05-06-pretooluse.txt`
+- PreToolUse checkpoint evidence is green:
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-pretooluse.txt`
+- Taskmaster/MCP update evidence:
+  - `reports/claude-runtime-adapter/taskmaster-npm-view-2026-05-06.json`
+  - `reports/claude-runtime-adapter/taskmaster-version-2026-05-06.txt`
+  - `reports/claude-runtime-adapter/taskmaster-generate-help-2026-05-06.txt`
+  - `reports/claude-runtime-adapter/mcp-json-check-2026-05-06.txt`
+  - `reports/claude-runtime-adapter/task-104-show-2026-05-06.txt`
+- Adapter-port checkpoint evidence is green:
+  - `reports/claude-runtime-adapter/tests-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-adapter-port.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-adapter-port.txt`
+- Final verification evidence is green:
+  - `reports/claude-runtime-adapter/tests-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/task-103-show-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/taskmaster-validate-dependencies-2026-05-06-final.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-final.txt`
+- Memory references:
+  - `MEMORY-REFS.md`
+  - `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`
+  - `.serena/memories/2026-05-06_task103_claude_runtime_adapter_completion.md`
+
+## Next Steps
+- Commit and push the final Task 103.5 verification/handoff changes.
+- Open the Task 103 PR from `feat/task-103-claude-runtime-adapter`.
+- After merge, archive the active work-tracking folder and then close parent Task 103.
+- Continue with Task 104 next: targeted Taskmaster generation helper, including the newly observed Taskmaster `0.43.1` `.md` generation and `tasks.json` serialization behavior.

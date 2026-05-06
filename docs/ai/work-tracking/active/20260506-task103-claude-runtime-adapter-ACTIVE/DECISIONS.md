@@ -1,0 +1,15 @@
+# Decisions
+
+- 2026-05-06 - Prioritize Task 103 ahead of Task 10 by explicit user direction because the Claude adapter is foundational for multimodal/multi-agent operation across Codex, Claude, shell, MCP, memory, GitHub, and future tool surfaces.
+- 2026-05-06 - Use Taskmaster's manual task/subtask creation path because the AI-backed Claude Code provider failed; this keeps `tasks.json` managed by Taskmaster commands rather than manual edits.
+- 2026-05-06 - Treat `feat/claude-port-bootstrap` as reference material only. Scope reconciliation must classify every file before any port, and rejected files must be documented.
+- 2026-05-06 - The acceptance standard is behavioral: the Claude adapter is not done unless a cold Claude session is mechanically blocked from hookable persistent mutations without matching task/session/plan/work-tracking state.
+- 2026-05-06 - Implement readiness as a branch/task/session/plan/tracker alignment gate, not a general repository cleanliness gate. This keeps readiness usable during legitimate implementation while still allowing PreToolUse gates to block all persistent mutations when workflow identity is absent.
+- 2026-05-06 - Require exactly one ACTIVE work-tracking folder for the current task in readiness. This matches the current project workflow and prevents Claude from choosing between multiple active audit trails.
+- 2026-05-06 - Keep PreToolUse enforcement Claude-side for Task 103.3. Repo-level pre-commit/pre-push enforcement remains Task 9/foundation territory, while this task proves Claude hook behavior through `.claude/settings.json` and isolated tests.
+- 2026-05-06 - Allow read-only Bash inspection when readiness is `BLOCKED`, but block Bash commands classified as persistent mutations. This preserves safe pre-task inspection while enforcing the zero-mutation rule.
+- 2026-05-06 - Update the installed Taskmaster CLI to stable latest `0.43.1` and make `.mcp.json` / `.cursor/mcp.json` request `task-master-ai@latest` explicitly, rather than relying on an unversioned package argument.
+- 2026-05-06 - Add Taskmaster Task 104 for a targeted task-file generation helper instead of repeatedly running broad in-place `task-master generate` and restoring unrelated generated files. Until Task 104 is implemented, use temp-output generation and copy only the intended task file.
+- 2026-05-06 - Keep parent Task 103 `in-progress` after all subtasks are done while the PR branch remains active. This preserves the implemented Claude readiness contract; parent closure belongs to the post-merge/archive step.
+- 2026-05-06 - Accept the latest Taskmaster `0.43.1` `tasks.json` source serialization as part of the Taskmaster runtime update, after validating that `task-master validate-dependencies` and `task-master show 103` still work. Do not use this as a reason to run broad in-place task-file generation.
+- 2026-05-06 - Do not copy Taskmaster `0.43.1` generated `task_103.md` over the existing `task_103.txt` format during Task 103. Task 104 must implement the deliberate compatibility path for targeted task-file generation and the `.md`/`.txt` transition.

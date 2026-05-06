@@ -1,0 +1,74 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭─────────────────────────────────────────────────────────────────────────╮
+│ Task: #103 - Claude Runtime Adapter and Multimodal Workflow Enforcement │
+╰─────────────────────────────────────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 103                                                                            [90m│[39m
+[90m│[39m Title:             [90m│[39m Claude Runtime Adapter and Multimodal Workflow Enforcement                     [90m│[39m
+[90m│[39m Status:            [90m│[39m ▶ in-progress                                                                  [90m│[39m
+[90m│[39m Priority:          [90m│[39m high                                                                           [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 9                                                                              [90m│[39m
+[90m│[39m Complexity:        [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Build the Claude Code adapter for the portable Codex foundation as a gated     [90m│[39m
+[90m│[39m                    [90m│[39m runtime, not a manual or memory-only guide. This task is intentionally         [90m│[39m
+[90m│[39m                    [90m│[39m prioritized ahead of Task 10 because the foundation must support multimodal    [90m│[39m
+[90m│[39m                    [90m│[39m and multi-agent workflows across Codex, Claude, shell, MCP, memory, GitHub,    [90m│[39m
+[90m│[39m                    [90m│[39m and future agent/tool surfaces.                                                [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Create a Claude-owned runtime contract and implementation that makes Claude follow             │
+│   task/session/plan/work-tracking discipline mechanically. Required outputs include CLAUDE.md    │
+│   entry guidance, .claude/engine runtime contract/readiness/tool-mapping docs, .claude/scripts   │
+│   readiness and PreToolUse gate scripts, .claude/commands slash-command wrappers,                │
+│   .claude/agents executor/orchestrator/checker agents, .claude/AGENTS.md catalog,                │
+│   .claude/settings.json hook/allowlist configuration, and tests/evidence proving cold-session    │
+│   zero-mutation behavior where hookable. Ownership boundary: do not modify CODEX.md,             │
+│   templates/, scripts/codex-, scripts/template-, or .codex/ unless explicitly scoped as a        │
+│   Codex-led follow-up. Reference branch feat/claude-port-bootstrap is raw material only; every   │
+│   useful file must be ported or rejected during scope reconciliation with S:W:H:E provenance.    │
+│   Acceptance: a fresh Claude session without matching Taskmaster task, task branch,              │
+│   sessions/current, plans/current, and ACTIVE work tracking cannot perform hookable persistent   │
+│   mutations; readiness exits READY only when branch/task/session/plan/tracker align; protected   │
+│   Codex-owned paths are blocked; Bash write-surface bypasses are blocked where hookable; every   │
+│   enforcement claim is backed by tests or documented as policy-only; plan sync, work-tracking    │
+│   audit, codex-guard, pre-commit, git diff --check, and focused Claude adapter pytest evidence   │
+│   pass.                                                                                          │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+[90m┌──────────[39m[90m┬───────────────[39m[90m┬────────────────────────────────────────────────────────────[39m[90m┬───────────────┐[39m
+[90m│[39m ID       [90m│[39m Status        [90m│[39m Title                                                      [90m│[39m Deps          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 103.1    [90m│[39m ✓ done        [90m│[39m Scope reconciliation and runtime contract                  [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 103.2    [90m│[39m ✓ done        [90m│[39m Readiness hard gate                                        [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 103.3    [90m│[39m ✓ done        [90m│[39m PreToolUse mutation gates                                  [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 103.4    [90m│[39m ✓ done        [90m│[39m Claude adapter port                                        [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 103.5    [90m│[39m ✓ done        [90m│[39m Tests, evidence, and handoff                               [90m│[39m None          [90m│[39m
+[90m└──────────[39m[90m┴───────────────[39m[90m┴────────────────────────────────────────────────────────────[39m[90m┴───────────────┘[39m
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=103 --status=in-progress to start working                   │
+│   2. Run task-master expand --id=103 to break down into subtasks                                 │
+│   3. Run task-master update-task --id=103 --prompt="..." to update details                       │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

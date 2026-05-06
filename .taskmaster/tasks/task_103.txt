@@ -1,0 +1,42 @@
+# Task ID: 103
+# Title: Claude Runtime Adapter and Multimodal Workflow Enforcement
+# Status: in-progress
+# Dependencies: 9
+# Priority: high
+# Description: Build the Claude Code adapter for the portable Codex foundation as a gated runtime, not a manual or memory-only guide. This task is intentionally prioritized ahead of Task 10 because the foundation must support multimodal and multi-agent workflows across Codex, Claude, shell, MCP, memory, GitHub, and future agent/tool surfaces.
+# Details:
+Create a Claude-owned runtime contract and implementation that makes Claude follow task/session/plan/work-tracking discipline mechanically. Required outputs include CLAUDE.md entry guidance, .claude/engine runtime contract/readiness/tool-mapping docs, .claude/scripts readiness and PreToolUse gate scripts, .claude/commands slash-command wrappers, .claude/agents executor/orchestrator/checker agents, .claude/AGENTS.md catalog, .claude/settings.json hook/allowlist configuration, and tests/evidence proving cold-session zero-mutation behavior where hookable. Ownership boundary: do not modify CODEX.md, templates/**, scripts/codex-*, scripts/template-*, or .codex/** unless explicitly scoped as a Codex-led follow-up. Reference branch feat/claude-port-bootstrap is raw material only; every useful file must be ported or rejected during scope reconciliation with S:W:H:E provenance. Acceptance: a fresh Claude session without matching Taskmaster task, task branch, sessions/current, plans/current, and ACTIVE work tracking cannot perform hookable persistent mutations; readiness exits READY only when branch/task/session/plan/tracker align; protected Codex-owned paths are blocked; Bash write-surface bypasses are blocked where hookable; every enforcement claim is backed by tests or documented as policy-only; plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, and focused Claude adapter pytest evidence pass.
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Scope reconciliation and runtime contract [done]
+### Dependencies: None
+### Description: Audit feat/claude-port-bootstrap and current repo state, classify every Claude adapter file as port/rewrite/discard, document queue-jump rationale, ownership boundaries, mutation taxonomy, and the permanent Claude runtime file contract.
+### Details:
+Outputs: task-local designs/claude-runtime-file-contract.md and designs/mutation-taxonomy.md, permanent .claude/engine/runtime-contract.md draft, DECISIONS/FINDINGS entries for Task 10 queue-jump and policy-only surfaces, and S:W:H:E provenance for every bootstrap reference.
+
+## 2. Readiness hard gate [done]
+### Dependencies: None
+### Description: Implement Claude readiness as a hard gate that verifies branch, Taskmaster task, sessions/current, plans/current, active work-tracking folder, and tracker/plan alignment before Claude work proceeds.
+### Details:
+Outputs: .claude/scripts/readiness.sh or equivalent, .claude/engine/claude-readiness.md, tests proving READY/WARN/BLOCKED behavior, and evidence for invalid state classes. From this subtask onward, later subtasks must pass readiness before edits.
+
+## 3. PreToolUse mutation gates [done]
+### Dependencies: None
+### Description: Build Claude-side tool gates that call readiness first and block hookable persistent mutations when readiness is BLOCKED, then enforce protected Codex-owned path and Bash write-surface rules when READY.
+### Details:
+Outputs: .claude/scripts/pretooluse-gate.sh orchestrator, codex-path guard, bash-command guard, settings hook registration, and tests for cold-session zero-mutation, protected path edits, Bash redirect/sed bypasses, and safe allowed paths. Repo-level pre-commit/pre-push policy remains out of scope unless assigned to a Codex-led follow-up.
+
+## 4. Claude adapter port [done]
+### Dependencies: None
+### Description: Port or rewrite approved Claude adapter files from feat/claude-port-bootstrap into the proper runtime contract shape without crossing Codex-owned boundaries.
+### Details:
+Outputs: CLAUDE.md, .claude/engine docs, .claude/commands wrappers, .claude/agents executor/orchestrator/checker, .claude/AGENTS.md, .claude/settings.json, and S:W:H:E entries citing source commit SHAs or rejection rationale for each bootstrap file.
+
+## 5. Tests, evidence, and handoff [done]
+### Dependencies: None
+### Description: Prove the Claude runtime adapter works as a system with focused tests, final guard evidence, documented policy-only surfaces, Serena memory, and clean handoff.
+### Details:
+Outputs: tests/claude_adapter/ or equivalent focused pytest suite, cold-session zero-mutation integration evidence, hookability taxonomy results, plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, HANDOFF/MEMORY-REFS, and final GAC/PR description. Parent acceptance requires every enforcement claim to be backed by a passing test or documented policy-only label.

@@ -1,0 +1,24 @@
+# Task 103 Claude Runtime Adapter and Multimodal Workflow Enforcement – Changelog
+
+- 2026-05-06 16:49 CEST — Initialized active work-tracking folder.
+- 2026-05-06 16:51 CEST - Created Taskmaster Task 103 manually after the AI-backed provider failed and added five explicit subtasks.
+- 2026-05-06 16:52 CEST - Marked subtask 103.1 in progress and corrected generated plan/tracker wording to the Claude runtime adapter scope.
+- 2026-05-06 16:55 CEST - Added initial bootstrap inventory, mutation taxonomy, and permanent Claude runtime contract draft.
+- 2026-05-06 16:56 CEST - Captured Serena kickoff memory and marked subtask 103.1 done.
+- 2026-05-06 16:57 CEST - Captured passing scope checkpoint evidence for plan sync, work-tracking audit, guard, diff-check, and pre-commit.
+- 2026-05-06 17:15 CEST - Added Claude readiness hard gate, readiness engine documentation, focused pytest coverage, and passing readiness evidence.
+- 2026-05-06 17:16 CEST - Marked Taskmaster subtask 103.2 done.
+- 2026-05-06 17:17 CEST - Captured passing readiness checkpoint evidence for plan sync, work-tracking audit, guard, diff-check, and pre-commit.
+- 2026-05-06 17:23 CEST - Added linked Git worktree readiness coverage and refreshed pytest evidence to `11 passed`.
+- 2026-05-06 17:42 CEST - Added Claude PreToolUse dispatcher, protected path guard, Bash command guard, project settings, and focused gate tests.
+- 2026-05-06 17:43 CEST - Updated mutation taxonomy and runtime contract with verified hookable labels for tested gate behavior.
+- 2026-05-06 17:44 CEST - Marked Taskmaster subtask 103.3 done.
+- 2026-05-06 17:47 CEST - Captured passing PreToolUse checkpoint evidence for settings JSON, plan sync, work-tracking audit, guard, diff-check, and pre-commit.
+- 2026-05-06 18:09 CEST - Completed Taskmaster subtask 103.4 after porting/reworking Claude adapter docs, commands, agents, catalog, and Stop hook.
+- 2026-05-06 18:24 CEST - Updated Taskmaster CLI to `0.43.1`, made MCP configs explicit with `task-master-ai@latest`, and added Taskmaster Task 104 for targeted task-file generation.
+- 2026-05-06 18:25 CEST - Marked `plan-step-implement` completed.
+- 2026-05-06 18:26 CEST - Captured passing adapter-port checkpoint evidence for pytest, readiness, plan sync, work-tracking audit, guard, diff-check, and pre-commit.
+- 2026-05-06 18:49 CEST - Captured final Claude adapter pytest and readiness evidence.
+- 2026-05-06 18:51 CEST - Marked subtask 103.5 done and kept parent Task 103 in progress for PR-readiness compatibility.
+- 2026-05-06 18:52 CEST - Added final memory references, handoff notes, and Taskmaster `0.43.1` serialization findings.
+- 2026-05-06 18:55 CEST - Reran final pytest, readiness, plan sync, work-tracking audit, guard, diff-check, Taskmaster dependency validation, and pre-commit evidence after handoff updates.
