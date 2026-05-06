@@ -106,6 +106,23 @@ Bash --command "git stash && git checkout other-branch"
 
 ## Working with Remotes
 
+### Authentication and Signing Cache
+
+Before GitHub operations that depend on SSH or signed commits, treat auth state as workflow context instead of a side issue.
+
+```bash
+# Check SSH agent state when fetch/push auth looks stale
+Bash --command "ssh-add -l"
+
+# Check that a GPG agent is reachable before signed commits
+Bash --command "gpg-connect-agent /bye"
+```
+
+- In this environment, SSH/GPG auth may be cached for 24 hours after the user refreshes it.
+- If fetch, push, branch deletion, PR creation, or signed commit operations fail after the cache expires, ask the user to refresh the cache and rerun the exact failed operation.
+- Do not disable commit signing, change remotes, use `--no-verify`, or bypass normal GitHub checks just to work around an expired auth cache.
+- Log auth-cache refreshes or failures in the active session/work-tracking record when they affect delivery.
+
 ### Pushing Changes
 
 ```bash
@@ -327,6 +344,10 @@ Bash --command "gac 'refactor: improve auth service structure'"
 Edit sessions/  # Add progress note
 Bash --command "gac 'feat: complete user auth [updates SESSION]'"
 ```
+
+## Progress Log
+
+- **2026-05-06 13:40** — [S:20260506|W:task9-git-hooks-infrastructure|H:templates/tools/git/commands.md|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/designs/task9-scope-reconciliation.md] Added SSH/GPG auth-cache checks and safety rules for GitHub fetch, push, branch cleanup, PR, and signed commit operations.
 
 ## Quick Reference
 

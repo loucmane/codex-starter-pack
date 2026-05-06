@@ -154,6 +154,33 @@ After: "Find the email validation in components/forms/LoginForm.tsx"
 4. "Let's fix the tests to match the new behavior"
 ```
 
+### 🔴 "GitHub auth or signed commits keep prompting/failing"
+
+**Symptoms:**
+- `git fetch`, `git pull`, `git push`, branch deletion, or PR operations fail after working earlier
+- Signed commits fail with a GPG agent or pinentry error
+- GitHub operations start prompting again after a long break
+
+**Solutions:**
+
+1. **Check whether the SSH/GPG cache expired**
+   ```bash
+   ssh-add -l
+   gpg-connect-agent /bye
+   ```
+
+2. **Refresh the cache instead of bypassing workflow gates**
+   - This environment may keep SSH/GPG auth cached for 24 hours after the user refreshes it.
+   - If the cache expires, refresh SSH/GPG and retry the same Git operation.
+
+3. **Keep safety settings intact**
+   - Do not disable commit signing to make a commit pass.
+   - Do not change remotes just to avoid SSH auth.
+   - Do not use `--no-verify` unless the user explicitly authorizes a documented bypass.
+
+4. **Record auth issues when they affect delivery**
+   - Add a session/work-tracking entry if cache expiry blocks fetch, push, branch cleanup, PR creation, or merge work.
+
 ## Handler-Specific Issues
 
 ### "start-new-work" Not Creating Folder

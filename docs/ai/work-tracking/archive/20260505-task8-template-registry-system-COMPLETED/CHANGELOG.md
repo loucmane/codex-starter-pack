@@ -9,3 +9,5 @@
 - 2026-05-05 13:15 CEST - Added the portable TemplateRegistry module, focused tests, and implementation evidence.
 - 2026-05-05 13:16 CEST - Marked Taskmaster subtask 8.2 and parent Task 8 done.
 - 2026-05-05 13:19 CEST - Captured final verification evidence and Taskmaster next-task output.
+- 2026-05-06 13:38 CEST — Archived active work-tracking folder.
+- 2026-05-06 13:40 CEST - Recorded the 24-hour SSH/GPG cache expectation in Task 8 findings and reusable workflow templates.

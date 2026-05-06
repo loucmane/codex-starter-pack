@@ -32,6 +32,10 @@ Use this module before deep-work tasks to confirm the Codex runtime matches expe
 ## 4. Authentication & Secrets
 - Ensure required env vars (e.g., `OPENAI_API_KEY`) are present for the configured model provider.
 - For MCP servers, verify credential files referenced in `.codex/config.toml` are available.
+- For GitHub operations that fetch, push, merge, delete branches, or create signed commits, verify the local SSH/GPG cache is available before assuming auth is broken.
+  - This environment may use a 24-hour SSH/GPG cache during active development sessions.
+  - If auth prompts or signing failures recur after the cache expires, refresh the SSH agent/GPG agent instead of disabling signing, changing remotes, bypassing verification, or retrying with unsafe flags.
+  - Record cache refreshes or auth failures in the active session and work-tracking evidence when they affect GitHub operations.
 
 ## 5. Wrapper Confirmation
 - If using `codex-wrapper`, run `codex --dry-run -- resume` (or equivalent) to validate:
@@ -56,3 +60,4 @@ Document any discrepancies before continuing with ULTRATHINK planning. EOF
 ## Progress Log
 
 - **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/codex-readiness.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice
+- **2026-05-06 13:40** — [S:20260506|W:task9-git-hooks-infrastructure|H:templates/engine/core/codex-readiness.md|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/designs/task9-scope-reconciliation.md] Added GitHub SSH/GPG cache readiness guidance for fetch, push, merge, branch cleanup, and signed commit operations.
