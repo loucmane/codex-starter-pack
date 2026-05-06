@@ -23,7 +23,7 @@ Outputs: task-local designs/claude-runtime-file-contract.md and designs/mutation
 ### Details:
 Outputs: .claude/scripts/readiness.sh or equivalent, .claude/engine/claude-readiness.md, tests proving READY/WARN/BLOCKED behavior, and evidence for invalid state classes. From this subtask onward, later subtasks must pass readiness before edits.
 
-## 3. PreToolUse mutation gates [pending]
+## 3. PreToolUse mutation gates [done]
 ### Dependencies: None
 ### Description: Build Claude-side tool gates that call readiness first and block hookable persistent mutations when readiness is BLOCKED, then enforce protected Codex-owned path and Bash write-surface rules when READY.
 ### Details:

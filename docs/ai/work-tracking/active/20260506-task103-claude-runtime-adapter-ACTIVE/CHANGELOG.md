@@ -10,3 +10,7 @@
 - 2026-05-06 17:16 CEST - Marked Taskmaster subtask 103.2 done.
 - 2026-05-06 17:17 CEST - Captured passing readiness checkpoint evidence for plan sync, work-tracking audit, guard, diff-check, and pre-commit.
 - 2026-05-06 17:23 CEST - Added linked Git worktree readiness coverage and refreshed pytest evidence to `11 passed`.
+- 2026-05-06 17:42 CEST - Added Claude PreToolUse dispatcher, protected path guard, Bash command guard, project settings, and focused gate tests.
+- 2026-05-06 17:43 CEST - Updated mutation taxonomy and runtime contract with verified hookable labels for tested gate behavior.
+- 2026-05-06 17:44 CEST - Marked Taskmaster subtask 103.3 done.
+- 2026-05-06 17:47 CEST - Captured passing PreToolUse checkpoint evidence for settings JSON, plan sync, work-tracking audit, guard, diff-check, and pre-commit.

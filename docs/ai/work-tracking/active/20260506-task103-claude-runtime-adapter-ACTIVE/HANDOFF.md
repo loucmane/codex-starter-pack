@@ -5,6 +5,7 @@
 - Taskmaster Task 103 status: in-progress.
 - Taskmaster subtask 103.1 status: done.
 - Taskmaster subtask 103.2 status: done.
+- Taskmaster subtask 103.3 status: done.
 - Task 103 was created manually through Taskmaster after the AI-backed `add-task` provider failed.
 - Active session: `sessions/2026/05/2026-05-06-002-task103-claude-runtime-adapter.md`.
 - Active plan: `plans/2026-05-06-task103-claude-runtime-adapter.md`.
@@ -27,9 +28,24 @@
   - `reports/claude-runtime-adapter/guard-2026-05-06-readiness.txt`
   - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-readiness.txt`
   - `reports/claude-runtime-adapter/pre-commit-2026-05-06-readiness.txt`
+- PreToolUse mutation gates are implemented:
+  - `.claude/scripts/pretooluse-gate.sh`
+  - `.claude/scripts/gate_lib.py`
+  - `.claude/scripts/codex-path-guard.sh`
+  - `.claude/scripts/bash-command-guard.sh`
+  - `.claude/settings.json`
+  - `tests/claude_adapter/test_pretooluse_gates.py`
+  - `reports/claude-runtime-adapter/tests-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/settings-json-2026-05-06-pretooluse.txt`
+- PreToolUse checkpoint evidence is green:
+  - `reports/claude-runtime-adapter/readiness-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/plan-sync-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/guard-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/git-diff-check-2026-05-06-pretooluse.txt`
+  - `reports/claude-runtime-adapter/pre-commit-2026-05-06-pretooluse.txt`
 
 ## Next Steps
-- Start subtask 103.3: PreToolUse mutation gates.
-- Build `.claude/scripts/pretooluse-gate.sh` so mutation-capable Claude tools call readiness first and block when readiness is `BLOCKED`.
-- Add `.claude/scripts/codex-path-guard.sh` and `.claude/scripts/bash-command-guard.sh` only after defining focused tests for protected paths and Bash write-surface bypasses.
+- Start subtask 103.4: Claude adapter port.
+- Port or rewrite `CLAUDE.md`, `.claude/engine/tool-mapping.md`, `.claude/commands/*.md`, `.claude/agents/*.md`, and `.claude/AGENTS.md` from `feat/claude-port-bootstrap` only after classifying each file against the runtime contract.
 - Continue treating `feat/claude-port-bootstrap` as raw material, not a source to merge directly.

@@ -7,7 +7,7 @@
 ## Goals
 - [x] Reconcile bootstrap branch and define the Claude runtime contract
 - [x] Implement readiness as mechanical enforcement
-- [ ] Implement tool-use gates as mechanical enforcement
+- [x] Implement tool-use gates as mechanical enforcement
 - [ ] Port Claude adapter files without crossing Codex-owned boundaries
 - [ ] Prove cold-session and hookability behavior with tests and evidence
 
@@ -39,6 +39,17 @@
 - **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-readiness.txt] Readiness checkpoint `git diff --check` passed.
 - **2026-05-06 17:17** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-readiness.txt] Readiness checkpoint pre-commit run passed.
 - **2026-05-06 17:23** — [S:20260506|W:task103-claude-runtime-adapter|H:tests/claude_adapter/test_readiness_gate.py|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-readiness.txt] Added a linked Git worktree regression and refreshed readiness test evidence (`11 passed`).
+- **2026-05-06 17:35** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/task_103.txt] Marked subtask 103.3 in progress.
+- **2026-05-06 17:42** — [S:20260506|W:task103-claude-runtime-adapter|H:.claude/scripts/pretooluse-gate.sh|E:tests/claude_adapter/test_pretooluse_gates.py] Added the PreToolUse dispatcher, Codex path guard, Bash command guard, and project `.claude/settings.json` hook registration.
+- **2026-05-06 17:42** — [S:20260506|W:task103-claude-runtime-adapter|H:tests/claude_adapter/test_pretooluse_gates.py|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/tests-2026-05-06-pretooluse.txt] Added isolated tests proving cold-session mutation blocking, read-only Bash allowance, protected path blocking, and Bash bypass blocking (`21 passed` across Claude adapter tests).
+- **2026-05-06 17:43** — [S:20260506|W:task103-claude-runtime-adapter|H:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/mutation-taxonomy.md|E:.claude/engine/runtime-contract.md] Updated the runtime contract and mutation taxonomy with verified hookable labels for tested file-tool and Bash gate behavior.
+- **2026-05-06 17:44** — [S:20260506|W:task103-claude-runtime-adapter|H:task-master:set-status|E:.taskmaster/tasks/task_103.txt] Marked subtask 103.3 done.
+- **2026-05-06 17:46** — [S:20260506|W:task103-claude-runtime-adapter|H:.claude/settings.json|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/settings-json-2026-05-06-pretooluse.txt] Validated `.claude/settings.json` syntax after registering the PreToolUse dispatcher.
+- **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-task:plan-sync|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/plan-sync-2026-05-06-pretooluse.txt] PreToolUse checkpoint plan sync passed.
+- **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-task:work-tracking-audit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/work-tracking-audit-2026-05-06-pretooluse.txt] PreToolUse checkpoint work-tracking audit passed.
+- **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/guard-2026-05-06-pretooluse.txt] PreToolUse checkpoint guard validation passed.
+- **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:git:diff-check|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/git-diff-check-2026-05-06-pretooluse.txt] PreToolUse checkpoint `git diff --check` passed.
+- **2026-05-06 17:47** — [S:20260506|W:task103-claude-runtime-adapter|H:pre-commit|E:docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/claude-runtime-adapter/pre-commit-2026-05-06-pretooluse.txt] PreToolUse checkpoint pre-commit run passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile bootstrap branch, runtime contract, ownership boundaries, and mutation taxonomy
@@ -51,5 +62,6 @@
 - Taskmaster parent Task 103 status: in-progress
 - Taskmaster subtask 103.1 status: done
 - Taskmaster subtask 103.2 status: done
+- Taskmaster subtask 103.3 status: done
 - Taskmaster Task 10 remains deferred by explicit user priority until the Claude multimodal/multi-agent adapter system is scaffolded and underway.
 - Serena kickoff memory: `.serena/memories/2026-05-06_task103_claude_runtime_adapter_kickoff.md`

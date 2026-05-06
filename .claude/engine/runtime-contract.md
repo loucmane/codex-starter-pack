@@ -1,7 +1,7 @@
 # Claude Runtime Contract
 
 ## Status
-Draft for Taskmaster Task 103, subtask 103.1.
+Draft for Taskmaster Task 103. Readiness and initial PreToolUse mutation gates are implemented; adapter commands, sub-agents, and final cold-session evidence are still pending.
 
 ## Principle
 Claude must run as a gated participant in the portable Codex foundation. The adapter is not considered complete because a document tells Claude what to do; it is complete only when hooks, scripts, tests, and evidence make the expected behavior mechanical where the tool surface is hookable.
@@ -25,6 +25,13 @@ Claude may perform persistent mutations only when all required pointers align:
    - Bash command guard for obvious write-surface bypasses;
    - stop/handoff guard for untracked audit-trail gaps.
 5. Every guard emits an actionable remediation message instead of a silent warning.
+
+## Implemented Gate Components
+- `.claude/scripts/readiness.sh` verifies branch, Taskmaster, session, plan, ACTIVE tracker, and plan/tracker alignment.
+- `.claude/scripts/pretooluse-gate.sh` is the dispatcher registered for `Edit|Write|MultiEdit|NotebookEdit|Bash`.
+- `.claude/scripts/codex-path-guard.sh` blocks direct file-tool writes to Codex-owned paths.
+- `.claude/scripts/bash-command-guard.sh` blocks tested Bash write-surface bypasses against Codex-owned paths.
+- `tests/claude_adapter/` contains the focused readiness and PreToolUse test coverage that defines verified behavior.
 
 ## Protected Codex-Owned Paths
 Claude-owned Task 103 work must not modify these paths:

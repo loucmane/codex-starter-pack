@@ -4570,7 +4570,7 @@
             "title": "PreToolUse mutation gates",
             "description": "Build Claude-side tool gates that call readiness first and block hookable persistent mutations when readiness is BLOCKED, then enforce protected Codex-owned path and Bash write-surface rules when READY.",
             "details": "Outputs: .claude/scripts/pretooluse-gate.sh orchestrator, codex-path guard, bash-command guard, settings hook registration, and tests for cold-session zero-mutation, protected path edits, Bash redirect/sed bypasses, and safe allowed paths. Repo-level pre-commit/pre-push policy remains out of scope unless assigned to a Codex-led follow-up.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 103
           },
@@ -4605,7 +4605,7 @@
       ],
       "created": "2026-04-21T15:14:40.150Z",
       "description": "Tasks for master context",
-      "updated": "2026-05-06T15:16:00.106Z"
+      "updated": "2026-05-06T15:44:40.283Z"
     }
   }
 }
