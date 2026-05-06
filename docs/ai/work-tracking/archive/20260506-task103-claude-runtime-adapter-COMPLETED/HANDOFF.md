@@ -82,3 +82,4 @@
 - Open the Task 103 PR from `feat/task-103-claude-runtime-adapter`.
 - After merge, archive the active work-tracking folder and then close parent Task 103.
 - Continue with Task 104 next: targeted Taskmaster generation helper, including the newly observed Taskmaster `0.43.1` `.md` generation and `tasks.json` serialization behavior.
+- Archived on 2026-05-06 19:52 CEST — Folder moved to archive and tracker marked COMPLETED.
