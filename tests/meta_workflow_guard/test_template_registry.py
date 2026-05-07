@@ -184,6 +184,7 @@ status: archived
     modular = registry.resolve("registry-index")
     assert modular.status == "found"
     assert modular.source == "modular"
+    assert modular.trace == ("modular_id:hit",)
 
     compatibility = registry.resolve("custom_templates/REGISTRY.md")
     assert compatibility.status == "redirect"
@@ -191,18 +192,90 @@ status: archived
     assert compatibility.path == "custom_templates/registry/index.md"
     assert compatibility.record is not None
     assert compatibility.record.id == "registry-index"
+    assert compatibility.trace[-1] == "compatibility:hit"
 
     legacy = registry.resolve("custom_templates/LEGACY-ONLY.md")
     assert legacy.status == "found"
     assert legacy.source == "legacy"
+    assert legacy.trace[-1] == "legacy_index:hit"
 
     serena = registry.resolve("not-local")
     assert serena.status == "fallback"
     assert serena.source == "serena"
     assert serena.fallback_action == "serena_search"
+    assert serena.trace[-1] == "serena:fallback"
 
     with pytest.raises(TemplateNotFound):
         registry.resolve("not-local", allow_serena=False, strict=True)
+
+    assert registry.discovery_metrics() == {
+        "modular": 1,
+        "compatibility": 1,
+        "legacy": 1,
+        "serena": 1,
+        "error": 1,
+    }
+
+
+def test_registry_cache_warming_and_miss_suggestions_are_deterministic(tmp_path: Path) -> None:
+    _write_repo_config(tmp_path)
+    _write_template(
+        tmp_path / "custom_templates" / "registry" / "index.md",
+        """
+id: registry-index
+title: Registry Index
+type: registry-component
+status: stable
+tags:
+  - registry
+  - discovery
+""",
+        "Registry Index",
+    )
+    _write_registry(
+        tmp_path,
+        "custom_templates",
+        [
+            {
+                "id": "registry-index",
+                "path": "custom_templates/registry/index.md",
+                "tags": ["registry", "discovery"],
+            }
+        ],
+    )
+    _write_compatibility_map(
+        tmp_path,
+        "custom_templates",
+        [
+            {
+                "legacy": "templates/REGISTRY.md",
+                "current": "templates/registry/index.md",
+                "reason": "test redirect",
+            }
+        ],
+    )
+
+    registry = TemplateRegistry(repo_root=tmp_path)
+    warm = registry.warm_cache(["registry-index", "regstry-index"], allow_serena=False)
+
+    assert warm.success_count == 1
+    assert warm.failure_count == 1
+    assert [entry.status for entry in warm.entries] == ["found", "error"]
+    assert warm.entries[1].message == "Template not found: regstry-index. Suggestions: registry-index"
+
+    miss = registry.resolve("custom_templates/REGISTRY-OLD.md", allow_serena=False)
+    assert miss.status == "error"
+    assert miss.suggestions == ("custom_templates/registry/index.md", "registry-index")
+    assert "custom_templates/registry/index.md" in miss.message
+
+    registry.reset_discovery_metrics()
+    assert registry.discovery_metrics() == {
+        "modular": 0,
+        "compatibility": 0,
+        "legacy": 0,
+        "serena": 0,
+        "error": 0,
+    }
 
 
 def test_compatibility_map_supports_bidirectional_lookup_and_target_validation(tmp_path: Path) -> None:

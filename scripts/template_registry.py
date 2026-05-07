@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from functools import lru_cache
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -31,6 +32,7 @@ DEFAULT_COMPATIBILITY_MAP: Mapping[str, str] = {
     "templates/BUILDING-BETTER.md": "templates/integration/best-practices/",
 }
 COMPATIBILITY_MAP_RELATIVE_PATH = Path("registry") / "compatibility-map.json"
+DISCOVERY_METRIC_KEYS: Tuple[str, ...] = ("modular", "compatibility", "legacy", "serena", "error")
 
 
 class TemplateNotFound(LookupError):
@@ -79,10 +81,39 @@ class ResolutionResult:
     path: Optional[str] = None
     fallback_action: Optional[str] = None
     message: str = ""
+    trace: Tuple[str, ...] = ()
+    suggestions: Tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
         return self.status in {"found", "redirect", "fallback"}
+
+
+@dataclass(frozen=True)
+class CacheWarmEntry:
+    """Single query result from TemplateRegistry.warm_cache."""
+
+    query: str
+    ok: bool
+    status: str
+    source: str
+    path: Optional[str] = None
+    message: str = ""
+
+
+@dataclass(frozen=True)
+class CacheWarmResult:
+    """Summary returned by TemplateRegistry.warm_cache."""
+
+    entries: Tuple[CacheWarmEntry, ...]
+
+    @property
+    def success_count(self) -> int:
+        return sum(1 for entry in self.entries if entry.ok)
+
+    @property
+    def failure_count(self) -> int:
+        return sum(1 for entry in self.entries if not entry.ok)
 
 
 class CompatibilityMap:
@@ -263,6 +294,7 @@ class TemplateRegistry:
         self._lock = threading.RLock()
         self._cache: Optional[_RegistryIndex] = None
         self._cache_built_at: float = 0.0
+        self._discovery_metrics: Dict[str, int] = {key: 0 for key in DISCOVERY_METRIC_KEYS}
 
     def _load_compatibility_map(
         self,
@@ -294,6 +326,33 @@ class TemplateRegistry:
             raise TemplateNotFound(f"Template id not found: {template_id}")
         stat = record.absolute_path.stat()
         return _read_text_cached(str(record.absolute_path), stat.st_mtime_ns)
+
+    def discovery_metrics(self) -> Dict[str, int]:
+        """Return a snapshot of resolve-path usage for this registry instance."""
+        with self._lock:
+            return dict(self._discovery_metrics)
+
+    def reset_discovery_metrics(self) -> None:
+        """Reset resolve-path usage metrics for this registry instance."""
+        with self._lock:
+            self._discovery_metrics = {key: 0 for key in DISCOVERY_METRIC_KEYS}
+
+    def warm_cache(self, queries: Iterable[str], *, allow_serena: bool = False) -> CacheWarmResult:
+        """Resolve common queries to build the index cache and report misses without raising."""
+        entries: List[CacheWarmEntry] = []
+        for query in queries:
+            result = self.resolve(query, allow_serena=allow_serena, strict=False)
+            entries.append(
+                CacheWarmEntry(
+                    query=query,
+                    ok=result.ok,
+                    status=result.status,
+                    source=result.source,
+                    path=result.path,
+                    message=result.message,
+                )
+            )
+        return CacheWarmResult(tuple(entries))
 
     def search(
         self,
@@ -337,62 +396,116 @@ class TemplateRegistry:
         key = _normal_key(query)
         if key in index.by_id:
             record = index.by_id[key]
-            return ResolutionResult(query=query, status="found", source=record.source, record=record, path=record.path)
+            return self._finish_resolution(
+                ResolutionResult(
+                    query=query,
+                    status="found",
+                    source=record.source,
+                    record=record,
+                    path=record.path,
+                    trace=("modular_id:hit",),
+                )
+            )
+        trace: List[str] = ["modular_id:miss"]
         path_record = index.by_path.get(key)
         if path_record and path_record.source == "modular":
-            return ResolutionResult(
-                query=query,
-                status="found",
-                source=path_record.source,
-                record=path_record,
-                path=path_record.path,
+            trace.append("modular_path:hit")
+            return self._finish_resolution(
+                ResolutionResult(
+                    query=query,
+                    status="found",
+                    source=path_record.source,
+                    record=path_record,
+                    path=path_record.path,
+                    trace=tuple(trace),
+                )
             )
+        trace.append("modular_path:miss")
 
         compatibility_target = self._compatibility_target(query)
         if compatibility_target:
+            trace.append("compatibility:hit")
             target_key = _normal_key(compatibility_target)
             record = index.by_path.get(target_key)
-            return ResolutionResult(
-                query=query,
-                status="redirect",
-                source="compatibility",
-                record=record,
-                path=compatibility_target,
-                message=f"Use {compatibility_target} instead of {query}",
+            return self._finish_resolution(
+                ResolutionResult(
+                    query=query,
+                    status="redirect",
+                    source="compatibility",
+                    record=record,
+                    path=compatibility_target,
+                    message=f"Use {compatibility_target} instead of {query}",
+                    trace=tuple(trace),
+                )
             )
+        trace.append("compatibility:miss")
 
         if path_record:
+            trace.append("legacy_index:hit")
             source = "legacy" if path_record.source == "discovered" else path_record.source
-            return ResolutionResult(
-                query=query,
-                status="found",
-                source=source,
-                record=path_record,
-                path=path_record.path,
+            return self._finish_resolution(
+                ResolutionResult(
+                    query=query,
+                    status="found",
+                    source=source,
+                    record=path_record,
+                    path=path_record.path,
+                    trace=tuple(trace),
+                )
             )
+        trace.append("legacy_index:miss")
 
         legacy_record = self._legacy_record(query)
         if legacy_record:
-            return ResolutionResult(
-                query=query,
-                status="found",
-                source="legacy",
-                record=legacy_record,
-                path=legacy_record.path,
+            trace.append("legacy_file:hit")
+            return self._finish_resolution(
+                ResolutionResult(
+                    query=query,
+                    status="found",
+                    source="legacy",
+                    record=legacy_record,
+                    path=legacy_record.path,
+                    trace=tuple(trace),
+                )
             )
+        trace.append("legacy_file:miss")
 
+        suggestions = self._suggestions_for(query, index)
         if allow_serena:
-            return ResolutionResult(
-                query=query,
-                status="fallback",
-                source="serena",
-                fallback_action="serena_search",
-                message=f"Search Serena memories or semantic index for {query}",
+            trace.append("serena:fallback")
+            message = f"Search Serena memories or semantic index for {query}"
+            if suggestions:
+                message = f"{message}. Local suggestions: {', '.join(suggestions)}"
+            return self._finish_resolution(
+                ResolutionResult(
+                    query=query,
+                    status="fallback",
+                    source="serena",
+                    fallback_action="serena_search",
+                    message=message,
+                    trace=tuple(trace),
+                    suggestions=suggestions,
+                )
             )
+        trace.append("serena:disabled")
 
+        message = f"Template not found: {query}"
+        if suggestions:
+            message = f"{message}. Suggestions: {', '.join(suggestions)}"
         if strict:
-            raise TemplateNotFound(f"Template not found: {query}")
-        return ResolutionResult(query=query, status="error", source="error", message=f"Template not found: {query}")
+            self._record_discovery_metric("error")
+            raise TemplateNotFound(message)
+        trace.append("error:not_found")
+        return self._finish_resolution(
+            ResolutionResult(
+                query=query,
+                status="error",
+                source="error",
+                message=message,
+                trace=tuple(trace),
+                suggestions=suggestions,
+            )
+        )
 
     def _index(self) -> _RegistryIndex:
         now = self.clock()
@@ -558,6 +671,54 @@ class TemplateRegistry:
             return target
         return None
 
+    def _finish_resolution(self, result: ResolutionResult) -> ResolutionResult:
+        self._record_discovery_metric(_metric_key_for_source(result.source))
+        return result
+
+    def _record_discovery_metric(self, key: str) -> None:
+        if key not in DISCOVERY_METRIC_KEYS:
+            key = "error"
+        with self._lock:
+            self._discovery_metrics[key] = self._discovery_metrics.get(key, 0) + 1
+
+    def _suggestions_for(self, query: str, index: _RegistryIndex, *, limit: int = 5) -> Tuple[str, ...]:
+        query_key = _normal_key(query)
+        if not query_key:
+            return ()
+
+        scored: Dict[str, float] = {}
+
+        for record in index.records:
+            candidates = [
+                record.id,
+                record.path,
+                record.title or "",
+                record.type or "",
+                record.category or "",
+                *record.tags,
+            ]
+            score = max((_similarity(query_key, candidate) for candidate in candidates), default=0.0)
+            if score >= 0.55:
+                scored[record.id] = max(scored.get(record.id, 0.0), score)
+
+        templates_rel = self.templates_root.relative_to(self.repo_root).as_posix()
+        for entry in self.compatibility_map.entries:
+            current = entry.current
+            legacy = entry.legacy
+            if templates_rel != "templates":
+                if current.startswith("templates/"):
+                    current = f"{templates_rel}/{current[len('templates/'):]}"
+                if legacy.startswith("templates/"):
+                    legacy = f"{templates_rel}/{legacy[len('templates/'):]}"
+            score = max(_similarity(query_key, legacy), _similarity(query_key, current))
+            if score >= 0.55:
+                scored[current] = max(scored.get(current, 0.0), score)
+
+        return tuple(
+            suggestion
+            for suggestion, _score in sorted(scored.items(), key=lambda item: (-item[1], item[0]))[:limit]
+        )
+
     def _legacy_record(self, query: str) -> Optional[TemplateRecord]:
         path = self._absolute_from_registry_path(query)
         if not path.exists() or not path.is_file():
@@ -579,3 +740,26 @@ def _string_or_none(value: object) -> Optional[str]:
         return None
     text = str(value)
     return text if text else None
+
+
+def _metric_key_for_source(source: str) -> str:
+    if source == "compatibility":
+        return "compatibility"
+    if source in {"legacy", "discovered"}:
+        return "legacy"
+    if source == "serena":
+        return "serena"
+    if source == "error":
+        return "error"
+    return "modular"
+
+
+def _similarity(query_key: str, candidate: str) -> float:
+    candidate_key = _normal_key(candidate)
+    if not candidate_key:
+        return 0.0
+    if query_key == candidate_key:
+        return 1.0
+    if query_key in candidate_key or candidate_key in query_key:
+        return 0.9
+    return SequenceMatcher(None, query_key, candidate_key).ratio()
