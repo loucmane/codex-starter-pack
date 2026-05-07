@@ -14,3 +14,4 @@
 
 ## Next Steps
 - Commit, push, open/merge PR, then archive the active Task 13 work-tracking folder.
+- Archived on 2026-05-07 15:59 CEST — Folder moved to archive and tracker marked COMPLETED.
