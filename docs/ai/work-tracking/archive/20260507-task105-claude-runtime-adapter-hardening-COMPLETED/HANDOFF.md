@@ -1,11 +1,13 @@
 # Task 105 Validate and Harden Claude Runtime Adapter – Handoff Summary
 
 ## Current State
-- Branch: `feat/task-105-claude-runtime-adapter-hardening`
-- Taskmaster Task 105: parent remains `in-progress` while the PR branch is active so Claude readiness stays `READY`; subtasks 105.1, 105.2, and 105.3 are done, and 105.4 is ready to close after final Taskmaster update.
+- Branch: merged to `main`.
+- PR: https://github.com/loucmane/codex-starter-pack/pull/35
+- Merge commit: `a9039c7f29b08192c994fcaf1aa6a4a9708a0f31`
+- Taskmaster Task 105: done.
 - Active session: `sessions/2026/05/2026-05-07-002-task105-claude-runtime-adapter-hardening.md`
 - Active plan: `plans/2026-05-07-task105-claude-runtime-adapter-hardening.md`
-- Active work tracking: `docs/ai/work-tracking/active/20260507-task105-claude-runtime-adapter-hardening-ACTIVE/`
+- Archived work tracking: `docs/ai/work-tracking/archive/20260507-task105-claude-runtime-adapter-hardening-COMPLETED/`
 - Scope audit: `designs/hook-surface-audit.md`
 - Serena memory: `.serena/memories/2026-05-07_task105_claude_runtime_adapter_hardening_kickoff.md`
 
@@ -29,7 +31,6 @@
 - Pre-commit: `reports/claude-runtime-adapter-hardening/pre-commit-2026-05-07-final.txt`
 
 ## Next Steps
-- Mark subtask 105.4 done after the last generated task-file refresh.
-- Commit the Task 105 changes and open a PR.
-- Keep parent Task 105 `in-progress` until after PR merge/archive if Claude readiness is used on this branch.
-- After merge, archive this active work-tracking folder and close parent Task 105.
+- Repository is in between-session state after the archive closeout commit.
+- Next default Taskmaster task is Task 10 unless the user explicitly reprioritizes.
+- Archived on 2026-05-07 12:14 CEST — Folder moved to archive and tracker marked COMPLETED.

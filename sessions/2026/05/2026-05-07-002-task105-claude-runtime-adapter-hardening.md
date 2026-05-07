@@ -22,7 +22,7 @@ title: Task 105 - Validate and Harden Claude Runtime Adapter
 - [x] Repoint `sessions/current` and `plans/current` to Task 105.
 - [x] Mark Taskmaster Task 105 in progress and update its generated task file.
 - [x] Review the design baseline and implementation boundary for Validate and Harden Claude Runtime Adapter.
-- [ ] Capture implementation and verification evidence.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 105 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -41,3 +41,14 @@ Task 105 was kicked off via `python3 scripts/codex-task wizard kickoff`, which c
 - **[11:37]** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:pytest|E:docs/ai/work-tracking/active/20260507-task105-claude-runtime-adapter-hardening-ACTIVE/reports/claude-runtime-adapter-hardening/tests-2026-05-07-claude-adapter.txt] Ran focused Claude adapter tests: 35 passed
 - **[11:40]** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:verification-stack|E:docs/ai/work-tracking/active/20260507-task105-claude-runtime-adapter-hardening-ACTIVE/reports/claude-runtime-adapter-hardening/] Captured final readiness, plan sync, work-tracking audit, guard, diff-check, and pre-commit evidence
 - **[11:42]** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:.gitignore|E:.gitignore] Ignored `.codex/rules/` local approval-cache files so delegated Git approval rules stay out of task diffs
+- **[12:13]** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:github:pr-35|E:https://github.com/loucmane/codex-starter-pack/pull/35] Merged PR #35 into `main` with merge commit `a9039c7f29b08192c994fcaf1aa6a4a9708a0f31`
+- **[12:14]** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:scripts/codex-task:archive|E:docs/ai/work-tracking/archive/20260507-task105-claude-runtime-adapter-hardening-COMPLETED/] Archived the Task 105 work-tracking folder after merge
+- **[12:14]** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:sessions/state|E:sessions/state.json] Cleared `sessions/current` and `plans/current`; repository returned to between-session state
+
+## Closeout
+- **Status**: ended
+- **Ended At**: 2026-05-07 12:14:48 CEST +0200
+- **Merged PR**: https://github.com/loucmane/codex-starter-pack/pull/35
+- **Merge Commit**: `a9039c7f29b08192c994fcaf1aa6a4a9708a0f31`
+- **Work Tracking Archive**: `docs/ai/work-tracking/archive/20260507-task105-claude-runtime-adapter-hardening-COMPLETED/`
+- **Next Task**: Task 10 — `task-master next` after post-archive closeout is pushed.

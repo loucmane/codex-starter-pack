@@ -1,7 +1,7 @@
 # Task 105 Validate and Harden Claude Runtime Adapter Tracker
 
 **Started**: 2026-05-07
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-07
 
 ## Goals
@@ -28,12 +28,15 @@
 - **2026-05-07 11:40** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:codex-guard|E:docs/ai/work-tracking/active/20260507-task105-claude-runtime-adapter-hardening-ACTIVE/reports/claude-runtime-adapter-hardening/guard-2026-05-07-final.txt] Final guard validation passed
 - **2026-05-07 11:40** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:pre-commit|E:docs/ai/work-tracking/active/20260507-task105-claude-runtime-adapter-hardening-ACTIVE/reports/claude-runtime-adapter-hardening/pre-commit-2026-05-07-final.txt] Final pre-commit checks passed
 - **2026-05-07 11:42** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:.gitignore|E:.gitignore] Ignored `.codex/rules/` local approval-cache files so saved Git approval rules do not pollute task branches
+- **2026-05-07 12:13** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:github:pr-35|E:https://github.com/loucmane/codex-starter-pack/pull/35] Merged PR #35 into `main`
+- **2026-05-07 12:14** — [S:20260507|W:task105-claude-runtime-adapter-hardening|H:scripts/codex-task:archive|E:docs/ai/work-tracking/archive/20260507-task105-claude-runtime-adapter-hardening-COMPLETED/] Archived Task 105 work tracking after merge
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Audit completed Task 103 against current Claude Code hook behavior and current repository state
 - [x] plan-step-implement — Update workflow/guard/docs and capture tests
 - [x] plan-step-verify — Evidence stored, documentation updated
-- [ ] plan-step-emergency (if applicable)
+- [x] plan-step-emergency (not used)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-07-002-task105-claude-runtime-adapter-hardening.md
+- Archived after PR #35 merge.
