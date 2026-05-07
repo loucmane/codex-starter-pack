@@ -4825,13 +4825,62 @@
           }
         ],
         "updatedAt": "2026-05-07T09:33:38.449Z"
+      },
+      {
+        "id": "106",
+        "title": "Smoke Test Claude Runtime Adapter In Harness",
+        "description": "Real-world Claude Code smoke test for the Task 103/105 runtime adapter. Intentionally prioritize this validation ahead of Task 10 to confirm Claude is mechanically gated in the actual harness before continuing normal implementation work.",
+        "details": "Create a dedicated branch and run a two-phase smoke test. Phase 1 starts with Taskmaster task/branch state but no sessions/current, plans/current, or ACTIVE work-tracking folder; a fresh Claude session should be able to inspect but should be blocked by PreToolUse/readiness from hookable persistent mutations. Phase 2 scaffolds the normal workflow state and verifies that Claude can perform allowed mutations only after readiness is READY while still blocking protected Codex-owned paths, Bash bypasses, and mutating MCP tools when appropriate. Capture findings, decisions, exact prompts, results, and evidence in normal work tracking after scaffold.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "103",
+          "105"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Cold-session block test before workflow scaffold",
+            "description": "Run a fresh Claude session on the Task 106 branch before sessions/current, plans/current, or ACTIVE work tracking exist.",
+            "details": "Expected: read-only inspection is allowed; hookable persistent mutations through file tools, mutating Bash, mutating MCP, and protected paths are blocked by readiness or the runtime gate. Capture exact Claude prompts and outcomes after scaffold.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 106,
+            "updatedAt": "2026-05-07T11:04:02.605Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Ready-state allowed and protected-path tests after scaffold",
+            "description": "Scaffold normal Task 106 workflow state, then rerun Claude with readiness READY.",
+            "details": "Expected: allowed mutations inside Claude-owned/test-safe paths work only after scaffold; protected Codex-owned paths, Bash bypasses, and unsafe MCP mutations remain blocked. Capture exact prompts, outputs, and evidence.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 106,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T11:25:10.123Z"
+          },
+          {
+            "id": 3,
+            "title": "Document smoke-test evidence and adapter follow-ups",
+            "description": "Record smoke-test results, limitations, and any follow-up adapter changes.",
+            "details": "After both phases, scaffold/update work tracking with prompts, results, findings, decisions, and verification evidence. If Claude bypasses a hookable mutation, create a follow-up or fix under this task before closing.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 106,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T11:27:43.825Z"
+          }
+        ],
+        "updatedAt": "2026-05-07T11:27:43.825Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-07T09:33:38.449Z",
-      "taskCount": 105,
-      "completedCount": 35,
+      "lastModified": "2026-05-07T11:27:43.825Z",
+      "taskCount": 106,
+      "completedCount": 36,
       "tags": [
         "master"
       ]
