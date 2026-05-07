@@ -14,3 +14,4 @@
 
 ## Next Steps
 - Push the CI fix commit, confirm PR #41 checks pass, merge, then archive the active Task 21 work-tracking folder.
+- Archived on 2026-05-07 16:57 CEST — Folder moved to archive and tracker marked COMPLETED.

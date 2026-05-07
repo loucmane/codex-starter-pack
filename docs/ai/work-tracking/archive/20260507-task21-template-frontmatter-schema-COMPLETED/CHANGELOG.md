@@ -6,3 +6,4 @@
 - 2026-05-07 16:32 CEST — Captured Task 21 memory context under `.serena/memories/` after MCP memory write was blocked by stale safety context.
 - 2026-05-07 16:36 CEST — Marked Taskmaster Task 21 and subtasks done, then recorded final verification evidence.
 - 2026-05-07 16:43 CEST — Patched guard workflows to install project dependencies from `pyproject.toml` after PR #41 exposed missing `pyyaml` in CI.
+- 2026-05-07 16:57 CEST — Archived active work-tracking folder.
