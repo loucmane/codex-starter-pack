@@ -10,6 +10,7 @@
 - Broader guard/task helper tests passed with `94 passed`.
 - Taskmaster Task 21, subtask 21.1, and subtask 21.2 are done.
 - Final verification evidence is stored in `reports/template-frontmatter-schema/final-verification-2026-05-07.md`.
+- PR #41 initially failed because CI did not install `pyyaml`/`jsonschema` dependencies before importing `scripts/codex-guard`; both guard workflows now install project dependencies from `pyproject.toml`.
 
 ## Next Steps
-- Commit, push, open/merge PR, then archive the active Task 21 work-tracking folder.
+- Push the CI fix commit, confirm PR #41 checks pass, merge, then archive the active Task 21 work-tracking folder.

@@ -14,6 +14,17 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
+      - name: Install project dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 - <<'PY' > /tmp/codex-project-dependencies.txt
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print("\n".join(data["project"]["dependencies"]))
+          PY
+          python3 -m pip install -r /tmp/codex-project-dependencies.txt
       - name: Sync active plan
         run: python3 scripts/codex-task plan sync
       - name: Run codex guard

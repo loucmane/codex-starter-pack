@@ -20,6 +20,7 @@
 - **2026-05-07 16:32** — [S:20260507|W:task21-template-frontmatter-schema|H:serena/memory|E:.serena/memories/2026-05-07_task21_template_frontmatter_schema.md] Captured Task 21 memory context; MCP write was blocked by stale read-only safety context, so the established repo memory file path was used as fallback
 - **2026-05-07 16:36** — [S:20260507|W:task21-template-frontmatter-schema|H:task-master:set-status|E:.taskmaster/tasks/task_021.txt] Marked Taskmaster subtasks 21.1/21.2 and parent Task 21 done, then refreshed only `.taskmaster/tasks/task_021.txt`
 - **2026-05-07 16:36** — [S:20260507|W:task21-template-frontmatter-schema|H:verification|E:docs/ai/work-tracking/active/20260507-task21-template-frontmatter-schema-ACTIVE/reports/template-frontmatter-schema/final-verification-2026-05-07.md] Recorded final verification evidence for tests, Taskmaster status, drift-check, plan sync, audit, guard, and diff-check
+- **2026-05-07 16:43** — [S:20260507|W:task21-template-frontmatter-schema|H:.github/workflows/codex-guard.yml|E:docs/ai/work-tracking/active/20260507-task21-template-frontmatter-schema-ACTIVE/reports/template-frontmatter-schema/ci-fix-2026-05-07.md] Fixed PR #41 CI failure by installing `pyproject.toml` project dependencies before running guard workflows
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

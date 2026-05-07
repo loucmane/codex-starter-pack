@@ -23,10 +23,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies (optional)
+      - name: Install project dependencies
         run: |
-          if [ -f requirements-ci.txt ]; then pip install -r requirements-ci.txt; fi
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python3 -m pip install --upgrade pip
+          python3 - <<'PY' > /tmp/codex-project-dependencies.txt
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print("\n".join(data["project"]["dependencies"]))
+          PY
+          python3 -m pip install -r /tmp/codex-project-dependencies.txt
 
       - name: Run timestamp regression suite
         run: python3 -m unittest tests.timestamp_guard.test_timestamp_validation
