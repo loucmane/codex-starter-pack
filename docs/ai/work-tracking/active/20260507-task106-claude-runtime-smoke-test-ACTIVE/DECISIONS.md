@@ -1,0 +1,8 @@
+# Decisions
+
+- 2026-05-07 — Task 106 intentionally began with Taskmaster task/branch state but without session, plan, or active work-tracking scaffold. Rationale: the only way to verify the cold-session zero-mutation gate in the real Claude harness is to test the blocked state before creating normal workflow pointers.
+- 2026-05-07 — After Phase 1 passed, the official Task 106 scaffold was created and the cold-session results were recorded as evidence. Rationale: continuing Phase 2 requires a compliant audit trail and `READY | task=106` state.
+- 2026-05-07 — The protected-path-specific check will be repeated after readiness is `READY`. Rationale: cold-session readiness blocking short-circuits before protected-path messaging, so a READY-state test is required to isolate path ownership enforcement.
+- 2026-05-07 — Treat the real Claude harness smoke test as the acceptance source for Tasks 103 and 105 adapter behavior. Rationale: local pytest coverage proved the scripts in isolation, but Task 106 proves Claude Code actually invokes the hooks and receives actionable diagnostics in both `BLOCKED` and `READY` states.
+- 2026-05-07 — Use deterministic Taskmaster status commands for Task 106 closeout instead of AI-backed `update-subtask`. Rationale: the full evidence is already in repository files, and status-only commands avoid provider instability without violating the "never manually edit `tasks.json`" rule.
+- 2026-05-07 — Use regular Git/GitHub commands for Task 106 commit/push instead of `gac`. Rationale: `gac` is a user convenience alias, not a Codex execution requirement; stale templates should be updated in a follow-up task so direct Git execution is the default.
