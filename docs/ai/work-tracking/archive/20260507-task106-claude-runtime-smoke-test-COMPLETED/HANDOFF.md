@@ -13,3 +13,4 @@
 - Commit and push Task 106 with regular Git/GitHub commands after gates pass.
 - Create a follow-up task to remove stale `gac`-as-default guidance from commit templates and guard coverage.
 - After PR merge, archive the active work-tracking folder in a separate archive commit.
+- Archived on 2026-05-07 13:39 CEST — Folder moved to archive and tracker marked COMPLETED.

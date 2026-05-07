@@ -10,3 +10,4 @@
 - 2026-05-07 13:12 CEST — Marked Taskmaster subtask 106.3 and parent Task 106 done.
 - 2026-05-07 13:13 CEST — Post-status final verification passed and Taskmaster shows Task 106 complete.
 - 2026-05-07 13:34 CEST — Corrected handoff language to use regular Git/GitHub execution instead of stale `gac` handoff wording.
+- 2026-05-07 13:39 CEST — Archived active work-tracking folder.
