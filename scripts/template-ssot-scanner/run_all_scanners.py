@@ -180,6 +180,12 @@ Directory: {project_root}
             "required": True
         },
         {
+            "script": "security_validator.py",
+            "args": ["--base", str(project_root), *config_module_args],
+            "description": "Scanning template and config files for security validation findings",
+            "required": True
+        },
+        {
             "script": "analyze_references.py",
             "args": config_module_args,
             "description": "Analyzing file references and dependencies",
@@ -263,6 +269,7 @@ Directory: {project_root}
     output_files = [
         "output/data/migration_status.json",
         "output/data/template_scan_results.json",
+        "output/data/security_validation.json",
         "output/data/reference_analysis.json",
         "output/data/duplicate_analysis.json",
         "output/data/fix_recommendations.json",

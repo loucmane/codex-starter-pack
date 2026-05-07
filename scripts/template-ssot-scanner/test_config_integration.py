@@ -185,6 +185,7 @@ def test_scanner_module_examples_cover_scanner_suite():
         "analyze_references.py",
         "find_duplicates.py",
         "migration_detector.py",
+        "security_validator.py",
         "generate_fixes.py",
         "safe_reorganize.py",
         "run_all_scanners.py",

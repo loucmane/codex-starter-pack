@@ -197,6 +197,7 @@ def scanner_module_examples() -> dict[str, str]:
         "analyze_references.py": "ReferenceAnalyzer(scan_results_file, config_context=context)",
         "find_duplicates.py": "DuplicateFinder(scan_results_file) consumes config-driven scanner outputs",
         "migration_detector.py": "MigrationDetector(base_path) runs before config-driven reference analysis",
+        "security_validator.py": "SecurityValidator(base_path, config_context=context)",
         "generate_fixes.py": "FixGenerator() consumes reports produced by configured scanners",
         "safe_reorganize.py": "SafeReorganizer(project_root) consumes configured scan output metadata",
         "run_all_scanners.py": "run_all_scanners.py --config scanner_config.yaml --profile ci",

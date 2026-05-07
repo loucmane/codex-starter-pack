@@ -1,7 +1,7 @@
 # Task ID: 18
 # Title: Implement Security Validation Framework
-# Status: pending
-# Dependencies: 6, 84, 97
+# Status: done
+# Dependencies: 6 ✓, 84 ✓, 97
 # Priority: high
 # Description: Create security scanning and validation tools for templates
 # Details:
@@ -11,13 +11,16 @@ Implement path traversal detection using pathlib. Add template injection scanner
 Test against known vulnerabilities, verify path traversal prevention, test secret detection accuracy, validate sanitization effectiveness
 
 # Subtasks:
-## 1. Scope reconciliation against portable foundation [pending]
-### Dependencies: None
-### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
-### Details:
+## 1. Scope reconciliation against portable foundation
 
-
-## 2. Implement proven current-state gap with evidence [pending]
+### Status: done
 ### Dependencies: None
-### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
-### Details:
+
+Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
+
+## 2. Implement proven current-state gap with evidence
+
+### Status: done
+### Dependencies: None
+
+After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
