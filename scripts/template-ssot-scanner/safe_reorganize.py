@@ -125,8 +125,7 @@ class SafeReorganizer:
             "templates/PATTERNS.md",
             "templates/REGISTRY.md",
             "templates/USER-GUIDE.md",
-            "templates/WORKFLOWS.md",
-            "templates/PROJECT-BLOG.md"
+            "templates/WORKFLOWS.md"
         }
         
         for file_path in self.scan_results.get("files", {}):

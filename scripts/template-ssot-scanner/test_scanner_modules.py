@@ -27,8 +27,8 @@ def test_migration_detector_classifies_migrated_and_unmigrated_files(tmp_path):
         encoding="utf-8",
     )
     (templates_dir / "workflows" / "start.md").write_text("# Start\n", encoding="utf-8")
-    (templates_dir / "PROJECT-BLOG.md").write_text(
-        "# Project Blog\n\nLong-form project notes without modular migration markers.\n",
+    (templates_dir / "USER-GUIDE.md").write_text(
+        "# User Guide\n\nLong-form user guidance without modular migration markers.\n",
         encoding="utf-8",
     )
 
@@ -37,7 +37,7 @@ def test_migration_detector_classifies_migrated_and_unmigrated_files(tmp_path):
 
     assert statuses["templates/WORKFLOWS.md"]["status"] == "FULLY_MIGRATED"
     assert statuses["templates/WORKFLOWS.md"]["modular_files"] == 1
-    assert statuses["templates/PROJECT-BLOG.md"]["status"] == "NOT_MIGRATED"
+    assert statuses["templates/USER-GUIDE.md"]["status"] == "NOT_MIGRATED"
 
 
 def test_reference_analyzer_emits_configured_validation_findings(tmp_path, monkeypatch):

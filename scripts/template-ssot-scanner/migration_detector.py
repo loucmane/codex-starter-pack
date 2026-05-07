@@ -41,8 +41,7 @@ class MigrationDetector:
         "templates/MATRICES.md",
         "templates/TOOLS.md",
         "templates/USER-GUIDE.md",
-        "templates/BUILDING-BETTER.md",
-        "templates/PROJECT-BLOG.md"
+        "templates/BUILDING-BETTER.md"
     ]
     
     def __init__(self, base_path: Path):

@@ -88,7 +88,10 @@ All tool selection handlers expect valid [S:W:H] context before execution. The t
 - **[Domain Workflows](../templates/workflows/domain/README.md)** - Complete development workflows
 - **[CONVENTIONS.md](../templates/conventions/)** - Code and communication standards
 - **[REGISTRY.md](../templates/REGISTRY.md)** - Handler registry and navigation
-- **[PROJECT-BLOG.md](../templates/PROJECT-BLOG.md)** - Project-specific configurations
+
+## Progress Log
+
+- **2026-05-07 18:29** — [S:20260507|W:task108-legacy-project-blog-cleanup|H:templates/tools/index.md|E:docs/ai/work-tracking/active/20260507-task108-legacy-project-blog-cleanup-ACTIVE/reports/legacy-project-blog-cleanup/project-blog-live-refs-2026-05-07.txt] Removed the stale PROJECT-BLOG see-also link after deleting the old blog-era template.
 
 ---
 
