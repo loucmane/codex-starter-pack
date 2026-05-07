@@ -6,3 +6,4 @@
 - 2026-05-07 14:40 CEST — Captured Serena memory `2026-05-07_task10_reference_fix_scripts_kickoff`.
 - 2026-05-07 14:41 CEST — Captured final verification evidence and prepared Task 10 for Taskmaster completion.
 - 2026-05-07 14:42 CEST — Marked Taskmaster subtasks and parent Task 10 done, then regenerated only Task 10's task file.
+- 2026-05-07 14:59 CEST — Captured forward-looking Agent Foundation portability option analysis and selected local runtime/CLI plus MCP control-plane architecture.

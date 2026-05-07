@@ -21,6 +21,7 @@
 - **2026-05-07 14:40** — [S:20260507|W:task10-reference-fix-scripts|H:serena/memory|E:serena`2026-05-07_task10_reference_fix_scripts_kickoff`] Captured Serena memory for Task 10 scope, implementation state, evidence, and next steps
 - **2026-05-07 14:41** — [S:20260507|W:task10-reference-fix-scripts|H:validation|E:docs/ai/work-tracking/active/20260507-task10-reference-fix-scripts-ACTIVE/reports/reference-fix-scripts/verification-2026-05-07.md] Final validation passed: scanner tests, plan sync, work-tracking audit, codex guard, and `git diff --check`
 - **2026-05-07 14:42** — [S:20260507|W:task10-reference-fix-scripts|H:task-master:set-status|E:.taskmaster/tasks/task_010.txt] Marked Taskmaster subtasks 10.1/10.2 and parent Task 10 done, then refreshed only `.taskmaster/tasks/task_010.txt`
+- **2026-05-07 14:59** — [S:20260507|W:task10-reference-fix-scripts|H:architecture-decision|E:docs/ai/work-tracking/active/20260507-task10-reference-fix-scripts-ACTIVE/designs/agent-foundation-portability-options.md] Captured forward-looking portability options, chosen architecture, rationale, and reversal criteria for a future Agent Foundation installer/MCP control-plane task
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconcile Task 10 against current scanner and portable foundation state
