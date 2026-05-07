@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "scan_timestamp": "2026-05-07T18:26:20.922220",
+    "scanner": "security_validator",
+    "scanner_version": "1.0.0",
+    "output_format_version": "2.0.0",
+    "duration_seconds": 0.58,
+    "stats": {
+      "files_scanned": 332,
+      "findings": 0,
+      "errors": 0,
+      "warnings": 0
+    },
+    "previous_scan": "2026-05-07T18:25:27.035265",
+    "changes_from_previous": {
+      "no_changes": true
+    }
+  },
+  "data": {
+    "security_validation_version": "1.0.0",
+    "base_path": "/home/loucmane/codex",
+    "config_source": "/home/loucmane/codex/scripts/template-ssot-scanner/scanner_config.yaml",
+    "config_profile": null,
+    "config_environment": null,
+    "files_scanned": 332,
+    "rules": {
+      "security_inline_secret": {
+        "category": "security",
+        "severity": "error",
+        "threshold": 0
+      },
+      "security_path_traversal": {
+        "category": "security",
+        "severity": "warning",
+        "threshold": 0
+      },
+      "security_template_injection": {
+        "category": "security",
+        "severity": "warning",
+        "threshold": 0
+      }
+    },
+    "summary": {
+      "total_findings": 0,
+      "severity_counts": {},
+      "rule_counts": {}
+    },
+    "findings": []
+  }
+}

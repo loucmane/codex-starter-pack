@@ -140,8 +140,7 @@ Need analysis/planning?
 Need project info?
 ├─ What did we do before? → Serena list/read memories
 ├─ Current project state? → Serena get_current_config
-├─ Documentation lookup? → Context7
-└─ Blog-specific config? → PROJECT-BLOG.md
+└─ Documentation lookup? → Context7
 ```
 
 ## Tool Combination Patterns

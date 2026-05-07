@@ -21,10 +21,6 @@
 
 - `templates/workflows/patterns/task-management.md` — heading: Task Management Patterns
 - `templates/workflows/patterns/multi-agent-orchestration.md` — heading: Intelligent Multi-Agent Orchestration
-## PROJECT-BLOG.md
-
-- `templates/PROJECT-BLOG.md` — heading: Animal Protection Foundation Blog - Project Configuration
-
 ## REGISTRY.md
 
 - `templates/REGISTRY.md` — heading: Claude Template System Registry - REFINED v2.0

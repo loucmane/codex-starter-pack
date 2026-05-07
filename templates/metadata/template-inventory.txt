@@ -2,7 +2,6 @@ templates/BEHAVIORS.md
 templates/CONVENTIONS.md
 templates/HANDLERS.md
 templates/MATRICES.md
-templates/PROJECT-BLOG.md
 templates/REGISTRY.md
 templates/TOOLS.md
 templates/USER-GUIDE.md
