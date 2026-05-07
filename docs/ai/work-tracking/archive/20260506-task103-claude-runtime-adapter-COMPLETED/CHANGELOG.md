@@ -22,3 +22,6 @@
 - 2026-05-06 18:51 CEST - Marked subtask 103.5 done and kept parent Task 103 in progress for PR-readiness compatibility.
 - 2026-05-06 18:52 CEST - Added final memory references, handoff notes, and Taskmaster `0.43.1` serialization findings.
 - 2026-05-06 18:55 CEST - Reran final pytest, readiness, plan sync, work-tracking audit, guard, diff-check, Taskmaster dependency validation, and pre-commit evidence after handoff updates.
+- 2026-05-06 19:52 CEST — Archived active work-tracking folder.
+- 2026-05-06 19:56 CEST - Fixed archive PR CI by making `codex-task plan sync` accept intentional between-session state.
+- 2026-05-06 19:57 CEST - Added between-session `plan sync` regression coverage and archive evidence.

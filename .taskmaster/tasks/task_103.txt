@@ -1,6 +1,6 @@
 # Task ID: 103
 # Title: Claude Runtime Adapter and Multimodal Workflow Enforcement
-# Status: in-progress
+# Status: done
 # Dependencies: 9
 # Priority: high
 # Description: Build the Claude Code adapter for the portable Codex foundation as a gated runtime, not a manual or memory-only guide. This task is intentionally prioritized ahead of Task 10 because the foundation must support multimodal and multi-agent workflows across Codex, Claude, shell, MCP, memory, GitHub, and future agent/tool surfaces.

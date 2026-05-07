@@ -4692,7 +4692,7 @@
         "description": "Build the Claude Code adapter for the portable Codex foundation as a gated runtime, not a manual or memory-only guide. This task is intentionally prioritized ahead of Task 10 because the foundation must support multimodal and multi-agent workflows across Codex, Claude, shell, MCP, memory, GitHub, and future agent/tool surfaces.",
         "details": "Create a Claude-owned runtime contract and implementation that makes Claude follow task/session/plan/work-tracking discipline mechanically. Required outputs include CLAUDE.md entry guidance, .claude/engine runtime contract/readiness/tool-mapping docs, .claude/scripts readiness and PreToolUse gate scripts, .claude/commands slash-command wrappers, .claude/agents executor/orchestrator/checker agents, .claude/AGENTS.md catalog, .claude/settings.json hook/allowlist configuration, and tests/evidence proving cold-session zero-mutation behavior where hookable. Ownership boundary: do not modify CODEX.md, templates/**, scripts/codex-*, scripts/template-*, or .codex/** unless explicitly scoped as a Codex-led follow-up. Reference branch feat/claude-port-bootstrap is raw material only; every useful file must be ported or rejected during scope reconciliation with S:W:H:E provenance. Acceptance: a fresh Claude session without matching Taskmaster task, task branch, sessions/current, plans/current, and ACTIVE work tracking cannot perform hookable persistent mutations; readiness exits READY only when branch/task/session/plan/tracker align; protected Codex-owned paths are blocked; Bash write-surface bypasses are blocked where hookable; every enforcement claim is backed by tests or documented as policy-only; plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, and focused Claude adapter pytest evidence pass.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "9"
         ],
@@ -4750,7 +4750,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-06T16:52:19.460Z"
+        "updatedAt": "2026-05-06T17:12:05.030Z"
       },
       {
         "id": "104",
@@ -4768,9 +4768,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-06T16:52:19.461Z",
+      "lastModified": "2026-05-06T17:12:05.031Z",
       "taskCount": 104,
-      "completedCount": 32,
+      "completedCount": 33,
       "tags": [
         "master"
       ]

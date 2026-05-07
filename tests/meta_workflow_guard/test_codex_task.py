@@ -397,6 +397,31 @@ def test_work_tracking_audit_allows_between_sessions_state(monkeypatch, tmp_path
     assert "between sessions" in output
 
 
+def test_plan_sync_allows_between_sessions_state(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    state_path = sessions_dir / "state.json"
+    state_path.write_text(
+        '{"current":null,"paused":[],"updated_at":"2030-01-02T17:35:49+02:00"}\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", state_path)
+
+    module.handle_plan_sync(argparse.Namespace(plan=None, tracker=None, dry_run=False))
+
+    output = capsys.readouterr().out
+    assert "between sessions" in output
+    assert "Plan sync skipped" in output
+
+
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
     module = load_task_module()
     target = tmp_path / "existing-repo"
