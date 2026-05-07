@@ -41,6 +41,7 @@ Lightweight entry point to the complete template system registry.
 - **[Keywords](navigation/keywords.md)** - Natural language → handler mapping
 - **[Behavioral Templates](behavioral/templates.md)** - Step-by-step guides (6)
 - **[Meta-Routing](patterns/meta-routing.md)** - Ambiguous request handling (13)
+- **[Compatibility Map](compatibility-map.json)** - Versioned legacy path redirects used by `TemplateRegistry.resolve()`
 
 ### System Components
 - **[Behavioral Hooks](behavioral/hooks.md)** - Automatic enforcement (9)

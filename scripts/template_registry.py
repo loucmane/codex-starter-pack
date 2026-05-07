@@ -30,10 +30,24 @@ DEFAULT_COMPATIBILITY_MAP: Mapping[str, str] = {
     "templates/TOOLS.md": "templates/tools/",
     "templates/BUILDING-BETTER.md": "templates/integration/best-practices/",
 }
+COMPATIBILITY_MAP_RELATIVE_PATH = Path("registry") / "compatibility-map.json"
 
 
 class TemplateNotFound(LookupError):
     """Raised when a template cannot be resolved and strict mode is enabled."""
+
+
+class CompatibilityMapError(ValueError):
+    """Raised when compatibility mapping data is invalid."""
+
+
+@dataclass(frozen=True)
+class CompatibilityEntry:
+    """A versioned legacy-to-current template path mapping."""
+
+    legacy: str
+    current: str
+    reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -69,6 +83,77 @@ class ResolutionResult:
     @property
     def ok(self) -> bool:
         return self.status in {"found", "redirect", "fallback"}
+
+
+class CompatibilityMap:
+    """Bidirectional compatibility lookup table for legacy template paths."""
+
+    def __init__(self, entries: Iterable[CompatibilityEntry], *, version: str = "unversioned") -> None:
+        self.version = version
+        self.entries = tuple(entries)
+        forward: Dict[str, CompatibilityEntry] = {}
+        reverse: Dict[str, CompatibilityEntry] = {}
+        for entry in self.entries:
+            legacy_key = _normal_key(entry.legacy)
+            current_key = _normal_key(entry.current)
+            if legacy_key in forward:
+                raise CompatibilityMapError(f"Duplicate legacy compatibility key: {entry.legacy}")
+            if current_key in reverse:
+                existing = reverse[current_key]
+                raise CompatibilityMapError(
+                    f"Duplicate current compatibility target: {entry.current} "
+                    f"({existing.legacy} and {entry.legacy})"
+                )
+            forward[legacy_key] = entry
+            reverse[current_key] = entry
+        self._forward = forward
+        self._reverse = reverse
+
+    @classmethod
+    def from_mapping(cls, mapping: Mapping[str, str], *, version: str = "mapping") -> "CompatibilityMap":
+        return cls(
+            (CompatibilityEntry(legacy=str(legacy), current=str(current)) for legacy, current in mapping.items()),
+            version=version,
+        )
+
+    @classmethod
+    def from_json_path(cls, path: Path) -> "CompatibilityMap":
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        mappings = payload.get("mappings")
+        if not isinstance(mappings, list):
+            raise CompatibilityMapError(f"Compatibility map missing mappings list: {path}")
+        entries: List[CompatibilityEntry] = []
+        for index, raw_entry in enumerate(mappings, start=1):
+            if not isinstance(raw_entry, dict):
+                raise CompatibilityMapError(f"Compatibility map entry {index} is not an object")
+            legacy = str(raw_entry.get("legacy") or "").strip()
+            current = str(raw_entry.get("current") or "").strip()
+            if not legacy or not current:
+                raise CompatibilityMapError(f"Compatibility map entry {index} requires legacy and current")
+            entries.append(
+                CompatibilityEntry(
+                    legacy=legacy,
+                    current=current,
+                    reason=str(raw_entry.get("reason") or ""),
+                )
+            )
+        return cls(entries, version=str(payload.get("version") or "unversioned"))
+
+    def target_for(self, legacy_path: str) -> Optional[str]:
+        entry = self._forward.get(_normal_key(legacy_path))
+        return entry.current if entry else None
+
+    def legacy_for(self, current_path: str) -> Optional[str]:
+        entry = self._reverse.get(_normal_key(current_path))
+        return entry.legacy if entry else None
+
+    def validate_targets(self, repo_root: Path) -> List[str]:
+        issues: List[str] = []
+        for entry in self.entries:
+            target = repo_root / entry.current.rstrip("/")
+            if not target.exists():
+                issues.append(f"{entry.legacy} maps to missing target {entry.current}")
+        return issues
 
 
 @dataclass
@@ -164,7 +249,7 @@ class TemplateRegistry:
         *,
         ttl_seconds: float = 60.0,
         glob_patterns: Sequence[str] = ("*.md", "**/*.md"),
-        compatibility_map: Optional[Mapping[str, str]] = None,
+        compatibility_map: Optional[Mapping[str, str] | CompatibilityMap] = None,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.repo_root = Path(repo_root or Path(__file__).resolve().parent.parent).resolve()
@@ -173,11 +258,24 @@ class TemplateRegistry:
         self.registry_index_path = self.templates_root / "registry" / "index.json"
         self.ttl_seconds = ttl_seconds
         self.glob_patterns = tuple(glob_patterns)
-        self.compatibility_map = dict(compatibility_map or DEFAULT_COMPATIBILITY_MAP)
+        self.compatibility_map = self._load_compatibility_map(compatibility_map)
         self.clock = clock
         self._lock = threading.RLock()
         self._cache: Optional[_RegistryIndex] = None
         self._cache_built_at: float = 0.0
+
+    def _load_compatibility_map(
+        self,
+        compatibility_map: Optional[Mapping[str, str] | CompatibilityMap],
+    ) -> CompatibilityMap:
+        if isinstance(compatibility_map, CompatibilityMap):
+            return compatibility_map
+        if compatibility_map is not None:
+            return CompatibilityMap.from_mapping(compatibility_map, version="constructor")
+        compatibility_path = self.templates_root / COMPATIBILITY_MAP_RELATIVE_PATH
+        if compatibility_path.exists():
+            return CompatibilityMap.from_json_path(compatibility_path)
+        return CompatibilityMap.from_mapping(DEFAULT_COMPATIBILITY_MAP, version="default")
 
     def invalidate_cache(self) -> None:
         with self._lock:
@@ -452,7 +550,7 @@ class TemplateRegistry:
         if templates_rel != "templates" and query.startswith(f"{templates_rel}/"):
             candidates.append(f"templates/{query[len(templates_rel) + 1:]}")
         for candidate in candidates:
-            target = self.compatibility_map.get(candidate)
+            target = self.compatibility_map.target_for(candidate)
             if not target:
                 continue
             if templates_rel != "templates" and target.startswith("templates/"):
