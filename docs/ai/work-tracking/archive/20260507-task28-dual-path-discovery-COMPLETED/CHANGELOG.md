@@ -6,3 +6,5 @@
 - 2026-05-07 17:13 CEST — Marked Taskmaster Task 28 and subtasks done after pre-close verification passed.
 - 2026-05-07 17:14 CEST — Recorded final verification evidence for Task 28.
 - 2026-05-07 17:15 CEST — Added broader meta-workflow regression evidence (`115 passed`).
+- 2026-05-07 17:31 CEST — Archived Task 28 work tracking after PR #42 merged.
+- 2026-05-07 17:30 CEST — Archived active work-tracking folder.

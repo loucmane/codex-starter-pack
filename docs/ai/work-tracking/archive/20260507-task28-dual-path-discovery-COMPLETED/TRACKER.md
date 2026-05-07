@@ -1,13 +1,13 @@
 # Task 28 Dual-Path Discovery Tracker
 
 **Started**: 2026-05-07
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-07
 
 ## Goals
-- [ ] Reconcile historical dual-path discovery wording against the current registry, compatibility map, and portable foundation
-- [ ] Implement only the proven current-state discovery gap with tests and metrics evidence
-- [ ] Capture Taskmaster, plan, work-tracking, Serena memory, guard, audit, and verification evidence
+- [x] Reconcile historical dual-path discovery wording against the current registry, compatibility map, and portable foundation
+- [x] Implement only the proven current-state discovery gap with tests and metrics evidence
+- [x] Capture Taskmaster, plan, work-tracking, Serena memory, guard, audit, and verification evidence
 
 ## Progress Log
 - **2026-05-07 17:02** — [S:20260507|W:task28-dual-path-discovery|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-05-07 17:02 CEST`
@@ -20,6 +20,7 @@
 - **2026-05-07 17:13** — [S:20260507|W:task28-dual-path-discovery|H:task-master:set-status|E:docs/ai/work-tracking/active/20260507-task28-dual-path-discovery-ACTIVE/reports/dual-path-discovery/taskmaster-show-2026-05-07-final.txt] Marked Taskmaster subtasks 28.1/28.2 and parent Task 28 done, then refreshed only `.taskmaster/tasks/task_028.txt`
 - **2026-05-07 17:14** — [S:20260507|W:task28-dual-path-discovery|H:verification|E:docs/ai/work-tracking/active/20260507-task28-dual-path-discovery-ACTIVE/reports/dual-path-discovery/tests-2026-05-07-final.txt] Final verification passed: focused registry tests (`9 passed`), plan sync, work-tracking audit, guard, and diff-check
 - **2026-05-07 17:15** — [S:20260507|W:task28-dual-path-discovery|H:pytest|E:docs/ai/work-tracking/active/20260507-task28-dual-path-discovery-ACTIVE/reports/dual-path-discovery/tests-2026-05-07-meta-workflow.txt] Broader meta-workflow regression suite passed (`115 passed`)
+- **2026-05-07 17:31** — [S:20260507|W:task28-dual-path-discovery|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260507-task28-dual-path-discovery-COMPLETED/] Archived Task 28 work tracking after PR #42 merged into `main`; post-archive guard and diff-check passed, with work-tracking audit reporting the expected no-ACTIVE-folder between-session warning
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -29,4 +30,4 @@
 
 ## Dependencies & Notes
 - Session log: sessions/current
-- Post-merge follow-up: archive this folder from `main` after PR merge.
+- Archived from `main` after PR #42 merge.

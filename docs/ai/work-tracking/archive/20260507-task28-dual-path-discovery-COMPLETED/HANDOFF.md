@@ -8,7 +8,9 @@
 - Serena memory `2026-05-07_task28_dual_path_discovery` captures the implementation context.
 - Taskmaster Task 28 and subtasks 28.1/28.2 are done.
 - Final verification passed: focused registry tests (`9 passed`), broader meta-workflow tests (`115 passed`), plan sync, work-tracking audit, guard, and diff-check.
+- PR #42 was merged into `main`; this folder is archived at `docs/ai/work-tracking/archive/20260507-task28-dual-path-discovery-COMPLETED/`.
 
 ## Next Steps
-- Run PR/merge workflow for Task 28.
-- After merge, switch to `main`, pull, archive the Task 28 work-tracking folder, run post-archive guard/audit/diff-check, and commit/push the archive cleanup.
+- Continue with the next Taskmaster task after main is clean.
+- No Task 28 implementation work remains.
+- Archived on 2026-05-07 17:30 CEST — Folder moved to archive and tracker marked COMPLETED.
