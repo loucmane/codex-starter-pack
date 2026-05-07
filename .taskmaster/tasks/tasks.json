@@ -1053,32 +1053,35 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 12,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T13:23:06.831Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 12,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T13:23:17.376Z"
           }
         ],
         "complexity": 2,
         "recommendedSubtasks": 3,
-        "expansionPrompt": "Verify Taskmaster initialization (already done), review existing configuration, validate API connectivity, and document any customizations needed for migration workflow."
+        "expansionPrompt": "Verify Taskmaster initialization (already done), review existing configuration, validate API connectivity, and document any customizations needed for migration workflow.",
+        "updatedAt": "2026-05-07T13:23:17.376Z"
       },
       {
         "id": "13",
@@ -4929,9 +4932,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-07T12:42:36.222Z",
+      "lastModified": "2026-05-07T13:23:17.376Z",
       "taskCount": 107,
-      "completedCount": 38,
+      "completedCount": 39,
       "tags": [
         "master"
       ]

@@ -141,6 +141,14 @@ python3 scripts/codex-task taskmaster generate-one --id <id>
 
 Use broad in-place `task-master generate` only when a deliberate repository-wide generated task-file refresh is explicitly scoped.
 
+For dependency health, prefer the full-graph helper:
+
+```bash
+python3 scripts/codex-task taskmaster health
+```
+
+`task-master list --status=<status>` can print filtered-view dependency warnings because dependencies outside that status filter are hidden. Confirm with `python3 scripts/codex-task taskmaster health` or `task-master validate-dependencies` before repairing dependencies.
+
 ## Existing Repository Migration
 
 Use this path when the repository already has workflow or template state.

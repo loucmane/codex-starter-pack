@@ -32,6 +32,7 @@ task-master expand --all --research               # Expand all eligible tasks
 task-master add-dependency --id=<id> --depends-on=<id>       # Add task dependency
 task-master move --from=<id> --to=<id>                       # Reorganize task hierarchy
 task-master validate-dependencies                            # Check for dependency issues
+python3 scripts/codex-task taskmaster health                 # Authoritative full-graph Taskmaster health report
 task-master generate                                         # Deliberate repo-wide generated-file refresh only
 python3 scripts/codex-task taskmaster generate-one --id <id> # Update only one generated task file after status/update changes
 ```
@@ -362,15 +363,20 @@ task-master models --set-fallback gpt-4o-mini
 ### Task File Sync Issues
 
 ```bash
+# Full-graph Taskmaster health; prefer this over filtered list output for dependency checks
+python3 scripts/codex-task taskmaster health
+
 # Refresh only the current task file after normal status/update changes
 python3 scripts/codex-task taskmaster generate-one --id <id>
 
 # Deliberate repo-wide generated-file refresh only when explicitly scoped
 task-master generate
 
-# Fix dependency issues
+# Fix dependency issues only after full-graph health or validate-dependencies confirms a real issue
 task-master fix-dependencies
 ```
+
+`task-master list --status=<status>` can print filtered-view dependency warnings because dependencies outside the filtered status set are hidden. Use `python3 scripts/codex-task taskmaster health` or `task-master validate-dependencies` for authoritative full-graph dependency health.
 
 DO NOT RE-INITIALIZE. That will not do anything beyond re-adding the same Taskmaster core files.
 
@@ -395,6 +401,7 @@ These commands make AI calls and may take up to a minute:
 - Never manually edit `.taskmaster/config.json` - use `task-master models`
 - Task markdown files in `tasks/` are auto-generated
 - Run `python3 scripts/codex-task taskmaster generate-one --id <id>` after normal Taskmaster status/update commands; use broad `task-master generate` only for explicitly scoped repository-wide generated-file refreshes
+- Use `python3 scripts/codex-task taskmaster health` or `task-master validate-dependencies` for full-graph dependency health; do not treat filtered `task-master list --status=...` dependency warnings as corruption until confirmed.
 
 ### Claude Code Session Management
 

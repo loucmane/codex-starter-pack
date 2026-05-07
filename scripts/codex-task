@@ -65,6 +65,7 @@ PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
 PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
 SESSION_STATE_PATH = REPO_STRUCTURE.session_state_path
 TASKMASTER_TASKS_DIR = REPO_STRUCTURE.taskmaster_tasks_dir
+TASKMASTER_TASKS_JSON = REPO_STRUCTURE.taskmaster_tasks_json
 TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REPO_ROOT).as_posix()
 SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
 PLANS_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
@@ -1545,6 +1546,120 @@ def handle_taskmaster_generate_one(args: argparse.Namespace) -> None:
     print(f"Updated {destination_path.relative_to(REPO_ROOT)} from targeted Taskmaster generation")
 
 
+def _normalise_dependency_id(value: object) -> str:
+    return str(value).strip()
+
+
+def _load_taskmaster_tasks_data() -> dict:
+    if not TASKMASTER_TASKS_JSON.exists():
+        raise TaskError(f"Taskmaster tasks file not found: {TASKMASTER_TASKS_JSON.relative_to(REPO_ROOT)}")
+    try:
+        return json.loads(TASKMASTER_TASKS_JSON.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"Invalid Taskmaster JSON: {TASKMASTER_TASKS_JSON.relative_to(REPO_ROOT)}") from exc
+
+
+def _resolve_taskmaster_tag(data: dict, requested_tag: str | None = None) -> str:
+    if requested_tag:
+        if requested_tag not in data:
+            raise TaskError(f"Taskmaster tag not found: {requested_tag}")
+        return requested_tag
+    if "master" in data:
+        return "master"
+    tags = [key for key, value in data.items() if isinstance(value, dict) and "tasks" in value]
+    if len(tags) == 1:
+        return tags[0]
+    raise TaskError("Unable to determine Taskmaster tag; pass --tag explicitly")
+
+
+def _taskmaster_dependency_health(tag_data: dict) -> tuple[dict, list[str]]:
+    tasks = tag_data.get("tasks")
+    if not isinstance(tasks, list):
+        raise TaskError("Taskmaster tag data does not contain a tasks list")
+
+    task_ids = {_normalise_dependency_id(task.get("id")) for task in tasks}
+    status_counts: Dict[str, int] = {}
+    total_subtasks = 0
+    dependency_refs = 0
+    invalid_refs: list[str] = []
+
+    for task in tasks:
+        task_id = _normalise_dependency_id(task.get("id"))
+        status = str(task.get("status") or "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+        for dependency in task.get("dependencies") or []:
+            dependency_id = _normalise_dependency_id(dependency)
+            if not dependency_id:
+                continue
+            dependency_refs += 1
+            if dependency_id not in task_ids:
+                invalid_refs.append(f"Task {task_id} depends on missing task {dependency_id}")
+
+        subtasks = task.get("subtasks") or []
+        total_subtasks += len(subtasks)
+        subtask_local_ids = {_normalise_dependency_id(subtask.get("id")) for subtask in subtasks}
+        subtask_full_ids = {f"{task_id}.{subtask_id}" for subtask_id in subtask_local_ids if subtask_id}
+        valid_subtask_refs = subtask_local_ids | subtask_full_ids | task_ids
+        for subtask in subtasks:
+            subtask_id = _normalise_dependency_id(subtask.get("id"))
+            for dependency in subtask.get("dependencies") or []:
+                dependency_id = _normalise_dependency_id(dependency)
+                if not dependency_id:
+                    continue
+                dependency_refs += 1
+                if dependency_id not in valid_subtask_refs:
+                    invalid_refs.append(f"Subtask {task_id}.{subtask_id} depends on missing reference {dependency_id}")
+
+    summary = {
+        "tasks": len(tasks),
+        "subtasks": total_subtasks,
+        "status_counts": status_counts,
+        "dependency_refs": dependency_refs,
+        "invalid_refs": len(invalid_refs),
+    }
+    return summary, invalid_refs
+
+
+def _render_taskmaster_health_report(tag: str, summary: dict, invalid_refs: list[str]) -> str:
+    status_counts = summary["status_counts"]
+    status_text = ", ".join(f"{name}={count}" for name, count in sorted(status_counts.items()))
+    lines = [
+        "Taskmaster health: " + ("OK" if not invalid_refs else "FAILED"),
+        f"Tag: {tag}",
+        f"Tasks: {summary['tasks']}",
+        f"Subtasks: {summary['subtasks']}",
+        f"Statuses: {status_text}",
+        f"Dependency refs: {summary['dependency_refs']}",
+        f"Invalid dependency refs: {summary['invalid_refs']}",
+        "",
+        "Note: `task-master list --status=<status>` can print filtered-view dependency warnings because dependencies outside the filtered subset are hidden. Use this helper or `task-master validate-dependencies` for authoritative full-graph health.",
+    ]
+    if invalid_refs:
+        lines.extend(["", "Invalid references:"])
+        lines.extend(f"- {issue}" for issue in invalid_refs)
+    return "\n".join(lines) + "\n"
+
+
+def handle_taskmaster_health(args: argparse.Namespace) -> None:
+    data = _load_taskmaster_tasks_data()
+    tag = _resolve_taskmaster_tag(data, args.tag)
+    summary, invalid_refs = _taskmaster_dependency_health(data[tag])
+    report = _render_taskmaster_health_report(tag, summary, invalid_refs)
+
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(report, encoding="utf-8")
+        print(f"Wrote Taskmaster health report to {report_path.relative_to(REPO_ROOT)}")
+    print(report, end="")
+
+    if invalid_refs:
+        raise TaskError("Taskmaster dependency health failed")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Codex task helper")
     parser.add_argument("--session", help="Override S field session value", default=None)
@@ -1641,6 +1756,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     taskmaster_generate_one.add_argument("--id", dest="task_id", required=True, help="Task ID to update")
     taskmaster_generate_one.set_defaults(func=handle_taskmaster_generate_one)
+    taskmaster_health = taskmaster_sub.add_parser(
+        "health",
+        help="Report authoritative Taskmaster graph health from tasks.json",
+    )
+    taskmaster_health.add_argument("--tag", help="Taskmaster tag to inspect (default: master when present)")
+    taskmaster_health.add_argument("--report-file", help="Optional path to write the health report")
+    taskmaster_health.set_defaults(func=handle_taskmaster_health)
 
     bootstrap_parser = subparsers.add_parser("bootstrap", help="Portable foundation bootstrap operations")
     bootstrap_sub = bootstrap_parser.add_subparsers(dest="subcommand", required=True)
