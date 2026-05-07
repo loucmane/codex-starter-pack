@@ -18,6 +18,7 @@ __pycache__/
 .codex/logs_*.sqlite
 .codex/models_cache.json
 .codex/plugins/
+.codex/rules/
 .codex/shell_snapshots/
 .codex/skills/
 .codex/state_*.sqlite*

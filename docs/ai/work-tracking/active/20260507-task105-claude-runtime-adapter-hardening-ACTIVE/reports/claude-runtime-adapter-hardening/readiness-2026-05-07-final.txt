@@ -1,0 +1,14 @@
+# CLAUDE READINESS - 2026-05-07 11:31:51 CEST +0200
+STATE: READY
+TASK: 105
+ROOT: /home/loucmane/codex
+
+## Checks
+[ok] branch 'feat/task-105-claude-runtime-adapter-hardening' maps to Task 105
+[ok] Taskmaster Task 105 is in-progress
+[ok] active session references Task 105
+[ok] sessions/state.json current matches sessions/current
+[ok] active plan references Task 105
+[ok] ACTIVE folder '20260507-task105-claude-runtime-adapter-hardening-ACTIVE' matches Task 105
+[ok] active tracker references Task 105
+[ok] plan-step statuses align between plan and tracker

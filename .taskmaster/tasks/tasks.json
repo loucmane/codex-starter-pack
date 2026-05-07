@@ -4765,13 +4765,73 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-05-07T08:29:11.105Z"
+      },
+      {
+        "id": "105",
+        "title": "Validate and Harden Claude Runtime Adapter",
+        "description": "Live validation and hardening follow-up for completed Task 103. Prioritize Claude adapter system behavior ahead of Task 10 by explicit user direction because multimodal agent enforcement is foundational for all later work.",
+        "details": "Audit Task 103 outputs in the current repository state. Verify that CLAUDE.md, .claude runtime contract, readiness gate, PreToolUse dispatcher, path guard, Bash command guard, handoff nudge, commands, agents, settings, and tests still match the intended gated-runtime behavior after Task 104 and archive closeout. Fix stale permanent metadata such as runtime-contract references to draft or active Task 103 paths. Add or adjust focused tests only for real behavior gaps, especially cold-session zero-mutation, memory or MCP hookability labels, Bash mutation classification, and between-session behavior. Record every gap and decision in normal work tracking. Do not duplicate Task 103 implementation and do not edit Codex-owned surfaces unless explicitly scoped.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "103",
+          "104"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit current Claude hook surface and runtime contract",
+            "description": "Compare completed Task 103 adapter against current Claude Code hook documentation and current repo state.",
+            "details": "Review .claude/settings.json, runtime-contract.md, readiness, PreToolUse dispatcher, Bash guard, path guard, handoff nudge, commands, agents, Task 103 archived artifacts, and official Claude Code hook events. Produce work-tracking design notes identifying stale metadata, untested hook surfaces, MCP matcher coverage, config-change risk, slash-command expansion risk, subagent/task lifecycle hooks, memory hookability labels, and any policy-only surfaces. Update runtime contract only after findings are recorded.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 105,
+            "updatedAt": "2026-05-07T09:24:06.309Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Harden hook dispatcher and protected mutation gates",
+            "description": "Implement only proven hardening gaps from the audit so Claude is mechanically blocked on hookable mutation paths.",
+            "details": "Apply focused changes to Claude-owned adapter files only. Candidate areas include adding MCP mutating tool matchers or wildcard routing where safe, protecting .claude hook configuration from weakening, improving Bash mutation classification, adding UserPromptExpansion or ConfigChange checks if supported by current docs and tests, and keeping readiness as the first mutation gate. Do not weaken read-only inspection. Do not modify Codex-owned surfaces unless a separate Codex-led scope is created.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 105,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T09:30:58.787Z"
+          },
+          {
+            "id": 3,
+            "title": "Prove cold-session zero-mutation and hookability behavior",
+            "description": "Add or update tests and evidence so every enforcement claim is backed by behavior.",
+            "details": "Run focused pytest coverage for readiness, PreToolUse gates, Bash guard, contract files, and any new MCP, ConfigChange, UserPromptExpansion, or lifecycle hook logic added in this task. Tests must exercise both blocked and allowed cases in isolated temp repos where appropriate. Every mutation surface must be labeled verified-hookable, ci-detectable, or policy-only with a documented limitation. No tests may be changed merely to pass without preserving the intended behavior.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 105,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T09:31:05.237Z"
+          },
+          {
+            "id": 4,
+            "title": "Finalize evidence, handoff, and Claude-system continuity",
+            "description": "Close Task 105 with current docs, work tracking, Taskmaster status, and verification evidence.",
+            "details": "Capture plan sync, work-tracking audit, codex guard, diff-check, pre-commit, focused pytest, and readiness evidence. Update TRACKER, FINDINGS, DECISIONS, IMPLEMENTATION, CHANGELOG, HANDOFF, and MEMORY-REFS if memory references are used. Ensure the permanent runtime contract reflects current completed state and next-step limitations, not stale Task 103 active paths. Prepare GAC and PR description.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 105,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-07T09:33:38.449Z"
+          }
+        ],
+        "updatedAt": "2026-05-07T09:33:38.449Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-07T08:29:11.108Z",
-      "taskCount": 104,
-      "completedCount": 34,
+      "lastModified": "2026-05-07T09:33:38.449Z",
+      "taskCount": 105,
+      "completedCount": 35,
       "tags": [
         "master"
       ]
