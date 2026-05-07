@@ -14,3 +14,4 @@
 - Commit/push with regular Git commands and open the PR.
 - After PR merge, archive `20260507-task10-reference-fix-scripts-ACTIVE`.
 - Future task candidate: build Agent Foundation installer/manifest/doctor/smoke-test first, then add an MCP wrapper around the stable local CLI/package.
+- Archived on 2026-05-07 15:08 CEST — Folder moved to archive and tracker marked COMPLETED.
