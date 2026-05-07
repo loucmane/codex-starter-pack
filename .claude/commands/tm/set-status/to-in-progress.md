@@ -17,12 +17,13 @@ This command does more than just change status - it prepares your environment fo
 
 ```bash
 task-master set-status --id=$ARGUMENTS --status=in-progress
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
 ```
 
 ## Environment Setup
 
 After setting to in-progress:
-1. Create/checkout appropriate git branch
+1. Confirm/create the appropriate git branch before status changes when possible
 2. Open relevant documentation
 3. Set up test watchers if applicable
 4. Display task details and acceptance criteria

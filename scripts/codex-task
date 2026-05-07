@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -136,10 +137,35 @@ def _next_session_id(now: datetime) -> str:
 
 def _task_file_path(task_id: str) -> Path:
     token = int(task_id)
+    tasks_dir = _taskmaster_tasks_dir()
+    for candidate in _task_file_candidates(tasks_dir, task_id):
+        if candidate.exists():
+            return candidate
+    return tasks_dir / f"task_{token:03d}.txt"
+
+
+def _taskmaster_tasks_dir() -> Path:
     tasks_dir = TASKMASTER_TASKS_DIR
     if not tasks_dir.is_relative_to(REPO_ROOT):
         tasks_dir = load_repo_structure(REPO_ROOT).taskmaster_tasks_dir
-    return tasks_dir / f"task_{token:03d}.txt"
+    return tasks_dir
+
+
+def _task_file_name_stems(task_id: str) -> List[str]:
+    token = int(task_id)
+    stems = [f"task_{token:03d}", f"task_{token}"]
+    return list(dict.fromkeys(stems))
+
+
+def _task_file_candidates(base_dir: Path, task_id: str, suffixes: Tuple[str, ...] = (".txt", ".md")) -> List[Path]:
+    return [base_dir / f"{stem}{suffix}" for stem in _task_file_name_stems(task_id) for suffix in suffixes]
+
+
+def _task_id_from_task_file(path: Path) -> Optional[int]:
+    match = re.match(r"^task_(\d+)\.(?:txt|md)$", path.name)
+    if not match:
+        return None
+    return int(match.group(1))
 
 
 def _load_task_metadata(task_id: str) -> Dict[str, str]:
@@ -156,6 +182,10 @@ def _load_task_metadata(task_id: str) -> Dict[str, str]:
             data["title"] = raw.split(":", 1)[1].strip()
         elif raw.startswith("# Description:"):
             data["description"] = raw.split(":", 1)[1].strip()
+        elif raw.startswith("**Title:**"):
+            data["title"] = raw.split("**Title:**", 1)[1].strip()
+        elif raw.startswith("**Description:**"):
+            data["description"] = raw.split("**Description:**", 1)[1].strip()
     return data
 
 
@@ -194,6 +224,127 @@ def _run_checked_command(cmd: List[str]) -> None:
     if result.returncode != 0:
         message = result.stderr.strip() or result.stdout.strip() or f"Command failed: {' '.join(cmd)}"
         raise TaskError(message)
+
+
+def _task_status_entries() -> Dict[Path, str]:
+    tasks_rel = _taskmaster_tasks_dir().relative_to(REPO_ROOT).as_posix()
+    result = subprocess.run(
+        ["git", "status", "--porcelain", "--", tasks_rel],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or "Unable to inspect Taskmaster task-file status"
+        raise TaskError(message)
+
+    entries: Dict[Path, str] = {}
+    for raw_line in result.stdout.splitlines():
+        if not raw_line:
+            continue
+        status = raw_line[:2]
+        path_text = raw_line[3:].strip()
+        if " -> " in path_text:
+            path_text = path_text.rsplit(" -> ", 1)[1]
+        path_text = path_text.strip('"')
+        path = REPO_ROOT / path_text
+        if _task_id_from_task_file(path) is not None:
+            entries[path.resolve()] = status
+    return entries
+
+
+def _assert_no_unrelated_task_file_changes(task_id: str, phase: str) -> None:
+    target_id = int(task_id)
+    unrelated = []
+    for path, status in _task_status_entries().items():
+        if _task_id_from_task_file(path) != target_id:
+            unrelated.append(f"{status} {_relative_to_root(path, REPO_ROOT)}")
+    if unrelated:
+        rendered = ", ".join(sorted(unrelated))
+        raise TaskError(f"Unrelated Taskmaster task files are dirty {phase}: {rendered}")
+
+
+def _locate_generated_task_file(output_dir: Path, task_id: str) -> Path:
+    for candidate in _task_file_candidates(output_dir, task_id):
+        if candidate.exists():
+            return candidate
+    expected = ", ".join(candidate.name for candidate in _task_file_candidates(output_dir, task_id))
+    raise TaskError(f"Generated task file for task {task_id} not found in temporary output ({expected})")
+
+
+def _destination_task_file(task_id: str, source_path: Path) -> Path:
+    tasks_dir = _taskmaster_tasks_dir()
+    for candidate in _task_file_candidates(tasks_dir, task_id):
+        if candidate.exists():
+            return candidate
+    return tasks_dir / f"{_task_file_name_stems(task_id)[0]}{source_path.suffix}"
+
+
+def _clean_dependency_value(value: str) -> str:
+    return re.sub(r"\s*[✓✔]\s*$", "", value).strip()
+
+
+def _convert_taskmaster_markdown_to_text(markdown_text: str) -> str:
+    output: List[str] = []
+    in_subtasks = False
+    source_lines = markdown_text.splitlines()
+
+    def next_non_empty(index: int) -> str:
+        for candidate in source_lines[index + 1:]:
+            if candidate.strip():
+                return candidate.strip()
+        return ""
+
+    for index, raw in enumerate(source_lines):
+        line = raw.rstrip()
+        if not line:
+            previous = output[-1] if output else ""
+            upcoming = next_non_empty(index)
+            if previous.startswith(("# ", "### ")) and upcoming.startswith(("**", "# Task ID:")):
+                continue
+            if previous.endswith(":") and previous.startswith(("# ", "### ")):
+                continue
+            if output and output[-1] != "":
+                output.append("")
+            continue
+
+        metadata = re.match(r"^\*\*(Title|Status|Dependencies|Priority|Description):\*\*\s*(.*)$", line)
+        section = re.match(r"^\*\*(Details|Test Strategy):\*\*\s*$", line)
+
+        if line.startswith("# Task ID:"):
+            output.append(line)
+        elif metadata:
+            label = metadata.group(1)
+            value = metadata.group(2).strip().rstrip()
+            if label == "Dependencies":
+                value = _clean_dependency_value(value)
+            prefix = "###" if in_subtasks else "#"
+            output.append(f"{prefix} {label}: {value}")
+        elif section:
+            prefix = "###" if in_subtasks else "#"
+            output.append(f"{prefix} {section.group(1)}:")
+        elif line == "## Subtasks":
+            in_subtasks = True
+            output.append("# Subtasks:")
+        elif in_subtasks and line.startswith("### "):
+            subtask_match = re.match(r"^###\s+\d+\.(\d+)\.\s+(.*)$", line)
+            if subtask_match:
+                output.append(f"## {subtask_match.group(1)}. {subtask_match.group(2)}")
+            else:
+                output.append(f"## {line[4:]}")
+        else:
+            output.append(line)
+
+    while output and output[-1] == "":
+        output.pop()
+    return "\n".join(output) + "\n"
+
+
+def _render_generated_task_content(source_path: Path, destination_path: Path) -> str:
+    content = source_path.read_text(encoding="utf-8")
+    if source_path.suffix == ".md" and destination_path.suffix == ".txt":
+        return _convert_taskmaster_markdown_to_text(content)
+    return content if content.endswith("\n") else f"{content}\n"
 
 
 def _target_path(target_root: Path, raw_value: str) -> Path:
@@ -433,17 +584,17 @@ def _build_session_lines(
         f"- [x] Start a fresh Task {task_id} session on the Task {task_id} branch.",
         f"- [x] Scaffold Task {task_id} work tracking.",
         f"- [x] Repoint `{SESSIONS_CURRENT_REL}` and `{PLANS_CURRENT_REL}` to Task {task_id}.",
-        f"- [x] Mark Taskmaster Task {task_id} in progress.",
+        f"- [x] Mark Taskmaster Task {task_id} in progress and update its generated task file.",
         f"- [ ] Review the design baseline and implementation boundary for {title}.",
         "- [ ] Capture implementation and verification evidence.",
         "",
         "### Starting Context",
-        f"Task {task_id} was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, and work-tracking scaffolding in a guard-compliant state before implementation began.",
+        f"Task {task_id} was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.",
         "",
         "### 📝 Progress Log",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M:%S %Z %z\"`] Confirmed current timestamp as `{timestamp_full}`",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
-        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:{TASKMASTER_TASKS_JSON_REL}] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:{TASKMASTER_TASKS_JSON_REL}] Marked Taskmaster Task {task_id} in progress and updated only its generated task file",
         f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed `{SESSIONS_CURRENT_REL}`, `{PLANS_CURRENT_REL}`, and `{SESSION_STATE_REL}` to the new Task {task_id} kickoff",
     ]
 
@@ -459,7 +610,7 @@ def _build_tracker_entries(
     return [
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M %Z\"`] Confirmed current timestamp as `{now.strftime('%Y-%m-%d %H:%M %Z')}`",
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task|E:{tracker_relative}] Scaffolded the Task {task_id} ACTIVE work-tracking folder through the guided kickoff flow",
-        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:{TASKMASTER_TASKS_JSON_REL}] Marked Taskmaster Task {task_id} in progress and regenerated the task files",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:task-master:set-status|E:{TASKMASTER_TASKS_JSON_REL}] Marked Taskmaster Task {task_id} in progress and updated only its generated task file",
         f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed `{SESSIONS_CURRENT_REL}`, `{PLANS_CURRENT_REL}`, and `{SESSION_STATE_REL}` to the new Task {task_id} kickoff",
     ]
 
@@ -623,7 +774,7 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
     _write_file_lines(tracker_path, tracker_lines)
     handle_plan_sync(argparse.Namespace(plan=plan_path.relative_to(REPO_ROOT).as_posix(), tracker=tracker_relative, dry_run=False))
     _run_checked_command(["task-master", "set-status", f"--id={task_id}", "--status=in-progress"])
-    _run_checked_command(["task-master", "generate"])
+    handle_taskmaster_generate_one(argparse.Namespace(task_id=task_id, dry_run=False))
     print(f"Created session: {session_path.relative_to(REPO_ROOT)}")
     print(f"Created plan: {plan_path.relative_to(REPO_ROOT)}")
     print(f"Repointed {SESSIONS_CURRENT_REL}, {PLANS_CURRENT_REL}, and {SESSION_STATE_REL}")
@@ -881,6 +1032,8 @@ def handle_work_tracking_scaffold(args: argparse.Namespace) -> None:
     task_token = f"task{args.task}"
     folder_name = f"{date_prefix}-{task_token}-{slug}-ACTIVE"
     folder_path = WORK_TRACKING_BASE / folder_name
+
+    WORK_TRACKING_BASE.mkdir(parents=True, exist_ok=True)
 
     if folder_path.exists():
         raise TaskError(f"Work-tracking folder already exists: {folder_path}")
@@ -1356,6 +1509,42 @@ def handle_hooks_verify(args: argparse.Namespace) -> None:
     print("Hook verification passed.")
 
 
+def handle_taskmaster_generate_one(args: argparse.Namespace) -> None:
+    task_id = str(args.task_id)
+    try:
+        int(task_id)
+    except ValueError as exc:
+        raise TaskError(f"Invalid task ID: {task_id}") from exc
+
+    _assert_no_unrelated_task_file_changes(task_id, "before targeted generation")
+
+    with tempfile.TemporaryDirectory(prefix="codex-taskmaster-generate-") as temp_name:
+        temp_dir = Path(temp_name)
+        result = subprocess.run(
+            ["task-master", "generate", "--output", str(temp_dir)],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            message = result.stderr.strip() or result.stdout.strip() or "task-master generate failed"
+            raise TaskError(message)
+
+        source_path = _locate_generated_task_file(temp_dir, task_id)
+        destination_path = _destination_task_file(task_id, source_path)
+        rendered = _render_generated_task_content(source_path, destination_path)
+
+        if args.dry_run:
+            print(f"Would update {destination_path.relative_to(REPO_ROOT)} from temporary {source_path.name}")
+            return
+
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        destination_path.write_text(rendered, encoding="utf-8")
+
+    _assert_no_unrelated_task_file_changes(task_id, "after targeted generation")
+    print(f"Updated {destination_path.relative_to(REPO_ROOT)} from targeted Taskmaster generation")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Codex task helper")
     parser.add_argument("--session", help="Override S field session value", default=None)
@@ -1443,6 +1632,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fail when the local .git/hooks/pre-commit entry is not installed",
     )
     hooks_verify.set_defaults(func=handle_hooks_verify)
+
+    taskmaster_parser = subparsers.add_parser("taskmaster", help="Taskmaster helper operations")
+    taskmaster_sub = taskmaster_parser.add_subparsers(dest="subcommand", required=True)
+    taskmaster_generate_one = taskmaster_sub.add_parser(
+        "generate-one",
+        help="Generate Taskmaster output into a temporary directory and update only one task file",
+    )
+    taskmaster_generate_one.add_argument("--id", dest="task_id", required=True, help="Task ID to update")
+    taskmaster_generate_one.set_defaults(func=handle_taskmaster_generate_one)
 
     bootstrap_parser = subparsers.add_parser("bootstrap", help="Portable foundation bootstrap operations")
     bootstrap_sub = bootstrap_parser.add_subparsers(dest="subcommand", required=True)

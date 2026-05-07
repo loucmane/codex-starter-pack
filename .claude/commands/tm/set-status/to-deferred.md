@@ -18,6 +18,7 @@ This status indicates a task is valid but not currently actionable or prioritize
 
 ```bash
 task-master set-status --id=$ARGUMENTS --status=deferred
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
 ```
 
 ## Deferral Management

@@ -19,6 +19,7 @@ This behavior fires whenever:
 - About to commit changes
 - Creating commit message for user
 - User mentions git commit
+- User confirms SSH/GPG auth is cached and asks the agent to commit/push directly
 
 ## Required Action
 ```
@@ -45,15 +46,22 @@ CRITICAL CHECKLIST - MUST VERIFY ALL:
 3. **Choose Output Mode**
    - `full-gac-command`: if the user explicitly asks for "the gac", return only the raw `gac "..."` command
    - `message-payload-only`: if the user asks for a commit message or validation only, return only the payload text
+   - `execute-gac`: if the user explicitly authorizes Codex to commit/push directly and SSH/GPG auth is cached, run the canonical `gac "..."` after workflow gates pass
    - No code blocks
    - No markdown formatting
    - No "Here's your message:" prefix
+
+4. **Direct Git Execution**
+   - If the user says Codex can do the Git operation, verify workflow gates first, then run `gac`, `git push`, and related branch/PR commands directly.
+   - Do not include `--no-verify`, disable signing, or alter remotes to work around auth failures.
+   - If SSH/GPG cache has expired, stop and ask the user to refresh it, then retry the exact failed command.
 
 ## Blocking Gate
 **CANNOT PROCEED** with commit message until:
 - All double quotes removed/replaced
 - Conventional commit format verified
 - Correct output mode confirmed (`full-gac-command` or `message-payload-only`)
+- Direct execution only when explicitly authorized and normal checks have passed
 - No formatting or wrappers
 
 ## Satisfaction Criteria

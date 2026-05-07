@@ -1,5 +1,7 @@
 Set a task's status to review.
 
+Note: this repository's documented Taskmaster status set does not include `review`; prefer `in-progress` during PR review and `done` after merge unless Taskmaster configuration explicitly supports `review`.
+
 Arguments: $ARGUMENTS (task ID)
 
 ## Marking Task for Review
@@ -17,6 +19,7 @@ This status indicates work is complete but needs verification before final appro
 
 ```bash
 task-master set-status --id=$ARGUMENTS --status=review
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
 ```
 
 ## Review Preparation
