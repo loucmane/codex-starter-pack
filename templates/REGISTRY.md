@@ -329,7 +329,7 @@ Handlers that respond to user triggers and route to appropriate workflows.
 #### Handler: `commit-changes` {#commit-changes}
 - **Triggers**: "commit with message X", "save changes", "commit Y"
 - **Keywords**: [commit, save, gac, checkin]
-- **Process**: Commits with proper format
+- **Process**: Uses direct Git execution by default; emits GAC only for explicit requests or selected auth fallback
 - **Location**: handlers/operators/git/commit-changes.md
 
 #### Handler: `create-branch` {#create-branch}
@@ -659,7 +659,7 @@ Automatic enforcement gates located in BEHAVIORS.md:
 7. **Session Management** - Session end, compaction, continuation validation
 8. **Timestamp Accuracy** - Check actual time before adding timestamps
 9. **Continuation Validation** - Guard readiness before resuming work
-10. **Git Operations** - gac format enforcement
+10. **Git Operations** - direct Git execution by default; explicit-only GAC output; auth-refresh fallback
 
 ## Decision Matrices (5 total)
 
@@ -698,7 +698,9 @@ date +%Y%m%d                      # Folder names
 date '+%H:%M'                     # Time only for progress logs
 
 # Git Operations
-gac "commit message"              # git add . && commit
+git add -A                        # Stage changes for direct-git-execution
+git commit -m "commit message"    # Commit with conventional format
+git push                          # Push delegated Git work when auth is available
 git status                        # Check before committing
 git diff                          # Review changes
 
@@ -727,7 +729,7 @@ pnpm lint                         # Run linter
 | Find | Files | `Glob` | find |
 | Complex search | Multiple steps | `Task` tool | manual iteration |
 | Timestamp | Documentation | `date` command | manual typing |
-| Commit | Changes | `gac "message"` | git commit |
+| Commit | Changes | `direct-git-execution`: `git add -A`, `git commit -m ...`, `git push`; `full-gac-command` only on explicit request; `message-payload-only` for message-only; `auth-refresh-required` on expired auth | defaulting to GAC |
 
 ## Statistics
 
@@ -833,3 +835,7 @@ This registry now accurately reflects the Claude Template System as it actually 
 3. Test ULTRATHINK with improved keyword discovery
 4. Consider adding remaining low-priority handlers later
 5. Keep templates/matrices/ and REGISTRY.md in sync
+
+## Progress Log
+
+- **2026-05-07 14:05 CEST** — [S:20260507|W:task107-direct-git-execution-mode|H:templates/REGISTRY.md|E:docs/ai/work-tracking/active/20260507-task107-direct-git-execution-mode-ACTIVE/TRACKER.md] Updated registry Git-operation guidance so direct Git execution is the default and GAC output is explicit-request or auth-fallback only.

@@ -9,7 +9,7 @@ templates/TOOLS.md,,,,,Codex Tooling & Command Router,no
 templates/USER-GUIDE.md,,,,,Claude User Guide,no
 templates/behaviors/file-operations/before-create.md,,,,file-operations,Before Creating New Files,yes
 templates/behaviors/file-operations/before-edit.md,,,,file-operations,Before Any File Edit,yes
-templates/behaviors/git/before-commit.md,,,,git,Before Commit (gac Format),yes
+templates/behaviors/git/before-commit.md,,,,git,Before Commit,yes
 templates/behaviors/index.md,Behavioral Hooks System,index,,,Behavioral Hooks System,yes
 templates/behaviors/planning/plan-compliance.md,,,,planning,Plan Compliance Behavior,yes
 templates/behaviors/session/compaction-detection.md,,,,session,Session Compaction Detection [DEPRECATED],yes
@@ -29,7 +29,7 @@ templates/conventions/files/directory-structure.md,Project Directory Structure,c
 templates/conventions/files/organization.md,General File Organization Principles,convention,stable,files,General File Organization Principles,yes
 templates/conventions/files/special-files.md,Special Files (sessions/, TRACKER.md, HANDOFF.md),convention,stable,files,Special Files Convention,yes
 templates/conventions/git/branch-naming.md,Branch Naming Standards,convention,stable,git,Branch Naming Standards,yes
-templates/conventions/git/commit-format.md,Git Commit Format (gac),convention,stable,git,Git Commit Format (gac),yes
+templates/conventions/git/commit-format.md,Git Commit Format,convention,stable,git,Git Commit Format,yes
 templates/conventions/git/pr-conventions.md,Pull Request Format and Standards,convention,stable,git,Pull Request Conventions,yes
 templates/conventions/naming/files.md,File Naming Standards,convention,stable,naming,File Naming Standards,yes
 templates/conventions/naming/functions.md,Function Naming Patterns,convention,stable,naming,Function Naming Patterns,yes

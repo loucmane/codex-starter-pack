@@ -44,7 +44,7 @@
 
 - `templates/behaviors/file-operations/before-create.md` — category: file-operations; heading: Before Creating New Files
 - `templates/behaviors/file-operations/before-edit.md` — category: file-operations; heading: Before Any File Edit
-- `templates/behaviors/git/before-commit.md` — category: git; heading: Before Commit (gac Format)
+- `templates/behaviors/git/before-commit.md` — category: git; heading: Before Commit
 - `templates/behaviors/index.md` — title: Behavioral Hooks System; type: index
 - `templates/behaviors/planning/plan-compliance.md` — category: planning; heading: Plan Compliance Behavior
 - `templates/behaviors/session/compaction-detection.md` — category: session; heading: Session Compaction Detection [DEPRECATED]
@@ -68,7 +68,7 @@
 - `templates/conventions/files/organization.md` — title: General File Organization Principles; type: convention; category: files; status: stable
 - `templates/conventions/files/special-files.md` — title: Special Files (sessions/, TRACKER.md, HANDOFF.md); type: convention; category: files; status: stable; heading: Special Files Convention
 - `templates/conventions/git/branch-naming.md` — title: Branch Naming Standards; type: convention; category: git; status: stable
-- `templates/conventions/git/commit-format.md` — title: Git Commit Format (gac); type: convention; category: git; status: stable
+- `templates/conventions/git/commit-format.md` — title: Git Commit Format; type: convention; category: git; status: stable
 - `templates/conventions/git/pr-conventions.md` — title: Pull Request Format and Standards; type: convention; category: git; status: stable; heading: Pull Request Conventions
 - `templates/conventions/naming/files.md` — title: File Naming Standards; type: convention; category: naming; status: stable
 - `templates/conventions/naming/functions.md` — title: Function Naming Patterns; type: convention; category: naming; status: stable

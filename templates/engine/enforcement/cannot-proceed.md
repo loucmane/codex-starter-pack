@@ -46,11 +46,13 @@ These enforcement gates create hard stops that prevent protocol violations:
    - MUST verify claims with tool outputs
    - Gate: No assertions without evidence
 
-5. **Commits** → Format validated
-   - MUST follow gac format (type: message)
-   - MUST check conventional commit types
-   - MUST include scope when applicable
-   - Gate: Commit rejected if format invalid
+5. **Commits** → Format and execution mode validated
+   - MUST use `direct-git-execution` when Git/GitHub work is delegated and auth is available
+   - MUST use `full-gac-command` only when the user explicitly asks for "the gac"
+   - MUST use `message-payload-only` only for message-only requests
+   - MUST use `auth-refresh-required` when SSH/GPG cache is expired
+   - MUST check conventional commit types and include scope when applicable
+   - Gate: Commit rejected if format or execution mode is invalid
 
 6. **Timestamps** → Actual time checked (date command)
    - MUST run date command for current time

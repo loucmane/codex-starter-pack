@@ -145,7 +145,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 | Task Management | create-todos | BEHAVIORS.md | TodoWrite usage | ❌ | Start of work |
 | Session Management | session-start | CONVENTIONS.md | sessions/ format | ❌ | Session creation |
 | Timestamp Accuracy | date-check | BEHAVIORS.md | actual time only | ✅ | Just implemented |
-| Git Operations (gac) | gac-format | BEHAVIORS.md | no double quotes | ❌ | Commit messages |
+| Git Operations | git-execution-mode | BEHAVIORS.md | direct-git-execution / full-gac-command / message-payload-only / auth-refresh-required | ❌ | Commit, push, PR, and message requests |
 | Testing & Validation | create-test-checkpoint | templates/handlers/triggers/test/create-test-checkpoint.md | user testing | ❌ | Before complete |
 | Navigation | find-handler | REGISTRY.md | keyword lookup | ✅ | 72.5% improvement |
 | Context Detection | mode-detection | CLAUDE.md | dev vs chat | ❌ | Mode switching |
@@ -235,3 +235,7 @@ These matrices provide quick lookups for handler selection. When H = VOID, use t
 4. Implement prevention
 
 Remember: Matrices are for quick decisions. For detailed procedures, always load the full handler from the indicated template file.
+
+## Progress Log
+
+- **2026-05-07 14:05 CEST** — [S:20260507|W:task107-direct-git-execution-mode|H:templates/MATRICES.md|E:docs/ai/work-tracking/active/20260507-task107-direct-git-execution-mode-ACTIVE/TRACKER.md] Updated Git-operation matrix coverage to use `direct-git-execution`, `full-gac-command`, `message-payload-only`, and `auth-refresh-required`.

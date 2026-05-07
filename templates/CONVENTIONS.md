@@ -20,7 +20,7 @@ This file has been modularized. All conventions are now organized in `templates/
 - [Directory Structure](conventions/files/directory-structure.md) - Project layout standards
 
 ### Git Conventions
-- [Commit Format](conventions/git/commit-format.md) - gac format and commit messages
+- [Commit Format](conventions/git/commit-format.md) - direct Git execution by default, explicit-only GAC output, and commit messages
 - [Branch Naming](conventions/git/branch-naming.md) - Branch naming standards
 - [PR Conventions](conventions/git/pr-conventions.md) - Pull request format
 
@@ -51,7 +51,7 @@ This file has been modularized. All conventions are now organized in `templates/
 
 1. **NEVER type timestamps manually** - Always use `date` command
 2. **ALWAYS use pnpm** - Never npm or yarn
-3. **Use gac for commits** - With single quotes inside messages
+3. **Use direct Git execution for delegated Git work** - `gac` output is explicit-request or auth-fallback only
 4. **Check conventions BEFORE acting** - Not after
 5. **Evidence-based claims only** - No unsupported statements
 
@@ -64,7 +64,18 @@ date +%Y%m%d                # Folder dates
 date '+%H:%M'               # Time only
 
 # Git
-gac "type: message with 'single quotes' inside"
+git add -A
+git commit -m "type(scope): concise summary" -m "Summary:
+- Concrete change
+
+Work tracking: YYYYMMDD-folder-ACTIVE"
+git push -u origin <branch>
+
+# Response modes
+direct-git-execution   # default when delegated and auth is available
+full-gac-command       # only when the user explicitly asks for "the gac"
+message-payload-only   # only when the user asks for a message/payload
+auth-refresh-required  # when SSH/GPG cache is expired
 
 # Package Manager
 pnpm install                # NEVER npm or yarn
@@ -85,5 +96,9 @@ All convention enforcement handlers have been migrated to the handler system:
 - [Extending the Template System](templates/integration/guides/extending-templates.md#extending-the-template-system) - Creating new conventions
 
 ---
+
+## Progress Log
+
+- **2026-05-07 14:05 CEST** — [S:20260507|W:task107-direct-git-execution-mode|H:templates/CONVENTIONS.md|E:docs/ai/work-tracking/active/20260507-task107-direct-git-execution-mode-ACTIVE/TRACKER.md] Updated the convention index so direct Git execution is the default and `full-gac-command`, `message-payload-only`, and `auth-refresh-required` are explicit response modes.
 
 **Remember**: Conventions create consistency. When in doubt, check the relevant module!

@@ -309,7 +309,7 @@ REQUIRED OUTPUTS:
 ### 🚦 Session End Status
 - Update session closeout state
 - Update HANDOFF/TRACKER as needed
-- Provide initialization + GAC messages
+- Provide initialization + Git/GitHub disposition messages
 
 **Initialization Message**:
 ```
@@ -318,16 +318,21 @@ read memory session_YYYY-MM-DD_description and sessions/current.
 [One line about what to continue].
 ```
 
-**Git Commit Message**:
+**Git/GitHub Disposition**:
 ```
-gac "type: one-line summary
+direct-git-execution:
+git add -A
+git commit -m "type(scope): one-line summary" -m "Summary:
+- Major change or accomplishment
+- Another significant update
+- Key feature or fix
 
-  Summary:
-  - Major change or accomplishment
-  - Another significant update
-  - Key feature or fix
+Work tracking: active-folder-names"
+git push -u origin <branch>
 
-  Work tracking: active-folder-names"
+full-gac-command only when explicitly requested.
+message-payload-only only when the user asks for a message.
+auth-refresh-required when SSH/GPG cache is expired.
 ```
 
 CROSS-REF: `templates/behaviors/session/session-end.md`
@@ -387,30 +392,28 @@ EXAMPLE:
 
 ## Git Operations {#git-operations}
 
-### When User Says "gac" {#when-user-says-gac}
+### Git Execution Modes {#when-user-says-gac}
 ```
-TRIGGER: User mentions "gac" or asks for commit message
+TRIGGER: User mentions "gac", asks for a commit message, or delegates commit/push/PR work
 ACTION: 
-1. VERIFY no double quotes inside message (would break gac)
+1. Choose the correct response mode:
+   - direct-git-execution: default when Git/GitHub work is delegated and SSH/GPG auth is available
+   - full-gac-command: only when the user explicitly asks for "the gac"
+   - message-payload-only: only when the user asks for a commit message/payload
+   - auth-refresh-required: when SSH/GPG cache is expired
 2. CHECK conventional commit format (type: description)
-3. PROVIDE raw commit message without formatting
-BLOCKS: Cannot provide message in code blocks or with extra text
-FORMAT:
-- Just the commit message text
-- No code blocks
-- No "Here's your commit message:" prefix
-- No formatting or markdown
-- Follow conventional commit format
-- Use single quotes (') inside message if needed
-- NEVER use double quotes inside the message
+3. Use regular Git/GitHub commands in direct-git-execution mode
+BLOCKS: Cannot default to GAC output after delegated Git work
 VERIFY CHECKLIST:
-□ No double quotes inside message?
 □ Has type prefix (feat/fix/docs/etc)?
 □ Follows format: "type: description"?
-□ Any quotes inside use single quotes?
+□ Response mode matches user request?
+□ GAC output appears only on explicit request or selected auth fallback?
 EXAMPLE: 
+User: "checkpoint this"
+AI: runs git add/commit/push directly when auth is available
 User: "give me gac"
-AI: feat: add new feature with 'special' handling
+AI: returns only the raw gac command
 ```
 
 ### Before Any Commit {#before-any-commit}

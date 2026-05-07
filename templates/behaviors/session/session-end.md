@@ -66,16 +66,21 @@ read memory session_YYYY-MM-DD_description and sessions/current.
 [Specific continuation instruction].
 ```
 
-**Git Commit**:
+**Git/GitHub Disposition**:
 ```
-gac "type: main achievement summary
+direct-git-execution:
+git add -A
+git commit -m "type(scope): main achievement summary" -m "Summary:
+- Detailed change 1
+- Detailed change 2
+- Detailed change 3
 
-  Summary:
-  - Detailed change 1
-  - Detailed change 2
-  - Detailed change 3
+Work tracking: active-folder-name"
+git push -u origin <branch>
 
-  Work tracking: active-folder-name"
+full-gac-command only when the user explicitly asks for "the gac".
+message-payload-only only when the user asks for a message.
+auth-refresh-required when SSH/GPG cache is expired.
 ```
 ```
 
@@ -92,7 +97,7 @@ gac "type: main achievement summary
 - ✓ Work metrics and achievements
 - ✓ Clear next steps
 - ✓ Handoff preparation
-- ✓ Commit message generation
+- ✓ Git/GitHub disposition using the correct response mode
 
 ## Difference from Compaction
 | Session End | Compaction |
@@ -101,7 +106,7 @@ gac "type: main achievement summary
 | 🚦 Session End Status | 🔄 Ready for Compaction |
 | Creates full handoff | Creates checkpoint only |
 | Work stops completely | Work continues in new context |
-| Generates commit message | Generates resume command |
+| Uses direct Git/GitHub execution unless explicit fallback is requested | Generates resume command |
 
 ## Additional Requirements
 
@@ -182,17 +187,18 @@ read memory session_2025-08-09_session-integration and sessions/current.
 Continue with creating missing handlers and system optimization.
 ```
 
-**Git Commit**:
+**Git/GitHub Disposition**:
 ```
-gac "feat: complete session integration and separate compaction
+direct-git-execution:
+git add -A
+git commit -m "feat: complete session integration and separate compaction" -m "Summary:
+- Update 5 session handlers to use sessions/ directory
+- Integrate session-resolver module across all handlers
+- Create prepare-compaction handler for context limits
+- Separate session-end from compaction-preparation behaviors
 
-  Summary:
-  - Update 5 session handlers to use sessions/ directory
-  - Integrate session-resolver module across all handlers
-  - Create prepare-compaction handler for context limits
-  - Separate session-end from compaction-preparation behaviors
-
-  Work tracking: 20250730-template-migration-ACTIVE"
+Work tracking: 20250730-template-migration-ACTIVE"
+git push -u origin <branch>
 ```
 ```
 
@@ -201,7 +207,7 @@ gac "feat: complete session integration and separate compaction
 - Always include the 🏁 marker in final progress log
 - Metrics should be specific and measurable
 - Next session priorities should be actionable
-- Both messages must be in code blocks for copying
+- Git/GitHub disposition must name the selected response mode
 
 ### Safe Symlink Handling (No rm*)
 - To clear `sessions/current` without risking the target file:

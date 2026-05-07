@@ -45,9 +45,13 @@ Bash --command "git add -A"
 # Commit with message
 Bash --command "git commit -m 'feat: add user authentication'"
 
-# Using gac alias (git add -A && commit)
-Bash --command "gac 'fix: resolve login bug'"
+# Direct Git execution is the default when delegated and auth is available
+Bash --command "git add -A"
+Bash --command "git commit -m 'fix: resolve login bug'"
+Bash --command "git push -u origin feat/current-branch"
 ```
+
+Use `full-gac-command` only when the user explicitly asks for "the gac". Use `message-payload-only` only when the user asks for a message. Use `auth-refresh-required` when SSH/GPG cache is expired.
 
 ## Commit Message Format
 
@@ -119,7 +123,7 @@ Bash --command "gpg-connect-agent /bye"
 ```
 
 - In this environment, SSH/GPG auth may be cached for 24 hours after the user refreshes it.
-- When the user confirms the cache is active and asks the agent to handle Git operations, run the normal workflow commands directly (`gac`, `git push`, branch cleanup, PR/merge commands) after checks pass instead of returning commands for the user to paste.
+- When the user confirms the cache is active and asks the agent to handle Git operations, run regular workflow commands directly (`git add`, `git commit`, `git push`, branch cleanup, PR/merge commands) after checks pass instead of returning commands for the user to paste.
 - If fetch, push, branch deletion, PR creation, or signed commit operations fail after the cache expires, ask the user to refresh the cache and rerun the exact failed operation.
 - Do not disable commit signing, change remotes, use `--no-verify`, or bypass normal GitHub checks just to work around an expired auth cache.
 - Log auth-cache refreshes or failures in the active session/work-tracking record when they affect delivery.
@@ -209,7 +213,8 @@ Bash --command "git log -p src/file.js"
 Bash --command "git checkout -b feat/new-feature"
 
 # 2. Make changes and commit
-Bash --command "gac 'feat: implement feature foundation'"
+Bash --command "git add -A"
+Bash --command "git commit -m 'feat: implement feature foundation'"
 
 # 3. Push branch
 Bash --command "git push -u origin feat/new-feature"
@@ -228,7 +233,8 @@ Bash --command "git checkout -b fix/critical-bug"
 # ... make changes ...
 
 # 3. Commit with clear message
-Bash --command "gac 'fix: prevent null pointer in auth handler'"
+Bash --command "git add -A"
+Bash --command "git commit -m 'fix: prevent null pointer in auth handler'"
 
 # 4. Push for review
 Bash --command "git push -u origin fix/critical-bug"
@@ -245,15 +251,16 @@ Bash --command "git checkout -b hotfix/urgent-fix"
 # ... fix issue ...
 
 # 3. Commit and push
-Bash --command "gac 'hotfix: patch security vulnerability'"
+Bash --command "git add -A"
+Bash --command "git commit -m 'hotfix: patch security vulnerability'"
 Bash --command "git push -u origin hotfix/urgent-fix"
 ```
 
 ## Project-Specific Aliases
 
 ```bash
-# gac - Git add all and commit
-Bash --command "gac 'message'"  # Equals: git add -A && git commit -m
+# Legacy/user convenience alias. Do not default to this in delegated Git work.
+Bash --command "gac 'message'"  # Only for full-gac-command explicit requests or selected auth fallback
 
 # Other useful aliases (if configured)
 Bash --command "git st"          # status
@@ -335,7 +342,8 @@ Bash --command "git checkout HEAD -- deleted-file.js"
 # Before committing, analyze changes
 mcp__serena__get_symbols_overview
 # Then commit with informed message
-Bash --command "gac 'refactor: improve auth service structure'"
+Bash --command "git add -A"
+Bash --command "git commit -m 'refactor: improve auth service structure'"
 ```
 
 ### With sessions/
@@ -343,18 +351,20 @@ Bash --command "gac 'refactor: improve auth service structure'"
 ```bash
 # Update session before commit
 Edit sessions/  # Add progress note
-Bash --command "gac 'feat: complete user auth [updates SESSION]'"
+Bash --command "git add -A"
+Bash --command "git commit -m 'feat: complete user auth [updates SESSION]'"
 ```
 
 ## Progress Log
 
 - **2026-05-06 13:40** — [S:20260506|W:task9-git-hooks-infrastructure|H:templates/tools/git/commands.md|E:docs/ai/work-tracking/active/20260506-task9-git-hooks-infrastructure-ACTIVE/designs/task9-scope-reconciliation.md] Added SSH/GPG auth-cache checks and safety rules for GitHub fetch, push, branch cleanup, PR, and signed commit operations.
+- **2026-05-07 13:59** — [S:20260507|W:task107-direct-git-execution-mode|H:templates/tools/git/commands.md|E:docs/ai/work-tracking/active/20260507-task107-direct-git-execution-mode-ACTIVE/TRACKER.md] Replaced default GAC commit examples with regular Git commands and documented `direct-git-execution`, `full-gac-command`, `message-payload-only`, and `auth-refresh-required`.
 
 ## Quick Reference
 
 | Task | Command |
 |------|---------||
-| Quick commit | `gac "message"` |
+| Quick commit | `git add -A && git commit -m "message"` |
 | Check status | `git status` |
 | View history | `git log --oneline -10` |
 | Create branch | `git checkout -b name` |

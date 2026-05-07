@@ -455,10 +455,24 @@ def test_validate_gac_guidance_requires_response_modes() -> None:
     text = """
 # Before Commit
 
-Return the raw message only.
+Return the raw message only. Mention full-gac-command and message-payload-only.
 """.strip()
     issues = module.validate_gac_guidance(relative, text)
     assert any('response-mode markers' in issue.message for issue in issues)
+
+
+def test_validate_gac_guidance_rejects_stale_manual_gac_default() -> None:
+    module = load_guard_module()
+    relative = Path('templates/handlers/operators/git/create-commit-message.md')
+    text = """
+# Create Commit Message
+
+Response modes: direct-git-execution, full-gac-command, message-payload-only, auth-refresh-required.
+
+gac is executed manually by the developer.
+""".strip()
+    issues = module.validate_gac_guidance(relative, text)
+    assert any('stale GAC-default language' in issue.message for issue in issues)
 
 
 def test_validate_gac_guidance_requires_summary_block() -> None:
@@ -487,9 +501,22 @@ def test_validate_gac_guidance_ignores_deprecated_compaction_detection() -> None
 
 def test_validate_gac_guidance_allows_canonical_docs() -> None:
     module = load_guard_module()
-    text = (module.REPO_ROOT / 'templates' / 'conventions' / 'git' / 'commit-format.md').read_text(encoding='utf-8')
-    issues = module.validate_gac_guidance(Path('templates/conventions/git/commit-format.md'), text)
-    assert issues == []
+    expected_docs = {
+        Path('templates/conventions/git/commit-format.md'),
+        Path('templates/behaviors/git/before-commit.md'),
+        Path('templates/handlers/operators/git/create-commit-message.md'),
+        Path('templates/tools/git/commands.md'),
+        Path('templates/shared/tools/tool-selection-matrix.md'),
+        Path('templates/CONVENTIONS.md'),
+        Path('templates/BEHAVIORS.md'),
+        Path('templates/REGISTRY.md'),
+        Path('templates/MATRICES.md'),
+    }
+    assert expected_docs.issubset(module.GAC_RESPONSE_MODE_DOCS)
+    for relative in sorted(module.GAC_RESPONSE_MODE_DOCS):
+        text = (module.REPO_ROOT / relative).read_text(encoding='utf-8')
+        issues = module.validate_gac_guidance(relative, text)
+        assert issues == [], relative
 
 
 def test_deprecated_compaction_detection_not_canonical_gac_doc() -> None:
