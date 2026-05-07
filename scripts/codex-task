@@ -645,6 +645,27 @@ def _resolve_plan_path(override: Optional[str] = None) -> Path:
     return resolved
 
 
+def _is_between_sessions_state() -> bool:
+    """Return true when the repository is intentionally between sessions."""
+
+    if PLAN_CURRENT.exists() or PLAN_CURRENT.is_symlink():
+        return False
+
+    current_session_link = SESSIONS_DIR / "current"
+    if current_session_link.exists() or current_session_link.is_symlink():
+        return False
+
+    if not SESSION_STATE_PATH.exists():
+        return False
+
+    try:
+        state = json.loads(SESSION_STATE_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+
+    return state.get("current") in {None, ""}
+
+
 def _resolve_tracker_path(override: Optional[str] = None) -> Path:
     if override:
         candidate = (REPO_ROOT / override).resolve()
@@ -734,6 +755,10 @@ def _write_plan_sync_entries(entries: List[Dict[str, str]]) -> None:
 
 
 def handle_plan_sync(args: argparse.Namespace) -> None:
+    if not args.plan and not args.tracker and _is_between_sessions_state():
+        print("No active plan; repository is between sessions. Plan sync skipped.")
+        return
+
     plan_path = _resolve_plan_path(args.plan)
     tracker_path = _resolve_tracker_path(args.tracker)
 
