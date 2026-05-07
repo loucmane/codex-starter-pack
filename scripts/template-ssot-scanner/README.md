@@ -98,14 +98,26 @@ python3 find_duplicates.py
 python3 generate_fixes.py
 ```
 
-### Apply Fixes
+### Apply Fixes Safely
 ```bash
-# Apply reference fixes (most common)
-python3 output/scripts/apply_reference_fixes.py
+# Preview reference fixes (default; no files modified)
+python3 apply_reference_fixes.py
 
-# Dry run to see what would change
+# Equivalent explicit dry-run
 python3 output/scripts/apply_reference_fixes.py --dry-run
+
+# Apply reference fixes with backups
+python3 apply_reference_fixes.py --apply
+
+# Roll back files touched by generated reference fixes through git
+python3 apply_reference_fixes.py --rollback --apply
+
+# Run generated wrapper safely after generate_fixes.py
+python3 output/scripts/apply_reference_fixes.py --dry-run
+./output/scripts/apply_all_fixes.sh --dry-run
 ```
+
+Reference-fix application is dry-run by default. Passing `--apply` is required before the runner writes template files. Apply mode creates backups under `output/backups/reference-fixes/<timestamp>/` unless `--backup-dir` is provided. Symlink targets are skipped unless `--allow-symlinks` is passed.
 
 ### CI/CD Integration
 All scanners support threshold-based exits for CI/CD:
@@ -207,7 +219,7 @@ output/
 │   ├── duplicate_analysis.json      # Duplicate detection
 │   └── fix_recommendations.json     # Generated fixes
 ├── scripts/
-│   └── apply_reference_fixes.py     # Auto-generated fix script
+│   └── apply_reference_fixes.py     # Auto-generated wrapper for safe runner
 └── .checkpoints/                    # Scan checkpoints
 ```
 

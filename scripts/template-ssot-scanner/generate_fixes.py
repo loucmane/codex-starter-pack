@@ -540,6 +540,37 @@ class FixGenerator:
                 f.write('    print("Fixing broken references...")\n')
                 f.write('    fix_references()\n')
                 f.write('    print("Done!")\n')
+
+            # Replace the historical one-off mutation script with a thin wrapper
+            # around the tracked safe runner. The supported runner is dry-run by
+            # default and requires --apply before writing template files.
+            script_path.write_text(
+                """#!/usr/bin/env python3
+\"\"\"Generated wrapper for the tracked safe reference-fix runner.\"\"\"
+
+from __future__ import annotations
+
+import runpy
+import sys
+from pathlib import Path
+
+
+def find_repo_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "scripts" / "template-ssot-scanner" / "apply_reference_fixes.py").exists():
+            return parent
+    raise SystemExit("Could not locate repository root from generated wrapper")
+
+
+if __name__ == "__main__":
+    root = find_repo_root()
+    runner = root / "scripts" / "template-ssot-scanner" / "apply_reference_fixes.py"
+    fixes_file = root / "scripts" / "template-ssot-scanner" / "output" / "data" / "fix_recommendations.json"
+    sys.argv = [str(runner), "--fixes-file", str(fixes_file), *sys.argv[1:]]
+    runpy.run_path(str(runner), run_name="__main__")
+""",
+                encoding="utf-8",
+            )
             
             script_path.chmod(0o755)
             print(f"  Created: {script_path}")
@@ -594,16 +625,42 @@ class FixGenerator:
             f.write(f"echo '  - Remove {self.fixes['statistics']['duplicates_to_remove']} duplicate files'\n")
             f.write(f"echo '  - Move {self.fixes['statistics']['files_to_move']} files'\n")
             f.write("echo\n")
-            f.write("read -p 'Continue? (y/n) ' -n 1 -r\n")
-            f.write("echo\n")
-            f.write("if [[ ! $REPLY =~ ^[Yy]$ ]]; then\n")
-            f.write("    exit 1\n")
+            f.write("DRY_RUN=1\n")
+            f.write("YES=0\n")
+            f.write("ROLLBACK=0\n")
+            f.write("for arg in \"$@\"; do\n")
+            f.write("    case \"$arg\" in\n")
+            f.write("        --dry-run) DRY_RUN=1 ;;\n")
+            f.write("        --apply) DRY_RUN=0 ;;\n")
+            f.write("        --yes|-y) YES=1 ;;\n")
+            f.write("        --rollback) ROLLBACK=1 ;;\n")
+            f.write("        *) echo \"Unknown argument: $arg\" >&2; exit 2 ;;\n")
+            f.write("    esac\n")
+            f.write("done\n\n")
+            f.write("if [[ \"$DRY_RUN\" != \"1\" && \"$YES\" != \"1\" ]]; then\n")
+            f.write("    read -p 'Apply all generated fixes now? (y/n) ' -n 1 -r\n")
+            f.write("    echo\n")
+            f.write("    if [[ ! $REPLY =~ ^[Yy]$ ]]; then\n")
+            f.write("        exit 1\n")
+            f.write("    fi\n")
             f.write("fi\n\n")
-            
             if Path("output/scripts/apply_reference_fixes.py").exists():
-                f.write("python3 output/scripts/apply_reference_fixes.py\n")
+                f.write("REFERENCE_ARGS=()\n")
+                f.write("if [[ \"$DRY_RUN\" == \"1\" ]]; then\n")
+                f.write("    REFERENCE_ARGS+=(--dry-run)\n")
+                f.write("else\n")
+                f.write("    REFERENCE_ARGS+=(--apply)\n")
+                f.write("fi\n")
+                f.write("if [[ \"$ROLLBACK\" == \"1\" ]]; then\n")
+                f.write("    REFERENCE_ARGS+=(--rollback)\n")
+                f.write("fi\n")
+                f.write("python3 output/scripts/apply_reference_fixes.py \"${REFERENCE_ARGS[@]}\"\n")
             if Path("output/scripts/archive_duplicates.sh").exists():
-                f.write("./output/scripts/archive_duplicates.sh\n")
+                f.write("if [[ \"$DRY_RUN\" == \"1\" ]]; then\n")
+                f.write("    echo 'Dry-run: duplicate archive script not executed.'\n")
+                f.write("else\n")
+                f.write("    ./output/scripts/archive_duplicates.sh\n")
+                f.write("fi\n")
             # Don't run reorganize_files.sh - use safe_reorganize.py instead
             f.write("\n# For file reorganization, use: python3 safe_reorganize.py --execute\n")
             
