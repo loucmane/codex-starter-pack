@@ -12,7 +12,7 @@ SCRIPT_DIR = REPO_ROOT / "scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from template_registry import TemplateNotFound, TemplateRegistry, parse_frontmatter
+from template_registry import CompatibilityMap, CompatibilityMapError, TemplateNotFound, TemplateRegistry, parse_frontmatter
 
 
 def _write_repo_config(repo: Path, templates_root: str = "custom_templates") -> None:
@@ -40,6 +40,23 @@ def _write_registry(repo: Path, templates_root: str, entries: list[dict[str, obj
     registry_path = repo / templates_root / "registry" / "index.json"
     registry_path.parent.mkdir(parents=True, exist_ok=True)
     registry_path.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_compatibility_map(repo: Path, templates_root: str, mappings: list[dict[str, str]]) -> None:
+    compatibility_path = repo / templates_root / "registry" / "compatibility-map.json"
+    compatibility_path.parent.mkdir(parents=True, exist_ok=True)
+    compatibility_path.write_text(
+        json.dumps(
+            {
+                "schema": "template-compatibility-map.v1",
+                "version": "test",
+                "mappings": mappings,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def test_parse_frontmatter_supports_scalar_and_list_values() -> None:
@@ -150,6 +167,17 @@ status: archived
             }
         ],
     )
+    _write_compatibility_map(
+        tmp_path,
+        "custom_templates",
+        [
+            {
+                "legacy": "templates/REGISTRY.md",
+                "current": "templates/registry/index.md",
+                "reason": "test redirect",
+            }
+        ],
+    )
 
     registry = TemplateRegistry(repo_root=tmp_path)
 
@@ -175,6 +203,47 @@ status: archived
 
     with pytest.raises(TemplateNotFound):
         registry.resolve("not-local", allow_serena=False, strict=True)
+
+
+def test_compatibility_map_supports_bidirectional_lookup_and_target_validation(tmp_path: Path) -> None:
+    target = tmp_path / "templates" / "registry" / "index.md"
+    target.parent.mkdir(parents=True)
+    target.write_text("# Registry\n", encoding="utf-8")
+
+    compatibility = CompatibilityMap.from_mapping(
+        {"templates/REGISTRY.md": "templates/registry/index.md"},
+        version="test",
+    )
+
+    assert compatibility.version == "test"
+    assert compatibility.target_for("templates/REGISTRY.md") == "templates/registry/index.md"
+    assert compatibility.target_for("./templates/registry.md") == "templates/registry/index.md"
+    assert compatibility.legacy_for("templates/registry/index.md") == "templates/REGISTRY.md"
+    assert compatibility.validate_targets(tmp_path) == []
+
+
+def test_compatibility_map_rejects_conflicting_entries() -> None:
+    with pytest.raises(CompatibilityMapError, match="Duplicate legacy compatibility key"):
+        CompatibilityMap.from_mapping(
+            {
+                "templates/REGISTRY.md": "templates/registry/index.md",
+                "./templates/REGISTRY.md": "templates/registry/other.md",
+            }
+        )
+
+    with pytest.raises(CompatibilityMapError, match="Duplicate current compatibility target"):
+        CompatibilityMap.from_mapping(
+            {
+                "templates/REGISTRY.md": "templates/registry/index.md",
+                "templates/REGISTRY-OLD.md": "./templates/registry/index.md",
+            }
+        )
+
+
+def test_real_compatibility_map_targets_exist() -> None:
+    registry = TemplateRegistry(repo_root=REPO_ROOT)
+    issues = registry.compatibility_map.validate_targets(REPO_ROOT)
+    assert issues == []
 
 
 def test_registry_cache_uses_ttl_and_explicit_invalidation(tmp_path: Path) -> None:

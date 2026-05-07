@@ -1,0 +1,53 @@
+{
+  "schema": "template-compatibility-map.v1",
+  "version": "1.0.0",
+  "updated": "2026-05-07",
+  "description": "Legacy monolith and top-level template path redirects for the modular template registry.",
+  "mappings": [
+    {
+      "legacy": "templates/REGISTRY.md",
+      "current": "templates/registry/index.md",
+      "reason": "Registry navigation moved to the modular registry index."
+    },
+    {
+      "legacy": "templates/WORKFLOWS.md",
+      "current": "templates/workflows/",
+      "reason": "Workflow documentation moved to modular workflow families."
+    },
+    {
+      "legacy": "templates/PATTERNS.md",
+      "current": "templates/patterns/",
+      "reason": "Pattern documentation moved to modular pattern families."
+    },
+    {
+      "legacy": "templates/HANDLERS.md",
+      "current": "templates/handlers/",
+      "reason": "Handler documentation moved to modular handler families."
+    },
+    {
+      "legacy": "templates/CONVENTIONS.md",
+      "current": "templates/conventions/",
+      "reason": "Convention documentation moved to modular convention families."
+    },
+    {
+      "legacy": "templates/BEHAVIORS.md",
+      "current": "templates/behaviors/",
+      "reason": "Behavior documentation moved to modular behavior families."
+    },
+    {
+      "legacy": "templates/MATRICES.md",
+      "current": "templates/matrices/",
+      "reason": "Decision and mapping matrices moved to modular matrix families."
+    },
+    {
+      "legacy": "templates/TOOLS.md",
+      "current": "templates/tools/",
+      "reason": "Tool routing documentation moved to modular tool documentation."
+    },
+    {
+      "legacy": "templates/BUILDING-BETTER.md",
+      "current": "templates/integration/best-practices/",
+      "reason": "Best-practice integration guidance moved to modular integration guides."
+    }
+  ]
+}
