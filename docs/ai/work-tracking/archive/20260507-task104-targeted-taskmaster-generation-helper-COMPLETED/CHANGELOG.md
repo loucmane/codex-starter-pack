@@ -7,3 +7,7 @@
 - 2026-05-07 10:29 CEST — Marked Taskmaster Task 104 done after tests, guard, audit, diff-check, and pre-commit evidence passed.
 - 2026-05-07 10:30 CEST — Added final evidence references for plan sync, audit, guard, diff-check, pre-commit, pytest, and Taskmaster show.
 - 2026-05-07 10:34 CEST — Documented direct Codex Git execution when the user confirms SSH/GPG auth is cached.
+- 2026-05-07 10:53 CEST — Merged PR #34 into `main`.
+- 2026-05-07 10:54 CEST — Prepared Task 104 archive and session closeout.
+- 2026-05-07 10:55 CEST — Archived active work-tracking folder.
+- 2026-05-07 10:57 CEST — Captured post-archive plan sync, audit, guard, diff-check, and pre-commit evidence.

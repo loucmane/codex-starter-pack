@@ -1,14 +1,14 @@
 # Task 104 Targeted Taskmaster Task-File Generation Helper Tracker
 
 **Started**: 2026-05-07
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-07
 
 ## Goals
-- [ ] Design a targeted Taskmaster task-file generation helper that avoids broad generate drift
-- [ ] Implement generate-one behavior with unrelated-file safeguards
-- [ ] Update workflow docs/templates to use targeted generation for status-only updates
-- [ ] Capture tests, guard evidence, and Taskmaster tracking without broad generate cleanup
+- [x] Design a targeted Taskmaster task-file generation helper that avoids broad generate drift
+- [x] Implement generate-one behavior with unrelated-file safeguards
+- [x] Update workflow docs/templates to use targeted generation for status-only updates
+- [x] Capture tests, guard evidence, and Taskmaster tracking without broad generate cleanup
 
 ## Progress Log
 - 2026-05-07 10:10 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:task-master:show|E:.taskmaster/tasks/task_104.txt] Confirmed Task 104 scope and user-approved priority over `task-master next` Task 10 because this helper removes recurring Taskmaster generation drift from the workflow.
@@ -27,6 +27,9 @@
 - 2026-05-07 10:29 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:scripts/codex-task:taskmaster-generate-one|E:.taskmaster/tasks/task_104.txt] Refreshed only `.taskmaster/tasks/task_104.txt` after marking Task 104 `done`.
 - 2026-05-07 10:30 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:verification:final-stack|E:docs/ai/work-tracking/active/20260507-task104-targeted-taskmaster-generation-helper-ACTIVE/reports/targeted-taskmaster-generation-helper/guard-2026-05-07-final.txt] Final plan sync, work-tracking audit, guard, diff-check, pre-commit, and Taskmaster show evidence passed.
 - 2026-05-07 10:34 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:templates/tools/git/commands.md|E:templates/TOOLS.md] Documented that when SSH/GPG auth is cached and the user delegates Git work, Codex should run `gac`/push directly after workflow gates pass instead of handing commands back.
+- 2026-05-07 10:53 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:github:pr-merge|E:github.com/loucmane/codex-starter-pack/pull/34] Merged PR #34 into `main` with merge commit `c1b64c4a8a46aabaed14cfbe0ee59af9140ce16b`.
+- 2026-05-07 10:54 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260507-task104-targeted-taskmaster-generation-helper-COMPLETED] Archived Task 104 work tracking after PR merge.
+- 2026-05-07 10:57 CEST - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:verification:post-archive|E:docs/ai/work-tracking/archive/20260507-task104-targeted-taskmaster-generation-helper-COMPLETED/reports/targeted-taskmaster-generation-helper/guard-2026-05-07-post-archive.txt] Post-archive plan sync, audit, guard, diff-check, and pre-commit evidence passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Design targeted Taskmaster generation helper and scope
@@ -38,3 +41,5 @@
 - Session log: sessions/current
 - Active plan: plans/current
 - Queue decision: Task 104 is intentionally prioritized before Taskmaster's `next` Task 10 because targeted generation removes repeated cleanup friction from every future Taskmaster status/update workflow.
+- Merge: PR #34 merged into `main` on 2026-05-07.
+- Post-archive evidence: `reports/targeted-taskmaster-generation-helper/*post-archive.txt`.

@@ -19,10 +19,10 @@ title: Task 104 - Targeted Taskmaster Task-File Generation Helper
 ### Session Goals
 - [x] Start a fresh Task 104 branch and session.
 - [x] Scaffold Task 104 work tracking without running broad `task-master generate`.
-- [ ] Design the targeted generation helper around current Taskmaster `0.43.1` output behavior.
-- [ ] Implement and test `codex-task taskmaster generate-one`.
-- [ ] Update workflow docs/templates to prefer targeted generation for status-only Taskmaster updates.
-- [ ] Capture guard/test evidence and prepare a clean handoff.
+- [x] Design the targeted generation helper around current Taskmaster `0.43.1` output behavior.
+- [x] Implement and test `codex-task taskmaster generate-one`.
+- [x] Update workflow docs/templates to prefer targeted generation for status-only updates.
+- [x] Capture guard/test evidence and prepare a clean handoff.
 
 ### Starting Context
 Task 104 exists because Taskmaster `0.43.1` can dirty or create unrelated generated task files when broad `task-master generate` is run in-place. The standard `codex-task wizard kickoff` currently calls broad `task-master generate`, so this session intentionally uses a manual kickoff path until Task 104 fixes that behavior.
@@ -45,7 +45,13 @@ Task 104 exists because Taskmaster `0.43.1` can dirty or create unrelated genera
 - **[10:29]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:scripts/codex-task:taskmaster-generate-one|E:.taskmaster/tasks/task_104.txt] Refreshed only `.taskmaster/tasks/task_104.txt` after the final Taskmaster status change.
 - **[10:30]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:verification:final-stack|E:docs/ai/work-tracking/active/20260507-task104-targeted-taskmaster-generation-helper-ACTIVE/reports/targeted-taskmaster-generation-helper/guard-2026-05-07-final.txt] Final plan sync, work-tracking audit, guard, diff-check, pre-commit, and Taskmaster show evidence passed.
 - **[10:34]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:templates/tools/git/commands.md|E:templates/TOOLS.md] Documented direct Git execution when SSH/GPG auth is cached and the user delegates commit/push work to Codex.
+- **[10:53]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:github:pr-merge|E:github.com/loucmane/codex-starter-pack/pull/34] Merged PR #34 into `main` with merge commit `c1b64c4a8a46aabaed14cfbe0ee59af9140ce16b`.
+- **[10:54]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260507-task104-targeted-taskmaster-generation-helper-COMPLETED] Archived Task 104 work tracking after PR merge.
+- **[10:54]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:sessions/state.json|E:sessions/state.json] Closed the session into between-session state by clearing `sessions/current`, `plans/current`, and `sessions/state.json.current`.
+- **[10:57]** - [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:verification:post-archive|E:docs/ai/work-tracking/archive/20260507-task104-targeted-taskmaster-generation-helper-COMPLETED/reports/targeted-taskmaster-generation-helper/guard-2026-05-07-post-archive.txt] Post-archive plan sync, audit, guard, diff-check, and pre-commit evidence passed.
 
 ### Closeout
-- **Status**: active
-- **Ended At**: pending
+- **Status**: ended
+- **Ended At**: 2026-05-07 10:57:04 CEST +0200
+- **Merged PR**: https://github.com/loucmane/codex-starter-pack/pull/34
+- **Next Task**: Task 10 - run `task-master next` after pulling `main` cleanly
