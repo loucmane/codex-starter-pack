@@ -5,3 +5,4 @@
 - 2026-05-07 13:59 CEST — Full guard-rules test file passed and Taskmaster subtasks 107.1/107.2 were marked done.
 - 2026-05-07 14:06 CEST — Extended direct-Git guidance across adjacent system docs, expanded guard coverage, captured final validation evidence, and prepared Task 107 for direct Git commit/push.
 - 2026-05-07 14:08 CEST — Marked Taskmaster subtask 107.3 and parent Task 107 done, then regenerated only Task 107's generated task file.
+- 2026-05-07 14:25 CEST — Archived active work-tracking folder.

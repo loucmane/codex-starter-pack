@@ -12,3 +12,4 @@
 - Commit and push the Task 107 branch with regular Git commands.
 - Open the PR and verify checks.
 - After merge, archive `20260507-task107-direct-git-execution-mode-ACTIVE` in a follow-up archive commit.
+- Archived on 2026-05-07 14:25 CEST — Folder moved to archive and tracker marked COMPLETED.
