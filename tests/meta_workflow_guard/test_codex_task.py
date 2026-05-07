@@ -192,6 +192,151 @@ def test_build_parser_accepts_taskmaster_health() -> None:
     assert args.report_file == "reports/taskmaster.txt"
 
 
+def test_build_parser_accepts_rollback_checkpoint_and_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    checkpoint_args = parser.parse_args([
+        "rollback",
+        "checkpoint",
+        "--label",
+        "before-risky-change",
+        "--report-file",
+        "reports/rollback/checkpoint.json",
+        "--create-tag",
+    ])
+    assert checkpoint_args.command == "rollback"
+    assert checkpoint_args.subcommand == "checkpoint"
+    assert checkpoint_args.label == "before-risky-change"
+    assert checkpoint_args.report_file == "reports/rollback/checkpoint.json"
+    assert checkpoint_args.create_tag is True
+
+    plan_args = parser.parse_args([
+        "rollback",
+        "plan",
+        "--snapshot",
+        "reports/rollback/checkpoint.json",
+        "--report-file",
+        "reports/rollback/plan.md",
+    ])
+    assert plan_args.command == "rollback"
+    assert plan_args.subcommand == "plan"
+    assert plan_args.snapshot == "reports/rollback/checkpoint.json"
+    assert plan_args.report_file == "reports/rollback/plan.md"
+
+
+def _write_rollback_test_repo(module, monkeypatch, tmp_path) -> Path:
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    taskmaster_json = repo / ".taskmaster" / "tasks" / "tasks.json"
+    memory_dir = repo / ".serena" / "memories"
+    session_file = sessions_dir / "2026" / "04" / "2026-04-24-001-task19-rollback.md"
+    plan_file = plans_dir / "2026-04-24-task19-rollback.md"
+
+    session_file.parent.mkdir(parents=True)
+    plan_file.parent.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    taskmaster_json.parent.mkdir(parents=True)
+    memory_dir.mkdir(parents=True)
+
+    session_file.write_text("# session\n", encoding="utf-8")
+    plan_file.write_text("# plan\n", encoding="utf-8")
+    (active_dir / "20260424-task19-rollback-ACTIVE").mkdir()
+    (repo / "sessions" / "current").symlink_to(Path("2026/04/2026-04-24-001-task19-rollback.md"))
+    (repo / "plans" / "current").symlink_to(Path("2026-04-24-task19-rollback.md"))
+    (sessions_dir / "state.json").write_text('{"current": "2026-04-24-001-task19-rollback.md", "paused": []}\n', encoding="utf-8")
+    taskmaster_json.write_text(
+        json.dumps({"master": {"tasks": [{"id": "19", "status": "in-progress", "dependencies": [], "subtasks": []}]}}),
+        encoding="utf-8",
+    )
+    (memory_dir / "2026-04-24_task19_rollback.md").write_text("# memory\n", encoding="utf-8")
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON", taskmaster_json)
+    return repo
+
+
+def test_handle_rollback_checkpoint_writes_portable_manifest(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = _write_rollback_test_repo(module, monkeypatch, tmp_path)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-19-rollback-mechanism"
+        if args == ["rev-parse", "HEAD"]:
+            return "abc123"
+        if args == ["status", "--short"]:
+            return " M scripts/codex-task\n?? reports/rollback/checkpoint.json"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+
+    output = repo / "reports" / "rollback" / "checkpoint.json"
+    args = argparse.Namespace(
+        label="task19-scope",
+        report_file=str(output),
+        create_tag=False,
+        tag_prefix="codex-rollback",
+        dry_run=False,
+    )
+
+    module.handle_rollback_checkpoint(args)
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["version"] == 1
+    assert payload["label"] == "task19-scope"
+    assert payload["git"]["branch"] == "feat/task-19-rollback-mechanism"
+    assert payload["git"]["head"] == "abc123"
+    assert payload["git"]["status"] == [
+        {"status": " M", "path": "scripts/codex-task"},
+        {"status": "??", "path": "reports/rollback/checkpoint.json"},
+    ]
+    assert payload["workflow"]["current_session"]["resolved"].endswith("2026-04-24-001-task19-rollback.md")
+    assert payload["workflow"]["active_work_tracking"] == [
+        "docs/ai/work-tracking/active/20260424-task19-rollback-ACTIVE"
+    ]
+    assert payload["taskmaster"]["summary"]["tasks"] == 1
+    assert payload["serena"]["count"] == 1
+
+
+def test_handle_rollback_plan_writes_non_destructive_guidance(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = _write_rollback_test_repo(module, monkeypatch, tmp_path)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    snapshot = repo / "checkpoint.json"
+    snapshot.write_text(
+        json.dumps(
+            {
+                "label": "before-risky-change",
+                "created_at": "2026-04-24T15:03:13+00:00",
+                "git": {"branch": "feat/task-19", "head": "abc123", "tag": "codex-rollback/example"},
+                "workflow": {
+                    "current_session": {"resolved": "sessions/2026/04/session.md"},
+                    "current_plan": {"resolved": "plans/plan.md"},
+                    "active_work_tracking": ["docs/ai/work-tracking/active/example-ACTIVE"],
+                },
+                "taskmaster": {"sha256": "deadbeef"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report = repo / "reports" / "rollback-plan.md"
+    args = argparse.Namespace(snapshot=str(snapshot), report_file=str(report), dry_run=False)
+
+    module.handle_rollback_plan(args)
+
+    rendered = report.read_text(encoding="utf-8")
+    assert "git switch feat/task-19" in rendered
+    assert "git restore --source abc123 --staged --worktree -- <path>" in rendered
+    assert "git reset --hard" in rendered
+    assert "No rollback commands were executed" in rendered
+
+
 def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
     module = load_task_module()
     commands = []

@@ -1,0 +1,120 @@
+{
+  "created_at": "2026-05-07T19:05:01+02:00",
+  "git": {
+    "branch": "feat/task-19-rollback-mechanism",
+    "head": "561bf0c2567113c0a7437f2521d6e43355452b26",
+    "status": [
+      {
+        "path": ".taskmaster/tasks/task_019.txt",
+        "status": " M"
+      },
+      {
+        "path": ".taskmaster/tasks/tasks.json",
+        "status": " M"
+      },
+      {
+        "path": "plans/current",
+        "status": " M"
+      },
+      {
+        "path": "scripts/codex-task",
+        "status": " M"
+      },
+      {
+        "path": "sessions/current",
+        "status": " M"
+      },
+      {
+        "path": "sessions/state.json",
+        "status": " M"
+      },
+      {
+        "path": "templates/workflows/session/state-management.md",
+        "status": " M"
+      },
+      {
+        "path": "tests/meta_workflow_guard/test_codex_task.py",
+        "status": " M"
+      },
+      {
+        "path": ".serena/memories/2026-05-07_task19_rollback_mechanism.md",
+        "status": "??"
+      },
+      {
+        "path": "docs/ai/work-tracking/active/",
+        "status": "??"
+      },
+      {
+        "path": "plans/2026-05-07-task19-rollback-mechanism.md",
+        "status": "??"
+      },
+      {
+        "path": "sessions/2026/05/2026-05-07-012-task19-rollback-mechanism.md",
+        "status": "??"
+      }
+    ],
+    "tag": null
+  },
+  "label": "task19-final",
+  "serena": {
+    "count": 79,
+    "exists": true,
+    "latest": [
+      ".serena/memories/session_2025-09-20_codex_migration.md",
+      ".serena/memories/session_2025-09-26_enforcement_backlog.md",
+      ".serena/memories/session_2025-09-27_task82_meta_workflow.md",
+      ".serena/memories/session_2025-09-30_timestamp_guard.md",
+      ".serena/memories/session_2026-04-21_task91-kickoff-closeout.md",
+      ".serena/memories/session_2026-04-22_task91-closeout.md",
+      ".serena/memories/session_2026-04-23_task93-compaction-closeout.md",
+      ".serena/memories/session_2026-04-25_task102-delayed-closeout.md",
+      ".serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md",
+      ".serena/memories/session_end_2025-09-20_codex_migration.md"
+    ],
+    "path": ".serena/memories"
+  },
+  "taskmaster": {
+    "exists": true,
+    "invalid_refs": [],
+    "path": ".taskmaster/tasks/tasks.json",
+    "sha256": "5823e1c2936bc5c979c76a623ee91dfb6a2ce1b90a747d30b9675ed002654519",
+    "summary": {
+      "dependency_refs": 229,
+      "invalid_refs": 0,
+      "status_counts": {
+        "done": 45,
+        "pending": 63
+      },
+      "subtasks": 304,
+      "tasks": 108
+    },
+    "tag": "master"
+  },
+  "version": 1,
+  "workflow": {
+    "active_work_tracking": [
+      "docs/ai/work-tracking/active/20260507-task19-rollback-mechanism-ACTIVE"
+    ],
+    "current_plan": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "plans/current",
+      "resolved": "plans/2026-05-07-task19-rollback-mechanism.md",
+      "sha256": "a92eeba37278c8c214cf0ac32c90d52fcc52f0903bfb3dedf244e5f80acfcb34",
+      "target": "2026-05-07-task19-rollback-mechanism.md"
+    },
+    "current_session": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "sessions/current",
+      "resolved": "sessions/2026/05/2026-05-07-012-task19-rollback-mechanism.md",
+      "sha256": "902d95c9c88fc1370885dde1d0521148607c4810c7caa769ab5a1e5efe713dda",
+      "target": "2026/05/2026-05-07-012-task19-rollback-mechanism.md"
+    },
+    "session_state": {
+      "exists": true,
+      "path": "sessions/state.json",
+      "sha256": "313ddca0632dc521f85bd04a47697919d1a19efa81ff108e3b7d9c74e4d87917"
+    }
+  }
+}

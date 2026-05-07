@@ -61,9 +61,18 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 
 ## Tooling Integration
 - `python3 scripts/codex-task` subcommands (`sessions update`, `work-tracking update`, `plan sync`, `scanner run`)
+- `python3 scripts/codex-task rollback checkpoint --label <label> --report-file <path>` to capture Git, workflow, Taskmaster, and Serena state before risky operations
+- `python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <path>` to render non-destructive recovery guidance
 - `python3 scripts/codex-guard validate --include-untracked` to enforce documentation
 - Serena MCP memory operations
 - Taskmaster tasks linked by ID for automation
+
+## Rollback Checkpoints
+- Create rollback checkpoints before risky multi-file edits, generated-file refreshes, large migrations, or manual recovery work.
+- Checkpoints are manifests, not automatic restore execution. They record branch, HEAD, dirty status, session/current, plans/current, active work-tracking, Taskmaster graph hash, and Serena memory inventory.
+- Use `--create-tag` only when an explicit Git tag is useful; checkpoint JSON remains valid without a tag.
+- Recovery plans must stay non-destructive by default: inspect status, compare with checkpoint commit, restore selected tracked paths only after review, and preview untracked cleanup with `git clean -nd`.
+- Do not use `git reset --hard` as a default rollback path.
 
 ## Failure Modes & Mitigations
 - **Incomplete documentation** → behavior `update-tracker` blocks continuation
@@ -75,3 +84,7 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 - All state artifacts synchronized post-work
 - Next session can resume using continuation workflow without manual guesswork
 - No guard violations when running `codex-guard validate`
+
+## Progress Log
+
+- **2026-05-07 19:00** — [S:20260507|W:task19-rollback-mechanism|H:templates/workflows/session/state-management.md|E:docs/ai/work-tracking/active/20260507-task19-rollback-mechanism-ACTIVE/reports/rollback-mechanism/checkpoint-2026-05-07.json] Documented rollback checkpoint and recovery-plan helper usage for session state management.
