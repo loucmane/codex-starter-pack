@@ -30,7 +30,7 @@ Time-related enforcement:
 
 ### [git/](git/)
 Version control behaviors:
-- [before-commit.md](git/before-commit.md) - Commit format and gac validation
+- [before-commit.md](git/before-commit.md) - Commit format, direct Git execution, explicit-only GAC output, and auth-refresh fallback
 
 ### [work-tracking/](work-tracking/)
 Documentation enforcement:
@@ -77,7 +77,7 @@ This pattern is referenced by all behaviors that require development context.
 | [File Edit Check](file-operations/before-edit.md) | Before Edit/MultiEdit | Enforce file conventions |
 | [File Creation Guard](file-operations/before-create.md) | Before Write new file | Prefer editing over creating |
 | [Timestamp Accuracy](timestamps/before-adding.md) | Adding any timestamp | Use actual system time |
-| [Commit Format](git/before-commit.md) | User says "gac" | Validate commit format |
+| [Commit Format](git/before-commit.md) | Commit/push/PR delegation, message request, or explicit "gac" request | Select `direct-git-execution`, `full-gac-command`, `message-payload-only`, or `auth-refresh-required` |
 | [Work Updates](work-tracking/update-tracker.md) | Progress milestones | Keep tracking current |
 | [Evidence Required](validation/evidence-claims.md) | Making code claims | Proof before assertions |
 | [Todo Enforcement](task-management/todo-write.md) | Starting work | Task list required |
@@ -142,3 +142,7 @@ version: 1.0.0
 ## 🎯 Remember
 
 Behaviors are not suggestions - they are mandatory execution gates that ensure system integrity. Every behavior here becomes an interrupt in the execution flow, ensuring conventions are followed naturally and automatically.
+
+## Progress Log
+
+- **2026-05-07 14:05 CEST** — [S:20260507|W:task107-direct-git-execution-mode|H:templates/behaviors/index.md|E:docs/ai/work-tracking/active/20260507-task107-direct-git-execution-mode-ACTIVE/TRACKER.md] Updated the behavior index to route commit/push/PR delegation through `direct-git-execution` by default, with explicit GAC, message-only, and auth-refresh modes.

@@ -26,7 +26,7 @@ status: stable
 | Create | New files | `Write` | Serena tools |
 | List directory | Contents | `LS` | ls (bash) |
 | Timestamp | Any document | `date "+%Y-%m-%d %H:%M %Z"` | manual typing |
-| Commit | Code changes | `gac "message"`; run directly when user authorized and SSH/GPG cache is active | raw `git commit -m` |
+| Commit | Code changes | `direct-git-execution`: `git add -A`, `git commit -m ... -m ...`, `git push` when delegated and auth is available; `full-gac-command` only on explicit request; `message-payload-only` for message-only requests; `auth-refresh-required` when SSH/GPG cache is expired | defaulting to `gac` after delegated Git work |
 | Complex search | Multiple files/patterns | `Task` tool with agent | multiple greps |
 | Deep analysis | Architecture/patterns | `Task` tool with ultrathink | surface analysis |
 
@@ -174,4 +174,4 @@ Need project info?
 
 ## Change Log
 
-- **2026-05-07 10:34** — [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:templates/shared/tools/tool-selection-matrix.md|E:docs/ai/work-tracking/active/20260507-task104-targeted-taskmaster-generation-helper-ACTIVE/TRACKER.md] Documented direct `gac` execution when SSH/GPG auth is cached and the user delegates Git work to Codex.
+- **2026-05-07 10:34** — [S:20260507|W:task104-targeted-taskmaster-generation-helper|H:templates/shared/tools/tool-selection-matrix.md|E:docs/ai/work-tracking/active/20260507-task104-targeted-taskmaster-generation-helper-ACTIVE/TRACKER.md] Documented direct Git execution when SSH/GPG auth is cached and the user delegates Git work to Codex.

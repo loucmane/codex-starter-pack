@@ -167,10 +167,13 @@ status: stable
    - Leave in-progress items clearly marked
    - Add any discovered tasks
 
-5. **Commit with descriptive message**:
+5. **Commit with `direct-git-execution` by default**:
    ```bash
-   gac "feat: implement template system Phase 3 - added 12 critical integrations"
+   git add -A
+   git commit -m "feat: implement template system Phase 3 - added 12 critical integrations"
+   git push -u origin <branch>
    ```
+   Use `full-gac-command` only when the user explicitly asks for "the gac"; use `message-payload-only` for message-only requests; use `auth-refresh-required` when SSH/GPG cache is expired.
 
 6. **Provide initialization message to user**:
    ```

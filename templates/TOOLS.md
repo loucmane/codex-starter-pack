@@ -96,7 +96,7 @@ Run `scripts/codex-guard validate [--include-untracked]` before handoff/compacti
 - Runtime artifacts stay out of commits (`__pycache__/`, `.pyc`/`.pyo`, `.codex/*.sqlite*`).
 - Taskmaster status/file changes include same-day session and tracker evidence.
 - Session state stays coherent (`sessions/current`, `sessions/state.json`, paused session references).
-- Canonical GAC guidance distinguishes `full-gac-command` from `message-payload-only` and uses the multi-line `Summary:` block.
+- Canonical commit guidance distinguishes `direct-git-execution`, `full-gac-command`, `message-payload-only`, and `auth-refresh-required`, while keeping the multi-line `Summary:` block for substantive task commits.
 Roadmap: `--auto-fix` skeletons (document TODOs in work-tracking).
 
 Local hook support:
@@ -107,7 +107,7 @@ Local hook support:
 GitHub auth/signing support:
 - GitHub fetch, push, branch cleanup, PR, and signed commit operations depend on the local SSH/GPG agent state.
 - This environment may keep SSH/GPG auth cached for 24 hours after the user refreshes it; if auth starts failing after the cache expires, refresh the agent cache and retry the same operation.
-- When the user confirms the SSH/GPG cache is active and asks Codex to commit/push, Codex may run the normal `gac`, `git push`, branch cleanup, and PR/merge commands directly after workflow gates pass instead of handing commands back to the user.
+- When the user confirms the SSH/GPG cache is active and asks Codex to commit/push/PR/merge, Codex should run regular `git add`, `git commit`, `git push`, branch cleanup, and PR/merge commands directly after workflow gates pass instead of handing commands back to the user.
 - Do not bypass workflow gates, disable signing, change remotes, or use `--no-verify` to work around expired auth unless the user explicitly authorizes and the bypass is recorded in work tracking.
 
 Repo-structure note:

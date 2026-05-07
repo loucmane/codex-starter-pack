@@ -108,6 +108,10 @@
     "name": "commit-format",
     "keywords": [
       "gac",
+      "direct-git-execution",
+      "full-gac-command",
+      "message-payload-only",
+      "auth-refresh-required",
       "commit message",
       "commit-format"
     ],

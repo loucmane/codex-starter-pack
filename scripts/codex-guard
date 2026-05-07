@@ -74,9 +74,22 @@ SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_
 PLAN_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
 CONTINUATION_GUARD_REL = REPO_STRUCTURE.continuation_guard_dir.relative_to(REPO_ROOT).as_posix()
 GAC_RESPONSE_MODE_DOCS = {
+    Path("templates/BEHAVIORS.md"),
+    Path("templates/CONVENTIONS.md"),
+    Path("templates/MATRICES.md"),
+    Path("templates/REGISTRY.md"),
+    Path("templates/TOOLS.md"),
+    Path("templates/behaviors/index.md"),
     Path("templates/conventions/git/commit-format.md"),
     Path("templates/behaviors/git/before-commit.md"),
+    Path("templates/behaviors/session/session-end.md"),
+    Path("templates/engine/enforcement/behavioral-hooks.md"),
+    Path("templates/engine/enforcement/cannot-proceed.md"),
     Path("templates/handlers/operators/git/create-commit-message.md"),
+    Path("templates/matrices/mapping/trigger-to-action.md"),
+    Path("templates/shared/tools/tool-selection-matrix.md"),
+    Path("templates/tools/git/commands.md"),
+    Path("templates/workflows/session/lifecycle.md"),
 }
 GAC_SUMMARY_DOCS = {
     Path("templates/conventions/git/commit-format.md"),
@@ -85,8 +98,22 @@ GAC_SUMMARY_DOCS = {
     Path("templates/BEHAVIORS.md"),
 }
 GAC_REQUIRED_RESPONSE_MARKERS = (
+    "direct-git-execution",
     "full-gac-command",
     "message-payload-only",
+    "auth-refresh-required",
+)
+GAC_STALE_DEFAULT_PATTERNS = (
+    re.compile(r"all commits must use the `?gac`? alias", re.IGNORECASE),
+    re.compile(r"use `?gac`? for commits", re.IGNORECASE),
+    re.compile(r"`?gac`? is executed manually by the developer", re.IGNORECASE),
+    re.compile(r"manual git commands instead of `?gac`?", re.IGNORECASE),
+    re.compile(r"git operations\s*\(`?gac`?\)", re.IGNORECASE),
+    re.compile(r"`?gac`? format enforcement", re.IGNORECASE),
+    re.compile(r"using `?gac`? alias\s*\(git add -A && commit\)", re.IGNORECASE),
+    re.compile(r"quick commit\s*\|\s*`?gac", re.IGNORECASE),
+    re.compile(r"commit\s*\|\s*changes\s*\|\s*`?gac", re.IGNORECASE),
+    re.compile(r"`?gac`?\s*-\s*git add all and commit", re.IGNORECASE),
 )
 DRIFT_REQUIRED_GUARD_COMMANDS = {"validate", "drift-check"}
 
@@ -742,13 +769,27 @@ def validate_gac_guidance(relative_path: Path, text: str) -> List[ValidationIssu
             issues.append(
                 ValidationIssue(
                     relative_path,
-                    "Canonical GAC guidance is missing required response-mode markers",
+                    "Canonical commit guidance is missing required response-mode markers",
                     entry=(
-                        "Document both `full-gac-command` and `message-payload-only` so commit-prep flows "
-                        "distinguish between returning the full gac command and returning only the payload."
+                        "Document `direct-git-execution`, `full-gac-command`, `message-payload-only`, "
+                        "and `auth-refresh-required` so commit-prep flows distinguish execution, explicit "
+                        "GAC output, message-only output, and auth-refresh fallback."
                     ),
                 )
             )
+        for pattern in GAC_STALE_DEFAULT_PATTERNS:
+            if pattern.search(text):
+                issues.append(
+                    ValidationIssue(
+                        relative_path,
+                        "Canonical commit guidance contains stale GAC-default language",
+                        entry=(
+                            "Regular Git/GitHub execution must be the default when delegated and auth is "
+                            "available; GAC output is explicit-request or auth-fallback only."
+                        ),
+                    )
+                )
+                break
 
     if relative_path in GAC_SUMMARY_DOCS:
         for match in MULTILINE_GAC_PATTERN.finditer(text):

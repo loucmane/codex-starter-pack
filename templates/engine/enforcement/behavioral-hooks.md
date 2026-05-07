@@ -40,7 +40,7 @@ mcp__serena__search_for_pattern --substring_pattern "[trigger-type]" --relative_
 - **Task Management** - TodoWrite enforcement
 - **Session Management** - Compaction detection
 - **Timestamp Accuracy** - Check actual time before adding timestamps
-- **Git Operations** - gac format enforcement
+- **Git Operations** - `direct-git-execution` by default; `full-gac-command` only on explicit request; `message-payload-only` for message-only; `auth-refresh-required` when SSH/GPG cache is expired
 - **Testing & Validation** - Completion verification
 
 These create "cannot proceed without" gates that ensure proper execution naturally and automatically.
