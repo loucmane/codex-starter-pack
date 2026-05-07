@@ -844,6 +844,7 @@ def test_validate_template_metadata_flags_missing_required_keys(monkeypatch) -> 
         required_keys=['title', 'type', 'status'],
         frontmatter='required',
         enforce=True,
+        schema_path=None,
     )
     monkeypatch.setattr(module, 'select_template_metadata_rule', lambda path: fake_rule)
     text = """---
@@ -869,10 +870,77 @@ def test_validate_template_metadata_flags_missing_frontmatter(monkeypatch) -> No
         required_keys=['title', 'type', 'status'],
         frontmatter='required',
         enforce=True,
+        schema_path=None,
     )
     monkeypatch.setattr(module, 'select_template_metadata_rule', lambda path: fake_rule)
     issues = module.validate_template_metadata(Path('templates/handlers/example.md'), '# No frontmatter\n')
     assert any('requires frontmatter' in issue.message for issue in issues)
+
+
+def test_parse_front_matter_text_supports_yaml_lists() -> None:
+    module = load_guard_module()
+    metadata = module.parse_front_matter_text(
+        """---
+title: Example
+type: guide
+status: stable
+tags:
+  - alpha
+  - beta
+dependencies: [one, two]
+---
+
+# Example
+"""
+    )
+
+    assert metadata['tags'] == ['alpha', 'beta']
+    assert metadata['dependencies'] == ['one', 'two']
+
+
+def test_validate_template_metadata_flags_schema_violations(monkeypatch) -> None:
+    module = load_guard_module()
+    fake_rule = module.TemplateMetadataRule(
+        name='handlers',
+        include=['templates/handlers/**/*.md'],
+        exclude=[],
+        required_keys=['title', 'type', 'status'],
+        frontmatter='required',
+        enforce=True,
+        schema_path='templates/metadata/template-frontmatter.schema.json',
+    )
+    monkeypatch.setattr(module, 'select_template_metadata_rule', lambda path: fake_rule)
+    text = """---
+title: Example
+type: guide
+status: unknown
+tags: not-a-list
+---
+
+# Example
+"""
+
+    issues = module.validate_template_metadata(Path('templates/handlers/example.md'), text)
+    messages = [issue.message for issue in issues]
+    assert any('schema violation at status' in msg for msg in messages)
+    assert any('schema violation at tags' in msg for msg in messages)
+
+
+def test_real_template_frontmatter_schema_accepts_governed_templates() -> None:
+    module = load_guard_module()
+
+    governed = []
+    for path in Path('templates').rglob('*.md'):
+        relative = path.relative_to(Path('.'))
+        if module.select_template_metadata_rule(relative) is not None:
+            governed.append((relative, path))
+
+    assert governed
+    issues = []
+    for relative, path in governed:
+        issues.extend(module.validate_template_metadata(relative, path.read_text(encoding='utf-8')))
+
+    assert issues == []
 
 
 def test_validate_swhe_entries_ignores_fenced_placeholder_examples() -> None:
@@ -922,6 +990,7 @@ id: sample
         required_keys=['title', 'type', 'status'],
         frontmatter='required',
         enforce=True,
+        schema_path=None,
     )
     monkeypatch.setattr(module, 'REPO_ROOT', tmp_path)
     monkeypatch.setattr(module, 'iter_repo_markdown_files', lambda: [target])

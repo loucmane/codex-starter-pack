@@ -15,6 +15,9 @@ from pathlib import Path, PurePosixPath
 from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Set
 
+import yaml
+from jsonschema import Draft202012Validator, SchemaError
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
@@ -206,6 +209,7 @@ class TemplateMetadataRule:
     required_keys: List[str]
     frontmatter: str
     enforce: bool
+    schema_path: Optional[str]
 
 @dataclass
 class ValidationIssue:
@@ -218,6 +222,10 @@ class ValidationIssue:
         if self.entry:
             return f"{prefix} | entry: {self.entry}"
         return prefix
+
+
+class FrontmatterParseError(ValueError):
+    """Raised when a frontmatter block cannot be parsed as YAML metadata."""
 
 
 @dataclass
@@ -652,22 +660,85 @@ def validate_work_tracking_documents(active_folder: Path) -> List[ValidationIssu
     return issues
 
 
-def parse_front_matter_text(text: str) -> Dict[str, str]:
+_FRONTMATTER_SCHEMA_CACHE: Dict[Path, Draft202012Validator] = {}
+
+
+def parse_front_matter_text(text: str) -> Dict[str, object]:
     if not text.startswith("---"):
         return {}
     parts = text.split("---", 2)
     if len(parts) < 3:
         return {}
-    front_matter = parts[1]
-    data: Dict[str, str] = {}
-    for raw_line in front_matter.strip().splitlines():
-        if not raw_line.strip() or raw_line.strip().startswith("#"):
-            continue
-        if ":" not in raw_line:
-            continue
-        key, value = raw_line.split(":", 1)
-        data[key.strip()] = value.strip()
-    return data
+    front_matter = parts[1].strip()
+    if not front_matter:
+        return {}
+    try:
+        parsed = yaml.load(front_matter, Loader=yaml.BaseLoader)
+    except yaml.YAMLError as exc:
+        raise FrontmatterParseError(str(exc)) from exc
+    if parsed is None:
+        return {}
+    if not isinstance(parsed, dict):
+        raise FrontmatterParseError("frontmatter root must be a mapping")
+    return {str(key): value for key, value in parsed.items()}
+
+
+def _resolve_repo_relative_path(value: str) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return REPO_ROOT / path
+
+
+def _frontmatter_schema_validator(schema_path: str) -> Draft202012Validator:
+    resolved = _resolve_repo_relative_path(schema_path).resolve()
+    cached = _FRONTMATTER_SCHEMA_CACHE.get(resolved)
+    if cached is not None:
+        return cached
+    payload = json.loads(resolved.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(payload)
+    validator = Draft202012Validator(payload)
+    _FRONTMATTER_SCHEMA_CACHE[resolved] = validator
+    return validator
+
+
+def _schema_entry(schema_path: str) -> str:
+    resolved = _resolve_repo_relative_path(schema_path)
+    try:
+        return resolved.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def validate_template_frontmatter_schema(
+    relative_path: Path,
+    metadata: Dict[str, object],
+    schema_path: Optional[str],
+) -> List[ValidationIssue]:
+    if not schema_path:
+        return []
+    try:
+        validator = _frontmatter_schema_validator(schema_path)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [
+            ValidationIssue(
+                relative_path,
+                f"Template frontmatter schema cannot be loaded: {exc}",
+                _schema_entry(schema_path),
+            )
+        ]
+
+    issues: List[ValidationIssue] = []
+    for error in sorted(validator.iter_errors(metadata), key=lambda item: list(item.path)):
+        location = ".".join(str(part) for part in error.path) or "<frontmatter>"
+        issues.append(
+            ValidationIssue(
+                relative_path,
+                f"Template frontmatter schema violation at {location}: {error.message}",
+                _schema_entry(schema_path),
+            )
+        )
+    return issues
 
 
 def load_template_metadata_policy() -> tuple[List[TemplateMetadataRule], List[str]]:
@@ -680,6 +751,7 @@ def load_template_metadata_policy() -> tuple[List[TemplateMetadataRule], List[st
     defaults = data.get("defaults", {}) if isinstance(data, dict) else {}
     default_required = defaults.get("required_keys", ["title", "type", "status"])
     default_frontmatter = defaults.get("frontmatter", "required")
+    default_schema = defaults.get("schema")
     rules: List[TemplateMetadataRule] = []
     raw_rules = data.get("rules", []) if isinstance(data, dict) else []
     for raw in raw_rules:
@@ -691,6 +763,8 @@ def load_template_metadata_policy() -> tuple[List[TemplateMetadataRule], List[st
         required = [str(item) for item in raw.get("required_keys", default_required)]
         frontmatter = str(raw.get("frontmatter", default_frontmatter))
         enforce = bool(raw.get("enforce", True))
+        schema_raw = raw.get("schema", default_schema)
+        schema_path = None if schema_raw in (None, False, "") else str(schema_raw)
         rules.append(
             TemplateMetadataRule(
                 name=name,
@@ -699,6 +773,7 @@ def load_template_metadata_policy() -> tuple[List[TemplateMetadataRule], List[st
                 required_keys=required,
                 frontmatter=frontmatter,
                 enforce=enforce,
+                schema_path=schema_path,
             )
         )
     exemptions = [str(item) for item in data.get("exemptions", [])] if isinstance(data, dict) else []
@@ -732,8 +807,21 @@ def validate_template_metadata(relative_path: Path, text: str) -> List[Validatio
     if rule is None:
         return []
 
-    metadata = parse_front_matter_text(text)
     issues: List[ValidationIssue] = []
+    try:
+        metadata = parse_front_matter_text(text)
+    except FrontmatterParseError as exc:
+        issues.append(
+            ValidationIssue(
+                relative_path,
+                f"Template metadata frontmatter is invalid: {exc}",
+                str(TEMPLATE_METADATA_POLICY_PATH.relative_to(REPO_ROOT))
+                if TEMPLATE_METADATA_POLICY_PATH.is_absolute() and str(TEMPLATE_METADATA_POLICY_PATH).startswith(str(REPO_ROOT))
+                else str(TEMPLATE_METADATA_POLICY_PATH),
+            )
+        )
+        return issues
+
     if rule.frontmatter == "required" and not metadata:
         issues.append(
             ValidationIssue(
@@ -746,8 +834,11 @@ def validate_template_metadata(relative_path: Path, text: str) -> List[Validatio
         )
         return issues
 
+    issues.extend(validate_template_frontmatter_schema(relative_path, metadata, rule.schema_path))
+
     for key in rule.required_keys:
-        if key not in metadata or not metadata[key].strip():
+        value = metadata.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
             issues.append(
                 ValidationIssue(
                     relative_path,
@@ -807,14 +898,15 @@ def validate_gac_guidance(relative_path: Path, text: str) -> List[ValidationIssu
     return issues
 
 
-def derive_expected_session(meta: Dict[str, str]) -> Optional[str]:
+def derive_expected_session(meta: Dict[str, object]) -> Optional[str]:
     if "session_id" in meta:
-        parts = meta["session_id"].split("-")
+        session_id = str(meta["session_id"])
+        parts = session_id.split("-")
         if len(parts) >= 3:
             return "".join(parts[:3])
-        return meta["session_id"].replace("-", "")
+        return session_id.replace("-", "")
     if "date" in meta:
-        return meta["date"].replace("-", "")
+        return str(meta["date"]).replace("-", "")
     return None
 
 
@@ -1606,9 +1698,10 @@ def has_date_command(text: str) -> bool:
     return bool(DATE_COMMAND_PATTERN.search(text))
 
 
-def validate_session_timestamps(relative_path: Path, text: str, metadata: Dict[str, str]) -> List[ValidationIssue]:
+def validate_session_timestamps(relative_path: Path, text: str, metadata: Dict[str, object]) -> List[ValidationIssue]:
     issues: List[ValidationIssue] = []
-    expected_date = metadata.get('date')
+    raw_expected_date = metadata.get('date')
+    expected_date = str(raw_expected_date) if raw_expected_date is not None else None
     try:
         absolute_path = (REPO_ROOT / relative_path).resolve()
     except FileNotFoundError:
@@ -1618,7 +1711,8 @@ def validate_session_timestamps(relative_path: Path, text: str, metadata: Dict[s
     if expected_date is None:
         issues.append(ValidationIssue(relative_path, 'Session front matter missing date field'))
     else:
-        session_id = metadata.get('session_id')
+        raw_session_id = metadata.get('session_id')
+        session_id = str(raw_session_id) if raw_session_id is not None else None
         if session_id and not session_id.startswith(expected_date):
             issues.append(ValidationIssue(relative_path, f"Session date {expected_date} mismatches session_id {session_id}"))
         if is_current_session and expected_date != TODAY_ISO:
@@ -1686,7 +1780,7 @@ def validate_changelog(relative_path: Path, text: str) -> List[ValidationIssue]:
     return issues
 
 
-def validate_timestamp_policy(relative_path: Path, text: str, metadata: Dict[str, str]) -> List[ValidationIssue]:
+def validate_timestamp_policy(relative_path: Path, text: str, metadata: Dict[str, object]) -> List[ValidationIssue]:
     parts = relative_path.parts
     if parts[0] == 'sessions':
         return validate_session_timestamps(relative_path, text, metadata)
@@ -1715,13 +1809,16 @@ def evaluate_file(path: Path) -> List[ValidationIssue]:
     except FileNotFoundError:
         return []
 
-    metadata = {}
+    metadata: Dict[str, object] = {}
     relative_path = path.relative_to(REPO_ROOT)
+    issues: List[ValidationIssue] = []
     if relative_path.parts[0] == "sessions":
-        metadata = parse_front_matter_text(text)
+        try:
+            metadata = parse_front_matter_text(text)
+        except FrontmatterParseError as exc:
+            issues.append(ValidationIssue(relative_path, f"Session front matter is invalid: {exc}"))
     expected_session = derive_expected_session(metadata)
 
-    issues = []
     if relative_path.parts and relative_path.parts[0] == "templates":
         for token, hint in find_legacy_monolith_references(text):
             issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
