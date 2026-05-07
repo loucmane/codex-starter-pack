@@ -133,6 +133,14 @@ python3 scripts/codex-task wizard kickoff --task <id>
 
 From there, the normal session/work-tracking/plan rules apply.
 
+When changing Taskmaster status or task metadata outside the kickoff helper, refresh the generated task file with:
+
+```bash
+python3 scripts/codex-task taskmaster generate-one --id <id>
+```
+
+Use broad in-place `task-master generate` only when a deliberate repository-wide generated task-file refresh is explicitly scoped.
+
 ## Existing Repository Migration
 
 Use this path when the repository already has workflow or template state.

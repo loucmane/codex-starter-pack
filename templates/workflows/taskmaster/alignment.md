@@ -41,6 +41,7 @@ Establish a repeatable process for starting, maintaining, and closing Taskmaster
    - Guard should fail if another `-ACTIVE` folder remains for the same task after archival.
 6. **Keep Taskmaster in sync**
    - Update Taskmaster status (`task-master set-status --id=<task> --status=in-progress|done`) after each milestone.
+   - Refresh only the touched generated task file with `python3 scripts/codex-task taskmaster generate-one --id <task>` after status/update commands.
    - Mirror key notes inside Taskmaster via `task-master update-subtask` as evidence of progress.
 7. **Run regression tests + guard before handoff**
    - Execute pytest suites touching guard/date logic.
@@ -77,6 +78,7 @@ Establish a repeatable process for starting, maintaining, and closing Taskmaster
 ## References
 - `scripts/codex-task work-tracking scaffold`
 - `scripts/codex-task work-tracking archive`
+- `scripts/codex-task taskmaster generate-one --id <id>`
 - `scripts/codex-guard`
 - Taskmaster CLI (`task-master ...`)
 

@@ -86,6 +86,16 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
         commands.append(cmd)
         if cmd[:3] == ["git", "branch", "--show-current"]:
             return FakeCompletedProcess(stdout="feat/task-96-interactive-template-wizard\n")
+        if cmd[:2] == ["git", "status"]:
+            return FakeCompletedProcess(stdout="")
+        if cmd[:2] == ["task-master", "generate"]:
+            output_dir = Path(cmd[cmd.index("--output") + 1])
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "task_096.md").write_text(
+                "# Task ID: 96\n\n**Title:** Build Interactive Template Wizard\n\n**Status:** in-progress\n",
+                encoding="utf-8",
+            )
+            return FakeCompletedProcess(stdout="")
         if cmd[0] == "task-master":
             return FakeCompletedProcess(stdout="")
         return FakeCompletedProcess(stdout="")
@@ -130,7 +140,8 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     assert "scripts/codex-task" in plan_text
 
     assert ["task-master", "set-status", "--id=96", "--status=in-progress"] in commands
-    assert ["task-master", "generate"] in commands
+    assert ["task-master", "generate"] not in commands
+    assert any(cmd[:2] == ["task-master", "generate"] and "--output" in cmd for cmd in commands)
 
 
 def test_build_parser_accepts_bootstrap_init() -> None:
@@ -160,6 +171,15 @@ def test_build_parser_accepts_hooks_verify() -> None:
     assert args.command == "hooks"
     assert args.subcommand == "verify"
     assert args.require_installed is True
+
+
+def test_build_parser_accepts_taskmaster_generate_one() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["taskmaster", "generate-one", "--id", "104"])
+    assert args.command == "taskmaster"
+    assert args.subcommand == "generate-one"
+    assert args.task_id == "104"
 
 
 def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
@@ -420,6 +440,130 @@ def test_plan_sync_allows_between_sessions_state(monkeypatch, tmp_path, capsys) 
     output = capsys.readouterr().out
     assert "between sessions" in output
     assert "Plan sync skipped" in output
+
+
+def test_work_tracking_scaffold_creates_missing_active_parent(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    module.handle_work_tracking_scaffold(
+        argparse.Namespace(
+            task="104",
+            slug="targeted-taskmaster-generation-helper",
+            title="Targeted Taskmaster Generation",
+            goal=None,
+            force=False,
+            dry_run=False,
+        )
+    )
+
+    assert (active_dir / "20260424-task104-targeted-taskmaster-generation-helper-ACTIVE" / "TRACKER.md").exists()
+
+
+def test_taskmaster_generate_one_updates_only_requested_existing_txt(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    tasks_dir = repo / ".taskmaster" / "tasks"
+    tasks_dir.mkdir(parents=True)
+    target = tasks_dir / "task_104.txt"
+    unrelated = tasks_dir / "task_103.txt"
+    target.write_text("# Task ID: 104\n# Status: pending\n", encoding="utf-8")
+    unrelated.write_text("# Task ID: 103\n# Status: done\n", encoding="utf-8")
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_DIR", tasks_dir)
+
+    commands = []
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        commands.append(cmd)
+        if cmd[:2] == ["git", "status"]:
+            return FakeCompletedProcess(stdout="")
+        if cmd[:2] == ["task-master", "generate"]:
+            output_dir = Path(cmd[cmd.index("--output") + 1])
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "task_104.md").write_text(
+                "# Task ID: 104\n\n"
+                "**Title:** Add Targeted Taskmaster Task-File Generation Helper\n\n"
+                "**Status:** in-progress\n\n"
+                "**Dependencies:** 103 ✓\n\n"
+                "**Priority:** high\n\n"
+                "**Description:** Update one task file.\n\n"
+                "**Details:**\n\n"
+                "Generated details.\n\n"
+                "**Test Strategy:**\n\n"
+                "No test strategy provided.\n",
+                encoding="utf-8",
+            )
+            return FakeCompletedProcess(stdout="")
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    module.handle_taskmaster_generate_one(argparse.Namespace(task_id="104", dry_run=False))
+
+    output = capsys.readouterr().out
+    assert "Updated .taskmaster/tasks/task_104.txt" in output
+    target_text = target.read_text(encoding="utf-8")
+    assert "# Status: in-progress" in target_text
+    assert "# Dependencies: 103" in target_text
+    assert "**Status:**" not in target_text
+    assert unrelated.read_text(encoding="utf-8") == "# Task ID: 103\n# Status: done\n"
+    assert any(cmd[:2] == ["task-master", "generate"] and "--output" in cmd for cmd in commands)
+
+
+def test_taskmaster_generate_one_rejects_unrelated_dirty_task_file(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    tasks_dir = repo / ".taskmaster" / "tasks"
+    tasks_dir.mkdir(parents=True)
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_DIR", tasks_dir)
+
+    commands = []
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        commands.append(cmd)
+        if cmd[:2] == ["git", "status"]:
+            return FakeCompletedProcess(stdout=" M .taskmaster/tasks/task_103.txt\n")
+        if cmd[:2] == ["task-master", "generate"]:  # pragma: no cover - should not run
+            raise AssertionError("targeted generation should stop before broad generate")
+        return FakeCompletedProcess(stdout="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    with pytest.raises(module.TaskError, match="Unrelated Taskmaster task files are dirty"):
+        module.handle_taskmaster_generate_one(argparse.Namespace(task_id="104", dry_run=False))
+
+    assert not any(cmd[:2] == ["task-master", "generate"] for cmd in commands)
+
+
+def test_taskmaster_generate_one_rejects_missing_generated_task_file(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    tasks_dir = repo / ".taskmaster" / "tasks"
+    tasks_dir.mkdir(parents=True)
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_DIR", tasks_dir)
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        if cmd[:2] == ["git", "status"]:
+            return FakeCompletedProcess(stdout="")
+        if cmd[:2] == ["task-master", "generate"]:
+            return FakeCompletedProcess(stdout="")
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    with pytest.raises(module.TaskError, match="Generated task file for task 104 not found"):
+        module.handle_taskmaster_generate_one(argparse.Namespace(task_id="104", dry_run=False))
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:

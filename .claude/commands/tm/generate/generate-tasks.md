@@ -1,10 +1,18 @@
-Generate individual task files from tasks.json.
+Generate Taskmaster task files from `tasks.json`.
+
+Default to the targeted Codex helper for normal task/status updates. Broad generation is only for explicitly scoped repository-wide refreshes.
 
 ## Task File Generation
 
 Creates separate markdown files for each task, perfect for AI agents or documentation.
 
 ## Execution
+
+```bash
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
+```
+
+Use broad generation only when the user explicitly asks for a repo-wide generated task-file refresh:
 
 ```bash
 task-master generate

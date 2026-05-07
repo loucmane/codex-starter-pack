@@ -156,6 +156,15 @@ gac "chore: bootstrap codex ssot migration
 Use these response modes consistently in commit-prep flows:
 - `full-gac-command` — when the user explicitly asks for "the gac", return only the complete `gac "..."` command.
 - `message-payload-only` — when the user asks for a commit message or validation only, return only the payload text without `gac`, code fences, or wrappers.
+- `execute-gac` — when the user explicitly authorizes Codex to commit/push and confirms SSH/GPG auth is cached, run the canonical `gac "..."` command directly after workflow gates pass.
+
+### Direct Execution
+When operating in `execute-gac` mode:
+- Run the same canonical `gac "..."` format described above.
+- Run final verification before committing.
+- Push the current task branch when requested or when the user has delegated the PR flow.
+- Do not use `--no-verify`, disable signing, alter remotes, or bypass guard failures to compensate for expired auth.
+- If SSH/GPG auth fails, ask the user to refresh the cache and retry the same command.
 
 ### Response Format
 **📋 When user asks for gac commit message:**

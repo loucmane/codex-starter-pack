@@ -1,0 +1,45 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭──────────────────────────────────────────────────────────────────╮
+│ Task: #104 - Add Targeted Taskmaster Task-File Generation Helper │
+╰──────────────────────────────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 104                                                                            [90m│[39m
+[90m│[39m Title:             [90m│[39m Add Targeted Taskmaster Task-File Generation Helper                            [90m│[39m
+[90m│[39m Status:            [90m│[39m ✓ done                                                                         [90m│[39m
+[90m│[39m Priority:          [90m│[39m high                                                                           [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 103                                                                            [90m│[39m
+[90m│[39m Complexity:        [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Add a shared workflow helper that updates only the current Taskmaster task     [90m│[39m
+[90m│[39m                    [90m│[39m file after Taskmaster state changes, avoiding broad in-place task-master       [90m│[39m
+[90m│[39m                    [90m│[39m generate drift and repeated cleanup of unrelated .taskmaster/tasks/task_*.txt  [90m│[39m
+[90m│[39m                    [90m│[39m files.                                                                         [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Implement a Codex-led/shared helper such as python3 scripts/codex-task taskmaster              │
+│   generate-one --id . The helper should run task-master generate into a temporary output         │
+│   directory, copy only the requested .taskmaster/tasks/task_.txt into the repo, fail if          │
+│   unrelated task files are modified, and document the workflow in the relevant templates/docs.   │
+│   Add tests proving unrelated generated task files are not dirtied and update the standard       │
+│   Taskmaster workflow instructions to use the helper instead of broad in-place task-master       │
+│   generate for status-only task updates.                                                         │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=104 --status=in-progress to start working                   │
+│   2. Run task-master expand --id=104 to break down into subtasks                                 │
+│   3. Run task-master update-task --id=104 --prompt="..." to update details                       │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

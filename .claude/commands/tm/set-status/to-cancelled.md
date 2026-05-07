@@ -25,6 +25,7 @@ This status indicates a task is no longer needed and won't be completed.
 
 ```bash
 task-master set-status --id=$ARGUMENTS --status=cancelled
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
 ```
 
 ## Cancellation Impact

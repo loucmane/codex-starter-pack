@@ -32,7 +32,8 @@ task-master expand --all --research               # Expand all eligible tasks
 task-master add-dependency --id=<id> --depends-on=<id>       # Add task dependency
 task-master move --from=<id> --to=<id>                       # Reorganize task hierarchy
 task-master validate-dependencies                            # Check for dependency issues
-task-master generate                                         # Update task markdown files (usually auto-called)
+task-master generate                                         # Deliberate repo-wide generated-file refresh only
+python3 scripts/codex-task taskmaster generate-one --id <id> # Update only one generated task file after status/update changes
 ```
 
 ## Key Files & Project Structure
@@ -361,7 +362,10 @@ task-master models --set-fallback gpt-4o-mini
 ### Task File Sync Issues
 
 ```bash
-# Regenerate task files from tasks.json
+# Refresh only the current task file after normal status/update changes
+python3 scripts/codex-task taskmaster generate-one --id <id>
+
+# Deliberate repo-wide generated-file refresh only when explicitly scoped
 task-master generate
 
 # Fix dependency issues
@@ -390,7 +394,7 @@ These commands make AI calls and may take up to a minute:
 - Never manually edit `tasks.json` - use commands instead
 - Never manually edit `.taskmaster/config.json` - use `task-master models`
 - Task markdown files in `tasks/` are auto-generated
-- Run `task-master generate` after manual changes to tasks.json
+- Run `python3 scripts/codex-task taskmaster generate-one --id <id>` after normal Taskmaster status/update commands; use broad `task-master generate` only for explicitly scoped repository-wide generated-file refreshes
 
 ### Claude Code Session Management
 

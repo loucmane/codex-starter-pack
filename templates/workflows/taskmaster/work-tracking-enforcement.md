@@ -53,7 +53,8 @@ Formalize the seven-file work-tracking process so every session captures tracker
 
 ## Helper Shortcuts
 - `codex-task bootstrap init --target-dir <repo>` → seed portable-foundation starter assets in a new or existing repo without overwriting existing config/policy files unless `--force` is explicit.
-- `codex-task wizard kickoff --task <id>` → guided kickoff for a new task; creates the session, plan, active folder, current symlinks/state, and initial plan sync.
+- `codex-task wizard kickoff --task <id>` → guided kickoff for a new task; creates the session, plan, active folder, current symlinks/state, initial plan sync, and targeted generated task-file update.
+- `codex-task taskmaster generate-one --id <id>` → refreshes only the requested generated Taskmaster task file after status/update commands.
 - `codex-task work-tracking scaffold --task <id> --slug <slug>` → creates full structure.
 - `codex-task work-tracking update --preset findings --handler auto --evidence <path> --note "..."` → appends standardized entries.
 - `codex-task work-tracking audit` → highlights stale active folders or missing `sessions/current` link.
@@ -75,10 +76,12 @@ Bootstrap note:
 - **Serena memory missing** → capture memory immediately, log in tracker and session.
 - **Multiple ACTIVE folders** → archive old folder, rerun guard.
 - **Plan out of sync** → run `python3 scripts/codex-task plan sync` after every tracker edit.
+- **Taskmaster generated files drift** → run `python3 scripts/codex-task taskmaster generate-one --id <id>` for the current task; avoid broad in-place `task-master generate` unless a deliberate repo-wide generated-file refresh is explicitly scoped.
 
 ## References
 - `scripts/codex-task work-tracking scaffold`
 - `scripts/codex-task work-tracking update --preset ...`
+- `scripts/codex-task taskmaster generate-one --id <id>`
 - `scripts/codex-guard`
 - `templates/workflows/taskmaster/alignment.md`
 

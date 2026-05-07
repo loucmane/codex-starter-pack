@@ -68,7 +68,8 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `bootstrap init` – scaffold starter portable-foundation assets into a target repo without overwriting existing config/policy files unless `--force` is passed.
 - `sessions update` – append to active session progress log.
 - `work-tracking update` – append to ACTIVE docs (default `TRACKER`).
-- `wizard kickoff` – guided task startup that scaffolds work tracking, creates a compliant session + plan, updates `sessions/current` / `plans/current` / `sessions/state.json`, seeds plan sync, and marks the Taskmaster task `in-progress`.
+- `taskmaster generate-one --id <task-id>` – run Taskmaster generation in a temporary directory and update only the requested generated task file.
+- `wizard kickoff` – guided task startup that scaffolds work tracking, creates a compliant session + plan, updates `sessions/current` / `plans/current` / `sessions/state.json`, seeds plan sync, marks the Taskmaster task `in-progress`, and refreshes only that task’s generated file.
 - `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
@@ -84,6 +85,7 @@ Bootstrap guidance:
 Wizard guidance:
 - Use `python3 scripts/codex-task wizard kickoff --task <id>` when starting a new task on a feature branch that already matches `feat/task-<id>...`.
 - The wizard is intentionally narrow: it handles kickoff safely, but it does not replace Serena memory capture or later implementation logging.
+- After direct Taskmaster status/update commands, run `python3 scripts/codex-task taskmaster generate-one --id <id>` instead of broad in-place `task-master generate`.
 - After kickoff, continue using `sessions update`, `work-tracking update`, and `plan sync` for same-day progress.
 
 ### `scripts/codex-guard`
@@ -105,6 +107,7 @@ Local hook support:
 GitHub auth/signing support:
 - GitHub fetch, push, branch cleanup, PR, and signed commit operations depend on the local SSH/GPG agent state.
 - This environment may keep SSH/GPG auth cached for 24 hours after the user refreshes it; if auth starts failing after the cache expires, refresh the agent cache and retry the same operation.
+- When the user confirms the SSH/GPG cache is active and asks Codex to commit/push, Codex may run the normal `gac`, `git push`, branch cleanup, and PR/merge commands directly after workflow gates pass instead of handing commands back to the user.
 - Do not bypass workflow gates, disable signing, change remotes, or use `--no-verify` to work around expired auth unless the user explicitly authorizes and the bypass is recorded in work tracking.
 
 Repo-structure note:

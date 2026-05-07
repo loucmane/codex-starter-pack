@@ -13,6 +13,7 @@ This moves a task back to the pending state, useful for:
 
 ```bash
 task-master set-status --id=$ARGUMENTS --status=pending
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
 ```
 
 ## Validation

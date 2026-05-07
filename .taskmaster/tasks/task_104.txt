@@ -1,6 +1,6 @@
 # Task ID: 104
 # Title: Add Targeted Taskmaster Task-File Generation Helper
-# Status: pending
+# Status: done
 # Dependencies: 103
 # Priority: high
 # Description: Add a shared workflow helper that updates only the current Taskmaster task file after Taskmaster state changes, avoiding broad in-place task-master generate drift and repeated cleanup of unrelated .taskmaster/tasks/task_*.txt files.
@@ -8,4 +8,4 @@
 Implement a Codex-led/shared helper such as python3 scripts/codex-task taskmaster generate-one --id <task-id>. The helper should run task-master generate into a temporary output directory, copy only the requested .taskmaster/tasks/task_<id>.txt into the repo, fail if unrelated task files are modified, and document the workflow in the relevant templates/docs. Add tests proving unrelated generated task files are not dirtied and update the standard Taskmaster workflow instructions to use the helper instead of broad in-place task-master generate for status-only task updates.
 
 # Test Strategy:
-
+No test strategy provided.

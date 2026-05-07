@@ -17,6 +17,7 @@ This command validates task completion and updates project state intelligently.
 
 ```bash
 task-master set-status --id=$ARGUMENTS --status=done
+python3 scripts/codex-task taskmaster generate-one --id=$ARGUMENTS
 ```
 
 ## Post-Completion Actions

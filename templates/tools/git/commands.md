@@ -119,6 +119,7 @@ Bash --command "gpg-connect-agent /bye"
 ```
 
 - In this environment, SSH/GPG auth may be cached for 24 hours after the user refreshes it.
+- When the user confirms the cache is active and asks the agent to handle Git operations, run the normal workflow commands directly (`gac`, `git push`, branch cleanup, PR/merge commands) after checks pass instead of returning commands for the user to paste.
 - If fetch, push, branch deletion, PR creation, or signed commit operations fail after the cache expires, ask the user to refresh the cache and rerun the exact failed operation.
 - Do not disable commit signing, change remotes, use `--no-verify`, or bypass normal GitHub checks just to work around an expired auth cache.
 - Log auth-cache refreshes or failures in the active session/work-tracking record when they affect delivery.
