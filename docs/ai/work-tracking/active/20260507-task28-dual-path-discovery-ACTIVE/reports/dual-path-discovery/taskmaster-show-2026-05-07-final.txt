@@ -1,0 +1,60 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭───────────────────────────────────────────╮
+│ Task: #28 - Implement Dual-Path Discovery │
+╰───────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 28                                                                             [90m│[39m
+[90m│[39m Title:             [90m│[39m Implement Dual-Path Discovery                                                  [90m│[39m
+[90m│[39m Status:            [90m│[39m ✓ done                                                                         [90m│[39m
+[90m│[39m Priority:          [90m│[39m high                                                                           [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 13, 21                                                                         [90m│[39m
+[90m│[39m Complexity:        [90m│[39m ● 8                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Create fallback system for template discovery during migration                 [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Implement discovery chain: modular check → compatibility map lookup → legacy monolith search   │
+│   → Serena semantic search → error with suggestions. Add logging for fallback usage. Create      │
+│   metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming    │
+│   for common lookups. Create discovery hints system.                                             │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Test Strategy:                                                                                 │
+│                                                                                                  │
+│   Test each fallback path, verify correct order, test circuit breaker activation, measure        │
+│   discovery performance                                                                          │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+[90m┌──────────[39m[90m┬───────────────[39m[90m┬────────────────────────────────────────────────────────────[39m[90m┬───────────────┐[39m
+[90m│[39m ID       [90m│[39m Status        [90m│[39m Title                                                      [90m│[39m Deps          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 28.1     [90m│[39m ✓ done        [90m│[39m Scope reconciliation against portable foundation           [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 28.2     [90m│[39m ✓ done        [90m│[39m Implement proven current-state gap with evidence           [90m│[39m None          [90m│[39m
+[90m└──────────[39m[90m┴───────────────[39m[90m┴────────────────────────────────────────────────────────────[39m[90m┴───────────────┘[39m
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=28 --status=in-progress to start working                    │
+│   2. Run task-master expand --id=28 to break down into subtasks                                  │
+│   3. Run task-master update-task --id=28 --prompt="..." to update details                        │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
