@@ -182,6 +182,16 @@ def test_build_parser_accepts_taskmaster_generate_one() -> None:
     assert args.task_id == "104"
 
 
+def test_build_parser_accepts_taskmaster_health() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["taskmaster", "health", "--tag", "master", "--report-file", "reports/taskmaster.txt"])
+    assert args.command == "taskmaster"
+    assert args.subcommand == "health"
+    assert args.tag == "master"
+    assert args.report_file == "reports/taskmaster.txt"
+
+
 def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
     module = load_task_module()
     commands = []
@@ -564,6 +574,65 @@ def test_taskmaster_generate_one_rejects_missing_generated_task_file(monkeypatch
 
     with pytest.raises(module.TaskError, match="Generated task file for task 104 not found"):
         module.handle_taskmaster_generate_one(argparse.Namespace(task_id="104", dry_run=False))
+
+
+def test_taskmaster_health_reports_valid_full_graph(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    tasks_json = repo / ".taskmaster" / "tasks" / "tasks.json"
+    tasks_json.parent.mkdir(parents=True)
+    tasks_json.write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {"id": 1, "status": "done", "dependencies": [], "subtasks": []},
+                        {
+                            "id": 12,
+                            "status": "in-progress",
+                            "dependencies": [1],
+                            "subtasks": [
+                                {"id": 1, "status": "pending", "dependencies": []},
+                                {"id": 2, "status": "pending", "dependencies": [1]},
+                            ],
+                        },
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON", tasks_json)
+
+    report_file = repo / "reports" / "taskmaster-health.txt"
+    module.handle_taskmaster_health(argparse.Namespace(tag=None, report_file=str(report_file)))
+
+    output = capsys.readouterr().out
+    assert "Taskmaster health: OK" in output
+    assert "Tasks: 2" in output
+    assert "Subtasks: 2" in output
+    assert "Statuses: done=1, in-progress=1" in output
+    assert "Invalid dependency refs: 0" in output
+    assert "filtered-view dependency warnings" in report_file.read_text(encoding="utf-8")
+
+
+def test_taskmaster_health_rejects_invalid_parent_dependency(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    tasks_json = repo / ".taskmaster" / "tasks" / "tasks.json"
+    tasks_json.parent.mkdir(parents=True)
+    tasks_json.write_text(
+        json.dumps({"master": {"tasks": [{"id": 12, "status": "pending", "dependencies": [999], "subtasks": []}]}}),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON", tasks_json)
+
+    with pytest.raises(module.TaskError, match="Taskmaster dependency health failed"):
+        module.handle_taskmaster_health(argparse.Namespace(tag=None, report_file=None))
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
