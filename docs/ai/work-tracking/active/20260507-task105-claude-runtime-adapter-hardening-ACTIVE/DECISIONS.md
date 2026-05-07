@@ -1,0 +1,10 @@
+# Decisions
+
+- 2026-05-07 — Prioritize Task 105 ahead of Task 10 by explicit user direction because Claude runtime enforcement is foundational for multimodal and multi-agent work across later tasks.
+- 2026-05-07 — Treat Task 105 as a validation and hardening follow-up to completed Task 103, not as a rebuild. Any change must be tied to a current-state gap, stale contract metadata, official Claude Code hook behavior, or a missing test/evidence claim.
+- 2026-05-07 — Use current official Claude Code hook documentation as the external source for hook semantics. In particular, `PreToolUse` exit code `2` is the blocking path, MCP tools use `mcp__<server>__<tool>` matcher names, and lifecycle/config hooks must be considered for a complete runtime system.
+- 2026-05-07 — Do not count memories or documentation as enforcement. Runtime gates, hook registrations, focused tests, and captured evidence define completion.
+- 2026-05-07 — Route MCP tools through PreToolUse because official Claude Code hook documentation treats MCP tools as normal tool names for hook matching. Unknown MCP tools are treated as persistent until proven read-only because MCP tools can mutate local files, memories, remote systems, or Taskmaster state.
+- 2026-05-07 — Add a `ConfigChange` guard for project `.claude/settings.json` because hook configuration is part of the enforcement boundary. The guard blocks weakened runtime hooks from applying to the running session; it does not claim to protect managed policy settings, which official docs say cannot be blocked.
+- 2026-05-07 — Do not add `UserPromptExpansion` or task lifecycle hooks in this patch. They are documented as audited surfaces, but current custom commands still require tool calls for persistent mutation, and those calls are already gated. Add these hooks only when a concrete direct-expansion or team-task bypass is observed.
+- 2026-05-07 — Ignore `.codex/rules/` because saved local approval rules are Codex runtime/cache state, not project source. This keeps delegated Git approval caching from dirtying every task branch.

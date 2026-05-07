@@ -1,7 +1,7 @@
 # Claude Runtime Contract
 
 ## Status
-Draft for Taskmaster Task 103. Readiness and initial PreToolUse mutation gates are implemented; adapter commands, sub-agents, and final cold-session evidence are still pending.
+Implemented by Taskmaster Task 103 and being live-hardened by Taskmaster Task 105. Task 103 delivered the initial readiness gate, PreToolUse dispatcher, Claude commands, agents, settings, and focused tests. Task 105 validates that contract against the current repository state and current Claude Code hook behavior.
 
 ## Principle
 Claude must run as a gated participant in the portable Codex foundation. The adapter is not considered complete because a document tells Claude what to do; it is complete only when hooks, scripts, tests, and evidence make the expected behavior mechanical where the tool surface is hookable.
@@ -17,7 +17,7 @@ Claude may perform persistent mutations only when all required pointers align:
 - readiness returns `READY`.
 
 ## Gate Chain
-1. PreToolUse invokes `.claude/scripts/pretooluse-gate.sh` for mutation-capable tools.
+1. PreToolUse invokes `.claude/scripts/pretooluse-gate.sh` for mutation-capable file, Bash, and MCP tools.
 2. The gate invokes `.claude/scripts/readiness.sh --quick`.
 3. `BLOCKED` readiness refuses hookable persistent mutation regardless of target.
 4. `READY` readiness dispatches target-specific checks:
@@ -31,6 +31,8 @@ Claude may perform persistent mutations only when all required pointers align:
 - `.claude/scripts/pretooluse-gate.sh` is the dispatcher registered for `Edit|Write|MultiEdit|NotebookEdit|Bash`.
 - `.claude/scripts/codex-path-guard.sh` blocks direct file-tool writes to Codex-owned paths.
 - `.claude/scripts/bash-command-guard.sh` blocks tested Bash write-surface bypasses against Codex-owned paths.
+- `.claude/scripts/pretooluse-gate.sh` also classifies MCP tools. Known read-only MCP calls are allowed for inspection, known mutating MCP calls are blocked when readiness is `BLOCKED`, and unknown MCP tools are treated as persistent until proven otherwise.
+- `.claude/scripts/config-change-guard.sh` blocks project settings changes from applying to the running Claude session if they remove the required PreToolUse dispatcher or Stop handoff hook.
 - `tests/claude_adapter/` contains the focused readiness and PreToolUse test coverage that defines verified behavior.
 
 ## Protected Codex-Owned Paths
@@ -62,8 +64,6 @@ The runtime contract covers more than text-file editing. It must account for:
 - future agent/tool surfaces that can perform persistent mutations.
 
 ## Current Task References
-- Taskmaster: `103`
-- Branch: `feat/task-103-claude-runtime-adapter`
-- Active tracker: `docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/TRACKER.md`
-- Scope contract: `docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/claude-runtime-file-contract.md`
-- Mutation taxonomy: `docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/designs/mutation-taxonomy.md`
+- Original implementation: Taskmaster Task 103, archived at `docs/ai/work-tracking/archive/20260506-task103-claude-runtime-adapter-COMPLETED/`
+- Current hardening: Taskmaster Task 105, active at `docs/ai/work-tracking/active/20260507-task105-claude-runtime-adapter-hardening-ACTIVE/`
+- Current plan: `plans/2026-05-07-task105-claude-runtime-adapter-hardening.md`

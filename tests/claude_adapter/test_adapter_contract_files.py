@@ -8,6 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HANDOFF_NUDGE = REPO_ROOT / ".claude" / "scripts" / "handoff-nudge.sh"
+CONFIG_CHANGE_GUARD = REPO_ROOT / ".claude" / "scripts" / "config-change-guard.sh"
 
 
 def read(path: str) -> str:
@@ -43,9 +44,19 @@ def test_settings_registers_pretooluse_and_stop_hooks() -> None:
     hooks = settings["hooks"]
 
     pretool = hooks["PreToolUse"][0]
-    assert pretool["matcher"] == "Edit|Write|MultiEdit|NotebookEdit|Bash"
+    assert pretool["matcher"] == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
     assert pretool["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
     assert hooks["Stop"][0]["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/handoff-nudge.sh"
+    assert hooks["ConfigChange"][0]["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/config-change-guard.sh"
+
+
+def test_runtime_contract_is_current_after_task_103_archive() -> None:
+    text = read(".claude/engine/runtime-contract.md")
+
+    assert "Implemented by Taskmaster Task 103" in text
+    assert "Taskmaster Task 105" in text
+    assert "20260506-task103-claude-runtime-adapter-ACTIVE" not in text
+    assert "final cold-session evidence are still pending" not in text
 
 
 def test_runtime_commands_exist_and_wrap_expected_helpers() -> None:
@@ -107,6 +118,56 @@ def test_handoff_nudge_warns_for_dirty_workflow_state_without_blocking(tmp_path:
 
     assert result.returncode == 0
     assert "dirty workflow-state file" in result.stderr
+
+
+def test_config_change_guard_blocks_removing_required_project_hooks(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    assert run(["git", "init", "-q"], repo).returncode == 0
+    settings = repo / ".claude" / "settings.json"
+    settings.parent.mkdir()
+    settings.write_text(json.dumps({"hooks": {"PreToolUse": []}}), encoding="utf-8")
+
+    result = run(
+        ["bash", str(CONFIG_CHANGE_GUARD)],
+        repo,
+        input_text=json.dumps(
+            {
+                "hook_event_name": "ConfigChange",
+                "source": "project_settings",
+                "file_path": str(settings),
+            }
+        ),
+        env={**os.environ, "CLAUDE_PROJECT_DIR": str(repo)},
+    )
+
+    assert result.returncode == 2
+    assert "required PreToolUse dispatcher hook missing" in result.stderr
+
+
+def test_config_change_guard_allows_required_project_hooks(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    assert run(["git", "init", "-q"], repo).returncode == 0
+    settings = repo / ".claude" / "settings.json"
+    settings.parent.mkdir()
+    settings.write_text(read(".claude/settings.json"), encoding="utf-8")
+
+    result = run(
+        ["bash", str(CONFIG_CHANGE_GUARD)],
+        repo,
+        input_text=json.dumps(
+            {
+                "hook_event_name": "ConfigChange",
+                "source": "project_settings",
+                "file_path": str(settings),
+            }
+        ),
+        env={**os.environ, "CLAUDE_PROJECT_DIR": str(repo)},
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
 
 
 def test_tool_mapping_preserves_shared_files() -> None:

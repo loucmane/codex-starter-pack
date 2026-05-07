@@ -21,8 +21,9 @@ Sub-agents inherit no parent conversation context. Every delegation brief must i
 ## Hooks
 | Event | Matcher | Script | Behavior |
 | --- | --- | --- | --- |
-| `PreToolUse` | `Edit|Write|MultiEdit|NotebookEdit|Bash` | `.claude/scripts/pretooluse-gate.sh` | Blocks hookable persistent mutations when readiness is `BLOCKED`; blocks Codex-owned paths and tested Bash bypasses when ready. |
+| `PreToolUse` | `^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$` | `.claude/scripts/pretooluse-gate.sh` | Blocks hookable persistent mutations when readiness is `BLOCKED`; blocks Codex-owned paths, tested Bash bypasses, and protected-path MCP writes when ready. |
 | `Stop` | all | `.claude/scripts/handoff-nudge.sh` | Emits a non-blocking reminder when dirty workflow state needs handoff/guard attention. |
+| `ConfigChange` | all | `.claude/scripts/config-change-guard.sh` | Blocks project settings changes from applying if they remove the required runtime gate hooks. |
 
 ## Commands
 | Command | Wraps |

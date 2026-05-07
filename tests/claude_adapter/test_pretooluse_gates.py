@@ -168,6 +168,43 @@ def test_pretooluse_allows_safe_read_only_bash_when_ready(tmp_path: Path) -> Non
     assert result.stderr == ""
 
 
+def test_pretooluse_blocks_mutating_mcp_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("mcp__taskmaster_ai__set_task_status", id="105", status="done"))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
+def test_pretooluse_allows_read_only_mcp_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("mcp__taskmaster_ai__get_task", id="105"))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_unknown_mcp_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("mcp__custom__sync_remote_state", target="prod"))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
+def test_pretooluse_blocks_mcp_protected_path_when_ready(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("mcp__serena__create_text_file", relative_path="CODEX.md"))
+
+    assert result.returncode == 2
+    assert "Protected path" in result.stderr
+    assert "CODEX.md" in result.stderr
+
+
 def test_path_guard_blocks_direct_protected_file_payload(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, ready=True)
 
