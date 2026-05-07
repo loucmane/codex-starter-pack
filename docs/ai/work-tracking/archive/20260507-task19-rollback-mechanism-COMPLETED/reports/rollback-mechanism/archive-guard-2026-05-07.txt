@@ -1,0 +1,2 @@
+Post-archive guard validation:
+Guard validation passed: all S:W:H:E entries look compliant.
