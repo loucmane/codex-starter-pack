@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "scan_timestamp": "2026-05-07T17:51:05.237128",
+    "scanner": "security_validator",
+    "scanner_version": "1.0.0",
+    "output_format_version": "2.0.0",
+    "duration_seconds": 0.55,
+    "stats": {
+      "files_scanned": 333,
+      "findings": 1,
+      "errors": 0,
+      "warnings": 1
+    },
+    "previous_scan": "2026-05-07T17:50:25.420768",
+    "changes_from_previous": {
+      "findings_delta": -2,
+      "findings_change_percent": -66.7,
+      "errors_delta": -2,
+      "errors_change_percent": -100.0
+    }
+  },
+  "data": {
+    "security_validation_version": "1.0.0",
+    "base_path": "/home/loucmane/codex",
+    "config_source": "/home/loucmane/codex/scripts/template-ssot-scanner/scanner_config.yaml",
+    "config_profile": null,
+    "config_environment": null,
+    "files_scanned": 333,
+    "rules": {
+      "security_inline_secret": {
+        "category": "security",
+        "severity": "error",
+        "threshold": 0
+      },
+      "security_path_traversal": {
+        "category": "security",
+        "severity": "warning",
+        "threshold": 0
+      },
+      "security_template_injection": {
+        "category": "security",
+        "severity": "warning",
+        "threshold": 0
+      }
+    },
+    "summary": {
+      "total_findings": 1,
+      "severity_counts": {
+        "warning": 1
+      },
+      "rule_counts": {
+        "security_path_traversal": 1
+      }
+    },
+    "findings": [
+      {
+        "category": "security",
+        "severity": "warning",
+        "message": "Potential path traversal reference",
+        "source_file": "templates/PROJECT-BLOG.md",
+        "details": {
+          "rule_name": "security_path_traversal",
+          "line": 236,
+          "column": 22,
+          "match_kind": "path_traversal",
+          "sample": "../../../packages/backend",
+          "escapes_base": true
+        }
+      }
+    ]
+  }
+}

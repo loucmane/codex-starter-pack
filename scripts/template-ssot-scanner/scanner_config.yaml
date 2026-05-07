@@ -70,6 +70,30 @@ validation_rules:
     enabled: true
     auto_fix: false
     description: Duplicate references are informational until a downstream task promotes them.
+  security_path_traversal:
+    category: security
+    severity: warning
+    priority: medium
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Template and config files should not contain traversal-like path references without review.
+  security_template_injection:
+    category: security
+    severity: warning
+    priority: medium
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Template and config files should not contain high-risk unresolved template expressions.
+  security_inline_secret:
+    category: security
+    severity: error
+    priority: critical
+    threshold: 0
+    enabled: true
+    auto_fix: false
+    description: Template and config files should not contain inline secret material.
 
 allowlists:
   paths: []
