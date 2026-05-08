@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+collected 85 items / 47 deselected / 38 selected
+
+tests/meta_workflow_guard/test_template_lifecycle.py ..........          [ 26%]
+tests/meta_workflow_guard/test_template_registry.py .........            [ 50%]
+tests/meta_workflow_guard/test_guard_rules.py ...................        [100%]
+
+====================== 38 passed, 47 deselected in 0.40s =======================

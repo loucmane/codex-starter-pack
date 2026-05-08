@@ -1,0 +1,52 @@
+{
+  "version": "1.0.0",
+  "description": "Portable template lifecycle policy. Repos can keep the same audit logic and customize states, transitions, compatibility statuses, and deprecation thresholds here.",
+  "states": [
+    "draft",
+    "review",
+    "stable",
+    "deprecated",
+    "archived"
+  ],
+  "compatibility_statuses": {
+    "experimental": "draft",
+    "beta": "review"
+  },
+  "ignored_statuses": [
+    "modular"
+  ],
+  "transitions": {
+    "draft": [
+      "review",
+      "archived"
+    ],
+    "review": [
+      "draft",
+      "stable",
+      "archived"
+    ],
+    "stable": [
+      "deprecated",
+      "archived"
+    ],
+    "deprecated": [
+      "stable",
+      "archived"
+    ],
+    "archived": []
+  },
+  "deprecation": {
+    "grace_days": 30,
+    "archive_after_days": 90,
+    "deprecated_since_key": "deprecated_since",
+    "replacement_key": "replacement",
+    "migration_notice_key": "migration_notice"
+  },
+  "versioning": {
+    "bump_levels": [
+      "major",
+      "minor",
+      "patch"
+    ]
+  }
+}

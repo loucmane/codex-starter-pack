@@ -8,6 +8,9 @@ type: behavior
 enforcement: deprecated
 status: deprecated
 version: 3.0.0
+deprecated_since: 2026-04-23
+replacement: templates/behaviors/session/compaction-preparation.md
+migration_notice: Use compaction-preparation for context-limit checkpoints and session-end for actual session closure.
 ---
 
 # Session Compaction Detection [DEPRECATED]
