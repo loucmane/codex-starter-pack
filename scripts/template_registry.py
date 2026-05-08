@@ -735,6 +735,146 @@ class TemplateRegistry:
         )
 
 
+class TemplateDiscoveryAPI:
+    """Serializable facade for template discovery and dependency access."""
+
+    def __init__(self, registry: Optional[TemplateRegistry] = None, *, repo_root: Path | str | None = None) -> None:
+        self.registry = registry or TemplateRegistry(repo_root=repo_root)
+
+    def get_template(self, template_id: str) -> Optional[Dict[str, object]]:
+        record = self.registry.get(template_id)
+        return self.serialize_record(record) if record else None
+
+    def search_templates(
+        self,
+        query: Optional[str] = None,
+        *,
+        category: Optional[str] = None,
+        type: Optional[str] = None,
+        status: Optional[str] = None,
+        version: Optional[str] = None,
+        tags: Optional[Iterable[str]] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Dict[str, object]:
+        records = self.registry.search(type=type, category=category, tags=tags, text=query)
+        filtered = self._filter_records(records, status=status, version=version)
+        return self._paginated_response(filtered, limit=limit, offset=offset)
+
+    def list_by_category(
+        self,
+        category: str,
+        *,
+        status: Optional[str] = None,
+        version: Optional[str] = None,
+        tags: Optional[Iterable[str]] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Dict[str, object]:
+        return self.search_templates(
+            category=category,
+            status=status,
+            version=version,
+            tags=tags,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_dependencies(self, template_id: str) -> Optional[Dict[str, object]]:
+        record = self.registry.get(template_id)
+        if record is None:
+            return None
+
+        dependencies = _string_list(record.metadata.get("dependencies"))
+        resolved: List[Dict[str, object]] = []
+        missing: List[str] = []
+        for dependency in dependencies:
+            result = self.registry.resolve(dependency, allow_serena=False, strict=False)
+            if result.record is None:
+                missing.append(dependency)
+                continue
+            resolved.append(
+                {
+                    "query": dependency,
+                    "id": result.record.id,
+                    "path": result.record.path,
+                    "source": result.source,
+                    "status": result.status,
+                }
+            )
+
+        return {
+            "id": record.id,
+            "path": record.path,
+            "dependencies": list(dependencies),
+            "resolved": resolved,
+            "missing": missing,
+        }
+
+    @staticmethod
+    def serialize_record(record: TemplateRecord) -> Dict[str, object]:
+        return {
+            "id": record.id,
+            "path": record.path,
+            "title": record.title,
+            "type": record.type,
+            "category": record.category,
+            "status": record.status,
+            "version": _string_or_none(record.metadata.get("version")),
+            "tags": list(record.tags),
+            "dependencies": list(_string_list(record.metadata.get("dependencies"))),
+            "source": record.source,
+            "good_first_handler": record.good_first_handler,
+            "good_first_workflow": record.good_first_workflow,
+            "metadata": dict(record.metadata),
+        }
+
+    def _filter_records(
+        self,
+        records: Sequence[TemplateRecord],
+        *,
+        status: Optional[str],
+        version: Optional[str],
+    ) -> List[TemplateRecord]:
+        filtered: List[TemplateRecord] = []
+        for record in records:
+            if status and _normal_key(record.status or "") != _normal_key(status):
+                continue
+            record_version = _string_or_none(record.metadata.get("version"))
+            if version and _normal_key(record_version or "") != _normal_key(version):
+                continue
+            filtered.append(record)
+        return filtered
+
+    def _paginated_response(
+        self,
+        records: Sequence[TemplateRecord],
+        *,
+        limit: int,
+        offset: int,
+    ) -> Dict[str, object]:
+        if limit < 1:
+            raise ValueError("limit must be greater than zero")
+        if offset < 0:
+            raise ValueError("offset must be greater than or equal to zero")
+
+        total = len(records)
+        page = records[offset : offset + limit]
+        return {
+            "items": [self.serialize_record(record) for record in page],
+            "pagination": {
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "count": len(page),
+                "has_more": offset + len(page) < total,
+            },
+        }
+
+
+TemplateAPI = TemplateDiscoveryAPI
+
+
 def _string_or_none(value: object) -> Optional[str]:
     if value is None:
         return None
