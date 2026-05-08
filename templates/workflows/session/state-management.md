@@ -23,6 +23,8 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 
 ## Core State Artifacts
 - `sessions/YYYY/MM/session-id.md`
+- `sessions/current` and `plans/current`
+- `sessions/state.json`
 - Work-tracking active folder (tracker, implementation, findings, decisions, changelog, handoff, reports)
 - Taskmaster task list (Taskmaster CLI or plan)
 - Serena memories (if enabled)
@@ -45,6 +47,7 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
    - Archive outdated notes into `archive/` if superseded
 4. **State Restoration**
    - Use continuation workflow (with validation behavior) to load checkpoint
+   - For a new day on an existing active task, run `python3 scripts/codex-task sessions continue --task <id> --slug <slug>` so the session is fresh while the task-scoped ACTIVE work-tracking folder and plan are reused.
    - Verify Taskmaster statuses, tracker, Serena memory align
    - Re-run quick validation (tests/scans) if state diverged
    - Store guard log under `reports/session-continuation/`
@@ -60,7 +63,8 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 - Git status clean or documented justification for WIP
 
 ## Tooling Integration
-- `python3 scripts/codex-task` subcommands (`sessions update`, `work-tracking update`, `plan sync`, `scanner run`)
+- `python3 scripts/codex-task` subcommands (`sessions continue`, `sessions update`, `work-tracking update`, `plan sync`, `scanner run`)
+- `python3 scripts/codex-task sessions continue --task <id> --slug <slug>` starts a fresh daily session for an existing active task without re-scaffolding or archiving task work tracking.
 - `python3 scripts/codex-task rollback checkpoint --label <label> --report-file <path>` to capture Git, workflow, Taskmaster, and Serena state before risky operations
 - `python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <path>` to render non-destructive recovery guidance
 - `python3 scripts/codex-guard validate --include-untracked` to enforce documentation
@@ -77,6 +81,7 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 ## Failure Modes & Mitigations
 - **Incomplete documentation** → behavior `update-tracker` blocks continuation
 - **State drift** → rerun checkpoints, reconcile diff, update logs
+- **Missing `sessions/current`** → do not infer the latest historical session. Use `wizard kickoff` for a new task or `sessions continue` for an existing active task.
 - **Missing Serena memory** → reconstruct from session/tracker, log as incident
 - **Taskmaster desync** → audit tasks vs. tracker, realign statuses
 
@@ -87,4 +92,5 @@ Provide a repeatable process for capturing, persisting, and restoring session/wo
 
 ## Progress Log
 
+- **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/workflows/session/state-management.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Added `sessions continue` to the state restoration tooling path and documented fail-closed handling for missing `sessions/current`.
 - **2026-05-07 19:00** — [S:20260507|W:task19-rollback-mechanism|H:templates/workflows/session/state-management.md|E:docs/ai/work-tracking/active/20260507-task19-rollback-mechanism-ACTIVE/reports/rollback-mechanism/checkpoint-2026-05-07.json] Documented rollback checkpoint and recovery-plan helper usage for session state management.

@@ -66,6 +66,7 @@ Lightweight structured plan tracker. Use it to:
 ### `scripts/codex-task`
 Local CLI for S:W:H:E scaffolding. Subcommands:
 - `bootstrap init` – scaffold starter portable-foundation assets into a target repo without overwriting existing config/policy files unless `--force` is passed.
+- `sessions continue` – create a fresh daily session for an existing active task while reusing the task-scoped ACTIVE work-tracking folder and plan.
 - `sessions update` – append to active session progress log.
 - `work-tracking update` – append to ACTIVE docs (default `TRACKER`).
 - `taskmaster generate-one --id <task-id>` – run Taskmaster generation in a temporary directory and update only the requested generated task file.
@@ -84,6 +85,7 @@ Bootstrap guidance:
 
 Wizard guidance:
 - Use `python3 scripts/codex-task wizard kickoff --task <id>` when starting a new task on a feature branch that already matches `feat/task-<id>...`.
+- Use `python3 scripts/codex-task sessions continue --task <id> --slug <slug>` when continuing the same active task on a new day. Do not archive task work tracking or run kickoff again just to get a fresh daily session.
 - The wizard is intentionally narrow: it handles kickoff safely, but it does not replace Serena memory capture or later implementation logging.
 - After direct Taskmaster status/update commands, run `python3 scripts/codex-task taskmaster generate-one --id <id>` instead of broad in-place `task-master generate`.
 - After kickoff, continue using `sessions update`, `work-tracking update`, and `plan sync` for same-day progress.
@@ -153,4 +155,5 @@ Tools are part of the protocol. Use them deliberately and leave a clear evidence
 
 ## Progress Log
 
+- **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Added `sessions continue` to the codex-task command inventory and documented it as the correct fresh-session path for existing active tasks.
 - **2026-04-23 13:15** — [S:20260423|W:task92-expand-workflow-guard-coverage|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260422-task92-expand-workflow-guard-coverage-ACTIVE/designs/guard-coverage-audit.md] Documented the expanded `scripts/codex-guard` coverage for runtime artifacts, Taskmaster evidence, session-state consistency, and canonical GAC guidance

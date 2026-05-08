@@ -29,7 +29,7 @@ emergency_bypass: false
 |---------------------|--------------------------------------------------------------------|-------------------------------------------------------|---------|
 | plan-step-scope     | Inventory continuation/state references + define migration targets | Session log + tracker entries + docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/session-continuation-inventory.md | completed |
 | plan-step-implement | Build workflows/handlers, update registry + guard, add regression  | docs/ai/work-tracking/active/20251001-task85-session-continuation-ACTIVE/designs/continuation-workflow-updates.md, templates/workflows/session/continuation.md, templates/workflows/session/state-management.md, templates/REGISTRY.md, tests/session_continuation/test_metadata.py, tests/session_continuation/README.md, reports/session-continuation/evidence-20251004.txt | completed |
-| plan-step-verify    | Final guard/test runs, docs updated, handoff captured               | Guard + pytest logs, updated docs + Serena memory     | pending |
+| plan-step-verify    | Final guard/test runs, docs updated, handoff captured               | Guard + pytest logs, updated docs + Serena memory     | completed |
 | plan-step-emergency | _Optional_ – only if bypass required                                | Waiver + post-mortem plan                             | n/a     |
 
 ## Scope
@@ -49,7 +49,7 @@ emergency_bypass: false
 - No direct commits to `main` for this plan.
 
 ## Amendments & Versioning
-- _None yet_
+- 2026-05-08 - Task 85 work tracking is archived as completed, but this plan still had `plan-step-verify` marked pending. Corrected the stale status during Task 42 guard reconciliation so old completed work does not conflict with the current session-management plan.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
