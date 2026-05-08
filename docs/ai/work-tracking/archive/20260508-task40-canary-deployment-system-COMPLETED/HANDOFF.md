@@ -9,5 +9,7 @@
 - Final verification passed: full pytest (`350 passed`), plan sync, work-tracking audit, guard, and diff-check.
 
 ## Next Steps
-- Mark Taskmaster subtask `40.2` and parent Task 40 complete.
-- Commit, push, open/merge the PR, and archive the Task 40 work-tracking folder after merge.
+- Task 40 PR #57 has been merged.
+- Work tracking is archived under `docs/ai/work-tracking/archive/20260508-task40-canary-deployment-system-COMPLETED/`.
+- No active follow-up is required for Task 40.
+- Archived on 2026-05-08 19:07 CEST — Folder moved to archive and tracker marked COMPLETED.
