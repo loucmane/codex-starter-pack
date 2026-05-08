@@ -13,6 +13,7 @@ if str(SCANNER_DIR) not in sys.path:
 from analyze_references import ReferenceAnalyzer
 from baseline_summary import build_baseline_summary, write_baseline_summary
 from generate_fixes import FixGenerator
+from migration_roadmap import build_migration_roadmap, render_markdown_roadmap, write_migration_roadmap
 from migration_detector import MigrationDetector
 from report_generator import save_scanner_report
 from safe_reorganize import SafeReorganizer
@@ -263,6 +264,174 @@ def test_baseline_summary_requires_all_scanner_outputs(tmp_path):
 
     with pytest.raises(FileNotFoundError, match="migration_status.json"):
         build_baseline_summary(output_dir)
+
+
+def _write_minimal_roadmap_inputs(output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    save_with_metadata(
+        data={"templates/WORKFLOWS.md": {"status": "FULLY_MIGRATED"}},
+        output_file=output_dir / "migration_status.json",
+        scanner_name="migration_detector",
+        version="1.0.0",
+        stats={
+            "files_scanned": 2,
+            "fully_migrated": 1,
+            "partially_migrated": 1,
+            "not_migrated": 0,
+            "pending_migration": 1,
+        },
+    )
+    save_with_metadata(
+        data={
+            "reference_stats": {
+                "broken_reference_count": 2,
+                "circular_dependency_count": 1,
+                "orphaned_file_count": 2,
+            },
+            "broken_references": [
+                {
+                    "source_file": "templates/source.md",
+                    "broken_reference": "missing.md",
+                    "type": "file",
+                },
+                {
+                    "source_file": "templates/source.md",
+                    "broken_reference": "missing-anchor.md#x",
+                    "type": "anchor",
+                },
+            ],
+            "circular_dependencies": [
+                {
+                    "cycle": ["templates/a.md", "templates/b.md", "templates/a.md"],
+                    "length": 2,
+                }
+            ],
+            "orphaned_files": ["templates/orphan-a.md", "templates/orphan-b.md"],
+        },
+        output_file=output_dir / "reference_analysis.json",
+        scanner_name="reference_analyzer",
+        version="1.0.0",
+    )
+    save_with_metadata(
+        data={
+            "content_duplicates": [],
+            "partial_duplicates": [],
+            "statistics": {
+                "files_with_duplicates": 1,
+                "overall_migration_percentage": 62.5,
+            },
+        },
+        output_file=output_dir / "duplicate_analysis.json",
+        scanner_name="duplicate_finder",
+        version="1.0.0",
+    )
+    save_with_metadata(
+        data={
+            "broken_references": [],
+            "duplicate_removals": [
+                {
+                    "remove": "templates/old.md",
+                    "keep": "templates/new.md",
+                    "reason": "exact_duplicate",
+                }
+            ],
+            "content_updates": [
+                {
+                    "file": "templates/HANDLERS.md",
+                    "recommendation": "Migrate remaining sections",
+                    "unmigrated_sections": ["A", "B"],
+                }
+            ],
+            "recommendations": [],
+        },
+        output_file=output_dir / "fix_recommendations.json",
+        scanner_name="fix_generator",
+        version="1.0.0",
+        stats={
+            "total_fixes": 3,
+            "broken_references_to_fix": 2,
+            "duplicates_to_remove": 1,
+            "recommendations_count": 0,
+        },
+    )
+    save_with_metadata(
+        data={
+            "findings": [
+                {
+                    "severity": "warning",
+                    "source_file": "templates/security.md",
+                    "message": "Review path",
+                }
+            ]
+        },
+        output_file=output_dir / "security_validation.json",
+        scanner_name="security_validator",
+        version="1.0.0",
+    )
+
+
+def test_migration_roadmap_prioritizes_scanner_findings(tmp_path):
+    output_dir = tmp_path / "output" / "data"
+    _write_minimal_roadmap_inputs(output_dir)
+
+    roadmap = build_migration_roadmap(output_dir, generated_at="2026-05-08T11:45:00")
+
+    assert roadmap["migration_roadmap_version"] == "1.0.0"
+    assert roadmap["priority_counts"] == {
+        "critical": 1,
+        "high": 2,
+        "medium": 2,
+        "low": 1,
+    }
+    assert [item["priority"] for item in roadmap["items"]] == [
+        "critical",
+        "high",
+        "high",
+        "medium",
+        "medium",
+        "low",
+    ]
+    critical = roadmap["items"][0]
+    assert critical["category"] == "references"
+    assert critical["finding_count"] == 2
+    assert critical["effort"] == "M"
+    assert critical["risk"] == "high"
+    assert critical["taskmaster"]["metadata"]["roadmap_item_id"] == critical["id"]
+
+
+def test_migration_roadmap_writes_metadata_json_and_markdown(tmp_path):
+    output_dir = tmp_path / "output" / "data"
+    _write_minimal_roadmap_inputs(output_dir)
+    json_out = tmp_path / "roadmap.json"
+    markdown_out = tmp_path / "roadmap.md"
+
+    roadmap = write_migration_roadmap(
+        data_dir=output_dir,
+        json_out=json_out,
+        markdown_out=markdown_out,
+        generated_at="2026-05-08T11:45:00",
+    )
+
+    validate_output_file(json_out)
+    data, metadata = load_with_metadata(json_out)
+    assert metadata["scanner"] == "migration_roadmap"
+    assert metadata["stats"]["roadmap_items"] == len(roadmap["items"])
+    assert data["taskmaster_export"]["format"] == "taskmaster-compatible-draft"
+    markdown = markdown_out.read_text(encoding="utf-8")
+    assert "# Migration Roadmap" in markdown
+    assert "## Phase Plan" in markdown
+    assert "The generator does not mutate Taskmaster or apply fixes." in markdown
+
+
+def test_migration_roadmap_markdown_includes_taskmaster_guidance(tmp_path):
+    output_dir = tmp_path / "output" / "data"
+    _write_minimal_roadmap_inputs(output_dir)
+    roadmap = build_migration_roadmap(output_dir, generated_at="2026-05-08T11:45:00")
+
+    markdown = render_markdown_roadmap(roadmap)
+
+    assert "Taskmaster-compatible draft task entries" in markdown
+    assert "| critical | references |" in markdown
 
 
 def test_safe_reorganizer_loads_wrapped_scanner_outputs(tmp_path):

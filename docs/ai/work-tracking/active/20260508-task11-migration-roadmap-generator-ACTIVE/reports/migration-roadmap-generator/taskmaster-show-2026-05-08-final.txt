@@ -1,0 +1,61 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭────────────────────────────────────────────────╮
+│ Task: #11 - Create Migration Roadmap Generator │
+╰────────────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 11                                                                             [90m│[39m
+[90m│[39m Title:             [90m│[39m Create Migration Roadmap Generator                                             [90m│[39m
+[90m│[39m Status:            [90m│[39m ✓ done                                                                         [90m│[39m
+[90m│[39m Priority:          [90m│[39m medium                                                                         [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 7                                                                              [90m│[39m
+[90m│[39m Complexity:        [90m│[39m ● 6                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Build tool to generate prioritized migration plan from scanner outputs         [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm:      │
+│   critical (broken refs) → high (monolith refs) → medium (duplicates) → low (optimizations).     │
+│   Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart   │
+│   visualization using matplotlib. Export to Taskmaster-compatible format. Include risk           │
+│   assessment for each migration item.                                                            │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Test Strategy:                                                                                 │
+│                                                                                                  │
+│   Verify roadmap covers all scanner findings, test priority ordering logic, validate             │
+│   Taskmaster format compatibility, ensure estimates are reasonable                               │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+[90m┌──────────[39m[90m┬───────────────[39m[90m┬────────────────────────────────────────────────────────────[39m[90m┬───────────────┐[39m
+[90m│[39m ID       [90m│[39m Status        [90m│[39m Title                                                      [90m│[39m Deps          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 11.1     [90m│[39m ✓ done        [90m│[39m Scope reconciliation against portable foundation           [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 11.2     [90m│[39m ✓ done        [90m│[39m Implement proven current-state gap with evidence           [90m│[39m None          [90m│[39m
+[90m└──────────[39m[90m┴───────────────[39m[90m┴────────────────────────────────────────────────────────────[39m[90m┴───────────────┘[39m
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=11 --status=in-progress to start working                    │
+│   2. Run task-master expand --id=11 to break down into subtasks                                  │
+│   3. Run task-master update-task --id=11 --prompt="..." to update details                        │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

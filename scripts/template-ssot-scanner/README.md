@@ -39,6 +39,12 @@ Creates actionable fix recommendations and scripts.
 - **Scripts**: `output/scripts/apply_reference_fixes.py`
 - **Purpose**: Automates the fixing of identified issues
 
+### 6. Migration Roadmap Generator (`migration_roadmap.py`)
+Converts scanner outputs into a prioritized migration roadmap.
+- **Output**: `output/data/migration_roadmap.json`
+- **Report**: `output/reports/migration_roadmap.md`
+- **Purpose**: Provides ordered roadmap items, effort/risk estimates, dependency hints, and Taskmaster-compatible draft task data without applying fixes or mutating Taskmaster
+
 ## Output Metadata Format (v2.0.0)
 
 As of 2025-09-03, all scanner outputs include standardized metadata for tracking and comparison:
@@ -96,7 +102,25 @@ python3 migration_detector.py
 python3 analyze_references.py
 python3 find_duplicates.py
 python3 generate_fixes.py
+python3 migration_roadmap.py
 ```
+
+### Generate a Migration Roadmap
+
+```bash
+# Read existing scanner outputs and write JSON + markdown roadmap artifacts
+python3 migration_roadmap.py
+
+# Use explicit paths when running from another working directory
+python3 scripts/template-ssot-scanner/migration_roadmap.py \
+  --data-dir scripts/template-ssot-scanner/output/data \
+  --json-out scripts/template-ssot-scanner/output/data/migration_roadmap.json \
+  --markdown-out scripts/template-ssot-scanner/output/reports/migration_roadmap.md
+```
+
+The roadmap generator is read-only with respect to repository source files and Taskmaster.
+It only writes the requested roadmap artifacts. Review the JSON `taskmaster_export` before
+creating or updating Taskmaster tasks.
 
 ### Apply Fixes Safely
 ```bash
