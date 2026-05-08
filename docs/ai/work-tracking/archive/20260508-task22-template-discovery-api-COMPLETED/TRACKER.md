@@ -1,7 +1,7 @@
 # Task 22 Build Template Discovery API Tracker
 
 **Started**: 2026-05-08
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-08
 
 ## Goals
@@ -24,6 +24,10 @@
 - **2026-05-08 18:19** — [S:20260508|W:task22-template-discovery-api|H:git:diff-check|E:docs/ai/work-tracking/active/20260508-task22-template-discovery-api-ACTIVE/reports/template-discovery-api/diff-check-2026-05-08.txt] `git diff --check` passed with empty output
 - **2026-05-08 18:20** — [S:20260508|W:task22-template-discovery-api|H:task-master:set-status|E:.taskmaster/tasks/task_022.txt] Marked Taskmaster `22.2` and Task `22` done, then regenerated only Task 22's task file
 - **2026-05-08 18:21** — [S:20260508|W:task22-template-discovery-api|H:task-master:update-task|E:docs/ai/work-tracking/active/20260508-task22-template-discovery-api-ACTIVE/FINDINGS.md] Confirmed completed Taskmaster parent tasks are locked against detail updates; retained completed status and documented scope authority in work tracking
+- **2026-05-08 18:31** — [S:20260508|W:task22-template-discovery-api|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260508-task22-template-discovery-api-COMPLETED/] Archived Task 22 work tracking after PR #56 merged and cleared active session/plan pointers
+- **2026-05-08 18:32** — [S:20260508|W:task22-template-discovery-api|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260508-task22-template-discovery-api-COMPLETED/reports/template-discovery-api/archive-audit-2026-05-08.txt] After-archive work-tracking audit returned expected between-session warnings for no ACTIVE folder and no `sessions/current`
+- **2026-05-08 18:32** — [S:20260508|W:task22-template-discovery-api|H:scripts/codex-guard|E:docs/ai/work-tracking/archive/20260508-task22-template-discovery-api-COMPLETED/reports/template-discovery-api/archive-guard-2026-05-08.txt] After-archive guard validation passed
+- **2026-05-08 18:32** — [S:20260508|W:task22-template-discovery-api|H:git:diff-check|E:docs/ai/work-tracking/archive/20260508-task22-template-discovery-api-COMPLETED/reports/template-discovery-api/archive-diff-check-2026-05-08.txt] After-archive `git diff --check` passed with empty output
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -32,4 +36,5 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-08-011-task22-template-discovery-api.md
+- PR: https://github.com/loucmane/codex-starter-pack/pull/56
