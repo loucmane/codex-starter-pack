@@ -9,5 +9,7 @@
 - Final verification passed: full pytest (`355 passed`), plan sync, work-tracking audit, guard, and diff-check.
 
 ## Next Steps
-- Mark Taskmaster subtask `43.2` and parent Task 43 complete.
-- Commit, push, open/merge the PR, and archive the Task 43 work-tracking folder after merge.
+- Task 43 PR #58 has been merged.
+- Work tracking is archived under `docs/ai/work-tracking/archive/20260508-task43-template-testing-framework-COMPLETED/`.
+- No active follow-up is required for Task 43.
+- Archived on 2026-05-08 19:38 CEST — Folder moved to archive and tracker marked COMPLETED.
