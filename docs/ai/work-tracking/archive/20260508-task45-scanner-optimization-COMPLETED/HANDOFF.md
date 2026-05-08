@@ -12,3 +12,4 @@
 ## Next Steps
 - Commit and push the Task 45 branch.
 - Open the PR, wait for checks, merge when green, then archive the Task 45 work-tracking folder on `main`.
+- Archived on 2026-05-08 20:18 CEST — Folder moved to archive and tracker marked COMPLETED.
