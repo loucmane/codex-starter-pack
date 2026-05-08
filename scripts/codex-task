@@ -60,6 +60,7 @@ PRE_COMMIT_INSTALL_COMMAND = ".venv/bin/pre-commit install"
 PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
 PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
 PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
+COMPACTION_HISTORY_PATH = REPO_STRUCTURE.plan_state_dir / "compaction-history.jsonl"
 PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 PLAN_STATUS_COMPLETE = {"completed", "done"}
 PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
@@ -2239,6 +2240,219 @@ def handle_rollback_plan(args: argparse.Namespace) -> None:
     print(rendered, end="")
 
 
+def _resolve_current_plan_path() -> Path:
+    if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
+        raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
+    plan_path = PLAN_CURRENT.resolve()
+    if not plan_path.exists():
+        raise TaskError(f"{PLANS_CURRENT_REL} target missing: {plan_path}")
+    return plan_path
+
+
+def _compaction_memory_name(task_id: str, slug: str, created_at: datetime) -> str:
+    return f"compaction_{created_at.strftime('%Y-%m-%d')}_task{task_id}_{_slugify(slug).replace('-', '_')}"
+
+
+def _compaction_resume_markdown(manifest: Dict[str, Any]) -> str:
+    paths = manifest.get("paths", {})
+    git_info = manifest.get("git", {})
+    return "\n".join(
+        [
+            f"# Compaction Checkpoint - Task {manifest.get('task_id')} {manifest.get('slug')}",
+            "",
+            "## Current State",
+            f"- Created at: {manifest.get('created_at')}",
+            f"- Branch: {git_info.get('branch')}",
+            f"- HEAD: {git_info.get('head')}",
+            f"- Summary: {manifest.get('summary')}",
+            f"- Next step: {manifest.get('next_step')}",
+            "",
+            "## Resume Instruction",
+            "Continue from this compaction checkpoint.",
+            f"Read `{paths.get('session')}`, `{paths.get('plan')}`, `{paths.get('tracker')}`, and Serena memory `{paths.get('memory_name')}`.",
+            f"Resume Task {manifest.get('task_id')} at: {manifest.get('next_step')}",
+            "",
+            "## Evidence",
+            f"- Manifest: `{paths.get('manifest')}`",
+            f"- Resume message: `{paths.get('resume')}`",
+            f"- Serena memory file: `{paths.get('memory_file')}`",
+            f"- Active work tracking: `{paths.get('work_tracking')}`",
+            "",
+            "## Important",
+            "- This is a compaction checkpoint, not a session end.",
+            "- Do not archive work tracking.",
+            "- Do not clear `sessions/current` or `plans/current`.",
+            "- Continue with the same session and task state after context resumes.",
+            "",
+        ]
+    )
+
+
+def _compaction_memory_markdown(manifest: Dict[str, Any]) -> str:
+    paths = manifest.get("paths", {})
+    return "\n".join(
+        [
+            f"# Compaction Checkpoint: Task {manifest.get('task_id')} {manifest.get('slug')}",
+            "",
+            "## Exact State",
+            f"- Created at: {manifest.get('created_at')}",
+            f"- Branch: {manifest.get('git', {}).get('branch')}",
+            f"- HEAD: {manifest.get('git', {}).get('head')}",
+            f"- Summary: {manifest.get('summary')}",
+            f"- Next step: {manifest.get('next_step')}",
+            "",
+            "## Files To Read On Resume",
+            f"- Session: `{paths.get('session')}`",
+            f"- Plan: `{paths.get('plan')}`",
+            f"- Tracker: `{paths.get('tracker')}`",
+            f"- Manifest: `{paths.get('manifest')}`",
+            f"- Resume message: `{paths.get('resume')}`",
+            "",
+            "## Last Completed",
+            *[f"- {item}" for item in manifest.get("last_completed", [])],
+            "",
+            "## Open Items",
+            *[f"- {item}" for item in manifest.get("open_items", [])],
+            "",
+            "## Resume Instructions",
+            "1. Confirm date, branch, and git status.",
+            f"2. Read `{paths.get('session')}` and `{paths.get('plan')}`.",
+            f"3. Read `{paths.get('tracker')}` and this memory.",
+            f"4. Continue Task {manifest.get('task_id')} at: {manifest.get('next_step')}",
+            "",
+        ]
+    )
+
+
+def _append_compaction_handoff(work_folder: Path, manifest: Dict[str, Any], session_value: str, work: str) -> None:
+    handoff_path = work_folder / "HANDOFF.md"
+    if not handoff_path.exists():
+        handoff_path.write_text(
+            f"# Task {manifest.get('task_id')} {manifest.get('slug')} - Handoff Summary\n\n",
+            encoding="utf-8",
+        )
+    lines = _load_file_lines(handoff_path)
+    heading = "## Compaction Checkpoints"
+    if heading not in (line.strip() for line in lines):
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.extend([heading, ""])
+    swhe = (
+        f"[S:{session_value}|W:{work}|H:scripts/codex-task:compaction-checkpoint|"
+        f"E:{manifest['paths']['manifest']}]"
+    )
+    lines = _insert_progress_entry(
+        lines,
+        heading,
+        f"- {manifest.get('created_at')} — {swhe} Resume at: {manifest.get('next_step')}",
+    )
+    _write_file_lines(handoff_path, lines)
+
+
+def handle_compaction_checkpoint(args: argparse.Namespace) -> None:
+    session_path = _resolve_current_session(args.session_file)
+    plan_path = _resolve_current_plan_path()
+    work_folder = _resolve_active_work_tracking(args.folder)
+    tracker_path = work_folder / "TRACKER.md"
+    if not tracker_path.exists():
+        raise TaskError(f"Active tracker missing: {_relative_to_root(tracker_path, REPO_ROOT)}")
+
+    created_at = datetime.now().astimezone()
+    task_id = str(args.task).strip()
+    slug = _slugify(args.slug or f"task{task_id}-compaction")
+    checkpoint_id = f"{created_at.strftime('%Y%m%d-%H%M%S')}-task{task_id}-{slug}"
+    report_dir = Path(args.report_dir) if args.report_dir else work_folder / "reports" / "compaction-checkpoints"
+    if not report_dir.is_absolute():
+        report_dir = REPO_ROOT / report_dir
+    manifest_path = report_dir / f"{checkpoint_id}.json"
+    resume_path = report_dir / f"{checkpoint_id}-resume.md"
+    memory_name = args.memory_name or _compaction_memory_name(task_id, slug, created_at)
+    memory_file = REPO_ROOT / ".serena" / "memories" / f"{memory_name}.md"
+    work = args.work or f"task{task_id}-{slug}"
+
+    manifest: Dict[str, Any] = {
+        "version": 1,
+        "kind": "compaction-checkpoint",
+        "created_at": created_at.isoformat(timespec="seconds"),
+        "task_id": task_id,
+        "slug": slug,
+        "summary": args.summary,
+        "next_step": args.next_step,
+        "last_completed": tuple(args.last_completed or ()),
+        "open_items": tuple(args.open_item or ()),
+        "git": {
+            "branch": _git_output(["branch", "--show-current"]),
+            "head": _git_output(["rev-parse", "HEAD"]),
+            "status": _git_status_snapshot(),
+        },
+        "workflow": _workflow_snapshot(),
+        "taskmaster": _taskmaster_snapshot(),
+        "serena": _serena_memory_snapshot(),
+        "paths": {
+            "manifest": _relative_to_root(manifest_path, REPO_ROOT),
+            "resume": _relative_to_root(resume_path, REPO_ROOT),
+            "memory_name": memory_name,
+            "memory_file": _relative_to_root(memory_file, REPO_ROOT),
+            "session": _relative_to_root(session_path, REPO_ROOT),
+            "plan": _relative_to_root(plan_path, REPO_ROOT),
+            "tracker": _relative_to_root(tracker_path, REPO_ROOT),
+            "work_tracking": _relative_to_root(work_folder, REPO_ROOT),
+        },
+    }
+    rendered_manifest = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    rendered_resume = _compaction_resume_markdown(manifest)
+    rendered_memory = _compaction_memory_markdown(manifest)
+
+    if args.dry_run:
+        print(rendered_resume, end="")
+        return
+
+    report_dir.mkdir(parents=True, exist_ok=True)
+    memory_file.parent.mkdir(parents=True, exist_ok=True)
+    PLAN_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(rendered_manifest, encoding="utf-8")
+    resume_path.write_text(rendered_resume, encoding="utf-8")
+    memory_file.write_text(rendered_memory, encoding="utf-8")
+    with COMPACTION_HISTORY_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "created_at": manifest["created_at"],
+                    "task_id": task_id,
+                    "slug": slug,
+                    "manifest": manifest["paths"]["manifest"],
+                    "resume": manifest["paths"]["resume"],
+                    "memory_name": memory_name,
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+    metadata = _parse_front_matter(session_path)
+    session_value = args.session or _derive_session_value(metadata)
+    session_entry = (
+        f"- **[{created_at.strftime(DEFAULT_TIME_FORMAT_SESSION)}]** — "
+        f"[S:{session_value}|W:{work}|H:scripts/codex-task:compaction-checkpoint|E:{manifest['paths']['manifest']}] "
+        f"Created compaction checkpoint `{memory_name}`; resume at: {args.next_step}"
+    )
+    tracker_entry = (
+        f"- **{created_at.strftime(DEFAULT_TIME_FORMAT_TRACKER)}** — "
+        f"[S:{session_value}|W:{work}|H:scripts/codex-task:compaction-checkpoint|E:{manifest['paths']['manifest']}] "
+        f"Created compaction checkpoint `{memory_name}`; resume at: {args.next_step}"
+    )
+    session_lines = _insert_progress_entry(_load_file_lines(session_path), PROGRESS_HEADING_SESSION, session_entry)
+    tracker_lines = _insert_progress_entry(_load_file_lines(tracker_path), PROGRESS_HEADING_TRACKER, tracker_entry)
+    _write_file_lines(session_path, session_lines)
+    _write_file_lines(tracker_path, tracker_lines)
+    _append_compaction_handoff(work_folder, manifest, session_value, work)
+
+    print(f"Wrote compaction checkpoint manifest to {manifest['paths']['manifest']}")
+    print(f"Wrote compaction resume message to {manifest['paths']['resume']}")
+    print(f"Wrote compaction Serena memory file to {manifest['paths']['memory_file']}")
+    print(f"Updated compaction history: {_relative_to_root(COMPACTION_HISTORY_PATH, REPO_ROOT)}")
+
+
 def _load_json_document(path_value: str, label: str) -> Dict[str, Any]:
     path = Path(path_value)
     if not path.is_absolute():
@@ -3046,6 +3260,27 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_plan.add_argument("--snapshot", required=True, help="Checkpoint JSON produced by rollback checkpoint")
     rollback_plan.add_argument("--report-file", help="Optional path to write the rendered recovery plan")
     rollback_plan.set_defaults(func=handle_rollback_plan)
+
+    compaction_parser = subparsers.add_parser("compaction", help="Context compaction checkpoint operations")
+    compaction_sub = compaction_parser.add_subparsers(dest="subcommand", required=True)
+    compaction_checkpoint = compaction_sub.add_parser(
+        "checkpoint",
+        help="Create a continuation checkpoint before context compaction",
+    )
+    compaction_checkpoint.add_argument("--task", required=True, help="Task ID for the active work")
+    compaction_checkpoint.add_argument("--slug", required=True, help="Slug for checkpoint filenames and memory name")
+    compaction_checkpoint.add_argument("--summary", required=True, help="One-line summary of current work state")
+    compaction_checkpoint.add_argument("--next-step", required=True, help="Exact next step after compaction")
+    compaction_checkpoint.add_argument("--last-completed", action="append", help="Completed item to include in memory (repeatable)")
+    compaction_checkpoint.add_argument("--open-item", action="append", help="Open item to include in memory (repeatable)")
+    compaction_checkpoint.add_argument("--report-dir", help="Directory for manifest and resume files")
+    compaction_checkpoint.add_argument("--memory-name", help="Override Serena memory name without .md suffix")
+    compaction_checkpoint.add_argument("--folder", help="Specific ACTIVE work-tracking folder relative name")
+    compaction_checkpoint.add_argument("--session-file", help="Current session file to use instead of sessions/current")
+    compaction_checkpoint.add_argument("--session", help="S field override for S:W:H:E entries")
+    compaction_checkpoint.add_argument("--work", help="W field value; defaults to task<id>-<slug>")
+    compaction_checkpoint.add_argument("--dry-run", action="store_true", help="Print the resume message without writing files")
+    compaction_checkpoint.set_defaults(func=handle_compaction_checkpoint)
 
     rehearsal_parser = subparsers.add_parser("rehearsal", help="Migration rehearsal planning operations")
     rehearsal_sub = rehearsal_parser.add_subparsers(dest="subcommand", required=True)

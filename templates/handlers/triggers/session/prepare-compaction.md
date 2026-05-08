@@ -48,72 +48,46 @@ priority: high
    - Save all files with pending changes
    - Run any partial tests if applicable
 
-3. **Update current session via session-resolver**:
-   ```markdown
-   ### ⚠️ Compaction Checkpoint: [HH:MM ZONE]
-   
-   **Context Status**: [X]% used, preparing for new chat
-   **Current Work**: [specific task/subtask being worked on]
-   **Stopping Point**: [exact location in work]
-   
-   **State Saved**:
-   - Last action: [what was just completed]
-   - Next action: [what to do when resuming]
-   - Open files: [list any files being edited]
-   - Active thoughts: [any incomplete reasoning]
+3. **Create continuation checkpoint**:
+   ```bash
+   python3 scripts/codex-task compaction checkpoint \
+     --task <id> \
+     --slug <task-slug> \
+     --summary "<one-line current work state>" \
+     --next-step "<exact next action after compaction>" \
+     --last-completed "<completed item>" \
+     --open-item "<remaining item>"
    ```
+
+   The helper appends the active session and tracker entries, writes the manifest and resume message, creates the compaction Serena memory file, updates the handoff note, and records `.plan_state/compaction-history.jsonl`.
 
 4. **Update TodoWrite if active**:
    - Mark current task as in_progress with note
    - Add checkpoint comment to current todo
    - Save exact subtask position
 
-5. **Create checkpoint memory**:
-   ```bash
-   # Create checkpoint file
-   Write .serena/memories/checkpoint_YYYY-MM-DD_HH-MM_description.md
-   ```
-   With content:
-   ```markdown
-   # Compaction Checkpoint: [Description]
-   
-   ## Exact State
-   - Working on: [specific task with ID]
-   - File: [current file and line number]
-   - Operation: [what was being done]
-   
-   ## Context to Restore
-   - Approach: [current solution approach]
-   - Decisions: [recent decisions made]
-   - Blockers: [any current issues]
-   
-   ## Resume Instructions
-   1. Load this checkpoint
-   2. Read current session
-   3. Continue from: [exact point]
-   ```
-
-6. **Generate continuation message**:
+5. **Review generated continuation message**:
    ```markdown
    ## 🔄 Ready for Compaction
    
-   **To continue in new chat, use**:
+   **To continue in new chat, use the generated resume message**:
    ```
-   Continue from checkpoint_YYYY-MM-DD_HH-MM_description. 
-   Read sessions/current and resume [specific task] at [exact point].
+   Continue from compaction checkpoint [memory-name].
+   Read sessions/current, plans/current, the tracker, and the generated resume message.
+   Resume [specific task] at [exact point].
    ```
    
    **Current state preserved**:
    ✓ All work saved to disk
-   ✓ Session updated with checkpoint
-   ✓ Todo position marked
-   ✓ Memory checkpoint created
+   ✓ Session and tracker updated with checkpoint
+   ✓ Handoff position marked
+   ✓ Manifest, resume message, memory file, and history entry created
    
    **I was working on**: [one-line summary]
    **Next step will be**: [specific next action]
    ```
 
-7. **Do NOT**:
+6. **Do NOT**:
    - End the session
    - Archive anything
    - Clear symlinks
@@ -137,3 +111,4 @@ priority: high
 ## Progress Log
 
 - **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/prepare-compaction.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice
+- **2026-05-08 15:03** — [S:20260508|W:task31-compaction-protocol|H:templates/handlers/triggers/session/prepare-compaction.md|E:docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE/designs/compaction-protocol-scope-reconciliation.md] Made `codex-task compaction checkpoint` the canonical handler action so compaction state is captured by a repeatable helper.

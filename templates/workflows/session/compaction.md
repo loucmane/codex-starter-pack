@@ -33,18 +33,23 @@ Context compaction occurs when the conversation becomes too long. The AI needs t
    - Don't leave anything half-done
    - Save all work to disk
 
-2. **Update sessions/**
-   ```markdown
-   ### 📝 Progress Log
-   - **[HH:MM]** - ⚠️ Context approaching limit, preparing for compaction
-   - **[HH:MM]** - Completing current subtask before handoff
-   - **[HH:MM]** - All work saved, ready for new context
+2. **Create Continuation Checkpoint**
+   ```bash
+   python3 scripts/codex-task compaction checkpoint \
+     --task <id> \
+     --slug <task-slug> \
+     --summary "<one-line current state>" \
+     --next-step "<exact next action after compaction>" \
+     --last-completed "<completed item>" \
+     --open-item "<remaining item>"
    ```
 
-3. **Create Checkpoint**
-   - Run all tests to verify current state
-   - Document exact stopping point
-   - Note any in-progress thoughts/plans
+   The helper writes the checkpoint manifest, resume message, Serena memory file, `.plan_state/compaction-history.jsonl`, active session entry, tracker entry, and handoff note. It requires `sessions/current`, `plans/current`, and exactly one ACTIVE work-tracking folder unless a specific folder is supplied.
+
+3. **Review Resume Packet**
+   - Confirm the resume message names the exact next action.
+   - Confirm the active session, plan, tracker, and work-tracking folder remain active.
+   - Do not archive work tracking, clear symlinks, or end the session.
 
 ## During Compaction
 
@@ -65,10 +70,11 @@ Context compaction occurs when the conversation becomes too long. The AI needs t
    ```
 
 2. **Read Critical Files**
-   - sessions/ (ENTIRE file)
-   - Current work tracker (if exists)
-   - Most recent Serena memory
-   - Current todo list state
+   - `sessions/current` target
+   - `plans/current` target
+   - Current work tracker
+   - Compaction resume message and manifest from the active work-tracking reports
+   - Compaction Serena memory named by the resume message
 
 3. **Reconstruct Context**
    ```
@@ -119,6 +125,7 @@ Context compaction occurs when the conversation becomes too long. The AI needs t
 ### For AI
 - Always finish current operation
 - Document stopping point explicitly
+- Use `python3 scripts/codex-task compaction checkpoint ...`; do not manually assemble checkpoint files unless the helper is unavailable and the failure is documented
 - Verify restoration before proceeding
 
 ## Example Compaction Flow
@@ -130,11 +137,10 @@ User: "Context is getting long, let me compact"
 AI: "I'll prepare for compaction:
     1. Completing current subtask (implementing auth)
     2. Running tests... ✅ passing
-    3. Updating sessions/ with checkpoint
-    4. Saving todo state
+    3. Running codex-task compaction checkpoint
+    4. Reviewing the generated resume message
     
-    Ready for new context. Start next chat with:
-    'Continue task 7 from subtask 7.4, sessions/ shows status'"
+    Ready for new context. Start next chat with the generated resume message."
 
 [New Context]
 User: "Continue task 7 from subtask 7.4, sessions/ shows status"
@@ -157,9 +163,15 @@ AI: [Reads sessions/]
 ## Recovery Checklist
 
 - [ ] Read sessions/ completely
+- [ ] Read plans/current
+- [ ] Read generated compaction resume message and manifest
 - [ ] Check git status and branch
-- [ ] Review current todos
+- [ ] Review current work tracker
 - [ ] Verify last completed work
 - [ ] Identify exact continuation point
 - [ ] Confirm understanding with user
 - [ ] Resume from correct point
+
+## Progress Log
+
+- **2026-05-08 15:03** — [S:20260508|W:task31-compaction-protocol|H:templates/workflows/session/compaction.md|E:docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE/designs/compaction-protocol-scope-reconciliation.md] Documented `codex-task compaction checkpoint` as the canonical continuation checkpoint workflow for Task 31.
