@@ -1,7 +1,7 @@
 # Task 29 Create Template Lifecycle Management Tracker
 
 **Started**: 2026-05-08
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-08
 
 ## Goals
@@ -21,6 +21,8 @@
 - **2026-05-08 16:23** — [S:20260508|W:task29-template-lifecycle-management|H:serena/memory|E:.serena/memories/2026-05-08_task29_template_lifecycle_management.md] Captured Task 29 lifecycle policy, audit helper, implementation surfaces, and evidence context in Serena memory.
 - **2026-05-08 16:25** — [S:20260508|W:task29-template-lifecycle-management|H:taskmaster/status|E:.taskmaster/tasks/task_029.txt] Marked Taskmaster subtask 29.2 and parent Task 29 done; refreshed only Task 29 generated file.
 - **2026-05-08 16:29** — [S:20260508|W:task29-template-lifecycle-management|H:evidence/final|E:docs/ai/work-tracking/active/20260508-task29-template-lifecycle-management-ACTIVE/reports/template-lifecycle-management/guard-2026-05-08.txt] Finalized Task 29 documentation and prepared final guard, audit, plan-sync, health, and diff-check reruns.
+- **2026-05-08 16:37** — [S:20260508|W:task29-template-lifecycle-management|H:github/pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/53] Merged Task 29 PR #53 after green GitHub checks.
+- **2026-05-08 16:37** — [S:20260508|W:task29-template-lifecycle-management|H:work-tracking/archive|E:docs/ai/work-tracking/archive/20260508-task29-template-lifecycle-management-COMPLETED/TRACKER.md] Archived Task 29 work tracking and cleared current session/plan pointers for between-session state.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -29,5 +31,5 @@
 - [ ] plan-step-emergency — Not applicable
 
 ## Dependencies & Notes
-- Session log: sessions/current
-- Taskmaster Task 29 and subtask 29.2 are done; archive the ACTIVE folder only after the PR is merged.
+- Session log: `sessions/2026/05/2026-05-08-008-task29-template-lifecycle-management.md`
+- Taskmaster Task 29 and subtask 29.2 are done; PR #53 is merged and this folder is archived.
