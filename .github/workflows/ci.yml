@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python tests (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install project and test dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 - <<'PY' > /tmp/codex-ci-dependencies.txt
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          dependencies = list(data["project"]["dependencies"])
+          dependencies.extend(data.get("dependency-groups", {}).get("dev", []))
+          print("\n".join(dependencies))
+          PY
+          python3 -m pip install -r /tmp/codex-ci-dependencies.txt
+
+      - name: Run Taskmaster health
+        run: python3 scripts/codex-task taskmaster health
+
+      - name: Run pytest
+        run: |
+          mkdir -p reports/ci
+          set -o pipefail
+          PYTHONDONTWRITEBYTECODE=1 python3 -m pytest | tee "reports/ci/pytest-python-${{ matrix.python-version }}.txt"
+
+      - name: Upload pytest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-pytest-python-${{ matrix.python-version }}
+          path: reports/ci/
