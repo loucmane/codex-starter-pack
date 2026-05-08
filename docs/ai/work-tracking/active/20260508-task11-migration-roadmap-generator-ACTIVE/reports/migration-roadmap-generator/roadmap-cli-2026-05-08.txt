@@ -1,0 +1,7 @@
+Migration roadmap JSON saved to: docs/ai/work-tracking/active/20260508-task11-migration-roadmap-generator-ACTIVE/reports/migration-roadmap-generator/migration-roadmap-2026-05-08.json
+Migration roadmap markdown saved to: docs/ai/work-tracking/active/20260508-task11-migration-roadmap-generator-ACTIVE/reports/migration-roadmap-generator/migration-roadmap-2026-05-08.md
+Roadmap items: 83
+  critical: 63
+  high: 16
+  medium: 3
+  low: 1
