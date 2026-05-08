@@ -253,6 +253,32 @@ def test_build_parser_accepts_rehearsal_plan() -> None:
     assert args.max_items == 3
 
 
+def test_build_parser_accepts_sync_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "sync",
+        "plan",
+        "--source-dir",
+        "/tmp/source-repo",
+        "--target-dir",
+        "/tmp/target-repo",
+        "--label",
+        "foundation-sync",
+        "--report-file",
+        "reports/sync.json",
+        "--runbook-file",
+        "reports/sync.md",
+    ])
+    assert args.command == "sync"
+    assert args.subcommand == "plan"
+    assert args.source_dir == "/tmp/source-repo"
+    assert args.target_dir == "/tmp/target-repo"
+    assert args.label == "foundation-sync"
+    assert args.report_file == "reports/sync.json"
+    assert args.runbook_file == "reports/sync.md"
+
+
 def _write_rollback_test_repo(module, monkeypatch, tmp_path) -> Path:
     repo = tmp_path
     sessions_dir = repo / "sessions"
@@ -500,6 +526,99 @@ def test_handle_rehearsal_plan_writes_manifest_and_runbook(monkeypatch, tmp_path
     assert "Repair broken reference" in runbook_text
     assert "No rehearsal commands were executed by this plan." in runbook_text
     assert "git reset --hard" not in runbook_text
+
+
+SYNC_TEST_ASSET_PATHS = [
+    ".codex/config.toml",
+    "templates/metadata/template-metadata-policy.json",
+    "templates/engine/core/portable-foundation-spec.md",
+    "templates/engine/validation/foundation-adoption-guide.md",
+    "scripts/_repo_structure.py",
+    "scripts/codex-guard",
+    "scripts/codex-task",
+    "scripts/template-metrics-dashboard",
+]
+
+
+def _write_sync_test_assets(root: Path, marker: str) -> None:
+    for relative in SYNC_TEST_ASSET_PATHS:
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if relative == ".codex/config.toml":
+            path.write_text(
+                "[repo_structure]\n"
+                'templates_root = "templates"\n'
+                'sessions_root = "sessions"\n'
+                'plans_root = "plans"\n'
+                'plan_state_dir = ".plan_state"\n'
+                'taskmaster_root = ".taskmaster"\n'
+                'work_tracking_root = "docs/ai/work-tracking"\n'
+                'reports_root = "reports"\n',
+                encoding="utf-8",
+            )
+        else:
+            path.write_text(f"{marker}: {relative}\n", encoding="utf-8")
+
+
+def _file_snapshot(root: Path) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): path.read_text(encoding="utf-8")
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def test_handle_sync_plan_reports_review_queue_without_mutating_repos(tmp_path) -> None:
+    module = load_task_module()
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    _write_sync_test_assets(source, "source")
+    _write_sync_test_assets(target, "source")
+
+    (target / "templates" / "metadata" / "template-metadata-policy.json").unlink()
+    (target / "scripts" / "codex-task").write_text("target-local codex-task\n", encoding="utf-8")
+
+    before_source = _file_snapshot(source)
+    before_target = _file_snapshot(target)
+    report = tmp_path / "reports" / "sync-plan.json"
+    runbook = tmp_path / "reports" / "sync-runbook.md"
+
+    args = argparse.Namespace(
+        source_dir=str(source),
+        target_dir=str(target),
+        label="fixture-sync",
+        report_file=str(report),
+        runbook_file=str(runbook),
+        dry_run=False,
+    )
+
+    module.handle_sync_plan(args)
+
+    assert _file_snapshot(source) == before_source
+    assert _file_snapshot(target) == before_target
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["version"] == 1
+    assert payload["label"] == "fixture-sync"
+    assert payload["mode"] == "non-destructive-cross-repo-sync-plan"
+    assert payload["executes_mutations"] is False
+    assert payload["asset_count"] == len(SYNC_TEST_ASSET_PATHS)
+    assert payload["source"]["git"]["inside_work_tree"] is False
+    assert payload["target"]["git"]["inside_work_tree"] is False
+    statuses = {asset["id"]: asset["status"] for asset in payload["assets"]}
+    assert statuses["codex-config"] == "identical"
+    assert statuses["metadata-policy"] == "missing"
+    assert statuses["codex-task"] == "different"
+    queue = {item["asset_id"]: item for item in payload["manual_review_queue"]}
+    assert queue["metadata-policy"]["action"] == "copy-from-source"
+    assert queue["codex-task"]["action"] == "review-update"
+    assert "No branches, commits, pushes, or pull requests are created." in payload["non_goals"]
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Cross-Repository Sync Runbook" in runbook_text
+    assert "Template metadata policy" in runbook_text
+    assert "Codex task helper" in runbook_text
+    assert "No sync commands were executed by this plan." in runbook_text
 
 
 def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:

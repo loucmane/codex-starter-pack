@@ -2215,6 +2215,335 @@ def handle_rehearsal_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
+    {
+        "id": "codex-config",
+        "title": "Codex configuration",
+        "category": "repo-config",
+        "path_kind": "fixed",
+        "path": ".codex/config.toml",
+        "rationale": "Repo-local configuration and repo-structure roots.",
+    },
+    {
+        "id": "metadata-policy",
+        "title": "Template metadata policy",
+        "category": "metadata",
+        "path_kind": "repo-structure",
+        "path": "template_metadata_policy_path",
+        "rationale": "Repo-local metadata policy consumed by drift detection.",
+    },
+    {
+        "id": "portable-foundation-spec",
+        "title": "Portable foundation specification",
+        "category": "canonical-doc",
+        "path_kind": "templates-root",
+        "path": "engine/core/portable-foundation-spec.md",
+        "rationale": "Canonical portability contract for the foundation.",
+    },
+    {
+        "id": "foundation-adoption-guide",
+        "title": "Foundation adoption guide",
+        "category": "canonical-doc",
+        "path_kind": "templates-root",
+        "path": "engine/validation/foundation-adoption-guide.md",
+        "rationale": "Canonical rollout guide for new and existing repositories.",
+    },
+    {
+        "id": "repo-structure-loader",
+        "title": "Repo-structure loader",
+        "category": "script",
+        "path_kind": "fixed",
+        "path": "scripts/_repo_structure.py",
+        "rationale": "Shared loader that keeps helpers path-configurable.",
+    },
+    {
+        "id": "codex-guard",
+        "title": "Codex guard",
+        "category": "script",
+        "path_kind": "fixed",
+        "path": "scripts/codex-guard",
+        "rationale": "Guard and drift enforcement entrypoint.",
+    },
+    {
+        "id": "codex-task",
+        "title": "Codex task helper",
+        "category": "script",
+        "path_kind": "fixed",
+        "path": "scripts/codex-task",
+        "rationale": "Session, work-tracking, bootstrap, report, and sync helper entrypoint.",
+    },
+    {
+        "id": "template-metrics-dashboard",
+        "title": "Template metrics dashboard",
+        "category": "script",
+        "path_kind": "fixed",
+        "path": "scripts/template-metrics-dashboard",
+        "rationale": "Optional reporting layer that follows configured roots.",
+    },
+)
+
+
+def _resolve_repo_directory(raw_value: str, label: str) -> Path:
+    path = Path(raw_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    path = path.resolve()
+    if not path.exists():
+        raise TaskError(f"{label} not found: {_relative_to_root(path, REPO_ROOT)}")
+    if not path.is_dir():
+        raise TaskError(f"{label} is not a directory: {_relative_to_root(path, REPO_ROOT)}")
+    return path
+
+
+def _sync_asset_path(repo_dir: Path, structure: RepoStructure, spec: Dict[str, str]) -> Path:
+    path_kind = spec["path_kind"]
+    if path_kind == "fixed":
+        return repo_dir / spec["path"]
+    if path_kind == "repo-structure":
+        value = getattr(structure, spec["path"])
+        if not isinstance(value, Path):
+            raise TaskError(f"Unsupported repo-structure asset path: {spec['path']}")
+        return value
+    if path_kind == "templates-root":
+        return structure.templates_root / spec["path"]
+    raise TaskError(f"Unsupported sync asset path kind: {path_kind}")
+
+
+def _git_output_in_repo(repo_dir: Path, args: List[str]) -> Optional[str]:
+    result = subprocess.run(
+        ["git", "-C", str(repo_dir), *args],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.rstrip("\n")
+
+
+def _git_status_snapshot_for_repo(repo_dir: Path) -> List[Dict[str, str]]:
+    output = _git_output_in_repo(repo_dir, ["status", "--short"]) or ""
+    entries: List[Dict[str, str]] = []
+    for raw in output.splitlines():
+        if not raw:
+            continue
+        path_text = raw[3:].strip()
+        if " -> " in path_text:
+            path_text = path_text.rsplit(" -> ", 1)[1]
+        entries.append({"status": raw[:2], "path": path_text.strip('"')})
+    return entries
+
+
+def _git_snapshot_for_repo(repo_dir: Path) -> Dict[str, Any]:
+    inside_work_tree = _git_output_in_repo(repo_dir, ["rev-parse", "--is-inside-work-tree"])
+    if inside_work_tree != "true":
+        return {
+            "path": _relative_to_root(repo_dir, REPO_ROOT),
+            "inside_work_tree": False,
+            "branch": None,
+            "head": None,
+            "status": [],
+        }
+    return {
+        "path": _relative_to_root(repo_dir, REPO_ROOT),
+        "inside_work_tree": True,
+        "branch": _git_output_in_repo(repo_dir, ["branch", "--show-current"]),
+        "head": _git_output_in_repo(repo_dir, ["rev-parse", "HEAD"]),
+        "status": _git_status_snapshot_for_repo(repo_dir),
+    }
+
+
+def _sync_asset_status(source_path: Path, target_path: Path) -> Tuple[str, str, str]:
+    source_exists = source_path.exists() and source_path.is_file()
+    target_exists = target_path.exists() and target_path.is_file()
+    if not source_exists:
+        return "source-missing", "review-source", "Source foundation asset is missing."
+    if not target_exists:
+        return "missing", "copy-from-source", "Target foundation asset is missing."
+    if _file_sha256(source_path) == _file_sha256(target_path):
+        return "identical", "none", "Source and target asset hashes match."
+    return "different", "review-update", "Target asset differs from source."
+
+
+def _sync_asset_record(
+    source_dir: Path,
+    target_dir: Path,
+    source_structure: RepoStructure,
+    target_structure: RepoStructure,
+    spec: Dict[str, str],
+) -> Dict[str, Any]:
+    source_path = _sync_asset_path(source_dir, source_structure, spec)
+    target_path = _sync_asset_path(target_dir, target_structure, spec)
+    status, action, reason = _sync_asset_status(source_path, target_path)
+    return {
+        "id": spec["id"],
+        "title": spec["title"],
+        "category": spec["category"],
+        "rationale": spec["rationale"],
+        "source_path": _relative_to_root(source_path, source_dir),
+        "target_path": _relative_to_root(target_path, target_dir),
+        "source_exists": source_path.exists() and source_path.is_file(),
+        "target_exists": target_path.exists() and target_path.is_file(),
+        "source_sha256": _file_sha256(source_path),
+        "target_sha256": _file_sha256(target_path),
+        "status": status,
+        "action": action,
+        "reason": reason,
+    }
+
+
+def _manual_review_queue_from_assets(assets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    queue = []
+    for asset in assets:
+        if asset["status"] == "identical":
+            continue
+        queue.append(
+            {
+                "asset_id": asset["id"],
+                "title": asset["title"],
+                "status": asset["status"],
+                "action": asset["action"],
+                "source_path": asset["source_path"],
+                "target_path": asset["target_path"],
+                "reason": asset["reason"],
+            }
+        )
+    return queue
+
+
+def _sync_recommended_verification_commands() -> List[str]:
+    return [
+        "python3 scripts/codex-task bootstrap init --target-dir <target-repo>",
+        "python3 scripts/codex-guard drift-check --strict",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+    ]
+
+
+def _build_cross_repository_sync_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    source_dir = _resolve_repo_directory(args.source_dir, "Source repository")
+    target_dir = _resolve_repo_directory(args.target_dir, "Target repository")
+    source_structure = load_repo_structure(source_dir)
+    target_structure = load_repo_structure(target_dir)
+    assets = [
+        _sync_asset_record(source_dir, target_dir, source_structure, target_structure, spec)
+        for spec in SYNC_FOUNDATION_ASSETS
+    ]
+    counts: Dict[str, int] = {}
+    for asset in assets:
+        status = str(asset["status"])
+        counts[status] = counts.get(status, 0) + 1
+    manual_review_queue = _manual_review_queue_from_assets(assets)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "non-destructive-cross-repo-sync-plan",
+        "executes_mutations": False,
+        "source": {
+            "path": _relative_to_root(source_dir, REPO_ROOT),
+            "git": _git_snapshot_for_repo(source_dir),
+        },
+        "target": {
+            "path": _relative_to_root(target_dir, REPO_ROOT),
+            "git": _git_snapshot_for_repo(target_dir),
+        },
+        "asset_count": len(assets),
+        "status_counts": counts,
+        "assets": assets,
+        "manual_review_queue": manual_review_queue,
+        "recommended_verification_commands": _sync_recommended_verification_commands(),
+        "non_goals": [
+            "No files are copied into the target repository.",
+            "No branches, commits, pushes, or pull requests are created.",
+            "No bidirectional sync is performed.",
+            "No dashboard or scheduled job is created.",
+            "No destructive Git commands are executed.",
+        ],
+    }
+
+
+def _render_cross_repository_sync_runbook(plan: Dict[str, Any]) -> str:
+    source = plan.get("source", {}) if isinstance(plan.get("source"), dict) else {}
+    target = plan.get("target", {}) if isinstance(plan.get("target"), dict) else {}
+    queue = plan.get("manual_review_queue") if isinstance(plan.get("manual_review_queue"), list) else []
+    counts = plan.get("status_counts") if isinstance(plan.get("status_counts"), dict) else {}
+    lines = [
+        "# Cross-Repository Sync Runbook",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes mutations: {plan.get('executes_mutations')}",
+        f"- Source: {source.get('path')}",
+        f"- Target: {target.get('path')}",
+        "",
+        "## Status Counts",
+        "",
+    ]
+    for status in ("identical", "different", "missing", "source-missing"):
+        lines.append(f"- {status}: {counts.get(status, 0)}")
+
+    lines.extend(["", "## Manual Review Queue", ""])
+    if queue:
+        lines.append("| Asset | Status | Action | Source | Target |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for item in queue:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"| {_md_cell(item.get('title'))} | {_md_cell(item.get('status'))} | "
+                f"{_md_cell(item.get('action'))} | {_md_cell(item.get('source_path'))} | "
+                f"{_md_cell(item.get('target_path'))} |"
+            )
+    else:
+        lines.append("- No manual review items. All compared foundation assets are identical.")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No sync commands were executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_sync_plan(args: argparse.Namespace) -> None:
+    plan = _build_cross_repository_sync_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_cross_repository_sync_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote cross-repository sync plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote cross-repository sync runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Codex task helper")
     parser.add_argument("--session", help="Override S field session value", default=None)
@@ -2342,6 +2671,16 @@ def build_parser() -> argparse.ArgumentParser:
     rehearsal_plan.add_argument("--runbook-file", help="Optional path to write the rehearsal runbook markdown")
     rehearsal_plan.add_argument("--max-items", type=int, default=10, help="Number of roadmap items to include in the runbook")
     rehearsal_plan.set_defaults(func=handle_rehearsal_plan)
+
+    sync_parser = subparsers.add_parser("sync", help="Cross-repository foundation sync planning operations")
+    sync_sub = sync_parser.add_subparsers(dest="subcommand", required=True)
+    sync_plan = sync_sub.add_parser("plan", help="Compare portable foundation assets between source and target repositories")
+    sync_plan.add_argument("--source-dir", default=".", help="Source repository root (default: current repo)")
+    sync_plan.add_argument("--target-dir", required=True, help="Target repository root to compare against")
+    sync_plan.add_argument("--label", default="cross-repository-sync", help="Human-readable sync plan label")
+    sync_plan.add_argument("--report-file", help="Optional path to write the sync plan JSON")
+    sync_plan.add_argument("--runbook-file", help="Optional path to write the sync runbook markdown")
+    sync_plan.set_defaults(func=handle_sync_plan)
 
     bootstrap_parser = subparsers.add_parser("bootstrap", help="Portable foundation bootstrap operations")
     bootstrap_sub = bootstrap_parser.add_subparsers(dest="subcommand", required=True)

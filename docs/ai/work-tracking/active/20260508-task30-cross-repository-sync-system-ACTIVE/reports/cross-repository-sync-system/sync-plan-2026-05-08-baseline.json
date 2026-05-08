@@ -1,0 +1,250 @@
+{
+  "asset_count": 8,
+  "assets": [
+    {
+      "action": "none",
+      "category": "repo-config",
+      "id": "codex-config",
+      "rationale": "Repo-local configuration and repo-structure roots.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": ".codex/config.toml",
+      "source_sha256": "0dfbaaa0700d59f03bf265ea110fcd04814510bf89371f233cc10af21f2395d6",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": ".codex/config.toml",
+      "target_sha256": "0dfbaaa0700d59f03bf265ea110fcd04814510bf89371f233cc10af21f2395d6",
+      "title": "Codex configuration"
+    },
+    {
+      "action": "none",
+      "category": "metadata",
+      "id": "metadata-policy",
+      "rationale": "Repo-local metadata policy consumed by drift detection.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "templates/metadata/template-metadata-policy.json",
+      "source_sha256": "17ccc659370de83816305498ba7036cef1bc5e0335d8c546d06b5d907406ff3c",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "templates/metadata/template-metadata-policy.json",
+      "target_sha256": "17ccc659370de83816305498ba7036cef1bc5e0335d8c546d06b5d907406ff3c",
+      "title": "Template metadata policy"
+    },
+    {
+      "action": "none",
+      "category": "canonical-doc",
+      "id": "portable-foundation-spec",
+      "rationale": "Canonical portability contract for the foundation.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "templates/engine/core/portable-foundation-spec.md",
+      "source_sha256": "94de5eb45d7b8fd460331b1011feaabc9896a3b651a40e55263c43bd22b5abac",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "templates/engine/core/portable-foundation-spec.md",
+      "target_sha256": "94de5eb45d7b8fd460331b1011feaabc9896a3b651a40e55263c43bd22b5abac",
+      "title": "Portable foundation specification"
+    },
+    {
+      "action": "none",
+      "category": "canonical-doc",
+      "id": "foundation-adoption-guide",
+      "rationale": "Canonical rollout guide for new and existing repositories.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "templates/engine/validation/foundation-adoption-guide.md",
+      "source_sha256": "ee1c2f9decb48281a7ed8ad301f68270c6439d82a49aa370d08c9547f963d251",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "templates/engine/validation/foundation-adoption-guide.md",
+      "target_sha256": "ee1c2f9decb48281a7ed8ad301f68270c6439d82a49aa370d08c9547f963d251",
+      "title": "Foundation adoption guide"
+    },
+    {
+      "action": "none",
+      "category": "script",
+      "id": "repo-structure-loader",
+      "rationale": "Shared loader that keeps helpers path-configurable.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "scripts/_repo_structure.py",
+      "source_sha256": "6884ef44088e93691e7c4737596f3c446ca002684efc00113c7c0696fdf66bd4",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "scripts/_repo_structure.py",
+      "target_sha256": "6884ef44088e93691e7c4737596f3c446ca002684efc00113c7c0696fdf66bd4",
+      "title": "Repo-structure loader"
+    },
+    {
+      "action": "none",
+      "category": "script",
+      "id": "codex-guard",
+      "rationale": "Guard and drift enforcement entrypoint.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "scripts/codex-guard",
+      "source_sha256": "78719270745a4dee91c36291d495ef1e1575627564e073440ec57e75e440429c",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "scripts/codex-guard",
+      "target_sha256": "78719270745a4dee91c36291d495ef1e1575627564e073440ec57e75e440429c",
+      "title": "Codex guard"
+    },
+    {
+      "action": "none",
+      "category": "script",
+      "id": "codex-task",
+      "rationale": "Session, work-tracking, bootstrap, report, and sync helper entrypoint.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "scripts/codex-task",
+      "source_sha256": "50a26ef3abfec7f76b43d8028dd20d0cf442155eb04af0ee5082c9ccb35fbb48",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "scripts/codex-task",
+      "target_sha256": "50a26ef3abfec7f76b43d8028dd20d0cf442155eb04af0ee5082c9ccb35fbb48",
+      "title": "Codex task helper"
+    },
+    {
+      "action": "none",
+      "category": "script",
+      "id": "template-metrics-dashboard",
+      "rationale": "Optional reporting layer that follows configured roots.",
+      "reason": "Source and target asset hashes match.",
+      "source_exists": true,
+      "source_path": "scripts/template-metrics-dashboard",
+      "source_sha256": "d6de4153cbd2988d04e19e26f85b55a382e90c4474e878770b30043f3b8c77a1",
+      "status": "identical",
+      "target_exists": true,
+      "target_path": "scripts/template-metrics-dashboard",
+      "target_sha256": "d6de4153cbd2988d04e19e26f85b55a382e90c4474e878770b30043f3b8c77a1",
+      "title": "Template metrics dashboard"
+    }
+  ],
+  "created_at": "2026-05-08T12:52:37+02:00",
+  "executes_mutations": false,
+  "label": "task30-current-repo-baseline",
+  "manual_review_queue": [],
+  "mode": "non-destructive-cross-repo-sync-plan",
+  "non_goals": [
+    "No files are copied into the target repository.",
+    "No branches, commits, pushes, or pull requests are created.",
+    "No bidirectional sync is performed.",
+    "No dashboard or scheduled job is created.",
+    "No destructive Git commands are executed."
+  ],
+  "recommended_verification_commands": [
+    "python3 scripts/codex-task bootstrap init --target-dir <target-repo>",
+    "python3 scripts/codex-guard drift-check --strict",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "git diff --check"
+  ],
+  "source": {
+    "git": {
+      "branch": "feat/task-30-cross-repository-sync-system",
+      "head": "2870bc098133cc11689733105977d6c8fda07007",
+      "inside_work_tree": true,
+      "path": ".",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_030.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-08-task30-cross-repository-sync-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-08-003-task30-cross-repository-sync-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "path": "."
+  },
+  "status_counts": {
+    "identical": 8
+  },
+  "target": {
+    "git": {
+      "branch": "feat/task-30-cross-repository-sync-system",
+      "head": "2870bc098133cc11689733105977d6c8fda07007",
+      "inside_work_tree": true,
+      "path": ".",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_030.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-08-task30-cross-repository-sync-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-08-003-task30-cross-repository-sync-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "path": "."
+  },
+  "version": 1
+}
