@@ -1,0 +1,17 @@
+{
+  "path": "templates/example.md",
+  "previous_version": "1.2.3",
+  "current_version": "2.0.0",
+  "change_type": "major",
+  "compatible": false,
+  "migration_required": true,
+  "rollback_version": "1.2.3",
+  "ok": false,
+  "issues": [
+    {
+      "severity": "error",
+      "code": "migration_required",
+      "message": "Version change 1.2.3 -> 2.0.0 requires migration review"
+    }
+  ]
+}

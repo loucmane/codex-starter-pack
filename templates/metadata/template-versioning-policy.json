@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "description": "Portable template versioning policy. Repos can customize compatibility, migration, warning, and history-entry behavior without changing helper code.",
+  "compatible_changes": [
+    "same",
+    "patch",
+    "minor",
+    "release"
+  ],
+  "migration_required_changes": [
+    "major",
+    "downgrade"
+  ],
+  "warning_changes": [
+    "prerelease"
+  ],
+  "history": {
+    "schema": "template-version-history.v1",
+    "required_fields": [
+      "path",
+      "previous_version",
+      "current_version",
+      "change_type",
+      "changed_at"
+    ]
+  }
+}
