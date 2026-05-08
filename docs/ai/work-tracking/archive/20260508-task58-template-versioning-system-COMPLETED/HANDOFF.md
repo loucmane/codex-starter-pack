@@ -8,7 +8,10 @@
 - Focused pytest and full pytest are green with evidence under `reports/template-versioning-system/`.
 - Final plan sync, work-tracking audit, guard, diff-check, and Taskmaster health passed.
 - Taskmaster subtask 58.2 and parent Task 58 are done.
+- PR #60 was merged and this folder was archived to `docs/ai/work-tracking/archive/20260508-task58-template-versioning-system-COMPLETED/`.
+- Post-archive audit, guard, diff-check, and Taskmaster health evidence is stored under `reports/template-versioning-system/`.
 
 ## Next Steps
-- Commit and push `feat/task-58-template-versioning-system`.
-- Open PR, wait for green checks, merge, then archive the active work-tracking folder on main.
+- Repository is between sessions with no active work-tracking folder.
+- Use `task-master next` for the next available task.
+- Archived on 2026-05-08 20:50 CEST — Folder moved to archive and tracker marked COMPLETED.
