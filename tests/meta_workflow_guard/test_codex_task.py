@@ -455,6 +455,28 @@ def test_build_parser_accepts_rehearsal_plan() -> None:
     assert args.max_items == 3
 
 
+def test_build_parser_accepts_rollout_canary_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "rollout",
+        "canary-plan",
+        "--label",
+        "foundation-canary",
+        "--report-file",
+        "reports/canary.json",
+        "--runbook-file",
+        "reports/canary.md",
+        "--dry-run",
+    ])
+    assert args.command == "rollout"
+    assert args.subcommand == "canary-plan"
+    assert args.label == "foundation-canary"
+    assert args.report_file == "reports/canary.json"
+    assert args.runbook_file == "reports/canary.md"
+    assert args.dry_run is True
+
+
 def test_build_parser_accepts_sync_plan() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -824,6 +846,100 @@ def test_handle_rehearsal_plan_writes_manifest_and_runbook(monkeypatch, tmp_path
     assert "Repair broken reference" in runbook_text
     assert "No rehearsal commands were executed by this plan." in runbook_text
     assert "git reset --hard" not in runbook_text
+
+
+def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-40-canary-deployment-system"
+        if args == ["rev-parse", "HEAD"]:
+            return "abc123"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/session.md"},
+            "current_plan": {"resolved": "plans/2026-05-08-task40-canary.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260508-task40-canary-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_dependencies": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 3})
+
+
+def test_build_canary_rollout_plan_is_non_destructive(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_canary_rollout_snapshots(module, monkeypatch)
+
+    plan = module._build_canary_rollout_plan(argparse.Namespace(label="foundation-canary"))
+
+    assert plan["version"] == 1
+    assert plan["label"] == "foundation-canary"
+    assert plan["mode"] == "non-destructive-foundation-canary-rollout-plan"
+    assert plan["executes_mutations"] is False
+    assert plan["current_state"]["git"]["branch"] == "feat/task-40-canary-deployment-system"
+    assert [stage["id"] for stage in plan["stages"]] == ["codex", "claude", "other-agents"]
+    assert [stage["minimum_observation_hours"] for stage in plan["stages"]] == [24, 48, 72]
+    assert plan["promotion_model"]["automatic_promotion"] is False
+    assert plan["promotion_model"]["requires_reviewed_evidence"] is True
+    assert plan["promotion_model"]["minimum_total_observation_hours"] == 144
+    assert plan["rollback_policy"]["automatic_rollback"] is False
+    assert plan["rollback_policy"]["requires_checkpoint"] is True
+    assert "No traffic is split." in plan["non_goals"]
+    assert "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest" in plan["recommended_verification_commands"]
+
+
+def test_render_canary_rollout_runbook_names_stages_and_non_goals(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_canary_rollout_snapshots(module, monkeypatch)
+    plan = module._build_canary_rollout_plan(argparse.Namespace(label="foundation-canary"))
+
+    runbook = module._render_canary_rollout_runbook(plan)
+
+    assert "# Foundation Canary Rollout Runbook" in runbook
+    assert "Codex baseline canary" in runbook
+    assert "Claude runtime canary" in runbook
+    assert "Other agent/profile canary" in runbook
+    assert "Minimum total observation hours: 144" in runbook
+    assert "No deployment is executed." in runbook
+    assert "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan." in runbook
+
+
+def test_handle_rollout_canary_plan_writes_manifest_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_canary_rollout_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "canary-plan.json"
+    runbook = repo / "reports" / "canary-runbook.md"
+    args = argparse.Namespace(
+        label="task40-foundation-canary",
+        report_file=str(report.relative_to(repo)),
+        runbook_file=str(runbook.relative_to(repo)),
+        dry_run=False,
+    )
+
+    module.handle_rollout_canary_plan(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task40-foundation-canary"
+    assert payload["executes_mutations"] is False
+    assert payload["stage_count"] == 3
+    assert payload["stages"][0]["id"] == "codex"
+    assert payload["stages"][1]["id"] == "claude"
+    assert payload["stages"][2]["id"] == "other-agents"
+    assert payload["promotion_model"]["automatic_promotion"] is False
+    assert payload["rollback_policy"]["automatic_rollback"] is False
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Foundation Canary Rollout Runbook" in runbook_text
+    assert "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan." in runbook_text
 
 
 SYNC_TEST_ASSET_PATHS = [

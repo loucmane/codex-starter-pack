@@ -1,0 +1,241 @@
+{
+  "created_at": "2026-05-08T18:57:00+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-40-canary-deployment-system",
+      "head": "d9cb3d01394139dc80caa1396cbe9b0fb91a1932",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_040.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-08-task40-canary-deployment-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-08-012-task40-canary-deployment-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 91,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-08_task30_cross_repository_sync_system.md",
+        ".serena/memories/2026-05-08_task42_session_management_system.md",
+        ".serena/memories/2026-05-08_task15_serena_integration.md",
+        ".serena/memories/2026-05-08_task31_compaction_protocol.md",
+        ".serena/memories/compaction_2026-05-08_task31_compaction_protocol.md",
+        ".serena/memories/2026-05-08_task20_ci_cd_pipeline.md",
+        ".serena/memories/2026-05-08_task29_template_lifecycle_management.md",
+        ".serena/memories/2026-05-08_task33_training_materials.md",
+        ".serena/memories/2026-05-08_task49_communication_templates.md",
+        ".serena/memories/2026-05-08_task22_template_discovery_api.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "8ed90b63e19b60e79ac6ce0eba379cd4e00f7dda3db00d8e18e13e8c05ddff99",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 56,
+          "in-progress": 1,
+          "pending": 51
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260508-task40-canary-deployment-system-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-08-task40-canary-deployment-system.md",
+        "sha256": "692df7fd103f4f65cb364fe49c71c15f6770e743fdb6fa079d70aa8cf1b0a792",
+        "target": "2026-05-08-task40-canary-deployment-system.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-08-012-task40-canary-deployment-system.md",
+        "sha256": "14d30a9ce8cd1afc296f1b6bef9b4f87fff6742c982797f24100c1f425e421ef",
+        "target": "2026/05/2026-05-08-012-task40-canary-deployment-system.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "7c2c5071fb4c2b2e93eb56da800560b95cf7773188758dc7bc08b1d81d5a1f3d"
+      }
+    }
+  },
+  "executes_mutations": false,
+  "label": "task40-foundation-canary",
+  "mode": "non-destructive-foundation-canary-rollout-plan",
+  "non_goals": [
+    "No deployment is executed.",
+    "No traffic is split.",
+    "No automatic promotion is performed.",
+    "No rollback command is executed.",
+    "No dashboard is generated.",
+    "No notification is sent.",
+    "No external feature flag service is configured."
+  ],
+  "promotion_model": {
+    "automatic_promotion": false,
+    "guidance": [
+      "Promote one stage at a time only after its observation window and evidence gates are satisfied.",
+      "Record stage findings and decisions in work tracking before the next stage begins.",
+      "Treat missing evidence as a stop condition rather than a warning."
+    ],
+    "minimum_total_observation_hours": 144,
+    "requires_reviewed_evidence": true
+  },
+  "recommended_verification_commands": [
+    "python3 scripts/codex-task rollout canary-plan --report-file <plan.json> --runbook-file <runbook.md>",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+    "git diff --check"
+  ],
+  "rollback_policy": {
+    "automatic_rollback": false,
+    "guidance": [
+      "Capture a rollback checkpoint before each rollout slice.",
+      "If a trigger fires, stop the rollout and render a reviewed recovery plan from the checkpoint.",
+      "Do not run destructive rollback commands from this planner."
+    ],
+    "requires_checkpoint": true
+  },
+  "stage_count": 3,
+  "stages": [
+    {
+      "entry_criteria": [
+        "Task scope is reconciled against the portable foundation.",
+        "Codex guard passes locally and in CI.",
+        "Full pytest suite passes locally and in CI.",
+        "Taskmaster health reports zero invalid dependency references.",
+        "Work-tracking audit has no active-session issues."
+      ],
+      "health_checks": [
+        "python3 scripts/codex-guard validate --include-untracked",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task work-tracking audit",
+        "git diff --check"
+      ],
+      "id": "codex",
+      "minimum_observation_hours": 24,
+      "promotion_criteria": [
+        "Observation window completes with no guard, CI, or workflow-state regression.",
+        "Rollback checkpoint or recovery path is documented for the rollout slice.",
+        "Findings and decisions are updated for any anomaly."
+      ],
+      "rollback_triggers": [
+        "Guard, CI, or pytest regression caused by the rollout slice.",
+        "Workflow state cannot be restored to a clean between-session state.",
+        "Taskmaster dependency health reports invalid references."
+      ],
+      "scope": "Codex runtime, direct git execution, guard/task helpers, and local verification workflow",
+      "title": "Codex baseline canary"
+    },
+    {
+      "entry_criteria": [
+        "Codex baseline canary promotion criteria are satisfied.",
+        "Claude readiness exits READY in a properly scaffolded session.",
+        "Cold-session mutation gate evidence remains current.",
+        "Claude-owned changes stay out of Codex-owned paths unless explicitly authorized."
+      ],
+      "health_checks": [
+        "bash .claude/scripts/readiness.sh --quick",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/claude_adapter",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "python3 scripts/codex-task work-tracking audit"
+      ],
+      "id": "claude",
+      "minimum_observation_hours": 48,
+      "promotion_criteria": [
+        "Claude can perform allowed mutations only after readiness is READY.",
+        "Claude cannot mutate protected Codex-owned paths through file tools or Bash bypasses.",
+        "Evidence is captured in session/work-tracking artifacts, not private memory alone."
+      ],
+      "rollback_triggers": [
+        "Claude can mutate a hookable persistent surface while readiness is BLOCKED.",
+        "Claude can bypass protected-path ownership through Bash or another configured tool surface.",
+        "Adapter work proceeds without Taskmaster/session/plan/work-tracking alignment."
+      ],
+      "scope": "Claude runtime adapter, readiness gate, pretooluse gate, slash commands, and Claude-owned workflow surfaces",
+      "title": "Claude runtime canary"
+    },
+    {
+      "entry_criteria": [
+        "Codex and Claude canary promotion criteria are satisfied.",
+        "The target agent/profile has an explicit entrypoint contract.",
+        "Repo-local adapter configuration is reviewed before rollout.",
+        "Policy-only surfaces and unhookable mutations are documented."
+      ],
+      "health_checks": [
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task sync plan --target-dir <target-repo>"
+      ],
+      "id": "other-agents",
+      "minimum_observation_hours": 72,
+      "promotion_criteria": [
+        "The agent/profile follows the same session/plan/work-tracking lifecycle.",
+        "All hookable mutation surfaces are gated or explicitly deferred.",
+        "Adoption evidence is recorded in repo-local work tracking."
+      ],
+      "rollback_triggers": [
+        "The target agent/profile bypasses session, plan, or work-tracking gates.",
+        "Repo-local adapter config breaks core guard or bootstrap behavior.",
+        "Required evidence cannot be reproduced from tracked files."
+      ],
+      "scope": "Additional agents, profiles, or project adapters consuming the portable foundation",
+      "title": "Other agent/profile canary"
+    }
+  ],
+  "version": 1
+}
