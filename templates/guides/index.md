@@ -4,122 +4,59 @@ type: user-guide
 status: stable
 audience: all-users
 skill-level: all
-title: Claude User Guide Hub
-description: Central navigation for all Claude user guides
+title: Codex Foundation Guide Hub
+description: Current guide hub for the portable Codex foundation, template system, and agent runtime workflows
 ---
 
-# Claude User Guide Hub
+# Codex Foundation Guide Hub
 
-Welcome to the Claude User Guide Hub! This is your starting point for learning how to use Claude effectively for software development.
+Use this page as the starting point for learning the current repository workflow. The current system is not only a Claude prompt collection; it is a portable Codex foundation with Taskmaster tasks, session logs, plans, work-tracking folders, guard validation, template metadata, and a Claude runtime adapter.
 
-## 🚀 Quick Navigation
+## Start Here
 
-### Getting Started
-- **[Getting Started Guide](quickstart/getting-started.md)** - New to Claude? Start here!
-- **[Understanding ULTRATHINK](ultrathink/understanding.md)** - Learn about Claude's thinking system
+- [Foundation onboarding training](training/foundation-onboarding.md) - Hands-on training path for the current workflow.
+- [Getting started with Claude](quickstart/getting-started.md) - Older beginner-facing Claude guide, useful for prompt phrasing basics.
+- [Portable foundation adoption guide](../engine/validation/foundation-adoption-guide.md) - How to apply the foundation to new and existing repositories.
+- [Portable foundation specification](../engine/core/portable-foundation-spec.md) - Contract for portable sessions, plans, work tracking, and enforcement.
 
-### Development Workflows
-- **[Common Workflows](workflows/common.md)** - See Claude in action with real examples
-- **[Trigger Phrases](reference/triggers.md)** - Command patterns and phrasing for common tasks
+## Daily Workflow References
 
-### Reference Guides
-- **[Trigger Phrases](reference/triggers.md)** - Complete list of commands and phrases
-- **[Getting Started Guide](quickstart/getting-started.md)** - How to phrase the first useful requests
-- **[Common Workflows](workflows/common.md)** - Common request flows in practice
+- [Common workflows](workflows/common.md) - Example-driven workflow patterns.
+- [Trigger phrases](reference/triggers.md) - Request phrasing and workflow triggers.
+- [Troubleshooting issues](troubleshooting/issues.md) - Common user-facing problems and recovery patterns.
+- [Understanding ULTRATHINK](ultrathink/understanding.md) - Reasoning protocol background.
+- [Token optimization](token-optimization.md) - Context and token-use guidance.
 
-### Troubleshooting
-- **[Common Issues](troubleshooting/issues.md)** - Solutions to frequent problems
-- **[Error Messages](troubleshooting/errors.md)** - Understanding and fixing errors
-- **[Performance Tips](troubleshooting/performance.md)** - Optimize your Claude experience
+## System References
 
-## 📚 Guide Organization
+- [Taskmaster alignment workflow](../workflows/taskmaster/alignment.md) - Taskmaster, session, plan, and work-tracking alignment.
+- [Work-tracking enforcement](../workflows/taskmaster/work-tracking-enforcement.md) - Active folder, tracker, archive, and guard rules.
+- [Session lifecycle](../workflows/session/lifecycle.md) - Session start, continuation, closeout, and archival rules.
+- [Claude runtime contract](../../.claude/engine/runtime-contract.md) - Claude-side readiness and PreToolUse gate contract.
 
-Our guides are organized by purpose and skill level:
+## Learning Paths
 
-### By Skill Level
+### New Maintainer
 
-#### 🟢 Beginner
-- [Getting Started](quickstart/getting-started.md)
-- [First Request](quickstart/first-request.md)
-- [Basic Commands](reference/quick-actions.md)
+1. Read [Foundation onboarding training](training/foundation-onboarding.md).
+2. Read the [portable foundation adoption guide](../engine/validation/foundation-adoption-guide.md).
+3. Walk through the hands-on exercises in a real Taskmaster task.
+4. Confirm you can explain the evidence and archive closeout flow.
 
-#### 🟡 Intermediate
-- [Common Workflows](workflows/common.md)
-- [Understanding ULTRATHINK](ultrathink/understanding.md)
-- [Trigger Phrases](reference/triggers.md)
+### Agent Runtime Reviewer
 
-#### 🔴 Advanced
-- [Complex Workflows](workflows/advanced.md)
-- [Custom Handlers](advanced/creating-handlers.md)
-- [System Extension](advanced/extending-system.md)
+1. Read the [Claude runtime contract](../../.claude/engine/runtime-contract.md).
+2. Review [Taskmaster alignment](../workflows/taskmaster/alignment.md).
+3. Review [work-tracking enforcement](../workflows/taskmaster/work-tracking-enforcement.md).
+4. Confirm mutation gates are backed by tests before trusting any new adapter behavior.
 
-### By Task Type
+### Template Maintainer
 
-#### 💻 Development
-- Starting new features
-- Creating components
-- Implementing functionality
-
-#### 🐛 Debugging
-- Fixing bugs
-- Understanding errors
-- Performance issues
-
-#### 🔍 Code Navigation
-- Finding code
-- Understanding structure
-- Searching patterns
-
-#### 📝 Documentation
-- Adding comments
-- Creating docs
-- API documentation
-
-## 🎯 Quick Start Paths
-
-### "I want to build something"
-1. Start with [Getting Started](quickstart/getting-started.md)
-2. Learn [Common Workflows](workflows/common.md)
-3. Reference [Trigger Phrases](reference/triggers.md) as needed
-
-### "I need to fix a problem"
-1. Check [Common Issues](troubleshooting/issues.md)
-2. Review [Error Messages](troubleshooting/errors.md)
-3. Try [Performance Tips](troubleshooting/performance.md)
-
-### "I want to understand how Claude works"
-1. Read [Understanding ULTRATHINK](ultrathink/understanding.md)
-2. Explore [Trigger Phrases](reference/triggers.md)
-3. Study [Common Workflows](workflows/common.md)
-
-## 🔗 Additional Resources
-
-### System Documentation
-- **[REGISTRY.md](..templates/REGISTRY.md)** - Complete handler list
-- **[CONVENTIONS.md](..templates/conventions/)** - Standards and rules
-- **[Extending the Template System](templates/integration/guides/extending-templates.md#extending-the-template-system)** - Extending the system
-
-### Quick Links
-- **Most common commands** → [Trigger Phrases](reference/triggers.md)
-- **Troubleshooting help** → [Common Issues](troubleshooting/issues.md)
-- **Learn by example** → [Common Workflows](workflows/common.md)
-
-## 💡 Tips for Using These Guides
-
-1. **Start with your goal** - Choose guides based on what you want to accomplish
-2. **Follow examples** - Each guide includes real examples you can try
-3. **Build gradually** - Master basics before moving to advanced topics
-4. **Reference as needed** - Keep trigger phrase guide handy for quick lookup
-
-## 🏷️ Search Keywords
-
-Find guides by topic: development, debugging, testing, git, refactoring, documentation, troubleshooting, workflows, patterns, triggers, commands
-
----
-
-*Last updated: 2025-01-30*
-*Guide version: 2.0*
+1. Read the [portable foundation specification](../engine/core/portable-foundation-spec.md).
+2. Review the [foundation adoption guide](../engine/validation/foundation-adoption-guide.md).
+3. Use [foundation onboarding training](training/foundation-onboarding.md) as the operational checklist for task work.
 
 ## Progress Log
 
 - **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice
+- **2026-05-08 16:49** — [S:20260508|W:task33-training-materials|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task33-training-materials-ACTIVE/designs/training-materials-scope-reconciliation.md] Replaced stale guide hub links with current foundation, runtime, session, and work-tracking references
