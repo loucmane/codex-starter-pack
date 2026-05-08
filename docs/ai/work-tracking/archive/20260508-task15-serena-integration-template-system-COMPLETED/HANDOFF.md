@@ -15,3 +15,4 @@
 ## Next Steps
 - Review diff, commit, push, and open the Task 15 PR.
 - After merge, switch to `main`, pull, archive the Task 15 work-tracking folder, clear current session/plan state, rerun archive audit/guard/diff-check, and commit/push archive closeout.
+- Archived on 2026-05-08 14:44 CEST — Folder moved to archive and tracker marked COMPLETED.
