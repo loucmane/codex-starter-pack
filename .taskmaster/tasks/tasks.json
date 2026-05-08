@@ -1886,32 +1886,35 @@
           "14",
           "15"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 31,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T12:55:43.566Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 31,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T13:07:57.631Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 8,
-        "expansionPrompt": "Create CompactionManager class, implement checkpoint creation, integrate with sessions/Serena/Taskmaster storage, create restoration protocol, add detection triggers, implement incremental updates, create history tracking, and test data preservation."
+        "expansionPrompt": "Create CompactionManager class, implement checkpoint creation, integrate with sessions/Serena/Taskmaster storage, create restoration protocol, add detection triggers, implement incremental updates, create history tracking, and test data preservation.",
+        "updatedAt": "2026-05-08T13:07:57.631Z"
       },
       {
         "id": "32",
@@ -4999,9 +5002,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-08T12:34:25.378Z",
+      "lastModified": "2026-05-08T13:07:57.632Z",
       "taskCount": 108,
-      "completedCount": 50,
+      "completedCount": 51,
       "tags": [
         "master"
       ]

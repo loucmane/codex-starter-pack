@@ -40,15 +40,21 @@ MUST complete checkpoint preparation:
    - Add checkpoint note
    - Save subtask progress
 
-4. Create checkpoint memory:
-   - Filename: checkpoint_YYYY-MM-DD_HH-MM_description.md
-   - Location: .serena/memories/
-   - Content: Exact state and resume instructions
+4. Create the continuation checkpoint with the helper:
+   ```bash
+   python3 scripts/codex-task compaction checkpoint \
+     --task <id> \
+     --slug <task-slug> \
+     --summary "<one-line current state>" \
+     --next-step "<exact next action after compaction>" \
+     --last-completed "<completed item>" \
+     --open-item "<remaining item>"
+   ```
 
-5. Generate continuation message:
-   - Exact command to resume
-   - Current state summary
-   - Next action to take
+5. Review the generated continuation packet:
+   - Manifest JSON and resume Markdown under the active work-tracking reports.
+   - Compaction memory under `.serena/memories/`.
+   - Session, tracker, handoff, and `.plan_state/compaction-history.jsonl` entries.
 ```
 
 ## Blocking Gate
@@ -62,17 +68,18 @@ MUST complete checkpoint preparation:
 ```markdown
 ## 🔄 Ready for Compaction
 
-**To continue in new chat, use**:
+**To continue in new chat, use the generated resume message**:
 ```
-Continue from checkpoint_YYYY-MM-DD_HH-MM_description.
-Read sessions/current and resume [specific task] at [exact point].
+Continue from compaction checkpoint [memory-name].
+Read sessions/current, plans/current, the tracker, and the generated resume message.
+Resume [specific task] at [exact point].
 ```
 
 **Current state preserved**:
 ✓ All work saved to disk
-✓ Session checkpoint created
-✓ Todo position marked
-✓ Memory checkpoint saved
+✓ Session checkpoint entry created
+✓ Tracker and handoff position marked
+✓ Manifest, resume message, memory file, and history entry saved
 
 **I was working on**: [one-line summary]
 **Next step will be**: [specific next action]
@@ -110,9 +117,9 @@ Read sessions/current and resume task 7.4 at Footer component implementation.
 
 **Current state preserved**:
 ✓ All work saved to disk
-✓ Session checkpoint created
-✓ Todo position marked
-✓ Memory checkpoint saved
+✓ Session checkpoint entry created
+✓ Tracker and handoff position marked
+✓ Manifest, resume message, memory file, and history entry saved
 
 **I was working on**: Implementing Footer component for blog
 **Next step will be**: Add social media links to footer"
@@ -120,9 +127,9 @@ Read sessions/current and resume task 7.4 at Footer component implementation.
 
 ## Recovery in New Context
 When user provides continuation command:
-1. Load checkpoint memory
-2. Read current session
-3. Restore todo state
+1. Read the generated resume message
+2. Load checkpoint memory
+3. Read current session, current plan, and tracker
 4. Continue from exact point
 5. Maintain same working style
 
@@ -131,6 +138,7 @@ When user provides continuation command:
 - Focus on seamless continuation, not closure
 - Preserve momentum and working context
 - Make resume as frictionless as possible
+- The helper must leave `sessions/current`, `plans/current`, and the ACTIVE work-tracking folder intact
 
 ## Cross-References
 - [prepare-compaction handler](../../handlers/triggers/session/prepare-compaction.md)
@@ -140,3 +148,4 @@ When user provides continuation command:
 ## Progress Log
 
 - **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/session/compaction-preparation.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice
+- **2026-05-08 15:03** — [S:20260508|W:task31-compaction-protocol|H:templates/behaviors/session/compaction-preparation.md|E:docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE/designs/compaction-protocol-scope-reconciliation.md] Replaced manual compaction-memory instructions with the Task 31 `codex-task compaction checkpoint` helper workflow.

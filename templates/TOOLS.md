@@ -74,6 +74,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `wizard kickoff` – guided task startup that scaffolds work tracking, creates a compliant session + plan, updates `sessions/current` / `plans/current` / `sessions/state.json`, seeds plan sync, marks the Taskmaster task `in-progress`, and refreshes only that task’s generated file.
 - `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
 - `serena status --strict [--report-file <path>]` – verify Codex and project-level Serena MCP configuration plus `.serena/memories/` readiness before relying on Serena evidence.
+- `compaction checkpoint --task <id> --slug <slug> --summary <state> --next-step <next>` – create a continuation checkpoint before context compaction, including manifest, resume message, Serena memory file, session/tracker entries, handoff note, and `.plan_state/compaction-history.jsonl`.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:

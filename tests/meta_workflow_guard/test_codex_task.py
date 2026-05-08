@@ -387,6 +387,45 @@ def test_build_parser_accepts_rollback_checkpoint_and_plan() -> None:
     assert plan_args.report_file == "reports/rollback/plan.md"
 
 
+def test_build_parser_accepts_compaction_checkpoint() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "compaction",
+        "checkpoint",
+        "--task",
+        "31",
+        "--slug",
+        "compaction-protocol",
+        "--summary",
+        "scope complete",
+        "--next-step",
+        "implement helper",
+        "--last-completed",
+        "scope reconciliation",
+        "--open-item",
+        "tests",
+        "--report-dir",
+        "reports/compaction",
+        "--session",
+        "20260424",
+        "--session-file",
+        "sessions/2026/04/2026-04-24-001-task19-rollback.md",
+        "--dry-run",
+    ])
+    assert args.command == "compaction"
+    assert args.subcommand == "checkpoint"
+    assert args.task == "31"
+    assert args.slug == "compaction-protocol"
+    assert args.summary == "scope complete"
+    assert args.next_step == "implement helper"
+    assert args.last_completed == ["scope reconciliation"]
+    assert args.open_item == ["tests"]
+    assert args.session == "20260424"
+    assert args.session_file == "sessions/2026/04/2026-04-24-001-task19-rollback.md"
+    assert args.dry_run is True
+
+
 def test_build_parser_accepts_rehearsal_plan() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -458,7 +497,10 @@ def _write_rollback_test_repo(module, monkeypatch, tmp_path) -> Path:
     taskmaster_json.parent.mkdir(parents=True)
     memory_dir.mkdir(parents=True)
 
-    session_file.write_text("# session\n", encoding="utf-8")
+    session_file.write_text(
+        "---\nsession_id: 2026-04-24-001\ndate: 2026-04-24\n---\n\n# session\n\n### 📝 Progress Log\n\n",
+        encoding="utf-8",
+    )
     plan_file.write_text("# plan\n", encoding="utf-8")
     (active_dir / "20260424-task19-rollback-ACTIVE").mkdir()
     (repo / "sessions" / "current").symlink_to(Path("2026/04/2026-04-24-001-task19-rollback.md"))
@@ -553,6 +595,99 @@ def test_handle_rollback_plan_writes_non_destructive_guidance(monkeypatch, tmp_p
     assert "git restore --source abc123 --staged --worktree -- <path>" in rendered
     assert "git reset --hard" in rendered
     assert "No rollback commands were executed" in rendered
+
+
+def test_handle_compaction_checkpoint_writes_manifest_memory_history_and_logs(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = _write_rollback_test_repo(module, monkeypatch, tmp_path)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    plan_state_dir = repo / ".plan_state"
+    active_folder = repo / "docs" / "ai" / "work-tracking" / "active" / "20260424-task19-rollback-ACTIVE"
+    tracker = active_folder / "TRACKER.md"
+    tracker.write_text("# Tracker\n\n## Progress Log\n\n", encoding="utf-8")
+    (active_folder / "HANDOFF.md").write_text("# Handoff\n\n## Current State\n- active\n", encoding="utf-8")
+
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state_dir)
+    monkeypatch.setattr(module, "COMPACTION_HISTORY_PATH", plan_state_dir / "compaction-history.jsonl")
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-31-compaction-protocol"
+        if args == ["rev-parse", "HEAD"]:
+            return "abc123"
+        if args == ["status", "--short"]:
+            return " M scripts/codex-task"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+
+    report_dir = active_folder / "reports" / "compaction-protocol"
+    module.handle_compaction_checkpoint(
+        argparse.Namespace(
+            task="31",
+            slug="compaction-protocol",
+            summary="Scope is complete",
+            next_step="Implement compaction helper tests",
+            last_completed=["Scope reconciliation"],
+            open_item=["Helper verification"],
+            report_dir=str(report_dir),
+            memory_name=None,
+            folder=None,
+            work=None,
+            session_file=None,
+            session=None,
+            dry_run=False,
+        )
+    )
+
+    manifests = sorted(report_dir.glob("*-task31-compaction-protocol.json"))
+    resumes = sorted(report_dir.glob("*-task31-compaction-protocol-resume.md"))
+    assert len(manifests) == 1
+    assert len(resumes) == 1
+    manifest = json.loads(manifests[0].read_text(encoding="utf-8"))
+    assert manifest["kind"] == "compaction-checkpoint"
+    assert manifest["task_id"] == "31"
+    assert manifest["summary"] == "Scope is complete"
+    assert manifest["next_step"] == "Implement compaction helper tests"
+    assert manifest["git"]["status"] == [{"status": " M", "path": "scripts/codex-task"}]
+
+    memory_file = repo / manifest["paths"]["memory_file"]
+    assert memory_file.exists()
+    assert "Compaction Checkpoint: Task 31" in memory_file.read_text(encoding="utf-8")
+    assert "Implement compaction helper tests" in resumes[0].read_text(encoding="utf-8")
+    assert (plan_state_dir / "compaction-history.jsonl").exists()
+    assert "compaction checkpoint" in (repo / "sessions" / "2026" / "04" / "2026-04-24-001-task19-rollback.md").read_text(encoding="utf-8")
+    assert "compaction checkpoint" in tracker.read_text(encoding="utf-8")
+    assert "Compaction Checkpoints" in (active_folder / "HANDOFF.md").read_text(encoding="utf-8")
+    assert (repo / "sessions" / "current").is_symlink()
+    assert (repo / "plans" / "current").is_symlink()
+
+
+def test_handle_compaction_checkpoint_requires_active_plan(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = _write_rollback_test_repo(module, monkeypatch, tmp_path)
+    (repo / "plans" / "current").unlink()
+    active_folder = repo / "docs" / "ai" / "work-tracking" / "active" / "20260424-task19-rollback-ACTIVE"
+    (active_folder / "TRACKER.md").write_text("# Tracker\n\n## Progress Log\n\n", encoding="utf-8")
+
+    with pytest.raises(module.TaskError, match="plans/current symlink missing"):
+        module.handle_compaction_checkpoint(
+            argparse.Namespace(
+                task="31",
+                slug="compaction-protocol",
+                summary="Scope",
+                next_step="Next",
+                last_completed=None,
+                open_item=None,
+                report_dir=None,
+                memory_name=None,
+                folder=None,
+                work=None,
+                session_file=None,
+                session=None,
+                dry_run=False,
+            )
+        )
 
 
 def test_handle_rehearsal_plan_writes_manifest_and_runbook(monkeypatch, tmp_path) -> None:

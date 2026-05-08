@@ -1,0 +1,149 @@
+{
+  "created_at": "2026-05-08T15:05:22+02:00",
+  "git": {
+    "branch": "feat/task-31-compaction-protocol",
+    "head": "bb5d9af9a293b97fc70753b502cc553f2531dd5b",
+    "status": [
+      {
+        "path": ".taskmaster/tasks/task_031.txt",
+        "status": " M"
+      },
+      {
+        "path": ".taskmaster/tasks/tasks.json",
+        "status": " M"
+      },
+      {
+        "path": "scripts/codex-task",
+        "status": " M"
+      },
+      {
+        "path": "sessions/state.json",
+        "status": " M"
+      },
+      {
+        "path": "templates/TOOLS.md",
+        "status": " M"
+      },
+      {
+        "path": "templates/behaviors/session/compaction-preparation.md",
+        "status": " M"
+      },
+      {
+        "path": "templates/handlers/triggers/session/prepare-compaction.md",
+        "status": " M"
+      },
+      {
+        "path": "templates/workflows/session/compaction.md",
+        "status": " M"
+      },
+      {
+        "path": "tests/meta_workflow_guard/test_codex_task.py",
+        "status": " M"
+      },
+      {
+        "path": "docs/ai/work-tracking/active/",
+        "status": "??"
+      },
+      {
+        "path": "plans/2026-05-08-task31-compaction-protocol.md",
+        "status": "??"
+      },
+      {
+        "path": "plans/current",
+        "status": "??"
+      },
+      {
+        "path": "sessions/2026/05/2026-05-08-006-task31-compaction-protocol.md",
+        "status": "??"
+      },
+      {
+        "path": "sessions/current",
+        "status": "??"
+      }
+    ]
+  },
+  "kind": "compaction-checkpoint",
+  "last_completed": [
+    "Scope reconciliation selected a continuation checkpoint helper instead of a duplicate rollback manager",
+    "Implemented helper, tests, and compaction workflow documentation"
+  ],
+  "next_step": "Run final Task 31 verification and prepare PR",
+  "open_items": [
+    "Capture final verification evidence and close Task 31"
+  ],
+  "paths": {
+    "manifest": "docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE/reports/compaction-protocol/20260508-150522-task31-compaction-protocol.json",
+    "memory_file": ".serena/memories/compaction_2026-05-08_task31_compaction_protocol.md",
+    "memory_name": "compaction_2026-05-08_task31_compaction_protocol",
+    "plan": "plans/2026-05-08-task31-compaction-protocol.md",
+    "resume": "docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE/reports/compaction-protocol/20260508-150522-task31-compaction-protocol-resume.md",
+    "session": "sessions/2026/05/2026-05-08-006-task31-compaction-protocol.md",
+    "tracker": "docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE/TRACKER.md",
+    "work_tracking": "docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE"
+  },
+  "serena": {
+    "count": 84,
+    "exists": true,
+    "latest": [
+      ".serena/memories/2026-05-07_task21_template_frontmatter_schema.md",
+      ".serena/memories/2026-05-07_task28_dual_path_discovery.md",
+      ".serena/memories/2026-05-07_task18_security_validation_framework.md",
+      ".serena/memories/2026-05-07_task108_legacy_project_blog_cleanup.md",
+      ".serena/memories/2026-05-07_task19_rollback_mechanism.md",
+      ".serena/memories/2026-05-08_task11_migration_roadmap_generator.md",
+      ".serena/memories/2026-05-08_task23_migration_rehearsal_environment.md",
+      ".serena/memories/2026-05-08_task30_cross_repository_sync_system.md",
+      ".serena/memories/2026-05-08_task42_session_management_system.md",
+      ".serena/memories/2026-05-08_task15_serena_integration.md"
+    ],
+    "path": ".serena/memories"
+  },
+  "slug": "compaction-protocol",
+  "summary": "Implemented compaction continuation checkpoint helper after scope reconciliation",
+  "task_id": "31",
+  "taskmaster": {
+    "exists": true,
+    "invalid_refs": [],
+    "path": ".taskmaster/tasks/tasks.json",
+    "sha256": "ae01cd86029263a00f2c35e837b432967a58c154fd227817adbcf33bba6e4d8d",
+    "summary": {
+      "dependency_refs": 229,
+      "invalid_refs": 0,
+      "status_counts": {
+        "done": 50,
+        "in-progress": 1,
+        "pending": 57
+      },
+      "subtasks": 304,
+      "tasks": 108
+    },
+    "tag": "master"
+  },
+  "version": 1,
+  "workflow": {
+    "active_work_tracking": [
+      "docs/ai/work-tracking/active/20260508-task31-compaction-protocol-ACTIVE"
+    ],
+    "current_plan": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "plans/current",
+      "resolved": "plans/2026-05-08-task31-compaction-protocol.md",
+      "sha256": "f889c0f3aa9d205e66023c5c2b7bd5bdd7e62136ad83a2db81ac1f55dda86ca1",
+      "target": "2026-05-08-task31-compaction-protocol.md"
+    },
+    "current_session": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "sessions/current",
+      "resolved": "sessions/2026/05/2026-05-08-006-task31-compaction-protocol.md",
+      "sha256": "27ccadea0e2cdc9e24e36cb001d53d070f18d5572ab9f62734173982571fcfa7",
+      "target": "2026/05/2026-05-08-006-task31-compaction-protocol.md"
+    },
+    "session_state": {
+      "exists": true,
+      "path": "sessions/state.json",
+      "sha256": "b135f8f710d2fa40f707fc7c9e3890805cd11c520a2cd10ec1376942415e98b5"
+    }
+  }
+}
