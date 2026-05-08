@@ -1,0 +1,43 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+testpaths: tests, scripts/template-ssot-scanner
+collected 358 items
+
+tests/claude_adapter/test_adapter_contract_files.py ..........           [  2%]
+tests/claude_adapter/test_pretooluse_gates.py ..............             [  6%]
+tests/claude_adapter/test_readiness_gate.py ...........                  [  9%]
+tests/meta_workflow_guard/test_ci_workflows.py ....                      [ 10%]
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 18%]
+....................                                                     [ 24%]
+tests/meta_workflow_guard/test_communication_templates.py ......         [ 25%]
+tests/meta_workflow_guard/test_guard_integration.py .                    [ 25%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 33%]
+........................................                                 [ 44%]
+tests/meta_workflow_guard/test_registration.py .....                     [ 45%]
+tests/meta_workflow_guard/test_repo_structure_config.py ...              [ 46%]
+tests/meta_workflow_guard/test_template_lifecycle.py ..........          [ 49%]
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ....        [ 50%]
+tests/meta_workflow_guard/test_template_registry.py ...........          [ 53%]
+tests/meta_workflow_guard/test_template_testing.py .....                 [ 55%]
+tests/meta_workflow_guard/test_training_materials.py ....                [ 56%]
+tests/session_continuation/test_engine_metadata_alignment.py ...         [ 56%]
+tests/session_continuation/test_guard_stub.py .                          [ 57%]
+tests/session_continuation/test_metadata.py ...                          [ 58%]
+tests/timestamp_guard/test_timestamp_validation.py .....                 [ 59%]
+scripts/template-ssot-scanner/test_cli_behavior.py ..............        [ 63%]
+scripts/template-ssot-scanner/test_config_integration.py ........        [ 65%]
+scripts/template-ssot-scanner/test_config_loader.py ............         [ 68%]
+scripts/template-ssot-scanner/test_config_schema.py ................     [ 73%]
+scripts/template-ssot-scanner/test_config_validation.py ........         [ 75%]
+scripts/template-ssot-scanner/test_env_override.py ...........           [ 78%]
+scripts/template-ssot-scanner/test_inheritance.py ..............         [ 82%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py .....       [ 84%]
+scripts/template-ssot-scanner/test_pattern_matcher.py .................. [ 89%]
+...                                                                      [ 89%]
+scripts/template-ssot-scanner/test_rule_engine.py ...................    [ 95%]
+scripts/template-ssot-scanner/test_scanner_modules.py ...........        [ 98%]
+scripts/template-ssot-scanner/test_security_validator.py ......          [100%]
+
+============================= 358 passed in 7.46s ==============================

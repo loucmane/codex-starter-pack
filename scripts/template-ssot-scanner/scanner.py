@@ -26,11 +26,16 @@ class TemplateScanner:
     
     def __init__(self, base_path: Path, checkpoint_interval: int = 25, 
                  include_pattern: Optional[str] = None, exclude_pattern: Optional[str] = None,
-                 scanner_config: Optional[ScannerConfig] = None, config_context: Any = None):
+                 scanner_config: Optional[ScannerConfig] = None, config_context: Any = None,
+                 profile_scan: bool = False, profile_limit: int = 10):
         self.base_path = base_path
         self.checkpoint_interval = checkpoint_interval
         self.templates_dir = base_path / "templates"
         self.config_context = config_context
+        self.profile_scan = profile_scan
+        self.profile_limit = max(0, profile_limit)
+        self._profile_directories: list[Dict[str, Any]] = []
+        self._profile_files: list[Dict[str, Any]] = []
         if scanner_config is not None:
             self.config = scanner_config
         elif config_context is not None:
@@ -75,6 +80,7 @@ class TemplateScanner:
         
         # Final analysis
         self._analyze_file_types()
+        self._finalize_performance_profile()
         self._save_final_results()
         
         return self.results
@@ -86,13 +92,20 @@ class TemplateScanner:
             return
 
         files_processed = 0
+        discovery_start = time.perf_counter()
         all_files = collect_scannable_files(directory, self.config)
+        discovery_seconds = time.perf_counter() - discovery_start
+        processing_start = time.perf_counter()
         
         print(f"\nFound {len(all_files)} files in {category} (after filtering)")
         
         for file_path in all_files:
             try:
+                file_start = time.perf_counter()
                 self._process_file(file_path, category)
+                file_seconds = time.perf_counter() - file_start
+                if self.profile_scan:
+                    self._record_file_profile(file_path, category, file_seconds)
                 files_processed += 1
                 self.results["scan_metadata"]["total_files"] += 1
                 
@@ -108,6 +121,16 @@ class TemplateScanner:
                 error_msg = f"Error processing {file_path}: {str(e)}"
                 print(f"  ERROR: {error_msg}")
                 self.results["errors"].append(error_msg)
+
+        if self.profile_scan:
+            self._profile_directories.append({
+                "category": category,
+                "path": str(directory),
+                "files_discovered": len(all_files),
+                "files_processed": files_processed,
+                "discovery_seconds": round(discovery_seconds, 6),
+                "processing_seconds": round(time.perf_counter() - processing_start, 6),
+            })
     
     def _process_file(self, file_path: Path, category: str) -> None:
         """Process a single file"""
@@ -356,6 +379,49 @@ class TemplateScanner:
             self.results["file_types"][file_type]["count"] += 1
             self.results["file_types"][file_type]["total_lines"] += file_info["line_count"]
             self.results["file_types"][file_type]["files"].append(file_info["relative_path"])
+
+    def _record_file_profile(self, file_path: Path, category: str, duration_seconds: float) -> None:
+        """Record per-file scan timings for optional profiling output."""
+        relative_path = file_path.relative_to(self.base_path).as_posix()
+        file_info = self.results["files"].get(relative_path, {})
+        self._profile_files.append({
+            "relative_path": relative_path,
+            "category": category,
+            "duration_seconds": round(duration_seconds, 6),
+            "size_bytes": file_info.get("size_bytes", file_path.stat().st_size),
+            "line_count": file_info.get("line_count", 0),
+            "references": len(file_info.get("references", [])),
+        })
+
+    def _finalize_performance_profile(self) -> None:
+        """Attach optional scanner profiling data to scan metadata."""
+        if not self.profile_scan:
+            return
+
+        def slow_key(item: Dict[str, Any]) -> tuple[float, str]:
+            return (-item["duration_seconds"], item["relative_path"])
+
+        def size_key(item: Dict[str, Any]) -> tuple[int, str]:
+            return (-item["size_bytes"], item["relative_path"])
+
+        limit = self.profile_limit
+        slowest_files = sorted(self._profile_files, key=slow_key)[:limit] if limit else []
+        largest_files = sorted(self._profile_files, key=size_key)[:limit] if limit else []
+        self.results["scan_metadata"]["performance_profile"] = {
+            "enabled": True,
+            "profile_limit": limit,
+            "directories": self._profile_directories,
+            "slowest_files": slowest_files,
+            "largest_files": largest_files,
+            "total_discovery_seconds": round(
+                sum(directory["discovery_seconds"] for directory in self._profile_directories),
+                6,
+            ),
+            "total_processing_seconds": round(
+                sum(directory["processing_seconds"] for directory in self._profile_directories),
+                6,
+            ),
+        }
     
     def _save_checkpoint(self, files_processed: int) -> None:
         """Save checkpoint during scanning"""
@@ -445,6 +511,17 @@ Examples:
         help='Enable verbose output'
     )
     parser.add_argument(
+        '--profile-scan',
+        action='store_true',
+        help='Record scanner discovery and per-file timing metadata'
+    )
+    parser.add_argument(
+        '--profile-limit',
+        type=int,
+        default=10,
+        help='Number of slowest/largest files to keep when --profile-scan is enabled (default: 10)'
+    )
+    parser.add_argument(
         '--config',
         type=Path,
         help='Scanner config YAML path (default: scanner_config.yaml next to this script)',
@@ -519,7 +596,9 @@ Examples:
     scanner = TemplateScanner(base_path, checkpoint_interval, 
                             include_pattern=args.include, 
                             exclude_pattern=args.exclude,
-                            config_context=config_context)
+                            config_context=config_context,
+                            profile_scan=args.profile_scan,
+                            profile_limit=args.profile_limit)
     
     # Track timing
     start_time = time.time()
@@ -527,11 +606,19 @@ Examples:
     duration = time.time() - start_time
     
     # Prepare statistics
+    scan_metadata = results.get("scan_metadata", {})
+    file_types = results.get("file_types", {})
+    files = results.get("files", {})
     stats = {
-        "files_scanned": results.get("stats", {}).get("total_files", 0),
-        "handlers_found": results.get("stats", {}).get("handlers", 0),
-        "references_found": results.get("stats", {}).get("references", 0),
-        "issues_detected": results.get("stats", {}).get("issues", 0),
+        "files_scanned": scan_metadata.get("total_files", 0),
+        "total_lines": scan_metadata.get("total_lines", 0),
+        "handlers_found": sum(
+            file_types.get(file_type, {}).get("count", 0)
+            for file_type in ("handler", "trigger", "orchestrator", "operator")
+        ),
+        "references_found": sum(len(file_info.get("references", [])) for file_info in files.values()),
+        "issues_detected": len(results.get("errors", [])),
+        "profile_enabled": bool(scan_metadata.get("performance_profile", {}).get("enabled")),
         "base_path": str(base_path),
         "include_pattern": args.include,
         "exclude_pattern": args.exclude

@@ -105,6 +105,21 @@ python3 generate_fixes.py
 python3 migration_roadmap.py
 ```
 
+### Profile Scanner Performance
+
+```bash
+python3 scanner.py --no-checkpoints --profile-scan --profile-limit 10
+```
+
+`--profile-scan` records discovery and per-file timing metadata under
+`data.scan_metadata.performance_profile` in the metadata-wrapped scanner output. The
+scanner also reports truthful top-level metadata stats (`files_scanned`, `total_lines`,
+`references_found`, handler counts, and `profile_enabled`) so scanner baselines can be
+compared without parsing the full data payload.
+
+File discovery uses a single deterministic traversal with suffix filtering, preserving
+include/exclude semantics while avoiding one recursive walk per configured suffix.
+
 ### Generate a Migration Roadmap
 
 ```bash

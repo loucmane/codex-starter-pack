@@ -19,7 +19,7 @@ from config.integration import (  # noqa: E402
     create_scanner_config_context,
     scanner_module_examples,
 )
-from scan_core import collect_scannable_files  # noqa: E402
+from scan_core import ScannerConfig, collect_scannable_files  # noqa: E402
 from scan_metadata import save_with_metadata  # noqa: E402
 from scanner import TemplateScanner  # noqa: E402
 from validation_interface import load_validation_rules  # noqa: E402
@@ -112,6 +112,26 @@ def test_context_builds_file_discovery_config_from_scan_scope_and_patterns(tmp_p
     assert scanner_config.supported_suffixes == (".md",)
 
 
+def test_collect_scannable_files_deduplicates_suffixes_and_uses_path_order(tmp_path):
+    templates = tmp_path / "templates"
+    (templates / "zeta").mkdir(parents=True)
+    (templates / "alpha.md").write_text("# Alpha\n", encoding="utf-8")
+    (templates / "zeta" / "config.yaml").write_text("name: zeta\n", encoding="utf-8")
+    (templates / "zeta" / "ignored.txt").write_text("ignore\n", encoding="utf-8")
+
+    scanner_config = ScannerConfig(
+        base_path=tmp_path,
+        supported_suffixes=(".yaml", ".md", ".yaml"),
+    )
+
+    files = [path.relative_to(tmp_path).as_posix() for path in collect_scannable_files(templates, scanner_config)]
+
+    assert files == [
+        "templates/alpha.md",
+        "templates/zeta/config.yaml",
+    ]
+
+
 def test_template_scanner_accepts_injected_context_for_config_dirs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "templates").mkdir()
@@ -137,6 +157,33 @@ def test_template_scanner_accepts_injected_context_for_config_dirs(tmp_path, mon
     assert ".custom/settings.yaml" in results["files"]
     assert ".codex/AGENTS.md" not in results["files"]
     assert results["scan_metadata"]["config_source"] == "mapping"
+
+
+def test_template_scanner_profile_mode_records_scan_timings(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "first.md").write_text(
+        "# First\n\nSee [Second](second.md).\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "templates" / "second.md").write_text("# Second\n", encoding="utf-8")
+
+    results = TemplateScanner(tmp_path, checkpoint_interval=0, profile_scan=True, profile_limit=1).scan()
+    profile = results["scan_metadata"]["performance_profile"]
+
+    assert profile["enabled"] is True
+    assert profile["profile_limit"] == 1
+    assert profile["directories"][0]["category"] == "templates"
+    assert profile["directories"][0]["files_discovered"] == 2
+    assert profile["directories"][0]["files_processed"] == 2
+    assert len(profile["slowest_files"]) == 1
+    assert profile["slowest_files"][0]["relative_path"] in {
+        "templates/first.md",
+        "templates/second.md",
+    }
+    assert len(profile["largest_files"]) == 1
+    assert profile["total_discovery_seconds"] >= 0
+    assert profile["total_processing_seconds"] >= 0
 
 
 def test_reference_analyzer_uses_injected_rule_engine_effective_severity(tmp_path, monkeypatch):

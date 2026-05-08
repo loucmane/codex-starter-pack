@@ -1,0 +1,128 @@
+{
+  "stats": {
+    "files_scanned": 335,
+    "total_lines": 56007,
+    "handlers_found": 86,
+    "references_found": 694,
+    "issues_detected": 0,
+    "profile_enabled": true,
+    "base_path": "/home/loucmane/codex",
+    "include_pattern": null,
+    "exclude_pattern": null
+  },
+  "profile_summary": {
+    "profile_limit": 5,
+    "total_discovery_seconds": 0.463655,
+    "total_processing_seconds": 0.218087,
+    "directories": [
+      {
+        "category": "templates",
+        "path": "/home/loucmane/codex/templates",
+        "files_discovered": 267,
+        "files_processed": 267,
+        "discovery_seconds": 0.017117,
+        "processing_seconds": 0.188907
+      },
+      {
+        "category": "codex",
+        "path": "/home/loucmane/codex/.codex",
+        "files_discovered": 1,
+        "files_processed": 1,
+        "discovery_seconds": 0.442454,
+        "processing_seconds": 0.000441
+      },
+      {
+        "category": "claude",
+        "path": "/home/loucmane/codex/.claude",
+        "files_discovered": 67,
+        "files_processed": 67,
+        "discovery_seconds": 0.004084,
+        "processing_seconds": 0.028739
+      }
+    ],
+    "slowest_files": [
+      {
+        "relative_path": "templates/BEHAVIORS.md",
+        "category": "templates",
+        "duration_seconds": 0.002915,
+        "size_bytes": 18819,
+        "line_count": 542,
+        "references": 5
+      },
+      {
+        "relative_path": "templates/REGISTRY.md",
+        "category": "templates",
+        "duration_seconds": 0.002813,
+        "size_bytes": 39751,
+        "line_count": 841,
+        "references": 6
+      },
+      {
+        "relative_path": "templates/USER-GUIDE.md",
+        "category": "templates",
+        "duration_seconds": 0.002798,
+        "size_bytes": 31264,
+        "line_count": 1207,
+        "references": 4
+      },
+      {
+        "relative_path": "templates/metadata/workflow-guards.json",
+        "category": "templates",
+        "duration_seconds": 0.002144,
+        "size_bytes": 22978,
+        "line_count": 1190,
+        "references": 0
+      },
+      {
+        "relative_path": "templates/BUILDING-BETTER.md",
+        "category": "templates",
+        "duration_seconds": 0.001884,
+        "size_bytes": 22511,
+        "line_count": 654,
+        "references": 20
+      }
+    ],
+    "largest_files": [
+      {
+        "relative_path": "templates/REGISTRY.md",
+        "category": "templates",
+        "duration_seconds": 0.002813,
+        "size_bytes": 39751,
+        "line_count": 841,
+        "references": 6
+      },
+      {
+        "relative_path": "templates/metadata/template-overview.md",
+        "category": "templates",
+        "duration_seconds": 0.001675,
+        "size_bytes": 38301,
+        "line_count": 327,
+        "references": 241
+      },
+      {
+        "relative_path": "templates/USER-GUIDE.md",
+        "category": "templates",
+        "duration_seconds": 0.002798,
+        "size_bytes": 31264,
+        "line_count": 1207,
+        "references": 4
+      },
+      {
+        "relative_path": "templates/registry/index.json",
+        "category": "templates",
+        "duration_seconds": 0.001847,
+        "size_bytes": 24500,
+        "line_count": 1038,
+        "references": 0
+      },
+      {
+        "relative_path": "templates/metadata/workflow-guards.json",
+        "category": "templates",
+        "duration_seconds": 0.002144,
+        "size_bytes": 22978,
+        "line_count": 1190,
+        "references": 0
+      }
+    ]
+  }
+}
