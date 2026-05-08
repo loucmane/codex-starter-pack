@@ -16,4 +16,6 @@
 ## Next Steps
 - Taskmaster Task 23 and subtasks are done; `.taskmaster/tasks/task_023.txt` was refreshed with targeted generation.
 - Final plan sync, audit, guard, and diff-check evidence have been captured.
-- Commit and push the Task 23 implementation if the final status review remains clean.
+- PR #47 was merged into `main`.
+- Task 23 work tracking is archived and the session is closed.
+- Archived on 2026-05-08 12:26 CEST — Folder moved to archive and tracker marked COMPLETED.
