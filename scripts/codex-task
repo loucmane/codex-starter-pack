@@ -2793,6 +2793,266 @@ def handle_rehearsal_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+CANARY_ROLLOUT_STAGES: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "codex",
+        "title": "Codex baseline canary",
+        "minimum_observation_hours": 24,
+        "scope": "Codex runtime, direct git execution, guard/task helpers, and local verification workflow",
+        "entry_criteria": [
+            "Task scope is reconciled against the portable foundation.",
+            "Codex guard passes locally and in CI.",
+            "Full pytest suite passes locally and in CI.",
+            "Taskmaster health reports zero invalid dependency references.",
+            "Work-tracking audit has no active-session issues.",
+        ],
+        "health_checks": [
+            "python3 scripts/codex-guard validate --include-untracked",
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-task work-tracking audit",
+            "git diff --check",
+        ],
+        "promotion_criteria": [
+            "Observation window completes with no guard, CI, or workflow-state regression.",
+            "Rollback checkpoint or recovery path is documented for the rollout slice.",
+            "Findings and decisions are updated for any anomaly.",
+        ],
+        "rollback_triggers": [
+            "Guard, CI, or pytest regression caused by the rollout slice.",
+            "Workflow state cannot be restored to a clean between-session state.",
+            "Taskmaster dependency health reports invalid references.",
+        ],
+    },
+    {
+        "id": "claude",
+        "title": "Claude runtime canary",
+        "minimum_observation_hours": 48,
+        "scope": "Claude runtime adapter, readiness gate, pretooluse gate, slash commands, and Claude-owned workflow surfaces",
+        "entry_criteria": [
+            "Codex baseline canary promotion criteria are satisfied.",
+            "Claude readiness exits READY in a properly scaffolded session.",
+            "Cold-session mutation gate evidence remains current.",
+            "Claude-owned changes stay out of Codex-owned paths unless explicitly authorized.",
+        ],
+        "health_checks": [
+            "bash .claude/scripts/readiness.sh --quick",
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/claude_adapter",
+            "python3 scripts/codex-guard validate --include-untracked",
+            "python3 scripts/codex-task work-tracking audit",
+        ],
+        "promotion_criteria": [
+            "Claude can perform allowed mutations only after readiness is READY.",
+            "Claude cannot mutate protected Codex-owned paths through file tools or Bash bypasses.",
+            "Evidence is captured in session/work-tracking artifacts, not private memory alone.",
+        ],
+        "rollback_triggers": [
+            "Claude can mutate a hookable persistent surface while readiness is BLOCKED.",
+            "Claude can bypass protected-path ownership through Bash or another configured tool surface.",
+            "Adapter work proceeds without Taskmaster/session/plan/work-tracking alignment.",
+        ],
+    },
+    {
+        "id": "other-agents",
+        "title": "Other agent/profile canary",
+        "minimum_observation_hours": 72,
+        "scope": "Additional agents, profiles, or project adapters consuming the portable foundation",
+        "entry_criteria": [
+            "Codex and Claude canary promotion criteria are satisfied.",
+            "The target agent/profile has an explicit entrypoint contract.",
+            "Repo-local adapter configuration is reviewed before rollout.",
+            "Policy-only surfaces and unhookable mutations are documented.",
+        ],
+        "health_checks": [
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-guard validate --include-untracked",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task sync plan --target-dir <target-repo>",
+        ],
+        "promotion_criteria": [
+            "The agent/profile follows the same session/plan/work-tracking lifecycle.",
+            "All hookable mutation surfaces are gated or explicitly deferred.",
+            "Adoption evidence is recorded in repo-local work tracking.",
+        ],
+        "rollback_triggers": [
+            "The target agent/profile bypasses session, plan, or work-tracking gates.",
+            "Repo-local adapter config breaks core guard or bootstrap behavior.",
+            "Required evidence cannot be reproduced from tracked files.",
+        ],
+    },
+)
+
+
+def _canary_rollout_verification_commands() -> List[str]:
+    return [
+        "python3 scripts/codex-task rollout canary-plan --report-file <plan.json> --runbook-file <runbook.md>",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+        "git diff --check",
+    ]
+
+
+def _build_canary_rollout_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "non-destructive-foundation-canary-rollout-plan",
+        "executes_mutations": False,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "stage_count": len(CANARY_ROLLOUT_STAGES),
+        "stages": list(CANARY_ROLLOUT_STAGES),
+        "promotion_model": {
+            "automatic_promotion": False,
+            "requires_reviewed_evidence": True,
+            "minimum_total_observation_hours": sum(
+                int(stage["minimum_observation_hours"]) for stage in CANARY_ROLLOUT_STAGES
+            ),
+            "guidance": [
+                "Promote one stage at a time only after its observation window and evidence gates are satisfied.",
+                "Record stage findings and decisions in work tracking before the next stage begins.",
+                "Treat missing evidence as a stop condition rather than a warning.",
+            ],
+        },
+        "rollback_policy": {
+            "automatic_rollback": False,
+            "requires_checkpoint": True,
+            "guidance": [
+                "Capture a rollback checkpoint before each rollout slice.",
+                "If a trigger fires, stop the rollout and render a reviewed recovery plan from the checkpoint.",
+                "Do not run destructive rollback commands from this planner.",
+            ],
+        },
+        "recommended_verification_commands": _canary_rollout_verification_commands(),
+        "non_goals": [
+            "No deployment is executed.",
+            "No traffic is split.",
+            "No automatic promotion is performed.",
+            "No rollback command is executed.",
+            "No dashboard is generated.",
+            "No notification is sent.",
+            "No external feature flag service is configured.",
+        ],
+    }
+
+
+def _render_canary_rollout_runbook(plan: Dict[str, Any]) -> str:
+    current = plan.get("current_state", {})
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    promotion = plan.get("promotion_model", {}) if isinstance(plan.get("promotion_model"), dict) else {}
+    rollback = plan.get("rollback_policy", {}) if isinstance(plan.get("rollback_policy"), dict) else {}
+    lines = [
+        "# Foundation Canary Rollout Runbook",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes mutations: {plan.get('executes_mutations')}",
+        f"- Current branch: {git_info.get('branch')}",
+        f"- Current HEAD: {git_info.get('head')}",
+        f"- Current dirty status entries: {len(git_info.get('status') or [])}",
+        "",
+        "## Promotion Model",
+        "",
+        f"- Automatic promotion: {promotion.get('automatic_promotion')}",
+        f"- Reviewed evidence required: {promotion.get('requires_reviewed_evidence')}",
+        f"- Minimum total observation hours: {promotion.get('minimum_total_observation_hours')}",
+        "",
+        "## Rollback Policy",
+        "",
+        f"- Automatic rollback: {rollback.get('automatic_rollback')}",
+        f"- Checkpoint required: {rollback.get('requires_checkpoint')}",
+        "",
+        "## Stages",
+        "",
+    ]
+    stages = plan.get("stages") if isinstance(plan.get("stages"), list) else []
+    if stages:
+        for stage in stages:
+            if not isinstance(stage, dict):
+                continue
+            lines.extend(
+                [
+                    f"### {stage.get('title')}",
+                    "",
+                    f"- Stage ID: {stage.get('id')}",
+                    f"- Minimum observation: {stage.get('minimum_observation_hours')} hours",
+                    f"- Scope: {stage.get('scope')}",
+                    "",
+                    "Entry criteria:",
+                ]
+            )
+            for item in stage.get("entry_criteria", []):
+                lines.append(f"- {item}")
+            lines.extend(["", "Health checks:"])
+            for item in stage.get("health_checks", []):
+                lines.append(f"- `{item}`")
+            lines.extend(["", "Promotion criteria:"])
+            for item in stage.get("promotion_criteria", []):
+                lines.append(f"- {item}")
+            lines.extend(["", "Rollback triggers:"])
+            for item in stage.get("rollback_triggers", []):
+                lines.append(f"- {item}")
+            lines.append("")
+    else:
+        lines.append("- No stages defined.")
+
+    lines.extend(["## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_rollout_canary_plan(args: argparse.Namespace) -> None:
+    plan = _build_canary_rollout_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_canary_rollout_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote canary rollout plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote canary rollout runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
     {
         "id": "codex-config",
@@ -3292,6 +3552,15 @@ def build_parser() -> argparse.ArgumentParser:
     rehearsal_plan.add_argument("--runbook-file", help="Optional path to write the rehearsal runbook markdown")
     rehearsal_plan.add_argument("--max-items", type=int, default=10, help="Number of roadmap items to include in the runbook")
     rehearsal_plan.set_defaults(func=handle_rehearsal_plan)
+
+    rollout_parser = subparsers.add_parser("rollout", help="Foundation rollout planning operations")
+    rollout_sub = rollout_parser.add_subparsers(dest="subcommand", required=True)
+    rollout_canary = rollout_sub.add_parser("canary-plan", help="Render a non-destructive foundation canary rollout plan")
+    rollout_canary.add_argument("--label", default="foundation-canary-rollout", help="Human-readable rollout label")
+    rollout_canary.add_argument("--report-file", help="Optional path to write the canary rollout plan JSON")
+    rollout_canary.add_argument("--runbook-file", help="Optional path to write the canary rollout runbook markdown")
+    rollout_canary.add_argument("--dry-run", action="store_true", help="Print the canary rollout plan JSON without writing files")
+    rollout_canary.set_defaults(func=handle_rollout_canary_plan)
 
     sync_parser = subparsers.add_parser("sync", help="Cross-repository foundation sync planning operations")
     sync_sub = sync_parser.add_subparsers(dest="subcommand", required=True)

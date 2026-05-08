@@ -1,7 +1,7 @@
 # Task ID: 40
 # Title: Create Canary Deployment System
-# Status: pending
-# Dependencies: 33, 22
+# Status: done
+# Dependencies: 33 ✓, 22
 # Priority: medium
 # Description: Build infrastructure for gradual migration rollout
 # Details:
@@ -11,13 +11,16 @@ Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create h
 Test stage progression, verify health checks, test rollback triggers, validate traffic splitting
 
 # Subtasks:
-## 1. Scope reconciliation against portable foundation [pending]
-### Dependencies: None
-### Description: Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
-### Details:
+## 1. Scope reconciliation against portable foundation
 
-
-## 2. Implement proven current-state gap with evidence [pending]
+### Status: done
 ### Dependencies: None
-### Description: After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
-### Details:
+
+Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.
+
+## 2. Implement proven current-state gap with evidence
+
+### Status: done
+### Dependencies: None
+
+After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.
