@@ -30,9 +30,10 @@ Follow this checklist before every tool invocation:
 - Document server name, method, and key response fields.
 
 #### Serena (Semantic Toolkit)
-- **Purpose**: Symbol-aware search and edits (`find_symbol`, `find_referencing_symbols`, `replace_symbol_body`, etc.).
+- **Purpose**: Symbol-aware inspection/editing when the active MCP exposes those tools, plus mandatory workflow memory continuity when guard/work-tracking requires Serena evidence.
 - **Command pattern**: `/mcp call serena <tool> ...` (see `templates/shared/tools/tool-selection-matrix.md` for full router).
-- **When to use**: Any time you need structured code insight. Use Serena before falling back to plain `rg`/`sed` searches.
+- **Status check**: Run `python3 scripts/codex-task serena status --strict` when a workflow depends on Serena, and confirm runtime tools with `mcp__serena__.get_current_config` inside an active agent session.
+- **When to use**: Use Serena for semantic code/template structure and memory handoff; use deterministic registry/scanner/`rg` evidence for exact template lookup and text search. Record any fallback when Serena is unavailable or lacks a required tool.
 
 #### Taskmaster AI
 - **Purpose**: Task planning, dependency tracking, TodoRead/Write integration.
@@ -72,6 +73,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `taskmaster generate-one --id <task-id>` – run Taskmaster generation in a temporary directory and update only the requested generated task file.
 - `wizard kickoff` – guided task startup that scaffolds work tracking, creates a compliant session + plan, updates `sessions/current` / `plans/current` / `sessions/state.json`, seeds plan sync, marks the Taskmaster task `in-progress`, and refreshes only that task’s generated file.
 - `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
+- `serena status --strict [--report-file <path>]` – verify Codex and project-level Serena MCP configuration plus `.serena/memories/` readiness before relying on Serena evidence.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:
@@ -155,5 +157,6 @@ Tools are part of the protocol. Use them deliberately and leave a clear evidence
 
 ## Progress Log
 
+- **2026-05-08 14:25** — [S:20260508|W:task15-serena-integration-template-system|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260508-task15-serena-integration-template-system-ACTIVE/designs/serena-integration-scope-reconciliation.md] Added `codex-task serena status` to the command inventory and clarified Serena as semantic/memory evidence rather than an ad hoc replacement for deterministic registry discovery.
 - **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Added `sessions continue` to the codex-task command inventory and documented it as the correct fresh-session path for existing active tasks.
 - **2026-04-23 13:15** — [S:20260423|W:task92-expand-workflow-guard-coverage|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260422-task92-expand-workflow-guard-coverage-ACTIVE/designs/guard-coverage-audit.md] Documented the expanded `scripts/codex-guard` coverage for runtime artifacts, Taskmaster evidence, session-state consistency, and canonical GAC guidance

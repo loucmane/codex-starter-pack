@@ -1,0 +1,5 @@
+# Decisions
+
+- 2026-05-08 — [S:20260508|W:task15-serena-integration-template-system|H:docs/ai/work-tracking/active/20260508-task15-serena-integration-template-system-ACTIVE/designs/serena-integration-scope-reconciliation.md|E:serena/memory`2026-05-07_task28_dual_path_discovery`] Implement Task 15 as a capability-aware Serena contract. Registry/scanner discovery remains deterministic; Serena is enforced through MCP configuration, semantic inspection when available, memory evidence, and explicit fallback signaling.
+- 2026-05-08 — [S:20260508|W:task15-serena-integration-template-system|H:.mcp.json|E:.codex/config.toml] Add Serena to project `.mcp.json` with the same pinned `uvx ... serena start-mcp-server --project-from-cwd` command used by Codex so Claude/project sessions have an installable MCP contract.
+- 2026-05-08 — [S:20260508|W:task15-serena-integration-template-system|H:scripts/codex-task|E:tests/meta_workflow_guard/test_codex_task.py] Add `python3 scripts/codex-task serena status --strict` as a mechanical readiness proof for Serena-dependent workflows rather than relying on docs or memory.

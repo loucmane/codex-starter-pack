@@ -29,6 +29,7 @@ Formalize the seven-file work-tracking process so every session captures tracker
    - Mirror the entry in the session log with `codex-task sessions update`.
 3. **Enforce guard coverage**
    - `python3 scripts/codex-guard validate --include-untracked` before/after significant edits.
+   - When the workflow depends on Serena evidence, run `python3 scripts/codex-task serena status --strict` (optionally with `--report-file`) before claiming Serena-backed memory or semantic inspection.
    - Guard now fails if tracker lacks today’s entry, findings/decisions/changelog are stale, or no Serena memory reference is present.
    - When dashboard/reporting automation changes, refresh repo-level metrics with `python3 scripts/template-metrics-dashboard` so CI and local evidence use the same output directory.
 4. **Capture Serena memory each session**
@@ -55,6 +56,7 @@ Formalize the seven-file work-tracking process so every session captures tracker
 - `codex-task bootstrap init --target-dir <repo>` → seed portable-foundation starter assets in a new or existing repo without overwriting existing config/policy files unless `--force` is explicit.
 - `codex-task wizard kickoff --task <id>` → guided kickoff for a new task; creates the session, plan, active folder, current symlinks/state, initial plan sync, and targeted generated task-file update.
 - `codex-task taskmaster generate-one --id <id>` → refreshes only the requested generated Taskmaster task file after status/update commands.
+- `codex-task serena status --strict --report-file <path>` → confirms Serena MCP config is available for Codex and project clients before requiring Serena evidence.
 - `codex-task work-tracking scaffold --task <id> --slug <slug>` → creates full structure.
 - `codex-task work-tracking update --preset findings --handler auto --evidence <path> --note "..."` → appends standardized entries.
 - `codex-task work-tracking audit` → highlights stale active folders or missing `sessions/current` link.
@@ -74,6 +76,7 @@ Bootstrap note:
 ## Failure Modes & Recovery
 - **Guard fails for stale doc entry** → add same-day entry via preset and rerun guard.
 - **Serena memory missing** → capture memory immediately, log in tracker and session.
+- **Serena MCP config missing** → run `python3 scripts/codex-task serena status --strict`, repair `.codex/config.toml` / `.mcp.json`, then rerun before relying on Serena evidence.
 - **Multiple ACTIVE folders** → archive old folder, rerun guard.
 - **Plan out of sync** → run `python3 scripts/codex-task plan sync` after every tracker edit.
 - **Taskmaster generated files drift** → run `python3 scripts/codex-task taskmaster generate-one --id <id>` for the current task; avoid broad in-place `task-master generate` unless a deliberate repo-wide generated-file refresh is explicitly scoped.
@@ -82,9 +85,14 @@ Bootstrap note:
 - `scripts/codex-task work-tracking scaffold`
 - `scripts/codex-task work-tracking update --preset ...`
 - `scripts/codex-task taskmaster generate-one --id <id>`
+- `scripts/codex-task serena status --strict`
 - `scripts/codex-guard`
 - `templates/workflows/taskmaster/alignment.md`
 
 ## S:W:H:E Examples
 - [S:20251027|W:task89-work-tracking|H:scripts/codex-task|E:cmd`python3 scripts/codex-task work-tracking scaffold --task 89 --slug work-tracking-enforcement`] Seven-file scaffold created
 - [S:20251027|W:task89-work-tracking|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20251027-task89-work-tracking-enforcement-ACTIVE/reports/work-tracking-enforcement/guard-2025-10-27-pass.txt] Guard validation clean after documentation update
+
+## Change Log
+
+- **2026-05-08 14:25** — [S:20260508|W:task15-serena-integration-template-system|H:templates/workflows/taskmaster/work-tracking-enforcement.md|E:docs/ai/work-tracking/active/20260508-task15-serena-integration-template-system-ACTIVE/designs/serena-integration-scope-reconciliation.md] Added `codex-task serena status --strict` as the required configuration proof before workflow artifacts claim Serena-backed evidence.

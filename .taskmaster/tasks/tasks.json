@@ -1254,32 +1254,35 @@
           "12",
           "84"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 15,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T12:32:15.423Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 15,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T12:34:25.377Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 8,
-        "expansionPrompt": "Install Serena MCP server, configure .mcp.json connection, implement SerenaClient wrapper, add memory storage system, create search indices, implement regex/symbol analysis, configure compaction, and set retention policies."
+        "expansionPrompt": "Install Serena MCP server, configure .mcp.json connection, implement SerenaClient wrapper, add memory storage system, create search indices, implement regex/symbol analysis, configure compaction, and set retention policies.",
+        "updatedAt": "2026-05-08T12:34:25.377Z"
       },
       {
         "id": "16",
@@ -4996,9 +4999,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-08T11:50:48.623Z",
+      "lastModified": "2026-05-08T12:34:25.378Z",
       "taskCount": 108,
-      "completedCount": 49,
+      "completedCount": 50,
       "tags": [
         "master"
       ]

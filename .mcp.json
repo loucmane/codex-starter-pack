@@ -19,6 +19,17 @@
 				"AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE",
 				"OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
 			}
+		},
+		"serena": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"--from",
+				"git+https://github.com/oraios/serena@229fac066237f7156c8fe2a9fa7166f95715e0b3",
+				"serena",
+				"start-mcp-server",
+				"--project-from-cwd"
+			]
 		}
 	}
 }
