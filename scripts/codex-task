@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -1960,13 +1961,148 @@ def _taskmaster_snapshot() -> Dict[str, Any]:
 
 def _serena_memory_snapshot() -> Dict[str, Any]:
     memory_dir = REPO_ROOT / ".serena" / "memories"
-    memories = sorted(memory_dir.glob("*.md")) if memory_dir.exists() else []
+    memories = (
+        sorted(memory_dir.glob("*.md"), key=lambda path: (path.stat().st_mtime, path.name))
+        if memory_dir.exists()
+        else []
+    )
     return {
         "path": _relative_to_root(memory_dir, REPO_ROOT),
         "exists": memory_dir.exists(),
         "count": len(memories),
         "latest": [_relative_to_root(path, REPO_ROOT) for path in memories[-10:]],
     }
+
+
+SERENA_REQUIRED_ARGS = ("serena", "start-mcp-server", "--project-from-cwd")
+
+
+def _load_toml_document(path: Path) -> Dict[str, Any]:
+    try:
+        with path.open("rb") as handle:
+            return tomllib.load(handle)
+    except FileNotFoundError:
+        return {}
+    except tomllib.TOMLDecodeError as exc:
+        raise TaskError(f"Could not parse {path.relative_to(REPO_ROOT).as_posix()}: {exc}") from exc
+
+
+def _load_json_file_document(path: Path) -> Dict[str, Any]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"Could not parse {path.relative_to(REPO_ROOT).as_posix()}: {exc}") from exc
+
+
+def _serena_server_issues(server: Any, *, label: str) -> Tuple[List[str], List[str]]:
+    issues: List[str] = []
+    warnings: List[str] = []
+    if not isinstance(server, dict):
+        return [f"{label}: missing Serena MCP server entry"], warnings
+
+    server_type = server.get("type")
+    if server_type != "stdio":
+        issues.append(f"{label}: expected type=stdio, found {server_type!r}")
+
+    command = server.get("command")
+    if command != "uvx":
+        issues.append(f"{label}: expected command=uvx, found {command!r}")
+
+    args = server.get("args")
+    if not isinstance(args, list):
+        issues.append(f"{label}: args must be a list containing Serena startup tokens")
+        return issues, warnings
+
+    missing = [token for token in SERENA_REQUIRED_ARGS if token not in args]
+    if missing:
+        issues.append(f"{label}: missing required Serena args: {', '.join(missing)}")
+
+    if "--from" not in args:
+        warnings.append(f"{label}: args do not pin Serena source with --from")
+    else:
+        from_index = args.index("--from")
+        source = args[from_index + 1] if from_index + 1 < len(args) else ""
+        if "github.com/oraios/serena" not in str(source):
+            warnings.append(f"{label}: --from source does not point at oraios/serena")
+        if "@" not in str(source):
+            warnings.append(f"{label}: Serena source is not pinned to a commit or version")
+
+    return issues, warnings
+
+
+def _serena_status_report() -> Tuple[str, List[str]]:
+    issues: List[str] = []
+    warnings: List[str] = []
+    lines: List[str] = []
+
+    codex_config_path = REPO_ROOT / ".codex" / "config.toml"
+    project_mcp_path = REPO_ROOT / ".mcp.json"
+    memory_dir = REPO_ROOT / ".serena" / "memories"
+
+    codex_config = _load_toml_document(codex_config_path)
+    codex_server = codex_config.get("mcp_servers", {}).get("serena") if isinstance(codex_config, dict) else None
+    codex_issues, codex_warnings = _serena_server_issues(codex_server, label=".codex/config.toml")
+    issues.extend(codex_issues)
+    warnings.extend(codex_warnings)
+
+    project_mcp = _load_json_file_document(project_mcp_path)
+    project_server = project_mcp.get("mcpServers", {}).get("serena") if isinstance(project_mcp, dict) else None
+    project_issues, project_warnings = _serena_server_issues(project_server, label=".mcp.json")
+    issues.extend(project_issues)
+    warnings.extend(project_warnings)
+
+    memories = (
+        sorted(memory_dir.glob("*.md"), key=lambda path: (path.stat().st_mtime, path.name))
+        if memory_dir.exists()
+        else []
+    )
+    if not memory_dir.exists():
+        warnings.append(".serena/memories: directory missing; create Serena memory during the first tracked session")
+
+    status = "OK" if not issues else "ISSUES"
+    lines.append(f"Serena integration status: {status}")
+    lines.append("")
+    lines.append(f"- Codex MCP config: {_relative_to_root(codex_config_path, REPO_ROOT)}")
+    lines.append(f"- Project MCP config: {_relative_to_root(project_mcp_path, REPO_ROOT)}")
+    lines.append(f"- Serena memory directory: {_relative_to_root(memory_dir, REPO_ROOT)}")
+    lines.append(f"- Serena memory count: {len(memories)}")
+    if memories:
+        lines.append("- Latest Serena memories:")
+        for path in memories[-5:]:
+            lines.append(f"  - {_relative_to_root(path, REPO_ROOT)}")
+    lines.append("")
+    lines.append("Runtime verification:")
+    lines.append("- In an active agent session, confirm Serena tools with `mcp__serena__.get_current_config`.")
+    lines.append("- Template registry misses should surface `source=serena` / `fallback_action=serena_search` rather than silently failing.")
+
+    if warnings:
+        lines.append("")
+        lines.append("Warnings:")
+        lines.extend(f"- {warning}" for warning in warnings)
+    if issues:
+        lines.append("")
+        lines.append("Issues:")
+        lines.extend(f"- {issue}" for issue in issues)
+
+    return "\n".join(lines) + "\n", issues
+
+
+def handle_serena_status(args: argparse.Namespace) -> None:
+    report, issues = _serena_status_report()
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(report, encoding="utf-8")
+        print(f"Wrote Serena status report to {_relative_to_root(report_path, REPO_ROOT)}")
+    else:
+        print(report, end="")
+
+    if args.strict and issues:
+        raise TaskError("Serena integration status failed in strict mode")
 
 
 def _workflow_snapshot() -> Dict[str, Any]:
@@ -2871,6 +3007,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fail when the local .git/hooks/pre-commit entry is not installed",
     )
     hooks_verify.set_defaults(func=handle_hooks_verify)
+
+    serena_parser = subparsers.add_parser("serena", help="Serena MCP integration operations")
+    serena_sub = serena_parser.add_subparsers(dest="subcommand", required=True)
+    serena_status = serena_sub.add_parser(
+        "status",
+        help="Verify Serena MCP configuration and memory directory readiness",
+    )
+    serena_status.add_argument("--strict", action="store_true", help="Fail when required Serena config is missing")
+    serena_status.add_argument("--report-file", help="Optional path to write the Serena status report")
+    serena_status.set_defaults(func=handle_serena_status)
 
     taskmaster_parser = subparsers.add_parser("taskmaster", help="Taskmaster helper operations")
     taskmaster_sub = taskmaster_parser.add_subparsers(dest="subcommand", required=True)

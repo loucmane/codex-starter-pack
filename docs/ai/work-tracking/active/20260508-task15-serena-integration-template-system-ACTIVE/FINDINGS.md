@@ -1,0 +1,5 @@
+# Findings
+
+- 2026-05-08 — [S:20260508|W:task15-serena-integration-template-system|H:templates/tools/search/serena-guide.md|E:mcp`serena.get_current_config`] Serena is active in Codex with semantic tools and memory tools, but project `.mcp.json` only exposed Taskmaster before this task, leaving Claude/project sessions unable to rely on the same Serena MCP contract.
+- 2026-05-08 — [S:20260508|W:task15-serena-integration-template-system|H:scripts/template_registry.py|E:serena/memory`2026-05-07_task28_dual_path_discovery`] Current template discovery already treats Serena as a structured fallback action after deterministic registry, compatibility, and legacy lookup. Forcing every lookup through live Serena would undo the portable foundation rather than enforce it.
+- 2026-05-08 — [S:20260508|W:task15-serena-integration-template-system|H:templates/shared/tools/tool-selection-matrix.md|E:templates/tools/search/serena-guide.md] Existing docs mixed stale project names and absolute Serena routing with current deterministic `rg`/registry/scanner evidence. The system needed capability-aware routing instead of memory-only reminders.

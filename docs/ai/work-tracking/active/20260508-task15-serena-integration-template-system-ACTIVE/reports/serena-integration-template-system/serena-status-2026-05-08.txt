@@ -1,0 +1,16 @@
+Serena integration status: OK
+
+- Codex MCP config: .codex/config.toml
+- Project MCP config: .mcp.json
+- Serena memory directory: .serena/memories
+- Serena memory count: 83
+- Latest Serena memories:
+  - .serena/memories/session_2026-04-22_task91-closeout.md
+  - .serena/memories/session_2026-04-23_task93-compaction-closeout.md
+  - .serena/memories/session_2026-04-25_task102-delayed-closeout.md
+  - .serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md
+  - .serena/memories/session_end_2025-09-20_codex_migration.md
+
+Runtime verification:
+- In an active agent session, confirm Serena tools with `mcp__serena__.get_current_config`.
+- Template registry misses should surface `source=serena` / `fallback_action=serena_search` rather than silently failing.

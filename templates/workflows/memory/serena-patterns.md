@@ -16,11 +16,17 @@ status: stable
 
 ## When to Create Memories
 
+Before relying on Serena memory in a workflow, confirm configuration with:
+
+```bash
+python3 scripts/codex-task serena status --strict
+```
+
 ### Required Memory Points
 
 1. **Session End**
    - Every session MUST create a memory
-   - Format: `session_YYYY-MM-DD_descriptive_name`
+   - Format: `YYYY-MM-DD_task<id>_descriptive_name` for task-specific memories, or `session_YYYY-MM-DD_descriptive_name` for broad session memories
    - Contains complete work summary
 
 2. **Major Milestones**
@@ -98,7 +104,7 @@ status: stable
 
 ## How to Initialize Next Session
 ```
-Activate project MomsBlog, read memory session_YYYY-MM-DD_topic and sessions/
+Confirm Serena status, activate/read project context if needed, read memory YYYY-MM-DD_task<id>_topic and sessions/current.
 ```
 
 ## Key Files to Review
@@ -110,8 +116,8 @@ Activate project MomsBlog, read memory session_YYYY-MM-DD_topic and sessions/
 ## Memory Naming Conventions
 
 ### Session Memories
-- Pattern: `session_YYYY-MM-DD_descriptive_topic`
-- Example: `session_2025-07-30_template_migration`
+- Pattern: `YYYY-MM-DD_task<id>_descriptive_topic` or `session_YYYY-MM-DD_descriptive_topic`
+- Example: `2026-05-08_task15_serena_integration`
 
 ### Milestone Memories
 - Pattern: `milestone_YYYY-MM-DD_achievement`
@@ -125,14 +131,11 @@ Activate project MomsBlog, read memory session_YYYY-MM-DD_topic and sessions/
 
 ### Finding Recent Work
 ```bash
-# List all session memories
-ls -la .serena/memories/session_* | tail -5
+# List recent project memories
+python3 scripts/codex-task serena status --strict
 
-# Find memories about specific topic
-grep -l "template" .serena/memories/*.md
-
-# Get latest session memory
-ls -t .serena/memories/session_* | head -1
+# Find memories about a specific topic
+rg -n "template" .serena/memories/
 ```
 
 ### Cross-Referencing
@@ -144,6 +147,7 @@ ls -t .serena/memories/session_* | head -1
 ## Memory Integration Points
 
 1. **Session Start**
+   - Run `python3 scripts/codex-task serena status --strict` when Serena evidence is in scope
    - Read previous session memory
    - Verify against sessions/
    - Note continuation points
@@ -180,4 +184,9 @@ After creating a memory:
 1. Confirm file exists in `.serena/memories/`
 2. Verify it contains initialization instructions
 3. Check cross-references are accurate
-4. Ensure handoff is complete
+4. Log the memory name in `TRACKER.md` and the active session with handler `serena/memory`
+5. Ensure handoff is complete
+
+## Change Log
+
+- **2026-05-08 14:25** — [S:20260508|W:task15-serena-integration-template-system|H:templates/workflows/memory/serena-patterns.md|E:docs/ai/work-tracking/active/20260508-task15-serena-integration-template-system-ACTIVE/designs/serena-integration-scope-reconciliation.md] Updated Serena memory guidance to require the configuration status helper and current task-scoped memory naming.

@@ -72,6 +72,16 @@ def test_build_parser_accepts_sessions_continue() -> None:
     assert args.slug == "session-management-system"
 
 
+def test_build_parser_accepts_serena_status() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["serena", "status", "--strict", "--report-file", "reports/serena/status.txt"])
+    assert args.command == "serena"
+    assert args.subcommand == "status"
+    assert args.strict is True
+    assert args.report_file == "reports/serena/status.txt"
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -1156,6 +1166,68 @@ def test_taskmaster_generate_one_rejects_missing_generated_task_file(monkeypatch
 
     with pytest.raises(module.TaskError, match="Generated task file for task 104 not found"):
         module.handle_taskmaster_generate_one(argparse.Namespace(task_id="104", dry_run=False))
+
+
+def test_serena_status_reports_project_and_codex_mcp_config(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    (repo / ".codex").mkdir(parents=True)
+    (repo / ".serena" / "memories").mkdir(parents=True)
+    (repo / ".serena" / "memories" / "2026-05-08_task15_serena.md").write_text("memory\n", encoding="utf-8")
+    serena_args = [
+        "--from",
+        "git+https://github.com/oraios/serena@229fac066237f7156c8fe2a9fa7166f95715e0b3",
+        "serena",
+        "start-mcp-server",
+        "--project-from-cwd",
+    ]
+    (repo / ".codex" / "config.toml").write_text(
+        "[mcp_servers.serena]\n"
+        'type = "stdio"\n'
+        'command = "uvx"\n'
+        f"args = {json.dumps(serena_args)}\n",
+        encoding="utf-8",
+    )
+    (repo / ".mcp.json").write_text(
+        json.dumps({"mcpServers": {"serena": {"type": "stdio", "command": "uvx", "args": serena_args}}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+
+    report_file = repo / "reports" / "serena-status.txt"
+    module.handle_serena_status(argparse.Namespace(strict=True, report_file=str(report_file)))
+
+    output = capsys.readouterr().out
+    report = report_file.read_text(encoding="utf-8")
+    assert "Wrote Serena status report" in output
+    assert "Serena integration status: OK" in report
+    assert "Serena memory count: 1" in report
+    assert ".mcp.json" in report
+
+
+def test_serena_status_strict_rejects_missing_project_mcp_entry(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    (repo / ".codex").mkdir(parents=True)
+    serena_args = [
+        "--from",
+        "git+https://github.com/oraios/serena@229fac066237f7156c8fe2a9fa7166f95715e0b3",
+        "serena",
+        "start-mcp-server",
+        "--project-from-cwd",
+    ]
+    (repo / ".codex" / "config.toml").write_text(
+        "[mcp_servers.serena]\n"
+        'type = "stdio"\n'
+        'command = "uvx"\n'
+        f"args = {json.dumps(serena_args)}\n",
+        encoding="utf-8",
+    )
+    (repo / ".mcp.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+
+    with pytest.raises(module.TaskError, match="Serena integration status failed"):
+        module.handle_serena_status(argparse.Namespace(strict=True, report_file=None))
 
 
 def test_taskmaster_health_reports_valid_full_graph(monkeypatch, tmp_path, capsys) -> None:
