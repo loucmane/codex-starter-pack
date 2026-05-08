@@ -12,7 +12,14 @@ SCRIPT_DIR = REPO_ROOT / "scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from template_registry import CompatibilityMap, CompatibilityMapError, TemplateNotFound, TemplateRegistry, parse_frontmatter
+from template_registry import (
+    CompatibilityMap,
+    CompatibilityMapError,
+    TemplateDiscoveryAPI,
+    TemplateNotFound,
+    TemplateRegistry,
+    parse_frontmatter,
+)
 
 
 def _write_repo_config(repo: Path, templates_root: str = "custom_templates") -> None:
@@ -121,6 +128,167 @@ tags:
     assert record.category == "session"
     assert record.good_first_handler is True
     assert registry.search(type="orchestrator", category="session", tags=["session"]) == [record]
+
+
+def test_template_discovery_api_returns_serializable_lookup_search_pagination_and_dependencies(tmp_path: Path) -> None:
+    _write_repo_config(tmp_path)
+    _write_template(
+        tmp_path / "custom_templates" / "guides" / "alpha.md",
+        """
+id: alpha
+title: Alpha Guide
+type: guide
+status: stable
+category: docs
+version: 1.0.0
+tags:
+  - docs
+  - onboarding
+dependencies:
+  - beta
+""",
+        "Alpha Guide",
+    )
+    _write_template(
+        tmp_path / "custom_templates" / "guides" / "beta.md",
+        """
+id: beta
+title: Beta Guide
+type: guide
+status: stable
+category: docs
+version: 1.0.0
+tags:
+  - docs
+  - support
+dependencies: []
+""",
+        "Beta Guide",
+    )
+    _write_template(
+        tmp_path / "custom_templates" / "guides" / "gamma.md",
+        """
+id: gamma
+title: Gamma Draft
+type: guide
+status: draft
+category: docs
+version: 0.2.0
+tags:
+  - docs
+  - draft
+dependencies: [missing-template]
+""",
+        "Gamma Draft",
+    )
+    _write_registry(
+        tmp_path,
+        "custom_templates",
+        [
+            {"id": "alpha", "path": "custom_templates/guides/alpha.md", "tags": ["docs", "onboarding"]},
+            {"id": "beta", "path": "custom_templates/guides/beta.md", "tags": ["docs", "support"]},
+            {"id": "gamma", "path": "custom_templates/guides/gamma.md", "tags": ["docs", "draft"]},
+        ],
+    )
+
+    api = TemplateDiscoveryAPI(registry=TemplateRegistry(repo_root=tmp_path))
+
+    alpha = api.get_template("alpha")
+    assert alpha == {
+        "id": "alpha",
+        "path": "custom_templates/guides/alpha.md",
+        "title": "Alpha Guide",
+        "type": "guide",
+        "category": "docs",
+        "status": "stable",
+        "version": "1.0.0",
+        "tags": ["docs", "onboarding"],
+        "dependencies": ["beta"],
+        "source": "modular",
+        "good_first_handler": False,
+        "good_first_workflow": False,
+        "metadata": {
+            "id": "alpha",
+            "title": "Alpha Guide",
+            "type": "guide",
+            "status": "stable",
+            "category": "docs",
+            "version": "1.0.0",
+            "tags": ["docs", "onboarding"],
+            "dependencies": ["beta"],
+        },
+    }
+    assert "absolute_path" not in alpha
+
+    first_page = api.search_templates(
+        query="guide",
+        category="docs",
+        type="guide",
+        status="stable",
+        version="1.0.0",
+        tags=["docs"],
+        limit=1,
+        offset=0,
+    )
+    assert [item["id"] for item in first_page["items"]] == ["alpha"]
+    assert first_page["pagination"] == {
+        "total": 2,
+        "limit": 1,
+        "offset": 0,
+        "count": 1,
+        "has_more": True,
+    }
+
+    second_page = api.search_templates(
+        query="guide",
+        category="docs",
+        type="guide",
+        status="stable",
+        version="1.0.0",
+        tags=["docs"],
+        limit=1,
+        offset=1,
+    )
+    assert [item["id"] for item in second_page["items"]] == ["beta"]
+    assert second_page["pagination"]["has_more"] is False
+
+    category = api.list_by_category("docs", status="draft")
+    assert [item["id"] for item in category["items"]] == ["gamma"]
+
+    dependencies = api.get_dependencies("alpha")
+    assert dependencies == {
+        "id": "alpha",
+        "path": "custom_templates/guides/alpha.md",
+        "dependencies": ["beta"],
+        "resolved": [
+            {
+                "query": "beta",
+                "id": "beta",
+                "path": "custom_templates/guides/beta.md",
+                "source": "modular",
+                "status": "found",
+            }
+        ],
+        "missing": [],
+    }
+
+    missing_dependencies = api.get_dependencies("gamma")
+    assert missing_dependencies is not None
+    assert missing_dependencies["missing"] == ["missing-template"]
+    assert api.get_template("missing-template") is None
+    assert api.get_dependencies("missing-template") is None
+
+
+def test_template_discovery_api_rejects_invalid_pagination(tmp_path: Path) -> None:
+    _write_repo_config(tmp_path)
+    _write_registry(tmp_path, "custom_templates", [])
+    api = TemplateDiscoveryAPI(registry=TemplateRegistry(repo_root=tmp_path))
+
+    with pytest.raises(ValueError, match="limit must be greater than zero"):
+        api.search_templates(limit=0)
+
+    with pytest.raises(ValueError, match="offset must be greater than or equal to zero"):
+        api.search_templates(offset=-1)
 
 
 def test_resolve_follows_modular_compatibility_legacy_serena_error_order(tmp_path: Path) -> None:
