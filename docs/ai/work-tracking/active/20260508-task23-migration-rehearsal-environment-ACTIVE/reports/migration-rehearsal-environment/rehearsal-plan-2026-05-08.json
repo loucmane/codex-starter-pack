@@ -1,0 +1,424 @@
+{
+  "abort_criteria": [
+    "Stop if guard, plan sync, Taskmaster health, or required pytest suites fail.",
+    "Stop if the rollback checkpoint is missing, unreadable, or points at an unexpected branch/head.",
+    "Stop if rehearsal requires Docker, external API keys, agent simulators, load testing, or destructive Git commands; those are out of scope for this foundation task.",
+    "Treat 63 critical roadmap item(s) as pre-migration blockers unless explicitly waived in work tracking.",
+    "Review the current dirty working tree (10 status entries) before applying roadmap changes."
+  ],
+  "checkpoint": {
+    "created_at": "2026-05-08T12:12:18+02:00",
+    "git": {
+      "branch": "feat/task-23-migration-rehearsal-environment",
+      "head": "3b73b3494ecf9edb656d609278c20edb25e18674",
+      "status_count": 10,
+      "tag": null
+    },
+    "label": "task23-rehearsal",
+    "path": "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE/reports/migration-rehearsal-environment/checkpoint-2026-05-08.json",
+    "taskmaster": {
+      "sha256": "cabe615339514acf461ade39003cbc8e61fa38969fa10712164b8406da95077f",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 46,
+          "in-progress": 1,
+          "pending": 61
+        },
+        "subtasks": 304,
+        "tasks": 108
+      }
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE"
+      ],
+      "current_plan": "plans/2026-05-08-task23-migration-rehearsal-environment.md",
+      "current_session": "sessions/2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md"
+    }
+  },
+  "created_at": "2026-05-08T12:12:25+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-23-migration-rehearsal-environment",
+      "head": "3b73b3494ecf9edb656d609278c20edb25e18674",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_023.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-08-task23-migration-rehearsal-environment.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 80,
+      "exists": true,
+      "latest": [
+        ".serena/memories/session_2025-09-20_codex_migration.md",
+        ".serena/memories/session_2025-09-26_enforcement_backlog.md",
+        ".serena/memories/session_2025-09-27_task82_meta_workflow.md",
+        ".serena/memories/session_2025-09-30_timestamp_guard.md",
+        ".serena/memories/session_2026-04-21_task91-kickoff-closeout.md",
+        ".serena/memories/session_2026-04-22_task91-closeout.md",
+        ".serena/memories/session_2026-04-23_task93-compaction-closeout.md",
+        ".serena/memories/session_2026-04-25_task102-delayed-closeout.md",
+        ".serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md",
+        ".serena/memories/session_end_2025-09-20_codex_migration.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "cabe615339514acf461ade39003cbc8e61fa38969fa10712164b8406da95077f",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 46,
+          "in-progress": 1,
+          "pending": 61
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-08-task23-migration-rehearsal-environment.md",
+        "sha256": "8974a97a7859e5070255dc1fd34c38a3a0a0b7f3fc2d42b4ebe7a053f624e65c",
+        "target": "2026-05-08-task23-migration-rehearsal-environment.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md",
+        "sha256": "f2f4dd94e6c71478f8328b64a6105fc7c9ceebeb79c46c55a58edcd053657571",
+        "target": "2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "2d72840b07d79318bce465031f21b3f6e27ab2ec5aadfc869a55b41e9097a9fd"
+      }
+    }
+  },
+  "executes_mutations": false,
+  "inputs": {
+    "checkpoint": "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE/reports/migration-rehearsal-environment/checkpoint-2026-05-08.json",
+    "roadmap": "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE/reports/migration-rehearsal-environment/migration-roadmap-2026-05-08.json"
+  },
+  "label": "task23-rehearsal",
+  "mode": "non-destructive-local-rehearsal",
+  "non_goals": [
+    "No Docker containers are created.",
+    "No test API keys are read or written.",
+    "No Claude/Codex agent simulators are launched.",
+    "No k6/locust load test harness is invoked.",
+    "No Taskmaster tasks are imported from roadmap data.",
+    "No rollback, reset, clean, restore, or worktree command is executed."
+  ],
+  "recommended_verification_commands": [
+    "git status --short --branch",
+    "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <path>",
+    "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <path> --markdown-out <path>",
+    "python3 scripts/codex-task rehearsal plan --roadmap <roadmap.json> --checkpoint <checkpoint.json> --report-file <plan.json> --runbook-file <runbook.md>",
+    "python3 scripts/codex-task taskmaster health --report-file <path>",
+    "python3 scripts/codex-task plan sync",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "git diff --check"
+  ],
+  "rehearsal_environment": {
+    "agent_simulators_required": false,
+    "automatic_docker_setup": false,
+    "automatic_worktree_creation": false,
+    "external_api_keys_required": false,
+    "guidance": [
+      "Use the checkpoint commit as the rollback anchor before migration work.",
+      "Use the roadmap priority order to select the next migration slice.",
+      "If stronger isolation is needed, create a reviewed git worktree manually; this helper does not run that command.",
+      "Capture fresh guard, audit, Taskmaster health, and diff-check evidence after each rehearsal slice."
+    ],
+    "isolation_model": "manual-review-or-optional-worktree",
+    "load_testing_required": false
+  },
+  "roadmap": {
+    "category_counts": {
+      "dependencies": 11,
+      "duplicates": 2,
+      "migration": 5,
+      "orphaned-files": 1,
+      "references": 63,
+      "security": 1
+    },
+    "first_items": [
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-004",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/MATRICES.md"
+        ],
+        "title": "Repair 1 broken reference in templates/MATRICES.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-007",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/behaviors/file-operations/before-create.md"
+        ],
+        "title": "Repair 1 broken reference in templates/behaviors/file-operations/before-create.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-008",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/behaviors/file-operations/before-edit.md"
+        ],
+        "title": "Repair 1 broken reference in templates/behaviors/file-operations/before-edit.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-010",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/behaviors/planning/plan-compliance.md"
+        ],
+        "title": "Repair 1 broken reference in templates/behaviors/planning/plan-compliance.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-012",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/behaviors/session/session-end.md"
+        ],
+        "title": "Repair 1 broken reference in templates/behaviors/session/session-end.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-013",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/behaviors/task-management/todo-write.md"
+        ],
+        "title": "Repair 1 broken reference in templates/behaviors/task-management/todo-write.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-015",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/behaviors/work-tracking/update-tracker.md"
+        ],
+        "title": "Repair 1 broken reference in templates/behaviors/work-tracking/update-tracker.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-016",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/conventions/docs/documentation-standards.md"
+        ],
+        "title": "Repair 1 broken reference in templates/conventions/docs/documentation-standards.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-018",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/coordination/session-swhe-integration.md"
+        ],
+        "title": "Repair 1 broken reference in templates/coordination/session-swhe-integration.md"
+      },
+      {
+        "category": "references",
+        "dependencies": [],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "critical-references-019",
+        "priority": "critical",
+        "risk": "high",
+        "source_files": [
+          "templates/engine/navigation/common-flows.md"
+        ],
+        "title": "Repair 1 broken reference in templates/engine/navigation/common-flows.md"
+      }
+    ],
+    "generated_at": "2026-05-08T12:12:14.032335",
+    "metadata": {
+      "duration_seconds": 0.0,
+      "output_format_version": "2.0.0",
+      "scan_timestamp": "2026-05-08T12:12:14.033055",
+      "scanner": "migration_roadmap",
+      "scanner_version": "1.0.0",
+      "stats": {
+        "priority_critical": 63,
+        "priority_high": 16,
+        "priority_low": 1,
+        "priority_medium": 3,
+        "roadmap_items": 83,
+        "taskmaster_items": 83
+      }
+    },
+    "path": "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE/reports/migration-rehearsal-environment/migration-roadmap-2026-05-08.json",
+    "phases": [
+      {
+        "duration_days": 2,
+        "id": "phase-1-critical-integrity",
+        "priorities": [
+          "critical"
+        ],
+        "start_day": 0,
+        "title": "Critical integrity"
+      },
+      {
+        "duration_days": 3,
+        "id": "phase-2-foundation-correctness",
+        "priorities": [
+          "high"
+        ],
+        "start_day": 2,
+        "title": "Foundation correctness"
+      },
+      {
+        "duration_days": 2,
+        "id": "phase-3-maintenance-risk",
+        "priorities": [
+          "medium"
+        ],
+        "start_day": 5,
+        "title": "Maintenance risk"
+      },
+      {
+        "duration_days": 2,
+        "id": "phase-4-optimization-backlog",
+        "priorities": [
+          "low"
+        ],
+        "start_day": 7,
+        "title": "Optimization backlog"
+      }
+    ],
+    "priority_counts": {
+      "critical": 63,
+      "high": 16,
+      "low": 1,
+      "medium": 3
+    },
+    "summary_metrics": {
+      "broken_reference_fixes": 175,
+      "broken_references": 175,
+      "checkpoints_saved": 0,
+      "circular_dependencies": 11,
+      "duplicate_count": 4,
+      "duplicate_removals": 2,
+      "exact_duplicate_groups": 2,
+      "files_with_references": 106,
+      "fully_migrated": 4,
+      "migration_files_scanned": 11,
+      "migration_percentage": 37.5,
+      "modular_files": 325,
+      "monolithic_files": 8,
+      "not_migrated": 2,
+      "orphaned_files": 80,
+      "partial_duplicate_pairs": 1,
+      "partially_migrated": 5,
+      "pending_migration": 7,
+      "recommendations": 5,
+      "total_files": 333,
+      "total_fixes": 177,
+      "total_lines": 56049,
+      "total_references": 699,
+      "unique_references": 425
+    },
+    "taskmaster_export_tasks": 83,
+    "total_items": 83,
+    "version": "1.0.0"
+  },
+  "version": 1
+}

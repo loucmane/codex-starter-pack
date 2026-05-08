@@ -224,6 +224,35 @@ def test_build_parser_accepts_rollback_checkpoint_and_plan() -> None:
     assert plan_args.report_file == "reports/rollback/plan.md"
 
 
+def test_build_parser_accepts_rehearsal_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "rehearsal",
+        "plan",
+        "--roadmap",
+        "reports/roadmap.json",
+        "--checkpoint",
+        "reports/checkpoint.json",
+        "--label",
+        "phase-1",
+        "--report-file",
+        "reports/rehearsal.json",
+        "--runbook-file",
+        "reports/rehearsal.md",
+        "--max-items",
+        "3",
+    ])
+    assert args.command == "rehearsal"
+    assert args.subcommand == "plan"
+    assert args.roadmap == "reports/roadmap.json"
+    assert args.checkpoint == "reports/checkpoint.json"
+    assert args.label == "phase-1"
+    assert args.report_file == "reports/rehearsal.json"
+    assert args.runbook_file == "reports/rehearsal.md"
+    assert args.max_items == 3
+
+
 def _write_rollback_test_repo(module, monkeypatch, tmp_path) -> Path:
     repo = tmp_path
     sessions_dir = repo / "sessions"
@@ -335,6 +364,142 @@ def test_handle_rollback_plan_writes_non_destructive_guidance(monkeypatch, tmp_p
     assert "git restore --source abc123 --staged --worktree -- <path>" in rendered
     assert "git reset --hard" in rendered
     assert "No rollback commands were executed" in rendered
+
+
+def test_handle_rehearsal_plan_writes_manifest_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = _write_rollback_test_repo(module, monkeypatch, tmp_path)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-23-migration-rehearsal-environment"
+        if args == ["rev-parse", "HEAD"]:
+            return "def456"
+        if args == ["status", "--short"]:
+            return " M scripts/codex-task\n?? reports/rehearsal-plan.json"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+
+    roadmap = repo / "reports" / "migration-roadmap.json"
+    checkpoint = repo / "reports" / "checkpoint.json"
+    report = repo / "reports" / "rehearsal-plan.json"
+    runbook = repo / "reports" / "rehearsal-runbook.md"
+    roadmap.parent.mkdir(parents=True)
+    roadmap.write_text(
+        json.dumps(
+            {
+                "metadata": {"scanner": "migration_roadmap", "scanner_version": "1.0.0"},
+                "data": {
+                    "generated_at": "2026-04-24T15:03:13",
+                    "migration_roadmap_version": "1.0.0",
+                    "summary_metrics": {"broken_references": 2, "pending_migration": 1},
+                    "priority_counts": {"critical": 1, "high": 1},
+                    "category_counts": {"references": 1, "migration": 1},
+                    "phases": [
+                        {
+                            "title": "Critical integrity",
+                            "priorities": ["critical"],
+                            "start_day": 0,
+                            "duration_days": 2,
+                        }
+                    ],
+                    "items": [
+                        {
+                            "id": "critical-references-001",
+                            "priority": "critical",
+                            "category": "references",
+                            "title": "Repair broken reference",
+                            "effort": "S",
+                            "risk": "high",
+                            "finding_count": 1,
+                            "source_files": ["templates/example.md"],
+                            "dependencies": [],
+                        },
+                        {
+                            "id": "high-migration-001",
+                            "priority": "high",
+                            "category": "migration",
+                            "title": "Complete migration",
+                            "effort": "M",
+                            "risk": "medium",
+                            "finding_count": 1,
+                            "source_files": ["templates/legacy.md"],
+                            "dependencies": ["critical-references-001"],
+                        },
+                    ],
+                    "taskmaster_export": {"tasks": [{"title": "Repair broken reference"}]},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    checkpoint.write_text(
+        json.dumps(
+            {
+                "label": "before-rehearsal",
+                "created_at": "2026-04-24T15:04:00+00:00",
+                "git": {
+                    "branch": "feat/task-23-migration-rehearsal-environment",
+                    "head": "abc123",
+                    "tag": None,
+                    "status": [],
+                },
+                "workflow": {
+                    "current_session": {"resolved": "sessions/2026/04/session.md"},
+                    "current_plan": {"resolved": "plans/plan.md"},
+                    "active_work_tracking": ["docs/ai/work-tracking/active/task23-ACTIVE"],
+                },
+                "taskmaster": {"sha256": "deadbeef", "summary": {"tasks": 1}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    args = argparse.Namespace(
+        roadmap=str(roadmap),
+        checkpoint=str(checkpoint),
+        label="phase-1-rehearsal",
+        report_file=str(report),
+        runbook_file=str(runbook),
+        max_items=1,
+        dry_run=False,
+    )
+
+    module.handle_rehearsal_plan(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["version"] == 1
+    assert payload["label"] == "phase-1-rehearsal"
+    assert payload["mode"] == "non-destructive-local-rehearsal"
+    assert payload["executes_mutations"] is False
+    assert payload["roadmap"]["total_items"] == 2
+    assert payload["roadmap"]["first_items"] == [
+        {
+            "id": "critical-references-001",
+            "priority": "critical",
+            "category": "references",
+            "title": "Repair broken reference",
+            "effort": "S",
+            "risk": "high",
+            "finding_count": 1,
+            "source_files": ["templates/example.md"],
+            "dependencies": [],
+        }
+    ]
+    assert payload["checkpoint"]["git"]["head"] == "abc123"
+    assert payload["current_state"]["git"]["status"] == [
+        {"status": " M", "path": "scripts/codex-task"},
+        {"status": "??", "path": "reports/rehearsal-plan.json"},
+    ]
+    assert payload["rehearsal_environment"]["automatic_worktree_creation"] is False
+    assert "No Docker containers are created." in payload["non_goals"]
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Migration Rehearsal Runbook" in runbook_text
+    assert "Repair broken reference" in runbook_text
+    assert "No rehearsal commands were executed by this plan." in runbook_text
+    assert "git reset --hard" not in runbook_text
 
 
 def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:

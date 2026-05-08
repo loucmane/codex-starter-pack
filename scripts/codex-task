@@ -1875,6 +1875,346 @@ def handle_rollback_plan(args: argparse.Namespace) -> None:
     print(rendered, end="")
 
 
+def _load_json_document(path_value: str, label: str) -> Dict[str, Any]:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    if not path.exists():
+        raise TaskError(f"{label} not found: {_relative_to_root(path, REPO_ROOT)}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"{label} is not valid JSON: {_relative_to_root(path, REPO_ROOT)}") from exc
+    if not isinstance(payload, dict):
+        raise TaskError(f"{label} must be a JSON object: {_relative_to_root(path, REPO_ROOT)}")
+    return payload
+
+
+def _normalise_roadmap_payload(path_value: str) -> Dict[str, Any]:
+    raw = _load_json_document(path_value, "Migration roadmap")
+    metadata = raw.get("metadata") if isinstance(raw.get("metadata"), dict) else None
+    data = raw.get("data") if isinstance(raw.get("data"), dict) else raw
+    if not isinstance(data, dict):
+        raise TaskError("Migration roadmap data must be a JSON object")
+    if "items" not in data or "summary_metrics" not in data:
+        raise TaskError("Migration roadmap must include items and summary_metrics")
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "metadata": metadata,
+        "data": data,
+    }
+
+
+def _simplify_rehearsal_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    source_files = item.get("source_files") if isinstance(item.get("source_files"), list) else []
+    dependencies = item.get("dependencies") if isinstance(item.get("dependencies"), list) else []
+    return {
+        "id": item.get("id"),
+        "priority": item.get("priority"),
+        "category": item.get("category"),
+        "title": item.get("title"),
+        "effort": item.get("effort"),
+        "risk": item.get("risk"),
+        "finding_count": item.get("finding_count"),
+        "source_files": source_files[:5],
+        "dependencies": dependencies[:5],
+    }
+
+
+def _summarise_rehearsal_roadmap(roadmap: Dict[str, Any], max_items: int) -> Dict[str, Any]:
+    data = roadmap["data"]
+    items = data.get("items")
+    if not isinstance(items, list):
+        raise TaskError("Migration roadmap items must be a list")
+    taskmaster_export = data.get("taskmaster_export")
+    taskmaster_tasks = []
+    if isinstance(taskmaster_export, dict) and isinstance(taskmaster_export.get("tasks"), list):
+        taskmaster_tasks = taskmaster_export["tasks"]
+    return {
+        "path": roadmap["path"],
+        "metadata": roadmap.get("metadata"),
+        "generated_at": data.get("generated_at"),
+        "version": data.get("migration_roadmap_version"),
+        "summary_metrics": data.get("summary_metrics") if isinstance(data.get("summary_metrics"), dict) else {},
+        "priority_counts": data.get("priority_counts") if isinstance(data.get("priority_counts"), dict) else {},
+        "category_counts": data.get("category_counts") if isinstance(data.get("category_counts"), dict) else {},
+        "phases": data.get("phases") if isinstance(data.get("phases"), list) else [],
+        "total_items": len(items),
+        "taskmaster_export_tasks": len(taskmaster_tasks),
+        "first_items": [
+            _simplify_rehearsal_item(item)
+            for item in items[: max(0, max_items)]
+            if isinstance(item, dict)
+        ],
+    }
+
+
+def _summarise_rehearsal_checkpoint(checkpoint: Dict[str, Any], checkpoint_path: str) -> Dict[str, Any]:
+    git_info = checkpoint.get("git") if isinstance(checkpoint.get("git"), dict) else {}
+    workflow = checkpoint.get("workflow") if isinstance(checkpoint.get("workflow"), dict) else {}
+    taskmaster = checkpoint.get("taskmaster") if isinstance(checkpoint.get("taskmaster"), dict) else {}
+    status_entries = git_info.get("status") if isinstance(git_info.get("status"), list) else []
+    path = Path(checkpoint_path)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "label": checkpoint.get("label"),
+        "created_at": checkpoint.get("created_at"),
+        "git": {
+            "branch": git_info.get("branch"),
+            "head": git_info.get("head"),
+            "tag": git_info.get("tag"),
+            "status_count": len(status_entries),
+        },
+        "workflow": {
+            "current_session": workflow.get("current_session", {}).get("resolved")
+            if isinstance(workflow.get("current_session"), dict)
+            else None,
+            "current_plan": workflow.get("current_plan", {}).get("resolved")
+            if isinstance(workflow.get("current_plan"), dict)
+            else None,
+            "active_work_tracking": workflow.get("active_work_tracking")
+            if isinstance(workflow.get("active_work_tracking"), list)
+            else [],
+        },
+        "taskmaster": {
+            "sha256": taskmaster.get("sha256"),
+            "summary": taskmaster.get("summary") if isinstance(taskmaster.get("summary"), dict) else None,
+        },
+    }
+
+
+def _rehearsal_verification_commands() -> List[str]:
+    return [
+        "git status --short --branch",
+        "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <path>",
+        "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <path> --markdown-out <path>",
+        "python3 scripts/codex-task rehearsal plan --roadmap <roadmap.json> --checkpoint <checkpoint.json> --report-file <plan.json> --runbook-file <runbook.md>",
+        "python3 scripts/codex-task taskmaster health --report-file <path>",
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+    ]
+
+
+def _build_migration_rehearsal_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    roadmap = _normalise_roadmap_payload(args.roadmap)
+    checkpoint = _load_json_document(args.checkpoint, "Rollback checkpoint")
+    roadmap_summary = _summarise_rehearsal_roadmap(roadmap, args.max_items)
+    checkpoint_summary = _summarise_rehearsal_checkpoint(checkpoint, args.checkpoint)
+    current_head = _git_output(["rev-parse", "HEAD"])
+    current_branch = _git_output(["branch", "--show-current"])
+    priority_counts = roadmap_summary.get("priority_counts", {})
+    critical_count = int(priority_counts.get("critical", 0) or 0) if isinstance(priority_counts, dict) else 0
+    dirty_count = len(_git_status_snapshot())
+    abort_criteria = [
+        "Stop if guard, plan sync, Taskmaster health, or required pytest suites fail.",
+        "Stop if the rollback checkpoint is missing, unreadable, or points at an unexpected branch/head.",
+        "Stop if rehearsal requires Docker, external API keys, agent simulators, load testing, or destructive Git commands; those are out of scope for this foundation task.",
+    ]
+    if critical_count:
+        abort_criteria.append(
+            f"Treat {critical_count} critical roadmap item(s) as pre-migration blockers unless explicitly waived in work tracking."
+        )
+    if dirty_count:
+        abort_criteria.append(
+            f"Review the current dirty working tree ({dirty_count} status entr{'y' if dirty_count == 1 else 'ies'}) before applying roadmap changes."
+        )
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "non-destructive-local-rehearsal",
+        "executes_mutations": False,
+        "inputs": {
+            "roadmap": roadmap_summary["path"],
+            "checkpoint": checkpoint_summary["path"],
+        },
+        "current_state": {
+            "git": {
+                "branch": current_branch,
+                "head": current_head,
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "checkpoint": checkpoint_summary,
+        "roadmap": roadmap_summary,
+        "rehearsal_environment": {
+            "isolation_model": "manual-review-or-optional-worktree",
+            "automatic_worktree_creation": False,
+            "automatic_docker_setup": False,
+            "external_api_keys_required": False,
+            "agent_simulators_required": False,
+            "load_testing_required": False,
+            "guidance": [
+                "Use the checkpoint commit as the rollback anchor before migration work.",
+                "Use the roadmap priority order to select the next migration slice.",
+                "If stronger isolation is needed, create a reviewed git worktree manually; this helper does not run that command.",
+                "Capture fresh guard, audit, Taskmaster health, and diff-check evidence after each rehearsal slice.",
+            ],
+        },
+        "recommended_verification_commands": _rehearsal_verification_commands(),
+        "abort_criteria": abort_criteria,
+        "non_goals": [
+            "No Docker containers are created.",
+            "No test API keys are read or written.",
+            "No Claude/Codex agent simulators are launched.",
+            "No k6/locust load test harness is invoked.",
+            "No Taskmaster tasks are imported from roadmap data.",
+            "No rollback, reset, clean, restore, or worktree command is executed.",
+        ],
+    }
+
+
+def _md_cell(value: object) -> str:
+    return str(value if value is not None else "").replace("|", "\\|")
+
+
+def _render_migration_rehearsal_runbook(plan: Dict[str, Any]) -> str:
+    roadmap = plan.get("roadmap", {})
+    checkpoint = plan.get("checkpoint", {})
+    current = plan.get("current_state", {})
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    checkpoint_git = checkpoint.get("git", {}) if isinstance(checkpoint.get("git"), dict) else {}
+    lines = [
+        "# Migration Rehearsal Runbook",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes mutations: {plan.get('executes_mutations')}",
+        "",
+        "## Inputs",
+        "",
+        f"- Migration roadmap: {plan.get('inputs', {}).get('roadmap')}",
+        f"- Rollback checkpoint: {plan.get('inputs', {}).get('checkpoint')}",
+        "",
+        "## Current State",
+        "",
+        f"- Current branch: {git_info.get('branch')}",
+        f"- Current HEAD: {git_info.get('head')}",
+        f"- Current dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Checkpoint branch: {checkpoint_git.get('branch')}",
+        f"- Checkpoint HEAD: {checkpoint_git.get('head')}",
+        "",
+        "## Roadmap Summary",
+        "",
+        f"- Roadmap generated at: {roadmap.get('generated_at')}",
+        f"- Roadmap version: {roadmap.get('version')}",
+        f"- Total roadmap items: {roadmap.get('total_items')}",
+        f"- Taskmaster draft items: {roadmap.get('taskmaster_export_tasks')}",
+        "",
+        "### Priority Counts",
+        "",
+    ]
+    priority_counts = roadmap.get("priority_counts") if isinstance(roadmap.get("priority_counts"), dict) else {}
+    if priority_counts:
+        for priority in ("critical", "high", "medium", "low"):
+            lines.append(f"- {priority}: {priority_counts.get(priority, 0)}")
+    else:
+        lines.append("- No priority counts available.")
+
+    lines.extend(["", "### Phase Plan", ""])
+    phases = roadmap.get("phases") if isinstance(roadmap.get("phases"), list) else []
+    if phases:
+        lines.append("| Phase | Priorities | Start Day | Duration |")
+        lines.append("| --- | --- | --- | --- |")
+        for phase in phases:
+            if not isinstance(phase, dict):
+                continue
+            priorities = ", ".join(str(priority) for priority in phase.get("priorities", []))
+            lines.append(
+                f"| {_md_cell(phase.get('title'))} | {_md_cell(priorities)} | "
+                f"{_md_cell(phase.get('start_day'))} | {_md_cell(phase.get('duration_days'))} days |"
+            )
+    else:
+        lines.append("- No phase plan available.")
+
+    lines.extend(["", "### First Rehearsal Items", ""])
+    items = roadmap.get("first_items") if isinstance(roadmap.get("first_items"), list) else []
+    if items:
+        lines.append("| Priority | Category | Effort | Risk | Findings | Title |")
+        lines.append("| --- | --- | --- | --- | --- | --- |")
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"| {_md_cell(item.get('priority'))} | {_md_cell(item.get('category'))} | "
+                f"{_md_cell(item.get('effort'))} | {_md_cell(item.get('risk'))} | "
+                f"{_md_cell(item.get('finding_count'))} | {_md_cell(item.get('title'))} |"
+            )
+    else:
+        lines.append("- No roadmap items available.")
+
+    lines.extend(["", "## Rehearsal Steps", ""])
+    lines.extend(
+        [
+            "1. Review the rollback checkpoint and current dirty Git status.",
+            "2. Select the smallest roadmap item or coherent group of items to rehearse.",
+            "3. If additional isolation is required, create a git worktree manually after reviewing the command; this runbook does not create it.",
+            "4. Run the selected scanner or fix command in dry-run mode first.",
+            "5. Capture guard, audit, Taskmaster health, plan sync, and diff-check evidence before marking the rehearsal slice complete.",
+            "6. If any abort criterion triggers, stop and use the rollback checkpoint recovery plan for reviewed, non-destructive guidance.",
+        ]
+    )
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Abort Criteria", ""])
+    for criterion in plan.get("abort_criteria", []):
+        lines.append(f"- {criterion}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No rehearsal commands were executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_rehearsal_plan(args: argparse.Namespace) -> None:
+    plan = _build_migration_rehearsal_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_migration_rehearsal_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote migration rehearsal plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote migration rehearsal runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Codex task helper")
     parser.add_argument("--session", help="Override S field session value", default=None)
@@ -1991,6 +2331,17 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_plan.add_argument("--snapshot", required=True, help="Checkpoint JSON produced by rollback checkpoint")
     rollback_plan.add_argument("--report-file", help="Optional path to write the rendered recovery plan")
     rollback_plan.set_defaults(func=handle_rollback_plan)
+
+    rehearsal_parser = subparsers.add_parser("rehearsal", help="Migration rehearsal planning operations")
+    rehearsal_sub = rehearsal_parser.add_subparsers(dest="subcommand", required=True)
+    rehearsal_plan = rehearsal_sub.add_parser("plan", help="Compose roadmap and checkpoint inputs into a rehearsal plan")
+    rehearsal_plan.add_argument("--roadmap", required=True, help="Migration roadmap JSON produced by migration_roadmap.py")
+    rehearsal_plan.add_argument("--checkpoint", required=True, help="Rollback checkpoint JSON produced by rollback checkpoint")
+    rehearsal_plan.add_argument("--label", default="migration-rehearsal", help="Human-readable rehearsal label")
+    rehearsal_plan.add_argument("--report-file", help="Optional path to write the rehearsal plan JSON")
+    rehearsal_plan.add_argument("--runbook-file", help="Optional path to write the rehearsal runbook markdown")
+    rehearsal_plan.add_argument("--max-items", type=int, default=10, help="Number of roadmap items to include in the runbook")
+    rehearsal_plan.set_defaults(func=handle_rehearsal_plan)
 
     bootstrap_parser = subparsers.add_parser("bootstrap", help="Portable foundation bootstrap operations")
     bootstrap_sub = bootstrap_parser.add_subparsers(dest="subcommand", required=True)
