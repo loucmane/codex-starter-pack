@@ -104,13 +104,15 @@ def should_scan_relative_path(
 
 
 def collect_scannable_files(directory: Path, config: ScannerConfig) -> list[Path]:
-    """Collect markdown/config files in deterministic scanner order."""
-    files: list[Path] = []
-    for suffix in tuple(dict.fromkeys(config.supported_suffixes)):
-        files.extend(directory.rglob(f"*{suffix}"))
-
+    """Collect markdown/config files with one deterministic directory traversal."""
+    supported_suffixes = tuple(dict.fromkeys(config.supported_suffixes))
     filtered_files = []
-    for file_path in files:
+    for file_path in sorted(
+        directory.rglob("*"),
+        key=lambda path: relative_posix_path(config.base_path, path),
+    ):
+        if not file_path.is_file() or file_path.suffix not in supported_suffixes:
+            continue
         relative_path = relative_posix_path(config.base_path, file_path)
         if config.should_scan(relative_path):
             filtered_files.append(file_path)

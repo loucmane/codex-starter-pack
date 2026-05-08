@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression tests for scanner CLI safety and default scan scope."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -130,6 +131,48 @@ def test_scanner_excludes_codex_runtime_paths_by_default(tmp_path, monkeypatch):
     assert ".codex/cache/generated.json" not in results["files"]
     assert ".codex/plugins/cache/plugin.md" not in results["files"]
     assert ".codex/sessions/session.md" not in results["files"]
+
+
+def test_scanner_cli_reports_actual_stats_and_optional_profile(tmp_path):
+    repo_root = tmp_path / "repo"
+    output_file = tmp_path / "template_scan_results.json"
+    (repo_root / "templates").mkdir(parents=True)
+    (repo_root / "templates" / "handler.md").write_text(
+        "# Handler\n\n## Trigger\n\nSee [Other](other.md).\n",
+        encoding="utf-8",
+    )
+    (repo_root / "templates" / "other.md").write_text("# Other\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCANNER_DIR / "scanner.py"),
+            "--base",
+            str(repo_root),
+            "--out",
+            str(output_file),
+            "--no-checkpoints",
+            "--profile-scan",
+            "--profile-limit",
+            "1",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    output = json.loads(output_file.read_text(encoding="utf-8"))
+    stats = output["metadata"]["stats"]
+    scan_metadata = output["data"]["scan_metadata"]
+
+    assert stats["files_scanned"] == 2
+    assert stats["total_lines"] == scan_metadata["total_lines"]
+    assert stats["references_found"] == 1
+    assert stats["profile_enabled"] is True
+    assert scan_metadata["performance_profile"]["profile_limit"] == 1
 
 
 def test_migration_status_consumers_unwrap_metadata_format(tmp_path, monkeypatch):
