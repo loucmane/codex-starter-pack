@@ -1572,32 +1572,35 @@
         "dependencies": [
           "18"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 23,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T10:09:09.494Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 23,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T10:15:53.146Z"
           }
         ],
         "complexity": 7,
         "recommendedSubtasks": 8,
-        "expansionPrompt": "Set up git worktrees, configure Docker containers, set up test API keys, create data seeding scripts, implement agent simulators, add load testing with k6/locust, create rehearsal runbook, and validate isolation."
+        "expansionPrompt": "Set up git worktrees, configure Docker containers, set up test API keys, create data seeding scripts, implement agent simulators, add load testing with k6/locust, create rehearsal runbook, and validate isolation.",
+        "updatedAt": "2026-05-08T10:15:53.146Z"
       },
       {
         "id": "24",
@@ -4987,9 +4990,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-08T09:49:36.771Z",
+      "lastModified": "2026-05-08T10:15:53.146Z",
       "taskCount": 108,
-      "completedCount": 46,
+      "completedCount": 47,
       "tags": [
         "master"
       ]

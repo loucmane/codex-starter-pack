@@ -1,0 +1,113 @@
+{
+  "created_at": "2026-05-08T12:12:18+02:00",
+  "git": {
+    "branch": "feat/task-23-migration-rehearsal-environment",
+    "head": "3b73b3494ecf9edb656d609278c20edb25e18674",
+    "status": [
+      {
+        "path": ".taskmaster/tasks/task_023.txt",
+        "status": " M"
+      },
+      {
+        "path": ".taskmaster/tasks/tasks.json",
+        "status": " M"
+      },
+      {
+        "path": "scripts/codex-task",
+        "status": " M"
+      },
+      {
+        "path": "sessions/state.json",
+        "status": " M"
+      },
+      {
+        "path": "tests/meta_workflow_guard/test_codex_task.py",
+        "status": " M"
+      },
+      {
+        "path": "docs/ai/work-tracking/active/",
+        "status": "??"
+      },
+      {
+        "path": "plans/2026-05-08-task23-migration-rehearsal-environment.md",
+        "status": "??"
+      },
+      {
+        "path": "plans/current",
+        "status": "??"
+      },
+      {
+        "path": "sessions/2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md",
+        "status": "??"
+      },
+      {
+        "path": "sessions/current",
+        "status": "??"
+      }
+    ],
+    "tag": null
+  },
+  "label": "task23-rehearsal",
+  "serena": {
+    "count": 80,
+    "exists": true,
+    "latest": [
+      ".serena/memories/session_2025-09-20_codex_migration.md",
+      ".serena/memories/session_2025-09-26_enforcement_backlog.md",
+      ".serena/memories/session_2025-09-27_task82_meta_workflow.md",
+      ".serena/memories/session_2025-09-30_timestamp_guard.md",
+      ".serena/memories/session_2026-04-21_task91-kickoff-closeout.md",
+      ".serena/memories/session_2026-04-22_task91-closeout.md",
+      ".serena/memories/session_2026-04-23_task93-compaction-closeout.md",
+      ".serena/memories/session_2026-04-25_task102-delayed-closeout.md",
+      ".serena/memories/session_2026-04-30_task4_scanner_configuration_closeout.md",
+      ".serena/memories/session_end_2025-09-20_codex_migration.md"
+    ],
+    "path": ".serena/memories"
+  },
+  "taskmaster": {
+    "exists": true,
+    "invalid_refs": [],
+    "path": ".taskmaster/tasks/tasks.json",
+    "sha256": "cabe615339514acf461ade39003cbc8e61fa38969fa10712164b8406da95077f",
+    "summary": {
+      "dependency_refs": 229,
+      "invalid_refs": 0,
+      "status_counts": {
+        "done": 46,
+        "in-progress": 1,
+        "pending": 61
+      },
+      "subtasks": 304,
+      "tasks": 108
+    },
+    "tag": "master"
+  },
+  "version": 1,
+  "workflow": {
+    "active_work_tracking": [
+      "docs/ai/work-tracking/active/20260508-task23-migration-rehearsal-environment-ACTIVE"
+    ],
+    "current_plan": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "plans/current",
+      "resolved": "plans/2026-05-08-task23-migration-rehearsal-environment.md",
+      "sha256": "8974a97a7859e5070255dc1fd34c38a3a0a0b7f3fc2d42b4ebe7a053f624e65c",
+      "target": "2026-05-08-task23-migration-rehearsal-environment.md"
+    },
+    "current_session": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "sessions/current",
+      "resolved": "sessions/2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md",
+      "sha256": "f2f4dd94e6c71478f8328b64a6105fc7c9ceebeb79c46c55a58edcd053657571",
+      "target": "2026/05/2026-05-08-002-task23-migration-rehearsal-environment.md"
+    },
+    "session_state": {
+      "exists": true,
+      "path": "sessions/state.json",
+      "sha256": "2d72840b07d79318bce465031f21b3f6e27ab2ec5aadfc869a55b41e9097a9fd"
+    }
+  }
+}
