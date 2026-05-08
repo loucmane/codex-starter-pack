@@ -1,7 +1,7 @@
 # Task 33 Setup Training Materials Tracker
 
 **Started**: 2026-05-08
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-08
 
 ## Goals
@@ -20,6 +20,8 @@
 - **2026-05-08 16:56** — [S:20260508|W:task33-training-materials|H:serena/memory|E:.serena/memories/2026-05-08_task33_training_materials.md] Captured Task 33 scope decision, onboarding guide implementation, guide navigation cleanup, tests, and closeout context in Serena memory.
 - **2026-05-08 16:57** — [S:20260508|W:task33-training-materials|H:taskmaster/status|E:.taskmaster/tasks/task_033.txt] Marked Taskmaster subtask 33.2 and parent Task 33 done; refreshed only Task 33 generated file.
 - **2026-05-08 16:57** — [S:20260508|W:task33-training-materials|H:evidence/final|E:docs/ai/work-tracking/active/20260508-task33-training-materials-ACTIVE/reports/training-materials/guard-2026-05-08.txt] Finalized Task 33 documentation and prepared final health, plan-sync, audit, guard, and diff-check evidence.
+- **2026-05-08 17:17** — [S:20260508|W:task33-training-materials|H:github/pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/54] Merged Task 33 PR #54 after green GitHub checks.
+- **2026-05-08 17:17** — [S:20260508|W:task33-training-materials|H:work-tracking/archive|E:docs/ai/work-tracking/archive/20260508-task33-training-materials-COMPLETED/TRACKER.md] Archived Task 33 work tracking and cleared current session/plan pointers for between-session state.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -28,4 +30,5 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: `sessions/2026/05/2026-05-08-009-task33-training-materials.md`
+- Taskmaster Task 33 and subtask 33.2 are done; PR #54 is merged and this folder is archived.

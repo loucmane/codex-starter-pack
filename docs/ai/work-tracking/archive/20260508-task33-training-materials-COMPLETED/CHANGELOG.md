@@ -4,3 +4,5 @@
 - 2026-05-08 16:49 CEST — Completed scope reconciliation and corrected plan from generic wizard wording to current foundation training materials.
 - 2026-05-08 16:53 CEST — Added foundation onboarding training, repaired guide-hub navigation, and added focused training-material tests.
 - 2026-05-08 16:57 CEST — Stored final implementation evidence, captured Serena memory, marked Taskmaster Task 33 done, and completed plan-step-verify documentation.
+- 2026-05-08 17:17 CEST — Merged PR #54, archived active work-tracking folder, cleared current session/plan pointers, and prepared post-archive evidence.
+- 2026-05-08 17:17 CEST — Archived active work-tracking folder.
