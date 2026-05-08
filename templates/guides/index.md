@@ -26,6 +26,7 @@ Use this page as the starting point for learning the current repository workflow
 - [Troubleshooting issues](troubleshooting/issues.md) - Common user-facing problems and recovery patterns.
 - [Understanding ULTRATHINK](ultrathink/understanding.md) - Reasoning protocol background.
 - [Token optimization](token-optimization.md) - Context and token-use guidance.
+- [Foundation communication templates](communication/foundation-communication-templates.md) - Copy-ready repo-native communication payloads for PRs, task completion, incidents, milestones, and follow-up capture.
 
 ## System References
 
@@ -60,3 +61,4 @@ Use this page as the starting point for learning the current repository workflow
 
 - **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice
 - **2026-05-08 16:49** — [S:20260508|W:task33-training-materials|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task33-training-materials-ACTIVE/designs/training-materials-scope-reconciliation.md] Replaced stale guide hub links with current foundation, runtime, session, and work-tracking references
+- **2026-05-08 17:25** — [S:20260508|W:task49-communication-templates|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task49-communication-templates-ACTIVE/designs/communication-templates-scope-reconciliation.md] Added the foundation communication templates guide to the daily workflow references

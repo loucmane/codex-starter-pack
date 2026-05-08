@@ -1,0 +1,5 @@
+# Findings
+
+- 2026-05-08 — Task 49's original wording is broader than the current repository need: weekly status, distribution-list management, automated delivery, and feedback collection are migration-operations concepts, while the current foundation needs repo-native communication payloads tied to Taskmaster, S:W:H:E, guard evidence, and PR state.
+- 2026-05-08 — The repo has a generic PR convention and current workflow guides, but no dedicated communication guide that gives copy-ready templates for PR descriptions, task completion updates, breaking changes, incidents, milestones, and feedback/follow-up capture.
+- 2026-05-08 — `task-master update-task --id=49` could not be used to rewrite the completed parent task details: the first attempt failed because the Claude Code provider tried to write `/home/loucmane/.claude/debug/...` outside the sandbox, and the escalated retry hung until terminated. The generated Task 49 file therefore still shows historical parent details, while subtasks 49.1/49.2, this scope reconciliation, and final evidence record the current implementation.
