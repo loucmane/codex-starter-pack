@@ -1811,32 +1811,35 @@
         "dependencies": [
           "20"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 29,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T14:15:50.048Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 29,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-08T14:24:59.047Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Define lifecycle states, implement version bumping, add deprecation warnings, create grace period system, implement auto-archival, add migration notices, create audit trail, and build state transition tests."
+        "expansionPrompt": "Define lifecycle states, implement version bumping, add deprecation warnings, create grace period system, implement auto-archival, add migration notices, create audit trail, and build state transition tests.",
+        "updatedAt": "2026-05-08T14:24:59.047Z"
       },
       {
         "id": "30",
@@ -5005,9 +5008,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-08T13:52:20.745Z",
+      "lastModified": "2026-05-08T14:24:59.047Z",
       "taskCount": 108,
-      "completedCount": 52,
+      "completedCount": 53,
       "tags": [
         "master"
       ]

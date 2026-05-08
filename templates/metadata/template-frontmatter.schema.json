@@ -28,6 +28,8 @@
         "stable",
         "beta",
         "deprecated",
+        "review",
+        "archived",
         "draft",
         "experimental"
       ]
@@ -42,6 +44,22 @@
     "version": {
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?([-.+][0-9A-Za-z.-]+)?$"
+    },
+    "deprecated_since": {
+      "type": "string",
+      "format": "date"
+    },
+    "archive_after": {
+      "type": "string",
+      "format": "date"
+    },
+    "replacement": {
+      "type": "string",
+      "minLength": 1
+    },
+    "migration_notice": {
+      "type": "string",
+      "minLength": 1
     },
     "dependencies": {
       "$ref": "#/$defs/stringList"
