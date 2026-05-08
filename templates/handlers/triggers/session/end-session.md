@@ -72,6 +72,8 @@ version: 2.0.0
    - Maintain original filename
    - Preserve all metadata
 6. **Clear current session symlink (safe, no rm*)**:
+   - Only clear the symlink for true between-session closeout after active work tracking is archived or absent.
+   - If the task remains active across multiple days, keep `sessions/current` and `plans/current` as recovery anchors; the next daily session should run `python3 scripts/codex-task sessions continue --task <id> --slug <slug>` to repoint them.
    - Remove only the symlink (does not touch target):
      ```bash
      test -L sessions/current && unlink sessions/current || echo "no current symlink"
@@ -88,7 +90,8 @@ version: 2.0.0
 8. **Backwards compatibility**:
 9. **Update sessions/state.json**:
    - Mark ended session as `archived` and remove from `current`
-   - If no next session, omit `current` key or set to null
+   - If no next session and no ACTIVE work-tracking folder remains, omit `current` key or set to null
+   - If ACTIVE work tracking remains for a multi-day task, keep the current pointers until the next continuation session repoints them
    - Keep `updated_at` ISO timestamp
    - Append session end marker to sessions/
    - Note: "Session archived to: sessions/[path]"
@@ -115,4 +118,5 @@ version: 2.0.0
 
 ## Progress Log
 
+- **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/handlers/triggers/session/end-session.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Clarified that active multi-day tasks should keep recovery pointers until `sessions continue` creates the next daily session.
 - **2026-04-21 17:31** — [S:20260421|W:task91-standardize-template-metadata|H:templates/handlers/triggers/session/end-session.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 handler-standardization slice

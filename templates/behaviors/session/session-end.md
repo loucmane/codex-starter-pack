@@ -147,7 +147,9 @@ With content:
   "updated_at": "[ISO timestamp]"
 }
 ```
-- Remove the ended session from any arrays and clear `current`
+- Clear `current` only for true between-session closeout after active work tracking is archived or absent.
+- If the task is still active across multiple days, keep the current session/plan pointers as recovery anchors until the next `python3 scripts/codex-task sessions continue --task <id> --slug <slug>` repoints them.
+- Remove the ended session from any arrays when clearing `current`
 - If a new session will start immediately, set `current` accordingly
 
 ## Example Complete Output
@@ -214,6 +216,7 @@ git push -u origin <branch>
   ```bash
   test -L sessions/current && unlink sessions/current || echo "no current symlink"
   ```
+- Clear the symlink only when the repository is entering a valid between-session state: no ACTIVE work-tracking folder, no `plans/current`, and `sessions/state.json.current` set to `null`.
 - To re-point atomically when starting a new session:
   ```bash
   ln -sfn "sessions/YYYY/MM/YYYY-MM-DD-NNN-title.md" sessions/current
@@ -227,4 +230,5 @@ These operations modify only the symlink, never the target.
 
 ## Progress Log
 
+- **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/behaviors/session/session-end.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Clarified that clearing `sessions/current` is only valid for true between-session closeout after active work tracking is archived or absent.
 - **2026-04-21 17:56** — [S:20260421|W:task91-standardize-template-metadata|H:templates/behaviors/session/session-end.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `title`, `type`, and `status` metadata during the Task 91 behavior-standardization slice

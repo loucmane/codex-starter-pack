@@ -23,7 +23,8 @@ exports:
 ```bash
 test -L sessions/current && test -f "$(readlink -f sessions/current)" && echo OK || echo "sessions/current missing or invalid"
 ```
-- Create a new session (recommended script, when available): `scripts/session/start.sh` and end with `scripts/session/end.sh`.
+- Create a new task session with `python3 scripts/codex-task wizard kickoff --task <id> --slug <slug>`.
+- Continue an already-active multi-day task with `python3 scripts/codex-task sessions continue --task <id> --slug <slug>` so the existing task-scoped work-tracking folder is reused.
 - Anchors you may need next: `#sessions-current`, `#session-id`, `#start-end`, `#common-errors`.
 
 ## Purpose
@@ -45,7 +46,7 @@ If S:current → read sessions/current symlink
 If S:2025-08-04-001 → find exact session file
 If S:20250804 → find latest session for that date
 If S:2025-08-04 → find latest session for ISO date
-If S:VOID → check current, else guide to create
+If S:VOID → check current, else guide to create or continue a session
 ```
 
 ## Resolution Protocol
@@ -119,8 +120,8 @@ Extract from session file:
 ```markdown
 If no session found:
   1. Check if sessions/ directory exists
-  2. Guide to create new session
-  3. Suggest using start-session handler
+  2. If this is a new task, guide to `python3 scripts/codex-task wizard kickoff --task <id> --slug <slug>`
+  3. If this is an existing active task, guide to `python3 scripts/codex-task sessions continue --task <id> --slug <slug>`
   4. Return VOID state for proper initialization
 ```
 
@@ -146,7 +147,11 @@ If multiple sessions for date:
 
 - Multiple same-day sessions are supported via the `YYYY-MM-DD-NNN` sequence. Example: `2025-08-13-001`, `2025-08-13-002`.
 - Exactly one session is considered active at a time via the `sessions/current` symlink.
-- To switch active sessions safely (no rm*):
+- To create a fresh daily session for an existing active task, prefer:
+  ```bash
+  python3 scripts/codex-task sessions continue --task <id> --slug <slug>
+  ```
+- Manual symlink switching is a fallback for recovery only:
   ```bash
   ln -sfn "sessions/YYYY/MM/YYYY-MM-DD-NNN-title.md" sessions/current
   test -L sessions/current && readlink -f sessions/current
@@ -234,4 +239,5 @@ S: Session ID via session-resolver
 
 ## Progress Log
 
+- **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/engine/core/session-resolver.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Replaced stale script references with `wizard kickoff` and `sessions continue` as the supported session creation and continuation helpers.
 - **2026-04-22 16:00** — [S:20260422|W:task91-standardize-template-metadata|H:templates/engine/core/session-resolver.md|E:templates/metadata/template-metadata-policy.json] Added canonical metadata during the Task 91 engine-module standardization slice

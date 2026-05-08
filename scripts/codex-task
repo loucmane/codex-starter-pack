@@ -616,6 +616,79 @@ def _build_tracker_entries(
     ]
 
 
+def _build_continuation_session_lines(
+    session_id: str,
+    now: datetime,
+    task_id: str,
+    title: str,
+    branch: str,
+    source: str,
+    task_file_relative: str,
+    work_context: str,
+    tracker_relative: str,
+    plan_relative: str,
+) -> List[str]:
+    date_iso = now.strftime("%Y-%m-%d")
+    time_label = now.strftime("%H:%M %Z")
+    timestamp_full = now.strftime("%Y-%m-%d %H:%M:%S %Z %z")
+    session_value = now.strftime("%Y%m%d")
+    pretty_title = f"Task {task_id} - {title} Continuation"
+    return [
+        "---",
+        f"session_id: {session_id}",
+        f"date: {date_iso}",
+        f"time: {time_label}",
+        f"title: {pretty_title}",
+        "---",
+        "",
+        f"## Session: {date_iso} {time_label}",
+        "**AI Assistant**: Codex GPT-5.4",
+        "**Developer**: loucmane",
+        f"**Task**: Continue Task {task_id} using the existing task-scoped plan and work-tracking folder for {title}.",
+        f"**Task Source**: {source}",
+        "",
+        "### Session Validation",
+        f"- [x] Date confirmed (`date '+%Y-%m-%d %H:%M:%S %Z %z'` -> `{timestamp_full}`)",
+        f"- [x] Git branch checked (`{branch}`)",
+        f"- [x] Taskmaster task reviewed (`{task_file_relative}`)",
+        f"- [x] Reused active task work tracking (`{tracker_relative}`)",
+        f"- [x] Reused active plan (`{plan_relative}`)",
+        "",
+        "### Session Goals",
+        f"- [x] Start a fresh daily session for existing Task {task_id} work.",
+        f"- [x] Reuse the existing Task {task_id} work-tracking folder instead of archiving or recreating it.",
+        f"- [x] Repoint `{SESSIONS_CURRENT_REL}` and `{PLANS_CURRENT_REL}` to the active continuation state.",
+        "- [ ] Continue implementation and verification work with S:W:H:E evidence.",
+        "",
+        "### Starting Context",
+        f"Task {task_id} continuation was created via `python3 scripts/codex-task sessions continue`, which created a fresh session while preserving the existing task-scoped plan and work-tracking folder.",
+        "",
+        "### 📝 Progress Log",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M:%S %Z %z\"`] Confirmed current timestamp as `{timestamp_full}`",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:scripts/codex-task:sessions-continue|E:{tracker_relative}] Reused the existing Task {task_id} ACTIVE work-tracking folder for a new daily session",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{PLANS_CURRENT_REL}|E:{plan_relative}] Reused the active Task {task_id} plan for continuation",
+        f"- **[{now.strftime('%H:%M')}]** — [S:{session_value}|W:{work_context}|H:{SESSIONS_CURRENT_REL}|E:{SESSIONS_CURRENT_REL}] Repointed `{SESSIONS_CURRENT_REL}`, `{PLANS_CURRENT_REL}`, and `{SESSION_STATE_REL}` to the Task {task_id} continuation session",
+    ]
+
+
+def _build_continuation_tracker_entries(
+    now: datetime,
+    task_id: str,
+    work_context: str,
+    tracker_relative: str,
+    session_relative: str,
+    plan_relative: str,
+) -> List[str]:
+    session_value = now.strftime("%Y%m%d")
+    timestamp = now.strftime("%Y-%m-%d %H:%M")
+    return [
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:shell:date|E:cmd`date \"+%Y-%m-%d %H:%M %Z\"`] Confirmed current timestamp as `{now.strftime('%Y-%m-%d %H:%M %Z')}`",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:scripts/codex-task:sessions-continue|E:{session_relative}] Created a fresh daily Task {task_id} continuation session while reusing the existing ACTIVE work-tracking folder",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{PLANS_CURRENT_REL}|E:{plan_relative}] Reused the existing Task {task_id} plan for continuation",
+        f"- **{timestamp}** — [S:{session_value}|W:{work_context}|H:{SESSION_STATE_REL}|E:{SESSION_STATE_REL}] Repointed session state to the Task {task_id} continuation session",
+    ]
+
+
 def _build_plan_lines(
     session_id: str,
     task_id: str,
@@ -778,6 +851,149 @@ def handle_wizard_kickoff(args: argparse.Namespace) -> None:
     handle_taskmaster_generate_one(argparse.Namespace(task_id=task_id, dry_run=False))
     print(f"Created session: {session_path.relative_to(REPO_ROOT)}")
     print(f"Created plan: {plan_path.relative_to(REPO_ROOT)}")
+    print(f"Repointed {SESSIONS_CURRENT_REL}, {PLANS_CURRENT_REL}, and {SESSION_STATE_REL}")
+
+
+def _work_tracking_folder_matches_task(folder: Path, task_id: str) -> bool:
+    return f"-task{int(task_id)}-" in folder.name
+
+
+def _resolve_task_work_tracking(task_id: str, explicit: Optional[str] = None) -> Path:
+    if explicit:
+        folder = _resolve_active_work_tracking(explicit)
+        if not _work_tracking_folder_matches_task(folder, task_id):
+            raise TaskError(
+                f"Work-tracking folder {folder.name} does not match Task {task_id}; refusing to continue the wrong task."
+            )
+        return folder
+
+    if not WORK_TRACKING_BASE.exists():
+        raise TaskError(f"No ACTIVE work-tracking directory found at {WORK_TRACKING_ACTIVE_REL}/.")
+
+    candidates = [
+        path
+        for path in WORK_TRACKING_BASE.iterdir()
+        if path.is_dir() and path.name.endswith("-ACTIVE") and _work_tracking_folder_matches_task(path, task_id)
+    ]
+    if not candidates:
+        raise TaskError(
+            f"No ACTIVE work-tracking folder found for Task {task_id}; use `wizard kickoff` for new tasks or restore the task folder before continuing."
+        )
+    if len(candidates) > 1:
+        names = ", ".join(sorted(path.name for path in candidates))
+        raise TaskError(f"Multiple ACTIVE work-tracking folders found for Task {task_id} ({names}); specify one via --folder.")
+    return candidates[0]
+
+
+def _resolve_continuation_plan(task_id: str, explicit: Optional[str] = None) -> Path:
+    if explicit:
+        plan = (REPO_ROOT / explicit).resolve()
+        if not plan.exists():
+            raise TaskError(f"Specified plan file not found: {plan}")
+        return plan
+
+    if PLAN_CURRENT.exists() or PLAN_CURRENT.is_symlink():
+        try:
+            plan = PLAN_CURRENT.resolve()
+        except FileNotFoundError as exc:
+            raise TaskError(f"{PLANS_CURRENT_REL} points to a missing plan file.") from exc
+        if not plan.exists():
+            raise TaskError(f"{PLANS_CURRENT_REL} points to a missing plan file: {plan}")
+        return plan
+
+    patterns = [f"*task{int(task_id)}-*.md", f"*task-{int(task_id)}-*.md"]
+    candidates: List[Path] = []
+    for pattern in patterns:
+        candidates.extend(path for path in PLANS_DIR.glob(pattern) if path.is_file())
+    candidates = sorted(dict.fromkeys(candidates))
+    if not candidates:
+        raise TaskError(
+            f"No plan found for Task {task_id}; pass --plan or run `wizard kickoff` if this is a new task."
+        )
+    if len(candidates) > 1:
+        names = ", ".join(path.relative_to(REPO_ROOT).as_posix() for path in candidates)
+        raise TaskError(f"Multiple plans found for Task {task_id} ({names}); specify one via --plan.")
+    return candidates[0]
+
+
+def handle_sessions_continue(args: argparse.Namespace) -> None:
+    now = datetime.now().astimezone()
+    task_id = args.task
+    task_meta = _load_task_metadata(task_id)
+    title = args.title or task_meta["title"]
+    slug = _slugify(args.slug or title)
+    source = args.task_source or f"Continuation session for Task {task_id}"
+    work_context = args.work or f"task{task_id}-{slug}"
+    task_file_relative = task_meta["path"]
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip() or f"feat/task-{task_id}-{slug}"
+    _validate_branch_for_task(branch, task_id)
+
+    work_folder = _resolve_task_work_tracking(task_id, args.folder)
+    tracker_path = work_folder / "TRACKER.md"
+    if not tracker_path.exists():
+        raise TaskError(f"Tracker file missing at {tracker_path}")
+    plan_path = _resolve_continuation_plan(task_id, args.plan)
+
+    session_id = _next_session_id(now)
+    session_dir = SESSIONS_DIR / now.strftime("%Y") / now.strftime("%m")
+    session_path = session_dir / f"{session_id}-task{task_id}-{slug}.md"
+    tracker_relative = tracker_path.relative_to(REPO_ROOT).as_posix()
+    plan_relative = plan_path.relative_to(REPO_ROOT).as_posix()
+    session_relative = session_path.relative_to(REPO_ROOT).as_posix()
+
+    session_lines = _build_continuation_session_lines(
+        session_id=session_id,
+        now=now,
+        task_id=task_id,
+        title=title,
+        branch=branch,
+        source=source,
+        task_file_relative=task_file_relative,
+        work_context=work_context,
+        tracker_relative=tracker_relative,
+        plan_relative=plan_relative,
+    )
+
+    if args.dry_run:
+        print(f"Would create continuation session {session_relative}")
+        print(f"Would reuse plan {plan_relative}")
+        print(f"Would reuse work-tracking folder {work_folder.relative_to(REPO_ROOT).as_posix()}")
+        return
+
+    session_dir.mkdir(parents=True, exist_ok=True)
+    _write_file_lines(session_path, session_lines)
+    _symlink_to(SESSIONS_DIR / "current", session_path)
+    _symlink_to(PLAN_CURRENT, plan_path)
+    _write_session_state(session_path.name, now)
+
+    tracker_lines = _load_file_lines(tracker_path)
+    for entry in _build_continuation_tracker_entries(
+        now=now,
+        task_id=task_id,
+        work_context=work_context,
+        tracker_relative=tracker_relative,
+        session_relative=session_relative,
+        plan_relative=plan_relative,
+    ):
+        tracker_lines = _insert_progress_entry(tracker_lines, PROGRESS_HEADING_TRACKER, entry)
+    _write_file_lines(tracker_path, tracker_lines)
+
+    handle_plan_sync(
+        argparse.Namespace(
+            plan=plan_path.relative_to(REPO_ROOT).as_posix(),
+            tracker=tracker_relative,
+            dry_run=False,
+        )
+    )
+    print(f"Created continuation session: {session_relative}")
+    print(f"Reused work-tracking folder: {work_folder.relative_to(REPO_ROOT).as_posix()}")
+    print(f"Reused plan: {plan_relative}")
     print(f"Repointed {SESSIONS_CURRENT_REL}, {PLANS_CURRENT_REL}, and {SESSION_STATE_REL}")
 
 
@@ -967,8 +1183,20 @@ def _resolve_current_session(explicit: Optional[str] = None) -> Path:
         return candidate
 
     current_link = SESSIONS_DIR / "current"
-    if current_link.exists():
-        return current_link.resolve()
+    if current_link.exists() or current_link.is_symlink():
+        try:
+            resolved = current_link.resolve()
+        except FileNotFoundError as exc:
+            raise TaskError(f"{SESSIONS_CURRENT_REL} points to a missing session file.") from exc
+        if not resolved.exists():
+            raise TaskError(f"{SESSIONS_CURRENT_REL} points to a missing session file: {resolved}")
+        return resolved
+
+    if SESSION_STATE_PATH.exists():
+        raise TaskError(
+            f"{SESSIONS_CURRENT_REL} is missing; refusing to infer the latest historical session. "
+            "Start a session with `wizard kickoff` or `sessions continue`, or pass --session-file explicitly."
+        )
 
     # Fallback: find most recent session markdown in sessions directory.
     candidates = sorted(SESSIONS_DIR.glob("**/*.md"))
@@ -2561,6 +2789,18 @@ def build_parser() -> argparse.ArgumentParser:
     sessions_update.add_argument("--evidence", required=True, help="E field value")
     sessions_update.add_argument("--note", required=True, help="Log note")
     sessions_update.set_defaults(func=handle_sessions_update)
+    sessions_continue = sessions_sub.add_parser(
+        "continue",
+        help="Create a fresh daily session for an existing active task without recreating task work tracking",
+    )
+    sessions_continue.add_argument("--task", required=True, help="Task ID (numeric)")
+    sessions_continue.add_argument("--slug", help="Slug for the continuation session filename")
+    sessions_continue.add_argument("--title", help="Human-readable session title")
+    sessions_continue.add_argument("--work", help="W field value; defaults to task<id>-<slug>")
+    sessions_continue.add_argument("--folder", help="Existing ACTIVE work-tracking folder name")
+    sessions_continue.add_argument("--plan", help="Existing plan file to reuse")
+    sessions_continue.add_argument("--task-source", help="Human-readable source line for the session metadata")
+    sessions_continue.set_defaults(func=handle_sessions_continue)
 
     work_parser = subparsers.add_parser("work-tracking", help="Work-tracking document operations")
     work_sub = work_parser.add_subparsers(dest="subcommand", required=True)

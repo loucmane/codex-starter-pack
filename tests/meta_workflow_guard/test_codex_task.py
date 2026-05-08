@@ -53,6 +53,25 @@ def test_build_parser_accepts_wizard_kickoff() -> None:
     assert args.task == "96"
 
 
+def test_build_parser_accepts_sessions_continue() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "sessions",
+        "continue",
+        "--task",
+        "42",
+        "--slug",
+        "session-management-system",
+        "--plan",
+        "plans/2026-05-08-task42-session-management-system.md",
+    ])
+    assert args.command == "sessions"
+    assert args.subcommand == "continue"
+    assert args.task == "42"
+    assert args.slug == "session-management-system"
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -142,6 +161,140 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     assert ["task-master", "set-status", "--id=96", "--status=in-progress"] in commands
     assert ["task-master", "generate"] not in commands
     assert any(cmd[:2] == ["task-master", "generate"] and "--output" in cmd for cmd in commands)
+
+
+def test_handle_sessions_continue_reuses_active_work_tracking_and_plan(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    task_dir = repo / ".taskmaster" / "tasks"
+    plan_state_dir = repo / ".plan_state"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    task_dir.mkdir(parents=True)
+
+    task_file = task_dir / "task_042.txt"
+    task_file.write_text(
+        "# Task ID: 42\n# Title: Implement Session Management System\n# Description: Create robust session tracking.\n",
+        encoding="utf-8",
+    )
+    old_session = sessions_dir / "2026" / "04" / "2026-04-24-001-task42-session-management-system.md"
+    old_session.parent.mkdir(parents=True)
+    old_session.write_text("---\nsession_id: 2026-04-24-001\n---\n", encoding="utf-8")
+    (sessions_dir / "current").symlink_to(Path("2026/04/2026-04-24-001-task42-session-management-system.md"))
+    (sessions_dir / "state.json").write_text(
+        '{"current":"2026-04-24-001-task42-session-management-system.md","paused":[],"updated_at":"2026-04-24T10:00:00+02:00"}\n',
+        encoding="utf-8",
+    )
+
+    plan_file = plans_dir / "2026-04-24-task42-session-management-system.md"
+    plan_file.write_text(
+        "\n".join(
+            [
+                "# Plan",
+                "",
+                "| Step ID | Description | Evidence | Status |",
+                "| --- | --- | --- | --- |",
+                "| plan-step-scope | Scope | evidence | completed |",
+                "| plan-step-implement | Implement | evidence | pending |",
+                "| plan-step-verify | Verify | evidence | pending |",
+                "| plan-step-emergency | Optional | evidence | n/a |",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (plans_dir / "current").symlink_to(Path("2026-04-24-task42-session-management-system.md"))
+
+    active_folder = active_dir / "20260424-task42-session-management-system-ACTIVE"
+    active_folder.mkdir()
+    tracker = active_folder / "TRACKER.md"
+    tracker.write_text(
+        "\n".join(
+            [
+                "# Tracker",
+                "",
+                "## Progress Log",
+                "",
+                "## Plan Compliance Checklist",
+                "- [x] plan-step-scope",
+                "- [ ] plan-step-implement",
+                "- [ ] plan-step-verify",
+                "- [ ] plan-step-emergency",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "PLANS_DIR", plans_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_ACTIVE_REL", "docs/ai/work-tracking/active")
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state_dir)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state_dir / "sync.log")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_DIR", task_dir)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        if cmd[:3] == ["git", "branch", "--show-current"]:
+            return FakeCompletedProcess(stdout="feat/task-42-session-management-system\n")
+        return FakeCompletedProcess(stdout="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    module.handle_sessions_continue(
+        argparse.Namespace(
+            task="42",
+            slug="session-management-system",
+            title="Implement Session Management System",
+            work=None,
+            folder=None,
+            plan=None,
+            task_source="Test continuation",
+            dry_run=False,
+        )
+    )
+
+    new_session = sessions_dir / "2026" / "04" / "2026-04-24-002-task42-session-management-system.md"
+    assert new_session.exists()
+    assert (sessions_dir / "current").resolve() == new_session
+    assert (plans_dir / "current").resolve() == plan_file
+    assert list(active_dir.iterdir()) == [active_folder]
+    state = json.loads((sessions_dir / "state.json").read_text(encoding="utf-8"))
+    assert state["current"] == new_session.name
+    assert state["paused"] == []
+    assert "sessions continue" in new_session.read_text(encoding="utf-8")
+    tracker_text = tracker.read_text(encoding="utf-8")
+    assert "Created a fresh daily Task 42 continuation session" in tracker_text
+    assert (plan_state_dir / "sync.log").exists()
+
+
+def test_resolve_current_session_fails_closed_when_state_exists_without_current(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    session_file = sessions_dir / "2026" / "04" / "2026-04-24-001-old-session.md"
+    session_file.parent.mkdir(parents=True)
+    session_file.write_text("---\nsession_id: 2026-04-24-001\n---\n", encoding="utf-8")
+    state_path = sessions_dir / "state.json"
+    state_path.write_text('{"current":null,"paused":[],"updated_at":"2026-04-24T10:00:00+02:00"}\n', encoding="utf-8")
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", state_path)
+    monkeypatch.setattr(module, "SESSIONS_CURRENT_REL", "sessions/current")
+
+    with pytest.raises(module.TaskError, match="refusing to infer the latest historical session"):
+        module._resolve_current_session()
+
+    assert module._resolve_current_session("sessions/2026/04/2026-04-24-001-old-session.md") == session_file
 
 
 def test_build_parser_accepts_bootstrap_init() -> None:

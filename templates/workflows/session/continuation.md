@@ -35,7 +35,10 @@ Ensure smooth resumption of in-progress work without losing context, evidence, o
    - Review work-tracking tracker + handoff
    - Read latest Serena memory (if available)
 3. **Restore state**
-   - Run `python3 scripts/codex-task sessions update --resume`
+   - For a new daily session on an already-active task, run `python3 scripts/codex-task sessions continue --task <id> --slug <slug> --title "<title>"`. This creates a fresh session while reusing the task-scoped ACTIVE work-tracking folder and existing plan.
+   - Do not rerun `python3 scripts/codex-task wizard kickoff` for an already-active multi-day task; kickoff is for initial task scaffolding and will try to create a new ACTIVE work-tracking folder.
+   - Do not archive active work tracking just to start a new daily session. Archive only after the task/PR is complete.
+   - After continuation state exists, use `python3 scripts/codex-task sessions update ...` for progress entries.
    - Ensure `python3 scripts/codex-task plan sync` has been recorded this session (plan-step scope/updates)
    - Review Taskmaster task status (`task-master show <id>`) and set active subtasks to `in-progress`
    - Execute `python3 scripts/codex-guard validate --include-untracked` before editing
@@ -57,6 +60,7 @@ Ensure smooth resumption of in-progress work without losing context, evidence, o
 
 ## Failure Modes & Recovery
 - **Missing session entry** → run `resolve-session-void`
+- **Missing `sessions/current` with an existing ACTIVE work-tracking folder** → run `python3 scripts/codex-task sessions continue --task <id> --slug <slug>`; do not infer the latest historical session.
 - **Work context unclear** → consult `work-patterns` and Taskmaster history (plan + tracker)
 - **State mismatch** → reconcile Git diff, rerun tests, update documentation
 - **Serena memory missing** → reconstruct from session + tracker, document in Findings
@@ -71,3 +75,7 @@ Ensure smooth resumption of in-progress work without losing context, evidence, o
 - `handlers/orchestrators/work-continuation.md`
 - `handlers/operators/session/restore-context.md`
 - `patterns/session/continuation-patterns.md`
+
+## Progress Log
+
+- **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/workflows/session/continuation.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Documented `sessions continue` as the safe multi-day task continuation path and clarified that active task work tracking must not be archived just to start a new daily session.
