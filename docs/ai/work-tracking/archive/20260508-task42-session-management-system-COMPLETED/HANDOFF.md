@@ -11,7 +11,15 @@
 - Taskmaster Task 42 and subtasks 42.1/42.2 are done.
 - Serena memory: `2026-05-08_task42_session_management_system`.
 - Verification evidence is in `reports/session-management-system/`.
+- PR #49 was merged into `main`.
+- Work tracking is archived at `docs/ai/work-tracking/archive/20260508-task42-session-management-system-COMPLETED/`.
+- Repository closeout state: no `sessions/current`, no `plans/current`, and `sessions/state.json.current` is `null`.
+- Post-archive evidence:
+  - `reports/session-management-system/archive-plan-sync-2026-05-08.txt`
+  - `reports/session-management-system/archive-audit-2026-05-08.txt`
+  - `reports/session-management-system/archive-guard-2026-05-08.txt`
+  - `reports/session-management-system/archive-diff-check-2026-05-08.txt`
 
 ## Next Steps
-- Open the Task 42 PR after final guard/diff-check evidence is green.
-- After merge, archive `docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/` and return the repo to between-session state.
+- Continue with the next Taskmaster task from the clean between-session state.
+- Archived on 2026-05-08 14:08 CEST — Folder moved to archive and tracker marked COMPLETED.
