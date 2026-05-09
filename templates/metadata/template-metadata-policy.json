@@ -62,6 +62,14 @@
       "notes": "Registry component modules are enforced; the modular index and migration report stay exempt as aggregate references."
     },
     {
+      "name": "pattern-templates",
+      "enforce": true,
+      "include": [
+        "templates/patterns/**/*.md"
+      ],
+      "notes": "Pattern modules are part of the modular template foundation and must keep canonical metadata once Task 27 owns the pattern family."
+    },
+    {
       "name": "engine-modules",
       "enforce": true,
       "include": [

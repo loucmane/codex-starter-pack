@@ -1,10 +1,12 @@
 # System Patterns Library
 
-This file has been modularized. All patterns are now in `templates/patterns/`
+This file has been modularized. The canonical modular index is `templates/patterns/index.md`, and the pattern modules live under `templates/patterns/`.
 
 > ⚠️ **HANDLERS MIGRATED**: All handlers from this file have been migrated to `templates/handlers/`
 > 
 > **PATTERNS MODULARIZED**: All patterns have been extracted to `templates/patterns/`
+
+For registry-backed discovery, use [Pattern Templates Index](patterns/index.md).
 
 ## 📁 Module Organization
 
@@ -97,7 +99,11 @@ For handler documentation, see: [REGISTRY.md](REGISTRY.md)
 3. **Patterns are approaches**, not specific implementations
 4. **Handlers implement** these patterns
 
+## Progress Log
+
+- **2026-05-09 15:48 CEST** — [S:20260509|W:task27-migrate-pattern-templates|H:legacy-pattern-library|E:templates/patterns/index.md] Updated the legacy top-level pattern library to point at the canonical modular pattern index.
+
 ---
 
-*Last updated: 2025-08-08*
-*Version: 2.0.0 (Modularized)*
+*Last updated: 2026-05-09*
+*Version: 2.1.0 (Modularized index target)*
