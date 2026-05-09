@@ -59,6 +59,10 @@ reports_root = "state/reports"
     assert structure.taskmaster_tasks_dir == (tmp_path / "ops" / "taskmaster" / "tasks").resolve()
     assert structure.work_tracking_archive_root == (tmp_path / "state" / "work-tracking" / "archive").resolve()
     assert structure.metrics_report_dir == (tmp_path / "state" / "reports" / "template-metrics").resolve()
+    assert structure.monitoring_report_dir == (tmp_path / "state" / "reports" / "template-monitoring").resolve()
+    assert structure.template_monitoring_policy_path == (
+        tmp_path / "template-system" / "metadata" / "template-monitoring-policy.json"
+    ).resolve()
 
 
 def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> None:
