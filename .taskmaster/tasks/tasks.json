@@ -1664,32 +1664,35 @@
           "7",
           "17"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 25,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-09T10:08:34.401Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 25,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-09T10:23:19.028Z"
           }
         ],
         "complexity": 4,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Run comprehensive scanner tests, execute security validation, generate performance metrics, document accuracy metrics, create compatibility baseline, verify monitoring, and prepare gate review documentation."
+        "expansionPrompt": "Run comprehensive scanner tests, execute security validation, generate performance metrics, document accuracy metrics, create compatibility baseline, verify monitoring, and prepare gate review documentation.",
+        "updatedAt": "2026-05-09T10:40:14.703Z"
       },
       {
         "id": "26",
@@ -5032,9 +5035,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-09T09:31:21.571Z",
+      "lastModified": "2026-05-09T10:40:14.703Z",
       "taskCount": 108,
-      "completedCount": 61,
+      "completedCount": 62,
       "tags": [
         "master"
       ]

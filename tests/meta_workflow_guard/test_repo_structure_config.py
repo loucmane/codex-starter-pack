@@ -60,6 +60,9 @@ reports_root = "state/reports"
     assert structure.work_tracking_archive_root == (tmp_path / "state" / "work-tracking" / "archive").resolve()
     assert structure.metrics_report_dir == (tmp_path / "state" / "reports" / "template-metrics").resolve()
     assert structure.monitoring_report_dir == (tmp_path / "state" / "reports" / "template-monitoring").resolve()
+    assert structure.phase0_validation_report_dir == (
+        tmp_path / "state" / "reports" / "phase0-scanner-validation"
+    ).resolve()
     assert structure.template_monitoring_policy_path == (
         tmp_path / "template-system" / "metadata" / "template-monitoring-policy.json"
     ).resolve()
@@ -80,3 +83,6 @@ def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> Non
         assert structure.taskmaster_root == (repo_root / shape.roots["taskmaster_root"]).resolve()
         assert structure.work_tracking_root == (repo_root / shape.roots["work_tracking_root"]).resolve()
         assert structure.reports_root == (repo_root / shape.roots["reports_root"]).resolve()
+        assert structure.phase0_validation_report_dir == (
+            repo_root / shape.roots["reports_root"] / "phase0-scanner-validation"
+        ).resolve()

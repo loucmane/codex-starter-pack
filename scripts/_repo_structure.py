@@ -86,6 +86,10 @@ class RepoStructure:
     def monitoring_report_dir(self) -> Path:
         return self.reports_root / "template-monitoring"
 
+    @property
+    def phase0_validation_report_dir(self) -> Path:
+        return self.reports_root / "phase0-scanner-validation"
+
 
 def _load_repo_structure_section(config_path: Path) -> Dict[str, str]:
     if not config_path.exists():
