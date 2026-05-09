@@ -986,6 +986,16 @@
     "goodFirstHandler": false
   },
   {
+    "id": "patterns-index",
+    "path": "templates/patterns/index.md",
+    "tags": [
+      "patterns",
+      "index",
+      "discovery"
+    ],
+    "goodFirstHandler": false
+  },
+  {
     "id": "workflows-domain-session",
     "path": "templates/workflows/domain/session.md",
     "tags": [

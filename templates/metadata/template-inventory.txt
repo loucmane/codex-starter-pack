@@ -176,6 +176,7 @@ templates/metadata/workflow-guards.json
 templates/patterns/evidence/evidence-patterns.md
 templates/patterns/evidence/proof-patterns.md
 templates/patterns/evidence/validation-patterns.md
+templates/patterns/index.md
 templates/patterns/integration/composition.md
 templates/patterns/integration/cross-system.md
 templates/patterns/routing/intent-detection.md

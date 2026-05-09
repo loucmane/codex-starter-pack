@@ -16,8 +16,8 @@
     },
     {
       "legacy": "templates/PATTERNS.md",
-      "current": "templates/patterns/",
-      "reason": "Pattern documentation moved to modular pattern families."
+      "current": "templates/patterns/index.md",
+      "reason": "Pattern documentation moved to the modular pattern-family index."
     },
     {
       "legacy": "templates/HANDLERS.md",

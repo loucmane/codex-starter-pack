@@ -237,6 +237,7 @@
 - `templates/patterns/evidence/evidence-patterns.md` — title: Evidence Collection Patterns; type: pattern; category: evidence; status: stable
 - `templates/patterns/evidence/proof-patterns.md` — title: Proof Requirement Patterns; type: pattern; category: evidence; status: stable
 - `templates/patterns/evidence/validation-patterns.md` — title: Validation Patterns; type: pattern; category: evidence; status: stable
+- `templates/patterns/index.md` — title: Pattern Templates Index; type: pattern-index; category: patterns; status: stable
 - `templates/patterns/integration/composition.md` — title: Pattern Composition Strategies; type: pattern; category: integration; status: stable
 - `templates/patterns/integration/cross-system.md` — title: Cross-System Integration Patterns; type: pattern; category: integration; status: stable
 - `templates/patterns/routing/intent-detection.md` — title: Intent Detection Patterns; type: pattern; category: routing; status: stable

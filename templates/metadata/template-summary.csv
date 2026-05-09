@@ -177,6 +177,7 @@ templates/metadata/workflow-guards.json,,,,,,no
 templates/patterns/evidence/evidence-patterns.md,Evidence Collection Patterns,pattern,stable,evidence,Evidence Collection Patterns,yes
 templates/patterns/evidence/proof-patterns.md,Proof Requirement Patterns,pattern,stable,evidence,Proof Requirement Patterns,yes
 templates/patterns/evidence/validation-patterns.md,Validation Patterns,pattern,stable,evidence,Validation Patterns,yes
+templates/patterns/index.md,Pattern Templates Index,pattern-index,stable,patterns,Pattern Templates Index,yes
 templates/patterns/integration/composition.md,Pattern Composition Strategies,pattern,stable,integration,Pattern Composition Strategies,yes
 templates/patterns/integration/cross-system.md,Cross-System Integration Patterns,pattern,stable,integration,Cross-System Integration Patterns,yes
 templates/patterns/routing/intent-detection.md,Intent Detection Patterns,pattern,stable,routing,Intent Detection Patterns,yes

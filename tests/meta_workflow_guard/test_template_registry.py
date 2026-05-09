@@ -487,6 +487,18 @@ def test_real_compatibility_map_targets_exist() -> None:
     assert issues == []
 
 
+def test_real_patterns_compatibility_redirect_resolves_to_index_record() -> None:
+    registry = TemplateRegistry(repo_root=REPO_ROOT)
+    result = registry.resolve("templates/PATTERNS.md", allow_serena=False)
+
+    assert result.status == "redirect"
+    assert result.source == "compatibility"
+    assert result.path == "templates/patterns/index.md"
+    assert result.record is not None
+    assert result.record.id == "patterns-index"
+    assert result.record.source == "modular"
+
+
 def test_registry_cache_uses_ttl_and_explicit_invalidation(tmp_path: Path) -> None:
     _write_repo_config(tmp_path)
     _write_template(

@@ -1742,32 +1742,35 @@
         "dependencies": [
           "25"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 27,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-09T13:44:11.348Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 27,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-09T13:49:16.474Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Extract patterns from PATTERNS.md, create modular pattern files, migrate work-tracking patterns, update session patterns, create pattern index, update discovery chain, and run regression tests."
+        "expansionPrompt": "Extract patterns from PATTERNS.md, create modular pattern files, migrate work-tracking patterns, update session patterns, create pattern index, update discovery chain, and run regression tests.",
+        "updatedAt": "2026-05-09T13:49:16.474Z"
       },
       {
         "id": "28",
@@ -5035,9 +5038,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-09T10:40:14.703Z",
+      "lastModified": "2026-05-09T13:49:16.475Z",
       "taskCount": 108,
-      "completedCount": 62,
+      "completedCount": 63,
       "tags": [
         "master"
       ]

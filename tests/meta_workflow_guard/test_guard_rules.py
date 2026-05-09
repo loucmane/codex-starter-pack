@@ -835,6 +835,13 @@ def test_select_template_metadata_rule_matches_shared_core_pattern() -> None:
     assert rule.name == 'shared-core-patterns'
 
 
+def test_select_template_metadata_rule_matches_pattern_templates() -> None:
+    module = load_guard_module()
+    rule = module.select_template_metadata_rule(Path('templates/patterns/session/session-patterns.md'))
+    assert rule is not None
+    assert rule.name == 'pattern-templates'
+
+
 def test_validate_template_metadata_flags_missing_required_keys(monkeypatch) -> None:
     module = load_guard_module()
     fake_rule = module.TemplateMetadataRule(
