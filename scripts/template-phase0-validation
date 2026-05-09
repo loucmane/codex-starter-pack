@@ -1,0 +1,473 @@
+#!/usr/bin/env python3
+"""Aggregate scanner, security, baseline, and monitoring state for the Phase 0 gate."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Mapping, Optional, Sequence, Tuple
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from _repo_structure import load_repo_structure
+
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+OUTPUT_FORMAT_VERSION = "2.0.0"
+DEFAULT_SCANNER_DATA_DIR = REPO_ROOT / "scripts" / "template-ssot-scanner" / "output" / "data"
+DEFAULT_MONITORING_FILE = REPO_STRUCTURE.monitoring_report_dir / "latest.json"
+DEFAULT_REPORT_DIR = REPO_STRUCTURE.phase0_validation_report_dir
+
+REQUIRED_SCANNER_OUTPUTS: Tuple[str, ...] = (
+    "baseline_summary.json",
+    "duplicate_analysis.json",
+    "fix_recommendations.json",
+    "migration_status.json",
+    "reference_analysis.json",
+    "security_validation.json",
+    "template_scan_results.json",
+)
+
+REQUIRED_BASELINE_METRICS: Tuple[str, ...] = (
+    "total_files",
+    "total_lines",
+    "total_references",
+    "broken_references",
+    "duplicate_count",
+    "migration_percentage",
+    "total_fixes",
+)
+
+
+class Phase0ValidationError(ValueError):
+    """Raised when scanner or monitoring artifacts cannot be evaluated."""
+
+
+@dataclass(frozen=True)
+class Phase0Check:
+    """Single Phase 0 validation check."""
+
+    id: str
+    title: str
+    status: str
+    severity: str
+    message: str
+    evidence: str
+    details: Dict[str, object]
+
+
+@dataclass(frozen=True)
+class Phase0Report:
+    """Machine-readable Phase 0 validation report."""
+
+    generated_at: str
+    scanner_data_dir: str
+    monitoring_file: str
+    status: str
+    summary: Dict[str, int]
+    checks: Tuple[Phase0Check, ...]
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "generated_at": self.generated_at,
+            "scanner_data_dir": self.scanner_data_dir,
+            "monitoring_file": self.monitoring_file,
+            "status": self.status,
+            "summary": self.summary,
+            "checks": [asdict(check) for check in self.checks],
+        }
+
+
+def evaluate_phase0(
+    scanner_data_dir: Path | str = DEFAULT_SCANNER_DATA_DIR,
+    monitoring_file: Path | str = DEFAULT_MONITORING_FILE,
+    *,
+    generated_at: Optional[str] = None,
+) -> Phase0Report:
+    """Evaluate Phase 0 scanner validation state without mutating scanner outputs."""
+    scanner_dir = Path(scanner_data_dir)
+    monitoring_path = Path(monitoring_file)
+    payloads = _load_scanner_outputs(scanner_dir)
+
+    checks = [
+        _check_required_outputs(scanner_dir),
+        _check_output_wrappers(scanner_dir, payloads),
+        _check_baseline_metrics(scanner_dir, payloads.get("baseline_summary.json")),
+        _check_security_errors(scanner_dir, payloads.get("security_validation.json")),
+        _check_security_warnings(scanner_dir, payloads.get("security_validation.json")),
+        _check_baseline_known_findings(scanner_dir, payloads.get("baseline_summary.json")),
+        _check_monitoring_status(monitoring_path),
+    ]
+    status = _overall_status(checks)
+    return Phase0Report(
+        generated_at=generated_at or datetime.now().astimezone().isoformat(),
+        scanner_data_dir=_path_display(scanner_dir),
+        monitoring_file=_path_display(monitoring_path),
+        status=status,
+        summary={
+            "total": len(checks),
+            "passed": sum(1 for check in checks if check.status == "pass"),
+            "warnings": sum(1 for check in checks if check.status != "pass" and check.severity == "warning"),
+            "errors": sum(1 for check in checks if check.status != "pass" and check.severity == "error"),
+        },
+        checks=tuple(checks),
+    )
+
+
+def render_markdown(report: Phase0Report) -> str:
+    """Render a Phase 0 validation report as Markdown."""
+    lines = [
+        "# Phase 0 Scanner Validation Report",
+        "",
+        f"Generated: {report.generated_at}",
+        f"Scanner data directory: {report.scanner_data_dir}",
+        f"Monitoring file: {report.monitoring_file}",
+        f"Status: {report.status}",
+        "",
+        "## Summary",
+        f"- Total checks: {report.summary['total']}",
+        f"- Passed: {report.summary['passed']}",
+        f"- Warnings: {report.summary['warnings']}",
+        f"- Errors: {report.summary['errors']}",
+        "",
+        "## Checks",
+    ]
+    for check in report.checks:
+        lines.extend(
+            [
+                f"- {check.id}: {check.status}",
+                f"  - Severity: `{check.severity}`",
+                f"  - Evidence: `{check.evidence}`",
+                f"  - Message: {check.message}",
+            ]
+        )
+    return "\n".join(lines) + "\n"
+
+
+def write_outputs(report: Phase0Report, report_dir: Path | str) -> Tuple[Path, Path]:
+    """Write Phase 0 validation outputs."""
+    output_dir = Path(report_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "latest.json"
+    md_path = output_dir / "latest.md"
+    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+    return md_path, json_path
+
+
+def _load_scanner_outputs(scanner_dir: Path) -> Dict[str, Mapping[str, object]]:
+    payloads: Dict[str, Mapping[str, object]] = {}
+    for filename in REQUIRED_SCANNER_OUTPUTS:
+        path = scanner_dir / filename
+        if not path.exists():
+            continue
+        try:
+            payload = _load_json(path)
+        except Phase0ValidationError as exc:
+            payloads[filename] = {"_phase0_load_error": str(exc)}
+            continue
+        payloads[filename] = payload if isinstance(payload, Mapping) else {}
+    return payloads
+
+
+def _check_required_outputs(scanner_dir: Path) -> Phase0Check:
+    missing = [filename for filename in REQUIRED_SCANNER_OUTPUTS if not (scanner_dir / filename).exists()]
+    return Phase0Check(
+        id="scanner-output-completeness",
+        title="Required scanner outputs exist",
+        status="fail" if missing else "pass",
+        severity="error",
+        message=(
+            "All required scanner outputs are present."
+            if not missing
+            else f"Missing required scanner output(s): {', '.join(missing)}"
+        ),
+        evidence=_path_display(scanner_dir),
+        details={"required": list(REQUIRED_SCANNER_OUTPUTS), "missing": missing},
+    )
+
+
+def _check_output_wrappers(scanner_dir: Path, payloads: Mapping[str, Mapping[str, object]]) -> Phase0Check:
+    invalid = []
+    for filename in REQUIRED_SCANNER_OUTPUTS:
+        payload = payloads.get(filename)
+        if payload is None:
+            continue
+        load_error = payload.get("_phase0_load_error")
+        if load_error:
+            invalid.append({"file": filename, "reason": load_error})
+            continue
+        metadata = payload.get("metadata")
+        data = payload.get("data")
+        version = metadata.get("output_format_version") if isinstance(metadata, Mapping) else None
+        if not isinstance(metadata, Mapping) or not isinstance(data, Mapping):
+            invalid.append({"file": filename, "reason": "missing metadata/data wrapper"})
+        elif version != OUTPUT_FORMAT_VERSION:
+            invalid.append({"file": filename, "reason": f"output_format_version {version!r}"})
+    return Phase0Check(
+        id="scanner-output-format",
+        title="Scanner outputs use the Phase 0 JSON wrapper",
+        status="fail" if invalid else "pass",
+        severity="error",
+        message=(
+            f"All scanner outputs use output format {OUTPUT_FORMAT_VERSION}."
+            if not invalid
+            else "One or more scanner outputs are missing the required wrapper or format version."
+        ),
+        evidence=_path_display(scanner_dir),
+        details={"invalid": invalid, "expected_output_format_version": OUTPUT_FORMAT_VERSION},
+    )
+
+
+def _check_baseline_metrics(scanner_dir: Path, payload: Optional[Mapping[str, object]]) -> Phase0Check:
+    metrics = _baseline_metrics(payload)
+    missing = [key for key in REQUIRED_BASELINE_METRICS if key not in metrics]
+    return Phase0Check(
+        id="baseline-metrics-completeness",
+        title="Baseline performance metrics are available",
+        status="fail" if missing else "pass",
+        severity="error",
+        message=(
+            "Baseline summary includes required Phase 0 performance metrics."
+            if not missing
+            else f"Baseline summary is missing required metric(s): {', '.join(missing)}"
+        ),
+        evidence=_path_display(scanner_dir / "baseline_summary.json"),
+        details={"required": list(REQUIRED_BASELINE_METRICS), "missing": missing},
+    )
+
+
+def _check_security_errors(scanner_dir: Path, payload: Optional[Mapping[str, object]]) -> Phase0Check:
+    errors = _security_finding_count(payload, "error", "errors")
+    return Phase0Check(
+        id="security-error-findings",
+        title="Security validation has no error-level findings",
+        status="fail" if errors else "pass",
+        severity="error",
+        message=(
+            "No error-level security findings are present."
+            if not errors
+            else f"Security validation reports {errors} error-level finding(s)."
+        ),
+        evidence=_path_display(scanner_dir / "security_validation.json"),
+        details={"errors": errors},
+    )
+
+
+def _check_security_warnings(scanner_dir: Path, payload: Optional[Mapping[str, object]]) -> Phase0Check:
+    warnings = _security_finding_count(payload, "warning", "warnings")
+    return Phase0Check(
+        id="security-warning-findings",
+        title="Security validation warning-level findings are visible",
+        status="warn" if warnings else "pass",
+        severity="warning",
+        message=(
+            "No warning-level security findings are present."
+            if not warnings
+            else f"Security validation reports {warnings} warning-level finding(s)."
+        ),
+        evidence=_path_display(scanner_dir / "security_validation.json"),
+        details={"warnings": warnings},
+    )
+
+
+def _check_baseline_known_findings(scanner_dir: Path, payload: Optional[Mapping[str, object]]) -> Phase0Check:
+    metrics = _baseline_metrics(payload)
+    tracked = {
+        "broken_references": _number(metrics.get("broken_references")),
+        "duplicate_count": _number(metrics.get("duplicate_count")),
+        "total_fixes": _number(metrics.get("total_fixes")),
+    }
+    flagged = {key: value for key, value in tracked.items() if value > 0}
+    return Phase0Check(
+        id="baseline-known-findings",
+        title="Baseline known findings are reported",
+        status="warn" if flagged else "pass",
+        severity="warning",
+        message=(
+            "Baseline summary has no non-blocking reference, duplicate, or fix findings."
+            if not flagged
+            else "Baseline summary contains non-blocking findings that remain visible in the Phase 0 report."
+        ),
+        evidence=_path_display(scanner_dir / "baseline_summary.json"),
+        details=tracked,
+    )
+
+
+def _check_monitoring_status(monitoring_path: Path) -> Phase0Check:
+    if not monitoring_path.exists():
+        return Phase0Check(
+            id="monitoring-status",
+            title="Monitoring report is available",
+            status="fail",
+            severity="error",
+            message=f"Monitoring report is missing: {_path_display(monitoring_path)}",
+            evidence=_path_display(monitoring_path),
+            details={"status": None},
+        )
+    try:
+        payload = _load_json(monitoring_path)
+    except Phase0ValidationError as exc:
+        return Phase0Check(
+            id="monitoring-status",
+            title="Monitoring report is available",
+            status="fail",
+            severity="error",
+            message=str(exc),
+            evidence=_path_display(monitoring_path),
+            details={"status": "invalid"},
+        )
+    status = str(payload.get("status") or "missing").strip().lower() if isinstance(payload, Mapping) else "invalid"
+    if status == "fail":
+        check_status = "fail"
+        severity = "error"
+        message = "Monitoring report has error-level failures."
+    elif status == "warn":
+        check_status = "warn"
+        severity = "warning"
+        message = "Monitoring report has warning-level findings."
+    elif status == "pass":
+        check_status = "pass"
+        severity = "error"
+        message = "Monitoring report passes."
+    else:
+        check_status = "fail"
+        severity = "error"
+        message = f"Monitoring report has unsupported status {status!r}."
+    return Phase0Check(
+        id="monitoring-status",
+        title="Static monitoring status is included",
+        status=check_status,
+        severity=severity,
+        message=message,
+        evidence=_path_display(monitoring_path),
+        details={"status": status},
+    )
+
+
+def _overall_status(checks: Sequence[Phase0Check]) -> str:
+    if any(check.status != "pass" and check.severity == "error" for check in checks):
+        return "fail"
+    if any(check.status != "pass" and check.severity == "warning" for check in checks):
+        return "warn"
+    return "pass"
+
+
+def _baseline_metrics(payload: Optional[Mapping[str, object]]) -> Mapping[str, object]:
+    if not isinstance(payload, Mapping):
+        return {}
+    data = payload.get("data")
+    if not isinstance(data, Mapping):
+        return {}
+    metrics = data.get("metrics")
+    return metrics if isinstance(metrics, Mapping) else {}
+
+
+def _security_count(payload: Optional[Mapping[str, object]], severity: str) -> int:
+    if not isinstance(payload, Mapping):
+        return 0
+    data = payload.get("data")
+    if not isinstance(data, Mapping):
+        return 0
+    summary = data.get("summary")
+    if not isinstance(summary, Mapping):
+        return 0
+    counts = summary.get("severity_counts")
+    if not isinstance(counts, Mapping):
+        return 0
+    return _number(counts.get(severity))
+
+
+def _security_finding_count(payload: Optional[Mapping[str, object]], severity: str, stat_key: str) -> int:
+    return max(_security_count(payload, severity), _metadata_stat(payload, stat_key))
+
+
+def _metadata_stat(payload: Optional[Mapping[str, object]], key: str) -> int:
+    if not isinstance(payload, Mapping):
+        return 0
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, Mapping):
+        return 0
+    stats = metadata.get("stats")
+    if not isinstance(stats, Mapping):
+        return 0
+    return _number(stats.get(key))
+
+
+def _number(value: object) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return int(value)
+    return 0
+
+
+def _load_json(path: Path) -> object:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise Phase0ValidationError(f"Invalid JSON in {_path_display(path)}: {exc}") from exc
+
+
+def _resolve_path(raw_path: str, *, base: Path = REPO_ROOT) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = base / path
+    return path.resolve()
+
+
+def _path_display(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", default=".", help="Repository root for configured report paths.")
+    parser.add_argument(
+        "--scanner-data-dir",
+        default=_path_display(DEFAULT_SCANNER_DATA_DIR),
+        help="Directory containing scanner output JSON files.",
+    )
+    parser.add_argument(
+        "--monitoring-file",
+        default=_path_display(DEFAULT_MONITORING_FILE),
+        help="Monitoring JSON file to include in the gate.",
+    )
+    parser.add_argument(
+        "--report-dir",
+        default=_path_display(DEFAULT_REPORT_DIR),
+        help="Directory for Phase 0 validation outputs.",
+    )
+    parser.add_argument("--strict", action="store_true", help="Exit nonzero when error-level checks fail.")
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    repo_root = _resolve_path(args.repo_root)
+    scanner_data_dir = _resolve_path(args.scanner_data_dir, base=repo_root)
+    monitoring_file = _resolve_path(args.monitoring_file, base=repo_root)
+    report_dir = _resolve_path(args.report_dir, base=repo_root)
+    report = evaluate_phase0(scanner_data_dir, monitoring_file)
+    md_path, json_path = write_outputs(report, report_dir)
+    print(f"Wrote Phase 0 validation report to {_path_display(md_path)}")
+    print(f"Wrote Phase 0 validation JSON to {_path_display(json_path)}")
+    print(f"Phase 0 validation status: {report.status}")
+    if args.strict and report.status == "fail":
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -953,6 +953,7 @@ SYNC_TEST_ASSET_PATHS = [
     "scripts/codex-task",
     "scripts/template-metrics-dashboard",
     "scripts/template-monitoring",
+    "scripts/template-phase0-validation",
 ]
 
 
@@ -1053,14 +1054,18 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         drift_report_dir="reports/template-drift",
         metrics_file="reports/template-metrics/latest.json",
         monitoring_report_dir="reports/template-monitoring",
+        scanner_data_dir="scripts/template-ssot-scanner/output/data",
+        phase0_monitoring_file="reports/template-monitoring/latest.json",
+        phase0_report_dir="reports/phase0-scanner-validation",
         strict_drift=True,
         strict_monitoring=True,
+        strict_phase0=True,
         dry_run=False,
     )
 
     module.handle_report_generate(args)
 
-    assert len(commands) == 3
+    assert len(commands) == 4
     assert Path(commands[0][1]).name == "codex-guard"
     assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
     assert Path(commands[1][1]).name == "template-metrics-dashboard"
@@ -1071,6 +1076,16 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         "reports/template-metrics/latest.json",
         "--report-dir",
         "reports/template-monitoring",
+        "--strict",
+    ]
+    assert Path(commands[3][1]).name == "template-phase0-validation"
+    assert commands[3][2:] == [
+        "--scanner-data-dir",
+        "scripts/template-ssot-scanner/output/data",
+        "--monitoring-file",
+        "reports/template-monitoring/latest.json",
+        "--report-dir",
+        "reports/phase0-scanner-validation",
         "--strict",
     ]
 
@@ -1208,8 +1223,12 @@ def test_handle_report_generate_dry_run_does_not_execute(monkeypatch, capsys) ->
         drift_report_dir="reports/template-drift",
         metrics_file="reports/template-metrics/latest.json",
         monitoring_report_dir="reports/template-monitoring",
+        scanner_data_dir="scripts/template-ssot-scanner/output/data",
+        phase0_monitoring_file="reports/template-monitoring/latest.json",
+        phase0_report_dir="reports/phase0-scanner-validation",
         strict_drift=False,
         strict_monitoring=False,
+        strict_phase0=False,
         dry_run=True,
     )
 
@@ -1260,6 +1279,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert (target / "reports" / "template-drift").is_dir()
     assert (target / "reports" / "template-metrics").is_dir()
     assert (target / "reports" / "template-monitoring").is_dir()
+    assert (target / "reports" / "phase0-scanner-validation").is_dir()
     assert (target / "reports" / "session-continuation").is_dir()
 
 
@@ -1661,3 +1681,4 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["work_tracking_root"] / "active").is_dir()
         assert (target / shape.roots["reports_root"] / "template-metrics").is_dir()
         assert (target / shape.roots["reports_root"] / "template-monitoring").is_dir()
+        assert (target / shape.roots["reports_root"] / "phase0-scanner-validation").is_dir()

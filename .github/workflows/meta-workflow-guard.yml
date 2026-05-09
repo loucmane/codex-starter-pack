@@ -46,10 +46,14 @@ jobs:
 
       - name: Run template drift check
         run: python3 scripts/codex-guard drift-check --strict
+      - name: Generate scanner validation baseline
+        run: python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci
       - name: Generate template metrics dashboard
         run: python3 scripts/template-metrics-dashboard
       - name: Generate template monitoring report
         run: python3 scripts/template-monitoring --strict
+      - name: Generate Phase 0 scanner validation report
+        run: python3 scripts/template-phase0-validation --strict
 
       - name: Upload guard artefacts
         if: always()
@@ -62,3 +66,4 @@ jobs:
             reports/template-drift/
             reports/template-metrics/
             reports/template-monitoring/
+            reports/phase0-scanner-validation/

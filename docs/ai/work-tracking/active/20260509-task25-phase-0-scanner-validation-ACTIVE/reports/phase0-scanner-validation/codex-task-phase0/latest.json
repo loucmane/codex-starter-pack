@@ -1,0 +1,112 @@
+{
+  "generated_at": "2026-05-09T12:17:10.802821+02:00",
+  "scanner_data_dir": "scripts/template-ssot-scanner/output/data",
+  "monitoring_file": "docs/ai/work-tracking/active/20260509-task25-phase-0-scanner-validation-ACTIVE/reports/phase0-scanner-validation/sample-template-monitoring/latest.json",
+  "status": "warn",
+  "summary": {
+    "total": 7,
+    "passed": 5,
+    "warnings": 2,
+    "errors": 0
+  },
+  "checks": [
+    {
+      "id": "scanner-output-completeness",
+      "title": "Required scanner outputs exist",
+      "status": "pass",
+      "severity": "error",
+      "message": "All required scanner outputs are present.",
+      "evidence": "scripts/template-ssot-scanner/output/data",
+      "details": {
+        "required": [
+          "baseline_summary.json",
+          "duplicate_analysis.json",
+          "fix_recommendations.json",
+          "migration_status.json",
+          "reference_analysis.json",
+          "security_validation.json",
+          "template_scan_results.json"
+        ],
+        "missing": []
+      }
+    },
+    {
+      "id": "scanner-output-format",
+      "title": "Scanner outputs use the Phase 0 JSON wrapper",
+      "status": "pass",
+      "severity": "error",
+      "message": "All scanner outputs use output format 2.0.0.",
+      "evidence": "scripts/template-ssot-scanner/output/data",
+      "details": {
+        "invalid": [],
+        "expected_output_format_version": "2.0.0"
+      }
+    },
+    {
+      "id": "baseline-metrics-completeness",
+      "title": "Baseline performance metrics are available",
+      "status": "pass",
+      "severity": "error",
+      "message": "Baseline summary includes required Phase 0 performance metrics.",
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "details": {
+        "required": [
+          "total_files",
+          "total_lines",
+          "total_references",
+          "broken_references",
+          "duplicate_count",
+          "migration_percentage",
+          "total_fixes"
+        ],
+        "missing": []
+      }
+    },
+    {
+      "id": "security-error-findings",
+      "title": "Security validation has no error-level findings",
+      "status": "pass",
+      "severity": "error",
+      "message": "No error-level security findings are present.",
+      "evidence": "scripts/template-ssot-scanner/output/data/security_validation.json",
+      "details": {
+        "errors": 0
+      }
+    },
+    {
+      "id": "security-warning-findings",
+      "title": "Security validation warning-level findings are visible",
+      "status": "warn",
+      "severity": "warning",
+      "message": "Security validation reports 1 warning-level finding(s).",
+      "evidence": "scripts/template-ssot-scanner/output/data/security_validation.json",
+      "details": {
+        "warnings": 1
+      }
+    },
+    {
+      "id": "baseline-known-findings",
+      "title": "Baseline known findings are reported",
+      "status": "warn",
+      "severity": "warning",
+      "message": "Baseline summary contains non-blocking findings that remain visible in the Phase 0 report.",
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "details": {
+        "broken_references": 175,
+        "duplicate_count": 4,
+        "total_fixes": 177
+      }
+    },
+    {
+      "id": "monitoring-status",
+      "title": "Static monitoring status is included",
+      "status": "pass",
+      "severity": "error",
+      "message": "Monitoring report passes.",
+      "evidence": "docs/ai/work-tracking/active/20260509-task25-phase-0-scanner-validation-ACTIVE/reports/phase0-scanner-validation/sample-template-monitoring/latest.json",
+      "details": {
+        "status": "pass"
+      }
+    }
+  ]
+}
