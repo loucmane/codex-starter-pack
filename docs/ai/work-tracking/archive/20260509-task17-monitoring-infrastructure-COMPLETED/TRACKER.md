@@ -1,7 +1,7 @@
 # Task 17 Setup Monitoring Infrastructure Tracker
 
 **Started**: 2026-05-09
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-09
 
 ## Goals
@@ -25,6 +25,8 @@
 - **2026-05-09 11:28** — [S:20260509|W:task17-monitoring-infrastructure|H:verification|E:docs/ai/work-tracking/active/20260509-task17-monitoring-infrastructure-ACTIVE/reports/monitoring-infrastructure/guard-2026-05-09-final.txt] Final plan sync, work-tracking audit, guard, diff-check, and Taskmaster health passed
 - **2026-05-09 11:29** — [S:20260509|W:task17-monitoring-infrastructure|H:task-master:set-status|E:.taskmaster/tasks/task_017.txt] Marked Taskmaster subtask 17.2 and parent Task 17 done, then refreshed only `task_017.txt`
 - **2026-05-09 11:45** — [S:20260509|W:task17-monitoring-infrastructure|H:verification|E:docs/ai/work-tracking/active/20260509-task17-monitoring-infrastructure-ACTIVE/reports/monitoring-infrastructure/taskmaster-health-2026-05-09-final.txt] Re-ran final verification after correcting Taskmaster subtask status; plan sync, work-tracking audit, guard, diff-check, and Taskmaster health passed
+- **2026-05-09 11:55** — [S:20260509|W:task17-monitoring-infrastructure|H:archive|E:docs/ai/work-tracking/archive/20260509-task17-monitoring-infrastructure-COMPLETED/TRACKER.md] Archived Task 17 work tracking after PR #61 merged and returned the repository to between-session state
+- **2026-05-09 11:57** — [S:20260509|W:task17-monitoring-infrastructure|H:post-archive-verification|E:docs/ai/work-tracking/archive/20260509-task17-monitoring-infrastructure-COMPLETED/reports/monitoring-infrastructure/guard-2026-05-09-post-archive.txt] Post-archive guard, diff-check, and Taskmaster health passed; work-tracking audit reports expected between-session warnings
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -33,4 +35,5 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: `sessions/2026/05/2026-05-09-001-task17-monitoring-infrastructure.md`
+- Pull request: #61, merged 2026-05-09
