@@ -21,8 +21,8 @@ title: Task 25 - Execute Phase 0 Scanner Validation
 - [x] Scaffold Task 25 work tracking.
 - [x] Repoint `sessions/current` and `plans/current` to Task 25.
 - [x] Mark Taskmaster Task 25 in progress and update its generated task file.
-- [ ] Review the design baseline and implementation boundary for Execute Phase 0 Scanner Validation.
-- [ ] Capture implementation and verification evidence.
+- [x] Review the design baseline and implementation boundary for Execute Phase 0 Scanner Validation.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 25 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -41,3 +41,4 @@ Task 25 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cr
 - **[12:23]** — [S:20260509|W:task25-phase-0-scanner-validation|H:task-master:set-status|E:.taskmaster/tasks/task_025.txt] Marked Taskmaster subtask 25.2 and parent Task 25 done, then regenerated only `task_025.txt`.
 - **[12:40]** — [S:20260509|W:task25-phase-0-scanner-validation|H:task-master:update-task|E:docs/ai/work-tracking/active/20260509-task25-phase-0-scanner-validation-ACTIVE/FINDINGS.md] Attempted to refresh completed Taskmaster parent wording through `task-master update-task`; the provider call hung, so it was terminated and Task 25 was restored to `done` without manually editing `tasks.json`.
 - **[12:55]** — [S:20260509|W:task25-phase-0-scanner-validation|H:github-actions|E:.github/workflows/codex-guard.yml] Investigated PR #62 guard failures. CI lacked local ignored scanner outputs, so guard workflows now generate the scanner validation baseline before Phase 0 validation.
+- **[13:04]** — [S:20260509|W:task25-phase-0-scanner-validation|H:workflow/archive|E:docs/ai/work-tracking/archive/20260509-task25-phase-0-scanner-validation-COMPLETED/] Archived Task 25 work tracking after PR #62 merge, cleared `sessions/current` and `plans/current`, and returned `sessions/state.json` to between-session state.

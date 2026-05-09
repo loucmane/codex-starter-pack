@@ -1,8 +1,8 @@
 # Task 25 Execute Phase 0 Scanner Validation – Handoff Summary
 
 ## Current State
-- Task 25 is active on branch `feat/task-25-phase-0-scanner-validation`.
-- Work tracking initialized at `docs/ai/work-tracking/active/20260509-task25-phase-0-scanner-validation-ACTIVE/`.
+- Task 25 is complete and merged through PR #62.
+- Work tracking is archived at `docs/ai/work-tracking/archive/20260509-task25-phase-0-scanner-validation-COMPLETED/`.
 - Plan initialized at `plans/2026-05-09-task25-phase-0-scanner-validation.md`.
 - Scope reconciliation is complete and stored in `designs/phase0-scanner-validation-scope.md`.
 - Implementation is complete for the portable static Phase 0 scanner validation report over existing scanner output and monitoring artifacts.
@@ -14,6 +14,5 @@
 - PR #62 guard failures were caused by CI lacking local ignored scanner outputs. Guard workflows now run `python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci` before Phase 0 validation.
 
 ## Next Steps
-- Commit and push Task 25.
-- Open and merge the PR when GitHub checks pass.
-- After merge, archive this ACTIVE work-tracking folder in a separate archive commit.
+- Continue with `task-master next` from `main` after the archive cleanup commit lands.
+- Archived on 2026-05-09 13:04 CEST — Folder moved to archive and tracker marked COMPLETED.
