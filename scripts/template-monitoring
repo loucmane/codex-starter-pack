@@ -1,0 +1,361 @@
+#!/usr/bin/env python3
+"""Evaluate static template metrics against repo-local monitoring policy."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from _repo_structure import load_repo_structure
+
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+POLICY_RELATIVE_PATH = Path("metadata") / "template-monitoring-policy.json"
+DEFAULT_METRICS_FILE = REPO_STRUCTURE.metrics_report_dir / "latest.json"
+DEFAULT_REPORT_DIR = REPO_STRUCTURE.monitoring_report_dir
+ALLOWED_OPERATORS = ("<", "<=", ">", ">=", "==", "!=")
+SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2}
+
+
+class MonitoringError(ValueError):
+    """Raised when monitoring policy or input metrics are invalid."""
+
+
+@dataclass(frozen=True)
+class MonitoringCheck:
+    """Single static monitoring check loaded from policy."""
+
+    id: str
+    title: str
+    source: str
+    operator: str
+    threshold: object
+    severity: str
+    message: str
+    missing_severity: str = "warning"
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, object]) -> "MonitoringCheck":
+        check = cls(
+            id=_required_string(payload, "id"),
+            title=str(payload.get("title") or payload.get("id") or "").strip(),
+            source=_required_string(payload, "source"),
+            operator=_required_string(payload, "operator"),
+            threshold=payload.get("threshold"),
+            severity=str(payload.get("severity") or "warning").strip(),
+            missing_severity=str(payload.get("missing_severity") or "warning").strip(),
+            message=str(payload.get("message") or "").strip(),
+        )
+        check.validate()
+        return check
+
+    def validate(self) -> None:
+        if self.operator not in ALLOWED_OPERATORS:
+            raise MonitoringError(f"Monitoring check {self.id!r} has unsupported operator {self.operator!r}")
+        if self.severity not in SEVERITY_ORDER:
+            raise MonitoringError(f"Monitoring check {self.id!r} has unsupported severity {self.severity!r}")
+        if self.missing_severity not in SEVERITY_ORDER:
+            raise MonitoringError(
+                f"Monitoring check {self.id!r} has unsupported missing severity {self.missing_severity!r}"
+            )
+        if self.threshold is None:
+            raise MonitoringError(f"Monitoring check {self.id!r} requires threshold")
+
+
+@dataclass(frozen=True)
+class MonitoringPolicy:
+    """Data-driven monitoring policy loaded from the configured templates root."""
+
+    version: str
+    checks: Tuple[MonitoringCheck, ...]
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, object]) -> "MonitoringPolicy":
+        raw_checks = payload.get("checks")
+        if not isinstance(raw_checks, Sequence) or isinstance(raw_checks, (str, bytes, bytearray)):
+            raise MonitoringError("Monitoring policy requires a checks list")
+        checks = tuple(MonitoringCheck.from_mapping(item) for item in raw_checks if isinstance(item, Mapping))
+        if len(checks) != len(raw_checks):
+            raise MonitoringError("Monitoring policy checks must be objects")
+        if not checks:
+            raise MonitoringError("Monitoring policy requires at least one check")
+        return cls(version=str(payload.get("version") or "unversioned"), checks=checks)
+
+
+@dataclass(frozen=True)
+class MonitoringResult:
+    """Single monitoring check result."""
+
+    id: str
+    title: str
+    source: str
+    operator: str
+    threshold: object
+    actual: object
+    severity: str
+    status: str
+    message: str
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "pass"
+
+
+@dataclass(frozen=True)
+class MonitoringReport:
+    """Static monitoring report over a metrics snapshot."""
+
+    generated_at: str
+    policy_version: str
+    metrics_file: str
+    status: str
+    summary: Dict[str, int]
+    results: Tuple[MonitoringResult, ...]
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "generated_at": self.generated_at,
+            "policy_version": self.policy_version,
+            "metrics_file": self.metrics_file,
+            "status": self.status,
+            "summary": self.summary,
+            "results": [asdict(result) for result in self.results],
+        }
+
+
+def load_monitoring_policy(repo_root: Path | str | None = None) -> MonitoringPolicy:
+    """Load monitoring policy from the configured templates root."""
+    root = Path(repo_root or REPO_ROOT).resolve()
+    structure = load_repo_structure(root)
+    policy_path = structure.templates_root / POLICY_RELATIVE_PATH
+    if not policy_path.exists():
+        raise MonitoringError(f"Template monitoring policy not found: {policy_path}")
+    return MonitoringPolicy.from_mapping(json.loads(policy_path.read_text(encoding="utf-8")))
+
+
+def load_metrics(path: Path | str) -> Dict[str, object]:
+    """Load a metrics dashboard JSON payload."""
+    metrics_path = Path(path)
+    if not metrics_path.exists():
+        raise MonitoringError(f"Metrics file not found: {metrics_path}")
+    payload = json.loads(metrics_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise MonitoringError("Metrics payload must be a JSON object")
+    return payload
+
+
+def evaluate_snapshot(
+    snapshot: Mapping[str, object],
+    *,
+    policy: MonitoringPolicy,
+    metrics_file: Path | str = DEFAULT_METRICS_FILE,
+) -> MonitoringReport:
+    """Evaluate a metrics snapshot against monitoring policy."""
+    results = tuple(_evaluate_check(snapshot, check) for check in policy.checks)
+    failed_errors = sum(1 for result in results if not result.ok and result.severity == "error")
+    failed_warnings = sum(1 for result in results if not result.ok and result.severity == "warning")
+    passed = sum(1 for result in results if result.ok)
+    status = "fail" if failed_errors else "warn" if failed_warnings else "pass"
+    return MonitoringReport(
+        generated_at=datetime.now().astimezone().isoformat(),
+        policy_version=policy.version,
+        metrics_file=_path_display(Path(metrics_file)),
+        status=status,
+        summary={
+            "total": len(results),
+            "passed": passed,
+            "warnings": failed_warnings,
+            "errors": failed_errors,
+        },
+        results=results,
+    )
+
+
+def render_markdown(report: MonitoringReport) -> str:
+    """Render monitoring report as Markdown."""
+    lines = [
+        "# Template Monitoring Report",
+        "",
+        f"Generated: {report.generated_at}",
+        f"Policy version: {report.policy_version}",
+        f"Metrics file: {report.metrics_file}",
+        f"Status: {report.status}",
+        "",
+        "## Summary",
+        f"- Total checks: {report.summary['total']}",
+        f"- Passed: {report.summary['passed']}",
+        f"- Warnings: {report.summary['warnings']}",
+        f"- Errors: {report.summary['errors']}",
+        "",
+        "## Checks",
+    ]
+    for result in report.results:
+        lines.extend(
+            [
+                f"- {result.id}: {result.status}",
+                f"  - Source: `{result.source}`",
+                f"  - Actual: `{result.actual}`",
+                f"  - Expected: `{result.operator} {result.threshold}`",
+                f"  - Severity: `{result.severity}`",
+                f"  - Message: {result.message}",
+            ]
+        )
+    return "\n".join(lines) + "\n"
+
+
+def write_outputs(report: MonitoringReport, report_dir: Path) -> Tuple[Path, Path]:
+    """Write monitoring markdown and JSON outputs."""
+    report_dir.mkdir(parents=True, exist_ok=True)
+    json_path = report_dir / "latest.json"
+    md_path = report_dir / "latest.md"
+    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+    return md_path, json_path
+
+
+def _evaluate_check(snapshot: Mapping[str, object], check: MonitoringCheck) -> MonitoringResult:
+    found, actual = _lookup_dotted(snapshot, check.source)
+    if not found or actual is None:
+        return MonitoringResult(
+            id=check.id,
+            title=check.title,
+            source=check.source,
+            operator=check.operator,
+            threshold=check.threshold,
+            actual=None,
+            severity=check.missing_severity,
+            status="missing",
+            message=f"Metric source {check.source!r} is missing",
+        )
+
+    try:
+        ok = _compare(actual, check.operator, check.threshold)
+    except (TypeError, ValueError) as exc:
+        return MonitoringResult(
+            id=check.id,
+            title=check.title,
+            source=check.source,
+            operator=check.operator,
+            threshold=check.threshold,
+            actual=actual,
+            severity=check.severity,
+            status="invalid",
+            message=f"Metric source {check.source!r} could not be compared: {exc}",
+        )
+
+    return MonitoringResult(
+        id=check.id,
+        title=check.title,
+        source=check.source,
+        operator=check.operator,
+        threshold=check.threshold,
+        actual=actual,
+        severity=check.severity,
+        status="pass" if ok else "fail",
+        message=check.message or f"{check.source} must be {check.operator} {check.threshold}",
+    )
+
+
+def _lookup_dotted(payload: Mapping[str, object], source: str) -> Tuple[bool, object]:
+    current: object = payload
+    for part in source.split("."):
+        if not isinstance(current, Mapping) or part not in current:
+            return False, None
+        current = current[part]
+    return True, current
+
+
+def _compare(actual: object, operator: str, threshold: object) -> bool:
+    left, right = _coerce_pair(actual, threshold)
+    if operator == "<":
+        return left < right
+    if operator == "<=":
+        return left <= right
+    if operator == ">":
+        return left > right
+    if operator == ">=":
+        return left >= right
+    if operator == "==":
+        return left == right
+    if operator == "!=":
+        return left != right
+    raise MonitoringError(f"Unsupported operator: {operator}")
+
+
+def _coerce_pair(actual: object, threshold: object) -> Tuple[object, object]:
+    if isinstance(actual, (int, float)) and isinstance(threshold, (int, float)):
+        return actual, threshold
+    if isinstance(actual, str) and isinstance(threshold, str):
+        return actual, threshold
+    if isinstance(actual, bool) and isinstance(threshold, bool):
+        return actual, threshold
+    raise TypeError(f"{actual!r} and {threshold!r} are not comparable")
+
+
+def _required_string(payload: Mapping[str, object], key: str) -> str:
+    value = str(payload.get(key) or "").strip()
+    if not value:
+        raise MonitoringError(f"Monitoring check requires {key}")
+    return value
+
+
+def _resolve_path(raw_path: str, *, base: Path = REPO_ROOT) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = base / path
+    return path.resolve()
+
+
+def _path_display(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--metrics",
+        default=_path_display(DEFAULT_METRICS_FILE),
+        help="Metrics dashboard JSON file to evaluate.",
+    )
+    parser.add_argument(
+        "--report-dir",
+        default=_path_display(DEFAULT_REPORT_DIR),
+        help="Directory for monitoring report outputs.",
+    )
+    parser.add_argument("--repo-root", default=".", help="Repository root for policy loading.")
+    parser.add_argument("--strict", action="store_true", help="Exit nonzero when error-level checks fail.")
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    repo_root = _resolve_path(args.repo_root)
+    metrics_path = _resolve_path(args.metrics, base=repo_root)
+    report_dir = _resolve_path(args.report_dir, base=repo_root)
+    policy = load_monitoring_policy(repo_root)
+    report = evaluate_snapshot(load_metrics(metrics_path), policy=policy, metrics_file=metrics_path)
+    md_path, json_path = write_outputs(report, report_dir)
+    print(f"Wrote monitoring report to {_path_display(md_path)}")
+    print(f"Wrote monitoring JSON to {_path_display(json_path)}")
+    print(f"Monitoring status: {report.status}")
+    if args.strict and report.status == "fail":
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

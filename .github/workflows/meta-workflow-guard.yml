@@ -48,6 +48,8 @@ jobs:
         run: python3 scripts/codex-guard drift-check --strict
       - name: Generate template metrics dashboard
         run: python3 scripts/template-metrics-dashboard
+      - name: Generate template monitoring report
+        run: python3 scripts/template-monitoring --strict
 
       - name: Upload guard artefacts
         if: always()
@@ -59,3 +61,4 @@ jobs:
             reports/meta-workflow-guard/
             reports/template-drift/
             reports/template-metrics/
+            reports/template-monitoring/

@@ -1,0 +1,93 @@
+{
+  "generated_at": "2026-05-09T11:25:50.684061+02:00",
+  "taskmaster": {
+    "total_tasks": 108,
+    "status_counts": {
+      "done": 60,
+      "pending": 47,
+      "in-progress": 1
+    },
+    "focus_chain": [
+      {
+        "id": "94",
+        "title": "Expand Enforcement Framework",
+        "status": "done"
+      },
+      {
+        "id": "95",
+        "title": "Implement Template Drift Detection",
+        "status": "done"
+      },
+      {
+        "id": "96",
+        "title": "Build Interactive Template Wizard",
+        "status": "done"
+      },
+      {
+        "id": "97",
+        "title": "Create Template Metrics Dashboard",
+        "status": "done"
+      },
+      {
+        "id": "98",
+        "title": "Externalize Repo Structure Configuration",
+        "status": "done"
+      },
+      {
+        "id": "99",
+        "title": "Define Portable Foundation Specification",
+        "status": "done"
+      },
+      {
+        "id": "100",
+        "title": "Build Foundation Bootstrap Layer",
+        "status": "done"
+      },
+      {
+        "id": "101",
+        "title": "Add Cross-Project Compatibility Fixtures",
+        "status": "done"
+      },
+      {
+        "id": "102",
+        "title": "Document Foundation Migration and Adoption",
+        "status": "done"
+      }
+    ]
+  },
+  "template_metadata": {
+    "governed_file_count": 82,
+    "drifted_file_count": 0,
+    "compliant_file_count": 82,
+    "coverage_pct": 100.0
+  },
+  "drift": {
+    "latest_report": "reports/template-drift/summary-20260424-142209.json",
+    "generated_at": "2026-04-24T14:22:09.488310+02:00",
+    "finding_count": 0,
+    "categories": []
+  },
+  "work_tracking": {
+    "active_folder_count": 1,
+    "active_folders": [
+      "20260509-task17-monitoring-infrastructure-ACTIVE"
+    ],
+    "archived_folder_count": 59,
+    "completed_archive_count": 54
+  },
+  "plan_sync": {
+    "entry_count": 528,
+    "latest_plan": "plans/2026-05-09-task17-monitoring-infrastructure.md",
+    "latest_synced_at": "2026-05-09T11:16:26.976296+02:00"
+  },
+  "wizard": {
+    "kickoff_session_count": 42,
+    "kickoff_sessions": [
+      "sessions/2026/05/2026-05-08-012-task40-canary-deployment-system.md",
+      "sessions/2026/05/2026-05-08-013-task43-template-testing-framework.md",
+      "sessions/2026/05/2026-05-08-014-task45-scanner-optimization.md",
+      "sessions/2026/05/2026-05-08-015-task58-template-versioning-system.md",
+      "sessions/2026/05/2026-05-09-001-task17-monitoring-infrastructure.md"
+    ]
+  }
+}

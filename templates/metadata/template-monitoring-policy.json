@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "description": "Portable static monitoring policy for template and workflow metrics. Repos can tune thresholds without changing monitoring helper code.",
+  "checks": [
+    {
+      "id": "template_metadata_coverage",
+      "title": "Template metadata coverage",
+      "source": "template_metadata.coverage_pct",
+      "operator": ">=",
+      "threshold": 100,
+      "severity": "error",
+      "message": "Template metadata coverage must remain complete."
+    },
+    {
+      "id": "template_metadata_drift",
+      "title": "Template metadata drift",
+      "source": "template_metadata.drifted_file_count",
+      "operator": "<=",
+      "threshold": 0,
+      "severity": "error",
+      "message": "Template metadata drift findings require correction."
+    },
+    {
+      "id": "template_drift_findings",
+      "title": "Template drift findings",
+      "source": "drift.finding_count",
+      "operator": "<=",
+      "threshold": 0,
+      "severity": "error",
+      "missing_severity": "warning",
+      "message": "Template drift reports should stay clean."
+    },
+    {
+      "id": "active_work_tracking_folders",
+      "title": "Active work-tracking folders",
+      "source": "work_tracking.active_folder_count",
+      "operator": "<=",
+      "threshold": 1,
+      "severity": "warning",
+      "message": "More than one active work-tracking folder should be reviewed."
+    },
+    {
+      "id": "taskmaster_in_progress_count",
+      "title": "Taskmaster in-progress count",
+      "source": "taskmaster.status_counts.in-progress",
+      "operator": "<=",
+      "threshold": 1,
+      "severity": "warning",
+      "missing_severity": "warning",
+      "message": "More than one in-progress Taskmaster task should be reviewed."
+    },
+    {
+      "id": "plan_sync_activity",
+      "title": "Plan sync activity",
+      "source": "plan_sync.entry_count",
+      "operator": ">",
+      "threshold": 0,
+      "severity": "warning",
+      "message": "Plan sync should have at least one recorded entry."
+    }
+  ]
+}

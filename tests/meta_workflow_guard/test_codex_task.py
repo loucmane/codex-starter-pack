@@ -945,12 +945,14 @@ def test_handle_rollout_canary_plan_writes_manifest_and_runbook(monkeypatch, tmp
 SYNC_TEST_ASSET_PATHS = [
     ".codex/config.toml",
     "templates/metadata/template-metadata-policy.json",
+    "templates/metadata/template-monitoring-policy.json",
     "templates/engine/core/portable-foundation-spec.md",
     "templates/engine/validation/foundation-adoption-guide.md",
     "scripts/_repo_structure.py",
     "scripts/codex-guard",
     "scripts/codex-task",
     "scripts/template-metrics-dashboard",
+    "scripts/template-monitoring",
 ]
 
 
@@ -1049,17 +1051,28 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         kind="all",
         report_dir="reports/template-metrics",
         drift_report_dir="reports/template-drift",
+        metrics_file="reports/template-metrics/latest.json",
+        monitoring_report_dir="reports/template-monitoring",
         strict_drift=True,
+        strict_monitoring=True,
         dry_run=False,
     )
 
     module.handle_report_generate(args)
 
-    assert len(commands) == 2
+    assert len(commands) == 3
     assert Path(commands[0][1]).name == "codex-guard"
     assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
     assert Path(commands[1][1]).name == "template-metrics-dashboard"
     assert commands[1][2:] == ["--report-dir", "reports/template-metrics"]
+    assert Path(commands[2][1]).name == "template-monitoring"
+    assert commands[2][2:] == [
+        "--metrics",
+        "reports/template-metrics/latest.json",
+        "--report-dir",
+        "reports/template-monitoring",
+        "--strict",
+    ]
 
 
 def _write_pre_commit_test_repo(
@@ -1193,7 +1206,10 @@ def test_handle_report_generate_dry_run_does_not_execute(monkeypatch, capsys) ->
         kind="metrics",
         report_dir="reports/template-metrics",
         drift_report_dir="reports/template-drift",
+        metrics_file="reports/template-metrics/latest.json",
+        monitoring_report_dir="reports/template-monitoring",
         strict_drift=False,
+        strict_monitoring=False,
         dry_run=True,
     )
 
@@ -1224,10 +1240,12 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
 
     config_path = target / ".codex" / "config.toml"
     policy_path = target / "templates" / "metadata" / "template-metadata-policy.json"
+    monitoring_policy_path = target / "templates" / "metadata" / "template-monitoring-policy.json"
     setup_path = target / ".codex" / "bootstrap" / "FOUNDATION-SETUP.md"
 
     assert config_path.exists()
     assert policy_path.exists()
+    assert monitoring_policy_path.exists()
     assert setup_path.exists()
     assert "[repo_structure]" in config_path.read_text(encoding="utf-8")
     assert '"required_keys"' in policy_path.read_text(encoding="utf-8")
@@ -1241,6 +1259,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert (target / "docs" / "ai" / "work-tracking" / "archive").is_dir()
     assert (target / "reports" / "template-drift").is_dir()
     assert (target / "reports" / "template-metrics").is_dir()
+    assert (target / "reports" / "template-monitoring").is_dir()
     assert (target / "reports" / "session-continuation").is_dir()
 
 
@@ -1635,8 +1654,10 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
 
         assert (target / ".codex" / "config.toml").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-metadata-policy.json").exists()
+        assert (target / shape.roots["templates_root"] / "metadata" / "template-monitoring-policy.json").exists()
         assert (target / shape.roots["sessions_root"]).is_dir()
         assert (target / shape.roots["plans_root"]).is_dir()
         assert (target / shape.roots["taskmaster_root"] / "tasks").is_dir()
         assert (target / shape.roots["work_tracking_root"] / "active").is_dir()
         assert (target / shape.roots["reports_root"] / "template-metrics").is_dir()
+        assert (target / shape.roots["reports_root"] / "template-monitoring").is_dir()
