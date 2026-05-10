@@ -75,6 +75,10 @@ class RepoStructure:
         return self.templates_root / "metadata" / "template-performance-policy.json"
 
     @property
+    def emergency_response_policy_path(self) -> Path:
+        return self.templates_root / "metadata" / "emergency-response-policy.json"
+
+    @property
     def continuation_guard_dir(self) -> Path:
         return self.reports_root / "session-continuation"
 
@@ -97,6 +101,10 @@ class RepoStructure:
     @property
     def performance_report_dir(self) -> Path:
         return self.reports_root / "template-performance"
+
+    @property
+    def emergency_response_report_dir(self) -> Path:
+        return self.reports_root / "emergency-response"
 
 
 def _load_repo_structure_section(config_path: Path) -> Dict[str, str]:
