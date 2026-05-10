@@ -12,3 +12,4 @@
 - Commit and push the Task 16 implementation branch.
 - Open a PR for Task 16.
 - After merge, archive the active work-tracking folder in a separate archive commit.
+- Archived on 2026-05-10 12:49 CEST — Folder moved to archive and tracker marked COMPLETED.
