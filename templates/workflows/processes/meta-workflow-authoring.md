@@ -7,7 +7,7 @@ version: 0.1.0
 status: draft
 dependencies:
   - templates/behaviors/planning/plan-compliance.md
-  - templates/workflows/processes/plan-template.md
+  - templates/workflows/processes/templates/workflows/processes/plan-template.md
   - templates/metadata/workflow-guards.json
 related:
   - templates/handlers/orchestrators/meta-workflow-authoring.md
@@ -86,3 +86,7 @@ Author or update workflows, handlers, conventions, and guards through a structur
 - Extend guard with conflict detection for concurrent workflow changes.
 
 > Always run this workflow under an active plan. If an emergency bypass is required, document the waiver, create a post-mortem plan within 24 hours, and reference it in the tracker and Serena memory.
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

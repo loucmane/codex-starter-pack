@@ -1,0 +1,109 @@
+{
+  "created_at": "2026-05-10T16:58:51+02:00",
+  "git": {
+    "branch": "feat/task-38-phase1-reference-remediation",
+    "head": "fa2c48ead1ff799c2f10cde5a2c9125b5f8cbffc",
+    "status": [
+      {
+        "path": ".taskmaster/tasks/task_038.txt",
+        "status": " M"
+      },
+      {
+        "path": ".taskmaster/tasks/tasks.json",
+        "status": " M"
+      },
+      {
+        "path": "sessions/state.json",
+        "status": " M"
+      },
+      {
+        "path": ".serena/memories/2026-05-10_task38_phase1_reference_remediation_kickoff.md",
+        "status": "??"
+      },
+      {
+        "path": "docs/ai/work-tracking/active/",
+        "status": "??"
+      },
+      {
+        "path": "plans/2026-05-10-task38-phase1-reference-remediation.md",
+        "status": "??"
+      },
+      {
+        "path": "plans/current",
+        "status": "??"
+      },
+      {
+        "path": "sessions/2026/05/2026-05-10-006-task38-phase1-reference-remediation.md",
+        "status": "??"
+      },
+      {
+        "path": "sessions/current",
+        "status": "??"
+      }
+    ],
+    "tag": null
+  },
+  "label": "task38-before-reference-fixes",
+  "serena": {
+    "count": 104,
+    "exists": true,
+    "latest": [
+      ".serena/memories/2026-05-08_task58_template_versioning_system.md",
+      ".serena/memories/2026-05-09_task17_monitoring_infrastructure.md",
+      ".serena/memories/2026-05-09_task25_phase0_scanner_validation.md",
+      ".serena/memories/2026-05-09_task27_migrate_pattern_templates_kickoff.md",
+      ".serena/memories/2026-05-10_task16_performance_testing_harness_kickoff.md",
+      ".serena/memories/2026-05-10_task35_emergency_response_system.md",
+      ".serena/memories/2026-05-10_task24_cost_tracking_system.md",
+      ".serena/memories/2026-05-10_task26_critical_handler_templates.md",
+      ".serena/memories/2026-05-10_task48_remaining_template_alignment.md",
+      ".serena/memories/2026-05-10_task38_phase1_reference_remediation_kickoff.md"
+    ],
+    "path": ".serena/memories"
+  },
+  "taskmaster": {
+    "exists": true,
+    "invalid_refs": [],
+    "path": ".taskmaster/tasks/tasks.json",
+    "sha256": "94fb0e09f5a56d5cde3b7564409453db71040578b30f515d165f9d51bfa9d00a",
+    "summary": {
+      "dependency_refs": 229,
+      "invalid_refs": 0,
+      "status_counts": {
+        "done": 68,
+        "in-progress": 1,
+        "pending": 39
+      },
+      "subtasks": 304,
+      "tasks": 108
+    },
+    "tag": "master"
+  },
+  "version": 1,
+  "workflow": {
+    "active_work_tracking": [
+      "docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE"
+    ],
+    "current_plan": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "plans/current",
+      "resolved": "plans/2026-05-10-task38-phase1-reference-remediation.md",
+      "sha256": "71a486827abe4ff0088197df4760965837d7f493d288cfdad5180479f6328fa7",
+      "target": "2026-05-10-task38-phase1-reference-remediation.md"
+    },
+    "current_session": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "sessions/current",
+      "resolved": "sessions/2026/05/2026-05-10-006-task38-phase1-reference-remediation.md",
+      "sha256": "df4b25d689c8d9cb6234889bf8d24a4d18f0226b1acf84b5303229045a3734ca",
+      "target": "2026/05/2026-05-10-006-task38-phase1-reference-remediation.md"
+    },
+    "session_state": {
+      "exists": true,
+      "path": "sessions/state.json",
+      "sha256": "02a63e241b7361c47139827e9873a9835cb7885bf79b556ae2beea1bee8ab0fe"
+    }
+  }
+}

@@ -9,9 +9,9 @@ dependencies:
   - templates/registry/handlers/triggers-registry.md
   - templates/registry/handlers/orchestrators-registry.md
   - templates/registry/handlers/operators-registry.md
-  - templates/handlers/triggers/development/start-new-work.md
-  - templates/handlers/triggers/debug/fix-bug.md
-  - templates/handlers/triggers/test/create-test-checkpoint.md
+  - templates/handlers/templates/handlers/triggers/development/start-new-work.md
+  - templates/handlers/templates/handlers/triggers/debug/fix-bug.md
+  - templates/handlers/templates/handlers/triggers/test/create-test-checkpoint.md
 ---
 
 # Handler Templates Index
@@ -28,12 +28,12 @@ Canonical index for modular handler templates. Legacy top-level handler-library 
 
 | Legacy or user-facing name | Canonical handler | Location |
 |----------------------------|-------------------|----------|
-| `start-new-work` | `start-new-work` | [triggers/development/start-new-work.md](triggers/development/start-new-work.md) |
-| `fix-problem` | `fix-bug` | [triggers/debug/fix-bug.md](triggers/debug/fix-bug.md) |
-| `fix-bug` | `fix-bug` | [triggers/debug/fix-bug.md](triggers/debug/fix-bug.md) |
-| `test-implementation` | `create-test-checkpoint` | [triggers/test/create-test-checkpoint.md](triggers/test/create-test-checkpoint.md) |
-| `create-test-checkpoint` | `create-test-checkpoint` | [triggers/test/create-test-checkpoint.md](triggers/test/create-test-checkpoint.md) |
-| `validate-changes` | `validate-changes` | [triggers/test/validate-changes.md](triggers/test/validate-changes.md) |
+| `start-new-work` | `start-new-work` | [templates/handlers/triggers/development/start-new-work.md](triggers/development/start-new-work.md) |
+| `fix-problem` | `fix-bug` | [templates/handlers/triggers/debug/fix-bug.md](triggers/debug/fix-bug.md) |
+| `fix-bug` | `fix-bug` | [templates/handlers/triggers/debug/fix-bug.md](triggers/debug/fix-bug.md) |
+| `test-implementation` | `create-test-checkpoint` | [templates/handlers/triggers/test/create-test-checkpoint.md](triggers/test/create-test-checkpoint.md) |
+| `create-test-checkpoint` | `create-test-checkpoint` | [templates/handlers/triggers/test/create-test-checkpoint.md](triggers/test/create-test-checkpoint.md) |
+| `validate-changes` | `validate-changes` | [templates/handlers/triggers/test/validate-changes.md](triggers/test/validate-changes.md) |
 
 ## Discovery Contract
 

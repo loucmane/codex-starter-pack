@@ -1,5 +1,5 @@
 ---
-trigger: DEPRECATED - See session-end.md and compaction-preparation.md
+trigger: DEPRECATED - See templates/behaviors/session/session-end.md and templates/behaviors/session/compaction-preparation.md
 title: Session Compaction Detection [DEPRECATED]
 action: Redirect to the active session-end and compaction-preparation behaviors
 blocks: Do not use this file as executable workflow guidance
@@ -9,7 +9,7 @@ enforcement: deprecated
 status: deprecated
 version: 3.0.0
 deprecated_since: 2026-04-23
-replacement: templates/behaviors/session/compaction-preparation.md
+replacement: templates/behaviors/session/templates/behaviors/session/compaction-preparation.md
 migration_notice: Use compaction-preparation for context-limit checkpoints and session-end for actual session closure.
 ---
 
@@ -18,8 +18,8 @@ migration_notice: Use compaction-preparation for context-limit checkpoints and s
 > This file remains only as a compatibility tombstone for older references.
 >
 > Use these active sources instead:
-> - **[compaction-preparation.md](./compaction-preparation.md)** for context-limit checkpoints and resume instructions.
-> - **[session-end.md](./session-end.md)** for actual session closure, handoff, and commit guidance.
+> - **[templates/behaviors/session/compaction-preparation.md](compaction-preparation.md)** for context-limit checkpoints and resume instructions.
+> - **[templates/behaviors/session/session-end.md](session-end.md)** for actual session closure, handoff, and commit guidance.
 
 ## Why This File Exists
 
@@ -32,15 +32,15 @@ Task 93 retires this file as executable behavior so the repo has one canonical s
 
 ## Migration Rule
 
-- If the trigger is about context limits, capacity, or opening a new chat, follow `compaction-preparation.md`.
-- If the trigger is about stopping work, wrapping up for the day, or final handoff, follow `session-end.md`.
+- If the trigger is about context limits, capacity, or opening a new chat, follow `templates/behaviors/session/compaction-preparation.md`.
+- If the trigger is about stopping work, wrapping up for the day, or final handoff, follow `templates/behaviors/session/session-end.md`.
 - Do not treat compaction as implicit session ending.
 - Do not generate commit guidance from compaction-only prompts.
 
 ## Canonical Sources
 
-- Compaction behavior: [compaction-preparation.md](./compaction-preparation.md)
-- Session ending behavior: [session-end.md](./session-end.md)
+- Compaction behavior: [templates/behaviors/session/compaction-preparation.md](compaction-preparation.md)
+- Session ending behavior: [templates/behaviors/session/session-end.md](session-end.md)
 - Compaction trigger handler: [../../handlers/triggers/session/prepare-compaction.md](../../handlers/triggers/session/prepare-compaction.md)
 - Session compaction workflow: [../../workflows/session/compaction.md](../../workflows/session/compaction.md)
 

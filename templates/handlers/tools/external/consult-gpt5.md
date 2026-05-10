@@ -108,7 +108,7 @@ mcp__serena__search_for_pattern --substring_pattern "error pattern"
 
 This handler works with:
 - [analyze-code.md](../analysis/analyze-code.md) - For initial analysis
-- [debug-issue.md](../debugging/debug-issue.md) - For debugging workflow
+- [debug-issue.md](../../triggers/debug/debug-issue.md) - For debugging workflow
 - [optimize-performance.md](../optimization/optimize-performance.md) - For performance issues
 
 ## Token Savings Metrics

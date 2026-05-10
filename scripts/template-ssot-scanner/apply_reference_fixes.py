@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -41,6 +42,7 @@ class FixResult:
 
 
 SUPPORTED_ACTIONS = {"update_reference", "update_reference_scoped"}
+REPO_RELATIVE_PREFIXES = ("templates/", "scripts/", "docs/", ".codex/", ".claude/")
 
 
 def find_repo_root(start: Optional[Path] = None) -> Path:
@@ -111,18 +113,58 @@ def resolve_target(root: Path, file_name: str) -> Path:
     return resolved
 
 
-def replace_scoped(content: str, fix: ReferenceFix) -> tuple[str, int]:
+def markdown_link_target(root: Path, target: Path, reference: str) -> str:
+    """Return a Markdown-link-safe target for a repo-relative reference."""
+    path_part, separator, anchor = reference.partition("#")
+    if not path_part.startswith(REPO_RELATIVE_PREFIXES):
+        return reference
+
+    absolute_target = root / path_part
+    relative_target = os.path.relpath(absolute_target, start=target.parent).replace(os.sep, "/")
+    if relative_target == ".":
+        relative_target = absolute_target.name
+    return f"{relative_target}{separator}{anchor}"
+
+
+def replace_reference_text(content: str, fix: ReferenceFix, *, root: Path, target: Path) -> tuple[str, int]:
+    link_new = markdown_link_target(root, target, fix.new)
+    replacements = 0
+
+    link_old = f"]({fix.old})"
+    link_updated = f"]({link_new})"
+    link_count = content.count(link_old)
+    if link_count:
+        content = content.replace(link_old, link_updated)
+        replacements += link_count
+
+    code_old = f"`{fix.old}`"
+    code_updated = f"`{fix.new}`"
+    code_count = content.count(code_old)
+    if code_count:
+        content = content.replace(code_old, code_updated)
+        replacements += code_count
+
+    plain_count = content.count(fix.old)
+    if plain_count:
+        content = content.replace(fix.old, fix.new)
+        replacements += plain_count
+
+    return content, replacements
+
+
+def replace_scoped(content: str, fix: ReferenceFix, *, root: Path, target: Path) -> tuple[str, int]:
     if not fix.line_numbers:
-        return content.replace(fix.old, fix.new), content.count(fix.old)
+        return replace_reference_text(content, fix, root=root, target=target)
 
     lines = content.splitlines(keepends=True)
     replacements = 0
+    link_new = markdown_link_target(root, target, fix.new)
     for line_number in fix.line_numbers:
         if line_number < 1 or line_number > len(lines):
             continue
         index = line_number - 1
         original = lines[index]
-        updated = original.replace(f"]({fix.old})", f"]({fix.new})")
+        updated = original.replace(f"]({fix.old})", f"]({link_new})")
         updated = updated.replace(f"`{fix.old}`", f"`{fix.new}`")
         if updated == original:
             updated = original.replace(fix.old, fix.new)
@@ -132,10 +174,10 @@ def replace_scoped(content: str, fix: ReferenceFix) -> tuple[str, int]:
     return "".join(lines), replacements
 
 
-def preview_update(content: str, fix: ReferenceFix) -> tuple[str, int]:
+def preview_update(content: str, fix: ReferenceFix, *, root: Path, target: Path) -> tuple[str, int]:
     if fix.action == "update_reference_scoped":
-        return replace_scoped(content, fix)
-    return content.replace(fix.old, fix.new), content.count(fix.old)
+        return replace_scoped(content, fix, root=root, target=target)
+    return replace_reference_text(content, fix, root=root, target=target)
 
 
 def create_backup(root: Path, target: Path, backup_root: Path) -> Path:
@@ -175,7 +217,7 @@ def apply_fixes(
 
         try:
             content = target.read_text(encoding="utf-8")
-            updated, replacements = preview_update(content, fix)
+            updated, replacements = preview_update(content, fix, root=root, target=target)
             if updated == content:
                 results.append(FixResult(fix.file, "unchanged", f"{fix.old} not present"))
                 continue

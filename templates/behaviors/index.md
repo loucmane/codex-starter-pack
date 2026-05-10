@@ -59,7 +59,7 @@ Plan enforcement behaviors:
 
 ### ULTRATHINK Enforcement
 The core ULTRATHINK enforcement pattern is maintained in:
-- [templates/shared/patterns/ultrathink-format.md](../templates/shared/patterns/ultrathink-format.md)
+- [templates/shared/patterns/ultrathink-format.md](../shared/patterns/ultrathink-format.md)
 
 This pattern is referenced by all behaviors that require development context.
 

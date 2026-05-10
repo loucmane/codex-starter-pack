@@ -9,8 +9,8 @@ dependencies:
   - templates/workflows/
   - templates/conventions/
 related:
-  - patterns/work-tracking/progress-patterns.md
-  - patterns/work-tracking/documentation-patterns.md
+  - patterns/work-tracking/templates/patterns/work-tracking/progress-patterns.md
+  - patterns/work-tracking/templates/patterns/work-tracking/documentation-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -324,3 +324,4 @@ Based on work type:
 ## Handler References
 [Handler: work-activity migrated to handlers/orchestrators/work-activity.md]
 [Handler: work-continuation migrated to handlers/orchestrators/work-continuation.md]
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

@@ -108,8 +108,8 @@ AI:
 - Must follow ALL CAPS naming convention
 
 ## Cross-References
-- [CONVENTIONS.md#file-creation-rules](../../templates/conventions/) - Creation rules
-- [before-edit.md](before-edit.md) - Editing existing files
+- [CONVENTIONS.md#file-creation-rules](../../conventions) - Creation rules
+- [templates/behaviors/file-operations/before-edit.md](before-edit.md) - Editing existing files
 - [work-tracking/update-tracker.md](../work-tracking/update-tracker.md) - Work file creation
 
 ## Error Cases

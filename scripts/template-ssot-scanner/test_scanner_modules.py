@@ -102,6 +102,37 @@ def test_reference_analyzer_emits_configured_validation_findings(tmp_path, monke
     } in analysis["validation_findings"]
 
 
+def test_reference_analyzer_resolves_nested_markdown_links_relative_to_source(tmp_path):
+    analyzer = ReferenceAnalyzer(
+        "output/data/template_scan_results.json",
+        str(SCANNER_DIR / "scanner_config.yaml"),
+    )
+    analyzer.base_path = tmp_path
+    analyzer.results = {
+        "files": {
+            "templates/guides/index.md": {},
+            "templates/guides/training/foundation-onboarding.md": {},
+            "templates/patterns/routing/meta-routing.md": {},
+        }
+    }
+
+    assert (
+        analyzer._normalize_reference("training/foundation-onboarding.md", "templates/guides/index.md")
+        == "templates/guides/training/foundation-onboarding.md"
+    )
+    assert (
+        analyzer._normalize_reference("../patterns/routing/meta-routing.md", "templates/guides/index.md")
+        == "templates/patterns/routing/meta-routing.md"
+    )
+    assert (
+        analyzer._normalize_reference(
+            "templates/guides/training/foundation-onboarding.md",
+            "templates/guides/index.md",
+        )
+        == "templates/guides/training/foundation-onboarding.md"
+    )
+
+
 def test_report_generator_saves_schema_valid_metadata(tmp_path):
     output_file = tmp_path / "report.json"
 

@@ -16,7 +16,7 @@ This document contains comprehensive decision matrices for quick, accurate routi
 
 - **[Request → Handler](routing/request-to-handler.md)** - What handler for which request
 - **[Context → Mode](routing/context-to-mode.md)** - When to activate which mode
-- **[Tool Selection](selection/tool-selection.md)** - Which tool for which task
+- **[Tool Selection](../handlers/orchestrators/tool-selection.md)** - Which tool for which task
 - **[File → Convention](selection/file-to-convention.md)** - Which rules for which files
 - **[Error → Recovery](recovery/error-to-recovery.md)** - What to do when things fail
 - **[Trigger → Action](mapping/trigger-to-action.md)** - Behavioral trigger mappings
@@ -27,9 +27,9 @@ This document contains comprehensive decision matrices for quick, accurate routi
 This file participates in the ULTRATHINK system:
 
 ### VOID Resolution
-- **S = VOID** → See [resolve-session-void](../templates/conventions/#resolve-session-void)
-- **W = VOID** → See [resolve-work-void](../templates/workflows/#resolve-work-void)
-- **H = VOID** → See [resolve-handler-void](../templates/registry/index.md#resolve-handler-void)
+- **S = VOID** → See [resolve-session-void](../conventions#resolve-session-void)
+- **W = VOID** → See [resolve-work-void](../workflows#resolve-work-void)
+- **H = VOID** → See [resolve-handler-void](../registry/index.md#resolve-handler-void)
 
 ### Matrix Usage
 These matrices provide quick lookups for handler selection. When H = VOID, use the Request → Handler Matrix to find the appropriate handler based on the user's request pattern.

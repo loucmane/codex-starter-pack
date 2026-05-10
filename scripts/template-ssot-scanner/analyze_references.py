@@ -5,6 +5,7 @@ Analyzes template references to find broken links and create dependency graphs
 """
 
 import argparse
+import posixpath
 import sys
 import time
 from collections import defaultdict
@@ -165,12 +166,20 @@ class ReferenceAnalyzer:
         if ref.startswith('templates/') or ref.startswith('.claude/') or ref.startswith('.codex/'):
             return ref
         
-        # Handle relative paths
-        if ref.startswith('../'):
-            source_dir = Path(source_file).parent
+        # Handle links relative to the source file before falling back to
+        # legacy template-root lookup. Markdown links in nested indexes such as
+        # templates/guides/index.md should resolve from templates/guides/.
+        source_dir = Path(source_file).parent.as_posix()
+        source_relative = posixpath.normpath(posixpath.join(source_dir, ref))
+        if source_relative in self.results["files"]:
+            return source_relative
+
+        if ref.startswith('../') or ref.startswith('./'):
             try:
                 resolved = (self.base_path / source_dir / ref).resolve()
-                return str(resolved.relative_to(self.base_path))
+                normalized = str(resolved.relative_to(self.base_path))
+                if normalized in self.results["files"]:
+                    return normalized
             except (ValueError, FileNotFoundError):
                 return None
         

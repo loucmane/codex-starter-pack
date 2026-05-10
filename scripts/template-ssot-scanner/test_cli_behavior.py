@@ -262,8 +262,21 @@ def test_reference_fix_runner_apply_writes_backup(tmp_path):
     assert result.returncode == 0
     assert "Reference fix mode: apply" in result.stdout
     assert "changed" in result.stdout
-    assert target.read_text(encoding="utf-8") == "See [Old](templates/new.md) and `templates/new.md`.\n"
+    assert target.read_text(encoding="utf-8") == "See [Old](new.md) and `templates/new.md`.\n"
     assert (backup_dir / "templates" / "example.md").read_text(encoding="utf-8") == "See [Old](old.md) and `old.md`.\n"
+
+
+def test_reference_fix_runner_keeps_nested_markdown_links_relative(tmp_path):
+    repo_root = tmp_path / "repo"
+    fixes_file = write_reference_fixture(repo_root, file_name="templates/guides/index.md")
+    target = repo_root / "templates" / "guides" / "index.md"
+    (repo_root / "templates" / "new.md").parent.mkdir(parents=True, exist_ok=True)
+    (repo_root / "templates" / "new.md").write_text("new\n", encoding="utf-8")
+
+    result = run_reference_runner(repo_root, fixes_file, "--apply")
+
+    assert result.returncode == 0
+    assert target.read_text(encoding="utf-8") == "See [Old](../new.md) and `templates/new.md`.\n"
 
 
 def test_reference_fix_runner_rolls_back_with_git_restore(tmp_path):

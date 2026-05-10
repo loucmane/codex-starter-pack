@@ -6,9 +6,9 @@ title: Validation Patterns
 pattern_type: operational
 complexity: moderate
 dependencies:
-  - patterns/evidence/evidence-patterns.md
+  - patterns/evidence/templates/patterns/evidence/evidence-patterns.md
 related:
-  - patterns/evidence/proof-patterns.md
+  - patterns/evidence/templates/patterns/evidence/proof-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -309,3 +309,7 @@ Result: Production authentication broken
 
 ## Handler References
 Validation logic is embedded in various handlers rather than standalone
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

@@ -6,12 +6,12 @@ category: patterns
 status: stable
 version: 1.0.0
 dependencies:
-  - templates/patterns/routing/meta-routing.md
-  - templates/patterns/selection/handler-selection.md
-  - templates/patterns/evidence/evidence-patterns.md
-  - templates/patterns/work-tracking/work-patterns.md
-  - templates/patterns/session/session-patterns.md
-  - templates/patterns/integration/composition.md
+  - templates/patterns/templates/patterns/routing/meta-routing.md
+  - templates/patterns/templates/patterns/selection/handler-selection.md
+  - templates/patterns/templates/patterns/evidence/evidence-patterns.md
+  - templates/patterns/templates/patterns/work-tracking/work-patterns.md
+  - templates/patterns/templates/patterns/session/session-patterns.md
+  - templates/patterns/templates/patterns/integration/composition.md
 ---
 
 # Pattern Templates Index
@@ -27,7 +27,7 @@ Canonical index for modular pattern templates. Legacy top-level pattern-library 
 ## Selection
 
 - [Handler Selection Patterns](selection/handler-selection.md)
-- [Tool Selection Patterns](selection/tool-selection.md)
+- [Tool Selection Patterns](../handlers/orchestrators/tool-selection.md)
 - [Agent Selection Patterns](selection/agent-selection.md)
 
 ## Evidence

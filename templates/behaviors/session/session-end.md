@@ -226,7 +226,7 @@ These operations modify only the symlink, never the target.
 ## Cross-References
 - [end-session handler](../../handlers/triggers/session/end-session.md)
 - [session lifecycle](../../workflows/session/lifecycle.md)
-- [compaction-preparation](./compaction-preparation.md)
+- [compaction-preparation](compaction-preparation.md)
 
 ## Progress Log
 

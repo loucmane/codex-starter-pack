@@ -6,9 +6,9 @@ title: Intent Detection Patterns
 pattern_type: behavioral
 complexity: moderate
 dependencies:
-  - patterns/routing/request-analysis.md
+  - patterns/routing/templates/patterns/routing/request-analysis.md
 related:
-  - patterns/routing/meta-routing.md
+  - patterns/routing/templates/patterns/routing/meta-routing.md
   - patterns/selection/handler-selection.md
 version: 1.0.0
 status: stable
@@ -158,3 +158,7 @@ Track successful intent resolutions for pattern improvement
 
 ## Handler References
 Intent detection is embedded in various handlers rather than standalone
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

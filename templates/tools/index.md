@@ -76,18 +76,18 @@ Context7:
 This file participates in the ULTRATHINK system:
 
 ### VOID Resolution
-- **S = VOID** → See [resolve-session-void](../templates/conventions/#resolve-session-void)
-- **W = VOID** → See [resolve-work-void](../templates/workflows/#resolve-work-void)
-- **H = VOID** → See [resolve-handler-void](../templates/REGISTRY.md#resolve-handler-void)
+- **S = VOID** → See [resolve-session-void](../conventions#resolve-session-void)
+- **W = VOID** → See [resolve-work-void](../workflows#resolve-work-void)
+- **H = VOID** → See [resolve-handler-void](../REGISTRY.md#resolve-handler-void)
 
 ### Handler Requirements
 All tool selection handlers expect valid [S:W:H] context before execution. The tool router MUST verify context before proceeding.
 
 ## 📚 See Also
 
-- **[Domain Workflows](../templates/workflows/domain/README.md)** - Complete development workflows
-- **[CONVENTIONS.md](../templates/conventions/)** - Code and communication standards
-- **[REGISTRY.md](../templates/REGISTRY.md)** - Handler registry and navigation
+- **[Domain Workflows](../engine/README.md)** - Complete development workflows
+- **[CONVENTIONS.md](../conventions)** - Code and communication standards
+- **[REGISTRY.md](../REGISTRY.md)** - Handler registry and navigation
 
 ## Progress Log
 
