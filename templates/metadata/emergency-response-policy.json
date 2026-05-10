@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "description": "Repo-local emergency response policy for the portable foundation. This file defines severity, halt recommendation, response checklist, and post-incident review guidance without configuring external notification services.",
+  "halt_recommended_for": ["P0", "P1"],
+  "severities": {
+    "P0": {
+      "title": "Critical foundation stop condition",
+      "description": "Main branch, guard, CI, or workflow state is broken in a way that prevents safe continuation or risks corrupting tracked workflow evidence.",
+      "response_sla_minutes": 15,
+      "review_sla_hours": 24,
+      "examples": [
+        "main branch guard or CI fails after merge",
+        "workflow state points to the wrong session, plan, or active task",
+        "automation attempts destructive rollback, reset, or cleanup without explicit authorization"
+      ]
+    },
+    "P1": {
+      "title": "High-risk workflow regression",
+      "description": "A core foundation gate, helper, or generated artifact is degraded but safe inspection and scoped remediation remain possible.",
+      "response_sla_minutes": 30,
+      "review_sla_hours": 48,
+      "examples": [
+        "guard behavior regresses on a feature branch",
+        "Taskmaster health reports invalid dependency references",
+        "work-tracking audit reports multiple active folders or stale current pointers"
+      ]
+    },
+    "P2": {
+      "title": "Recoverable operational issue",
+      "description": "A report, optional validation layer, or task-local artifact is inconsistent while core mutation gates and main-branch safety remain intact.",
+      "response_sla_minutes": 120,
+      "review_sla_hours": 72,
+      "examples": [
+        "static monitoring report warning",
+        "performance harness warning without strict failure",
+        "task-local evidence file needs regeneration"
+      ]
+    },
+    "P3": {
+      "title": "Low-risk documentation or follow-up issue",
+      "description": "A non-blocking issue that should be tracked and resolved during normal task flow.",
+      "response_sla_minutes": 1440,
+      "review_sla_hours": 168,
+      "examples": [
+        "minor runbook wording drift",
+        "non-critical guide link needs update",
+        "post-merge cleanup note needs clarification"
+      ]
+    }
+  },
+  "halt_mechanism": {
+    "automatic_halt": false,
+    "guidance": [
+      "Stop implementation and switching tasks until current state is inspected.",
+      "Do not run reset, clean, restore, branch deletion, rollback, or force-push commands automatically.",
+      "Capture a rollback checkpoint before remediation if the working tree or workflow state is dirty.",
+      "Record the incident response plan and decision in the active work-tracking folder before continuing."
+    ]
+  },
+  "response_checklist": [
+    {
+      "id": "confirm-state",
+      "title": "Confirm repository and workflow state",
+      "commands": [
+        "git status --short --branch",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health"
+      ]
+    },
+    {
+      "id": "run-foundation-gates",
+      "title": "Run foundation safety gates",
+      "commands": [
+        "python3 scripts/codex-guard validate --include-untracked",
+        "python3 scripts/codex-task report generate --kind all",
+        "git diff --check"
+      ]
+    },
+    {
+      "id": "capture-rollback-context",
+      "title": "Capture rollback context when remediation may touch tracked state",
+      "commands": [
+        "python3 scripts/codex-task rollback checkpoint --label <incident-label> --report-file <checkpoint.json>",
+        "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <recovery-plan.md>"
+      ]
+    },
+    {
+      "id": "communicate-status",
+      "title": "Prepare repository-native communication",
+      "commands": [
+        "Use templates/guides/communication/foundation-communication-templates.md"
+      ]
+    }
+  ],
+  "escalation_guidance": {
+    "repo_native": "Record severity, current state, decisions, and next steps in the active work-tracking folder and session log.",
+    "external_integrations": "No PagerDuty, Slack, email, or chat webhook integration is configured by this policy.",
+    "owner_review": "For P0/P1, require explicit user review before remediation commands that mutate Git, Taskmaster, sessions, plans, work-tracking, or generated reports."
+  },
+  "post_incident_review": [
+    "What happened?",
+    "What triggered detection?",
+    "Which gates or evidence caught it?",
+    "Which mutation surfaces were blocked or allowed?",
+    "What remediation was performed?",
+    "What follow-up task or guard should prevent recurrence?"
+  ],
+  "non_goals": [
+    "No external incident service is configured.",
+    "No notification is sent.",
+    "No dashboard is updated.",
+    "No halt marker is written automatically.",
+    "No rollback, reset, clean, restore, branch deletion, or force push is executed."
+  ]
+}

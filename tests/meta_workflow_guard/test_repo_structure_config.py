@@ -31,6 +31,7 @@ def test_load_repo_structure_uses_defaults_without_config(tmp_path) -> None:
     assert structure.work_tracking_active_root == (tmp_path / "docs" / "ai" / "work-tracking" / "active").resolve()
     assert structure.taskmaster_tasks_json == (tmp_path / ".taskmaster" / "tasks" / "tasks.json").resolve()
     assert structure.performance_report_dir == (tmp_path / "reports" / "template-performance").resolve()
+    assert structure.emergency_response_report_dir == (tmp_path / "reports" / "emergency-response").resolve()
 
 
 def test_load_repo_structure_reads_repo_local_overrides(tmp_path) -> None:
@@ -71,6 +72,9 @@ reports_root = "state/reports"
     assert structure.template_performance_policy_path == (
         tmp_path / "template-system" / "metadata" / "template-performance-policy.json"
     ).resolve()
+    assert structure.emergency_response_policy_path == (
+        tmp_path / "template-system" / "metadata" / "emergency-response-policy.json"
+    ).resolve()
 
 
 def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> None:
@@ -93,4 +97,7 @@ def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> Non
         ).resolve()
         assert structure.performance_report_dir == (
             repo_root / shape.roots["reports_root"] / "template-performance"
+        ).resolve()
+        assert structure.emergency_response_report_dir == (
+            repo_root / shape.roots["reports_root"] / "emergency-response"
         ).resolve()

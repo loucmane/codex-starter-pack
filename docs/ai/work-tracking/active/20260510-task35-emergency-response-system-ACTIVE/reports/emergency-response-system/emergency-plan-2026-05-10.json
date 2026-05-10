@@ -1,0 +1,224 @@
+{
+  "created_at": "2026-05-10T13:08:47+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-35-emergency-response-system",
+      "head": "d733bca5ab473a89343cf6d363f7a8a06ed251ca",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_035.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/_repo_structure.py",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_repo_structure_config.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-10-task35-emergency-response-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-10-002-task35-emergency-response-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        },
+        {
+          "path": "templates/metadata/emergency-response-policy.json",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 99,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-08_task49_communication_templates.md",
+        ".serena/memories/2026-05-08_task22_template_discovery_api.md",
+        ".serena/memories/2026-05-08_task40_canary_deployment_system.md",
+        ".serena/memories/2026-05-08_task43_template_testing_framework.md",
+        ".serena/memories/2026-05-08_task45_scanner_optimization.md",
+        ".serena/memories/2026-05-08_task58_template_versioning_system.md",
+        ".serena/memories/2026-05-09_task17_monitoring_infrastructure.md",
+        ".serena/memories/2026-05-09_task25_phase0_scanner_validation.md",
+        ".serena/memories/2026-05-09_task27_migrate_pattern_templates_kickoff.md",
+        ".serena/memories/2026-05-10_task16_performance_testing_harness_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "52ffdbe4a6b7f735819f4427acd774558a6f5b06a123c76fbddb1228e8cc4fa9",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 64,
+          "in-progress": 1,
+          "pending": 43
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260510-task35-emergency-response-system-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-10-task35-emergency-response-system.md",
+        "sha256": "5b78e7a6f8a87b1051610f3077103d802d67fc1ba6a11c53633b341093442818",
+        "target": "2026-05-10-task35-emergency-response-system.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-10-002-task35-emergency-response-system.md",
+        "sha256": "03f3dd64109a78d1084e1c780e224e17eb4edcf71bc2d489449e8ac78a2b0f96",
+        "target": "2026/05/2026-05-10-002-task35-emergency-response-system.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "37157e3786d1fac788744c9fc12315d9a7246cc3f4422beac2cbf0baa9d2e825"
+      }
+    }
+  },
+  "escalation_guidance": {
+    "external_integrations": "No PagerDuty, Slack, email, or chat webhook integration is configured by this policy.",
+    "owner_review": "For P0/P1, require explicit user review before remediation commands that mutate Git, Taskmaster, sessions, plans, work-tracking, or generated reports.",
+    "repo_native": "Record severity, current state, decisions, and next steps in the active work-tracking folder and session log."
+  },
+  "executes_actions": false,
+  "halt": {
+    "automatic_halt": false,
+    "guidance": [
+      "Stop implementation and switching tasks until current state is inspected.",
+      "Do not run reset, clean, restore, branch deletion, rollback, or force-push commands automatically.",
+      "Capture a rollback checkpoint before remediation if the working tree or workflow state is dirty.",
+      "Record the incident response plan and decision in the active work-tracking folder before continuing."
+    ],
+    "recommended": true
+  },
+  "incident": {
+    "classification": {
+      "description": "A core foundation gate, helper, or generated artifact is degraded but safe inspection and scoped remediation remain possible.",
+      "examples": [
+        "guard behavior regresses on a feature branch",
+        "Taskmaster health reports invalid dependency references",
+        "work-tracking audit reports multiple active folders or stale current pointers"
+      ],
+      "response_sla_minutes": 30,
+      "review_sla_hours": 48,
+      "title": "High-risk workflow regression"
+    },
+    "id": "20260510-130847-task35-foundation-response",
+    "label": "task35-foundation-response",
+    "severity": "P1",
+    "summary": "Task 35 emergency response planner verification"
+  },
+  "mode": "non-destructive-emergency-response-plan",
+  "non_goals": [
+    "No external incident service is configured.",
+    "No notification is sent.",
+    "No dashboard is updated.",
+    "No halt marker is written automatically.",
+    "No rollback, reset, clean, restore, branch deletion, or force push is executed.",
+    "No emergency response command was executed by this planner.",
+    "No rollback, reset, clean, restore, branch deletion, notification, dashboard update, or external incident action was executed."
+  ],
+  "policy": {
+    "description": "Repo-local emergency response policy for the portable foundation. This file defines severity, halt recommendation, response checklist, and post-incident review guidance without configuring external notification services.",
+    "path": "templates/metadata/emergency-response-policy.json",
+    "version": 1
+  },
+  "post_incident_review": [
+    "What happened?",
+    "What triggered detection?",
+    "Which gates or evidence caught it?",
+    "Which mutation surfaces were blocked or allowed?",
+    "What remediation was performed?",
+    "What follow-up task or guard should prevent recurrence?"
+  ],
+  "recommended_verification_commands": [
+    "git status --short --branch",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "python3 scripts/codex-task report generate --kind all",
+    "git diff --check"
+  ],
+  "response_checklist": [
+    {
+      "commands": [
+        "git status --short --branch",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health"
+      ],
+      "id": "confirm-state",
+      "title": "Confirm repository and workflow state"
+    },
+    {
+      "commands": [
+        "python3 scripts/codex-guard validate --include-untracked",
+        "python3 scripts/codex-task report generate --kind all",
+        "git diff --check"
+      ],
+      "id": "run-foundation-gates",
+      "title": "Run foundation safety gates"
+    },
+    {
+      "commands": [
+        "python3 scripts/codex-task rollback checkpoint --label <incident-label> --report-file <checkpoint.json>",
+        "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <recovery-plan.md>"
+      ],
+      "id": "capture-rollback-context",
+      "title": "Capture rollback context when remediation may touch tracked state"
+    },
+    {
+      "commands": [
+        "Use templates/guides/communication/foundation-communication-templates.md"
+      ],
+      "id": "communicate-status",
+      "title": "Prepare repository-native communication"
+    }
+  ],
+  "version": 1
+}

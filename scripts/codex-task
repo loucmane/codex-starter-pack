@@ -509,6 +509,7 @@ def handle_bootstrap_init(args: argparse.Namespace) -> None:
         structure.monitoring_report_dir,
         structure.phase0_validation_report_dir,
         structure.performance_report_dir,
+        structure.emergency_response_report_dir,
         structure.continuation_guard_dir,
         (target_root / BOOTSTRAP_SETUP_REL).parent,
     ]
@@ -542,6 +543,17 @@ def handle_bootstrap_init(args: argparse.Namespace) -> None:
     _write_bootstrap_file(
         structure.template_performance_policy_path,
         performance_policy_content,
+        force=args.force,
+        root=target_root,
+        results=results,
+        dry_run=args.dry_run,
+    )
+
+    emergency_policy_source = REPO_STRUCTURE.emergency_response_policy_path
+    emergency_policy_content = emergency_policy_source.read_text(encoding="utf-8")
+    _write_bootstrap_file(
+        structure.emergency_response_policy_path,
+        emergency_policy_content,
         force=args.force,
         root=target_root,
         results=results,
@@ -3126,6 +3138,218 @@ def handle_rollout_canary_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+def _load_emergency_response_policy(policy_file: Optional[str] = None) -> Dict[str, Any]:
+    policy_path = Path(policy_file) if policy_file else REPO_STRUCTURE.emergency_response_policy_path
+    if not policy_path.is_absolute():
+        policy_path = REPO_ROOT / policy_path
+    if not policy_path.exists():
+        raise TaskError(f"Emergency response policy not found: {_relative_to_root(policy_path, REPO_ROOT)}")
+    try:
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"Emergency response policy is invalid JSON: {exc}") from exc
+    severities = policy.get("severities")
+    if not isinstance(severities, dict) or not severities:
+        raise TaskError("Emergency response policy must define severities")
+    policy["policy_path"] = _relative_to_root(policy_path, REPO_ROOT)
+    return policy
+
+
+def _emergency_response_verification_commands() -> List[str]:
+    return [
+        "git status --short --branch",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "python3 scripts/codex-task report generate --kind all",
+        "git diff --check",
+    ]
+
+
+def _build_emergency_response_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    policy = _load_emergency_response_policy(args.policy_file)
+    severity = str(args.severity).upper()
+    severities = policy["severities"]
+    if severity not in severities:
+        valid = ", ".join(sorted(severities))
+        raise TaskError(f"Unknown emergency severity {severity}; expected one of: {valid}")
+
+    label = args.label or _slugify(args.summary)
+    incident_id = f"{now.strftime('%Y%m%d-%H%M%S')}-{_slugify(label)}"
+    halt_recommended_for = {str(item).upper() for item in policy.get("halt_recommended_for", [])}
+    halt_mechanism = policy.get("halt_mechanism", {}) if isinstance(policy.get("halt_mechanism"), dict) else {}
+    non_goals = list(policy.get("non_goals", [])) if isinstance(policy.get("non_goals"), list) else []
+    non_goals.extend(
+        [
+            "No emergency response command was executed by this planner.",
+            "No rollback, reset, clean, restore, branch deletion, notification, dashboard update, or external incident action was executed.",
+        ]
+    )
+
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "mode": "non-destructive-emergency-response-plan",
+        "executes_actions": False,
+        "policy": {
+            "path": policy["policy_path"],
+            "version": policy.get("version"),
+            "description": policy.get("description"),
+        },
+        "incident": {
+            "id": incident_id,
+            "label": label,
+            "summary": args.summary,
+            "severity": severity,
+            "classification": severities[severity],
+        },
+        "halt": {
+            "recommended": severity in halt_recommended_for,
+            "automatic_halt": bool(halt_mechanism.get("automatic_halt", False)),
+            "guidance": halt_mechanism.get("guidance", []),
+        },
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "response_checklist": policy.get("response_checklist", []),
+        "escalation_guidance": policy.get("escalation_guidance", {}),
+        "post_incident_review": policy.get("post_incident_review", []),
+        "recommended_verification_commands": _emergency_response_verification_commands(),
+        "non_goals": non_goals,
+    }
+
+
+def _render_emergency_response_runbook(plan: Dict[str, Any]) -> str:
+    incident = plan.get("incident", {}) if isinstance(plan.get("incident"), dict) else {}
+    classification = incident.get("classification", {}) if isinstance(incident.get("classification"), dict) else {}
+    halt = plan.get("halt", {}) if isinstance(plan.get("halt"), dict) else {}
+    current = plan.get("current_state", {}) if isinstance(plan.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    escalation = plan.get("escalation_guidance", {}) if isinstance(plan.get("escalation_guidance"), dict) else {}
+
+    lines = [
+        "# Emergency Response Runbook",
+        "",
+        f"- Incident ID: {incident.get('id')}",
+        f"- Label: {incident.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes actions: {plan.get('executes_actions')}",
+        f"- Severity: {incident.get('severity')} - {classification.get('title')}",
+        f"- Summary: {incident.get('summary')}",
+        "",
+        "## Classification",
+        "",
+        f"- Description: {classification.get('description')}",
+        f"- Response SLA: {classification.get('response_sla_minutes')} minutes",
+        f"- Review SLA: {classification.get('review_sla_hours')} hours",
+        "",
+        "Examples:",
+    ]
+    for example in classification.get("examples", []):
+        lines.append(f"- {example}")
+
+    lines.extend(
+        [
+            "",
+            "## Halt Guidance",
+            "",
+            f"- Halt recommended: {halt.get('recommended')}",
+            f"- Automatic halt: {halt.get('automatic_halt')}",
+            "",
+        ]
+    )
+    for item in halt.get("guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(
+        [
+            "",
+            "## Current State Snapshot",
+            "",
+            f"- Branch: {git_info.get('branch')}",
+            f"- HEAD: {git_info.get('head')}",
+            f"- Dirty status entries: {len(git_info.get('status') or [])}",
+            f"- Current session: {workflow.get('current_session', {}).get('resolved')}",
+            f"- Current plan: {workflow.get('current_plan', {}).get('resolved')}",
+            f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+            "",
+            "## Response Checklist",
+            "",
+        ]
+    )
+    for step in plan.get("response_checklist", []):
+        if not isinstance(step, dict):
+            continue
+        lines.extend([f"### {step.get('title')}", "", f"- ID: {step.get('id')}", ""])
+        for command in step.get("commands", []):
+            if str(command).startswith("Use "):
+                lines.append(f"- {command}")
+            else:
+                lines.append(f"- `{command}`")
+        lines.append("")
+
+    lines.extend(["## Escalation Guidance", ""])
+    for key, value in escalation.items():
+        lines.append(f"- {key}: {value}")
+
+    lines.extend(["", "## Post-Incident Review", ""])
+    for prompt in plan.get("post_incident_review", []):
+        lines.append(f"- {prompt}")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No halt, notification, rollback, reset, cleanup, dashboard update, or external incident action was executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_emergency_plan(args: argparse.Namespace) -> None:
+    plan = _build_emergency_response_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_emergency_response_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote emergency response plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote emergency response runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
     {
         "id": "codex-config",
@@ -3158,6 +3382,14 @@ SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
         "path_kind": "repo-structure",
         "path": "template_performance_policy_path",
         "rationale": "Repo-local performance thresholds consumed by the static performance harness.",
+    },
+    {
+        "id": "emergency-response-policy",
+        "title": "Emergency response policy",
+        "category": "metadata",
+        "path_kind": "repo-structure",
+        "path": "emergency_response_policy_path",
+        "rationale": "Repo-local severity, halt, and response policy consumed by emergency planning.",
     },
     {
         "id": "portable-foundation-spec",
@@ -3723,6 +3955,18 @@ def build_parser() -> argparse.ArgumentParser:
     rollout_canary.add_argument("--runbook-file", help="Optional path to write the canary rollout runbook markdown")
     rollout_canary.add_argument("--dry-run", action="store_true", help="Print the canary rollout plan JSON without writing files")
     rollout_canary.set_defaults(func=handle_rollout_canary_plan)
+
+    emergency_parser = subparsers.add_parser("emergency", help="Emergency response planning operations")
+    emergency_sub = emergency_parser.add_subparsers(dest="subcommand", required=True)
+    emergency_plan = emergency_sub.add_parser("plan", help="Render a non-destructive emergency response plan")
+    emergency_plan.add_argument("--severity", required=True, help="Incident severity from the emergency response policy, e.g. P0-P3")
+    emergency_plan.add_argument("--summary", required=True, help="One-line incident summary")
+    emergency_plan.add_argument("--label", help="Human-readable incident label; defaults to a slug from --summary")
+    emergency_plan.add_argument("--policy-file", help="Override emergency response policy JSON path")
+    emergency_plan.add_argument("--report-file", help="Optional path to write the emergency plan JSON")
+    emergency_plan.add_argument("--runbook-file", help="Optional path to write the emergency response runbook markdown")
+    emergency_plan.add_argument("--dry-run", action="store_true", help="Print the emergency response plan JSON without writing files")
+    emergency_plan.set_defaults(func=handle_emergency_plan)
 
     sync_parser = subparsers.add_parser("sync", help="Cross-repository foundation sync planning operations")
     sync_sub = sync_parser.add_subparsers(dest="subcommand", required=True)

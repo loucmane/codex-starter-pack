@@ -336,6 +336,26 @@ def test_build_parser_accepts_hooks_verify() -> None:
     assert args.require_installed is True
 
 
+def test_build_parser_accepts_emergency_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "emergency",
+        "plan",
+        "--severity",
+        "P1",
+        "--summary",
+        "Guard regression",
+        "--label",
+        "guard-regression",
+    ])
+    assert args.command == "emergency"
+    assert args.subcommand == "plan"
+    assert args.severity == "P1"
+    assert args.summary == "Guard regression"
+    assert args.label == "guard-regression"
+
+
 def test_build_parser_accepts_taskmaster_generate_one() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -942,11 +962,187 @@ def test_handle_rollout_canary_plan_writes_manifest_and_runbook(monkeypatch, tmp
     assert "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan." in runbook_text
 
 
+def _write_emergency_response_policy(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "description": "test policy",
+                "halt_recommended_for": ["P0", "P1"],
+                "severities": {
+                    "P0": {
+                        "title": "Critical",
+                        "description": "critical incident",
+                        "response_sla_minutes": 15,
+                        "review_sla_hours": 24,
+                        "examples": ["main is blocked"],
+                    },
+                    "P1": {
+                        "title": "High",
+                        "description": "high-risk incident",
+                        "response_sla_minutes": 30,
+                        "review_sla_hours": 48,
+                        "examples": ["guard regression"],
+                    },
+                    "P2": {
+                        "title": "Recoverable",
+                        "description": "recoverable issue",
+                        "response_sla_minutes": 120,
+                        "review_sla_hours": 72,
+                        "examples": [],
+                    },
+                },
+                "halt_mechanism": {
+                    "automatic_halt": False,
+                    "guidance": ["Stop implementation until state is inspected."],
+                },
+                "response_checklist": [
+                    {
+                        "id": "confirm-state",
+                        "title": "Confirm state",
+                        "commands": ["git status --short --branch"],
+                    }
+                ],
+                "escalation_guidance": {
+                    "repo_native": "Record the incident in work tracking.",
+                    "external_integrations": "No external service configured.",
+                },
+                "post_incident_review": ["What happened?"],
+                "non_goals": ["No notification is sent."],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _patch_emergency_response_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-35-emergency-response-system"
+        if args == ["rev-parse", "HEAD"]:
+            return "def456"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/session.md"},
+            "current_plan": {"resolved": "plans/2026-05-10-task35.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260510-task35-emergency-response-system-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_dependencies": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 4})
+
+
+def test_build_emergency_response_plan_classifies_and_stays_non_destructive(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    policy = repo / "templates" / "metadata" / "emergency-response-policy.json"
+    _write_emergency_response_policy(policy)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_emergency_response_snapshots(module, monkeypatch)
+
+    plan = module._build_emergency_response_plan(
+        argparse.Namespace(
+            severity="P1",
+            summary="Guard regression after merge",
+            label="guard-regression",
+            policy_file=str(policy),
+        )
+    )
+
+    assert plan["version"] == 1
+    assert plan["mode"] == "non-destructive-emergency-response-plan"
+    assert plan["executes_actions"] is False
+    assert plan["incident"]["id"] == "20260424-150313-guard-regression"
+    assert plan["incident"]["severity"] == "P1"
+    assert plan["incident"]["classification"]["response_sla_minutes"] == 30
+    assert plan["halt"]["recommended"] is True
+    assert plan["halt"]["automatic_halt"] is False
+    assert plan["current_state"]["git"]["branch"] == "feat/task-35-emergency-response-system"
+    assert "python3 scripts/codex-guard validate --include-untracked" in plan["recommended_verification_commands"]
+    assert "No notification is sent." in plan["non_goals"]
+    assert any("No rollback" in item for item in plan["non_goals"])
+
+
+def test_build_emergency_response_plan_rejects_unknown_severity(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    policy = tmp_path / "policy.json"
+    _write_emergency_response_policy(policy)
+    _patch_emergency_response_snapshots(module, monkeypatch)
+
+    with pytest.raises(module.TaskError, match="Unknown emergency severity P9"):
+        module._build_emergency_response_plan(
+            argparse.Namespace(severity="P9", summary="unknown", label=None, policy_file=str(policy))
+        )
+
+
+def test_render_emergency_response_runbook_names_halt_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    policy = tmp_path / "policy.json"
+    _write_emergency_response_policy(policy)
+    _patch_emergency_response_snapshots(module, monkeypatch)
+    plan = module._build_emergency_response_plan(
+        argparse.Namespace(severity="P0", summary="Main blocked", label="main-blocked", policy_file=str(policy))
+    )
+
+    runbook = module._render_emergency_response_runbook(plan)
+
+    assert "# Emergency Response Runbook" in runbook
+    assert "Severity: P0 - Critical" in runbook
+    assert "Halt recommended: True" in runbook
+    assert "`git status --short --branch`" in runbook
+    assert "What happened?" in runbook
+    assert "No halt, notification, rollback, reset, cleanup, dashboard update, or external incident action was executed by this plan." in runbook
+
+
+def test_handle_emergency_plan_writes_manifest_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    policy = repo / "templates" / "metadata" / "emergency-response-policy.json"
+    _write_emergency_response_policy(policy)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_emergency_response_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "emergency-plan.json"
+    runbook = repo / "reports" / "emergency-runbook.md"
+    args = argparse.Namespace(
+        severity="P2",
+        summary="Monitoring warning",
+        label="monitoring-warning",
+        policy_file=str(policy),
+        report_file=str(report.relative_to(repo)),
+        runbook_file=str(runbook.relative_to(repo)),
+        dry_run=False,
+    )
+
+    module.handle_emergency_plan(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["incident"]["severity"] == "P2"
+    assert payload["halt"]["recommended"] is False
+    assert payload["executes_actions"] is False
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Emergency Response Runbook" in runbook_text
+    assert "Monitoring warning" in runbook_text
+    assert "No halt, notification, rollback, reset, cleanup, dashboard update, or external incident action was executed by this plan." in runbook_text
+
+
 SYNC_TEST_ASSET_PATHS = [
     ".codex/config.toml",
     "templates/metadata/template-metadata-policy.json",
     "templates/metadata/template-monitoring-policy.json",
     "templates/metadata/template-performance-policy.json",
+    "templates/metadata/emergency-response-policy.json",
     "templates/engine/core/portable-foundation-spec.md",
     "templates/engine/validation/foundation-adoption-guide.md",
     "scripts/_repo_structure.py",
@@ -1272,12 +1468,14 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     policy_path = target / "templates" / "metadata" / "template-metadata-policy.json"
     monitoring_policy_path = target / "templates" / "metadata" / "template-monitoring-policy.json"
     performance_policy_path = target / "templates" / "metadata" / "template-performance-policy.json"
+    emergency_policy_path = target / "templates" / "metadata" / "emergency-response-policy.json"
     setup_path = target / ".codex" / "bootstrap" / "FOUNDATION-SETUP.md"
 
     assert config_path.exists()
     assert policy_path.exists()
     assert monitoring_policy_path.exists()
     assert performance_policy_path.exists()
+    assert emergency_policy_path.exists()
     assert setup_path.exists()
     assert "[repo_structure]" in config_path.read_text(encoding="utf-8")
     assert '"required_keys"' in policy_path.read_text(encoding="utf-8")
@@ -1635,6 +1833,7 @@ reports_root = "ops/reports"
     assert (target / ".ops" / "taskmaster" / "tasks").is_dir()
     assert (target / "ops" / "work-tracking" / "active").is_dir()
     assert (target / "ops" / "reports" / "template-drift").is_dir()
+    assert (target / "ops" / "reports" / "emergency-response").is_dir()
 
 
 def test_handle_bootstrap_init_force_overwrites_existing_starter_files(tmp_path) -> None:
@@ -1690,6 +1889,7 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["templates_root"] / "metadata" / "template-metadata-policy.json").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-monitoring-policy.json").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-performance-policy.json").exists()
+        assert (target / shape.roots["templates_root"] / "metadata" / "emergency-response-policy.json").exists()
         assert (target / shape.roots["sessions_root"]).is_dir()
         assert (target / shape.roots["plans_root"]).is_dir()
         assert (target / shape.roots["taskmaster_root"] / "tasks").is_dir()
