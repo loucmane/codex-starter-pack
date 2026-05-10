@@ -3,10 +3,12 @@
 ## Current State
 
 - Taskmaster Task 38 is done; subtasks 38.1 and 38.2 are done.
-- Branch: `feat/task-38-phase1-reference-remediation`.
+- PR #69 is merged to `main` at merge commit `0e2a083`.
+- Local `main` is fast-forwarded to `origin/main`.
+- Local and remote `feat/task-38-phase1-reference-remediation` branches were deleted after merge.
 - Session: `sessions/2026/05/2026-05-10-006-task38-phase1-reference-remediation.md`.
 - Plan: `plans/2026-05-10-task38-phase1-reference-remediation.md`.
-- Active work tracking: `docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/`.
+- Archived work tracking: `docs/ai/work-tracking/archive/20260510-task38-phase1-reference-remediation-COMPLETED/`.
 - Serena memory: `2026-05-10_task38_phase1_reference_remediation_kickoff`.
 
 ## Completed Work
@@ -46,14 +48,24 @@
 - Security validation: 0 findings.
 - Full pytest: 407 passed.
 
+## Post-Merge Archive Evidence
+
+- PR: `https://github.com/loucmane/codex-starter-pack/pull/69`
+- Post-archive audit: `reports/phase1-reference-remediation/post-archive-audit-2026-05-10.txt`
+- Post-archive guard: `reports/phase1-reference-remediation/post-archive-guard-2026-05-10.txt`
+- Post-archive diff check: `reports/phase1-reference-remediation/post-archive-diff-check-2026-05-10.txt`
+- Post-archive git status: `reports/phase1-reference-remediation/post-archive-git-status-2026-05-10.txt`
+
 ## Remaining Work
 
 - The remaining 41 broken references are manual-review or broader migration items. Do not run another automatic apply; the safe runner has no remaining automatic fixes.
 - Circular dependencies remain visible at 20 after more links became resolvable. Treat them as separate scope, not part of Task 38 automatic remediation.
-- After PR merge, archive this active work-tracking folder and return the repo to between-session state.
+- Start the next task from `main` after the archive commit is pushed.
 
 ## Current State
-- _Pending_
+- COMPLETE. Task 38 is merged, archived, and ready for between-session state.
 
 ## Next Steps
-- _Pending_
+- Push the post-merge archive commit on `main`.
+- Start the next Taskmaster task with a fresh branch/session/plan/work-tracking kickoff.
+- Carry the remaining 41 scanner references into a later manual/broader migration task rather than forcing another automatic apply.

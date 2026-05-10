@@ -11,3 +11,5 @@
 - 2026-05-10 17:07 CEST — Phase 1 engine verification gate passed after updating the stale `CLAUDE.md` reference check.
 - 2026-05-10 17:08 CEST — Added `.gitignore` coverage for local scanner backup output.
 - 2026-05-10 17:10 CEST — Final scanner, pytest, plan sync, audit, guard, Taskmaster health, and diff-check evidence captured.
+- 2026-05-10 18:12 CEST — Archived active work-tracking folder.
+- 2026-05-10 18:14 CEST — Merged PR #69, synced local `main`, deleted merged feature branches, and recorded post-archive audit/guard/diff evidence.

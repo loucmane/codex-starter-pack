@@ -52,3 +52,44 @@ Task 38 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cr
 - **[17:10]** — [S:20260510|W:task38-phase1-reference-remediation|H:pytest|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/tests-full-final-2-2026-05-10.txt] Final full pytest passed after guard-compliance entries: 407 passed
 - **[17:10]** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/guard-final-2-2026-05-10.txt] Final guard passed with all S:W:H:E entries compliant
 - **[17:11]** — [S:20260510|W:task38-phase1-reference-remediation|H:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/HANDOFF.md|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/HANDOFF.md] Refreshed handoff with final evidence and remaining manual-review scope
+- **[18:14]** — [S:20260510|W:task38-phase1-reference-remediation|H:github:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/69] PR #69 merged to `main`; local main fast-forwarded to merge commit `0e2a083`
+- **[18:14]** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260510-task38-phase1-reference-remediation-COMPLETED/reports/phase1-reference-remediation/post-archive-audit-2026-05-10.txt] Archived the Task 38 work-tracking folder and captured post-archive audit/guard/diff evidence
+- **[18:14]** — [S:20260510|W:task38-phase1-reference-remediation|H:sessions/state.json|E:sessions/state.json] 🏁 Session ending - Task 38 merged, archived, and repo prepared for between-session state
+
+### 🚦 Session End Status
+**SESSION COMPLETED** - Task 38 Phase 1 Reference Remediation:
+- ✅ Merged PR #69 into `main` after green CI
+- ✅ Applied and verified automatic safe-runner reference remediation
+- ✅ Fixed Markdown link locality in the reference fixer and analyzer with regression coverage
+- ✅ Archived Task 38 work tracking with post-archive evidence
+- 🎯 Ready to start the next Taskmaster task from clean `main`
+
+### 📊 Session Metrics
+- Duration: ~1.5 hours from kickoff to final verification, plus post-merge archive closeout
+- Taskmaster tasks completed: 1 parent task, 2 subtasks
+- PRs merged: 1 (`#69`)
+- Tests: 407 pytest checks passed locally; Python 3.11 and 3.12 CI passed
+- Phase gate: 91 Phase 1 checks passed
+- Scanner result: broken references reduced from 186 to 41; automatic safe-runner fixes exhausted
+
+### 📋 Next Session Should
+1. Start from `main` after the Task 38 archive commit is pushed.
+2. Run `task-master next` and inspect the next candidate task before branching.
+3. Treat the remaining 41 scanner references and circular dependencies as separate manual/broader migration scope, not Task 38 automatic remediation.
+
+### 🔄 Handoff Messages
+
+**Initialization**:
+```text
+Activate project /home/loucmane/codex.
+Read memory session_2026-05-10_task38-phase1-reference-remediation-closeout and the archived handoff at docs/ai/work-tracking/archive/20260510-task38-phase1-reference-remediation-COMPLETED/HANDOFF.md.
+Continue from clean main and select the next Taskmaster task.
+```
+
+**Git/GitHub Disposition**:
+```text
+direct-git-execution:
+Task 38 PR #69 is merged.
+Post-merge archive commit should include the move from active/ to archive/, session/state cleanup, and post-archive evidence.
+No GAC is needed unless the user explicitly asks or the auth cache is unavailable.
+```
