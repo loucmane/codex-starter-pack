@@ -1,0 +1,496 @@
+#!/usr/bin/env python3
+"""Generate static cost governance reports for the portable Codex foundation."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Mapping, Optional, Sequence, Tuple
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from _repo_structure import load_repo_structure
+
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+DEFAULT_POLICY_PATH = REPO_STRUCTURE.template_cost_policy_path
+DEFAULT_REPORT_DIR = REPO_STRUCTURE.cost_report_dir
+
+
+class CostReportError(ValueError):
+    """Raised when cost policy or usage input is invalid."""
+
+
+@dataclass(frozen=True)
+class CostCategory:
+    """Single budget category from cost policy."""
+
+    id: str
+    title: str
+    description: str
+    unit: str
+    monthly_budget: float
+    warning_ratio: float
+    critical_ratio: float
+    telemetry: str
+    review_commands: Tuple[str, ...] = ()
+    notes: Tuple[str, ...] = ()
+    enabled: bool = True
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, object], defaults: Mapping[str, object]) -> "CostCategory":
+        category = cls(
+            id=_required_string(payload, "id"),
+            title=str(payload.get("title") or payload.get("id") or "").strip(),
+            description=str(payload.get("description") or "").strip(),
+            unit=str(payload.get("unit") or "unit").strip(),
+            monthly_budget=_required_float(payload, "monthly_budget"),
+            warning_ratio=_ratio_value(payload.get("warning_ratio", defaults.get("warning_ratio", 0.8))),
+            critical_ratio=_ratio_value(payload.get("critical_ratio", defaults.get("critical_ratio", 1.0))),
+            telemetry=str(payload.get("telemetry") or "manual").strip(),
+            review_commands=_string_tuple(payload.get("review_commands", ())),
+            notes=_string_tuple(payload.get("notes", ())),
+            enabled=bool(payload.get("enabled", True)),
+        )
+        category.validate()
+        return category
+
+    def validate(self) -> None:
+        if self.monthly_budget <= 0:
+            raise CostReportError(f"Cost category {self.id!r} monthly_budget must be > 0")
+        if self.warning_ratio < 0 or self.critical_ratio < 0:
+            raise CostReportError(f"Cost category {self.id!r} threshold ratios must be non-negative")
+        if self.critical_ratio < self.warning_ratio:
+            raise CostReportError(f"Cost category {self.id!r} critical_ratio must be >= warning_ratio")
+
+
+@dataclass(frozen=True)
+class CostPolicy:
+    """Cost policy loaded from repo-local metadata."""
+
+    version: str
+    description: str
+    categories: Tuple[CostCategory, ...]
+    recommended_review_commands: Tuple[str, ...] = ()
+    non_goals: Tuple[str, ...] = ()
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, object]) -> "CostPolicy":
+        raw_categories = payload.get("categories")
+        if not isinstance(raw_categories, Sequence) or isinstance(raw_categories, (str, bytes, bytearray)):
+            raise CostReportError("Cost policy requires a categories list")
+        defaults = payload.get("defaults") if isinstance(payload.get("defaults"), Mapping) else {}
+        categories = tuple(
+            CostCategory.from_mapping(item, defaults)
+            for item in raw_categories
+            if isinstance(item, Mapping)
+        )
+        if len(categories) != len(raw_categories):
+            raise CostReportError("Cost policy categories must be objects")
+        if not categories:
+            raise CostReportError("Cost policy requires at least one category")
+        return cls(
+            version=str(payload.get("version") or "unversioned"),
+            description=str(payload.get("description") or ""),
+            categories=categories,
+            recommended_review_commands=_string_tuple(payload.get("recommended_review_commands", ())),
+            non_goals=_string_tuple(payload.get("non_goals", ())),
+        )
+
+
+@dataclass(frozen=True)
+class UsageEntry:
+    """Optional usage input for one budget category."""
+
+    actual_amount: Optional[float] = None
+    projected_monthly_amount: Optional[float] = None
+    source: str = "unspecified"
+    notes: Tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class CostResult:
+    """Single cost category result."""
+
+    id: str
+    title: str
+    description: str
+    unit: str
+    status: str
+    severity: str
+    monthly_budget: float
+    warning_amount: float
+    critical_amount: float
+    actual_amount: Optional[float]
+    projected_monthly_amount: Optional[float]
+    evaluated_amount: Optional[float]
+    budget_ratio: Optional[float]
+    telemetry: str
+    source: str
+    message: str
+    review_commands: Tuple[str, ...]
+    notes: Tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CostReport:
+    """Static cost report."""
+
+    generated_at: str
+    policy_version: str
+    status: str
+    summary: Mapping[str, int]
+    usage_source: str
+    executes_external_actions: bool
+    results: Tuple[CostResult, ...]
+    recommended_review_commands: Tuple[str, ...] = ()
+    non_goals: Tuple[str, ...] = ()
+
+    def to_dict(self) -> Mapping[str, object]:
+        return {
+            "generated_at": self.generated_at,
+            "policy_version": self.policy_version,
+            "status": self.status,
+            "summary": dict(self.summary),
+            "usage_source": self.usage_source,
+            "executes_external_actions": self.executes_external_actions,
+            "results": [asdict(result) for result in self.results],
+            "recommended_review_commands": list(self.recommended_review_commands),
+            "non_goals": list(self.non_goals),
+        }
+
+
+def load_cost_policy(path: Path | str = DEFAULT_POLICY_PATH) -> CostPolicy:
+    """Load cost policy from the configured templates root."""
+    policy_path = Path(path)
+    if not policy_path.exists():
+        raise CostReportError(f"Cost policy not found: {policy_path}")
+    payload = json.loads(policy_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise CostReportError("Cost policy payload must be an object")
+    return CostPolicy.from_mapping(payload)
+
+
+def load_usage(path: Path | str | None, *, repo_root: Path = REPO_ROOT) -> Tuple[str, Mapping[str, UsageEntry]]:
+    """Load optional usage data keyed by cost category id."""
+    if path is None:
+        return "none", {}
+    usage_path = Path(path)
+    if not usage_path.exists():
+        raise CostReportError(f"Usage file not found: {usage_path}")
+    payload = json.loads(usage_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise CostReportError("Usage payload must be an object")
+    raw_categories = payload.get("categories", payload.get("usage", {}))
+    if not isinstance(raw_categories, Mapping):
+        raise CostReportError("Usage payload requires a categories object")
+    entries = {str(key): _usage_entry(value) for key, value in raw_categories.items()}
+    return _path_display(usage_path, repo_root), entries
+
+
+def evaluate_policy(
+    policy: CostPolicy,
+    *,
+    usage_entries: Mapping[str, UsageEntry] | None = None,
+    usage_source: str = "none",
+) -> CostReport:
+    """Evaluate optional usage input against cost policy."""
+    usage_entries = usage_entries or {}
+    results = tuple(
+        _evaluate_category(category, usage_entries.get(category.id))
+        for category in policy.categories
+        if category.enabled
+    )
+    failed = sum(1 for result in results if result.status == "fail")
+    warnings = sum(1 for result in results if result.status == "warn")
+    not_measured = sum(1 for result in results if result.status == "not-measured")
+    passed = sum(1 for result in results if result.status == "pass")
+    status = "fail" if failed else "warn" if warnings or not_measured else "pass"
+    return CostReport(
+        generated_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+        policy_version=policy.version,
+        status=status,
+        summary={
+            "total": len(results),
+            "passed": passed,
+            "warnings": warnings,
+            "errors": failed,
+            "not_measured": not_measured,
+        },
+        usage_source=usage_source,
+        executes_external_actions=False,
+        results=results,
+        recommended_review_commands=policy.recommended_review_commands,
+        non_goals=policy.non_goals,
+    )
+
+
+def render_markdown(report: CostReport) -> str:
+    """Render a cost report as Markdown."""
+    lines = [
+        "# Cost Tracking Report",
+        "",
+        f"Generated: {report.generated_at}",
+        f"Policy version: {report.policy_version}",
+        f"Status: {report.status}",
+        f"Usage source: {report.usage_source}",
+        f"Executes external actions: {report.executes_external_actions}",
+        "",
+        "## Summary",
+        f"- Total categories: {report.summary['total']}",
+        f"- Passed: {report.summary['passed']}",
+        f"- Warnings: {report.summary['warnings']}",
+        f"- Errors: {report.summary['errors']}",
+        f"- Not measured: {report.summary['not_measured']}",
+        "",
+        "## Categories",
+    ]
+    for result in report.results:
+        lines.extend(
+            [
+                f"### {result.title}",
+                "",
+                f"- ID: `{result.id}`",
+                f"- Status: `{result.status}`",
+                f"- Severity: `{result.severity}`",
+                f"- Unit: `{result.unit}`",
+                f"- Monthly budget: `{_format_amount(result.monthly_budget, result.unit)}`",
+                f"- Warning threshold: `{_format_amount(result.warning_amount, result.unit)}`",
+                f"- Critical threshold: `{_format_amount(result.critical_amount, result.unit)}`",
+                f"- Actual: `{_format_optional_amount(result.actual_amount, result.unit)}`",
+                f"- Projected monthly: `{_format_optional_amount(result.projected_monthly_amount, result.unit)}`",
+                f"- Evaluated amount: `{_format_optional_amount(result.evaluated_amount, result.unit)}`",
+                f"- Budget ratio: `{_format_optional_ratio(result.budget_ratio)}`",
+                f"- Telemetry: {result.telemetry}",
+                f"- Source: {result.source}",
+                f"- Message: {result.message}",
+                "",
+                "Review commands:",
+            ]
+        )
+        for command in result.review_commands:
+            lines.append(f"- `{command}`")
+        if result.notes:
+            lines.extend(["", "Notes:"])
+            for note in result.notes:
+                lines.append(f"- {note}")
+        lines.append("")
+
+    lines.extend(["## Recommended Review Commands", ""])
+    for command in report.recommended_review_commands:
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.non_goals:
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No external billing query, alert delivery, cache mutation, rate-limit change, or throttling action was executed by this report.", ""])
+    return "\n".join(lines)
+
+
+def write_outputs(report: CostReport, report_dir: Path | str) -> Tuple[Path, Path]:
+    """Write Markdown and JSON cost report outputs."""
+    output_dir = Path(report_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "latest.json"
+    md_path = output_dir / "latest.md"
+    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+    return md_path, json_path
+
+
+def _evaluate_category(category: CostCategory, usage: Optional[UsageEntry]) -> CostResult:
+    warning_amount = category.monthly_budget * category.warning_ratio
+    critical_amount = category.monthly_budget * category.critical_ratio
+    if usage is None:
+        return CostResult(
+            id=category.id,
+            title=category.title,
+            description=category.description,
+            unit=category.unit,
+            status="not-measured",
+            severity="warning",
+            monthly_budget=category.monthly_budget,
+            warning_amount=warning_amount,
+            critical_amount=critical_amount,
+            actual_amount=None,
+            projected_monthly_amount=None,
+            evaluated_amount=None,
+            budget_ratio=None,
+            telemetry=category.telemetry,
+            source="missing",
+            message="No usage input supplied for this category; budget status cannot be claimed.",
+            review_commands=category.review_commands,
+            notes=category.notes,
+        )
+
+    evaluated_amount = (
+        usage.projected_monthly_amount if usage.projected_monthly_amount is not None else usage.actual_amount
+    )
+    if evaluated_amount is None:
+        status = "not-measured"
+        severity = "warning"
+        ratio = None
+        message = "Usage entry did not include actual_amount or projected_monthly_amount."
+    else:
+        ratio = evaluated_amount / category.monthly_budget
+        if ratio >= category.critical_ratio:
+            status = "fail"
+            severity = "error"
+            message = f"Evaluated usage is at {ratio:.1%} of budget, meeting or exceeding the critical threshold."
+        elif ratio >= category.warning_ratio:
+            status = "warn"
+            severity = "warning"
+            message = f"Evaluated usage is at {ratio:.1%} of budget, meeting or exceeding the warning threshold."
+        else:
+            status = "pass"
+            severity = "info"
+            message = f"Evaluated usage is at {ratio:.1%} of budget."
+
+    return CostResult(
+        id=category.id,
+        title=category.title,
+        description=category.description,
+        unit=category.unit,
+        status=status,
+        severity=severity,
+        monthly_budget=category.monthly_budget,
+        warning_amount=warning_amount,
+        critical_amount=critical_amount,
+        actual_amount=usage.actual_amount,
+        projected_monthly_amount=usage.projected_monthly_amount,
+        evaluated_amount=evaluated_amount,
+        budget_ratio=round(ratio, 4) if ratio is not None else None,
+        telemetry=category.telemetry,
+        source=usage.source,
+        message=message,
+        review_commands=category.review_commands,
+        notes=tuple((*category.notes, *usage.notes)),
+    )
+
+
+def _usage_entry(payload: object) -> UsageEntry:
+    if isinstance(payload, (int, float)) and not isinstance(payload, bool):
+        return UsageEntry(actual_amount=float(payload), source="usage-file")
+    if not isinstance(payload, Mapping):
+        raise CostReportError("Usage category entries must be objects or numbers")
+    return UsageEntry(
+        actual_amount=_optional_float(payload.get("actual_amount", payload.get("actual"))),
+        projected_monthly_amount=_optional_float(
+            payload.get("projected_monthly_amount", payload.get("projected_monthly", payload.get("projected")))
+        ),
+        source=str(payload.get("source") or "usage-file"),
+        notes=_string_tuple(payload.get("notes", ())),
+    )
+
+
+def _required_string(payload: Mapping[str, object], key: str) -> str:
+    value = str(payload.get(key) or "").strip()
+    if not value:
+        raise CostReportError(f"Cost policy category requires {key}")
+    return value
+
+
+def _required_float(payload: Mapping[str, object], key: str) -> float:
+    if key not in payload:
+        raise CostReportError(f"Cost policy category requires {key}")
+    value = _optional_float(payload[key])
+    if value is None:
+        raise CostReportError(f"Cost policy category {key} must be numeric")
+    return value
+
+
+def _optional_float(value: object) -> Optional[float]:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    raise CostReportError(f"Expected numeric value, got {value!r}")
+
+
+def _ratio_value(value: object) -> float:
+    ratio = _optional_float(value)
+    if ratio is None:
+        raise CostReportError(f"Expected numeric ratio, got {value!r}")
+    return ratio
+
+
+def _string_tuple(value: object) -> Tuple[str, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        return ()
+    return tuple(str(item) for item in value if str(item).strip())
+
+
+def _path_display(path: Path, repo_root: Path = REPO_ROOT) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _format_amount(value: float, unit: str) -> str:
+    return f"{value:.2f} {unit}"
+
+
+def _format_optional_amount(value: Optional[float], unit: str) -> str:
+    return "n/a" if value is None else _format_amount(value, unit)
+
+
+def _format_optional_ratio(value: Optional[float]) -> str:
+    return "n/a" if value is None else f"{value:.1%}"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", default=".", help="Repository root to evaluate.")
+    parser.add_argument(
+        "--policy",
+        default=_path_display(DEFAULT_POLICY_PATH),
+        help="Cost policy JSON file.",
+    )
+    parser.add_argument("--usage-file", help="Optional usage JSON file keyed by cost category id.")
+    parser.add_argument(
+        "--report-dir",
+        default=_path_display(DEFAULT_REPORT_DIR),
+        help="Directory for cost report outputs.",
+    )
+    parser.add_argument("--strict", action="store_true", help="Exit nonzero when fail-level cost findings are present.")
+    return parser
+
+
+def _resolve_path(raw_path: str, *, base: Path = REPO_ROOT) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = base / path
+    return path.resolve()
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    repo_root = _resolve_path(args.repo_root)
+    policy_path = _resolve_path(args.policy, base=repo_root)
+    report_dir = _resolve_path(args.report_dir, base=repo_root)
+    usage_path = _resolve_path(args.usage_file, base=repo_root) if args.usage_file else None
+
+    policy = load_cost_policy(policy_path)
+    usage_source, usage_entries = load_usage(usage_path, repo_root=repo_root)
+    report = evaluate_policy(policy, usage_entries=usage_entries, usage_source=usage_source)
+    md_path, json_path = write_outputs(report, report_dir)
+    print(f"Wrote cost report to {_path_display(md_path, repo_root)}")
+    print(f"Wrote cost JSON to {_path_display(json_path, repo_root)}")
+    print(f"Cost status: {report.status}")
+    if args.strict and report.status == "fail":
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

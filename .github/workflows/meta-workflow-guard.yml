@@ -56,6 +56,8 @@ jobs:
         run: python3 scripts/template-phase0-validation --strict
       - name: Generate template performance report
         run: python3 scripts/template-performance-harness --strict
+      - name: Generate cost tracking report
+        run: python3 scripts/template-cost-report --strict
 
       - name: Upload guard artefacts
         if: always()
@@ -70,3 +72,4 @@ jobs:
             reports/template-monitoring/
             reports/phase0-scanner-validation/
             reports/template-performance/
+            reports/cost-tracking/

@@ -1142,6 +1142,7 @@ SYNC_TEST_ASSET_PATHS = [
     "templates/metadata/template-metadata-policy.json",
     "templates/metadata/template-monitoring-policy.json",
     "templates/metadata/template-performance-policy.json",
+    "templates/metadata/template-cost-policy.json",
     "templates/metadata/emergency-response-policy.json",
     "templates/engine/core/portable-foundation-spec.md",
     "templates/engine/validation/foundation-adoption-guide.md",
@@ -1152,6 +1153,7 @@ SYNC_TEST_ASSET_PATHS = [
     "scripts/template-monitoring",
     "scripts/template-phase0-validation",
     "scripts/template-performance-harness",
+    "scripts/template-cost-report",
 ]
 
 
@@ -1257,16 +1259,19 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         phase0_report_dir="reports/phase0-scanner-validation",
         performance_report_dir="reports/template-performance",
         performance_baseline_file=None,
+        cost_report_dir="reports/cost-tracking",
+        cost_usage_file=None,
         strict_drift=True,
         strict_monitoring=True,
         strict_phase0=True,
         strict_performance=True,
+        strict_cost=True,
         dry_run=False,
     )
 
     module.handle_report_generate(args)
 
-    assert len(commands) == 5
+    assert len(commands) == 6
     assert Path(commands[0][1]).name == "codex-guard"
     assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
     assert Path(commands[1][1]).name == "template-metrics-dashboard"
@@ -1293,6 +1298,12 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
     assert commands[4][2:] == [
         "--report-dir",
         "reports/template-performance",
+        "--strict",
+    ]
+    assert Path(commands[5][1]).name == "template-cost-report"
+    assert commands[5][2:] == [
+        "--report-dir",
+        "reports/cost-tracking",
         "--strict",
     ]
 
@@ -1433,9 +1444,15 @@ def test_handle_report_generate_dry_run_does_not_execute(monkeypatch, capsys) ->
         scanner_data_dir="scripts/template-ssot-scanner/output/data",
         phase0_monitoring_file="reports/template-monitoring/latest.json",
         phase0_report_dir="reports/phase0-scanner-validation",
+        performance_report_dir="reports/template-performance",
+        performance_baseline_file=None,
+        cost_report_dir="reports/cost-tracking",
+        cost_usage_file=None,
         strict_drift=False,
         strict_monitoring=False,
         strict_phase0=False,
+        strict_performance=False,
+        strict_cost=False,
         dry_run=True,
     )
 
@@ -1468,6 +1485,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     policy_path = target / "templates" / "metadata" / "template-metadata-policy.json"
     monitoring_policy_path = target / "templates" / "metadata" / "template-monitoring-policy.json"
     performance_policy_path = target / "templates" / "metadata" / "template-performance-policy.json"
+    cost_policy_path = target / "templates" / "metadata" / "template-cost-policy.json"
     emergency_policy_path = target / "templates" / "metadata" / "emergency-response-policy.json"
     setup_path = target / ".codex" / "bootstrap" / "FOUNDATION-SETUP.md"
 
@@ -1475,6 +1493,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert policy_path.exists()
     assert monitoring_policy_path.exists()
     assert performance_policy_path.exists()
+    assert cost_policy_path.exists()
     assert emergency_policy_path.exists()
     assert setup_path.exists()
     assert "[repo_structure]" in config_path.read_text(encoding="utf-8")
@@ -1492,6 +1511,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert (target / "reports" / "template-monitoring").is_dir()
     assert (target / "reports" / "phase0-scanner-validation").is_dir()
     assert (target / "reports" / "template-performance").is_dir()
+    assert (target / "reports" / "cost-tracking").is_dir()
     assert (target / "reports" / "session-continuation").is_dir()
 
 
@@ -1833,6 +1853,7 @@ reports_root = "ops/reports"
     assert (target / ".ops" / "taskmaster" / "tasks").is_dir()
     assert (target / "ops" / "work-tracking" / "active").is_dir()
     assert (target / "ops" / "reports" / "template-drift").is_dir()
+    assert (target / "ops" / "reports" / "cost-tracking").is_dir()
     assert (target / "ops" / "reports" / "emergency-response").is_dir()
 
 
@@ -1889,6 +1910,7 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["templates_root"] / "metadata" / "template-metadata-policy.json").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-monitoring-policy.json").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-performance-policy.json").exists()
+        assert (target / shape.roots["templates_root"] / "metadata" / "template-cost-policy.json").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "emergency-response-policy.json").exists()
         assert (target / shape.roots["sessions_root"]).is_dir()
         assert (target / shape.roots["plans_root"]).is_dir()
@@ -1898,3 +1920,4 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["reports_root"] / "template-monitoring").is_dir()
         assert (target / shape.roots["reports_root"] / "phase0-scanner-validation").is_dir()
         assert (target / shape.roots["reports_root"] / "template-performance").is_dir()
+        assert (target / shape.roots["reports_root"] / "cost-tracking").is_dir()

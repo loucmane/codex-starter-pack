@@ -52,6 +52,7 @@ METRICS_DASHBOARD_SCRIPT = REPO_ROOT / "scripts" / "template-metrics-dashboard"
 MONITORING_SCRIPT = REPO_ROOT / "scripts" / "template-monitoring"
 PHASE0_VALIDATION_SCRIPT = REPO_ROOT / "scripts" / "template-phase0-validation"
 PERFORMANCE_HARNESS_SCRIPT = REPO_ROOT / "scripts" / "template-performance-harness"
+COST_REPORT_SCRIPT = REPO_ROOT / "scripts" / "template-cost-report"
 CODEX_GUARD_SCRIPT = REPO_ROOT / "scripts" / "codex-guard"
 PRE_COMMIT_CONFIG = REPO_ROOT / ".pre-commit-config.yaml"
 PRE_COMMIT_HOOK = REPO_ROOT / ".git" / "hooks" / "pre-commit"
@@ -509,6 +510,7 @@ def handle_bootstrap_init(args: argparse.Namespace) -> None:
         structure.monitoring_report_dir,
         structure.phase0_validation_report_dir,
         structure.performance_report_dir,
+        structure.cost_report_dir,
         structure.emergency_response_report_dir,
         structure.continuation_guard_dir,
         (target_root / BOOTSTRAP_SETUP_REL).parent,
@@ -543,6 +545,17 @@ def handle_bootstrap_init(args: argparse.Namespace) -> None:
     _write_bootstrap_file(
         structure.template_performance_policy_path,
         performance_policy_content,
+        force=args.force,
+        root=target_root,
+        results=results,
+        dry_run=args.dry_run,
+    )
+
+    cost_policy_source = REPO_STRUCTURE.template_cost_policy_path
+    cost_policy_content = cost_policy_source.read_text(encoding="utf-8")
+    _write_bootstrap_file(
+        structure.template_cost_policy_path,
+        cost_policy_content,
         force=args.force,
         root=target_root,
         results=results,
@@ -1705,6 +1718,19 @@ def handle_report_generate(args: argparse.Namespace) -> None:
         if args.strict_performance:
             performance_cmd.append("--strict")
         commands.append(performance_cmd)
+
+    if args.kind in {"cost", "all"}:
+        cost_cmd = [
+            sys.executable,
+            str(COST_REPORT_SCRIPT),
+            "--report-dir",
+            args.cost_report_dir,
+        ]
+        if args.cost_usage_file:
+            cost_cmd.extend(["--usage-file", args.cost_usage_file])
+        if args.strict_cost:
+            cost_cmd.append("--strict")
+        commands.append(cost_cmd)
 
     for cmd in commands:
         printable = " ".join(cmd)
@@ -3384,6 +3410,14 @@ SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
         "rationale": "Repo-local performance thresholds consumed by the static performance harness.",
     },
     {
+        "id": "cost-policy",
+        "title": "Template cost policy",
+        "category": "metadata",
+        "path_kind": "repo-structure",
+        "path": "template_cost_policy_path",
+        "rationale": "Repo-local cost governance thresholds consumed by the static cost report.",
+    },
+    {
         "id": "emergency-response-policy",
         "title": "Emergency response policy",
         "category": "metadata",
@@ -3462,6 +3496,14 @@ SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
         "path_kind": "fixed",
         "path": "scripts/template-performance-harness",
         "rationale": "Optional static performance layer that times portable foundation operations.",
+    },
+    {
+        "id": "template-cost-report",
+        "title": "Template cost report",
+        "category": "script",
+        "path_kind": "fixed",
+        "path": "scripts/template-cost-report",
+        "rationale": "Optional static cost governance layer that evaluates supplied usage against policy.",
     },
 )
 
@@ -3796,7 +3838,7 @@ def build_parser() -> argparse.ArgumentParser:
     report_generate = report_sub.add_parser("generate", help="Generate workflow reports")
     report_generate.add_argument(
         "--kind",
-        choices=("metrics", "drift", "monitoring", "phase0", "performance", "all"),
+        choices=("metrics", "drift", "monitoring", "phase0", "performance", "cost", "all"),
         default="metrics",
         help="Report type to generate (default: metrics)",
     )
@@ -3845,6 +3887,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional performance baseline JSON file for regression comparison",
     )
     report_generate.add_argument(
+        "--cost-report-dir",
+        default=REPO_STRUCTURE.cost_report_dir.relative_to(REPO_ROOT).as_posix(),
+        help="Output directory for cost reports",
+    )
+    report_generate.add_argument(
+        "--cost-usage-file",
+        help="Optional usage JSON file for cost reports",
+    )
+    report_generate.add_argument(
         "--strict-drift",
         action="store_true",
         help="Exit nonzero when drift findings are present while generating drift reports",
@@ -3863,6 +3914,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--strict-performance",
         action="store_true",
         help="Exit nonzero when fail-level performance findings are present",
+    )
+    report_generate.add_argument(
+        "--strict-cost",
+        action="store_true",
+        help="Exit nonzero when fail-level cost findings are present",
     )
     report_generate.set_defaults(func=handle_report_generate)
 
