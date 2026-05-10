@@ -1,0 +1,60 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭────────────────────────────────────────────────╮
+│ Task: #26 - Migrate Critical Handler Templates │
+╰────────────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 26                                                                             [90m│[39m
+[90m│[39m Title:             [90m│[39m Migrate Critical Handler Templates                                             [90m│[39m
+[90m│[39m Status:            [90m│[39m ✓ done                                                                         [90m│[39m
+[90m│[39m Priority:          [90m│[39m high                                                                           [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 24, 20                                                                         [90m│[39m
+[90m│[39m Complexity:        [90m│[39m ● 6                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Phase 2.1 - Migrate core handler templates to modular structure                [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Identify critical handlers: start-new-work, fix-problem, test-implementation. Extract from     │
+│   monolithic files. Create modular files with proper frontmatter. Update all references using    │
+│   fix scripts. Validate with guard tool. Update compatibility mapping. Run performance tests     │
+│   on migrated handlers. Document migration decisions.                                            │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Test Strategy:                                                                                 │
+│                                                                                                  │
+│   Verify handlers load correctly, test execution paths, validate all references updated,         │
+│   performance benchmarks met                                                                     │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+[90m┌──────────[39m[90m┬───────────────[39m[90m┬────────────────────────────────────────────────────────────[39m[90m┬───────────────┐[39m
+[90m│[39m ID       [90m│[39m Status        [90m│[39m Title                                                      [90m│[39m Deps          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 26.1     [90m│[39m ✓ done        [90m│[39m Scope reconciliation against portable foundation           [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 26.2     [90m│[39m ✓ done        [90m│[39m Implement proven current-state gap with evidence           [90m│[39m None          [90m│[39m
+[90m└──────────[39m[90m┴───────────────[39m[90m┴────────────────────────────────────────────────────────────[39m[90m┴───────────────┘[39m
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=26 --status=in-progress to start working                    │
+│   2. Run task-master expand --id=26 to break down into subtasks                                  │
+│   3. Run task-master update-task --id=26 --prompt="..." to update details                        │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -33,6 +33,7 @@ Lightweight entry point to the complete template system registry.
 ## 🎯 Registry Components
 
 ### Handler Registries (73+ handlers)
+- **[Handler Index](../handlers/index.md)** - Canonical modular handler-family landing page and critical handler compatibility notes
 - **[Triggers](handlers/triggers-registry.md)** - User-activated handlers (35)
 - **[Orchestrators](handlers/orchestrators-registry.md)** - Coordination handlers (7)
 - **[Operators](handlers/operators-registry.md)** - Technical operations (31)

@@ -21,8 +21,8 @@
     },
     {
       "legacy": "templates/HANDLERS.md",
-      "current": "templates/handlers/",
-      "reason": "Handler documentation moved to modular handler families."
+      "current": "templates/handlers/index.md",
+      "reason": "Handler documentation moved to the modular handler-family index."
     },
     {
       "legacy": "templates/CONVENTIONS.md",

@@ -66,6 +66,7 @@ class TemplateRecord:
     type: Optional[str] = None
     status: Optional[str] = None
     category: Optional[str] = None
+    aliases: Tuple[str, ...] = ()
     good_first_handler: bool = False
     good_first_workflow: bool = False
 
@@ -256,6 +257,19 @@ def _string_list(value: object) -> Tuple[str, ...]:
     return (str(value),)
 
 
+def _aliases_for(primary_id: str, *values: object) -> Tuple[str, ...]:
+    aliases: List[str] = []
+    seen = {_normal_key(primary_id)}
+    for value in values:
+        for alias in _string_list(value):
+            key = _normal_key(alias)
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            aliases.append(alias)
+    return tuple(aliases)
+
+
 def _path_id(path: str) -> str:
     without_suffix = path[:-3] if path.endswith(".md") else path
     return without_suffix.replace("/", "-").replace("_", "-")
@@ -384,6 +398,7 @@ class TemplateRegistry:
                         record.type or "",
                         record.category or "",
                         " ".join(record.tags),
+                        " ".join(record.aliases),
                     ]
                 )
                 if text_key not in _normal_key(haystack):
@@ -539,10 +554,16 @@ class TemplateRegistry:
         path_key = _normal_key(record.path)
         id_key = _normal_key(record.id)
         if path_key in by_path:
+            existing = by_path[path_key]
+            by_id.setdefault(id_key, existing)
+            for alias in record.aliases:
+                by_id.setdefault(_normal_key(alias), existing)
             return
         records.append(record)
         by_path[path_key] = record
         by_id.setdefault(id_key, record)
+        for alias in record.aliases:
+            by_id.setdefault(_normal_key(alias), record)
 
     def _load_modular_records(self) -> Iterable[TemplateRecord]:
         if not self.registry_index_path.exists():
@@ -556,13 +577,20 @@ class TemplateRegistry:
             absolute_path = self._absolute_from_registry_path(path)
             metadata = self._frontmatter_for_path(absolute_path)
             tags = tuple(str(tag) for tag in raw_entry.get("tags", []) if str(tag))
+            template_id = str(raw_entry.get("id") or metadata.get("id") or _path_id(path))
             record = self._record_from_parts(
-                template_id=str(raw_entry.get("id") or metadata.get("id") or _path_id(path)),
+                template_id=template_id,
                 path=self._repo_relative_path(absolute_path),
                 absolute_path=absolute_path,
                 source="modular",
                 tags=tags or _string_list(metadata.get("tags")),
                 metadata=metadata,
+                aliases=_aliases_for(
+                    template_id,
+                    raw_entry.get("aliases"),
+                    metadata.get("id"),
+                    metadata.get("aliases"),
+                ),
                 good_first_handler=bool(raw_entry.get("goodFirstHandler", False)),
                 good_first_workflow=bool(raw_entry.get("goodFirstWorkflow", False)),
             )
@@ -589,6 +617,10 @@ class TemplateRegistry:
                         source="discovered",
                         tags=_string_list(metadata.get("tags")),
                         metadata=metadata,
+                        aliases=_aliases_for(
+                            str(metadata.get("id") or _path_id(repo_relative)),
+                            metadata.get("aliases"),
+                        ),
                     )
                 )
         return discovered
@@ -602,6 +634,7 @@ class TemplateRegistry:
         source: str,
         tags: Tuple[str, ...],
         metadata: Mapping[str, object],
+        aliases: Tuple[str, ...] = (),
         good_first_handler: bool = False,
         good_first_workflow: bool = False,
     ) -> TemplateRecord:
@@ -619,6 +652,7 @@ class TemplateRegistry:
             type=_string_or_none(metadata.get("type")),
             status=_string_or_none(metadata.get("status")),
             category=_string_or_none(category),
+            aliases=aliases,
             good_first_handler=good_first_handler,
             good_first_workflow=good_first_workflow,
         )
@@ -696,6 +730,7 @@ class TemplateRegistry:
                 record.type or "",
                 record.category or "",
                 *record.tags,
+                *record.aliases,
             ]
             score = max((_similarity(query_key, candidate) for candidate in candidates), default=0.0)
             if score >= 0.55:

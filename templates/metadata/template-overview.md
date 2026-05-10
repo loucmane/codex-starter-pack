@@ -123,6 +123,7 @@
 
 ## handlers
 
+- `templates/handlers/index.md` — title: Handler Templates Index; type: handler-index; category: handlers; status: stable; heading: Handler Templates Index
 - `templates/handlers/operators/analysis/cite-source.md` — title: Cite Source; type: operator; category: analysis; status: stable; heading: Handler: cite-source {#cite-source}
 - `templates/handlers/operators/analysis/gather-evidence.md` — title: Gather Evidence; type: operator; category: analysis; status: stable; heading: Handler: gather-evidence {#gather-evidence}
 - `templates/handlers/operators/analysis/verify-claim.md` — title: Verify Claim; type: operator; category: analysis; status: stable; heading: Handler: verify-claim {#verify-claim}
