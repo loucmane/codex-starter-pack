@@ -8,8 +8,8 @@ complexity: simple
 dependencies:
   - templates/shared/tools/tool-selection-matrix.md
 related:
-  - patterns/selection/handler-selection.md
-  - patterns/selection/agent-selection.md
+  - patterns/selection/templates/patterns/selection/handler-selection.md
+  - patterns/selection/templates/patterns/selection/agent-selection.md
 version: 1.0.0
 status: stable
 ---
@@ -157,8 +157,12 @@ When unsure, present tool options to user
 ## Related Patterns
 - [Handler Selection](handler-selection.md) - Choosing handlers
 - [Agent Selection](agent-selection.md) - Selecting specialist agents
-- [Code Creation](../integration/code-creation.md) - Creating new code
+- [Code Creation](../../handlers/orchestrators/code-creation.md) - Creating new code
 
 ## Handler References
 [Handler: tool-selection migrated to handlers/orchestrators/tool-selection.md]
 [Handler: code-creation migrated to handlers/operators/development/code-creator.md]
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

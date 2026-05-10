@@ -1,0 +1,119 @@
+=== Current Engine Surface Verification ===
+
+=== Required Files ===
+[0;32m✓[0m File exists: templates/engine/README.md
+[0;32m✓[0m File exists: templates/engine/MODULARIZATION-COMPLETE.md
+[0;32m✓[0m File exists: templates/engine/activation/context-aware.md
+[0;32m✓[0m File exists: templates/engine/core/codex-readiness.md
+[0;32m✓[0m File exists: templates/engine/core/enforcement-check.md
+[0;32m✓[0m File exists: templates/engine/core/pre-ultrathink.md
+[0;32m✓[0m File exists: templates/engine/core/session-resolver.md
+[0;32m✓[0m File exists: templates/engine/core/ultrathink-protocol.md
+[0;32m✓[0m File exists: templates/engine/debugging/system-debug.md
+[0;32m✓[0m File exists: templates/engine/enforcement/behavioral-hooks.md
+[0;32m✓[0m File exists: templates/engine/enforcement/cannot-proceed.md
+[0;32m✓[0m File exists: templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+[0;32m✓[0m File exists: templates/engine/enforcement/meta-workflow-guard-remediation.md
+[0;32m✓[0m File exists: templates/engine/examples/practical.md
+[0;32m✓[0m File exists: templates/engine/execution/swhe-format.md
+[0;32m✓[0m File exists: templates/engine/fallbacks/error-handling.md
+[0;32m✓[0m File exists: templates/engine/navigation/common-flows.md
+[0;32m✓[0m File exists: templates/engine/navigation/template-protocol.md
+[0;32m✓[0m File exists: templates/engine/structure/template-system.md
+[0;32m✓[0m File exists: templates/engine/validation/ENFORCEMENT-SUMMARY.md
+[0;32m✓[0m File exists: templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m File exists: templates/engine/validation/integration-guide.md
+[0;32m✓[0m File exists: templates/engine/validation/validation-framework.md
+
+=== Frontmatter Checks ===
+Checking metadata: templates/engine/core/enforcement-check.md
+[0;32m✓[0m Frontmatter block present in templates/engine/core/enforcement-check.md
+[0;32m✓[0m Correct id in templates/engine/core/enforcement-check.md
+[0;32m✓[0m Correct type in templates/engine/core/enforcement-check.md
+Checking metadata: templates/engine/core/pre-ultrathink.md
+[0;32m✓[0m Frontmatter block present in templates/engine/core/pre-ultrathink.md
+[0;32m✓[0m Correct id in templates/engine/core/pre-ultrathink.md
+[0;32m✓[0m Correct type in templates/engine/core/pre-ultrathink.md
+Checking metadata: templates/engine/core/session-resolver.md
+[0;32m✓[0m Frontmatter block present in templates/engine/core/session-resolver.md
+[0;32m✓[0m Correct id in templates/engine/core/session-resolver.md
+[0;32m✓[0m Correct type in templates/engine/core/session-resolver.md
+Checking metadata: templates/engine/core/ultrathink-protocol.md
+[0;32m✓[0m Frontmatter block present in templates/engine/core/ultrathink-protocol.md
+[0;32m✓[0m Correct id in templates/engine/core/ultrathink-protocol.md
+[0;32m✓[0m Correct type in templates/engine/core/ultrathink-protocol.md
+Checking metadata: templates/engine/enforcement/behavioral-hooks.md
+[0;32m✓[0m Frontmatter block present in templates/engine/enforcement/behavioral-hooks.md
+[0;32m✓[0m Correct id in templates/engine/enforcement/behavioral-hooks.md
+[0;32m✓[0m Correct type in templates/engine/enforcement/behavioral-hooks.md
+Checking metadata: templates/engine/enforcement/cannot-proceed.md
+[0;32m✓[0m Frontmatter block present in templates/engine/enforcement/cannot-proceed.md
+[0;32m✓[0m Correct id in templates/engine/enforcement/cannot-proceed.md
+[0;32m✓[0m Correct type in templates/engine/enforcement/cannot-proceed.md
+Checking metadata: templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+[0;32m✓[0m Frontmatter block present in templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+[0;32m✓[0m Correct id in templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+[0;32m✓[0m Correct type in templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+Checking metadata: templates/engine/examples/practical.md
+[0;32m✓[0m Frontmatter block present in templates/engine/examples/practical.md
+[0;32m✓[0m Correct id in templates/engine/examples/practical.md
+[0;32m✓[0m Correct type in templates/engine/examples/practical.md
+Checking metadata: templates/engine/navigation/common-flows.md
+[0;32m✓[0m Frontmatter block present in templates/engine/navigation/common-flows.md
+[0;32m✓[0m Correct id in templates/engine/navigation/common-flows.md
+[0;32m✓[0m Correct type in templates/engine/navigation/common-flows.md
+Checking metadata: templates/engine/structure/template-system.md
+[0;32m✓[0m Frontmatter block present in templates/engine/structure/template-system.md
+[0;32m✓[0m Correct id in templates/engine/structure/template-system.md
+[0;32m✓[0m Correct type in templates/engine/structure/template-system.md
+Checking metadata: templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Frontmatter block present in templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Correct name in templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Correct type in templates/engine/validation/foundation-adoption-guide.md
+Checking metadata: templates/engine/validation/integration-guide.md
+[0;32m✓[0m Frontmatter block present in templates/engine/validation/integration-guide.md
+[0;32m✓[0m Correct name in templates/engine/validation/integration-guide.md
+[0;32m✓[0m Correct type in templates/engine/validation/integration-guide.md
+Checking metadata: templates/engine/validation/validation-framework.md
+[0;32m✓[0m Frontmatter block present in templates/engine/validation/validation-framework.md
+[0;32m✓[0m Correct name in templates/engine/validation/validation-framework.md
+[0;32m✓[0m Correct type in templates/engine/validation/validation-framework.md
+
+=== Discovery Surface Checks ===
+[0;32m✓[0m Reference present in templates/registry/index.json: templates/engine/core/session-resolver.md
+[0;32m✓[0m Reference present in templates/registry/index.json: templates/engine/enforcement/behavioral-hooks.md
+[0;32m✓[0m Reference present in templates/registry/index.json: templates/engine/navigation/template-protocol.md
+[0;32m✓[0m Reference present in templates/registry/index.json: templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Reference present in templates/registry/index.json: templates/engine/validation/integration-guide.md
+[0;32m✓[0m Reference present in templates/registry/index.json: templates/engine/validation/validation-framework.md
+[0;32m✓[0m Reference present in templates/metadata/template-inventory.txt: templates/engine/core/codex-readiness.md
+[0;32m✓[0m Reference present in templates/metadata/template-inventory.txt: templates/engine/core/session-resolver.md
+[0;32m✓[0m Reference present in templates/metadata/template-inventory.txt: templates/engine/enforcement/behavioral-hooks.md
+[0;32m✓[0m Reference present in templates/metadata/template-inventory.txt: templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Reference present in templates/metadata/template-overview.md: templates/engine/core/session-resolver.md
+[0;32m✓[0m Reference present in templates/metadata/template-overview.md: templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Reference present in templates/metadata/template-overview.md: templates/engine/validation/validation-framework.md
+[0;32m✓[0m Reference present in templates/metadata/template-summary.csv: templates/engine/core/session-resolver.md
+[0;32m✓[0m Reference present in templates/metadata/template-summary.csv: templates/engine/validation/foundation-adoption-guide.md
+[0;32m✓[0m Reference present in templates/metadata/template-summary.csv: templates/engine/validation/validation-framework.md
+
+=== Current Layout Checks ===
+[0;31m✗[0m Missing reference in CLAUDE.md: ^@\./\.taskmaster/CLAUDE\.md$
+[0;32m✓[0m No stale reference in templates/engine/README.md: execution-engine.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: mode-detection.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: explicit.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: implicit.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: behavioral.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: protocol-echo.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: handler-validation.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: evidence-based.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: handler-loading.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: natural-execution.md
+[0;32m✓[0m No stale reference in templates/engine/README.md: .claude/templates/engine
+[0;32m✓[0m No stale reference in CLAUDE.md: \.claude/templates/engine
+
+=== Test Summary ===
+Tests Passed: [0;32m90[0m
+Tests Failed: [0;31m1[0m
+
+[0;31m✗ Current engine surface verification failed.[0m

@@ -29,6 +29,7 @@ __pycache__/
 
 # Scanner generated runtime artifacts
 scripts/template-ssot-scanner/output/.checkpoints/
+scripts/template-ssot-scanner/output/backups/
 scripts/template-ssot-scanner/output/data/
 scripts/template-ssot-scanner/output/scripts/
 

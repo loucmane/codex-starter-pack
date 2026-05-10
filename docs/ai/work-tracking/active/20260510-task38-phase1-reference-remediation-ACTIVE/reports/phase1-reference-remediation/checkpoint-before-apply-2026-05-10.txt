@@ -1,0 +1,1 @@
+Wrote rollback checkpoint to docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/checkpoint-before-apply-2026-05-10.json

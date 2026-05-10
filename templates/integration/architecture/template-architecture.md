@@ -224,8 +224,8 @@ integration_templates:
   architecture:
     purpose: System design docs
     templates:
-      - system-architecture.md
-      - handler-architecture.md
+      - templates/integration/architecture/system-architecture.md
+      - templates/integration/architecture/handler-architecture.md
       - template-architecture.md
 ```
 
@@ -585,3 +585,7 @@ future:
 - [Template Design](../best-practices/template-design.md)
 - [Extending Templates](../guides/extending-templates.md)
 - Current templates in `templates/`
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

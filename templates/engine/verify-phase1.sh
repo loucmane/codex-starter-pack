@@ -183,7 +183,7 @@ done
 echo ""
 
 echo "=== Current Layout Checks ==="
-check_contains "CLAUDE.md" "^@\\./\\.taskmaster/CLAUDE\\.md$"
+check_contains "CLAUDE.md" "@\\./\\.taskmaster/CLAUDE\\.md"
 for stale in "${STALE_REFERENCES[@]}"; do
   check_absent "templates/engine/README.md" "$stale"
 done

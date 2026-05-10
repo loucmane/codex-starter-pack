@@ -9,8 +9,8 @@ dependencies:
   - templates/sessions/
   - patterns/work-tracking/work-patterns.md
 related:
-  - patterns/session/state-patterns.md
-  - patterns/session/continuation-patterns.md
+  - patterns/session/templates/patterns/session/state-patterns.md
+  - patterns/session/templates/patterns/session/continuation-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -373,3 +373,7 @@ Will continue tomorrow.
 ## Handler References
 [Handler: lost-context migrated to handlers/orchestrators/context-recovery.md]
 [Handler: system-improvement migrated to handlers/orchestrators/system-improver.md]
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

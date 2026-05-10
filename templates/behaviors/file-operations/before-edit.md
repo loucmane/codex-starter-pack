@@ -61,8 +61,8 @@ ACTION:
 - **Work tracking files** - ALL CAPS naming, specific formats
 
 ## Cross-References
-- [CONVENTIONS.md](../../templates/conventions/) - File-specific rules
-- [before-create.md](before-create.md) - New file creation
+- [CONVENTIONS.md](../../conventions) - File-specific rules
+- [templates/behaviors/file-operations/before-create.md](before-create.md) - New file creation
 - [timestamps/before-adding.md](../timestamps/before-adding.md) - For timestamp accuracy
 
 ## Error Cases

@@ -6,9 +6,9 @@ title: Progress Measurement Patterns
 pattern_type: operational
 complexity: simple
 dependencies:
-  - patterns/work-tracking/work-patterns.md
+  - patterns/work-tracking/templates/patterns/work-tracking/work-patterns.md
 related:
-  - patterns/work-tracking/documentation-patterns.md
+  - patterns/work-tracking/templates/patterns/work-tracking/documentation-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -333,3 +333,7 @@ Will continue tomorrow.
 
 ## Handler References
 Progress tracking is embedded in work management handlers
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

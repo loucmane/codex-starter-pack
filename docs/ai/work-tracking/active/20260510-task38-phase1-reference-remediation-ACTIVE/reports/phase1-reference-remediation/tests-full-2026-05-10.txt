@@ -1,0 +1,66 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+testpaths: tests, scripts/template-ssot-scanner
+collected 405 items
+
+tests/claude_adapter/test_adapter_contract_files.py ..........           [  2%]
+tests/claude_adapter/test_pretooluse_gates.py ..............             [  5%]
+tests/claude_adapter/test_readiness_gate.py ...........                  [  8%]
+tests/meta_workflow_guard/test_ci_workflows.py ....                      [  9%]
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 16%]
+.........................                                                [ 22%]
+tests/meta_workflow_guard/test_communication_templates.py ......         [ 23%]
+tests/meta_workflow_guard/test_guard_integration.py .                    [ 24%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 30%]
+.........................................                                [ 40%]
+tests/meta_workflow_guard/test_phase0_scanner_validation.py .......      [ 42%]
+tests/meta_workflow_guard/test_registration.py .....                     [ 43%]
+tests/meta_workflow_guard/test_repo_structure_config.py ...              [ 44%]
+tests/meta_workflow_guard/test_template_cost_report.py ......            [ 45%]
+tests/meta_workflow_guard/test_template_lifecycle.py ..........          [ 48%]
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ....        [ 49%]
+tests/meta_workflow_guard/test_template_monitoring.py ........           [ 51%]
+tests/meta_workflow_guard/test_template_performance_harness.py .....     [ 52%]
+tests/meta_workflow_guard/test_template_registry.py ...............      [ 56%]
+tests/meta_workflow_guard/test_template_testing.py .....                 [ 57%]
+tests/meta_workflow_guard/test_template_versioning.py ...........        [ 60%]
+tests/meta_workflow_guard/test_training_materials.py F...                [ 61%]
+tests/session_continuation/test_engine_metadata_alignment.py ...         [ 61%]
+tests/session_continuation/test_guard_stub.py .                          [ 62%]
+tests/session_continuation/test_metadata.py ...                          [ 62%]
+tests/timestamp_guard/test_timestamp_validation.py .....                 [ 64%]
+scripts/template-ssot-scanner/test_cli_behavior.py ..............        [ 67%]
+scripts/template-ssot-scanner/test_config_integration.py ........        [ 69%]
+scripts/template-ssot-scanner/test_config_loader.py ............         [ 72%]
+scripts/template-ssot-scanner/test_config_schema.py ................     [ 76%]
+scripts/template-ssot-scanner/test_config_validation.py ........         [ 78%]
+scripts/template-ssot-scanner/test_env_override.py ...........           [ 81%]
+scripts/template-ssot-scanner/test_inheritance.py ..............         [ 84%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py .....       [ 85%]
+scripts/template-ssot-scanner/test_pattern_matcher.py .................. [ 90%]
+...                                                                      [ 91%]
+scripts/template-ssot-scanner/test_rule_engine.py ...................    [ 95%]
+scripts/template-ssot-scanner/test_scanner_modules.py ...........        [ 98%]
+scripts/template-ssot-scanner/test_security_validator.py ......          [100%]
+
+=================================== FAILURES ===================================
+_______________ test_guide_index_links_resolve_to_existing_files _______________
+
+    def test_guide_index_links_resolve_to_existing_files() -> None:
+        missing = [
+            link.relative_to(REPO_ROOT).as_posix()
+            for link in _local_markdown_links(GUIDE_INDEX)
+            if not link.exists()
+        ]
+
+>       assert missing == []
+E       AssertionError: assert ['templates/g...ding.md', ...] == []
+E         Left contains 10 more items, first extra item: 'templates/guides/templates/guides/training/foundation-onboarding.md'
+E         Use -v to get more diff
+
+tests/meta_workflow_guard/test_training_materials.py:34: AssertionError
+=========================== short test summary info ============================
+FAILED tests/meta_workflow_guard/test_training_materials.py::test_guide_index_links_resolve_to_existing_files
+======================== 1 failed, 404 passed in 8.36s =========================

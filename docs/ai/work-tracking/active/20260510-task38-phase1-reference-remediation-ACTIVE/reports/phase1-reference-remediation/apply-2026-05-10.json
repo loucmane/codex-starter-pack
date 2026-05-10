@@ -1,0 +1,996 @@
+{
+  "mode": "apply",
+  "repo_root": "/home/loucmane/codex",
+  "results": [
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/file-operations/before-create.md",
+      "detail": "before-edit.md -> templates/behaviors/file-operations/before-edit.md",
+      "file": "templates/behaviors/file-operations/before-create.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/file-operations/before-edit.md",
+      "detail": "before-create.md -> templates/behaviors/file-operations/before-create.md",
+      "file": "templates/behaviors/file-operations/before-edit.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "file-operations/before-edit.md -> templates/behaviors/file-operations/before-edit.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "file-operations/before-create.md -> templates/behaviors/file-operations/before-create.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "timestamps/before-adding.md -> templates/behaviors/timestamps/before-adding.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "git/before-commit.md -> templates/behaviors/git/before-commit.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "work-tracking/update-tracker.md -> templates/behaviors/work-tracking/update-tracker.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "validation/evidence-claims.md -> templates/behaviors/validation/evidence-claims.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "task-management/todo-write.md -> templates/behaviors/task-management/todo-write.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "session/session-end.md -> templates/behaviors/session/session-end.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "session/compaction-preparation.md -> templates/behaviors/session/compaction-preparation.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "session/continuation-validation.md -> templates/behaviors/session/continuation-validation.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "session/compaction-detection.md -> templates/behaviors/session/compaction-detection.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "planning/plan-compliance.md -> templates/behaviors/planning/plan-compliance.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/index.md",
+      "detail": "../templates/shared/patterns/ultrathink-format.md -> templates/shared/patterns/ultrathink-format.md",
+      "file": "templates/behaviors/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/session/compaction-detection.md",
+      "detail": "compaction-preparation.md -> templates/behaviors/session/compaction-preparation.md",
+      "file": "templates/behaviors/session/compaction-detection.md",
+      "replacements": 7,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/session/compaction-detection.md",
+      "detail": "session-end.md -> templates/behaviors/session/session-end.md",
+      "file": "templates/behaviors/session/compaction-detection.md",
+      "replacements": 6,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/session/session-end.md",
+      "detail": "compaction-preparation.md -> templates/behaviors/session/compaction-preparation.md",
+      "file": "templates/behaviors/session/session-end.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/task-management/todo-write.md",
+      "detail": "../../templates/workflows/patterns/task-management.md -> templates/workflows/patterns/task-management.md",
+      "file": "templates/behaviors/task-management/todo-write.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/behaviors/validation/evidence-claims.md",
+      "detail": "../../templates/TOOLS.md -> templates/TOOLS.md",
+      "file": "templates/behaviors/validation/evidence-claims.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "training/foundation-onboarding.md -> templates/guides/training/foundation-onboarding.md",
+      "file": "templates/guides/index.md",
+      "replacements": 3,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "quickstart/getting-started.md -> templates/guides/quickstart/getting-started.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "workflows/common.md -> templates/guides/workflows/common.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "reference/triggers.md -> templates/guides/reference/triggers.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "troubleshooting/issues.md -> templates/guides/troubleshooting/issues.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "ultrathink/understanding.md -> templates/guides/ultrathink/understanding.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "token-optimization.md -> templates/guides/token-optimization.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/guides/index.md",
+      "detail": "communication/foundation-communication-templates.md -> templates/guides/communication/foundation-communication-templates.md",
+      "file": "templates/guides/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/handlers/index.md",
+      "detail": "triggers/development/start-new-work.md -> templates/handlers/triggers/development/start-new-work.md",
+      "file": "templates/handlers/index.md",
+      "replacements": 3,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/handlers/index.md",
+      "detail": "triggers/debug/fix-bug.md -> templates/handlers/triggers/debug/fix-bug.md",
+      "file": "templates/handlers/index.md",
+      "replacements": 5,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/handlers/index.md",
+      "detail": "triggers/test/create-test-checkpoint.md -> templates/handlers/triggers/test/create-test-checkpoint.md",
+      "file": "templates/handlers/index.md",
+      "replacements": 5,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/handlers/index.md",
+      "detail": "triggers/test/validate-changes.md -> templates/handlers/triggers/test/validate-changes.md",
+      "file": "templates/handlers/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/handlers/tools/external/consult-gpt5.md",
+      "detail": "../debugging/debug-issue.md -> templates/handlers/triggers/debug/debug-issue.md",
+      "file": "templates/handlers/tools/external/consult-gpt5.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/architecture/handler-architecture.md",
+      "detail": "system-architecture.md -> templates/integration/architecture/system-architecture.md",
+      "file": "templates/integration/architecture/handler-architecture.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/architecture/handler-architecture.md",
+      "detail": "template-architecture.md -> templates/integration/architecture/template-architecture.md",
+      "file": "templates/integration/architecture/handler-architecture.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/architecture/system-architecture.md",
+      "detail": "handler-architecture.md -> templates/integration/architecture/handler-architecture.md",
+      "file": "templates/integration/architecture/system-architecture.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/architecture/system-architecture.md",
+      "detail": "template-architecture.md -> templates/integration/architecture/template-architecture.md",
+      "file": "templates/integration/architecture/system-architecture.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/architecture/template-architecture.md",
+      "detail": "system-architecture.md -> templates/integration/architecture/system-architecture.md",
+      "file": "templates/integration/architecture/template-architecture.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/architecture/template-architecture.md",
+      "detail": "handler-architecture.md -> templates/integration/architecture/handler-architecture.md",
+      "file": "templates/integration/architecture/template-architecture.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/best-practices/handler-design.md",
+      "detail": "template-design.md -> templates/integration/best-practices/template-design.md",
+      "file": "templates/integration/best-practices/handler-design.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/best-practices/handler-design.md",
+      "detail": "integration-patterns.md -> templates/integration/best-practices/integration-patterns.md",
+      "file": "templates/integration/best-practices/handler-design.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/best-practices/integration-patterns.md",
+      "detail": "handler-design.md -> templates/integration/best-practices/handler-design.md",
+      "file": "templates/integration/best-practices/integration-patterns.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/best-practices/integration-patterns.md",
+      "detail": "template-design.md -> templates/integration/best-practices/template-design.md",
+      "file": "templates/integration/best-practices/integration-patterns.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/best-practices/template-design.md",
+      "detail": "handler-design.md -> templates/integration/best-practices/handler-design.md",
+      "file": "templates/integration/best-practices/template-design.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/best-practices/template-design.md",
+      "detail": "integration-patterns.md -> templates/integration/best-practices/integration-patterns.md",
+      "file": "templates/integration/best-practices/template-design.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/composition/handler-chaining.md",
+      "detail": "workflow-composition.md -> templates/integration/composition/workflow-composition.md",
+      "file": "templates/integration/composition/handler-chaining.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/composition/handler-chaining.md",
+      "detail": "pattern-composition.md -> templates/integration/composition/pattern-composition.md",
+      "file": "templates/integration/composition/handler-chaining.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/composition/pattern-composition.md",
+      "detail": "workflow-composition.md -> templates/integration/composition/workflow-composition.md",
+      "file": "templates/integration/composition/pattern-composition.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/composition/pattern-composition.md",
+      "detail": "handler-chaining.md -> templates/integration/composition/handler-chaining.md",
+      "file": "templates/integration/composition/pattern-composition.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/composition/workflow-composition.md",
+      "detail": "handler-chaining.md -> templates/integration/composition/handler-chaining.md",
+      "file": "templates/integration/composition/workflow-composition.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/composition/workflow-composition.md",
+      "detail": "pattern-composition.md -> templates/integration/composition/pattern-composition.md",
+      "file": "templates/integration/composition/workflow-composition.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/cross-system/mcp-integration.md",
+      "detail": "tool-integration.md -> templates/integration/cross-system/tool-integration.md",
+      "file": "templates/integration/cross-system/mcp-integration.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/cross-system/mcp-integration.md",
+      "detail": "agent-coordination.md -> templates/integration/cross-system/agent-coordination.md",
+      "file": "templates/integration/cross-system/mcp-integration.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/cross-system/tool-integration.md",
+      "detail": "mcp-integration.md -> templates/integration/cross-system/mcp-integration.md",
+      "file": "templates/integration/cross-system/tool-integration.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/adding-agents.md",
+      "detail": "system-integration.md -> templates/integration/guides/system-integration.md",
+      "file": "templates/integration/guides/adding-agents.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/adding-agents.md",
+      "detail": "creating-handlers.md -> templates/integration/guides/creating-handlers.md",
+      "file": "templates/integration/guides/adding-agents.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/creating-handlers.md",
+      "detail": "system-integration.md -> templates/integration/guides/system-integration.md",
+      "file": "templates/integration/guides/creating-handlers.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/extending-templates.md",
+      "detail": "creating-handlers.md -> templates/integration/guides/creating-handlers.md",
+      "file": "templates/integration/guides/extending-templates.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/system-integration.md",
+      "detail": "creating-handlers.md -> templates/integration/guides/creating-handlers.md",
+      "file": "templates/integration/guides/system-integration.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/system-integration.md",
+      "detail": "extending-templates.md -> templates/integration/guides/extending-templates.md",
+      "file": "templates/integration/guides/system-integration.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/integration/guides/system-integration.md",
+      "detail": "adding-agents.md -> templates/integration/guides/adding-agents.md",
+      "file": "templates/integration/guides/system-integration.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "routing/request-to-handler.md -> templates/matrices/routing/request-to-handler.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "routing/context-to-mode.md -> templates/matrices/routing/context-to-mode.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "selection/tool-selection.md -> templates/handlers/orchestrators/tool-selection.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "selection/file-to-convention.md -> templates/matrices/selection/file-to-convention.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "recovery/error-to-recovery.md -> templates/matrices/recovery/error-to-recovery.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "mapping/trigger-to-action.md -> templates/matrices/mapping/trigger-to-action.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/matrices/index.md",
+      "detail": "mapping/keyword-to-handler.md -> templates/matrices/mapping/keyword-to-handler.md",
+      "file": "templates/matrices/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/evidence/evidence-patterns.md",
+      "detail": "validation-patterns.md -> templates/patterns/evidence/validation-patterns.md",
+      "file": "templates/patterns/evidence/evidence-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/evidence/evidence-patterns.md",
+      "detail": "proof-patterns.md -> templates/patterns/evidence/proof-patterns.md",
+      "file": "templates/patterns/evidence/evidence-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/evidence/proof-patterns.md",
+      "detail": "evidence-patterns.md -> templates/patterns/evidence/evidence-patterns.md",
+      "file": "templates/patterns/evidence/proof-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/evidence/proof-patterns.md",
+      "detail": "validation-patterns.md -> templates/patterns/evidence/validation-patterns.md",
+      "file": "templates/patterns/evidence/proof-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/evidence/validation-patterns.md",
+      "detail": "evidence-patterns.md -> templates/patterns/evidence/evidence-patterns.md",
+      "file": "templates/patterns/evidence/validation-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/evidence/validation-patterns.md",
+      "detail": "proof-patterns.md -> templates/patterns/evidence/proof-patterns.md",
+      "file": "templates/patterns/evidence/validation-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "routing/meta-routing.md -> templates/patterns/routing/meta-routing.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "routing/request-analysis.md -> templates/patterns/routing/request-analysis.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "routing/intent-detection.md -> templates/patterns/routing/intent-detection.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "selection/handler-selection.md -> templates/patterns/selection/handler-selection.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "selection/tool-selection.md -> templates/handlers/orchestrators/tool-selection.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "selection/agent-selection.md -> templates/patterns/selection/agent-selection.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "evidence/evidence-patterns.md -> templates/patterns/evidence/evidence-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "evidence/validation-patterns.md -> templates/patterns/evidence/validation-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "evidence/proof-patterns.md -> templates/patterns/evidence/proof-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "work-tracking/work-patterns.md -> templates/patterns/work-tracking/work-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "work-tracking/progress-patterns.md -> templates/patterns/work-tracking/progress-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "work-tracking/documentation-patterns.md -> templates/patterns/work-tracking/documentation-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "session/session-patterns.md -> templates/patterns/session/session-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "session/state-patterns.md -> templates/patterns/session/state-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "session/continuation-patterns.md -> templates/patterns/session/continuation-patterns.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "integration/cross-system.md -> templates/patterns/integration/cross-system.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "integration/composition.md -> templates/patterns/integration/composition.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/index.md",
+      "detail": "integration/workflow-gap-detection.md -> templates/patterns/integration/workflow-gap-detection.md",
+      "file": "templates/patterns/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/integration/composition.md",
+      "detail": "cross-system.md -> templates/patterns/integration/cross-system.md",
+      "file": "templates/patterns/integration/composition.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/integration/cross-system.md",
+      "detail": "composition.md -> templates/patterns/integration/composition.md",
+      "file": "templates/patterns/integration/cross-system.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/routing/intent-detection.md",
+      "detail": "request-analysis.md -> templates/patterns/routing/request-analysis.md",
+      "file": "templates/patterns/routing/intent-detection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/routing/intent-detection.md",
+      "detail": "meta-routing.md -> templates/patterns/routing/meta-routing.md",
+      "file": "templates/patterns/routing/intent-detection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/routing/meta-routing.md",
+      "detail": "request-analysis.md -> templates/patterns/routing/request-analysis.md",
+      "file": "templates/patterns/routing/meta-routing.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/routing/meta-routing.md",
+      "detail": "intent-detection.md -> templates/patterns/routing/intent-detection.md",
+      "file": "templates/patterns/routing/meta-routing.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/routing/request-analysis.md",
+      "detail": "meta-routing.md -> templates/patterns/routing/meta-routing.md",
+      "file": "templates/patterns/routing/request-analysis.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/routing/request-analysis.md",
+      "detail": "intent-detection.md -> templates/patterns/routing/intent-detection.md",
+      "file": "templates/patterns/routing/request-analysis.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/agent-selection.md",
+      "detail": "handler-selection.md -> templates/patterns/selection/handler-selection.md",
+      "file": "templates/patterns/selection/agent-selection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/agent-selection.md",
+      "detail": "tool-selection.md -> templates/handlers/orchestrators/tool-selection.md",
+      "file": "templates/patterns/selection/agent-selection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/handler-selection.md",
+      "detail": "tool-selection.md -> templates/handlers/orchestrators/tool-selection.md",
+      "file": "templates/patterns/selection/handler-selection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/handler-selection.md",
+      "detail": "agent-selection.md -> templates/patterns/selection/agent-selection.md",
+      "file": "templates/patterns/selection/handler-selection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/tool-selection.md",
+      "detail": "handler-selection.md -> templates/patterns/selection/handler-selection.md",
+      "file": "templates/patterns/selection/tool-selection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/tool-selection.md",
+      "detail": "agent-selection.md -> templates/patterns/selection/agent-selection.md",
+      "file": "templates/patterns/selection/tool-selection.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/selection/tool-selection.md",
+      "detail": "../integration/code-creation.md -> templates/handlers/orchestrators/code-creation.md",
+      "file": "templates/patterns/selection/tool-selection.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/session/continuation-patterns.md",
+      "detail": "session-patterns.md -> templates/patterns/session/session-patterns.md",
+      "file": "templates/patterns/session/continuation-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/session/continuation-patterns.md",
+      "detail": "state-patterns.md -> templates/patterns/session/state-patterns.md",
+      "file": "templates/patterns/session/continuation-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/session/session-patterns.md",
+      "detail": "state-patterns.md -> templates/patterns/session/state-patterns.md",
+      "file": "templates/patterns/session/session-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/session/session-patterns.md",
+      "detail": "continuation-patterns.md -> templates/patterns/session/continuation-patterns.md",
+      "file": "templates/patterns/session/session-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/session/state-patterns.md",
+      "detail": "session-patterns.md -> templates/patterns/session/session-patterns.md",
+      "file": "templates/patterns/session/state-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/session/state-patterns.md",
+      "detail": "continuation-patterns.md -> templates/patterns/session/continuation-patterns.md",
+      "file": "templates/patterns/session/state-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/work-tracking/documentation-patterns.md",
+      "detail": "work-patterns.md -> templates/patterns/work-tracking/work-patterns.md",
+      "file": "templates/patterns/work-tracking/documentation-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/work-tracking/documentation-patterns.md",
+      "detail": "progress-patterns.md -> templates/patterns/work-tracking/progress-patterns.md",
+      "file": "templates/patterns/work-tracking/documentation-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/work-tracking/progress-patterns.md",
+      "detail": "work-patterns.md -> templates/patterns/work-tracking/work-patterns.md",
+      "file": "templates/patterns/work-tracking/progress-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/work-tracking/progress-patterns.md",
+      "detail": "documentation-patterns.md -> templates/patterns/work-tracking/documentation-patterns.md",
+      "file": "templates/patterns/work-tracking/progress-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/work-tracking/work-patterns.md",
+      "detail": "progress-patterns.md -> templates/patterns/work-tracking/progress-patterns.md",
+      "file": "templates/patterns/work-tracking/work-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/patterns/work-tracking/work-patterns.md",
+      "detail": "documentation-patterns.md -> templates/patterns/work-tracking/documentation-patterns.md",
+      "file": "templates/patterns/work-tracking/work-patterns.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "../templates/USER-GUIDE.md -> templates/USER-GUIDE.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "../templates/workflows/examples/common-workflows.md -> templates/workflows/examples/common-workflows.md",
+      "file": "templates/registry/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "handlers/triggers-registry.md -> templates/registry/handlers/triggers-registry.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "handlers/orchestrators-registry.md -> templates/registry/handlers/orchestrators-registry.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "handlers/operators-registry.md -> templates/registry/handlers/operators-registry.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "navigation/keywords.md -> templates/registry/navigation/keywords.md",
+      "file": "templates/registry/index.md",
+      "replacements": 4,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "behavioral/templates.md -> templates/registry/behavioral/templates.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "patterns/meta-routing.md -> templates/patterns/routing/meta-routing.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "behavioral/hooks.md -> templates/registry/behavioral/hooks.md",
+      "file": "templates/registry/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "matrices/decision-matrices.md -> templates/registry/matrices/decision-matrices.md",
+      "file": "templates/registry/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "conventions/special-files.md -> templates/conventions/files/special-files.md",
+      "file": "templates/registry/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "../templates/handlers/orchestrators/resolve-session-void.md -> templates/handlers/orchestrators/resolve-session-void.md",
+      "file": "templates/registry/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/registry/index.md",
+      "detail": "../templates/handlers/operators/workflow/resolve-work-void.md -> templates/handlers/operators/workflow/resolve-work-void.md",
+      "file": "templates/registry/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "search/serena-guide.md -> templates/tools/search/serena-guide.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "search/grep-patterns.md -> templates/tools/search/grep-patterns.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "file/edit-strategies.md -> templates/tools/file/edit-strategies.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "file/multi-edit.md -> templates/tools/file/multi-edit.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "git/commands.md -> templates/tools/git/commands.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "task/agent-usage.md -> templates/tools/task/agent-usage.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "../templates/workflows/domain/README.md -> templates/engine/README.md",
+      "file": "templates/tools/index.md",
+      "replacements": 1,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/tools/index.md",
+      "detail": "../templates/REGISTRY.md -> templates/REGISTRY.md",
+      "file": "templates/tools/index.md",
+      "replacements": 2,
+      "status": "changed"
+    },
+    {
+      "backup": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911/templates/workflows/processes/meta-workflow-authoring.md",
+      "detail": "plan-template.md -> templates/workflows/processes/plan-template.md",
+      "file": "templates/workflows/processes/meta-workflow-authoring.md",
+      "replacements": 2,
+      "status": "changed"
+    }
+  ],
+  "summary": {
+    "changed": 141
+  }
+}

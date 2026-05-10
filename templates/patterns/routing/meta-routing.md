@@ -10,8 +10,8 @@ dependencies:
   - templates/conventions/
   - templates/REGISTRY.md
 related:
-  - patterns/routing/request-analysis.md
-  - patterns/routing/intent-detection.md
+  - patterns/routing/templates/patterns/routing/request-analysis.md
+  - patterns/routing/templates/patterns/routing/intent-detection.md
 version: 1.0.0
 status: stable
 ---

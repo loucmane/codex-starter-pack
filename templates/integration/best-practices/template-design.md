@@ -322,7 +322,7 @@ integration_structure:
     - handler-chaining.md
   
   best-practices/:   # Guidelines
-    - handler-design.md
+    - templates/integration/best-practices/handler-design.md
     - template-design.md
   
   architecture/:     # System design
@@ -599,3 +599,7 @@ result: Complete auth system with tests
 - [System Architecture](../architecture/system-architecture.md)
 - [Creating Handlers](../guides/creating-handlers.md)
 - [Integration Patterns](integration-patterns.md)
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

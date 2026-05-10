@@ -6,8 +6,8 @@ title: Proof Requirement Patterns
 pattern_type: operational
 complexity: simple
 dependencies:
-  - patterns/evidence/evidence-patterns.md
-  - patterns/evidence/validation-patterns.md
+  - patterns/evidence/templates/patterns/evidence/evidence-patterns.md
+  - patterns/evidence/templates/patterns/evidence/validation-patterns.md
 related:
   - patterns/selection/tool-selection.md
 version: 1.0.0
@@ -311,3 +311,7 @@ Right: "Scalability indicators found: load balancing config, clustering support,
 
 ## Handler References
 Proof standards are embedded in various validation and analysis handlers
+
+## Progress Log
+
+- **2026-05-10 17:08 CEST** — [S:20260510|W:task38-phase1-reference-remediation|H:scripts/template-ssot-scanner/apply_reference_fixes.py|E:docs/ai/work-tracking/active/20260510-task38-phase1-reference-remediation-ACTIVE/reports/phase1-reference-remediation/apply-2026-05-10.txt] Normalized references during Task 38 Phase 1 remediation.

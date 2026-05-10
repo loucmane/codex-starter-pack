@@ -6,13 +6,13 @@ name: Claude Template System Registry Index
 version: 3.0
 status: modular
 cross_references:
-  - handlers/triggers-registry.md
-  - handlers/orchestrators-registry.md
-  - handlers/operators-registry.md
-  - navigation/keywords.md
-  - behavioral/templates.md
-  - patterns/meta-routing.md
-  - matrices/decision-matrices.md
+  - templates/registry/handlers/triggers-registry.md
+  - templates/registry/handlers/orchestrators-registry.md
+  - templates/registry/handlers/operators-registry.md
+  - templates/registry/navigation/keywords.md
+  - templates/registry/behavioral/templates.md
+  - templates/patterns/routing/meta-routing.md
+  - templates/registry/matrices/decision-matrices.md
 ---
 
 # Claude Template System Registry - Modular v3.0
@@ -25,10 +25,10 @@ Lightweight entry point to the complete template system registry.
 
 ## 📚 Essential Documentation
 
-- **New to Claude?** → [USER-GUIDE.md](../templates/USER-GUIDE.md)
-- **Common workflows?** → [templates/workflows/examples/common-workflows.md](../templates/workflows/examples/common-workflows.md)
-- **Creating handlers?** → [Creating and Managing Handlers](../templates/integration/guides/creating-handlers.md#creating-and-managing-handlers)
-- **Having issues?** → [USER-GUIDE.md#troubleshooting](../templates/USER-GUIDE.md#troubleshooting-guide)
+- **New to Claude?** → [USER-GUIDE.md](../USER-GUIDE.md)
+- **Common workflows?** → [templates/workflows/examples/common-workflows.md](../workflows/examples/common-workflows.md)
+- **Creating handlers?** → [Creating and Managing Handlers](../integration/guides/creating-handlers.md#creating-and-managing-handlers)
+- **Having issues?** → [USER-GUIDE.md#troubleshooting](../USER-GUIDE.md#troubleshooting-guide)
 
 ## 🎯 Registry Components
 
@@ -41,13 +41,13 @@ Lightweight entry point to the complete template system registry.
 ### Navigation & Discovery
 - **[Keywords](navigation/keywords.md)** - Natural language → handler mapping
 - **[Behavioral Templates](behavioral/templates.md)** - Step-by-step guides (6)
-- **[Meta-Routing](patterns/meta-routing.md)** - Ambiguous request handling (13)
+- **[Meta-Routing](../patterns/routing/meta-routing.md)** - Ambiguous request handling (13)
 - **[Compatibility Map](compatibility-map.json)** - Versioned legacy path redirects used by `TemplateRegistry.resolve()`
 
 ### System Components
 - **[Behavioral Hooks](behavioral/hooks.md)** - Automatic enforcement (9)
 - **[Decision Matrices](matrices/decision-matrices.md)** - Quick lookups (5)
-- **[Special Files](conventions/special-files.md)** - File-specific rules
+- **[Special Files](../conventions/files/special-files.md)** - File-specific rules
 
 ## 🧠 ULTRATHINK Resolution
 
@@ -58,8 +58,8 @@ Lightweight entry point to the complete template system registry.
 4. Return valid handler ID or clarification request
 
 **Quick Resolution**:
-- S=VOID → [resolve-session-void](../templates/handlers/orchestrators/resolve-session-void.md)
-- W=VOID → [resolve-work-void](../templates/handlers/operators/workflow/resolve-work-void.md)
+- S=VOID → [resolve-session-void](../handlers/orchestrators/resolve-session-void.md)
+- W=VOID → [resolve-work-void](../handlers/operators/workflow/resolve-work-void.md)
 - H=VOID → Search [Keywords](navigation/keywords.md) then registries
 
 ## Progress Log
