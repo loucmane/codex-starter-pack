@@ -1,7 +1,7 @@
 # Task 27 Migrate Pattern Templates Tracker
 
 **Started**: 2026-05-09
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-09
 
 ## Goals
@@ -27,6 +27,12 @@
 - **2026-05-09 15:54** — [S:20260509|W:task27-migrate-pattern-templates|H:scripts/codex-task:taskmaster-health|E:docs/ai/work-tracking/active/20260509-task27-migrate-pattern-templates-ACTIVE/reports/pattern-template-migration/taskmaster-health-2026-05-09.txt] Confirmed Taskmaster health is OK with no invalid dependency references
 - **2026-05-09 15:54** — [S:20260509|W:task27-migrate-pattern-templates|H:git:diff-check|E:docs/ai/work-tracking/active/20260509-task27-migrate-pattern-templates-ACTIVE/reports/pattern-template-migration/diff-check-2026-05-09.txt] Confirmed `git diff --check` is clean
 - **2026-05-09 15:55** — [S:20260509|W:task27-migrate-pattern-templates|H:task-master:set-status|E:.taskmaster/tasks/task_027.txt] Marked Taskmaster subtask 27.2 and parent Task 27 done, then regenerated only Task 27's generated task file
+- **2026-05-10 12:00** — [S:20260510|W:task27-migrate-pattern-templates|H:gh:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/63] Confirmed PR #63 was merged into `main` and prepared the Task 27 work-tracking folder for archival
+- **2026-05-10 12:00** — [S:20260510|W:task27-migrate-pattern-templates|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260509-task27-migrate-pattern-templates-COMPLETED/] Archived the Task 27 work-tracking folder after PR merge
+- **2026-05-10 12:01** — [S:20260510|W:task27-migrate-pattern-templates|H:scripts/codex-task:work-tracking-audit|E:docs/ai/work-tracking/archive/20260509-task27-migrate-pattern-templates-COMPLETED/reports/pattern-template-migration/post-archive-audit-2026-05-10.txt] Captured post-archive audit evidence; warnings reflect intentional between-session state
+- **2026-05-10 12:01** — [S:20260510|W:task27-migrate-pattern-templates|H:scripts/codex-guard|E:docs/ai/work-tracking/archive/20260509-task27-migrate-pattern-templates-COMPLETED/reports/pattern-template-migration/post-archive-guard-2026-05-10.txt] Captured passing post-archive guard evidence
+- **2026-05-10 12:01** — [S:20260510|W:task27-migrate-pattern-templates|H:scripts/codex-task:taskmaster-health|E:docs/ai/work-tracking/archive/20260509-task27-migrate-pattern-templates-COMPLETED/reports/pattern-template-migration/post-archive-taskmaster-health-2026-05-10.txt] Confirmed post-archive Taskmaster health is OK
+- **2026-05-10 12:01** — [S:20260510|W:task27-migrate-pattern-templates|H:git:diff-check|E:docs/ai/work-tracking/archive/20260509-task27-migrate-pattern-templates-COMPLETED/reports/pattern-template-migration/post-archive-diff-check-2026-05-10.txt] Confirmed post-archive `git diff --check` is clean
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
