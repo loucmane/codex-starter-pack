@@ -28,3 +28,4 @@
 - Taskmaster health: `reports/critical-handler-templates/taskmaster-health-2026-05-10.txt`
 - Diff check: `reports/critical-handler-templates/git-diff-check-2026-05-10.txt`
 - Serena memory: `.serena/memories/2026-05-10_task26_critical_handler_templates.md`
+- Archived on 2026-05-10 15:18 CEST — Folder moved to archive and tracker marked COMPLETED.
