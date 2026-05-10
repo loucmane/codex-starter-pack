@@ -1,0 +1,8 @@
+Template drift report
+
+Generated: 2026-05-10T19:26:41.627400+02:00
+Findings: 0
+
+No drift findings detected.
+Saved text report to reports/template-drift/summary-20260510-192641.txt
+Saved JSON report to reports/template-drift/summary-20260510-192641.json

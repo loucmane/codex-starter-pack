@@ -48,6 +48,13 @@ jobs:
         run: python3 scripts/codex-guard drift-check --strict
       - name: Generate scanner validation baseline
         run: python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci
+      - name: Verify no automatic reference fixes are pending
+        run: |
+          mkdir -p reports/reference-fix-gate
+          python3 scripts/template-ssot-scanner/apply_reference_fixes.py \
+            --dry-run \
+            --fail-on-changes \
+            --log-file reports/reference-fix-gate/latest.json
       - name: Generate template metrics dashboard
         run: python3 scripts/template-metrics-dashboard
       - name: Generate template monitoring report
@@ -71,5 +78,6 @@ jobs:
             reports/template-metrics/
             reports/template-monitoring/
             reports/phase0-scanner-validation/
+            reports/reference-fix-gate/
             reports/template-performance/
             reports/cost-tracking/

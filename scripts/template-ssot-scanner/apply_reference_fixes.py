@@ -306,6 +306,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--rollback", action="store_true", help="Use git restore on files referenced by fixes.")
     parser.add_argument("--allow-symlinks", action="store_true", help="Allow modifying symlink targets.")
     parser.add_argument("--backup-dir", type=Path, help="Backup directory for apply mode.")
+    parser.add_argument(
+        "--fail-on-changes",
+        action="store_true",
+        help="Exit nonzero when dry-run/apply results include automatic file-changing fixes.",
+    )
     parser.add_argument("--log-file", type=Path, help="Optional JSON summary log path.")
     parser.add_argument("--repo-root", type=Path, help="Override repository root discovery.")
     return parser
@@ -343,7 +348,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.log_file:
         log_file = args.log_file if args.log_file.is_absolute() else root / args.log_file
         write_log(log_file, mode=mode, root=root, results=results)
-    return 1 if any(result.status == "error" for result in results) else 0
+    if any(result.status == "error" for result in results):
+        return 1
+    if args.fail_on_changes:
+        pending_change_count = sum(1 for result in results if result.status in {"would-change", "changed"})
+        if pending_change_count:
+            print(
+                "Automatic reference fix gate failed: "
+                f"{pending_change_count} file-changing fix(es) are pending or were applied."
+            )
+            return 1
+    return 0
 
 
 if __name__ == "__main__":

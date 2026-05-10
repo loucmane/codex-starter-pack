@@ -251,6 +251,31 @@ def test_reference_fix_runner_defaults_to_dry_run(tmp_path):
     assert target.read_text(encoding="utf-8") == "See [Old](old.md) and `old.md`.\n"
 
 
+def test_reference_fix_runner_can_fail_ci_when_changes_are_pending(tmp_path):
+    repo_root = tmp_path / "repo"
+    fixes_file = write_reference_fixture(repo_root)
+    target = repo_root / "templates" / "example.md"
+
+    result = run_reference_runner(repo_root, fixes_file, "--dry-run", "--fail-on-changes")
+
+    assert result.returncode == 1
+    assert "would-change" in result.stdout
+    assert "Automatic reference fix gate failed" in result.stdout
+    assert target.read_text(encoding="utf-8") == "See [Old](old.md) and `old.md`.\n"
+
+
+def test_reference_fix_runner_passes_ci_when_no_changes_are_pending(tmp_path):
+    repo_root = tmp_path / "repo"
+    fixes_file = write_reference_fixture(repo_root)
+    target = repo_root / "templates" / "example.md"
+    target.write_text("See [Old](new.md) and `templates/new.md`.\n", encoding="utf-8")
+
+    result = run_reference_runner(repo_root, fixes_file, "--dry-run", "--fail-on-changes")
+
+    assert result.returncode == 0
+    assert "Summary: unchanged=1" in result.stdout
+
+
 def test_reference_fix_runner_apply_writes_backup(tmp_path):
     repo_root = tmp_path / "repo"
     fixes_file = write_reference_fixture(repo_root)

@@ -9,6 +9,8 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+CODEX_GUARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "codex-guard.yml"
+META_GUARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "meta-workflow-guard.yml"
 
 
 def _load_workflow() -> dict:
@@ -45,3 +47,16 @@ def test_python_test_workflow_uploads_matrix_artifacts() -> None:
 
     assert any(step.get("uses") == "actions/upload-artifact@v4" for step in steps)
     assert "reports/ci/" in CI_WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_guard_workflows_fail_when_automatic_reference_fixes_are_pending() -> None:
+    codex_guard = CODEX_GUARD_WORKFLOW.read_text(encoding="utf-8")
+    meta_guard = META_GUARD_WORKFLOW.read_text(encoding="utf-8")
+
+    for workflow_text in (codex_guard, meta_guard):
+        assert "Verify no automatic reference fixes are pending" in workflow_text
+        assert "python3 scripts/template-ssot-scanner/apply_reference_fixes.py" in workflow_text
+        assert "--dry-run" in workflow_text
+        assert "--fail-on-changes" in workflow_text
+        assert "--log-file reports/reference-fix-gate/latest.json" in workflow_text
+        assert "reports/reference-fix-gate/" in workflow_text
