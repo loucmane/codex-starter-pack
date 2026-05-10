@@ -75,6 +75,10 @@ class RepoStructure:
         return self.templates_root / "metadata" / "template-performance-policy.json"
 
     @property
+    def template_cost_policy_path(self) -> Path:
+        return self.templates_root / "metadata" / "template-cost-policy.json"
+
+    @property
     def emergency_response_policy_path(self) -> Path:
         return self.templates_root / "metadata" / "emergency-response-policy.json"
 
@@ -101,6 +105,10 @@ class RepoStructure:
     @property
     def performance_report_dir(self) -> Path:
         return self.reports_root / "template-performance"
+
+    @property
+    def cost_report_dir(self) -> Path:
+        return self.reports_root / "cost-tracking"
 
     @property
     def emergency_response_report_dir(self) -> Path:

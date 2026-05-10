@@ -1,0 +1,5 @@
+# Findings
+
+- 2026-05-10 13:34 CEST — Task 24 has no current repo-local telemetry source for Anthropic/API billing, GitHub Actions billing minutes, or automatic cost throttling. The useful remaining gap is static cost governance: define cost-bearing surfaces, accept optional usage input, classify budget thresholds, and generate evidence without external calls.
+- 2026-05-10 13:45 CEST — Full regression suite passed after adding cost policy/report wiring (`402 passed`), so the new report kind did not regress Claude adapter gates, Taskmaster helpers, repo-structure portability, guard rules, scanner tests, monitoring, or performance harness tests.
+- 2026-05-10 13:58 CEST — Attempting to rewrite Taskmaster Task 24's stale historical details after marking it done was blocked by Taskmaster's completed-task lock, then the AI-backed update path could not complete cleanly in this environment. Task 24 status was restored to `done`; the scope reconciliation and work-tracking evidence are the authoritative record of the completed implementation.
