@@ -1297,32 +1297,35 @@
           "84",
           "97"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-10T10:16:11.588Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-10T10:27:06.912Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Set up pytest-benchmark framework, implement discovery time tests, create token usage tests, add incremental scanner tests, implement profiling for templates, create baseline capture, add regression detection, and configure CI integration."
+        "expansionPrompt": "Set up pytest-benchmark framework, implement discovery time tests, create token usage tests, add incremental scanner tests, implement profiling for templates, create baseline capture, add regression detection, and configure CI integration.",
+        "updatedAt": "2026-05-10T10:27:06.912Z"
       },
       {
         "id": "17",
@@ -5038,9 +5041,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-09T13:49:16.475Z",
+      "lastModified": "2026-05-10T10:27:06.913Z",
       "taskCount": 108,
-      "completedCount": 63,
+      "completedCount": 64,
       "tags": [
         "master"
       ]

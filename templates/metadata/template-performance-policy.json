@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "description": "Portable static performance policy for Codex foundation operations. Repos can tune thresholds without changing harness code.",
+  "defaults": {
+    "regression_warning_pct": 20,
+    "regression_critical_pct": 50
+  },
+  "checks": [
+    {
+      "id": "template_registry_records",
+      "title": "Template registry record discovery",
+      "probe": "template_registry_records",
+      "warning_seconds": 0.15,
+      "critical_seconds": 0.35
+    },
+    {
+      "id": "template_registry_warm_cache",
+      "title": "Template registry warm-cache resolution",
+      "probe": "template_registry_warm_cache",
+      "settings": {
+        "queries": [
+          "templates/registry/index.md",
+          "patterns-index",
+          "templates/PATTERNS.md"
+        ]
+      },
+      "warning_seconds": 0.05,
+      "critical_seconds": 0.25
+    },
+    {
+      "id": "codex_guard_validate",
+      "title": "Codex guard validation runtime",
+      "probe": "command",
+      "command": [
+        "{python}",
+        "scripts/codex-guard",
+        "validate",
+        "--include-untracked"
+      ],
+      "warning_seconds": 5.0,
+      "critical_seconds": 10.0
+    },
+    {
+      "id": "scanner_no_checkpoints",
+      "title": "Template scanner no-checkpoint runtime",
+      "probe": "command",
+      "command": [
+        "{python}",
+        "scripts/template-ssot-scanner/scanner.py",
+        "--base",
+        "{repo_root}",
+        "--out",
+        "{temp_dir}/template_scan_results.json",
+        "--no-checkpoints",
+        "--profile",
+        "ci"
+      ],
+      "warning_seconds": 10.0,
+      "critical_seconds": 20.0
+    }
+  ]
+}

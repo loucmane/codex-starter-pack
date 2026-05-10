@@ -54,6 +54,8 @@ jobs:
         run: python3 scripts/template-monitoring --strict
       - name: Generate Phase 0 scanner validation report
         run: python3 scripts/template-phase0-validation --strict
+      - name: Generate template performance report
+        run: python3 scripts/template-performance-harness --strict
 
       - name: Upload guard artefacts
         if: always()
@@ -67,3 +69,4 @@ jobs:
             reports/template-metrics/
             reports/template-monitoring/
             reports/phase0-scanner-validation/
+            reports/template-performance/

@@ -1,0 +1,528 @@
+#!/usr/bin/env python3
+"""Measure portable Codex foundation performance and write static report artifacts."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from _repo_structure import load_repo_structure
+from template_registry import TemplateRegistry
+
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+DEFAULT_POLICY_PATH = REPO_STRUCTURE.template_performance_policy_path
+DEFAULT_REPORT_DIR = REPO_STRUCTURE.performance_report_dir
+ALLOWED_PROBES = ("template_registry_records", "template_registry_warm_cache", "command")
+
+
+class PerformanceHarnessError(ValueError):
+    """Raised when performance policy or baseline input is invalid."""
+
+
+@dataclass(frozen=True)
+class PerformanceCheck:
+    """Single performance check loaded from policy."""
+
+    id: str
+    title: str
+    probe: str
+    warning_seconds: float
+    critical_seconds: float
+    regression_warning_pct: float
+    regression_critical_pct: float
+    command: Tuple[str, ...] = ()
+    settings: Mapping[str, object] = field(default_factory=dict)
+    enabled: bool = True
+    allow_nonzero: bool = False
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, object], defaults: Mapping[str, object]) -> "PerformanceCheck":
+        check = cls(
+            id=_required_string(payload, "id"),
+            title=str(payload.get("title") or payload.get("id") or "").strip(),
+            probe=_required_string(payload, "probe"),
+            warning_seconds=_required_float(payload, "warning_seconds"),
+            critical_seconds=_required_float(payload, "critical_seconds"),
+            regression_warning_pct=_float_value(
+                payload.get("regression_warning_pct", defaults.get("regression_warning_pct", 20))
+            ),
+            regression_critical_pct=_float_value(
+                payload.get("regression_critical_pct", defaults.get("regression_critical_pct", 50))
+            ),
+            command=tuple(str(part) for part in payload.get("command", []) if str(part)),
+            settings=payload.get("settings") if isinstance(payload.get("settings"), Mapping) else {},
+            enabled=bool(payload.get("enabled", True)),
+            allow_nonzero=bool(payload.get("allow_nonzero", False)),
+        )
+        check.validate()
+        return check
+
+    def validate(self) -> None:
+        if self.probe not in ALLOWED_PROBES:
+            raise PerformanceHarnessError(f"Performance check {self.id!r} has unsupported probe {self.probe!r}")
+        if self.warning_seconds < 0 or self.critical_seconds < 0:
+            raise PerformanceHarnessError(f"Performance check {self.id!r} thresholds must be non-negative")
+        if self.critical_seconds < self.warning_seconds:
+            raise PerformanceHarnessError(
+                f"Performance check {self.id!r} critical_seconds must be >= warning_seconds"
+            )
+        if self.regression_critical_pct < self.regression_warning_pct:
+            raise PerformanceHarnessError(
+                f"Performance check {self.id!r} regression_critical_pct must be >= regression_warning_pct"
+            )
+        if self.probe == "command" and not self.command:
+            raise PerformanceHarnessError(f"Performance check {self.id!r} requires command")
+
+
+@dataclass(frozen=True)
+class PerformancePolicy:
+    """Performance policy loaded from repo-local data."""
+
+    version: str
+    checks: Tuple[PerformanceCheck, ...]
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, object]) -> "PerformancePolicy":
+        raw_checks = payload.get("checks")
+        if not isinstance(raw_checks, Sequence) or isinstance(raw_checks, (str, bytes, bytearray)):
+            raise PerformanceHarnessError("Performance policy requires a checks list")
+        defaults = payload.get("defaults") if isinstance(payload.get("defaults"), Mapping) else {}
+        checks = tuple(
+            PerformanceCheck.from_mapping(item, defaults)
+            for item in raw_checks
+            if isinstance(item, Mapping)
+        )
+        if len(checks) != len(raw_checks):
+            raise PerformanceHarnessError("Performance policy checks must be objects")
+        if not checks:
+            raise PerformanceHarnessError("Performance policy requires at least one check")
+        return cls(version=str(payload.get("version") or "unversioned"), checks=checks)
+
+
+@dataclass(frozen=True)
+class ProbeOutcome:
+    """Raw probe execution outcome."""
+
+    elapsed_seconds: float
+    returncode: int = 0
+    command: Tuple[str, ...] = ()
+    message: str = ""
+    stdout_tail: str = ""
+    stderr_tail: str = ""
+
+
+@dataclass(frozen=True)
+class PerformanceResult:
+    """Single performance check result."""
+
+    id: str
+    title: str
+    probe: str
+    status: str
+    severity: str
+    elapsed_seconds: float
+    warning_seconds: float
+    critical_seconds: float
+    baseline_seconds: Optional[float]
+    regression_pct: Optional[float]
+    returncode: int
+    command: Tuple[str, ...]
+    message: str
+    stdout_tail: str
+    stderr_tail: str
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "pass"
+
+
+@dataclass(frozen=True)
+class PerformanceReport:
+    """Static performance report."""
+
+    generated_at: str
+    policy_version: str
+    status: str
+    summary: Dict[str, int]
+    results: Tuple[PerformanceResult, ...]
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "generated_at": self.generated_at,
+            "policy_version": self.policy_version,
+            "status": self.status,
+            "summary": self.summary,
+            "results": [asdict(result) for result in self.results],
+        }
+
+
+def load_performance_policy(path: Path | str = DEFAULT_POLICY_PATH) -> PerformancePolicy:
+    """Load performance policy from the configured templates root."""
+    policy_path = Path(path)
+    if not policy_path.exists():
+        raise PerformanceHarnessError(f"Performance policy not found: {policy_path}")
+    payload = json.loads(policy_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise PerformanceHarnessError("Performance policy payload must be an object")
+    return PerformancePolicy.from_mapping(payload)
+
+
+def evaluate_policy(
+    policy: PerformancePolicy,
+    *,
+    repo_root: Path | str = REPO_ROOT,
+    baseline: Optional[Mapping[str, float]] = None,
+) -> PerformanceReport:
+    """Run enabled performance checks and return a report."""
+    root = Path(repo_root).resolve()
+    baseline = baseline or {}
+    with tempfile.TemporaryDirectory(prefix="codex-performance-") as temp_dir:
+        temp_path = Path(temp_dir)
+        results = tuple(
+            _evaluate_check(check, root, temp_path, baseline)
+            for check in policy.checks
+            if check.enabled
+        )
+    failed = sum(1 for result in results if result.status == "fail")
+    warnings = sum(1 for result in results if result.status == "warn")
+    passed = sum(1 for result in results if result.status == "pass")
+    status = "fail" if failed else "warn" if warnings else "pass"
+    return PerformanceReport(
+        generated_at=datetime.now().astimezone().isoformat(),
+        policy_version=policy.version,
+        status=status,
+        summary={
+            "total": len(results),
+            "passed": passed,
+            "warnings": warnings,
+            "errors": failed,
+        },
+        results=results,
+    )
+
+
+def render_markdown(report: PerformanceReport) -> str:
+    """Render a performance report as Markdown."""
+    lines = [
+        "# Template Performance Report",
+        "",
+        f"Generated: {report.generated_at}",
+        f"Policy version: {report.policy_version}",
+        f"Status: {report.status}",
+        "",
+        "## Summary",
+        f"- Total checks: {report.summary['total']}",
+        f"- Passed: {report.summary['passed']}",
+        f"- Warnings: {report.summary['warnings']}",
+        f"- Errors: {report.summary['errors']}",
+        "",
+        "## Checks",
+    ]
+    for result in report.results:
+        lines.extend(
+            [
+                f"- {result.id}: {result.status}",
+                f"  - Probe: `{result.probe}`",
+                f"  - Elapsed: `{result.elapsed_seconds:.6f}s`",
+                f"  - Thresholds: warning `{result.warning_seconds:.6f}s`, critical `{result.critical_seconds:.6f}s`",
+                f"  - Baseline: `{_format_optional_seconds(result.baseline_seconds)}`",
+                f"  - Regression: `{_format_optional_pct(result.regression_pct)}`",
+                f"  - Return code: `{result.returncode}`",
+                f"  - Message: {result.message}",
+            ]
+        )
+    return "\n".join(lines) + "\n"
+
+
+def write_outputs(report: PerformanceReport, report_dir: Path | str) -> Tuple[Path, Path]:
+    """Write Markdown and JSON report outputs."""
+    output_dir = Path(report_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "latest.json"
+    md_path = output_dir / "latest.md"
+    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+    return md_path, json_path
+
+
+def write_baseline(report: PerformanceReport, baseline_path: Path | str) -> Path:
+    """Write a compact baseline from a report."""
+    path = Path(baseline_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at": report.generated_at,
+        "policy_version": report.policy_version,
+        "checks": {
+            result.id: {
+                "elapsed_seconds": result.elapsed_seconds,
+                "status": result.status,
+            }
+            for result in report.results
+        },
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def load_baseline(path: Path | str | None) -> Dict[str, float]:
+    """Load baseline seconds by check id from a baseline or previous report."""
+    if path is None:
+        return {}
+    baseline_path = Path(path)
+    if not baseline_path.exists():
+        raise PerformanceHarnessError(f"Baseline file not found: {baseline_path}")
+    payload = json.loads(baseline_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise PerformanceHarnessError("Baseline payload must be an object")
+    raw_checks = payload.get("checks")
+    if isinstance(raw_checks, Mapping):
+        return {
+            str(check_id): _baseline_seconds(value)
+            for check_id, value in raw_checks.items()
+            if _baseline_seconds(value) is not None
+        }
+    raw_results = payload.get("results")
+    if isinstance(raw_results, Sequence) and not isinstance(raw_results, (str, bytes, bytearray)):
+        loaded: Dict[str, float] = {}
+        for item in raw_results:
+            if not isinstance(item, Mapping):
+                continue
+            check_id = item.get("id")
+            seconds = _baseline_seconds(item)
+            if check_id and seconds is not None:
+                loaded[str(check_id)] = seconds
+        return loaded
+    raise PerformanceHarnessError("Baseline must include checks or results")
+
+
+def _evaluate_check(
+    check: PerformanceCheck,
+    repo_root: Path,
+    temp_dir: Path,
+    baseline: Mapping[str, float],
+) -> PerformanceResult:
+    outcome = _run_probe(check, repo_root, temp_dir)
+    baseline_seconds = baseline.get(check.id)
+    regression_pct = _regression_pct(outcome.elapsed_seconds, baseline_seconds)
+    status, severity, message = _classify(check, outcome, regression_pct)
+    return PerformanceResult(
+        id=check.id,
+        title=check.title,
+        probe=check.probe,
+        status=status,
+        severity=severity,
+        elapsed_seconds=round(outcome.elapsed_seconds, 6),
+        warning_seconds=check.warning_seconds,
+        critical_seconds=check.critical_seconds,
+        baseline_seconds=baseline_seconds,
+        regression_pct=round(regression_pct, 2) if regression_pct is not None else None,
+        returncode=outcome.returncode,
+        command=outcome.command,
+        message=message or outcome.message,
+        stdout_tail=outcome.stdout_tail,
+        stderr_tail=outcome.stderr_tail,
+    )
+
+
+def _run_probe(check: PerformanceCheck, repo_root: Path, temp_dir: Path) -> ProbeOutcome:
+    if check.probe == "template_registry_records":
+        return _time_callable(lambda: _probe_template_registry_records(repo_root))
+    if check.probe == "template_registry_warm_cache":
+        return _time_callable(lambda: _probe_template_registry_warm_cache(repo_root, check.settings or {}))
+    if check.probe == "command":
+        return _run_command_probe(check, repo_root, temp_dir)
+    raise PerformanceHarnessError(f"Unsupported probe: {check.probe}")
+
+
+def _time_callable(func) -> ProbeOutcome:
+    start = time.perf_counter()
+    message = func()
+    elapsed = time.perf_counter() - start
+    return ProbeOutcome(elapsed_seconds=elapsed, message=message)
+
+
+def _probe_template_registry_records(repo_root: Path) -> str:
+    registry = TemplateRegistry(repo_root=repo_root)
+    count = len(registry.records())
+    return f"Discovered {count} template registry records"
+
+
+def _probe_template_registry_warm_cache(repo_root: Path, settings: Mapping[str, object]) -> str:
+    raw_queries = settings.get("queries")
+    queries = (
+        [str(query) for query in raw_queries]
+        if isinstance(raw_queries, Sequence) and not isinstance(raw_queries, (str, bytes, bytearray))
+        else ["templates/registry/index.md"]
+    )
+    registry = TemplateRegistry(repo_root=repo_root)
+    result = registry.warm_cache(queries, allow_serena=False)
+    return f"Warmed {result.success_count} query result(s), {result.failure_count} failure(s)"
+
+
+def _run_command_probe(check: PerformanceCheck, repo_root: Path, temp_dir: Path) -> ProbeOutcome:
+    command = tuple(_expand_command_part(part, repo_root, temp_dir) for part in check.command)
+    start = time.perf_counter()
+    completed = subprocess.run(
+        list(command),
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+    )
+    elapsed = time.perf_counter() - start
+    return ProbeOutcome(
+        elapsed_seconds=elapsed,
+        returncode=completed.returncode,
+        command=command,
+        message="Command completed" if completed.returncode == 0 else "Command failed",
+        stdout_tail=_tail(completed.stdout),
+        stderr_tail=_tail(completed.stderr),
+    )
+
+
+def _classify(
+    check: PerformanceCheck,
+    outcome: ProbeOutcome,
+    regression_pct: Optional[float],
+) -> Tuple[str, str, str]:
+    if outcome.returncode != 0 and not check.allow_nonzero:
+        return "fail", "error", f"Probe returned nonzero exit code {outcome.returncode}"
+    if outcome.elapsed_seconds > check.critical_seconds:
+        return "fail", "error", f"Elapsed time exceeded critical threshold {check.critical_seconds:.6f}s"
+    if regression_pct is not None and regression_pct > check.regression_critical_pct:
+        return "fail", "error", f"Regression exceeded critical threshold {check.regression_critical_pct:.2f}%"
+    if outcome.elapsed_seconds > check.warning_seconds:
+        return "warn", "warning", f"Elapsed time exceeded warning threshold {check.warning_seconds:.6f}s"
+    if regression_pct is not None and regression_pct > check.regression_warning_pct:
+        return "warn", "warning", f"Regression exceeded warning threshold {check.regression_warning_pct:.2f}%"
+    return "pass", "info", outcome.message or "Performance check passed"
+
+
+def _expand_command_part(part: str, repo_root: Path, temp_dir: Path) -> str:
+    return (
+        part.replace("{python}", sys.executable)
+        .replace("{repo_root}", repo_root.as_posix())
+        .replace("{temp_dir}", temp_dir.as_posix())
+    )
+
+
+def _regression_pct(elapsed: float, baseline_seconds: Optional[float]) -> Optional[float]:
+    if baseline_seconds is None or baseline_seconds <= 0:
+        return None
+    return ((elapsed - baseline_seconds) / baseline_seconds) * 100.0
+
+
+def _baseline_seconds(value: object) -> Optional[float]:
+    if isinstance(value, Mapping):
+        value = value.get("elapsed_seconds")
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _tail(value: str, *, limit: int = 4000) -> str:
+    if len(value) <= limit:
+        return value
+    return value[-limit:]
+
+
+def _required_string(payload: Mapping[str, object], key: str) -> str:
+    value = str(payload.get(key) or "").strip()
+    if not value:
+        raise PerformanceHarnessError(f"Performance policy check requires {key}")
+    return value
+
+
+def _required_float(payload: Mapping[str, object], key: str) -> float:
+    if key not in payload:
+        raise PerformanceHarnessError(f"Performance policy check requires {key}")
+    return _float_value(payload[key])
+
+
+def _float_value(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise PerformanceHarnessError(f"Expected numeric value, got {value!r}")
+    return float(value)
+
+
+def _path_display(path: Path, repo_root: Path = REPO_ROOT) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def _format_optional_seconds(value: Optional[float]) -> str:
+    return "n/a" if value is None else f"{value:.6f}s"
+
+
+def _format_optional_pct(value: Optional[float]) -> str:
+    return "n/a" if value is None else f"{value:.2f}%"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", default=".", help="Repository root to evaluate.")
+    parser.add_argument(
+        "--policy",
+        default=_path_display(DEFAULT_POLICY_PATH),
+        help="Performance policy JSON file.",
+    )
+    parser.add_argument(
+        "--report-dir",
+        default=_path_display(DEFAULT_REPORT_DIR),
+        help="Directory for performance report outputs.",
+    )
+    parser.add_argument("--baseline-file", help="Optional baseline or previous report JSON file.")
+    parser.add_argument("--write-baseline", help="Optional path for writing compact baseline JSON.")
+    parser.add_argument("--strict", action="store_true", help="Exit nonzero when fail-level outcomes are present.")
+    return parser
+
+
+def _resolve_path(raw_path: str, *, base: Path = REPO_ROOT) -> Path:
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = base / path
+    return path.resolve()
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    repo_root = _resolve_path(args.repo_root)
+    policy_path = _resolve_path(args.policy, base=repo_root)
+    report_dir = _resolve_path(args.report_dir, base=repo_root)
+    baseline_path = _resolve_path(args.baseline_file, base=repo_root) if args.baseline_file else None
+    write_baseline_path = _resolve_path(args.write_baseline, base=repo_root) if args.write_baseline else None
+
+    policy = load_performance_policy(policy_path)
+    report = evaluate_policy(policy, repo_root=repo_root, baseline=load_baseline(baseline_path))
+    md_path, json_path = write_outputs(report, report_dir)
+    print(f"Wrote performance report to {_path_display(md_path, repo_root)}")
+    print(f"Wrote performance JSON to {_path_display(json_path, repo_root)}")
+    print(f"Performance status: {report.status}")
+    if write_baseline_path:
+        baseline = write_baseline(report, write_baseline_path)
+        print(f"Wrote performance baseline to {_path_display(baseline, repo_root)}")
+    if args.strict and report.status == "fail":
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
