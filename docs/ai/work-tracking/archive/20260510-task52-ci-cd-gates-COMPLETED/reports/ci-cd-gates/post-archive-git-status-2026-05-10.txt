@@ -1,0 +1,30 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/designs/ci-cd-gates-scope.md
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/diff-check-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/diff-check-final-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/drift-check-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/guard-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/guard-final-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/plan-sync-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/plan-sync-final-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/reference-fix-gate-2026-05-10.json
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/reference-fix-gate-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/scanner-suite-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/taskmaster-health-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/taskmaster-show-52-final-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/tests-focused-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/tests-full-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/work-tracking-audit-2026-05-10.txt
+ D docs/ai/work-tracking/active/20260510-task52-ci-cd-gates-ACTIVE/reports/ci-cd-gates/work-tracking-audit-final-2026-05-10.txt
+ D plans/current
+ M sessions/2026/05/2026-05-10-007-task52-ci-cd-gates.md
+ D sessions/current
+ M sessions/state.json
+?? .serena/memories/session_2026-05-10_task52-ci-cd-gates-closeout.md
+?? docs/ai/work-tracking/archive/20260510-task52-ci-cd-gates-COMPLETED/
