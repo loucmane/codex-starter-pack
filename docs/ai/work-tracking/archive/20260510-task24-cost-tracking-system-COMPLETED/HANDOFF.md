@@ -27,3 +27,4 @@
 - Commit and push the Task 24 branch.
 - Open/merge the PR when checks are green.
 - After merge and branch cleanup, archive `docs/ai/work-tracking/active/20260510-task24-cost-tracking-system-ACTIVE/`.
+- Archived on 2026-05-10 14:15 CEST — Folder moved to archive and tracker marked COMPLETED.
