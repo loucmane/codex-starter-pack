@@ -1,0 +1,8 @@
+# Findings
+
+- 2026-05-10 — Task 48's parent title and details still use historical "Phase 2.3 Remaining Templates" wording even though the current repository state has moved to a portable-foundation model. Subtask `48.1` is the correct gate for reconciling that stale wording before implementation.
+- 2026-05-10 — The remaining parent backlog has several old phase-wrapper tasks (`38`, `48`, `56`, `63`, `69`, `74`, `80`) and broad dashboard/process tasks that should be treated as validation or planning gates until current evidence proves a concrete implementation gap.
+- 2026-05-10 — Portable adoption already has working primitives: `bootstrap init`, `sync plan`, repo-structure config, adoption docs, and cross-project fixtures. The gap is productization into a manifest/dry-run/doctor/adopt/upgrade contract, not a brand-new MCP-only installer.
+- 2026-05-10 — Agent compatibility should build from completed Tasks 103-107. The Claude adapter is already implemented and smoke-tested; Task 62 should generalize adapter contracts rather than restart Claude-specific work.
+- 2026-05-10 — `task-master update-task --id=48` failed under sandbox because the provider attempted to write Claude debug/cache files outside the writable roots. Retrying escalated got past the sandbox error but hung without changing Task 48. Parent task text remains stale.
+- 2026-05-10 — Taskmaster MCP `update_subtask` reported success for `48.1`, `48.2`, `46.1`, and `62.1`, but inspection of `.taskmaster/tasks/tasks.json` and generated task files showed no appended details. Treat MCP subtask-note updates as unreliable until separately fixed.
