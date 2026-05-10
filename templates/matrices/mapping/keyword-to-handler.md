@@ -44,7 +44,7 @@ Handler name and location
 | broken | debug-issue | templates/workflows/ |
 | failing | test-failure | templates/workflows/ |
 | issue | investigate-issue | templates/patterns/ |
-| problem | fix-problem | templates/workflows/ |
+| problem | fix-bug | templates/handlers/triggers/debug/fix-bug.md |
 | crash | debug-crash | templates/patterns/ |
 | exception | handle-exception | templates/patterns/ |
 

@@ -1711,32 +1711,35 @@
           "24",
           "20"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 26,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-10T12:40:34.218Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 26,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-10T12:43:26.633Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Identify critical handlers, extract from monolithic files, create modular structures with frontmatter, update references using fix scripts, validate with guard, update compatibility mapping, and run performance benchmarks."
+        "expansionPrompt": "Identify critical handlers, extract from monolithic files, create modular structures with frontmatter, update references using fix scripts, validate with guard, update compatibility mapping, and run performance benchmarks.",
+        "updatedAt": "2026-05-10T12:43:26.633Z"
       },
       {
         "id": "27",
@@ -5047,9 +5050,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-10T11:58:33.781Z",
+      "lastModified": "2026-05-10T12:43:26.633Z",
       "taskCount": 108,
-      "completedCount": 66,
+      "completedCount": 67,
       "tags": [
         "master"
       ]

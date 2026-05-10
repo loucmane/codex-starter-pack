@@ -228,6 +228,16 @@
     "goodFirstHandler": false
   },
   {
+    "id": "handlers-index",
+    "path": "templates/handlers/index.md",
+    "tags": [
+      "handlers",
+      "index",
+      "critical-handlers"
+    ],
+    "goodFirstHandler": true
+  },
+  {
     "id": "handlers-operators-analysis-cite-source",
     "path": "templates/handlers/operators/analysis/cite-source.md",
     "tags": [
@@ -757,6 +767,9 @@
   {
     "id": "handlers-triggers-debug-fix-bug",
     "path": "templates/handlers/triggers/debug/fix-bug.md",
+    "aliases": [
+      "fix-problem"
+    ],
     "tags": [
       "handlers",
       "triggers",
@@ -900,6 +913,9 @@
   {
     "id": "handlers-triggers-test-create-test-checkpoint",
     "path": "templates/handlers/triggers/test/create-test-checkpoint.md",
+    "aliases": [
+      "test-implementation"
+    ],
     "tags": [
       "handlers",
       "triggers",

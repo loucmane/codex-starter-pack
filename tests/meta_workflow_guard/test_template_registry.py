@@ -130,6 +130,48 @@ tags:
     assert registry.search(type="orchestrator", category="session", tags=["session"]) == [record]
 
 
+def test_registry_resolves_frontmatter_id_and_explicit_aliases_for_modular_records(tmp_path: Path) -> None:
+    _write_repo_config(tmp_path)
+    _write_template(
+        tmp_path / "custom_templates" / "handlers" / "triggers" / "development" / "start-new-work.md",
+        """
+id: start-new-work
+title: Start New Work
+type: trigger
+status: stable
+category: development
+""",
+        "Start New Work",
+    )
+    _write_registry(
+        tmp_path,
+        "custom_templates",
+        [
+            {
+                "id": "handlers-triggers-development-start-new-work",
+                "path": "custom_templates/handlers/triggers/development/start-new-work.md",
+                "aliases": ["begin-work"],
+                "tags": ["handlers", "triggers", "development", "start-new-work"],
+            }
+        ],
+    )
+
+    registry = TemplateRegistry(repo_root=tmp_path)
+
+    frontmatter_alias = registry.resolve("start-new-work", allow_serena=False)
+    assert frontmatter_alias.status == "found"
+    assert frontmatter_alias.source == "modular"
+    assert frontmatter_alias.record is not None
+    assert frontmatter_alias.record.id == "handlers-triggers-development-start-new-work"
+    assert frontmatter_alias.path == "custom_templates/handlers/triggers/development/start-new-work.md"
+
+    explicit_alias = registry.resolve("begin-work", allow_serena=False)
+    assert explicit_alias.status == "found"
+    assert explicit_alias.source == "modular"
+    assert explicit_alias.record is not None
+    assert explicit_alias.record.id == "handlers-triggers-development-start-new-work"
+
+
 def test_template_discovery_api_returns_serializable_lookup_search_pagination_and_dependencies(tmp_path: Path) -> None:
     _write_repo_config(tmp_path)
     _write_template(
@@ -497,6 +539,37 @@ def test_real_patterns_compatibility_redirect_resolves_to_index_record() -> None
     assert result.record is not None
     assert result.record.id == "patterns-index"
     assert result.record.source == "modular"
+
+
+def test_real_handlers_compatibility_redirect_resolves_to_index_record() -> None:
+    registry = TemplateRegistry(repo_root=REPO_ROOT)
+    result = registry.resolve("templates/HANDLERS.md", allow_serena=False)
+
+    assert result.status == "redirect"
+    assert result.source == "compatibility"
+    assert result.path == "templates/handlers/index.md"
+    assert result.record is not None
+    assert result.record.id == "handlers-index"
+    assert result.record.source == "modular"
+
+
+def test_real_critical_handler_queries_resolve() -> None:
+    registry = TemplateRegistry(repo_root=REPO_ROOT)
+    expected = {
+        "start-new-work": "templates/handlers/triggers/development/start-new-work.md",
+        "fix-bug": "templates/handlers/triggers/debug/fix-bug.md",
+        "fix-problem": "templates/handlers/triggers/debug/fix-bug.md",
+        "create-test-checkpoint": "templates/handlers/triggers/test/create-test-checkpoint.md",
+        "test-implementation": "templates/handlers/triggers/test/create-test-checkpoint.md",
+        "validate-changes": "templates/handlers/triggers/test/validate-changes.md",
+    }
+
+    for query, path in expected.items():
+        result = registry.resolve(query, allow_serena=False)
+        assert result.status == "found", query
+        assert result.source == "modular", query
+        assert result.path == path, query
+        assert result.record is not None, query
 
 
 def test_registry_cache_uses_ttl_and_explicit_invalidation(tmp_path: Path) -> None:

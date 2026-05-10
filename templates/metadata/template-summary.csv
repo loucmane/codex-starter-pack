@@ -75,6 +75,7 @@ templates/guides/token-optimization.md,Token Optimization Guide,,,,Token Optimiz
 templates/guides/troubleshooting/issues.md,Troubleshooting Common Issues,user-guide,,,Troubleshooting Common Issues,yes
 templates/guides/ultrathink/understanding.md,Understanding ULTRATHINK,user-guide,,,Understanding ULTRATHINK,yes
 templates/guides/workflows/common.md,Common Development Workflows,user-guide,,,Common Development Workflows,yes
+templates/handlers/index.md,Handler Templates Index,handler-index,stable,handlers,Handler Templates Index,yes
 templates/handlers/operators/analysis/cite-source.md,Cite Source,operator,stable,analysis,Handler: cite-source {#cite-source},yes
 templates/handlers/operators/analysis/gather-evidence.md,Gather Evidence,operator,stable,analysis,Handler: gather-evidence {#gather-evidence},yes
 templates/handlers/operators/analysis/verify-claim.md,Verify Claim,operator,stable,analysis,Handler: verify-claim {#verify-claim},yes

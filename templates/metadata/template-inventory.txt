@@ -74,6 +74,7 @@ templates/guides/token-optimization.md
 templates/guides/troubleshooting/issues.md
 templates/guides/ultrathink/understanding.md
 templates/guides/workflows/common.md
+templates/handlers/index.md
 templates/handlers/operators/analysis/cite-source.md
 templates/handlers/operators/analysis/gather-evidence.md
 templates/handlers/operators/analysis/verify-claim.md
