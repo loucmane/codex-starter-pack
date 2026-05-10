@@ -30,6 +30,7 @@ def test_load_repo_structure_uses_defaults_without_config(tmp_path) -> None:
     assert structure.current_session_link == (tmp_path / "sessions" / "current").resolve()
     assert structure.work_tracking_active_root == (tmp_path / "docs" / "ai" / "work-tracking" / "active").resolve()
     assert structure.taskmaster_tasks_json == (tmp_path / ".taskmaster" / "tasks" / "tasks.json").resolve()
+    assert structure.performance_report_dir == (tmp_path / "reports" / "template-performance").resolve()
 
 
 def test_load_repo_structure_reads_repo_local_overrides(tmp_path) -> None:
@@ -63,8 +64,12 @@ reports_root = "state/reports"
     assert structure.phase0_validation_report_dir == (
         tmp_path / "state" / "reports" / "phase0-scanner-validation"
     ).resolve()
+    assert structure.performance_report_dir == (tmp_path / "state" / "reports" / "template-performance").resolve()
     assert structure.template_monitoring_policy_path == (
         tmp_path / "template-system" / "metadata" / "template-monitoring-policy.json"
+    ).resolve()
+    assert structure.template_performance_policy_path == (
+        tmp_path / "template-system" / "metadata" / "template-performance-policy.json"
     ).resolve()
 
 
@@ -85,4 +90,7 @@ def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> Non
         assert structure.reports_root == (repo_root / shape.roots["reports_root"]).resolve()
         assert structure.phase0_validation_report_dir == (
             repo_root / shape.roots["reports_root"] / "phase0-scanner-validation"
+        ).resolve()
+        assert structure.performance_report_dir == (
+            repo_root / shape.roots["reports_root"] / "template-performance"
         ).resolve()

@@ -71,6 +71,10 @@ class RepoStructure:
         return self.templates_root / "metadata" / "template-monitoring-policy.json"
 
     @property
+    def template_performance_policy_path(self) -> Path:
+        return self.templates_root / "metadata" / "template-performance-policy.json"
+
+    @property
     def continuation_guard_dir(self) -> Path:
         return self.reports_root / "session-continuation"
 
@@ -89,6 +93,10 @@ class RepoStructure:
     @property
     def phase0_validation_report_dir(self) -> Path:
         return self.reports_root / "phase0-scanner-validation"
+
+    @property
+    def performance_report_dir(self) -> Path:
+        return self.reports_root / "template-performance"
 
 
 def _load_repo_structure_section(config_path: Path) -> Dict[str, str]:

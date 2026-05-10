@@ -1,0 +1,4 @@
+Wrote performance report to reports/template-performance/latest.md
+Wrote performance JSON to reports/template-performance/latest.json
+Performance status: pass
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-performance-harness --report-dir reports/template-performance --strict

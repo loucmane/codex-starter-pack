@@ -946,6 +946,7 @@ SYNC_TEST_ASSET_PATHS = [
     ".codex/config.toml",
     "templates/metadata/template-metadata-policy.json",
     "templates/metadata/template-monitoring-policy.json",
+    "templates/metadata/template-performance-policy.json",
     "templates/engine/core/portable-foundation-spec.md",
     "templates/engine/validation/foundation-adoption-guide.md",
     "scripts/_repo_structure.py",
@@ -954,6 +955,7 @@ SYNC_TEST_ASSET_PATHS = [
     "scripts/template-metrics-dashboard",
     "scripts/template-monitoring",
     "scripts/template-phase0-validation",
+    "scripts/template-performance-harness",
 ]
 
 
@@ -1057,15 +1059,18 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         scanner_data_dir="scripts/template-ssot-scanner/output/data",
         phase0_monitoring_file="reports/template-monitoring/latest.json",
         phase0_report_dir="reports/phase0-scanner-validation",
+        performance_report_dir="reports/template-performance",
+        performance_baseline_file=None,
         strict_drift=True,
         strict_monitoring=True,
         strict_phase0=True,
+        strict_performance=True,
         dry_run=False,
     )
 
     module.handle_report_generate(args)
 
-    assert len(commands) == 4
+    assert len(commands) == 5
     assert Path(commands[0][1]).name == "codex-guard"
     assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
     assert Path(commands[1][1]).name == "template-metrics-dashboard"
@@ -1086,6 +1091,12 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         "reports/template-monitoring/latest.json",
         "--report-dir",
         "reports/phase0-scanner-validation",
+        "--strict",
+    ]
+    assert Path(commands[4][1]).name == "template-performance-harness"
+    assert commands[4][2:] == [
+        "--report-dir",
+        "reports/template-performance",
         "--strict",
     ]
 
@@ -1260,11 +1271,13 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     config_path = target / ".codex" / "config.toml"
     policy_path = target / "templates" / "metadata" / "template-metadata-policy.json"
     monitoring_policy_path = target / "templates" / "metadata" / "template-monitoring-policy.json"
+    performance_policy_path = target / "templates" / "metadata" / "template-performance-policy.json"
     setup_path = target / ".codex" / "bootstrap" / "FOUNDATION-SETUP.md"
 
     assert config_path.exists()
     assert policy_path.exists()
     assert monitoring_policy_path.exists()
+    assert performance_policy_path.exists()
     assert setup_path.exists()
     assert "[repo_structure]" in config_path.read_text(encoding="utf-8")
     assert '"required_keys"' in policy_path.read_text(encoding="utf-8")
@@ -1280,6 +1293,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert (target / "reports" / "template-metrics").is_dir()
     assert (target / "reports" / "template-monitoring").is_dir()
     assert (target / "reports" / "phase0-scanner-validation").is_dir()
+    assert (target / "reports" / "template-performance").is_dir()
     assert (target / "reports" / "session-continuation").is_dir()
 
 
@@ -1675,6 +1689,7 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / ".codex" / "config.toml").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-metadata-policy.json").exists()
         assert (target / shape.roots["templates_root"] / "metadata" / "template-monitoring-policy.json").exists()
+        assert (target / shape.roots["templates_root"] / "metadata" / "template-performance-policy.json").exists()
         assert (target / shape.roots["sessions_root"]).is_dir()
         assert (target / shape.roots["plans_root"]).is_dir()
         assert (target / shape.roots["taskmaster_root"] / "tasks").is_dir()
@@ -1682,3 +1697,4 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["reports_root"] / "template-metrics").is_dir()
         assert (target / shape.roots["reports_root"] / "template-monitoring").is_dir()
         assert (target / shape.roots["reports_root"] / "phase0-scanner-validation").is_dir()
+        assert (target / shape.roots["reports_root"] / "template-performance").is_dir()
