@@ -506,6 +506,30 @@ def test_build_parser_accepts_rollout_canary_plan() -> None:
     assert args.dry_run is True
 
 
+def test_build_parser_accepts_agent_compatibility_report() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "agent",
+        "compatibility-report",
+        "--matrix-file",
+        "templates/registry/agent-compatibility-matrix.json",
+        "--report-file",
+        "reports/agent-compatibility.json",
+        "--runbook-file",
+        "reports/agent-compatibility.md",
+        "--strict",
+        "--dry-run",
+    ])
+    assert args.command == "agent"
+    assert args.subcommand == "compatibility-report"
+    assert args.matrix_file == "templates/registry/agent-compatibility-matrix.json"
+    assert args.report_file == "reports/agent-compatibility.json"
+    assert args.runbook_file == "reports/agent-compatibility.md"
+    assert args.strict is True
+    assert args.dry_run is True
+
+
 def test_build_parser_accepts_sync_plan() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -969,6 +993,84 @@ def test_handle_rollout_canary_plan_writes_manifest_and_runbook(monkeypatch, tmp
     runbook_text = runbook.read_text(encoding="utf-8")
     assert "# Foundation Canary Rollout Runbook" in runbook_text
     assert "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan." in runbook_text
+
+
+def test_real_agent_compatibility_matrix_validates() -> None:
+    module = load_task_module()
+    matrix_path, matrix = module._load_agent_compatibility_matrix("templates/registry/agent-compatibility-matrix.json")
+
+    issues = module._validate_agent_compatibility_matrix(matrix, matrix_path)
+
+    assert issues == []
+
+
+def test_build_agent_compatibility_report_summarizes_matrix(monkeypatch) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    report = module._build_agent_compatibility_report(argparse.Namespace(
+        matrix_file="templates/registry/agent-compatibility-matrix.json",
+    ))
+
+    assert report["valid"] is True
+    assert report["matrix_schema"] == "agent-compatibility-matrix.v1"
+    assert report["metrics"]["agent_count"] == 3
+    assert report["metrics"]["feature_count"] == 10
+    assert report["metrics"]["validation_issue_count"] == 0
+    assert report["metrics"]["agent_status_counts"]["supported"] == 2
+    assert report["metrics"]["agent_status_counts"]["planned"] == 1
+    assert {agent["id"] for agent in report["agents"]} == {"codex", "claude", "generic-agent"}
+    assert any(feature["id"] == "pre_mutation_gate" for feature in report["features"])
+
+
+def test_agent_compatibility_matrix_rejects_unknown_feature_flag() -> None:
+    module = load_task_module()
+    _, matrix = module._load_agent_compatibility_matrix("templates/registry/agent-compatibility-matrix.json")
+    matrix = json.loads(json.dumps(matrix))
+    matrix["agents"][0]["capabilities"]["unknown-feature"] = "native"
+
+    issues = module._validate_agent_compatibility_matrix(matrix)
+
+    assert any("unknown feature flags: unknown-feature" in issue for issue in issues)
+
+
+def test_agent_compatibility_runbook_lists_agents_and_metrics(monkeypatch) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    report = module._build_agent_compatibility_report(argparse.Namespace(
+        matrix_file="templates/registry/agent-compatibility-matrix.json",
+    ))
+
+    runbook = module._render_agent_compatibility_runbook(report)
+
+    assert "# Agent Compatibility Report" in runbook
+    assert "Codex Deep Work Agent" in runbook
+    assert "Claude Runtime Adapter" in runbook
+    assert "Future Agent/Profile Adapter" in runbook
+    assert "Mechanical feature coverage" in runbook
+    assert "- None" in runbook
+
+
+def test_handle_agent_compatibility_report_writes_json_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    report = tmp_path / "agent-compatibility.json"
+    runbook = tmp_path / "agent-compatibility.md"
+    args = argparse.Namespace(
+        matrix_file="templates/registry/agent-compatibility-matrix.json",
+        report_file=str(report),
+        runbook_file=str(runbook),
+        strict=True,
+        dry_run=False,
+    )
+
+    module.handle_agent_compatibility_report(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["valid"] is True
+    assert payload["metrics"]["agent_count"] == 3
+    assert payload["metrics"]["validation_issue_count"] == 0
+    assert "Claude Runtime Adapter" in runbook.read_text(encoding="utf-8")
 
 
 def _write_emergency_response_policy(path: Path) -> None:

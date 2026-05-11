@@ -78,6 +78,22 @@ PLANS_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_p
 SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
 BOOTSTRAP_SETUP_REL = ".codex/bootstrap/FOUNDATION-SETUP.md"
 BOOTSTRAP_STRUCTURE_KEYS = tuple(DEFAULT_REPO_STRUCTURE.keys())
+AGENT_COMPATIBILITY_MATRIX = REPO_ROOT / "templates" / "registry" / "agent-compatibility-matrix.json"
+AGENT_COMPATIBILITY_SCHEMA = "agent-compatibility-matrix.v1"
+AGENT_COMPATIBILITY_AGENT_STATUSES = {"supported", "canary", "planned", "unsupported"}
+AGENT_COMPATIBILITY_MECHANICAL_LEVELS = {"native", "gated"}
+AGENT_COMPATIBILITY_REQUIRED_AGENT_KEYS = (
+    "id",
+    "title",
+    "status",
+    "entrypoint",
+    "contract_versions",
+    "capabilities",
+    "required_gates",
+    "fallbacks",
+    "transformations",
+    "evidence_paths",
+)
 
 
 def _slugify(value: str) -> str:
@@ -3165,6 +3181,392 @@ def handle_rollout_canary_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+def _resolve_agent_compatibility_matrix(matrix_file: Optional[str]) -> Path:
+    matrix_path = Path(matrix_file) if matrix_file else AGENT_COMPATIBILITY_MATRIX
+    if not matrix_path.is_absolute():
+        matrix_path = REPO_ROOT / matrix_path
+    return matrix_path
+
+
+def _load_agent_compatibility_matrix(matrix_file: Optional[str] = None) -> Tuple[Path, Dict[str, Any]]:
+    matrix_path = _resolve_agent_compatibility_matrix(matrix_file)
+    if not matrix_path.exists():
+        raise TaskError(f"Agent compatibility matrix not found: {_relative_to_root(matrix_path, REPO_ROOT)}")
+    try:
+        payload = json.loads(matrix_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise TaskError(f"Agent compatibility matrix is invalid JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise TaskError("Agent compatibility matrix must be a JSON object")
+    return matrix_path, payload
+
+
+def _count_values(values: Iterable[str]) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _validate_agent_compatibility_matrix(matrix: Dict[str, Any], matrix_path: Optional[Path] = None) -> List[str]:
+    issues: List[str] = []
+
+    if matrix.get("schema") != AGENT_COMPATIBILITY_SCHEMA:
+        issues.append(f"schema must be {AGENT_COMPATIBILITY_SCHEMA}")
+
+    contract = matrix.get("contract")
+    if not isinstance(contract, dict):
+        issues.append("contract must be an object")
+        current_version = None
+    else:
+        current_version = contract.get("current_version")
+        if not isinstance(current_version, str) or not current_version:
+            issues.append("contract.current_version must be a non-empty string")
+
+    support_levels = matrix.get("support_levels")
+    if not isinstance(support_levels, list) or not all(isinstance(item, str) for item in support_levels):
+        issues.append("support_levels must be a list of strings")
+        support_level_set = set()
+    else:
+        support_level_set = set(support_levels)
+        missing_mechanical = AGENT_COMPATIBILITY_MECHANICAL_LEVELS - support_level_set
+        if missing_mechanical:
+            issues.append(f"support_levels missing mechanical levels: {', '.join(sorted(missing_mechanical))}")
+
+    features = matrix.get("features")
+    feature_ids: List[str] = []
+    if not isinstance(features, list) or not features:
+        issues.append("features must be a non-empty list")
+    else:
+        seen_features: set[str] = set()
+        for index, feature in enumerate(features):
+            if not isinstance(feature, dict):
+                issues.append(f"features[{index}] must be an object")
+                continue
+            feature_id = feature.get("id")
+            if not isinstance(feature_id, str) or not feature_id:
+                issues.append(f"features[{index}].id must be a non-empty string")
+                continue
+            if feature_id in seen_features:
+                issues.append(f"duplicate feature id: {feature_id}")
+            seen_features.add(feature_id)
+            feature_ids.append(feature_id)
+            for key in ("title", "description"):
+                if not isinstance(feature.get(key), str) or not feature[key]:
+                    issues.append(f"feature {feature_id} missing {key}")
+
+    feature_set = set(feature_ids)
+    agents = matrix.get("agents")
+    if not isinstance(agents, list) or not agents:
+        issues.append("agents must be a non-empty list")
+        return issues
+
+    seen_agents: set[str] = set()
+    for index, agent in enumerate(agents):
+        if not isinstance(agent, dict):
+            issues.append(f"agents[{index}] must be an object")
+            continue
+
+        agent_id = agent.get("id")
+        label = agent_id if isinstance(agent_id, str) and agent_id else f"agents[{index}]"
+        for key in AGENT_COMPATIBILITY_REQUIRED_AGENT_KEYS:
+            if key not in agent:
+                issues.append(f"agent {label} missing {key}")
+
+        if not isinstance(agent_id, str) or not agent_id:
+            issues.append(f"agents[{index}].id must be a non-empty string")
+            continue
+        if agent_id in seen_agents:
+            issues.append(f"duplicate agent id: {agent_id}")
+        seen_agents.add(agent_id)
+
+        status = agent.get("status")
+        if status not in AGENT_COMPATIBILITY_AGENT_STATUSES:
+            issues.append(f"agent {agent_id} has invalid status: {status}")
+
+        entrypoint = agent.get("entrypoint")
+        if not isinstance(entrypoint, str) or not entrypoint:
+            issues.append(f"agent {agent_id} entrypoint must be a non-empty string")
+        elif matrix_path is not None and not (REPO_ROOT / entrypoint).exists():
+            issues.append(f"agent {agent_id} entrypoint does not exist: {entrypoint}")
+
+        contract_versions = agent.get("contract_versions")
+        if not isinstance(contract_versions, list) or not all(isinstance(item, str) for item in contract_versions):
+            issues.append(f"agent {agent_id} contract_versions must be a list of strings")
+        elif status in {"supported", "canary", "planned"} and current_version and current_version not in contract_versions:
+            issues.append(f"agent {agent_id} does not declare current contract version {current_version}")
+
+        capabilities = agent.get("capabilities")
+        if not isinstance(capabilities, dict):
+            issues.append(f"agent {agent_id} capabilities must be an object")
+        else:
+            capability_ids = set(capabilities)
+            missing = feature_set - capability_ids
+            extra = capability_ids - feature_set
+            if missing:
+                issues.append(f"agent {agent_id} missing feature flags: {', '.join(sorted(missing))}")
+            if extra:
+                issues.append(f"agent {agent_id} has unknown feature flags: {', '.join(sorted(extra))}")
+            for feature_id, support_level in capabilities.items():
+                if support_levels and support_level not in support_level_set:
+                    issues.append(f"agent {agent_id} feature {feature_id} has invalid support level: {support_level}")
+
+        for list_key in ("required_gates", "fallbacks", "transformations", "evidence_paths"):
+            value = agent.get(list_key)
+            if not isinstance(value, list) or not value:
+                issues.append(f"agent {agent_id} {list_key} must be a non-empty list")
+
+        if matrix_path is not None:
+            for evidence_path in agent.get("evidence_paths", []):
+                if not isinstance(evidence_path, str):
+                    issues.append(f"agent {agent_id} evidence path must be a string")
+                    continue
+                if not (REPO_ROOT / evidence_path).exists():
+                    issues.append(f"agent {agent_id} evidence path does not exist: {evidence_path}")
+
+    validation_commands = matrix.get("validation_commands")
+    if not isinstance(validation_commands, list) or not validation_commands:
+        issues.append("validation_commands must be a non-empty list")
+
+    non_goals = matrix.get("non_goals")
+    if not isinstance(non_goals, list) or not non_goals:
+        issues.append("non_goals must be a non-empty list")
+
+    return issues
+
+
+def _agent_compatibility_metrics(matrix: Dict[str, Any], issues: List[str]) -> Dict[str, Any]:
+    agents = [agent for agent in matrix.get("agents", []) if isinstance(agent, dict)]
+    features = [feature for feature in matrix.get("features", []) if isinstance(feature, dict)]
+    feature_ids = [feature.get("id") for feature in features if isinstance(feature.get("id"), str)]
+    all_support_levels: List[str] = []
+    mechanical_feature_count = 0
+    policy_only_feature_count = 0
+    planned_feature_count = 0
+
+    for agent in agents:
+        capabilities = agent.get("capabilities", {})
+        if not isinstance(capabilities, dict):
+            continue
+        for feature_id in feature_ids:
+            support_level = capabilities.get(feature_id)
+            if not isinstance(support_level, str):
+                continue
+            all_support_levels.append(support_level)
+            if support_level in AGENT_COMPATIBILITY_MECHANICAL_LEVELS:
+                mechanical_feature_count += 1
+            if support_level == "policy-only":
+                policy_only_feature_count += 1
+            if support_level == "planned":
+                planned_feature_count += 1
+
+    total_feature_slots = len(agents) * len(feature_ids)
+    mechanical_coverage_percent = 0.0
+    if total_feature_slots:
+        mechanical_coverage_percent = round((mechanical_feature_count / total_feature_slots) * 100, 2)
+
+    return {
+        "agent_count": len(agents),
+        "feature_count": len(feature_ids),
+        "total_feature_slots": total_feature_slots,
+        "agent_status_counts": _count_values(
+            str(agent.get("status")) for agent in agents if isinstance(agent.get("status"), str)
+        ),
+        "feature_support_counts": _count_values(all_support_levels),
+        "mechanical_feature_count": mechanical_feature_count,
+        "mechanical_coverage_percent": mechanical_coverage_percent,
+        "policy_only_feature_count": policy_only_feature_count,
+        "planned_feature_count": planned_feature_count,
+        "agents_with_fallbacks": sum(
+            1 for agent in agents if isinstance(agent.get("fallbacks"), list) and bool(agent.get("fallbacks"))
+        ),
+        "validation_issue_count": len(issues),
+    }
+
+
+def _build_agent_compatibility_report(args: argparse.Namespace) -> Dict[str, Any]:
+    matrix_path, matrix = _load_agent_compatibility_matrix(args.matrix_file)
+    issues = _validate_agent_compatibility_matrix(matrix, matrix_path)
+    features = [feature for feature in matrix.get("features", []) if isinstance(feature, dict)]
+    agents = [agent for agent in matrix.get("agents", []) if isinstance(agent, dict)]
+
+    agent_summaries: List[Dict[str, Any]] = []
+    for agent in agents:
+        capabilities = agent.get("capabilities", {})
+        mechanical_count = 0
+        policy_only_count = 0
+        planned_count = 0
+        if isinstance(capabilities, dict):
+            mechanical_count = sum(1 for level in capabilities.values() if level in AGENT_COMPATIBILITY_MECHANICAL_LEVELS)
+            policy_only_count = sum(1 for level in capabilities.values() if level == "policy-only")
+            planned_count = sum(1 for level in capabilities.values() if level == "planned")
+        agent_summaries.append(
+            {
+                "id": agent.get("id"),
+                "title": agent.get("title"),
+                "status": agent.get("status"),
+                "entrypoint": agent.get("entrypoint"),
+                "contract_versions": agent.get("contract_versions", []),
+                "mechanical_feature_count": mechanical_count,
+                "policy_only_feature_count": policy_only_count,
+                "planned_feature_count": planned_count,
+                "required_gate_count": len(agent.get("required_gates", [])) if isinstance(agent.get("required_gates"), list) else 0,
+                "fallback_count": len(agent.get("fallbacks", [])) if isinstance(agent.get("fallbacks"), list) else 0,
+                "transformation_count": len(agent.get("transformations", [])) if isinstance(agent.get("transformations"), list) else 0,
+            }
+        )
+
+    feature_summaries: List[Dict[str, Any]] = []
+    for feature in features:
+        feature_id = feature.get("id")
+        support_by_agent: Dict[str, str] = {}
+        for agent in agents:
+            agent_id = agent.get("id")
+            capabilities = agent.get("capabilities", {})
+            if isinstance(agent_id, str) and isinstance(capabilities, dict):
+                support_by_agent[agent_id] = str(capabilities.get(feature_id, "missing"))
+        feature_summaries.append(
+            {
+                "id": feature_id,
+                "title": feature.get("title"),
+                "support_by_agent": support_by_agent,
+                "mechanical_agents": sorted(
+                    agent_id
+                    for agent_id, support_level in support_by_agent.items()
+                    if support_level in AGENT_COMPATIBILITY_MECHANICAL_LEVELS
+                ),
+            }
+        )
+
+    now = datetime.now().astimezone()
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "matrix_file": _relative_to_root(matrix_path, REPO_ROOT),
+        "matrix_schema": matrix.get("schema"),
+        "matrix_version": matrix.get("version"),
+        "contract": matrix.get("contract", {}),
+        "valid": not issues,
+        "issues": issues,
+        "metrics": _agent_compatibility_metrics(matrix, issues),
+        "agents": agent_summaries,
+        "features": feature_summaries,
+        "validation_commands": matrix.get("validation_commands", []),
+        "non_goals": matrix.get("non_goals", []),
+    }
+
+
+def _render_agent_compatibility_runbook(report: Dict[str, Any]) -> str:
+    metrics = report.get("metrics", {}) if isinstance(report.get("metrics"), dict) else {}
+    lines = [
+        "# Agent Compatibility Report",
+        "",
+        f"- Created at: {report.get('created_at')}",
+        f"- Matrix file: `{report.get('matrix_file')}`",
+        f"- Matrix version: {report.get('matrix_version')}",
+        f"- Contract version: {report.get('contract', {}).get('current_version') if isinstance(report.get('contract'), dict) else None}",
+        f"- Valid: {report.get('valid')}",
+        "",
+        "## Metrics",
+        "",
+        f"- Agents: {metrics.get('agent_count')}",
+        f"- Features: {metrics.get('feature_count')}",
+        f"- Feature slots: {metrics.get('total_feature_slots')}",
+        f"- Mechanical feature coverage: {metrics.get('mechanical_coverage_percent')}%",
+        f"- Policy-only feature slots: {metrics.get('policy_only_feature_count')}",
+        f"- Planned feature slots: {metrics.get('planned_feature_count')}",
+        f"- Validation issues: {metrics.get('validation_issue_count')}",
+        "",
+        "## Agents",
+        "",
+    ]
+    for agent in report.get("agents", []):
+        if not isinstance(agent, dict):
+            continue
+        lines.extend(
+            [
+                f"### {agent.get('title')}",
+                "",
+                f"- Agent ID: `{agent.get('id')}`",
+                f"- Status: {agent.get('status')}",
+                f"- Entry point: `{agent.get('entrypoint')}`",
+                f"- Mechanical features: {agent.get('mechanical_feature_count')}",
+                f"- Planned features: {agent.get('planned_feature_count')}",
+                f"- Policy-only features: {agent.get('policy_only_feature_count')}",
+                f"- Required gates: {agent.get('required_gate_count')}",
+                f"- Fallbacks: {agent.get('fallback_count')}",
+                f"- Transformations: {agent.get('transformation_count')}",
+                "",
+            ]
+        )
+
+    lines.extend(["## Features", ""])
+    for feature in report.get("features", []):
+        if not isinstance(feature, dict):
+            continue
+        support = feature.get("support_by_agent", {})
+        support_bits = []
+        if isinstance(support, dict):
+            support_bits = [f"{agent}: {level}" for agent, level in sorted(support.items())]
+        lines.append(f"- `{feature.get('id')}` — {feature.get('title')} ({'; '.join(support_bits)})")
+
+    issues = report.get("issues", [])
+    lines.extend(["", "## Validation Issues", ""])
+    if issues:
+        for issue in issues:
+            lines.append(f"- {issue}")
+    else:
+        lines.append("- None")
+
+    lines.extend(["", "## Validation Commands", ""])
+    for command in report.get("validation_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def handle_agent_compatibility_report(args: argparse.Namespace) -> None:
+    report = _build_agent_compatibility_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_agent_compatibility_runbook(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and not report["valid"]:
+            raise TaskError("Agent compatibility matrix validation failed")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote agent compatibility report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote agent compatibility runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and not report["valid"]:
+        raise TaskError("Agent compatibility matrix validation failed")
+
+
 def _load_emergency_response_policy(policy_file: Optional[str] = None) -> Dict[str, Any]:
     policy_path = Path(policy_file) if policy_file else REPO_STRUCTURE.emergency_response_policy_path
     if not policy_path.is_absolute():
@@ -4012,6 +4414,23 @@ def build_parser() -> argparse.ArgumentParser:
     rollout_canary.add_argument("--runbook-file", help="Optional path to write the canary rollout runbook markdown")
     rollout_canary.add_argument("--dry-run", action="store_true", help="Print the canary rollout plan JSON without writing files")
     rollout_canary.set_defaults(func=handle_rollout_canary_plan)
+
+    agent_parser = subparsers.add_parser("agent", help="Agent compatibility and adapter operations")
+    agent_sub = agent_parser.add_subparsers(dest="subcommand", required=True)
+    agent_compatibility = agent_sub.add_parser(
+        "compatibility-report",
+        help="Validate and summarize the portable agent compatibility matrix",
+    )
+    agent_compatibility.add_argument(
+        "--matrix-file",
+        default=AGENT_COMPATIBILITY_MATRIX.relative_to(REPO_ROOT).as_posix(),
+        help="Agent compatibility matrix JSON file",
+    )
+    agent_compatibility.add_argument("--report-file", help="Optional path to write the compatibility report JSON")
+    agent_compatibility.add_argument("--runbook-file", help="Optional path to write the compatibility report markdown")
+    agent_compatibility.add_argument("--strict", action="store_true", help="Fail when matrix validation issues are present")
+    agent_compatibility.add_argument("--dry-run", action="store_true", help="Print the compatibility report JSON without writing files")
+    agent_compatibility.set_defaults(func=handle_agent_compatibility_report)
 
     emergency_parser = subparsers.add_parser("emergency", help="Emergency response planning operations")
     emergency_sub = emergency_parser.add_subparsers(dest="subcommand", required=True)
