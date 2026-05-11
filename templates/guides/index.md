@@ -15,7 +15,7 @@ Use this page as the starting point for learning the current repository workflow
 ## Start Here
 
 - [Foundation onboarding training](training/foundation-onboarding.md) - Hands-on training path for the current workflow.
-- [Getting started with Claude](quickstart/getting-started.md) - Older beginner-facing Claude guide, useful for prompt phrasing basics.
+- [Getting started with the Codex foundation](quickstart/getting-started.md) - Beginner path for task startup, continuation, work tracking, evidence, and Git defaults.
 - [Portable foundation adoption guide](../engine/validation/foundation-adoption-guide.md) - How to apply the foundation to new and existing repositories.
 - [Portable foundation specification](../engine/core/portable-foundation-spec.md) - Contract for portable sessions, plans, work tracking, and enforcement.
 
@@ -62,3 +62,4 @@ Use this page as the starting point for learning the current repository workflow
 - **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice
 - **2026-05-08 16:49** — [S:20260508|W:task33-training-materials|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task33-training-materials-ACTIVE/designs/training-materials-scope-reconciliation.md] Replaced stale guide hub links with current foundation, runtime, session, and work-tracking references
 - **2026-05-08 17:25** — [S:20260508|W:task49-communication-templates|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task49-communication-templates-ACTIVE/designs/communication-templates-scope-reconciliation.md] Added the foundation communication templates guide to the daily workflow references
+- **2026-05-11 16:02** — [S:20260511|W:task32-documentation-suite|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/designs/documentation-suite-scope-reconciliation.md] Updated the guide hub quickstart label to point at the current Codex foundation workflow rather than an older Claude-only guide.

@@ -42,18 +42,18 @@
 **For Users**
 - **User Guide**: [`templates/USER-GUIDE.md`](templates/USER-GUIDE.md)
 - **Quick Reference**: Phrase-to-handler map inside the user guide.
-- **Common Patterns**: `templates/workflows/examples/common-workflows.md`](templates/workflows/examples/common-workflows.md)
+- **Common Patterns**: [`templates/workflows/examples/common-workflows.md`](templates/workflows/examples/common-workflows.md)
 - **Troubleshooting**: `templates/USER-GUIDE.md#troubleshooting`
 
 **For Development**
 - **Handler Registry**: [`templates/registry/`](templates/registry/) — search via `rg` before loading.
-- **Workflows**: `templates/workflows/domain/README.md`](templates/workflows/domain/README.md)
+- **Workflows**: [`templates/workflows/domain/README.md`](templates/workflows/domain/README.md)
 - **Conventions**: [`templates/CONVENTIONS.md`](templates/CONVENTIONS.md)
 
 **For Extending**
-- **Creating Handlers**: `templates/integration/guides/creating-handlers.md`](templates/integration/guides/creating-handlers.md)
-- **Documentation Standard**: `templates/conventions/docs/documentation-standards.md`](templates/conventions/docs/documentation-standards.md)
-- **Improvement Playbook**: `templates/handlers/orchestrators/system-improvement.md`](templates/handlers/orchestrators/system-improvement.md)
+- **Creating Handlers**: [`templates/integration/guides/creating-handlers.md`](templates/integration/guides/creating-handlers.md)
+- **Documentation Standard**: [`templates/conventions/docs/documentation-standards.md`](templates/conventions/docs/documentation-standards.md)
+- **Improvement Playbook**: [`templates/handlers/orchestrators/system-improvement.md`](templates/handlers/orchestrators/system-improvement.md)
 
 ---
 
