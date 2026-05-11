@@ -45,8 +45,22 @@ Task 37 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cr
 - **[17:22]** — [S:20260511|W:task37-telemetry-pipeline|H:scripts/codex-guard|E:docs/ai/work-tracking/active/20260511-task37-telemetry-pipeline-ACTIVE/reports/telemetry-pipeline/guard-2026-05-11-final.txt] Final guard validation passed.
 - **[17:22]** — [S:20260511|W:task37-telemetry-pipeline|H:scripts/codex-task taskmaster health|E:docs/ai/work-tracking/active/20260511-task37-telemetry-pipeline-ACTIVE/reports/telemetry-pipeline/taskmaster-health-2026-05-11-final.txt] Final Taskmaster health is OK.
 - **[17:22]** — [S:20260511|W:task37-telemetry-pipeline|H:git diff --check|E:docs/ai/work-tracking/active/20260511-task37-telemetry-pipeline-ACTIVE/reports/telemetry-pipeline/diff-check-2026-05-11-final.txt] Final diff check passed with empty output.
+- **[18:00]** — [S:20260511|W:task37-telemetry-pipeline|H:github/pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/73] PR #73 merged into `main` at merge commit `1a6c754`.
+- **[18:00]** — [S:20260511|W:task37-telemetry-pipeline|H:git branch cleanup|E:origin/feat/task-37-telemetry-pipeline] Remote Task 37 feature branch was deleted after merge and local remote tracking was pruned.
+- **[18:00]** — [S:20260511|W:task37-telemetry-pipeline|H:scripts/codex-task work-tracking archive|E:docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/TRACKER.md] Archived Task 37 work-tracking folder and prepared between-session cleanup.
+- **[18:00]** — [S:20260511|W:task37-telemetry-pipeline|H:serena/memory|E:.serena/memories/session_2026-05-11_task37-telemetry-pipeline-closeout.md] Wrote Task 37 closeout Serena memory.
+- **[18:04]** — [S:20260511|W:task37-telemetry-pipeline|H:sessions/current|E:sessions/state.json] Cleared `sessions/current`, `plans/current`, and `sessions/state.json` so the repository is between sessions after Task 37 closeout.
+- **[18:04]** — [S:20260511|W:task37-telemetry-pipeline|H:scripts/codex-task work-tracking audit|E:docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/post-archive-audit-2026-05-11.txt] Captured post-archive audit evidence with no ACTIVE folders and the expected between-session missing `sessions/current` warning.
+- **[18:04]** — [S:20260511|W:task37-telemetry-pipeline|H:scripts/codex-guard|E:docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/post-archive-guard-2026-05-11.txt] Captured post-archive guard pass evidence.
+- **[18:04]** — [S:20260511|W:task37-telemetry-pipeline|H:scripts/codex-task taskmaster health|E:docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/post-archive-taskmaster-health-2026-05-11.txt] Captured post-archive Taskmaster health evidence: OK, `done=73`, `pending=35`.
+- **[18:04]** — [S:20260511|W:task37-telemetry-pipeline|H:git diff --check|E:docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/post-archive-diff-check-2026-05-11.txt] Captured post-archive diff-check evidence with empty output.
 
 ### Session End Status
-- Task 37 implementation and verification are complete on branch `feat/task-37-telemetry-pipeline`.
+- Task 37 completed and merged via PR #73.
 - Taskmaster Task 37 and subtasks `37.1` and `37.2` are done.
-- Work tracking remains ACTIVE until PR merge and post-merge archive cleanup.
+- Implementation commit: `27ea5ce`.
+- Merge commit: `1a6c754`.
+- Work tracking archived to `docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/`.
+- Current session and plan pointers are cleared in the post-merge archive cleanup commit.
+- `sessions/state.json` current is set to null for between-session state.
+- Post-archive audit, guard, Taskmaster health, diff-check, and git-status evidence are stored under the completed archive folder.

@@ -1,7 +1,10 @@
 # Task 37 Build Telemetry Pipeline – Handoff Summary
 
 ## Current State
-- Task 37 is active on branch `feat/task-37-telemetry-pipeline`.
+- PR #73 merged into `main` at merge commit `1a6c754`.
+- Implementation commit: `27ea5ce`.
+- Remote feature branch was deleted after merge; local remote tracking was pruned.
+- Work tracking archived to `docs/ai/work-tracking/archive/20260511-task37-telemetry-pipeline-COMPLETED/`.
 - Scope reconciliation is complete: current telemetry should be static and file-based, not a live OpenTelemetry/Grafana/Elasticsearch stack.
 - Implementation adds a first-class `telemetry` report kind to the existing `codex-task report generate` full chain.
 - `reports/README.md` now documents the static telemetry pipeline and output directories.
@@ -22,6 +25,13 @@
 - Taskmaster health: `reports/telemetry-pipeline/taskmaster-health-2026-05-11-final.txt`
 - Diff check: `reports/telemetry-pipeline/diff-check-2026-05-11-final.txt`
 
+## Post-Archive Evidence
+- Audit: `reports/telemetry-pipeline/post-archive-audit-2026-05-11.txt`
+- Guard: `reports/telemetry-pipeline/post-archive-guard-2026-05-11.txt`
+- Taskmaster health: `reports/telemetry-pipeline/post-archive-taskmaster-health-2026-05-11.txt`
+- Diff check: `reports/telemetry-pipeline/post-archive-diff-check-2026-05-11.txt`
+- Git status: `reports/telemetry-pipeline/post-archive-git-status-2026-05-11.txt`
+
 ## Next Steps
-- Commit and push Task 37.
-- Open PR, merge after CI is green, then archive the active work-tracking folder in a post-merge cleanup commit.
+- Commit and push the post-merge archive cleanup on `main`.
+- After archive cleanup is pushed, Task 37 has no remaining work. The repository is intentionally between sessions: no ACTIVE folder, no `sessions/current`, no `plans/current`, and `sessions/state.json` current set to null.
