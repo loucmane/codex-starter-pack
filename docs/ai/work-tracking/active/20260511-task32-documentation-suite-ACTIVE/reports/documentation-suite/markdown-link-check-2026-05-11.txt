@@ -1,0 +1,8 @@
+Focused markdown link check
+Files checked:
+- CODEX.md
+- templates/USER-GUIDE.md
+- templates/guides/index.md
+- templates/guides/quickstart/getting-started.md
+Links checked: 61
+Result: PASS - all local links in touched docs resolve

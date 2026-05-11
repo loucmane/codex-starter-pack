@@ -4,237 +4,136 @@ type: user-guide
 status: stable
 audience: new-users
 skill-level: beginner
-title: Getting Started with Claude
-description: Essential guide for new users to start using Claude effectively
+title: Getting Started With The Codex Foundation
+description: Beginner guide for using the portable Codex foundation workflow with Taskmaster, sessions, plans, work tracking, guard evidence, and direct Git execution.
 ---
 
-# Getting Started with Claude
+# Getting Started With The Codex Foundation
 
-## Welcome! 👋
+This repository uses a structured workflow so work can survive long sessions, compaction, multiple days, and multiple agents. The goal is simple: every real task should leave enough state and evidence for the next session to continue without guessing.
 
-This guide helps you get the most out of Claude for software development. Think of Claude as your AI pair programmer who excels at specific tasks when you communicate clearly.
+## The Five Things To Check
 
-## Quick Start
+Before implementation starts, these should line up:
 
-### Your First Commands
+1. Taskmaster has the selected task.
+2. The Git branch contains the task ID.
+3. `sessions/current` points at today's session.
+4. `plans/current` points at the active plan.
+5. One ACTIVE work-tracking folder exists for the task.
 
-1. **Start a new feature:**
+If those are not true, the agent should start or repair the workflow before editing implementation files.
+
+## Start From A Clean Repository
+
+Useful inspection commands:
+
+```bash
+date '+%Y-%m-%d %H:%M:%S %Z %z'
+git status --short --branch
+task-master next
+python3 scripts/codex-task work-tracking audit
+```
+
+Between sessions, it is normal for the audit to report no ACTIVE folder and no `sessions/current` symlink.
+
+## Start A New Task
+
+1. Inspect the task:
+
+   ```bash
+   task-master show <id>
    ```
-   "I want to work on user authentication"
+
+2. Create the task branch:
+
+   ```bash
+   git switch -c feat/task-<id>-short-slug
    ```
 
-2. **Fix a bug:**
-   ```
-   "Fix the login bug where users can't submit the form"
-   ```
+3. Run kickoff:
 
-3. **Understand code:**
-   ```
-   "How does the payment processing work?"
+   ```bash
+   python3 scripts/codex-task wizard kickoff --task <id> --slug <short-slug> --title "<Task title>"
    ```
 
-4. **Find code:**
+4. Confirm the active state:
+
+   ```bash
+   python3 scripts/codex-task work-tracking audit
    ```
-   "Where is the user validation logic?"
-   ```
 
-## Core Principles
+## Continue A Task On A Later Day
 
-### 1. Be Specific
-❌ **Too vague:** "Fix it"
-✅ **Specific:** "Fix the navigation menu not closing on mobile"
+If a task already has an ACTIVE folder, do not archive it just because the day changed. Continue it:
 
-### 2. Use Action Words
-❌ **Passive:** "The code needs refactoring"
-✅ **Active:** "Refactor the user service"
-
-### 3. Provide Context
-❌ **No context:** "It's broken"
-✅ **With context:** "The login form throws an error when submitting empty fields"
-
-### 4. One Task at a Time
-❌ **Multiple tasks:** "Fix the bug and add tests and document it"
-✅ **Single task:** "Fix the login bug" (then: "Add tests for login")
-
-## What Claude Does Best
-
-### 🏆 Claude Excels At:
-
-1. **Starting New Work**
-   - Creates organized project structure
-   - Breaks down features into tasks
-   - Sets up proper tracking
-
-2. **Fixing Bugs Systematically**
-   - Reproduces issues first
-   - Gathers evidence before theorizing
-   - Tests fixes thoroughly
-
-3. **Code Search & Navigation**
-   - Finds symbols and definitions
-   - Locates usage patterns
-   - Traces dependencies
-
-4. **Code Understanding**
-   - Explains complex logic
-   - Documents code flow
-   - Clarifies algorithms
-
-5. **Structured Refactoring**
-   - Maintains functionality
-   - Improves code quality
-   - Updates tests
-
-### ⚠️ Claude Needs Help With:
-
-1. **Ambiguous Requests**
-   - Be specific about what you want
-   - Include file names or function names
-   - Describe the expected outcome
-
-2. **Multi-Step Processes**
-   - Break down complex tasks
-   - Do one thing at a time
-   - Verify each step
-
-3. **Project-Specific Knowledge**
-   - Provide context about your conventions
-   - Mention relevant files
-   - Explain custom patterns
-
-## Common First Workflows
-
-### Starting a New Feature
-
-```
-You: "I want to work on adding user profiles"
-Claude: [Creates work folder, sets up tracking, initializes tasks]
-You: "Show me what needs to be done"
-Claude: [Shows organized task list]
-You: "Let's start with the database schema"
-Claude: [Begins implementation]
+```bash
+python3 scripts/codex-task sessions continue --task <id> --slug <short-slug>
 ```
 
-### Fixing Your First Bug
+That creates a fresh daily session while preserving the task's active work-tracking folder.
 
-```
-You: "Users report the search returns no results"
-Claude: [Starts systematic debugging]
-You: "The error happens with special characters"
-Claude: [Reproduces and investigates]
-You: "Found it - the encoding is wrong"
-Claude: [Implements proper fix]
-```
+## During Work
 
-### Understanding Existing Code
+Keep changes scoped:
 
-```
-You: "How does the authentication middleware work?"
-Claude: [Loads relevant code]
-Claude: [Explains step by step with line references]
-You: "What happens if the token is expired?"
-Claude: [Traces that specific path]
+- record discoveries in `FINDINGS.md`
+- record choices in `DECISIONS.md`
+- record implementation notes in `IMPLEMENTATION.md`
+- keep progress and evidence in `TRACKER.md`
+- keep the next-session summary in `HANDOFF.md`
+- store command output under `reports/`
+
+Use plan sync whenever plan/tracker status changes:
+
+```bash
+python3 scripts/codex-task plan sync
 ```
 
-## Power User Tips for Beginners
+## Before Commit Or PR
 
-### 1. Use Natural Language
-Claude understands conversational requests better than commands:
-- ✅ "Find where users are created"
-- ❌ `grep -r "new User"`
+Run the task's focused checks, then the workflow checks:
 
-### 2. Leverage Work Tracking
-Claude automatically tracks your progress:
-- "What's left to do?" - See remaining tasks
-- "Mark login as complete" - Update progress
-- "Where are we?" - Get status summary
-
-### 3. Provide Examples
-When asking for something specific:
-```
-"Create a button component like the existing Card component"
-"Format this similar to our other API endpoints"
+```bash
+python3 scripts/codex-task plan sync
+python3 scripts/codex-task work-tracking audit
+python3 scripts/codex-guard validate --include-untracked
+git diff --check
 ```
 
-### 4. Use Claude's Memory
-Claude remembers your session:
-- "Continue with the auth feature" - Resumes previous work
-- "Like we discussed earlier" - References context
-- "Use the same pattern" - Applies previous decisions
+When full Python tests are in scope and local Git signing interferes with temp repos, use:
 
-### 5. Ask for Explanations
-Don't hesitate to ask why:
-- "Why did you choose that approach?"
-- "What are the tradeoffs?"
-- "Is there a better way?"
-
-## Communication Patterns
-
-### For Quick Tasks
-```
-"Change the button color to blue"
-"Fix the typo in the error message"
-"Add a comment explaining this function"
+```bash
+GIT_CONFIG_GLOBAL=/dev/null PYTHONDONTWRITEBYTECODE=1 python3 -m pytest
 ```
 
-### For Complex Tasks
-```
-"I need to implement a shopping cart. Let's start by planning it out."
-"Help me refactor this module. First, let's understand what it does."
-"Debug why the app is slow. Can you analyze the performance?"
-```
+## Git Defaults
 
-### For Learning
-```
-"Explain how React hooks work in this component"
-"What's the best practice for error handling here?"
-"Show me examples of good test cases"
-```
+The agent should run regular Git commands directly after checks pass when SSH/GPG auth is cached and the user delegates Git work. A `gac` command is only for explicit user requests or manual auth fallback.
 
-## Getting Unstuck
+## What To Ask For
 
-### When Claude doesn't understand:
-1. Rephrase with more detail
-2. Provide a specific file or function name
-3. Give an example of what you want
-4. Break it into smaller steps
+| If you want | Say |
+| --- | --- |
+| Start the next task | "What's next? Let's start it." |
+| Continue current work | "Continue where we left off." |
+| See current status | "Where are we in the task?" |
+| End the day | "End today's session and prepare handoff." |
+| Prepare for compaction | "Prepare compaction using the protocol." |
+| Commit/push directly | "Run the commit and push after checks pass." |
+| Get a manual commit command | "Give me the GAC." |
 
-### When you're not sure what to do:
-- "What can you help me with?"
-- "Show me the available commands"
-- "What should I work on next?"
-- "How do I approach this problem?"
+## More References
 
-### When something goes wrong:
-- "That didn't work, let's try another approach"
-- "The error is still happening"
-- "Can you explain what went wrong?"
-- "Let's debug this step by step"
-
-## Next Steps
-
-Now that you understand the basics:
-
-1. **Try a simple task** - Start with something small like fixing a typo
-2. **Learn about ULTRATHINK** - See [Understanding ULTRATHINK](../ultrathink/understanding.md)
-3. **Explore workflows** - Check [Common Workflows](../workflows/common.md)
-4. **Keep references handy** - Bookmark [Trigger Phrases](../reference/triggers.md)
-
-## Quick Reference Card
-
-**Most Useful Phrases for Beginners:**
-- "I want to work on X" - Start new feature
-- "Fix the Y bug" - Debug and fix
-- "How does Z work?" - Understand code
-- "Find where A is defined" - Locate code
-- "What's left to do?" - Check progress
-
-Remember: Claude works best when you communicate clearly, stay focused on one task at a time, and provide context!
-
----
-
-*Continue learning: [Understanding ULTRATHINK](../ultrathink/understanding.md) →*
+- Guide hub: [../index.md](../index.md)
+- Full user guide: [../../USER-GUIDE.md](../../USER-GUIDE.md)
+- Tool router: [../../TOOLS.md](../../TOOLS.md)
+- Portable foundation spec: [../../engine/core/portable-foundation-spec.md](../../engine/core/portable-foundation-spec.md)
+- Taskmaster alignment: [../../workflows/taskmaster/alignment.md](../../workflows/taskmaster/alignment.md)
+- Work-tracking enforcement: [../../workflows/taskmaster/work-tracking-enforcement.md](../../workflows/taskmaster/work-tracking-enforcement.md)
+- Claude runtime contract: [../../../.claude/engine/runtime-contract.md](../../../.claude/engine/runtime-contract.md)
 
 ## Progress Log
 
 - **2026-04-21 17:59** — [S:20260421|W:task91-standardize-template-metadata|H:templates/guides/quickstart/getting-started.md|E:docs/ai/work-tracking/active/20260421-task91-standardize-template-metadata-ACTIVE/designs/template-metadata-schema.md] Added canonical `status` metadata during the Task 91 guide-standardization slice
+- **2026-05-11 16:02** — [S:20260511|W:task32-documentation-suite|H:templates/guides/quickstart/getting-started.md|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/designs/documentation-suite-scope-reconciliation.md] Replaced the older Claude-only quickstart with current Codex foundation startup, continuation, evidence, and direct Git guidance.
