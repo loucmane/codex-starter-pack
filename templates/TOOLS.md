@@ -131,6 +131,45 @@ Inputs come from Taskmaster state, template-drift reports, plan-sync history, wo
 Repo-structure note:
 - The metrics generator also reads `[repo_structure]` from `.codex/config.toml`, so alternate repos can relocate Taskmaster, reports, sessions, and work-tracking without patching the script.
 
+### Static Telemetry Pipeline
+Use the static telemetry pipeline when you need a complete local/CI snapshot of workflow health:
+
+```bash
+python3 scripts/codex-task report generate --kind telemetry \
+  --strict-drift \
+  --strict-monitoring \
+  --strict-phase0 \
+  --strict-performance \
+  --strict-cost
+```
+
+`--kind telemetry` runs the same ordered chain as the legacy `--kind all` report mode:
+
+1. `scripts/codex-guard drift-check` -> `reports/template-drift/`
+2. `scripts/template-metrics-dashboard` -> `reports/template-metrics/`
+3. `scripts/template-monitoring` -> `reports/template-monitoring/`
+4. `scripts/template-phase0-validation` -> `reports/phase0-scanner-validation/`
+5. `scripts/template-performance-harness` -> `reports/template-performance/`
+6. `scripts/template-cost-report` -> `reports/cost-tracking/`
+
+This repository uses file-based telemetry artifacts, not a live observability service. Do not add Prometheus, Grafana, Elasticsearch, StatsD, OpenTelemetry SDK wiring, databases, or background daemons unless a future task proves an actual runtime service needs them.
+
+### `scripts/template-monitoring`
+Static monitoring evaluator over the metrics dashboard payload. It reads:
+- `reports/template-metrics/latest.json`
+- `templates/metadata/template-monitoring-policy.json`
+
+It writes `reports/template-monitoring/latest.md` and `latest.json`. Use `--strict` when error-level monitoring findings should fail the command.
+
+### `scripts/template-phase0-validation`
+Static Phase 0 scanner validation evaluator. It reads scanner outputs plus monitoring status and writes `reports/phase0-scanner-validation/latest.md` and `latest.json`. Use it after the scanner suite, metrics dashboard, and monitoring stages are current.
+
+### `scripts/template-performance-harness`
+Static performance telemetry for portable foundation operations. It reads `templates/metadata/template-performance-policy.json`, writes `reports/template-performance/latest.md` and `latest.json`, and supports `--baseline-file` plus `--strict` for regression classification.
+
+### `scripts/template-cost-report`
+Static cost-governance telemetry. It reads `templates/metadata/template-cost-policy.json`, accepts an optional usage JSON file, writes `reports/cost-tracking/latest.md` and `latest.json`, and reports missing usage data as `not-measured` rather than inventing live billing data.
+
 ### `view_image`
 Limited to image previews. Document file path and purpose.
 
