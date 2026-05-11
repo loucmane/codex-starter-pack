@@ -1,0 +1,35 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/designs/template-discovery-optimization-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/diff-check-final-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/guard-final-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/performance-baseline-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/performance-baseline/latest.json
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/performance-baseline/latest.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/performance-final-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/performance-final/latest.json
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/performance-final/latest.md
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/plan-sync-final-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/plan-sync-implement-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/plan-sync-scope-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/registry-cold-after-samples-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/registry-cold-baseline-samples-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/registry-profile-after-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/registry-profile-baseline-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/taskmaster-health-final-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/taskmaster-show-61-final-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/tests-full-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/tests-full-unsigned-git-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/tests-registry-focused-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/reports/template-discovery-optimization/work-tracking-audit-final-2026-05-11.txt
+ D plans/current
+ M sessions/2026/05/2026-05-11-001-task61-template-discovery-optimization.md
+ D sessions/current
+ M sessions/state.json
+?? .serena/memories/session_2026-05-11_task61-template-discovery-optimization-closeout.md
+?? docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/
