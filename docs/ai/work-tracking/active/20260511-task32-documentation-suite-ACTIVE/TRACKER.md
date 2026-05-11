@@ -26,6 +26,9 @@
 - **2026-05-11 16:17** — [S:20260511|W:task32-documentation-suite|H:git:diff-check|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/diff-check-2026-05-11.txt] Diff whitespace check passed
 - **2026-05-11 16:18** — [S:20260511|W:task32-documentation-suite|H:task-master:show|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/taskmaster-show-32-2026-05-11.txt] Confirmed Taskmaster Task 32 and subtasks 32.1/32.2 are done
 - **2026-05-11 16:18** — [S:20260511|W:task32-documentation-suite|H:scripts/codex-task:taskmaster-health|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/taskmaster-health-2026-05-11.txt] Confirmed full-graph Taskmaster health is OK
+- **2026-05-11 16:26** — [S:20260511|W:task32-documentation-suite|H:github-actions-ci|E:PR#72 Codex Guard/Meta Workflow Guard] Investigated failing CI and found a new migrated-monolith reference from `templates/USER-GUIDE.md` to `templates/CONVENTIONS.md`
+- **2026-05-11 16:27** — [S:20260511|W:task32-documentation-suite|H:docs-reference-fix|E:templates/USER-GUIDE.md] Replaced the direct migrated-monolith link with `conventions/docs/documentation-standards.md`
+- **2026-05-11 16:28** — [S:20260511|W:task32-documentation-suite|H:scripts/template-ssot-scanner/run_all_scanners.py|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/scanner-suite-ci-2026-05-11.txt] Reproduced the CI scanner path locally; the full scanner suite completed successfully after the migrated-monolith reference fix
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

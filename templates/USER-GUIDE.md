@@ -20,7 +20,7 @@ Use this guide when you want to start work, continue work, verify what changed, 
 - Quickstart: [guides/quickstart/getting-started.md](guides/quickstart/getting-started.md)
 - Tool router: [TOOLS.md](TOOLS.md)
 - Handler registry: [REGISTRY.md](REGISTRY.md)
-- Conventions: [CONVENTIONS.md](CONVENTIONS.md)
+- Documentation standards: [conventions/docs/documentation-standards.md](conventions/docs/documentation-standards.md)
 - Portable foundation spec: [engine/core/portable-foundation-spec.md](engine/core/portable-foundation-spec.md)
 - Foundation adoption guide: [engine/validation/foundation-adoption-guide.md](engine/validation/foundation-adoption-guide.md)
 - Taskmaster alignment: [workflows/taskmaster/alignment.md](workflows/taskmaster/alignment.md)

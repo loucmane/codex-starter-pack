@@ -18,7 +18,8 @@
 - Diff check: `reports/documentation-suite/diff-check-2026-05-11.txt`
 - Taskmaster health: `reports/documentation-suite/taskmaster-health-2026-05-11.txt`
 - Taskmaster status: `reports/documentation-suite/taskmaster-show-32-2026-05-11.txt`
+- CI scanner reproduction: `reports/documentation-suite/scanner-suite-ci-2026-05-11.txt`
 
 ## Next Steps
-- Commit the scoped documentation-suite changes.
-- Push the branch and open a PR.
+- Push the CI migrated-monolith reference fix commit.
+- Recheck PR #72 Actions.
