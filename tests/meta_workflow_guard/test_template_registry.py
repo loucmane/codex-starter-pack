@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 import json
 import sys
 from pathlib import Path
@@ -170,6 +171,61 @@ category: development
     assert explicit_alias.source == "modular"
     assert explicit_alias.record is not None
     assert explicit_alias.record.id == "handlers-triggers-development-start-new-work"
+
+
+def test_registry_skips_modular_paths_during_markdown_discovery(tmp_path: Path, monkeypatch) -> None:
+    _write_repo_config(tmp_path)
+    modular_path = tmp_path / "custom_templates" / "guides" / "alpha.md"
+    loose_path = tmp_path / "custom_templates" / "guides" / "loose.md"
+    _write_template(
+        modular_path,
+        """
+id: alpha
+title: Alpha
+type: guide
+status: stable
+category: docs
+""",
+        "Alpha",
+    )
+    _write_template(
+        loose_path,
+        """
+id: loose
+title: Loose
+type: guide
+status: stable
+category: docs
+""",
+        "Loose",
+    )
+    _write_registry(
+        tmp_path,
+        "custom_templates",
+        [
+            {
+                "id": "alpha",
+                "path": "custom_templates/guides/alpha.md",
+                "tags": ["docs"],
+            }
+        ],
+    )
+
+    calls: list[Path] = []
+    original = TemplateRegistry._frontmatter_for_path
+
+    def counted_frontmatter(self: TemplateRegistry, path: Path) -> dict[str, object]:
+        calls.append(path.resolve())
+        return original(self, path)
+
+    monkeypatch.setattr(TemplateRegistry, "_frontmatter_for_path", counted_frontmatter)
+
+    registry = TemplateRegistry(repo_root=tmp_path)
+    assert {record.id for record in registry.records()} == {"alpha", "loose"}
+
+    counts = Counter(calls)
+    assert counts[modular_path.resolve()] == 1
+    assert counts[loose_path.resolve()] == 1
 
 
 def test_template_discovery_api_returns_serializable_lookup_search_pagination_and_dependencies(tmp_path: Path) -> None:
