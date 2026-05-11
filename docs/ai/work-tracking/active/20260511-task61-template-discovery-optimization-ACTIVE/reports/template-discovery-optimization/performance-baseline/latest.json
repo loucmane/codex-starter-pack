@@ -1,0 +1,96 @@
+{
+  "generated_at": "2026-05-11T13:17:21.726885+02:00",
+  "policy_version": "1.0.0",
+  "status": "fail",
+  "summary": {
+    "total": 4,
+    "passed": 3,
+    "warnings": 0,
+    "errors": 1
+  },
+  "results": [
+    {
+      "id": "template_registry_records",
+      "title": "Template registry record discovery",
+      "probe": "template_registry_records",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.106938,
+      "warning_seconds": 0.15,
+      "critical_seconds": 0.35,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [],
+      "message": "Discovered 261 template registry records",
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "id": "template_registry_warm_cache",
+      "title": "Template registry warm-cache resolution",
+      "probe": "template_registry_warm_cache",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.028395,
+      "warning_seconds": 0.05,
+      "critical_seconds": 0.25,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [],
+      "message": "Warmed 3 query result(s), 0 failure(s)",
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "id": "codex_guard_validate",
+      "title": "Codex guard validation runtime",
+      "probe": "command",
+      "status": "fail",
+      "severity": "error",
+      "elapsed_seconds": 0.199795,
+      "warning_seconds": 5.0,
+      "critical_seconds": 10.0,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 1,
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-guard",
+        "validate",
+        "--include-untracked"
+      ],
+      "message": "Probe returned nonzero exit code 1",
+      "stdout_tail": "Guard validation failed:\n  - docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/TRACKER.md: Serena memory reference missing for today in tracker progress log\n  - plans/2026-05-11-task61-template-discovery-optimization.md: plan-step-scope must be completed before work\n  - plans/2026-05-11-task61-template-discovery-optimization.md: plan-step-scope evidence path not found | entry: docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/designs/wizard-flow.md\n\nHints:\n  * docs/ai/work-tracking/active/20260511-task61-template-discovery-optimization-ACTIVE/designs/wizard-flow.md\n\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under reports/session-continuation/.\nFor CI enforcement see .github/workflows/meta-workflow-guard.yml.\n",
+      "stderr_tail": ""
+    },
+    {
+      "id": "scanner_no_checkpoints",
+      "title": "Template scanner no-checkpoint runtime",
+      "probe": "command",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.648865,
+      "warning_seconds": 10.0,
+      "critical_seconds": 20.0,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [
+        "/usr/bin/python3",
+        "scripts/template-ssot-scanner/scanner.py",
+        "--base",
+        "/home/loucmane/codex",
+        "--out",
+        "/tmp/codex-performance-9etyfnwh/template_scan_results.json",
+        "--no-checkpoints",
+        "--profile",
+        "ci"
+      ],
+      "message": "Command completed",
+      "stdout_tail": "Template System Scanner v1.1.0\n==================================================\nStarting scan of /home/loucmane/codex\nTemplates dir: /home/loucmane/codex/templates\nConfig dirs: /home/loucmane/codex/.codex, /home/loucmane/codex/.claude\n\nFound 274 files in templates (after filtering)\n  Processed 10/274 files...\n  Processed 20/274 files...\n  Processed 30/274 files...\n  Processed 40/274 files...\n  Processed 50/274 files...\n  Processed 60/274 files...\n  Processed 70/274 files...\n  Processed 80/274 files...\n  Processed 90/274 files...\n  Processed 100/274 files...\n  Processed 110/274 files...\n  Processed 120/274 files...\n  Processed 130/274 files...\n  Processed 140/274 files...\n  Processed 150/274 files...\n  Processed 160/274 files...\n  Processed 170/274 files...\n  Processed 180/274 files...\n  Processed 190/274 files...\n  Processed 200/274 files...\n  Processed 210/274 files...\n  Processed 220/274 files...\n  Processed 230/274 files...\n  Processed 240/274 files...\n  Processed 250/274 files...\n  Processed 260/274 files...\n  Processed 270/274 files...\n\nFound 1 files in codex (after filtering)\n\nFound 67 files in claude (after filtering)\n  Processed 10/67 files...\n  Processed 20/67 files...\n  Processed 30/67 files...\n  Processed 40/67 files...\n  Processed 50/67 files...\n  Processed 60/67 files...\n\n\u2705 Scan complete!\n  Total files: 342\n  Total lines: 56587\n  Results saved to: output/data/template_scan_results.json\n\nFile type distribution:\n  agent: 9 files, 1629 lines\n  behavior: 17 files, 2980 lines\n  command: 56 files, 3996 lines\n  convention: 24 files, 6072 lines\n  engine: 24 files, 3659 lines\n  guide: 12 files, 4254 lines\n  handler: 12 files, 3652 lines\n  hook: 1 files, 95 lines\n  integration: 7 files, 3310 lines\n  json-config: 9 files, 966 lines\n  matrix: 8 files, 1212 lines\n  operator: 23 files, 1391 lines\n  orchestrator: 25 files, 1184 lines\n  other: 6 files, 1785 lines\n  pattern: 24 files, 7285 lines\n  prompt: 6 files, 775 lines\n  registry: 6 files, 2339 lines\n  trigger: 27 files, 2240 lines\n  workflow: 46 files, 7763 lines\n\nResults saved to: /tmp/codex-performance-9etyfnwh/template_scan_results.json\n\n==================================================\nScan complete. Use analyze_references.py for detailed analysis.\n",
+      "stderr_tail": ""
+    }
+  ]
+}

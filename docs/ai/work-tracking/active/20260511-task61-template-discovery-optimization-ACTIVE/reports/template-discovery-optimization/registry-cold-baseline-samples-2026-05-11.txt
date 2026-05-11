@@ -1,0 +1,14 @@
+sample_1=0.027196s records=261
+sample_2=0.026416s records=261
+sample_3=0.027304s records=261
+sample_4=0.027147s records=261
+sample_5=0.028263s records=261
+sample_6=0.027398s records=261
+sample_7=0.027384s records=261
+sample_8=0.027022s records=261
+sample_9=0.027810s records=261
+sample_10=0.027366s records=261
+min=0.026416s
+median=0.027335s
+max=0.028263s
+mean=0.027331s

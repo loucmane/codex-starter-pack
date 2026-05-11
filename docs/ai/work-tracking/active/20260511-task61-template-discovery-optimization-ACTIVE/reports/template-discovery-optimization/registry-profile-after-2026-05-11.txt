@@ -1,0 +1,6 @@
+records=261
+elapsed_seconds=0.028404
+frontmatter_calls=261
+unique_frontmatter_paths=261
+duplicate_frontmatter_paths=0
+top_duplicate_paths:

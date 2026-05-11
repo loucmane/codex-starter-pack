@@ -539,7 +539,7 @@ class TemplateRegistry:
         for record in self._load_modular_records():
             self._add_record(record, records, by_id, by_path)
 
-        for record in self._discover_markdown_records():
+        for record in self._discover_markdown_records(excluded_paths=set(by_path)):
             self._add_record(record, records, by_id, by_path)
 
         return _RegistryIndex(tuple(records), by_id, by_path)
@@ -597,18 +597,21 @@ class TemplateRegistry:
             records.append(record)
         return records
 
-    def _discover_markdown_records(self) -> Iterable[TemplateRecord]:
+    def _discover_markdown_records(self, *, excluded_paths: Optional[set[str]] = None) -> Iterable[TemplateRecord]:
         if not self.templates_root.exists():
             return []
         discovered: List[TemplateRecord] = []
+        excluded_paths = excluded_paths or set()
         seen: set[Path] = set()
         for pattern in self.glob_patterns:
             for path in self.templates_root.glob(pattern):
                 if not path.is_file() or path.suffix != ".md" or path in seen:
                     continue
                 seen.add(path)
-                metadata = self._frontmatter_for_path(path)
                 repo_relative = self._repo_relative_path(path)
+                if _normal_key(repo_relative) in excluded_paths:
+                    continue
+                metadata = self._frontmatter_for_path(path)
                 discovered.append(
                     self._record_from_parts(
                         template_id=str(metadata.get("id") or _path_id(repo_relative)),

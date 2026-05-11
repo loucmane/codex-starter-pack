@@ -1,0 +1,176 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+testpaths: tests, scripts/template-ssot-scanner
+collected 411 items
+
+tests/claude_adapter/test_adapter_contract_files.py ..........           [  2%]
+tests/claude_adapter/test_pretooluse_gates.py ..............             [  5%]
+tests/claude_adapter/test_readiness_gate.py .F.........                  [  8%]
+tests/meta_workflow_guard/test_ci_workflows.py .....                     [  9%]
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 16%]
+.........................                                                [ 22%]
+tests/meta_workflow_guard/test_communication_templates.py ......         [ 23%]
+tests/meta_workflow_guard/test_guard_integration.py .                    [ 24%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 30%]
+.........................................                                [ 40%]
+tests/meta_workflow_guard/test_phase0_scanner_validation.py .......      [ 42%]
+tests/meta_workflow_guard/test_registration.py .....                     [ 43%]
+tests/meta_workflow_guard/test_repo_structure_config.py ...              [ 44%]
+tests/meta_workflow_guard/test_template_cost_report.py ......            [ 45%]
+tests/meta_workflow_guard/test_template_lifecycle.py ..........          [ 47%]
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ....        [ 48%]
+tests/meta_workflow_guard/test_template_monitoring.py ........           [ 50%]
+tests/meta_workflow_guard/test_template_performance_harness.py .....     [ 52%]
+tests/meta_workflow_guard/test_template_registry.py ................     [ 55%]
+tests/meta_workflow_guard/test_template_testing.py .....                 [ 57%]
+tests/meta_workflow_guard/test_template_versioning.py ...........        [ 59%]
+tests/meta_workflow_guard/test_training_materials.py ....                [ 60%]
+tests/session_continuation/test_engine_metadata_alignment.py ...         [ 61%]
+tests/session_continuation/test_guard_stub.py .                          [ 61%]
+tests/session_continuation/test_metadata.py ...                          [ 62%]
+tests/timestamp_guard/test_timestamp_validation.py .....                 [ 63%]
+scripts/template-ssot-scanner/test_cli_behavior.py ..............F..     [ 67%]
+scripts/template-ssot-scanner/test_config_integration.py ........        [ 69%]
+scripts/template-ssot-scanner/test_config_loader.py ............         [ 72%]
+scripts/template-ssot-scanner/test_config_schema.py ................     [ 76%]
+scripts/template-ssot-scanner/test_config_validation.py ........         [ 78%]
+scripts/template-ssot-scanner/test_env_override.py ...........           [ 81%]
+scripts/template-ssot-scanner/test_inheritance.py ..............         [ 84%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py .....       [ 85%]
+scripts/template-ssot-scanner/test_pattern_matcher.py .................. [ 90%]
+...                                                                      [ 90%]
+scripts/template-ssot-scanner/test_rule_engine.py ...................    [ 95%]
+scripts/template-ssot-scanner/test_scanner_modules.py ............       [ 98%]
+scripts/template-ssot-scanner/test_security_validator.py ......          [100%]
+
+=================================== FAILURES ===================================
+____________________ test_ready_inside_linked_git_worktree _____________________
+
+tmp_path = PosixPath('/tmp/pytest-of-loucmane/pytest-118/test_ready_inside_linked_git_w0')
+
+    def test_ready_inside_linked_git_worktree(tmp_path: Path) -> None:
+        repo = make_repo(tmp_path)
+        assert run(["git", "config", "user.email", "test@example.com"], repo).returncode == 0
+        assert run(["git", "config", "user.name", "Test User"], repo).returncode == 0
+        assert run(["git", "add", "."], repo).returncode == 0
+>       assert run(["git", "commit", "-q", "-m", "init"], repo).returncode == 0
+E       assert 128 == 0
+E        +  where 128 = CompletedProcess(args=['git', 'commit', '-q', '-m', 'init'], returncode=128, stdout='', stderr="error: gpg failed to s... INQUIRE_MAXLEN 100\ngpg: cannot open '/dev/tty': No such device or address\n\nfatal: failed to write commit object\n").returncode
+E        +    where CompletedProcess(args=['git', 'commit', '-q', '-m', 'init'], returncode=128, stdout='', stderr="error: gpg failed to s... INQUIRE_MAXLEN 100\ngpg: cannot open '/dev/tty': No such device or address\n\nfatal: failed to write commit object\n") = run(['git', 'commit', '-q', '-m', 'init'], PosixPath('/tmp/pytest-of-loucmane/pytest-118/test_ready_inside_linked_git_w0/repo'))
+
+tests/claude_adapter/test_readiness_gate.py:119: AssertionError
+____________ test_reference_fix_runner_rolls_back_with_git_restore _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-loucmane/pytest-118/test_reference_fix_runner_roll0')
+
+    def test_reference_fix_runner_rolls_back_with_git_restore(tmp_path):
+        repo_root = tmp_path / "repo"
+        fixes_file = write_reference_fixture(repo_root)
+        target = repo_root / "templates" / "example.md"
+
+        subprocess.run(["git", "init"], cwd=repo_root, check=True, capture_output=True, text=True)
+        subprocess.run(["git", "add", "templates/example.md"], cwd=repo_root, check=True, capture_output=True, text=True)
+>       subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "user.name=Test User",
+                "commit",
+                "-m",
+                "test: seed fixture",
+            ],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+scripts/template-ssot-scanner/test_cli_behavior.py:314:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input = None, capture_output = True, timeout = None, check = True
+popenargs = (['git', '-c', 'user.email=test@example.com', '-c', 'user.name=Test User', 'commit', ...],)
+kwargs = {'cwd': PosixPath('/tmp/pytest-of-loucmane/pytest-118/test_reference_fix_runner_roll0/repo'), 'stderr': -1, 'stdout': -1, 'text': True}
+process = <Popen: returncode: 128 args: ['git', '-c', 'user.email=test@example.com', '...>
+stdout = ''
+stderr = "error: gpg failed to sign the data:\n[GNUPG:] KEY_CONSIDERED 7720D1FE503A88EDECA61A6F0C7D823543E01875 0\n[GNUPG:] BEG...] INQUIRE_MAXLEN 100\ngpg: cannot open '/dev/tty': No such device or address\n\nfatal: failed to write commit object\n"
+retcode = 128
+
+    def run(*popenargs,
+            input=None, capture_output=False, timeout=None, check=False, **kwargs):
+        """Run command with arguments and return a CompletedProcess instance.
+
+        The returned instance will have attributes args, returncode, stdout and
+        stderr. By default, stdout and stderr are not captured, and those attributes
+        will be None. Pass stdout=PIPE and/or stderr=PIPE in order to capture them,
+        or pass capture_output=True to capture both.
+
+        If check is True and the exit code was non-zero, it raises a
+        CalledProcessError. The CalledProcessError object will have the return code
+        in the returncode attribute, and output & stderr attributes if those streams
+        were captured.
+
+        If timeout is given, and the process takes too long, a TimeoutExpired
+        exception will be raised.
+
+        There is an optional argument "input", allowing you to
+        pass bytes or a string to the subprocess's stdin.  If you use this argument
+        you may not also use the Popen constructor's "stdin" argument, as
+        it will be used internally.
+
+        By default, all communication is in bytes, and therefore any "input" should
+        be bytes, and the stdout and stderr will be bytes. If in text mode, any
+        "input" should be a string, and stdout and stderr will be strings decoded
+        according to locale encoding, or by "encoding" if set. Text mode is
+        triggered by setting any of text, encoding, errors or universal_newlines.
+
+        The other arguments are the same as for the Popen constructor.
+        """
+        if input is not None:
+            if kwargs.get('stdin') is not None:
+                raise ValueError('stdin and input arguments may not both be used.')
+            kwargs['stdin'] = PIPE
+
+        if capture_output:
+            if kwargs.get('stdout') is not None or kwargs.get('stderr') is not None:
+                raise ValueError('stdout and stderr arguments may not be used '
+                                 'with capture_output.')
+            kwargs['stdout'] = PIPE
+            kwargs['stderr'] = PIPE
+
+        with Popen(*popenargs, **kwargs) as process:
+            try:
+                stdout, stderr = process.communicate(input, timeout=timeout)
+            except TimeoutExpired as exc:
+                process.kill()
+                if _mswindows:
+                    # Windows accumulates the output in a single blocking
+                    # read() call run on child threads, with the timeout
+                    # being done in a join() on those threads.  communicate()
+                    # _after_ kill() is required to collect that and add it
+                    # to the exception.
+                    exc.stdout, exc.stderr = process.communicate()
+                else:
+                    # POSIX _communicate already populated the output so
+                    # far into the TimeoutExpired exception.
+                    process.wait()
+                raise
+            except:  # Including KeyboardInterrupt, communicate handled that.
+                process.kill()
+                # We don't call process.wait() as .__exit__ does that for us.
+                raise
+            retcode = process.poll()
+            if check and retcode:
+>               raise CalledProcessError(retcode, process.args,
+                                         output=stdout, stderr=stderr)
+E               subprocess.CalledProcessError: Command '['git', '-c', 'user.email=test@example.com', '-c', 'user.name=Test User', 'commit', '-m', 'test: seed fixture']' returned non-zero exit status 128.
+
+/usr/lib/python3.12/subprocess.py:571: CalledProcessError
+=========================== short test summary info ============================
+FAILED tests/claude_adapter/test_readiness_gate.py::test_ready_inside_linked_git_worktree
+FAILED scripts/template-ssot-scanner/test_cli_behavior.py::test_reference_fix_runner_rolls_back_with_git_restore
+======================== 2 failed, 409 passed in 6.95s =========================

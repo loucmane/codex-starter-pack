@@ -1,0 +1,26 @@
+records=261
+elapsed_seconds=0.030532
+frontmatter_calls=362
+unique_frontmatter_paths=261
+duplicate_frontmatter_paths=101
+top_duplicate_paths:
+  2 /home/loucmane/codex/templates/engine/MODULARIZATION-COMPLETE.md
+  2 /home/loucmane/codex/templates/engine/README.md
+  2 /home/loucmane/codex/templates/engine/activation/context-aware.md
+  2 /home/loucmane/codex/templates/engine/core/codex-readiness.md
+  2 /home/loucmane/codex/templates/engine/core/enforcement-check.md
+  2 /home/loucmane/codex/templates/engine/core/pre-ultrathink.md
+  2 /home/loucmane/codex/templates/engine/core/session-resolver.md
+  2 /home/loucmane/codex/templates/engine/core/ultrathink-protocol.md
+  2 /home/loucmane/codex/templates/engine/debugging/system-debug.md
+  2 /home/loucmane/codex/templates/engine/enforcement/behavioral-hooks.md
+  2 /home/loucmane/codex/templates/engine/enforcement/cannot-proceed.md
+  2 /home/loucmane/codex/templates/engine/enforcement/meta-workflow-guard-ci-plan.md
+  2 /home/loucmane/codex/templates/engine/enforcement/meta-workflow-guard-remediation.md
+  2 /home/loucmane/codex/templates/engine/examples/practical.md
+  2 /home/loucmane/codex/templates/engine/execution/swhe-format.md
+  2 /home/loucmane/codex/templates/engine/fallbacks/error-handling.md
+  2 /home/loucmane/codex/templates/engine/navigation/common-flows.md
+  2 /home/loucmane/codex/templates/engine/navigation/template-protocol.md
+  2 /home/loucmane/codex/templates/engine/structure/template-system.md
+  2 /home/loucmane/codex/templates/engine/validation/ENFORCEMENT-SUMMARY.md
