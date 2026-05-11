@@ -1,0 +1,80 @@
+{
+  "generated_at": "2026-05-11T17:18:26.333982+02:00",
+  "policy_version": "1.0.0",
+  "metrics_file": "docs/ai/work-tracking/active/20260511-task37-telemetry-pipeline-ACTIVE/reports/telemetry-pipeline/template-metrics/latest.json",
+  "status": "pass",
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "warnings": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "template_metadata_coverage",
+      "title": "Template metadata coverage",
+      "source": "template_metadata.coverage_pct",
+      "operator": ">=",
+      "threshold": 100,
+      "actual": 100.0,
+      "severity": "error",
+      "status": "pass",
+      "message": "Template metadata coverage must remain complete."
+    },
+    {
+      "id": "template_metadata_drift",
+      "title": "Template metadata drift",
+      "source": "template_metadata.drifted_file_count",
+      "operator": "<=",
+      "threshold": 0,
+      "actual": 0,
+      "severity": "error",
+      "status": "pass",
+      "message": "Template metadata drift findings require correction."
+    },
+    {
+      "id": "template_drift_findings",
+      "title": "Template drift findings",
+      "source": "drift.finding_count",
+      "operator": "<=",
+      "threshold": 0,
+      "actual": 0,
+      "severity": "error",
+      "status": "pass",
+      "message": "Template drift reports should stay clean."
+    },
+    {
+      "id": "active_work_tracking_folders",
+      "title": "Active work-tracking folders",
+      "source": "work_tracking.active_folder_count",
+      "operator": "<=",
+      "threshold": 1,
+      "actual": 1,
+      "severity": "warning",
+      "status": "pass",
+      "message": "More than one active work-tracking folder should be reviewed."
+    },
+    {
+      "id": "taskmaster_in_progress_count",
+      "title": "Taskmaster in-progress count",
+      "source": "taskmaster.status_counts.in-progress",
+      "operator": "<=",
+      "threshold": 1,
+      "actual": 1,
+      "severity": "warning",
+      "status": "pass",
+      "message": "More than one in-progress Taskmaster task should be reviewed."
+    },
+    {
+      "id": "plan_sync_activity",
+      "title": "Plan sync activity",
+      "source": "plan_sync.entry_count",
+      "operator": ">",
+      "threshold": 0,
+      "actual": 595,
+      "severity": "warning",
+      "status": "pass",
+      "message": "Plan sync should have at least one recorded entry."
+    }
+  ]
+}

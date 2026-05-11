@@ -82,6 +82,15 @@ def test_build_parser_accepts_serena_status() -> None:
     assert args.report_file == "reports/serena/status.txt"
 
 
+def test_build_parser_accepts_telemetry_report_kind() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["report", "generate", "--kind", "telemetry"])
+    assert args.command == "report"
+    assert args.subcommand == "generate"
+    assert args.kind == "telemetry"
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -1304,6 +1313,58 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
     assert commands[5][2:] == [
         "--report-dir",
         "reports/cost-tracking",
+        "--strict",
+    ]
+
+
+def test_handle_report_generate_telemetry_kind_runs_full_static_pipeline(monkeypatch) -> None:
+    module = load_task_module()
+    commands = []
+
+    def fake_run(cmd, cwd=None):
+        commands.append(cmd)
+        return FakeCompletedProcess(returncode=0)
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    args = argparse.Namespace(
+        kind="telemetry",
+        report_dir="reports/template-metrics",
+        drift_report_dir="reports/template-drift",
+        metrics_file="reports/template-metrics/latest.json",
+        monitoring_report_dir="reports/template-monitoring",
+        scanner_data_dir="scripts/template-ssot-scanner/output/data",
+        phase0_monitoring_file="reports/template-monitoring/latest.json",
+        phase0_report_dir="reports/phase0-scanner-validation",
+        performance_report_dir="reports/template-performance",
+        performance_baseline_file=None,
+        cost_report_dir="reports/cost-tracking",
+        cost_usage_file=None,
+        strict_drift=True,
+        strict_monitoring=True,
+        strict_phase0=True,
+        strict_performance=True,
+        strict_cost=True,
+        dry_run=False,
+    )
+
+    module.handle_report_generate(args)
+
+    assert [Path(command[1]).name for command in commands] == [
+        "codex-guard",
+        "template-metrics-dashboard",
+        "template-monitoring",
+        "template-phase0-validation",
+        "template-performance-harness",
+        "template-cost-report",
+    ]
+    assert commands[3][2:] == [
+        "--scanner-data-dir",
+        "scripts/template-ssot-scanner/output/data",
+        "--monitoring-file",
+        "reports/template-monitoring/latest.json",
+        "--report-dir",
+        "reports/phase0-scanner-validation",
         "--strict",
     ]
 

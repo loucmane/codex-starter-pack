@@ -1653,8 +1653,9 @@ def handle_scanner_run(args: argparse.Namespace) -> None:
 
 def handle_report_generate(args: argparse.Namespace) -> None:
     commands: List[List[str]] = []
+    full_pipeline = args.kind in {"all", "telemetry"}
 
-    if args.kind in {"drift", "all"}:
+    if args.kind == "drift" or full_pipeline:
         drift_cmd = [
             sys.executable,
             str(CODEX_GUARD_SCRIPT),
@@ -1666,7 +1667,7 @@ def handle_report_generate(args: argparse.Namespace) -> None:
             drift_cmd.append("--strict")
         commands.append(drift_cmd)
 
-    if args.kind in {"metrics", "all"}:
+    if args.kind == "metrics" or full_pipeline:
         commands.append([
             sys.executable,
             str(METRICS_DASHBOARD_SCRIPT),
@@ -1674,7 +1675,7 @@ def handle_report_generate(args: argparse.Namespace) -> None:
             args.report_dir,
         ])
 
-    if args.kind in {"monitoring", "all"}:
+    if args.kind == "monitoring" or full_pipeline:
         monitoring_report_dir = args.monitoring_report_dir
         monitoring_cmd = [
             sys.executable,
@@ -1688,9 +1689,9 @@ def handle_report_generate(args: argparse.Namespace) -> None:
             monitoring_cmd.append("--strict")
         commands.append(monitoring_cmd)
 
-    if args.kind in {"phase0", "all"}:
+    if args.kind == "phase0" or full_pipeline:
         monitoring_file = args.phase0_monitoring_file
-        if args.kind == "all":
+        if full_pipeline:
             monitoring_file = (Path(args.monitoring_report_dir) / "latest.json").as_posix()
         phase0_cmd = [
             sys.executable,
@@ -1706,7 +1707,7 @@ def handle_report_generate(args: argparse.Namespace) -> None:
             phase0_cmd.append("--strict")
         commands.append(phase0_cmd)
 
-    if args.kind in {"performance", "all"}:
+    if args.kind == "performance" or full_pipeline:
         performance_cmd = [
             sys.executable,
             str(PERFORMANCE_HARNESS_SCRIPT),
@@ -1719,7 +1720,7 @@ def handle_report_generate(args: argparse.Namespace) -> None:
             performance_cmd.append("--strict")
         commands.append(performance_cmd)
 
-    if args.kind in {"cost", "all"}:
+    if args.kind == "cost" or full_pipeline:
         cost_cmd = [
             sys.executable,
             str(COST_REPORT_SCRIPT),
@@ -3838,9 +3839,9 @@ def build_parser() -> argparse.ArgumentParser:
     report_generate = report_sub.add_parser("generate", help="Generate workflow reports")
     report_generate.add_argument(
         "--kind",
-        choices=("metrics", "drift", "monitoring", "phase0", "performance", "cost", "all"),
+        choices=("metrics", "drift", "monitoring", "phase0", "performance", "cost", "telemetry", "all"),
         default="metrics",
-        help="Report type to generate (default: metrics)",
+        help="Report type to generate; telemetry/all runs the full static pipeline (default: metrics)",
     )
     report_generate.add_argument(
         "--report-dir",
