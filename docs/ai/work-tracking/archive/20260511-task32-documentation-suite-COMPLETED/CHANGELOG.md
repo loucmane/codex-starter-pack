@@ -8,3 +8,7 @@
 - 2026-05-11 16:18 CEST — Marked Taskmaster Task 32 and both subtasks done after final status evidence.
 - 2026-05-11 16:27 CEST — Fixed PR #72 CI migrated-monolith finding by replacing the new `templates/CONVENTIONS.md` link with the modular documentation standard path.
 - 2026-05-11 16:28 CEST — Captured successful local CI scanner-suite reproduction after the migrated-monolith reference fix.
+- 2026-05-11 16:42 CEST — PR #72 merged into `main` at merge commit `1414e86`; local and remote feature branches were deleted.
+- 2026-05-11 16:42 CEST — Archived active work-tracking folder.
+- 2026-05-11 16:43 CEST — Wrote Task 32 closeout Serena memory.
+- 2026-05-11 16:45 CEST — Captured post-archive audit, guard, diff-check, git status, and Taskmaster health evidence.

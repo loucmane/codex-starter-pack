@@ -1,0 +1,22 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/designs/documentation-suite-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/diff-check-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/guard-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/markdown-link-check-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/plan-sync-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/scanner-suite-ci-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/taskmaster-health-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/taskmaster-show-32-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/reports/documentation-suite/work-tracking-audit-2026-05-11.txt
+ D plans/current
+ M sessions/2026/05/2026-05-11-002-task32-documentation-suite.md
+ D sessions/current
+ M sessions/state.json
+?? .serena/memories/session_2026-05-11_task32-documentation-suite-closeout.md
+?? docs/ai/work-tracking/archive/20260511-task32-documentation-suite-COMPLETED/
