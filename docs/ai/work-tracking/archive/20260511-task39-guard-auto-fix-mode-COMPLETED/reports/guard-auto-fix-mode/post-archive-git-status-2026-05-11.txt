@@ -1,0 +1,21 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/designs/guard-auto-fix-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/diff-check-2026-05-11-final.txt
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/guard-2026-05-11-final.txt
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/plan-sync-2026-05-11-final.txt
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/taskmaster-health-2026-05-11-final.txt
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/taskmaster-show-39-2026-05-11.txt
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/tests-2026-05-11-guard-rules.txt
+ D docs/ai/work-tracking/active/20260511-task39-guard-auto-fix-mode-ACTIVE/reports/guard-auto-fix-mode/validate-help-2026-05-11.txt
+ D plans/current
+ M sessions/2026/05/2026-05-11-004-task39-guard-auto-fix-mode.md
+ D sessions/current
+ M sessions/state.json
+?? .serena/memories/session_2026-05-11_task39-guard-auto-fix-mode-closeout.md
+?? docs/ai/work-tracking/archive/20260511-task39-guard-auto-fix-mode-COMPLETED/
