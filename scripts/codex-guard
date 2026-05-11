@@ -119,6 +119,8 @@ GAC_STALE_DEFAULT_PATTERNS = (
     re.compile(r"`?gac`?\s*-\s*git add all and commit", re.IGNORECASE),
 )
 DRIFT_REQUIRED_GUARD_COMMANDS = {"validate", "drift-check"}
+SUPPORTED_FIX_KINDS = {"tracker-last-updated"}
+DEFAULT_FIX_HISTORY = "reports/guard-fixes/history.jsonl"
 
 
 def should_ignore_relative(relative: Path) -> bool:
@@ -222,6 +224,22 @@ class ValidationIssue:
         if self.entry:
             return f"{prefix} | entry: {self.entry}"
         return prefix
+
+
+@dataclass
+class GuardFix:
+    kind: str
+    path: Path
+    description: str
+    before: str
+    after: str
+    new_text: str
+
+    def render_preview(self) -> str:
+        return (
+            f"{self.path.as_posix()}: {self.kind} - {self.description} "
+            f"({self.before!r} -> {self.after!r})"
+        )
 
 
 class FrontmatterParseError(ValueError):
@@ -1803,6 +1821,118 @@ def validate_timestamp_policy(relative_path: Path, text: str, metadata: Dict[str
     ):
         return validate_changelog(relative_path, text)
     return []
+
+
+def is_active_tracker_path(relative_path: Path) -> bool:
+    parts = relative_path.parts
+    return (
+        len(parts) >= len(WORK_TRACKING_RELATIVE.parts) + 2
+        and tuple(parts[: len(WORK_TRACKING_RELATIVE.parts)]) == WORK_TRACKING_RELATIVE.parts
+        and parts[-1] == "TRACKER.md"
+        and parts[len(WORK_TRACKING_RELATIVE.parts)].endswith("-ACTIVE")
+    )
+
+
+def build_tracker_last_updated_fix(relative_path: Path, text: str) -> Optional[GuardFix]:
+    if not is_active_tracker_path(relative_path):
+        return None
+
+    target = f"**Last Updated**: {TODAY_ISO}"
+    match = LAST_UPDATED_PATTERN.search(text)
+    if match:
+        current = match.group(0)
+        if current == target:
+            return None
+        new_text = f"{text[:match.start()]}{target}{text[match.end():]}"
+        return GuardFix(
+            kind="tracker-last-updated",
+            path=relative_path,
+            description="Update active tracker Last Updated metadata to today's date",
+            before=current,
+            after=target,
+            new_text=new_text,
+        )
+
+    lines = text.splitlines(keepends=True)
+    insert_at: Optional[int] = None
+    for index, line in enumerate(lines[:12]):
+        if line.startswith("**Status**:"):
+            insert_at = index + 1
+            break
+    if insert_at is None:
+        for index, line in enumerate(lines[:12]):
+            if line.startswith("**Started**:"):
+                insert_at = index + 1
+                break
+    if insert_at is None:
+        return None
+
+    lines.insert(insert_at, f"{target}\n")
+    return GuardFix(
+        kind="tracker-last-updated",
+        path=relative_path,
+        description="Insert active tracker Last Updated metadata with today's date",
+        before="",
+        after=target,
+        new_text="".join(lines),
+    )
+
+
+def collect_auto_fixes(changed_files: Iterable[Path], selected_kinds: Optional[Set[str]] = None) -> List[GuardFix]:
+    fixes: List[GuardFix] = []
+    selected = selected_kinds or SUPPORTED_FIX_KINDS
+    if "tracker-last-updated" not in selected:
+        return fixes
+
+    for file_path in changed_files:
+        try:
+            relative_path = file_path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative_path) or not is_active_tracker_path(relative_path):
+            continue
+        try:
+            text = file_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue
+        fix = build_tracker_last_updated_fix(relative_path, text)
+        if fix is not None:
+            fixes.append(fix)
+    return fixes
+
+
+def render_fix_preview(fixes: Sequence[GuardFix]) -> None:
+    if not fixes:
+        print("Guard auto-fix preview: no supported fixes available.")
+        return
+    print("Guard auto-fix preview:")
+    for fix in fixes:
+        print(f"  - {fix.render_preview()}")
+
+
+def apply_auto_fixes(fixes: Sequence[GuardFix], history_path: Optional[Path]) -> None:
+    applied_at = datetime.now().astimezone().isoformat()
+    for fix in fixes:
+        target = REPO_ROOT / fix.path
+        target.write_text(fix.new_text, encoding="utf-8")
+
+    if history_path is None or not fixes:
+        return
+
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    with history_path.open("a", encoding="utf-8") as handle:
+        for fix in fixes:
+            payload = {
+                "applied_at": applied_at,
+                "kind": fix.kind,
+                "path": fix.path.as_posix(),
+                "description": fix.description,
+                "before": fix.before,
+                "after": fix.after,
+            }
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
 def evaluate_file(path: Path) -> List[ValidationIssue]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -2021,9 +2151,9 @@ def guard_drift_check(args: argparse.Namespace) -> int:
     return 0
 
 
-def guard_validate(args: argparse.Namespace) -> int:
-    entries = collect_git_status_entries(args.include_untracked)
-    changed_files = compute_changed_files(entries, args.include_untracked)
+def collect_validation_issues(include_untracked: bool) -> Tuple[List[ValidationIssue], List[Path]]:
+    entries = collect_git_status_entries(include_untracked)
+    changed_files = compute_changed_files(entries, include_untracked)
     baseline_issues: List[ValidationIssue] = []
     baseline_issues.extend(validate_session_state(entries, changed_files))
     baseline_issues.extend(validate_runtime_artifacts(changed_files))
@@ -2058,8 +2188,7 @@ def guard_validate(args: argparse.Namespace) -> int:
                 relevant.append(file_path)
 
     if not relevant and not baseline_issues and not folder_name_issues and not active_folders:
-        print("No relevant markdown files changed; guard passes by default.")
-        return 0
+        return [], changed_files
 
     all_issues: List[ValidationIssue] = []
     all_issues.extend(baseline_issues)
@@ -2084,17 +2213,46 @@ def guard_validate(args: argparse.Namespace) -> int:
             all_issues.extend(validate_emergency_bypass(plan_details))
             all_issues.extend(validate_continuation_requirements(plan_details))
 
+    return all_issues, changed_files
+
+
+def render_validation_issues(issues: Sequence[ValidationIssue], *, heading: str = "Guard validation failed:") -> None:
+    print(heading)
+    for issue in issues:
+        print(f"  - {issue.render()}")
+    hints = sorted({issue.entry for issue in issues if issue.entry})
+    if hints:
+        print('\nHints:')
+        for hint in hints:
+            print(f"  * {hint}")
+        print(f'\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under {CONTINUATION_GUARD_REL}/.')
+        print('For CI enforcement see .github/workflows/meta-workflow-guard.yml.')
+
+
+def guard_validate(args: argparse.Namespace) -> int:
+    all_issues, changed_files = collect_validation_issues(args.include_untracked)
+
     if all_issues:
-        print("Guard validation failed:")
-        for issue in all_issues:
-            print(f"  - {issue.render()}")
-        hints = sorted({issue.entry for issue in all_issues if issue.entry})
-        if hints:
-            print('\nHints:')
-            for hint in hints:
-                print(f"  * {hint}")
-            print(f'\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under {CONTINUATION_GUARD_REL}/.')
-            print('For CI enforcement see .github/workflows/meta-workflow-guard.yml.')
+        selected_kinds = set(args.fix_kind or [])
+        fixes = collect_auto_fixes(changed_files, selected_kinds or None)
+        if args.fix_preview or args.auto_fix:
+            render_fix_preview(fixes)
+            if args.fix_preview and not args.auto_fix:
+                render_validation_issues(all_issues)
+                return 1
+
+        if args.auto_fix and fixes:
+            history_path = _resolve_output_path(args.fix_history)
+            apply_auto_fixes(fixes, history_path)
+            print(f"Applied {len(fixes)} guard auto-fix(es).")
+            post_issues, _changed_files = collect_validation_issues(args.include_untracked)
+            if not post_issues:
+                print("Guard validation passed after auto-fix.")
+                return 0
+            render_validation_issues(post_issues, heading="Guard validation failed after auto-fix:")
+            return 1
+
+        render_validation_issues(all_issues)
         return 1
 
     print("Guard validation passed: all S:W:H:E entries look compliant.")
@@ -2107,6 +2265,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_parser = subparsers.add_parser("validate", help="Validate S:W:H:E compliance in changed files")
     validate_parser.add_argument("--include-untracked", action="store_true", help="Include untracked markdown files")
+    validate_parser.add_argument("--fix-preview", action="store_true", help="Preview supported auto-fixes without modifying files")
+    validate_parser.add_argument("--auto-fix", action="store_true", help="Apply supported auto-fixes and rerun validation")
+    validate_parser.add_argument("--fix-kind", action="append", choices=sorted(SUPPORTED_FIX_KINDS), help="Limit auto-fix to a supported fix kind; repeat for multiple kinds")
+    validate_parser.add_argument("--fix-history", default=DEFAULT_FIX_HISTORY, help="JSONL file for applied auto-fix history")
     validate_parser.set_defaults(func=guard_validate)
 
     drift_parser = subparsers.add_parser("drift-check", help="Scan canonical docs and templates for enforcement drift")

@@ -449,6 +449,169 @@ session_id: 2030-01-02-001
     assert issues == []
 
 
+def test_build_tracker_last_updated_fix_updates_stale_date(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    relative = Path('docs/ai/work-tracking/active/20300101-task39-guard-auto-fix-mode-ACTIVE/TRACKER.md')
+    text = """# Tracker
+
+**Started**: 2030-01-01
+**Status**: ACTIVE
+**Last Updated**: 2030-01-01
+
+## Progress Log
+- **2030-01-02 09:00** — [S:20300102|W:task39|H:shell:date|E:cmd`date`] Continued
+"""
+    fix = module.build_tracker_last_updated_fix(relative, text)
+    assert fix is not None
+    assert fix.kind == 'tracker-last-updated'
+    assert fix.before == '**Last Updated**: 2030-01-01'
+    assert fix.after == '**Last Updated**: 2030-01-02'
+    assert '**Last Updated**: 2030-01-02' in fix.new_text
+    assert '**Last Updated**: 2030-01-01' not in fix.new_text
+
+
+def test_build_tracker_last_updated_fix_inserts_missing_field(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    relative = Path('docs/ai/work-tracking/active/20300101-task39-guard-auto-fix-mode-ACTIVE/TRACKER.md')
+    text = """# Tracker
+
+**Started**: 2030-01-01
+**Status**: ACTIVE
+
+## Progress Log
+- **2030-01-02 09:00** — [S:20300102|W:task39|H:shell:date|E:cmd`date`] Continued
+"""
+    fix = module.build_tracker_last_updated_fix(relative, text)
+    assert fix is not None
+    assert '**Status**: ACTIVE\n**Last Updated**: 2030-01-02\n' in fix.new_text
+
+
+def test_collect_auto_fixes_respects_selected_kind(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'REPO_ROOT', tmp_path)
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-02')
+    relative = Path('docs/ai/work-tracking/active/20300101-task39-guard-auto-fix-mode-ACTIVE/TRACKER.md')
+    tracker = tmp_path / relative
+    tracker.parent.mkdir(parents=True)
+    tracker.write_text(
+        """# Tracker
+
+**Started**: 2030-01-01
+**Status**: ACTIVE
+**Last Updated**: 2030-01-01
+""",
+        encoding='utf-8',
+    )
+
+    assert module.collect_auto_fixes([tracker], {'unsupported-kind'}) == []
+    fixes = module.collect_auto_fixes([tracker], {'tracker-last-updated'})
+    assert [fix.kind for fix in fixes] == ['tracker-last-updated']
+
+
+def test_apply_auto_fixes_writes_file_and_history(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'REPO_ROOT', tmp_path)
+    relative = Path('docs/ai/work-tracking/active/20300101-task39-guard-auto-fix-mode-ACTIVE/TRACKER.md')
+    tracker = tmp_path / relative
+    tracker.parent.mkdir(parents=True)
+    tracker.write_text('old\n', encoding='utf-8')
+    history = tmp_path / 'reports' / 'guard-fixes' / 'history.jsonl'
+    fix = module.GuardFix(
+        kind='tracker-last-updated',
+        path=relative,
+        description='Update active tracker Last Updated metadata',
+        before='old',
+        after='new',
+        new_text='new\n',
+    )
+
+    module.apply_auto_fixes([fix], history)
+
+    assert tracker.read_text(encoding='utf-8') == 'new\n'
+    payload = json.loads(history.read_text(encoding='utf-8').strip())
+    assert payload['kind'] == 'tracker-last-updated'
+    assert payload['path'] == relative.as_posix()
+    assert payload['before'] == 'old'
+    assert payload['after'] == 'new'
+
+
+def test_guard_validate_preview_does_not_apply_fixes(monkeypatch, capsys) -> None:
+    module = load_guard_module()
+    issue = module.ValidationIssue(Path('docs/ai/work-tracking/active/example/TRACKER.md'), 'Tracker Last Updated is stale')
+    fix = module.GuardFix(
+        kind='tracker-last-updated',
+        path=Path('docs/ai/work-tracking/active/example/TRACKER.md'),
+        description='Update active tracker Last Updated metadata',
+        before='old',
+        after='new',
+        new_text='new\n',
+    )
+    applied = False
+
+    def fail_if_applied(*_args, **_kwargs):
+        nonlocal applied
+        applied = True
+
+    monkeypatch.setattr(module, 'collect_validation_issues', lambda include_untracked: ([issue], [module.REPO_ROOT / fix.path]))
+    monkeypatch.setattr(module, 'collect_auto_fixes', lambda changed_files, selected_kinds=None: [fix])
+    monkeypatch.setattr(module, 'apply_auto_fixes', fail_if_applied)
+
+    result = module.guard_validate(
+        argparse.Namespace(
+            include_untracked=True,
+            fix_preview=True,
+            auto_fix=False,
+            fix_kind=None,
+            fix_history=module.DEFAULT_FIX_HISTORY,
+        )
+    )
+
+    assert result == 1
+    assert applied is False
+    output = capsys.readouterr().out
+    assert 'Guard auto-fix preview:' in output
+    assert 'tracker-last-updated' in output
+
+
+def test_guard_validate_reports_remaining_failures_after_auto_fix(monkeypatch, tmp_path, capsys) -> None:
+    module = load_guard_module()
+    initial_issue = module.ValidationIssue(Path('TRACKER.md'), 'Tracker Last Updated is stale')
+    remaining_issue = module.ValidationIssue(Path('plans/current'), 'Active plan symlink missing or invalid')
+    fix = module.GuardFix(
+        kind='tracker-last-updated',
+        path=Path('docs/ai/work-tracking/active/example/TRACKER.md'),
+        description='Update active tracker Last Updated metadata',
+        before='old',
+        after='new',
+        new_text='new\n',
+    )
+    calls = iter([([initial_issue], [module.REPO_ROOT / fix.path]), ([remaining_issue], [module.REPO_ROOT / fix.path])])
+    applied: list[module.GuardFix] = []
+
+    monkeypatch.setattr(module, 'collect_validation_issues', lambda include_untracked: next(calls))
+    monkeypatch.setattr(module, 'collect_auto_fixes', lambda changed_files, selected_kinds=None: [fix])
+    monkeypatch.setattr(module, 'apply_auto_fixes', lambda fixes, history_path: applied.extend(fixes))
+
+    result = module.guard_validate(
+        argparse.Namespace(
+            include_untracked=True,
+            fix_preview=False,
+            auto_fix=True,
+            fix_kind=None,
+            fix_history=str(tmp_path / 'history.jsonl'),
+        )
+    )
+
+    assert result == 1
+    assert applied == [fix]
+    output = capsys.readouterr().out
+    assert 'Applied 1 guard auto-fix(es).' in output
+    assert 'Guard validation failed after auto-fix:' in output
+    assert 'Active plan symlink missing or invalid' in output
+
+
 def test_validate_gac_guidance_requires_response_modes() -> None:
     module = load_guard_module()
     relative = Path('templates/behaviors/git/before-commit.md')
