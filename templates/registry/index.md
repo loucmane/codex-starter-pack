@@ -43,6 +43,7 @@ Lightweight entry point to the complete template system registry.
 - **[Behavioral Templates](behavioral/templates.md)** - Step-by-step guides (6)
 - **[Meta-Routing](../patterns/routing/meta-routing.md)** - Ambiguous request handling (13)
 - **[Compatibility Map](compatibility-map.json)** - Versioned legacy path redirects used by `TemplateRegistry.resolve()`
+- **[Agent Compatibility Matrix](agent-compatibility-matrix.json)** - Versioned Codex/Claude/future-agent compatibility contract used by `codex-task agent compatibility-report`
 
 ### System Components
 - **[Behavioral Hooks](behavioral/hooks.md)** - Automatic enforcement (9)
@@ -65,3 +66,4 @@ Lightweight entry point to the complete template system registry.
 ## Progress Log
 
 - **2026-04-22 15:53** — [S:20260422|W:task91-standardize-template-metadata|H:templates/registry/index.md|E:templates/metadata/template-metadata-policy.json] Added canonical `title` metadata while keeping the registry index policy-exempt as an aggregate navigation entry
+- **2026-05-11 19:04** — [S:20260511|W:task62-agent-compatibility-layer|H:templates/registry/index.md|E:templates/registry/agent-compatibility-matrix.json] Added the canonical agent compatibility matrix to the registry navigation

@@ -22,12 +22,27 @@ status: stable
 
 This guide covers how to add new specialized agents to the Claude Template System, including agent design, implementation, integration, and coordination with existing agents.
 
+## Current Portable Foundation Contract
+
+New agents must be added to the tracked compatibility layer before they are treated as write-capable participants in the workflow.
+
+- Compatibility matrix: `templates/registry/agent-compatibility-matrix.json`
+- Validation command: `python3 scripts/codex-task agent compatibility-report --strict`
+- Portable foundation contract: `templates/engine/core/portable-foundation-spec.md`
+- Claude runtime reference: `.claude/engine/runtime-contract.md`
+
+The matrix is the source of truth for agent IDs, contract versions, feature support, ownership boundaries, fallback behavior, transformations, and compatibility metrics. Prose in this guide is explanatory only; it does not establish compatibility by itself.
+
 ## Prerequisites
 
 - Understanding of the agent system in `.claude/agents/`
 - Knowledge of agent roles and responsibilities
 - Familiarity with YAML frontmatter for agents
 - Understanding of task delegation patterns
+
+## Progress Log
+
+- **2026-05-11 19:11** — [S:20260511|W:task62-agent-compatibility-layer|H:templates/integration/guides/adding-agents.md|E:templates/registry/agent-compatibility-matrix.json] Added the current portable foundation contract note so new agent additions use the compatibility matrix as the source of truth before claiming write-capable workflow support
 
 ## Agent System Architecture
 
