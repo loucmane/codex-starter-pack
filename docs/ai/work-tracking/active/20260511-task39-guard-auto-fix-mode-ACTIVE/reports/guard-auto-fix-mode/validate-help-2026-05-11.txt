@@ -1,0 +1,14 @@
+usage: codex-guard validate [-h] [--include-untracked] [--fix-preview]
+                            [--auto-fix] [--fix-kind {tracker-last-updated}]
+                            [--fix-history FIX_HISTORY]
+
+options:
+  -h, --help            show this help message and exit
+  --include-untracked   Include untracked markdown files
+  --fix-preview         Preview supported auto-fixes without modifying files
+  --auto-fix            Apply supported auto-fixes and rerun validation
+  --fix-kind {tracker-last-updated}
+                        Limit auto-fix to a supported fix kind; repeat for
+                        multiple kinds
+  --fix-history FIX_HISTORY
+                        JSONL file for applied auto-fix history
