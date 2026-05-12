@@ -54,6 +54,7 @@ MONITORING_SCRIPT = REPO_ROOT / "scripts" / "template-monitoring"
 PHASE0_VALIDATION_SCRIPT = REPO_ROOT / "scripts" / "template-phase0-validation"
 PERFORMANCE_HARNESS_SCRIPT = REPO_ROOT / "scripts" / "template-performance-harness"
 COST_REPORT_SCRIPT = REPO_ROOT / "scripts" / "template-cost-report"
+MIGRATION_HEALTH_SCRIPT = REPO_ROOT / "scripts" / "template-migration-health-dashboard"
 CODEX_GUARD_SCRIPT = REPO_ROOT / "scripts" / "codex-guard"
 PRE_COMMIT_CONFIG = REPO_ROOT / ".pre-commit-config.yaml"
 PRE_COMMIT_HOOK = REPO_ROOT / ".git" / "hooks" / "pre-commit"
@@ -584,6 +585,7 @@ def handle_bootstrap_init(args: argparse.Namespace) -> None:
         structure.phase0_validation_report_dir,
         structure.performance_report_dir,
         structure.cost_report_dir,
+        structure.migration_health_report_dir,
         structure.emergency_response_report_dir,
         structure.continuation_guard_dir,
         (target_root / BOOTSTRAP_SETUP_REL).parent,
@@ -1805,6 +1807,30 @@ def handle_report_generate(args: argparse.Namespace) -> None:
         if args.strict_cost:
             cost_cmd.append("--strict")
         commands.append(cost_cmd)
+
+    if args.kind == "migration-health" or full_pipeline:
+        metrics_file = args.metrics_file
+        if full_pipeline:
+            metrics_file = (Path(args.report_dir) / "latest.json").as_posix()
+        migration_health_cmd = [
+            sys.executable,
+            str(MIGRATION_HEALTH_SCRIPT),
+            "--metrics-file",
+            metrics_file,
+            "--monitoring-file",
+            (Path(args.monitoring_report_dir) / "latest.json").as_posix(),
+            "--phase0-file",
+            (Path(args.phase0_report_dir) / "latest.json").as_posix(),
+            "--performance-file",
+            (Path(args.performance_report_dir) / "latest.json").as_posix(),
+            "--cost-file",
+            (Path(args.cost_report_dir) / "latest.json").as_posix(),
+            "--report-dir",
+            args.migration_health_report_dir,
+        ]
+        if args.strict_migration_health:
+            migration_health_cmd.append("--strict")
+        commands.append(migration_health_cmd)
 
     for cmd in commands:
         printable = " ".join(cmd)
@@ -4403,6 +4429,14 @@ SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
         "path": "scripts/template-cost-report",
         "rationale": "Optional static cost governance layer that evaluates supplied usage against policy.",
     },
+    {
+        "id": "template-migration-health-dashboard",
+        "title": "Migration health dashboard",
+        "category": "script",
+        "path_kind": "fixed",
+        "path": "scripts/template-migration-health-dashboard",
+        "rationale": "Optional aggregate dashboard/report over static telemetry artifacts.",
+    },
 )
 
 
@@ -4736,7 +4770,7 @@ def build_parser() -> argparse.ArgumentParser:
     report_generate = report_sub.add_parser("generate", help="Generate workflow reports")
     report_generate.add_argument(
         "--kind",
-        choices=("metrics", "drift", "monitoring", "phase0", "performance", "cost", "telemetry", "all"),
+        choices=("metrics", "drift", "monitoring", "phase0", "performance", "cost", "migration-health", "telemetry", "all"),
         default="metrics",
         help="Report type to generate; telemetry/all runs the full static pipeline (default: metrics)",
     )
@@ -4790,6 +4824,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output directory for cost reports",
     )
     report_generate.add_argument(
+        "--migration-health-report-dir",
+        default=REPO_STRUCTURE.migration_health_report_dir.relative_to(REPO_ROOT).as_posix(),
+        help="Output directory for migration health reports",
+    )
+    report_generate.add_argument(
         "--cost-usage-file",
         help="Optional usage JSON file for cost reports",
     )
@@ -4817,6 +4856,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--strict-cost",
         action="store_true",
         help="Exit nonzero when fail-level cost findings are present",
+    )
+    report_generate.add_argument(
+        "--strict-migration-health",
+        action="store_true",
+        help="Exit nonzero when aggregate migration health fails",
     )
     report_generate.set_defaults(func=handle_report_generate)
 

@@ -1,0 +1,3 @@
+Wrote migration health dashboard to docs/ai/work-tracking/active/20260512-task41-migration-health-dashboard-ACTIVE/reports/migration-health-dashboard/latest.md
+Wrote migration health JSON to docs/ai/work-tracking/active/20260512-task41-migration-health-dashboard-ACTIVE/reports/migration-health-dashboard/latest.json
+Migration health status: warn

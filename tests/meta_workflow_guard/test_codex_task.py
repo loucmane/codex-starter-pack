@@ -1421,6 +1421,7 @@ SYNC_TEST_ASSET_PATHS = [
     "scripts/template-phase0-validation",
     "scripts/template-performance-harness",
     "scripts/template-cost-report",
+    "scripts/template-migration-health-dashboard",
 ]
 
 
@@ -1528,17 +1529,19 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         performance_baseline_file=None,
         cost_report_dir="reports/cost-tracking",
         cost_usage_file=None,
+        migration_health_report_dir="reports/migration-health",
         strict_drift=True,
         strict_monitoring=True,
         strict_phase0=True,
         strict_performance=True,
         strict_cost=True,
+        strict_migration_health=True,
         dry_run=False,
     )
 
     module.handle_report_generate(args)
 
-    assert len(commands) == 6
+    assert len(commands) == 7
     assert Path(commands[0][1]).name == "codex-guard"
     assert commands[0][2:] == ["drift-check", "--report-dir", "reports/template-drift", "--strict"]
     assert Path(commands[1][1]).name == "template-metrics-dashboard"
@@ -1573,6 +1576,22 @@ def test_handle_report_generate_runs_drift_before_metrics(monkeypatch) -> None:
         "reports/cost-tracking",
         "--strict",
     ]
+    assert Path(commands[6][1]).name == "template-migration-health-dashboard"
+    assert commands[6][2:] == [
+        "--metrics-file",
+        "reports/template-metrics/latest.json",
+        "--monitoring-file",
+        "reports/template-monitoring/latest.json",
+        "--phase0-file",
+        "reports/phase0-scanner-validation/latest.json",
+        "--performance-file",
+        "reports/template-performance/latest.json",
+        "--cost-file",
+        "reports/cost-tracking/latest.json",
+        "--report-dir",
+        "reports/migration-health",
+        "--strict",
+    ]
 
 
 def test_handle_report_generate_telemetry_kind_runs_full_static_pipeline(monkeypatch) -> None:
@@ -1598,11 +1617,13 @@ def test_handle_report_generate_telemetry_kind_runs_full_static_pipeline(monkeyp
         performance_baseline_file=None,
         cost_report_dir="reports/cost-tracking",
         cost_usage_file=None,
+        migration_health_report_dir="reports/migration-health",
         strict_drift=True,
         strict_monitoring=True,
         strict_phase0=True,
         strict_performance=True,
         strict_cost=True,
+        strict_migration_health=True,
         dry_run=False,
     )
 
@@ -1615,6 +1636,7 @@ def test_handle_report_generate_telemetry_kind_runs_full_static_pipeline(monkeyp
         "template-phase0-validation",
         "template-performance-harness",
         "template-cost-report",
+        "template-migration-health-dashboard",
     ]
     assert commands[3][2:] == [
         "--scanner-data-dir",
@@ -1767,11 +1789,13 @@ def test_handle_report_generate_dry_run_does_not_execute(monkeypatch, capsys) ->
         performance_baseline_file=None,
         cost_report_dir="reports/cost-tracking",
         cost_usage_file=None,
+        migration_health_report_dir="reports/migration-health",
         strict_drift=False,
         strict_monitoring=False,
         strict_phase0=False,
         strict_performance=False,
         strict_cost=False,
+        strict_migration_health=False,
         dry_run=True,
     )
 
@@ -1831,6 +1855,7 @@ def test_handle_bootstrap_init_creates_starter_assets(tmp_path) -> None:
     assert (target / "reports" / "phase0-scanner-validation").is_dir()
     assert (target / "reports" / "template-performance").is_dir()
     assert (target / "reports" / "cost-tracking").is_dir()
+    assert (target / "reports" / "migration-health").is_dir()
     assert (target / "reports" / "session-continuation").is_dir()
 
 
@@ -2240,3 +2265,4 @@ def test_handle_bootstrap_init_supports_cross_project_repo_shapes(tmp_path) -> N
         assert (target / shape.roots["reports_root"] / "phase0-scanner-validation").is_dir()
         assert (target / shape.roots["reports_root"] / "template-performance").is_dir()
         assert (target / shape.roots["reports_root"] / "cost-tracking").is_dir()
+        assert (target / shape.roots["reports_root"] / "migration-health").is_dir()

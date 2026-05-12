@@ -140,7 +140,8 @@ python3 scripts/codex-task report generate --kind telemetry \
   --strict-monitoring \
   --strict-phase0 \
   --strict-performance \
-  --strict-cost
+  --strict-cost \
+  --strict-migration-health
 ```
 
 `--kind telemetry` runs the same ordered chain as the legacy `--kind all` report mode:
@@ -151,6 +152,7 @@ python3 scripts/codex-task report generate --kind telemetry \
 4. `scripts/template-phase0-validation` -> `reports/phase0-scanner-validation/`
 5. `scripts/template-performance-harness` -> `reports/template-performance/`
 6. `scripts/template-cost-report` -> `reports/cost-tracking/`
+7. `scripts/template-migration-health-dashboard` -> `reports/migration-health/`
 
 This repository uses file-based telemetry artifacts, not a live observability service. Do not add Prometheus, Grafana, Elasticsearch, StatsD, OpenTelemetry SDK wiring, databases, or background daemons unless a future task proves an actual runtime service needs them.
 
@@ -169,6 +171,9 @@ Static performance telemetry for portable foundation operations. It reads `templ
 
 ### `scripts/template-cost-report`
 Static cost-governance telemetry. It reads `templates/metadata/template-cost-policy.json`, accepts an optional usage JSON file, writes `reports/cost-tracking/latest.md` and `latest.json`, and reports missing usage data as `not-measured` rather than inventing live billing data.
+
+### `scripts/template-migration-health-dashboard`
+Static aggregate migration-health dashboard/report. It reads the latest metrics, monitoring, Phase 0, performance, and cost JSON artifacts, writes `reports/migration-health/latest.md` and `latest.json`, and classifies missing telemetry as visible warnings instead of inventing live data. Use `--strict` when fail-level aggregate migration health should fail the command.
 
 ### `scripts/template_governance.py`
 Non-mutating template governance assessor. It reads `templates/metadata/template-governance-policy.json` and maps proposed template changes to a required review class.

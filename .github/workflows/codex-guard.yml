@@ -50,6 +50,8 @@ jobs:
         run: python3 scripts/template-performance-harness --strict
       - name: Generate cost tracking report
         run: python3 scripts/template-cost-report --strict
+      - name: Generate migration health dashboard
+        run: python3 scripts/template-migration-health-dashboard --strict
       - name: Upload drift artefacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,3 +94,9 @@ jobs:
         with:
           name: codex-guard-cost-tracking
           path: reports/cost-tracking/
+      - name: Upload migration health artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-guard-migration-health
+          path: reports/migration-health/

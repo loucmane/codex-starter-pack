@@ -111,6 +111,10 @@ class RepoStructure:
         return self.reports_root / "cost-tracking"
 
     @property
+    def migration_health_report_dir(self) -> Path:
+        return self.reports_root / "migration-health"
+
+    @property
     def emergency_response_report_dir(self) -> Path:
         return self.reports_root / "emergency-response"
 

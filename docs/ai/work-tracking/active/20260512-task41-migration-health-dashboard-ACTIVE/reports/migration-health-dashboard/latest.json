@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-05-12T18:03:18.321445+02:00",
+  "status": "warn",
+  "summary": {
+    "total": 5,
+    "passed": 2,
+    "warnings": 3,
+    "errors": 0,
+    "missing": 3
+  },
+  "executes_external_actions": false,
+  "components": [
+    {
+      "id": "metrics",
+      "title": "Template metrics dashboard",
+      "evidence": "reports/template-metrics/latest.json",
+      "status": "pass",
+      "severity": "info",
+      "source_status": null,
+      "generated_at": "2026-04-24T15:48:29.554660+02:00",
+      "message": "Telemetry component loaded successfully.",
+      "review_command": "python3 scripts/template-metrics-dashboard",
+      "details": {}
+    },
+    {
+      "id": "monitoring",
+      "title": "Template monitoring report",
+      "evidence": "reports/template-monitoring/latest.json",
+      "status": "missing",
+      "severity": "warning",
+      "source_status": null,
+      "generated_at": null,
+      "message": "Telemetry component is missing; run the review command before claiming full migration health.",
+      "review_command": "python3 scripts/template-monitoring --strict",
+      "details": {
+        "exists": false
+      }
+    },
+    {
+      "id": "phase0",
+      "title": "Phase 0 scanner validation report",
+      "evidence": "reports/phase0-scanner-validation/latest.json",
+      "status": "missing",
+      "severity": "warning",
+      "source_status": null,
+      "generated_at": null,
+      "message": "Telemetry component is missing; run the review command before claiming full migration health.",
+      "review_command": "python3 scripts/template-phase0-validation --strict",
+      "details": {
+        "exists": false
+      }
+    },
+    {
+      "id": "performance",
+      "title": "Template performance report",
+      "evidence": "reports/template-performance/latest.json",
+      "status": "pass",
+      "severity": "info",
+      "source_status": "pass",
+      "generated_at": "2026-05-10T12:24:10.229844+02:00",
+      "message": "Telemetry component reports pass.",
+      "review_command": "python3 scripts/template-performance-harness --strict",
+      "details": {
+        "summary": {
+          "total": 4,
+          "passed": 4,
+          "warnings": 0,
+          "errors": 0
+        },
+        "policy_version": "1.0.0"
+      }
+    },
+    {
+      "id": "cost",
+      "title": "Cost tracking report",
+      "evidence": "reports/cost-tracking/latest.json",
+      "status": "missing",
+      "severity": "warning",
+      "source_status": null,
+      "generated_at": null,
+      "message": "Telemetry component is missing; run the review command before claiming full migration health.",
+      "review_command": "python3 scripts/template-cost-report --strict",
+      "details": {
+        "exists": false
+      }
+    }
+  ]
+}
