@@ -667,6 +667,112 @@ status: stable
     assert registry.get("alpha") is not None
 
 
+def test_registry_cache_stats_track_hits_misses_rebuilds_and_invalidations(tmp_path: Path) -> None:
+    _write_repo_config(tmp_path)
+    _write_template(
+        tmp_path / "custom_templates" / "a.md",
+        """
+id: alpha
+title: Alpha
+type: guide
+status: stable
+""",
+    )
+    _write_registry(tmp_path, "custom_templates", [{"id": "alpha", "path": "custom_templates/a.md", "tags": []}])
+
+    now = [100.0]
+    registry = TemplateRegistry(repo_root=tmp_path, ttl_seconds=10.0, glob_patterns=(), clock=lambda: now[0])
+
+    cold = registry.cache_stats()["index"]
+    assert cold == {
+        "cached": False,
+        "ttl_seconds": 10.0,
+        "age_seconds": None,
+        "ttl_remaining_seconds": None,
+        "record_count": 0,
+        "hits": 0,
+        "misses": 0,
+        "rebuilds": 0,
+        "invalidations": 0,
+    }
+
+    assert registry.get("alpha") is not None
+    after_cold_lookup = registry.cache_stats()["index"]
+    assert after_cold_lookup["cached"] is True
+    assert after_cold_lookup["record_count"] == 1
+    assert after_cold_lookup["age_seconds"] == 0.0
+    assert after_cold_lookup["ttl_remaining_seconds"] == 10.0
+    assert after_cold_lookup["hits"] == 0
+    assert after_cold_lookup["misses"] == 1
+    assert after_cold_lookup["rebuilds"] == 1
+    assert after_cold_lookup["invalidations"] == 0
+
+    now[0] = 105.0
+    assert registry.get("alpha") is not None
+    after_warm_lookup = registry.cache_stats()["index"]
+    assert after_warm_lookup["age_seconds"] == 5.0
+    assert after_warm_lookup["ttl_remaining_seconds"] == 5.0
+    assert after_warm_lookup["hits"] == 1
+    assert after_warm_lookup["misses"] == 1
+    assert after_warm_lookup["rebuilds"] == 1
+
+    now[0] = 111.0
+    assert registry.get("alpha") is not None
+    after_ttl_rebuild = registry.cache_stats()["index"]
+    assert after_ttl_rebuild["age_seconds"] == 0.0
+    assert after_ttl_rebuild["ttl_remaining_seconds"] == 10.0
+    assert after_ttl_rebuild["hits"] == 1
+    assert after_ttl_rebuild["misses"] == 2
+    assert after_ttl_rebuild["rebuilds"] == 2
+
+    registry.invalidate_cache()
+    after_invalidation = registry.cache_stats()["index"]
+    assert after_invalidation["cached"] is False
+    assert after_invalidation["record_count"] == 0
+    assert after_invalidation["invalidations"] == 1
+
+    registry.reset_cache_stats()
+    after_reset = registry.cache_stats()["index"]
+    assert after_reset["hits"] == 0
+    assert after_reset["misses"] == 0
+    assert after_reset["rebuilds"] == 0
+    assert after_reset["invalidations"] == 0
+
+
+def test_registry_cache_stats_include_cached_template_text_reads(tmp_path: Path) -> None:
+    _write_repo_config(tmp_path)
+    _write_template(
+        tmp_path / "custom_templates" / "a.md",
+        """
+id: alpha
+title: Alpha
+type: guide
+status: stable
+""",
+        "Alpha",
+    )
+    _write_registry(tmp_path, "custom_templates", [{"id": "alpha", "path": "custom_templates/a.md", "tags": []}])
+
+    registry = TemplateRegistry(repo_root=tmp_path, glob_patterns=())
+    registry.reset_cache_stats(clear_text_cache=True)
+
+    assert registry.cache_stats()["read_text"]["currsize"] == 0
+    first = registry.read_text("alpha")
+    second = registry.read_text("alpha")
+
+    assert first == second
+    text_stats = registry.cache_stats()["read_text"]
+    assert text_stats["hits"] == 1
+    assert text_stats["misses"] == 1
+    assert text_stats["maxsize"] == 512
+    assert text_stats["currsize"] == 1
+
+    registry.reset_cache_stats(clear_text_cache=True)
+    assert registry.cache_stats()["read_text"]["hits"] == 0
+    assert registry.cache_stats()["read_text"]["misses"] == 0
+    assert registry.cache_stats()["read_text"]["currsize"] == 0
+
+
 def test_real_registry_warm_lookup_and_text_read_are_cached() -> None:
     registry = TemplateRegistry(repo_root=REPO_ROOT)
     first = registry.resolve("engine-core-session-resolver")
