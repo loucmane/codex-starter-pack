@@ -16,13 +16,14 @@ import tempfile
 import tomllib
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
+from template_governance import assessment_to_dict, assess_governance, load_governance_policy
 
 REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
 SESSIONS_DIR = REPO_STRUCTURE.sessions_root
@@ -4300,6 +4301,363 @@ def handle_emergency_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+CHANGE_ADVISORY_POST_IMPLEMENTATION_REVIEW: Tuple[str, ...] = (
+    "What changed compared with the approved advisory packet?",
+    "Which guard, test, audit, health, and validation evidence proves the change behaved as expected?",
+    "Were any approval, communication, rollback, canary, emergency, or validation conditions missed?",
+    "Did any policy-only or manual step need a follow-up task?",
+    "What should be changed in the portable foundation before the next similar change?",
+)
+
+
+def _change_advisory_path_label(paths: Sequence[str]) -> str:
+    clean_paths = [path for path in paths if str(path).strip()]
+    return ", ".join(clean_paths)
+
+
+def _manual_change_advisory_governance(review_class: str, paths: Sequence[str], note: Optional[str]) -> Dict[str, Any]:
+    policy = load_governance_policy(REPO_ROOT)
+    selected = policy.review_class(review_class)
+    payload: Dict[str, Any] = {
+        "schema": policy.schema,
+        "path": _change_advisory_path_label(paths),
+        "review_class": selected.name,
+        "priority": selected.priority,
+        "required_roles": list(selected.required_roles),
+        "approval": selected.approval,
+        "escalation": selected.escalation,
+        "notification_audiences": list(selected.notification_audiences),
+        "notification_mode": policy.notification_mode,
+        "required_evidence": list(selected.required_evidence),
+        "reasons": [
+            {
+                "signal": "manual_review_class",
+                "value": selected.name,
+                "review_class": selected.name,
+                "message": f"Review class explicitly supplied as {selected.name}",
+            }
+        ],
+    }
+    if note is not None:
+        payload["note"] = note
+    return payload
+
+
+def _build_change_advisory_governance(args: argparse.Namespace) -> Dict[str, Any]:
+    paths = tuple(args.paths or ())
+    if args.review_class:
+        return _manual_change_advisory_governance(args.review_class, paths, args.note)
+    assessment = assess_governance(
+        path=_change_advisory_path_label(paths),
+        previous_version=args.previous_version,
+        current_version=args.current_version,
+        lifecycle_from=args.lifecycle_from,
+        lifecycle_to=args.lifecycle_to,
+        emergency=args.emergency,
+        note=args.note,
+        repo_root=REPO_ROOT,
+    )
+    return assessment_to_dict(assessment)
+
+
+def _change_advisory_risk_level(governance: Mapping[str, Any]) -> str:
+    review_class = str(governance.get("review_class") or "")
+    priority = int(governance.get("priority") or 0)
+    if review_class == "emergency" or priority >= 40:
+        return "emergency"
+    if priority >= 30:
+        return "high"
+    if priority >= 20:
+        return "medium"
+    return "low"
+
+
+def _change_advisory_evidence_requirements(governance: Mapping[str, Any]) -> List[str]:
+    requirements = [str(item) for item in governance.get("required_evidence", [])]
+    base = [
+        "active session progress entry with S:W:H:E evidence",
+        "active tracker progress entry with S:W:H:E evidence",
+        "plan sync evidence",
+        "work-tracking audit evidence",
+        "Taskmaster health evidence",
+        "guard evidence",
+        "focused or full pytest evidence appropriate to the change",
+        "git diff --check evidence",
+    ]
+    priority = int(governance.get("priority") or 0)
+    review_class = str(governance.get("review_class") or "")
+    if priority >= 20:
+        base.append("communication payload or handoff note for listed notification audiences")
+    if priority >= 30:
+        base.extend(
+            [
+                "rollback checkpoint or reviewed rollback note before merge",
+                "final validation suite evidence before approval/sign-off",
+                "migration or compatibility note when behavior is breaking",
+            ]
+        )
+    if review_class == "emergency" or priority >= 40:
+        base.extend(
+            [
+                "emergency response plan/runbook evidence",
+                "explicit emergency approval/bypass record",
+                "post-incident follow-up task or review note",
+            ]
+        )
+    return list(dict.fromkeys(requirements + base))
+
+
+def _change_advisory_controls(governance: Mapping[str, Any]) -> List[str]:
+    priority = int(governance.get("priority") or 0)
+    review_class = str(governance.get("review_class") or "")
+    controls = [
+        "Record the advisory packet path in the active tracker and session log.",
+        "Record approval/rationale in DECISIONS.md or the active session before merge.",
+        "Keep notification mode evidence-only; do not send external notifications from this helper.",
+        "Reference final evidence from HANDOFF.md before closing the task.",
+    ]
+    if priority >= 20:
+        controls.append("Record communication guidance for the active work-tracking folder and task handoff.")
+    if priority >= 30:
+        controls.extend(
+            [
+                "Capture rollback checkpoint or rollback-note evidence before merge.",
+                "Run or explicitly waive final validation suite evidence before merge.",
+            ]
+        )
+    if review_class == "emergency" or priority >= 40:
+        controls.extend(
+            [
+                "Capture an emergency response plan before emergency merge or bypass.",
+                "Create a post-incident review/follow-up record after recovery.",
+            ]
+        )
+    return controls
+
+
+def _change_advisory_verification_commands(governance: Mapping[str, Any]) -> List[str]:
+    priority = int(governance.get("priority") or 0)
+    review_class = str(governance.get("review_class") or "")
+    commands = [
+        "python3 scripts/codex-task change advisory --summary <summary> --report-file <advisory.json> --runbook-file <advisory.md>",
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+        "git diff --check",
+    ]
+    if priority >= 20:
+        commands.append("Review Task 49 communication templates and record evidence-only communication guidance.")
+    if priority >= 30:
+        commands.extend(
+            [
+                "python3 scripts/codex-task rollback checkpoint --label <change-label> --report-file <checkpoint.json>",
+                "python3 scripts/codex-task validation final-suite --execute --report-dir <final-validation-report-dir>",
+                "python3 scripts/codex-task rollout canary-plan --label <change-label> --report-file <canary.json> --runbook-file <canary.md>",
+            ]
+        )
+    if review_class == "emergency" or priority >= 40:
+        commands.append(
+            "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>"
+        )
+    return commands
+
+
+def _build_change_advisory_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    paths = tuple(args.paths or ())
+    label = args.label or _slugify(args.summary)
+    governance = _build_change_advisory_governance(args)
+    evidence_requirements = _change_advisory_evidence_requirements(governance)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "non-destructive-change-advisory-packet",
+        "executes_actions": False,
+        "change": {
+            "summary": args.summary,
+            "paths": list(paths),
+            "task_id": args.task,
+            "note": args.note,
+        },
+        "governance": governance,
+        "risk_assessment": {
+            "review_class": governance.get("review_class"),
+            "priority": governance.get("priority"),
+            "risk_level": _change_advisory_risk_level(governance),
+            "reasons": governance.get("reasons", []),
+        },
+        "advisory_controls": {
+            "required_roles": governance.get("required_roles", []),
+            "approval": governance.get("approval"),
+            "escalation": governance.get("escalation"),
+            "notification_mode": governance.get("notification_mode"),
+            "notification_audiences": governance.get("notification_audiences", []),
+            "required_evidence": evidence_requirements,
+            "controls": _change_advisory_controls(governance),
+        },
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "communication_guidance": {
+            "mode": governance.get("notification_mode"),
+            "audiences": governance.get("notification_audiences", []),
+            "guidance": [
+                "Use repository communication templates and active work-tracking evidence.",
+                "Record communication payloads or summaries as evidence; do not send notifications from this helper.",
+                "Include Taskmaster ID, branch, advisory packet path, guard/test evidence, and merge/rollback guidance when relevant.",
+            ],
+        },
+        "post_implementation_review": list(CHANGE_ADVISORY_POST_IMPLEMENTATION_REVIEW),
+        "recommended_verification_commands": _change_advisory_verification_commands(governance),
+        "non_goals": [
+            "No CAB meeting is scheduled.",
+            "No stakeholder vote is requested or recorded by this helper.",
+            "No approval is granted automatically.",
+            "No external notification is sent.",
+            "No dashboard, ticket, or external tracking system is created.",
+            "No deployment, promotion, rollback, reset, cleanup, or branch-protection change is executed.",
+            "No duplicate governance policy is created.",
+        ],
+    }
+
+
+def _render_change_advisory_runbook(plan: Dict[str, Any]) -> str:
+    change = plan.get("change", {}) if isinstance(plan.get("change"), dict) else {}
+    governance = plan.get("governance", {}) if isinstance(plan.get("governance"), dict) else {}
+    controls = plan.get("advisory_controls", {}) if isinstance(plan.get("advisory_controls"), dict) else {}
+    current = plan.get("current_state", {}) if isinstance(plan.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    risk = plan.get("risk_assessment", {}) if isinstance(plan.get("risk_assessment"), dict) else {}
+    communication = plan.get("communication_guidance", {}) if isinstance(plan.get("communication_guidance"), dict) else {}
+
+    lines = [
+        "# Change Advisory Packet",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes actions: {plan.get('executes_actions')}",
+        f"- Summary: {change.get('summary')}",
+        f"- Task ID: {change.get('task_id') or 'not specified'}",
+        "",
+        "## Change Scope",
+        "",
+    ]
+    paths = change.get("paths") if isinstance(change.get("paths"), list) else []
+    if paths:
+        for path in paths:
+            lines.append(f"- `{path}`")
+    else:
+        lines.append("- No specific paths supplied.")
+
+    lines.extend(
+        [
+            "",
+            "## Governance Assessment",
+            "",
+            f"- Review class: {governance.get('review_class')}",
+            f"- Risk level: {risk.get('risk_level')}",
+            f"- Priority: {governance.get('priority')}",
+            f"- Required roles: {', '.join(str(item) for item in controls.get('required_roles', []))}",
+            f"- Approval guidance: {controls.get('approval')}",
+            f"- Escalation guidance: {controls.get('escalation')}",
+            f"- Notification mode: {controls.get('notification_mode')}",
+            f"- Notification audiences: {', '.join(str(item) for item in controls.get('notification_audiences', []))}",
+            "",
+            "Reasons:",
+        ]
+    )
+    reasons = governance.get("reasons") if isinstance(governance.get("reasons"), list) else []
+    for reason in reasons:
+        if not isinstance(reason, dict):
+            continue
+        lines.append(
+            f"- {reason.get('signal')}: {reason.get('value')} -> {reason.get('review_class')}: {reason.get('message')}"
+        )
+
+    lines.extend(["", "## Current State Snapshot", ""])
+    lines.extend(
+        [
+            f"- Branch: {git_info.get('branch')}",
+            f"- HEAD: {git_info.get('head')}",
+            f"- Dirty status entries: {len(git_info.get('status') or [])}",
+            f"- Current session: {workflow.get('current_session', {}).get('resolved')}",
+            f"- Current plan: {workflow.get('current_plan', {}).get('resolved')}",
+            f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        ]
+    )
+
+    lines.extend(["", "## Required Evidence", ""])
+    for item in controls.get("required_evidence", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Advisory Controls", ""])
+    for item in controls.get("controls", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Communication Guidance", ""])
+    for item in communication.get("guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Post-Implementation Review", ""])
+    for prompt in plan.get("post_implementation_review", []):
+        lines.append(f"- {prompt}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No CAB meeting, approval, notification, dashboard update, deployment, rollback, reset, cleanup, or external tracking action was executed by this advisory packet.", ""])
+    return "\n".join(lines)
+
+
+def handle_change_advisory(args: argparse.Namespace) -> None:
+    plan = _build_change_advisory_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_change_advisory_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote change advisory packet to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote change advisory runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
     {
         "id": "codex-config",
@@ -4953,6 +5311,25 @@ def build_parser() -> argparse.ArgumentParser:
     rollout_canary.add_argument("--runbook-file", help="Optional path to write the canary rollout runbook markdown")
     rollout_canary.add_argument("--dry-run", action="store_true", help="Print the canary rollout plan JSON without writing files")
     rollout_canary.set_defaults(func=handle_rollout_canary_plan)
+
+    change_parser = subparsers.add_parser("change", help="Change advisory planning operations")
+    change_sub = change_parser.add_subparsers(dest="subcommand", required=True)
+    change_advisory = change_sub.add_parser("advisory", help="Render a non-destructive change advisory packet")
+    change_advisory.add_argument("--summary", required=True, help="One-line summary of the proposed change")
+    change_advisory.add_argument("--label", help="Human-readable advisory label; defaults to a slug from --summary")
+    change_advisory.add_argument("--task", help="Taskmaster task ID associated with the change")
+    change_advisory.add_argument("--path", dest="paths", action="append", help="Changed or proposed path; repeatable")
+    change_advisory.add_argument("--previous-version", help="Previous semantic version for governance assessment")
+    change_advisory.add_argument("--current-version", help="Current semantic version for governance assessment")
+    change_advisory.add_argument("--lifecycle-from", help="Previous lifecycle state for governance assessment")
+    change_advisory.add_argument("--lifecycle-to", help="Target lifecycle state for governance assessment")
+    change_advisory.add_argument("--review-class", help="Explicit governance review class override")
+    change_advisory.add_argument("--emergency", action="store_true", help="Force emergency governance assessment")
+    change_advisory.add_argument("--note", help="Optional advisory note")
+    change_advisory.add_argument("--report-file", help="Optional path to write the advisory JSON packet")
+    change_advisory.add_argument("--runbook-file", help="Optional path to write the advisory Markdown runbook")
+    change_advisory.add_argument("--dry-run", action="store_true", help="Print the advisory JSON without writing files")
+    change_advisory.set_defaults(func=handle_change_advisory)
 
     agent_parser = subparsers.add_parser("agent", help="Agent compatibility and adapter operations")
     agent_sub = agent_parser.add_subparsers(dest="subcommand", required=True)

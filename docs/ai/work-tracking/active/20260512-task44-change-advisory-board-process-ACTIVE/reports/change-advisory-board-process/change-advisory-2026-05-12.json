@@ -1,0 +1,246 @@
+{
+  "advisory_controls": {
+    "approval": "Template-owner and foundation-maintainer acknowledgement recorded in work tracking.",
+    "controls": [
+      "Record the advisory packet path in the active tracker and session log.",
+      "Record approval/rationale in DECISIONS.md or the active session before merge.",
+      "Keep notification mode evidence-only; do not send external notifications from this helper.",
+      "Reference final evidence from HANDOFF.md before closing the task.",
+      "Record communication guidance for the active work-tracking folder and task handoff."
+    ],
+    "escalation": "Escalate to breaking review if compatibility or migration risk is identified.",
+    "notification_audiences": [
+      "active work-tracking folder",
+      "task handoff"
+    ],
+    "notification_mode": "evidence-only",
+    "required_evidence": [
+      "FINDINGS.md impact note",
+      "DECISIONS.md rationale",
+      "IMPLEMENTATION.md summary",
+      "guard and focused test evidence",
+      "active session progress entry with S:W:H:E evidence",
+      "active tracker progress entry with S:W:H:E evidence",
+      "plan sync evidence",
+      "work-tracking audit evidence",
+      "Taskmaster health evidence",
+      "guard evidence",
+      "focused or full pytest evidence appropriate to the change",
+      "git diff --check evidence",
+      "communication payload or handoff note for listed notification audiences"
+    ],
+    "required_roles": [
+      "template_owner",
+      "foundation_maintainer"
+    ]
+  },
+  "change": {
+    "note": null,
+    "paths": [
+      "scripts/codex-task",
+      "tests/meta_workflow_guard/test_codex_task.py"
+    ],
+    "summary": "Task 44 change advisory helper implementation",
+    "task_id": "44"
+  },
+  "communication_guidance": {
+    "audiences": [
+      "active work-tracking folder",
+      "task handoff"
+    ],
+    "guidance": [
+      "Use repository communication templates and active work-tracking evidence.",
+      "Record communication payloads or summaries as evidence; do not send notifications from this helper.",
+      "Include Taskmaster ID, branch, advisory packet path, guard/test evidence, and merge/rollback guidance when relevant."
+    ],
+    "mode": "evidence-only"
+  },
+  "created_at": "2026-05-12T18:56:01+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-44-change-advisory-board-process",
+      "head": "b9b3f7f8525f6b5a4c44da9979f6e577785d1850",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_044.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-12_task44_change_advisory_board_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-12-task44-change-advisory-board-process.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-12-004-task44-change-advisory-board-process.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 122,
+      "exists": true,
+      "latest": [
+        ".serena/memories/session_2026-05-11_task37-telemetry-pipeline-closeout.md",
+        ".serena/memories/2026-05-11_task39_guard_auto_fix_kickoff.md",
+        ".serena/memories/session_2026-05-11_task39-guard-auto-fix-mode-closeout.md",
+        ".serena/memories/2026-05-11_task62_agent_compatibility_layer_kickoff.md",
+        ".serena/memories/session_2026-05-11_task62-closeout.md",
+        ".serena/memories/2026-05-12_task68_final_validation_suite_kickoff.md",
+        ".serena/memories/session_2026-05-12_task68-final-validation-suite-closeout.md",
+        ".serena/memories/2026-05-12_task36_template_governance_board_kickoff.md",
+        ".serena/memories/2026-05-12_task41_migration_health_dashboard_kickoff.md",
+        ".serena/memories/2026-05-12_task44_change_advisory_board_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "49d45e9da0428788b7cb0f4c7ea4e1b6aad3dda828a05bf1182c1ced781e27bd",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 78,
+          "in-progress": 1,
+          "pending": 29
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260512-task44-change-advisory-board-process-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-12-task44-change-advisory-board-process.md",
+        "sha256": "4b087d277a4affa4613bff363c1511fc1ed48d5ff4bc0e5353679971aea98eb8",
+        "target": "2026-05-12-task44-change-advisory-board-process.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-12-004-task44-change-advisory-board-process.md",
+        "sha256": "0bc3a5675b7c02f3c68841f4a4cf45a52c9f83e2386d958ffdcadeff28ac2867",
+        "target": "2026/05/2026-05-12-004-task44-change-advisory-board-process.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "73952d82d07a8662eb151d714d6f5e2f6f862c77509d49e98deefb8b346f7988"
+      }
+    }
+  },
+  "executes_actions": false,
+  "governance": {
+    "approval": "Template-owner and foundation-maintainer acknowledgement recorded in work tracking.",
+    "escalation": "Escalate to breaking review if compatibility or migration risk is identified.",
+    "notification_audiences": [
+      "active work-tracking folder",
+      "task handoff"
+    ],
+    "notification_mode": "evidence-only",
+    "path": "scripts/codex-task, tests/meta_workflow_guard/test_codex_task.py",
+    "priority": 20,
+    "reasons": [
+      {
+        "message": "Review class explicitly supplied as coordinated",
+        "review_class": "coordinated",
+        "signal": "manual_review_class",
+        "value": "coordinated"
+      }
+    ],
+    "required_evidence": [
+      "FINDINGS.md impact note",
+      "DECISIONS.md rationale",
+      "IMPLEMENTATION.md summary",
+      "guard and focused test evidence"
+    ],
+    "required_roles": [
+      "template_owner",
+      "foundation_maintainer"
+    ],
+    "review_class": "coordinated",
+    "schema": "template-governance-review.v1"
+  },
+  "label": "task-44-change-advisory-helper-implementation",
+  "mode": "non-destructive-change-advisory-packet",
+  "non_goals": [
+    "No CAB meeting is scheduled.",
+    "No stakeholder vote is requested or recorded by this helper.",
+    "No approval is granted automatically.",
+    "No external notification is sent.",
+    "No dashboard, ticket, or external tracking system is created.",
+    "No deployment, promotion, rollback, reset, cleanup, or branch-protection change is executed.",
+    "No duplicate governance policy is created."
+  ],
+  "post_implementation_review": [
+    "What changed compared with the approved advisory packet?",
+    "Which guard, test, audit, health, and validation evidence proves the change behaved as expected?",
+    "Were any approval, communication, rollback, canary, emergency, or validation conditions missed?",
+    "Did any policy-only or manual step need a follow-up task?",
+    "What should be changed in the portable foundation before the next similar change?"
+  ],
+  "recommended_verification_commands": [
+    "python3 scripts/codex-task change advisory --summary <summary> --report-file <advisory.json> --runbook-file <advisory.md>",
+    "python3 scripts/codex-task plan sync",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+    "git diff --check",
+    "Review Task 49 communication templates and record evidence-only communication guidance."
+  ],
+  "risk_assessment": {
+    "priority": 20,
+    "reasons": [
+      {
+        "message": "Review class explicitly supplied as coordinated",
+        "review_class": "coordinated",
+        "signal": "manual_review_class",
+        "value": "coordinated"
+      }
+    ],
+    "review_class": "coordinated",
+    "risk_level": "medium"
+  },
+  "version": 1
+}
