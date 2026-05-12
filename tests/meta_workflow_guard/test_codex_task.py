@@ -506,6 +506,40 @@ def test_build_parser_accepts_rollout_canary_plan() -> None:
     assert args.dry_run is True
 
 
+def test_build_parser_accepts_change_advisory() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "change",
+        "advisory",
+        "--summary",
+        "Breaking template policy update",
+        "--task",
+        "44",
+        "--path",
+        "templates/example.md",
+        "--previous-version",
+        "1.0.0",
+        "--current-version",
+        "2.0.0",
+        "--report-file",
+        "reports/change-advisory.json",
+        "--runbook-file",
+        "reports/change-advisory.md",
+        "--dry-run",
+    ])
+    assert args.command == "change"
+    assert args.subcommand == "advisory"
+    assert args.summary == "Breaking template policy update"
+    assert args.task == "44"
+    assert args.paths == ["templates/example.md"]
+    assert args.previous_version == "1.0.0"
+    assert args.current_version == "2.0.0"
+    assert args.report_file == "reports/change-advisory.json"
+    assert args.runbook_file == "reports/change-advisory.md"
+    assert args.dry_run is True
+
+
 def test_build_parser_accepts_agent_compatibility_report() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1015,6 +1049,195 @@ def test_handle_rollout_canary_plan_writes_manifest_and_runbook(monkeypatch, tmp
     runbook_text = runbook.read_text(encoding="utf-8")
     assert "# Foundation Canary Rollout Runbook" in runbook_text
     assert "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan." in runbook_text
+
+
+def _write_change_advisory_governance_policy(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "version": "1.0.0",
+                "schema": "template-governance-review.v1",
+                "default_review_class": "routine",
+                "emergency_review_class": "emergency",
+                "notification_mode": "evidence-only",
+                "roles": {
+                    "template_owner": "Owns the changed template or template family.",
+                    "foundation_maintainer": "Maintains the foundation.",
+                    "compatibility_reviewer": "Reviews compatibility impact.",
+                    "emergency_approver": "Approves emergency changes.",
+                },
+                "review_classes": {
+                    "routine": {
+                        "priority": 10,
+                        "required_roles": ["template_owner"],
+                        "approval": "Template owner approval or active-session decision.",
+                        "escalation": "No escalation required.",
+                        "notification_audiences": ["active work-tracking folder"],
+                        "required_evidence": ["DECISIONS.md entry when a design choice is made"],
+                    },
+                    "coordinated": {
+                        "priority": 20,
+                        "required_roles": ["template_owner", "foundation_maintainer"],
+                        "approval": "Template owner and maintainer acknowledgement.",
+                        "escalation": "Escalate when compatibility risk appears.",
+                        "notification_audiences": ["active work-tracking folder", "task handoff"],
+                        "required_evidence": ["guard and focused test evidence"],
+                    },
+                    "breaking": {
+                        "priority": 30,
+                        "required_roles": ["template_owner", "foundation_maintainer", "compatibility_reviewer"],
+                        "approval": "All listed roles or explicit user approval.",
+                        "escalation": "Create migration and rollback notes before merge.",
+                        "notification_audiences": ["active work-tracking folder", "task handoff"],
+                        "required_evidence": ["migration or rollback note"],
+                    },
+                    "emergency": {
+                        "priority": 40,
+                        "required_roles": ["foundation_maintainer", "emergency_approver"],
+                        "approval": "Explicit user approval and emergency-bypass record.",
+                        "escalation": "Follow emergency response policy.",
+                        "notification_audiences": ["session log", "handoff"],
+                        "required_evidence": ["emergency bypass reason"],
+                    },
+                },
+                "version_change_review": {"major": "breaking", "minor": "routine", "patch": "routine"},
+                "lifecycle_transition_review": {"review->stable": "coordinated"},
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _patch_change_advisory_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-44-change-advisory-board-process"
+        if args == ["rev-parse", "HEAD"]:
+            return "cab123"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/session.md"},
+            "current_plan": {"resolved": "plans/2026-05-12-task44.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260512-task44-change-advisory-board-process-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_dependencies": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 5})
+
+
+def test_build_change_advisory_plan_composes_governance_and_controls(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _write_change_advisory_governance_policy(repo / "templates" / "metadata" / "template-governance-policy.json")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_change_advisory_snapshots(module, monkeypatch)
+
+    plan = module._build_change_advisory_plan(
+        argparse.Namespace(
+            summary="Major template contract update",
+            label=None,
+            task="44",
+            paths=["templates/example.md"],
+            previous_version="1.0.0",
+            current_version="2.0.0",
+            lifecycle_from=None,
+            lifecycle_to=None,
+            review_class=None,
+            emergency=False,
+            note="requires compatibility review",
+        )
+    )
+
+    assert plan["mode"] == "non-destructive-change-advisory-packet"
+    assert plan["executes_actions"] is False
+    assert plan["change"]["task_id"] == "44"
+    assert plan["governance"]["review_class"] == "breaking"
+    assert plan["risk_assessment"]["risk_level"] == "high"
+    assert plan["current_state"]["git"]["branch"] == "feat/task-44-change-advisory-board-process"
+    assert "rollback checkpoint or reviewed rollback note before merge" in plan["advisory_controls"]["required_evidence"]
+    assert any("validation final-suite" in command for command in plan["recommended_verification_commands"])
+    assert "No stakeholder vote is requested or recorded by this helper." in plan["non_goals"]
+
+
+def test_render_change_advisory_runbook_names_evidence_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _write_change_advisory_governance_policy(repo / "templates" / "metadata" / "template-governance-policy.json")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_change_advisory_snapshots(module, monkeypatch)
+    plan = module._build_change_advisory_plan(
+        argparse.Namespace(
+            summary="Emergency guard repair",
+            label="guard-repair",
+            task="44",
+            paths=["scripts/codex-guard"],
+            previous_version=None,
+            current_version=None,
+            lifecycle_from=None,
+            lifecycle_to=None,
+            review_class="emergency",
+            emergency=False,
+            note=None,
+        )
+    )
+
+    runbook = module._render_change_advisory_runbook(plan)
+
+    assert "# Change Advisory Packet" in runbook
+    assert "Review class: emergency" in runbook
+    assert "Risk level: emergency" in runbook
+    assert "emergency response plan/runbook evidence" in runbook
+    assert "python3 scripts/codex-task emergency plan" in runbook
+    assert "No CAB meeting, approval, notification, dashboard update, deployment, rollback, reset, cleanup, or external tracking action was executed by this advisory packet." in runbook
+
+
+def test_handle_change_advisory_writes_packet_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _write_change_advisory_governance_policy(repo / "templates" / "metadata" / "template-governance-policy.json")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_change_advisory_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "change-advisory.json"
+    runbook = repo / "reports" / "change-advisory.md"
+    args = argparse.Namespace(
+        summary="Coordinated lifecycle promotion",
+        label="lifecycle-promotion",
+        task="44",
+        paths=["templates/example.md"],
+        previous_version=None,
+        current_version=None,
+        lifecycle_from="review",
+        lifecycle_to="stable",
+        review_class=None,
+        emergency=False,
+        note=None,
+        report_file=str(report.relative_to(repo)),
+        runbook_file=str(runbook.relative_to(repo)),
+        dry_run=False,
+    )
+
+    module.handle_change_advisory(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["governance"]["review_class"] == "coordinated"
+    assert payload["communication_guidance"]["mode"] == "evidence-only"
+    assert payload["executes_actions"] is False
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Change Advisory Packet" in runbook_text
+    assert "Coordinated lifecycle promotion" in runbook_text
+    assert "No CAB meeting, approval, notification, dashboard update" in runbook_text
 
 
 def test_real_agent_compatibility_matrix_validates() -> None:
