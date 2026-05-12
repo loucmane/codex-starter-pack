@@ -32,6 +32,7 @@ def test_load_repo_structure_uses_defaults_without_config(tmp_path) -> None:
     assert structure.taskmaster_tasks_json == (tmp_path / ".taskmaster" / "tasks" / "tasks.json").resolve()
     assert structure.performance_report_dir == (tmp_path / "reports" / "template-performance").resolve()
     assert structure.cost_report_dir == (tmp_path / "reports" / "cost-tracking").resolve()
+    assert structure.migration_health_report_dir == (tmp_path / "reports" / "migration-health").resolve()
     assert structure.emergency_response_report_dir == (tmp_path / "reports" / "emergency-response").resolve()
 
 
@@ -79,6 +80,9 @@ reports_root = "state/reports"
     assert structure.emergency_response_policy_path == (
         tmp_path / "template-system" / "metadata" / "emergency-response-policy.json"
     ).resolve()
+    assert structure.migration_health_report_dir == (
+        tmp_path / "state" / "reports" / "migration-health"
+    ).resolve()
 
 
 def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> None:
@@ -104,6 +108,9 @@ def test_load_repo_structure_supports_cross_project_repo_shapes(tmp_path) -> Non
         ).resolve()
         assert structure.cost_report_dir == (
             repo_root / shape.roots["reports_root"] / "cost-tracking"
+        ).resolve()
+        assert structure.migration_health_report_dir == (
+            repo_root / shape.roots["reports_root"] / "migration-health"
         ).resolve()
         assert structure.emergency_response_report_dir == (
             repo_root / shape.roots["reports_root"] / "emergency-response"

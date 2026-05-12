@@ -44,6 +44,7 @@ Examples:
 - `scripts/codex-guard`
 - `scripts/codex-task`
 - `scripts/template-metrics-dashboard`
+- `scripts/template-migration-health-dashboard`
 - plan/tracker/session validation rules
 - metadata validation semantics
 - template lifecycle, versioning, and governance assessment semantics

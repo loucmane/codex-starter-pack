@@ -14,7 +14,8 @@ python3 scripts/codex-task report generate --kind telemetry \
   --strict-monitoring \
   --strict-phase0 \
   --strict-performance \
-  --strict-cost
+  --strict-cost \
+  --strict-migration-health
 ```
 
 `--kind telemetry` is a semantic alias for the full report chain. `--kind all` remains supported for backward compatibility.
@@ -27,6 +28,7 @@ The pipeline runs stages in this order:
 4. `scripts/template-phase0-validation` -> `reports/phase0-scanner-validation/`
 5. `scripts/template-performance-harness` -> `reports/template-performance/`
 6. `scripts/template-cost-report` -> `reports/cost-tracking/`
+7. `scripts/template-migration-health-dashboard` -> `reports/migration-health/`
 
 ## Report Directories
 
@@ -36,6 +38,7 @@ The pipeline runs stages in this order:
 - `phase0-scanner-validation/` - static validation over scanner outputs and monitoring status.
 - `template-performance/` - performance and regression checks for portable foundation operations.
 - `cost-tracking/` - cost policy evaluation using optional usage data.
+- `migration-health/` - aggregate health report over the latest static telemetry artifacts.
 
 ## Task Evidence
 

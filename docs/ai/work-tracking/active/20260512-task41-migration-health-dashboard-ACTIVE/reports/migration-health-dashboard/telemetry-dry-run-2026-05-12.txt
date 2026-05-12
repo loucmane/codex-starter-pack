@@ -1,0 +1,7 @@
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/codex-guard drift-check --report-dir reports/template-drift --strict
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-metrics-dashboard --report-dir reports/template-metrics
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-monitoring --metrics reports/template-metrics/latest.json --report-dir reports/template-monitoring --strict
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-phase0-validation --scanner-data-dir scripts/template-ssot-scanner/output/data --monitoring-file reports/template-monitoring/latest.json --report-dir reports/phase0-scanner-validation --strict
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-performance-harness --report-dir reports/template-performance --strict
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-cost-report --report-dir reports/cost-tracking --strict
+Would run: /usr/bin/python3 /home/loucmane/codex/scripts/template-migration-health-dashboard --metrics-file reports/template-metrics/latest.json --monitoring-file reports/template-monitoring/latest.json --phase0-file reports/phase0-scanner-validation/latest.json --performance-file reports/template-performance/latest.json --cost-file reports/cost-tracking/latest.json --report-dir reports/migration-health --strict

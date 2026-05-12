@@ -1,0 +1,377 @@
+#!/usr/bin/env python3
+"""Aggregate static telemetry artifacts into a migration health report."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Mapping, Optional, Sequence, Tuple
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from _repo_structure import load_repo_structure
+
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+DEFAULT_REPORT_DIR = REPO_STRUCTURE.migration_health_report_dir
+SEVERITY_ORDER = {"info": 0, "warning": 1, "error": 2}
+
+
+class MigrationHealthError(ValueError):
+    """Raised when migration health inputs cannot be evaluated."""
+
+
+@dataclass(frozen=True)
+class ComponentSpec:
+    """Input report that contributes to aggregate migration health."""
+
+    id: str
+    title: str
+    path: Path
+    review_command: str
+    status_required: bool = True
+
+
+@dataclass(frozen=True)
+class ComponentHealth:
+    """Health classification for one telemetry component."""
+
+    id: str
+    title: str
+    evidence: str
+    status: str
+    severity: str
+    source_status: Optional[str]
+    generated_at: Optional[str]
+    message: str
+    review_command: str
+    details: Mapping[str, object]
+
+
+@dataclass(frozen=True)
+class MigrationHealthReport:
+    """Static aggregate migration health report."""
+
+    generated_at: str
+    status: str
+    summary: Mapping[str, int]
+    components: Tuple[ComponentHealth, ...]
+    executes_external_actions: bool = False
+
+    def to_dict(self) -> Mapping[str, object]:
+        return {
+            "generated_at": self.generated_at,
+            "status": self.status,
+            "summary": dict(self.summary),
+            "executes_external_actions": self.executes_external_actions,
+            "components": [asdict(component) for component in self.components],
+        }
+
+
+def default_component_specs(repo_root: Path | str = REPO_ROOT) -> Tuple[ComponentSpec, ...]:
+    """Return component specs from the configured repo structure."""
+    root = Path(repo_root).resolve()
+    structure = load_repo_structure(root)
+    return (
+        ComponentSpec(
+            id="metrics",
+            title="Template metrics dashboard",
+            path=structure.metrics_report_dir / "latest.json",
+            review_command="python3 scripts/template-metrics-dashboard",
+            status_required=False,
+        ),
+        ComponentSpec(
+            id="monitoring",
+            title="Template monitoring report",
+            path=structure.monitoring_report_dir / "latest.json",
+            review_command="python3 scripts/template-monitoring --strict",
+        ),
+        ComponentSpec(
+            id="phase0",
+            title="Phase 0 scanner validation report",
+            path=structure.phase0_validation_report_dir / "latest.json",
+            review_command="python3 scripts/template-phase0-validation --strict",
+        ),
+        ComponentSpec(
+            id="performance",
+            title="Template performance report",
+            path=structure.performance_report_dir / "latest.json",
+            review_command="python3 scripts/template-performance-harness --strict",
+        ),
+        ComponentSpec(
+            id="cost",
+            title="Cost tracking report",
+            path=structure.cost_report_dir / "latest.json",
+            review_command="python3 scripts/template-cost-report --strict",
+        ),
+    )
+
+
+def build_report(
+    *,
+    repo_root: Path | str = REPO_ROOT,
+    metrics_file: Path | str | None = None,
+    monitoring_file: Path | str | None = None,
+    phase0_file: Path | str | None = None,
+    performance_file: Path | str | None = None,
+    cost_file: Path | str | None = None,
+    generated_at: Optional[str] = None,
+) -> MigrationHealthReport:
+    """Build a migration health report from telemetry JSON files."""
+    root = Path(repo_root).resolve()
+    specs = list(default_component_specs(root))
+    overrides = {
+        "metrics": metrics_file,
+        "monitoring": monitoring_file,
+        "phase0": phase0_file,
+        "performance": performance_file,
+        "cost": cost_file,
+    }
+    specs = [
+        ComponentSpec(
+            id=spec.id,
+            title=spec.title,
+            path=_resolve_path(overrides[spec.id], root) if overrides[spec.id] else spec.path,
+            review_command=spec.review_command,
+            status_required=spec.status_required,
+        )
+        for spec in specs
+    ]
+    components = tuple(_evaluate_component(spec, root) for spec in specs)
+    status = _aggregate_status(components)
+    return MigrationHealthReport(
+        generated_at=generated_at or datetime.now().astimezone().isoformat(),
+        status=status,
+        summary={
+            "total": len(components),
+            "passed": sum(1 for component in components if component.status == "pass"),
+            "warnings": sum(1 for component in components if component.status in {"warn", "missing"}),
+            "errors": sum(1 for component in components if component.status == "fail"),
+            "missing": sum(1 for component in components if component.status == "missing"),
+        },
+        components=components,
+    )
+
+
+def render_markdown(report: MigrationHealthReport) -> str:
+    """Render the migration health report as Markdown."""
+    lines = [
+        "# Migration Health Dashboard",
+        "",
+        f"Generated: {report.generated_at}",
+        f"Status: {report.status}",
+        f"Executes external actions: {report.executes_external_actions}",
+        "",
+        "## Summary",
+        f"- Total components: {report.summary['total']}",
+        f"- Passed: {report.summary['passed']}",
+        f"- Warnings: {report.summary['warnings']}",
+        f"- Errors: {report.summary['errors']}",
+        f"- Missing: {report.summary['missing']}",
+        "",
+        "## Components",
+    ]
+    for component in report.components:
+        lines.extend(
+            [
+                f"### {component.title}",
+                "",
+                f"- ID: `{component.id}`",
+                f"- Status: `{component.status}`",
+                f"- Severity: `{component.severity}`",
+                f"- Source status: `{component.source_status or 'n/a'}`",
+                f"- Generated at: `{component.generated_at or 'n/a'}`",
+                f"- Evidence: `{component.evidence}`",
+                f"- Message: {component.message}",
+                f"- Review command: `{component.review_command}`",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "No live dashboard, WebSocket, external alert, billing query, database write, or background service action was executed by this report.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_outputs(report: MigrationHealthReport, report_dir: Path | str) -> Tuple[Path, Path]:
+    """Write Markdown and JSON migration health outputs."""
+    output_dir = Path(report_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / "latest.json"
+    md_path = output_dir / "latest.md"
+    json_path.write_text(json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8")
+    md_path.write_text(render_markdown(report), encoding="utf-8")
+    return md_path, json_path
+
+
+def _evaluate_component(spec: ComponentSpec, repo_root: Path) -> ComponentHealth:
+    evidence = _path_display(spec.path, repo_root)
+    if not spec.path.exists():
+        return ComponentHealth(
+            id=spec.id,
+            title=spec.title,
+            evidence=evidence,
+            status="missing",
+            severity="warning",
+            source_status=None,
+            generated_at=None,
+            message="Telemetry component is missing; run the review command before claiming full migration health.",
+            review_command=spec.review_command,
+            details={"exists": False},
+        )
+    try:
+        payload = json.loads(spec.path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return ComponentHealth(
+            id=spec.id,
+            title=spec.title,
+            evidence=evidence,
+            status="fail",
+            severity="error",
+            source_status="invalid-json",
+            generated_at=None,
+            message=f"Telemetry component is not valid JSON: {exc}",
+            review_command=spec.review_command,
+            details={"exists": True, "parse_error": str(exc)},
+        )
+    if not isinstance(payload, Mapping):
+        return ComponentHealth(
+            id=spec.id,
+            title=spec.title,
+            evidence=evidence,
+            status="fail",
+            severity="error",
+            source_status="invalid",
+            generated_at=None,
+            message="Telemetry component payload must be a JSON object.",
+            review_command=spec.review_command,
+            details={"exists": True, "payload_type": type(payload).__name__},
+        )
+
+    source_status = _normalize_status(payload.get("status"))
+    if source_status is None:
+        if spec.status_required:
+            status = "fail"
+            severity = "error"
+            message = "Telemetry component is missing its status field."
+        else:
+            status = "pass"
+            severity = "info"
+            message = "Telemetry component loaded successfully."
+    else:
+        status, severity, message = _classify_source_status(source_status)
+
+    return ComponentHealth(
+        id=spec.id,
+        title=spec.title,
+        evidence=evidence,
+        status=status,
+        severity=severity,
+        source_status=source_status,
+        generated_at=str(payload.get("generated_at")) if payload.get("generated_at") else None,
+        message=message,
+        review_command=spec.review_command,
+        details=_component_details(payload),
+    )
+
+
+def _component_details(payload: Mapping[str, object]) -> Mapping[str, object]:
+    details = {}
+    summary = payload.get("summary")
+    if isinstance(summary, Mapping):
+        details["summary"] = dict(summary)
+    policy_version = payload.get("policy_version")
+    if policy_version is not None:
+        details["policy_version"] = policy_version
+    return details
+
+
+def _normalize_status(value: object) -> Optional[str]:
+    if value is None:
+        return None
+    status = str(value).strip().lower()
+    return status or None
+
+
+def _classify_source_status(source_status: str) -> Tuple[str, str, str]:
+    if source_status in {"pass", "passed", "ok", "success"}:
+        return "pass", "info", "Telemetry component reports pass."
+    if source_status in {"warn", "warning", "missing", "not-measured"}:
+        return "warn", "warning", f"Telemetry component reports {source_status}."
+    if source_status in {"fail", "failed", "error"}:
+        return "fail", "error", f"Telemetry component reports {source_status}."
+    return "fail", "error", f"Telemetry component has unsupported status {source_status!r}."
+
+
+def _aggregate_status(components: Sequence[ComponentHealth]) -> str:
+    if any(component.status == "fail" or component.severity == "error" for component in components):
+        return "fail"
+    if any(component.status in {"warn", "missing"} or component.severity == "warning" for component in components):
+        return "warn"
+    return "pass"
+
+
+def _resolve_path(raw_path: Path | str | None, repo_root: Path) -> Path:
+    if raw_path is None:
+        raise MigrationHealthError("Cannot resolve empty path")
+    path = Path(raw_path)
+    if not path.is_absolute():
+        path = repo_root / path
+    return path.resolve()
+
+
+def _path_display(path: Path, repo_root: Path = REPO_ROOT) -> str:
+    try:
+        return path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", default=".", help="Repository root to evaluate.")
+    parser.add_argument("--metrics-file", help="Metrics dashboard JSON file.")
+    parser.add_argument("--monitoring-file", help="Template monitoring JSON file.")
+    parser.add_argument("--phase0-file", help="Phase 0 scanner validation JSON file.")
+    parser.add_argument("--performance-file", help="Template performance JSON file.")
+    parser.add_argument("--cost-file", help="Cost tracking JSON file.")
+    parser.add_argument("--report-dir", help="Directory for migration health outputs.")
+    parser.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate migration health fails.")
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = build_parser().parse_args(argv)
+    repo_root = _resolve_path(args.repo_root, REPO_ROOT)
+    structure = load_repo_structure(repo_root)
+    report_dir = _resolve_path(args.report_dir, repo_root) if args.report_dir else structure.migration_health_report_dir
+    report = build_report(
+        repo_root=repo_root,
+        metrics_file=args.metrics_file,
+        monitoring_file=args.monitoring_file,
+        phase0_file=args.phase0_file,
+        performance_file=args.performance_file,
+        cost_file=args.cost_file,
+    )
+    md_path, json_path = write_outputs(report, report_dir)
+    print(f"Wrote migration health dashboard to {_path_display(md_path, repo_root)}")
+    print(f"Wrote migration health JSON to {_path_display(json_path, repo_root)}")
+    print(f"Migration health status: {report.status}")
+    if args.strict and report.status == "fail":
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
