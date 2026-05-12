@@ -371,7 +371,12 @@ def _probe_template_registry_warm_cache(repo_root: Path, settings: Mapping[str, 
     )
     registry = TemplateRegistry(repo_root=repo_root)
     result = registry.warm_cache(queries, allow_serena=False)
-    return f"Warmed {result.success_count} query result(s), {result.failure_count} failure(s)"
+    cache_index = registry.cache_stats()["index"]
+    return (
+        f"Warmed {result.success_count} query result(s), {result.failure_count} failure(s); "
+        f"cache hits={cache_index['hits']}, misses={cache_index['misses']}, "
+        f"rebuilds={cache_index['rebuilds']}, records={cache_index['record_count']}"
+    )
 
 
 def _run_command_probe(check: PerformanceCheck, repo_root: Path, temp_dir: Path) -> ProbeOutcome:

@@ -1,0 +1,4 @@
+# Findings
+
+- **2026-05-12 21:50** — [S:20260512|W:task53-template-caching-layer|H:scripts/template_registry.py|E:docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/designs/template-caching-scope-reconciliation.md] The current `TemplateRegistry` already has an in-process TTL index cache, explicit invalidation, `warm_cache()`, cached text reads, discovery metrics, and performance probes. The missing cache-layer capability is diagnostics for index hits/misses/rebuilds/invalidation and read-text LRU state.
+- **2026-05-12 21:57** — [S:20260512|W:task53-template-caching-layer|H:scripts/template-performance-harness|E:docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/performance-final/latest.md] The warm-cache probe now reports cache diagnostics from the same registry instance: `cache hits=2, misses=1, rebuilds=1, records=261` on the current repo.

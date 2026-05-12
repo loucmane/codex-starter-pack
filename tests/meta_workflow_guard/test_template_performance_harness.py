@@ -134,6 +134,43 @@ def test_main_writes_performance_outputs(tmp_path: Path, capsys) -> None:
     assert "# Template Performance Report" in markdown
 
 
+def test_warm_cache_probe_reports_cache_diagnostics(monkeypatch, tmp_path: Path) -> None:
+    module = load_performance_module()
+
+    class FakeWarmResult:
+        success_count = 2
+        failure_count = 1
+
+    class FakeRegistry:
+        def __init__(self, *, repo_root: Path) -> None:
+            self.repo_root = repo_root
+
+        def warm_cache(self, queries, *, allow_serena: bool = False):
+            assert list(queries) == ["alpha", "beta", "missing"]
+            assert allow_serena is False
+            return FakeWarmResult()
+
+        def cache_stats(self):
+            return {
+                "index": {
+                    "hits": 2,
+                    "misses": 1,
+                    "rebuilds": 1,
+                    "record_count": 42,
+                },
+                "read_text": {},
+            }
+
+    monkeypatch.setattr(module, "TemplateRegistry", FakeRegistry)
+
+    message = module._probe_template_registry_warm_cache(
+        tmp_path,
+        {"queries": ["alpha", "beta", "missing"]},
+    )
+
+    assert message == "Warmed 2 query result(s), 1 failure(s); cache hits=2, misses=1, rebuilds=1, records=42"
+
+
 def test_performance_policy_rejects_invalid_thresholds() -> None:
     module = load_performance_module()
 

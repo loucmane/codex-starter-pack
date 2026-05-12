@@ -117,6 +117,17 @@ class CacheWarmResult:
         return sum(1 for entry in self.entries if not entry.ok)
 
 
+@dataclass(frozen=True)
+class CacheStats:
+    """Snapshot of TemplateRegistry cache diagnostics."""
+
+    index: Mapping[str, object]
+    read_text: Mapping[str, object]
+
+    def as_dict(self) -> Dict[str, Mapping[str, object]]:
+        return {"index": dict(self.index), "read_text": dict(self.read_text)}
+
+
 class CompatibilityMap:
     """Bidirectional compatibility lookup table for legacy template paths."""
 
@@ -308,6 +319,10 @@ class TemplateRegistry:
         self._lock = threading.RLock()
         self._cache: Optional[_RegistryIndex] = None
         self._cache_built_at: float = 0.0
+        self._cache_hits = 0
+        self._cache_misses = 0
+        self._cache_rebuilds = 0
+        self._cache_invalidations = 0
         self._discovery_metrics: Dict[str, int] = {key: 0 for key in DISCOVERY_METRIC_KEYS}
 
     def _load_compatibility_map(
@@ -327,6 +342,7 @@ class TemplateRegistry:
         with self._lock:
             self._cache = None
             self._cache_built_at = 0.0
+            self._cache_invalidations += 1
 
     def records(self) -> Tuple[TemplateRecord, ...]:
         return self._index().records
@@ -350,6 +366,50 @@ class TemplateRegistry:
         """Reset resolve-path usage metrics for this registry instance."""
         with self._lock:
             self._discovery_metrics = {key: 0 for key in DISCOVERY_METRIC_KEYS}
+
+    def cache_stats(self) -> Dict[str, Mapping[str, object]]:
+        """Return a copy-safe snapshot of registry index and text cache diagnostics."""
+        text_cache = _read_text_cached.cache_info()
+        with self._lock:
+            cached = self._cache is not None
+            now = self.clock()
+            age_seconds: Optional[float] = None
+            ttl_remaining_seconds: Optional[float] = None
+            record_count = 0
+            if cached:
+                age_seconds = max(0.0, now - self._cache_built_at)
+                ttl_remaining_seconds = max(0.0, self.ttl_seconds - age_seconds)
+                record_count = len(self._cache.records) if self._cache is not None else 0
+            stats = CacheStats(
+                index={
+                    "cached": cached,
+                    "ttl_seconds": self.ttl_seconds,
+                    "age_seconds": age_seconds,
+                    "ttl_remaining_seconds": ttl_remaining_seconds,
+                    "record_count": record_count,
+                    "hits": self._cache_hits,
+                    "misses": self._cache_misses,
+                    "rebuilds": self._cache_rebuilds,
+                    "invalidations": self._cache_invalidations,
+                },
+                read_text={
+                    "hits": text_cache.hits,
+                    "misses": text_cache.misses,
+                    "maxsize": text_cache.maxsize,
+                    "currsize": text_cache.currsize,
+                },
+            )
+        return stats.as_dict()
+
+    def reset_cache_stats(self, *, clear_text_cache: bool = False) -> None:
+        """Reset cache counters while preserving the currently cached registry index."""
+        with self._lock:
+            self._cache_hits = 0
+            self._cache_misses = 0
+            self._cache_rebuilds = 0
+            self._cache_invalidations = 0
+        if clear_text_cache:
+            _read_text_cached.cache_clear()
 
     def warm_cache(self, queries: Iterable[str], *, allow_serena: bool = False) -> CacheWarmResult:
         """Resolve common queries to build the index cache and report misses without raising."""
@@ -526,9 +586,12 @@ class TemplateRegistry:
         now = self.clock()
         with self._lock:
             if self._cache is not None and now - self._cache_built_at < self.ttl_seconds:
+                self._cache_hits += 1
                 return self._cache
+            self._cache_misses += 1
             self._cache = self._build_index()
             self._cache_built_at = now
+            self._cache_rebuilds += 1
             return self._cache
 
     def _build_index(self) -> _RegistryIndex:
