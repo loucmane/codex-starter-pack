@@ -1,0 +1,9 @@
+Check: diff-check
+Title: Patch whitespace check
+Command: git diff --check
+Exit code: 0
+
+STDOUT:
+
+
+STDERR:

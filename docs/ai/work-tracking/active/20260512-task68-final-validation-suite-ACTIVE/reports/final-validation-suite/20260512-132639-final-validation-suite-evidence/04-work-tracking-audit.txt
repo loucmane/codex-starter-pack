@@ -1,0 +1,9 @@
+Check: work-tracking-audit
+Title: Work-tracking audit
+Command: python3 scripts/codex-task work-tracking audit
+Exit code: 0
+
+STDOUT:
+Audit passed: no issues found.
+
+STDERR:

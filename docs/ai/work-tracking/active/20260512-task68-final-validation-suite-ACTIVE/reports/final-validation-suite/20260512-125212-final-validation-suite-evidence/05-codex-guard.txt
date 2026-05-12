@@ -1,0 +1,10 @@
+Check: codex-guard
+Title: Codex guard validation
+Command: python3 scripts/codex-guard validate --include-untracked
+Exit code: 1
+
+STDOUT:
+Guard validation failed:
+  - docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/TRACKER.md: Serena memory reference missing for today in tracker progress log
+
+STDERR:

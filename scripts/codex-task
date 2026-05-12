@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -93,6 +94,62 @@ AGENT_COMPATIBILITY_REQUIRED_AGENT_KEYS = (
     "fallbacks",
     "transformations",
     "evidence_paths",
+)
+
+FINAL_VALIDATION_REQUIREMENTS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "checklist-automation",
+        "title": "Validation checklist automation",
+        "covered_by": ("validation final-suite manifest", "validation final-suite runbook"),
+    },
+    {
+        "id": "reference-integrity",
+        "title": "Reference integrity checks",
+        "covered_by": ("scanner suite", "automatic reference-fix gate"),
+    },
+    {
+        "id": "security-validation",
+        "title": "Security validation",
+        "covered_by": ("scanner security validator", "Phase 0 validation report"),
+    },
+    {
+        "id": "performance-validation",
+        "title": "Performance validation",
+        "covered_by": ("template performance harness",),
+    },
+    {
+        "id": "cost-validation",
+        "title": "Cost validation",
+        "covered_by": ("template cost report",),
+    },
+    {
+        "id": "compatibility-validation",
+        "title": "Compatibility validation",
+        "covered_by": ("agent compatibility report",),
+    },
+    {
+        "id": "report-generation",
+        "title": "Validation report generation",
+        "covered_by": ("report generate --kind all", "final validation report outputs"),
+    },
+    {
+        "id": "regression-tests",
+        "title": "Regression tests",
+        "covered_by": ("pytest suite",),
+    },
+    {
+        "id": "sign-off-workflow",
+        "title": "Validation sign-off workflow",
+        "covered_by": ("final validation runbook sign-off checklist",),
+    },
+)
+
+FINAL_VALIDATION_SIGN_OFF: Tuple[str, ...] = (
+    "All required final-suite checks passed or have an explicit documented waiver.",
+    "Final validation JSON and Markdown runbook are stored in the task evidence folder.",
+    "Plan, tracker, session, handoff, findings, decisions, and changelog reference the final evidence.",
+    "Taskmaster status and generated task file are current.",
+    "No policy-only validation gap is hidden by prose-only documentation.",
 )
 
 
@@ -3567,6 +3624,444 @@ def handle_agent_compatibility_report(args: argparse.Namespace) -> None:
         raise TaskError("Agent compatibility matrix validation failed")
 
 
+def _resolve_final_validation_path(path_value: Optional[str], default_path: Path) -> Path:
+    path = Path(path_value) if path_value else default_path
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    return path
+
+
+def _final_validation_output_paths(args: argparse.Namespace, created_at: datetime) -> Dict[str, str]:
+    label_slug = _slugify(args.label)
+    stamp = created_at.strftime("%Y%m%d-%H%M%S")
+    report_dir = Path(args.report_dir)
+    if not report_dir.is_absolute():
+        report_dir = REPO_ROOT / report_dir
+    evidence_dir = report_dir / f"{stamp}-{label_slug}-evidence"
+    report_file = _resolve_final_validation_path(
+        args.report_file,
+        report_dir / f"{stamp}-{label_slug}.json",
+    )
+    runbook_file = _resolve_final_validation_path(
+        args.runbook_file,
+        report_dir / f"{stamp}-{label_slug}.md",
+    )
+    return {
+        "report_dir": _relative_to_root(report_dir, REPO_ROOT),
+        "evidence_dir": _relative_to_root(evidence_dir, REPO_ROOT),
+        "report_file": _relative_to_root(report_file, REPO_ROOT),
+        "runbook_file": _relative_to_root(runbook_file, REPO_ROOT),
+    }
+
+
+def _final_validation_command_display(command: List[str], env: Optional[Dict[str, str]] = None) -> str:
+    parts = []
+    if env:
+        parts.extend(f"{key}={shlex.quote(str(value))}" for key, value in sorted(env.items()))
+    for part in command:
+        display_part = "python3" if part == sys.executable else part
+        parts.append(shlex.quote(display_part))
+    return " ".join(parts)
+
+
+def _final_validation_command_specs(
+    evidence_dir: Path,
+    pytest_targets: Iterable[str],
+    *,
+    skip_pytest: bool = False,
+) -> List[Dict[str, Any]]:
+    python = sys.executable
+    drift_report_dir = evidence_dir / "template-drift"
+    metrics_report_dir = evidence_dir / "template-metrics"
+    monitoring_report_dir = evidence_dir / "template-monitoring"
+    phase0_report_dir = evidence_dir / "phase0-scanner-validation"
+    performance_report_dir = evidence_dir / "template-performance"
+    cost_report_dir = evidence_dir / "cost-tracking"
+    reference_log = evidence_dir / "reference-fix-gate.json"
+    agent_report = evidence_dir / "agent-compatibility.json"
+    agent_runbook = evidence_dir / "agent-compatibility.md"
+    checks: List[Dict[str, Any]] = [
+        {
+            "id": "git-status",
+            "title": "Current Git status",
+            "category": "workflow-state",
+            "requirements": ("checklist-automation",),
+            "command": ["git", "status", "--short", "--branch"],
+        },
+        {
+            "id": "taskmaster-health",
+            "title": "Taskmaster graph health",
+            "category": "workflow-state",
+            "requirements": ("checklist-automation",),
+            "command": [python, "scripts/codex-task", "taskmaster", "health"],
+        },
+        {
+            "id": "plan-sync",
+            "title": "Plan and tracker sync",
+            "category": "workflow-state",
+            "requirements": ("checklist-automation", "sign-off-workflow"),
+            "command": [python, "scripts/codex-task", "plan", "sync"],
+        },
+        {
+            "id": "work-tracking-audit",
+            "title": "Work-tracking audit",
+            "category": "workflow-state",
+            "requirements": ("checklist-automation", "sign-off-workflow"),
+            "command": [python, "scripts/codex-task", "work-tracking", "audit"],
+        },
+        {
+            "id": "codex-guard",
+            "title": "Codex guard validation",
+            "category": "guard",
+            "requirements": ("checklist-automation", "security-validation", "sign-off-workflow"),
+            "command": [python, "scripts/codex-guard", "validate", "--include-untracked"],
+        },
+        {
+            "id": "template-drift",
+            "title": "Template drift check",
+            "category": "guard",
+            "requirements": ("reference-integrity", "report-generation"),
+            "command": [
+                python,
+                "scripts/codex-guard",
+                "drift-check",
+                "--strict",
+                "--report-dir",
+                _relative_to_root(drift_report_dir, REPO_ROOT),
+            ],
+        },
+        {
+            "id": "scanner-suite",
+            "title": "Scanner validation suite",
+            "category": "scanner",
+            "requirements": ("reference-integrity", "security-validation"),
+            "command": [python, "scripts/template-ssot-scanner/run_all_scanners.py", "--profile", "ci"],
+        },
+        {
+            "id": "reference-fix-gate",
+            "title": "Automatic reference-fix gate",
+            "category": "scanner",
+            "requirements": ("reference-integrity",),
+            "command": [
+                python,
+                "scripts/template-ssot-scanner/apply_reference_fixes.py",
+                "--dry-run",
+                "--fail-on-changes",
+                "--log-file",
+                _relative_to_root(reference_log, REPO_ROOT),
+            ],
+        },
+        {
+            "id": "static-report-pipeline",
+            "title": "Static validation report pipeline",
+            "category": "reports",
+            "requirements": (
+                "performance-validation",
+                "cost-validation",
+                "security-validation",
+                "report-generation",
+            ),
+            "command": [
+                python,
+                "scripts/codex-task",
+                "report",
+                "generate",
+                "--kind",
+                "all",
+                "--drift-report-dir",
+                _relative_to_root(drift_report_dir, REPO_ROOT),
+                "--report-dir",
+                _relative_to_root(metrics_report_dir, REPO_ROOT),
+                "--metrics-file",
+                _relative_to_root(metrics_report_dir / "latest.json", REPO_ROOT),
+                "--monitoring-report-dir",
+                _relative_to_root(monitoring_report_dir, REPO_ROOT),
+                "--phase0-report-dir",
+                _relative_to_root(phase0_report_dir, REPO_ROOT),
+                "--performance-report-dir",
+                _relative_to_root(performance_report_dir, REPO_ROOT),
+                "--cost-report-dir",
+                _relative_to_root(cost_report_dir, REPO_ROOT),
+                "--strict-drift",
+                "--strict-monitoring",
+                "--strict-phase0",
+                "--strict-performance",
+                "--strict-cost",
+            ],
+        },
+        {
+            "id": "agent-compatibility",
+            "title": "Agent compatibility validation",
+            "category": "compatibility",
+            "requirements": ("compatibility-validation", "report-generation"),
+            "command": [
+                python,
+                "scripts/codex-task",
+                "agent",
+                "compatibility-report",
+                "--strict",
+                "--report-file",
+                _relative_to_root(agent_report, REPO_ROOT),
+                "--runbook-file",
+                _relative_to_root(agent_runbook, REPO_ROOT),
+            ],
+        },
+    ]
+
+    if not skip_pytest:
+        targets = list(pytest_targets)
+        checks.append(
+            {
+                "id": "pytest",
+                "title": "Python regression tests",
+                "category": "tests",
+                "requirements": ("regression-tests", "sign-off-workflow"),
+                "command": [python, "-m", "pytest", *targets],
+                "env": {"PYTHONDONTWRITEBYTECODE": "1"},
+            }
+        )
+
+    checks.append(
+        {
+            "id": "diff-check",
+            "title": "Patch whitespace check",
+            "category": "git",
+            "requirements": ("sign-off-workflow",),
+            "command": ["git", "diff", "--check"],
+        }
+    )
+
+    for check in checks:
+        check["required"] = True
+        check["command_display"] = _final_validation_command_display(check["command"], check.get("env"))
+        check["result"] = {"status": "planned", "exit_code": None, "evidence": None}
+    return checks
+
+
+def _build_final_validation_suite(args: argparse.Namespace) -> Dict[str, Any]:
+    created_at = datetime.now().astimezone()
+    paths = _final_validation_output_paths(args, created_at)
+    evidence_dir = REPO_ROOT / paths["evidence_dir"]
+    checks = _final_validation_command_specs(
+        evidence_dir,
+        tuple(args.pytest_target or ()),
+        skip_pytest=args.skip_pytest,
+    )
+    return {
+        "version": 1,
+        "created_at": created_at.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "final-validation-suite",
+        "executes_commands": bool(args.execute),
+        "allow_failures": bool(args.allow_failures),
+        "paths": paths,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "requirements": list(FINAL_VALIDATION_REQUIREMENTS),
+        "checks": checks,
+        "sign_off_checklist": list(FINAL_VALIDATION_SIGN_OFF),
+        "summary": {
+            "status": "planned",
+            "total_checks": len(checks),
+            "passed": 0,
+            "failed": 0,
+            "not_run": len(checks),
+            "failed_required": 0,
+        },
+        "valid": None,
+        "non_goals": [
+            "No standalone security, performance, cost, reference, or compatibility validator is created by this suite.",
+            "No external service, repository setting, hosted dashboard, or approval workflow is modified.",
+            "Dirty Git status is recorded as evidence; patch hygiene is enforced by git diff --check.",
+        ],
+    }
+
+
+def _final_validation_log_text(check: Dict[str, Any], returncode: int, stdout: str, stderr: str) -> str:
+    return "\n".join(
+        [
+            f"Check: {check['id']}",
+            f"Title: {check['title']}",
+            f"Command: {check['command_display']}",
+            f"Exit code: {returncode}",
+            "",
+            "STDOUT:",
+            stdout.rstrip(),
+            "",
+            "STDERR:",
+            stderr.rstrip(),
+        ]
+    ).rstrip() + "\n"
+
+
+def _execute_final_validation_suite(plan: Dict[str, Any]) -> None:
+    evidence_dir = REPO_ROOT / str(plan["paths"]["evidence_dir"])
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+
+    for index, check in enumerate(plan["checks"], start=1):
+        evidence_path = evidence_dir / f"{index:02d}-{check['id']}.txt"
+        env = os.environ.copy()
+        env.update({str(key): str(value) for key, value in check.get("env", {}).items()})
+        try:
+            result = subprocess.run(
+                check["command"],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            returncode = result.returncode
+            stdout = result.stdout
+            stderr = result.stderr
+        except OSError as exc:
+            returncode = 127
+            stdout = ""
+            stderr = str(exc)
+
+        evidence_path.write_text(
+            _final_validation_log_text(check, returncode, stdout, stderr),
+            encoding="utf-8",
+        )
+        check["result"] = {
+            "status": "passed" if returncode == 0 else "failed",
+            "exit_code": returncode,
+            "evidence": _relative_to_root(evidence_path, REPO_ROOT),
+        }
+
+    _summarise_final_validation_suite(plan)
+
+
+def _summarise_final_validation_suite(plan: Dict[str, Any]) -> None:
+    checks = [check for check in plan.get("checks", []) if isinstance(check, dict)]
+    passed = sum(1 for check in checks if check.get("result", {}).get("status") == "passed")
+    failed = sum(1 for check in checks if check.get("result", {}).get("status") == "failed")
+    not_run = sum(1 for check in checks if check.get("result", {}).get("status") == "planned")
+    failed_required = sum(
+        1
+        for check in checks
+        if check.get("required", True) and check.get("result", {}).get("status") == "failed"
+    )
+    status = "planned"
+    valid: Optional[bool] = None
+    if not_run != len(checks):
+        status = "passed" if failed_required == 0 and not_run == 0 else "failed"
+        valid = status == "passed"
+    plan["summary"] = {
+        "status": status,
+        "total_checks": len(checks),
+        "passed": passed,
+        "failed": failed,
+        "not_run": not_run,
+        "failed_required": failed_required,
+    }
+    plan["valid"] = valid
+
+
+def _render_final_validation_runbook(plan: Dict[str, Any]) -> str:
+    current = plan.get("current_state", {}) if isinstance(plan.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    summary = plan.get("summary", {}) if isinstance(plan.get("summary"), dict) else {}
+
+    lines = [
+        "# Final Validation Suite Runbook",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes commands: {plan.get('executes_commands')}",
+        f"- Status: {summary.get('status')}",
+        f"- Valid: {plan.get('valid')}",
+        "",
+        "## Current State",
+        "",
+        f"- Branch: {git_info.get('branch')}",
+        f"- HEAD: {git_info.get('head')}",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: {workflow.get('current_session', {}).get('resolved')}",
+        f"- Current plan: {workflow.get('current_plan', {}).get('resolved')}",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Requirement Coverage",
+        "",
+        "| Requirement | Covered By |",
+        "| --- | --- |",
+    ]
+    for requirement in plan.get("requirements", []):
+        if not isinstance(requirement, dict):
+            continue
+        covered_by = ", ".join(str(item) for item in requirement.get("covered_by", []))
+        lines.append(f"| {_md_cell(requirement.get('title'))} | {_md_cell(covered_by)} |")
+
+    lines.extend(
+        [
+            "",
+            "## Validation Checks",
+            "",
+            "| Check | Category | Status | Evidence | Command |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+    )
+    for check in plan.get("checks", []):
+        if not isinstance(check, dict):
+            continue
+        result = check.get("result", {}) if isinstance(check.get("result"), dict) else {}
+        lines.append(
+            f"| {_md_cell(check.get('title'))} | {_md_cell(check.get('category'))} | "
+            f"{_md_cell(result.get('status'))} | {_md_cell(result.get('evidence') or '')} | "
+            f"`{_md_cell(check.get('command_display'))}` |"
+        )
+
+    lines.extend(["", "## Sign-Off Checklist", ""])
+    for item in plan.get("sign_off_checklist", []):
+        lines.append(f"- [ ] {item}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    if not plan.get("executes_commands"):
+        lines.extend(["", "No validation commands were executed by this planned suite.", ""])
+    else:
+        lines.extend(["", "Validation command outputs are captured in the evidence files listed above.", ""])
+    return "\n".join(lines)
+
+
+def handle_validation_final_suite(args: argparse.Namespace) -> None:
+    plan = _build_final_validation_suite(args)
+    if args.execute:
+        _execute_final_validation_suite(plan)
+    else:
+        _summarise_final_validation_suite(plan)
+
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_final_validation_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    report_path = REPO_ROOT / str(plan["paths"]["report_file"])
+    runbook_path = REPO_ROOT / str(plan["paths"]["runbook_file"])
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    runbook_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(rendered_json, encoding="utf-8")
+    runbook_path.write_text(rendered_runbook, encoding="utf-8")
+    print(f"Wrote final validation report to {_relative_to_root(report_path, REPO_ROOT)}")
+    print(f"Wrote final validation runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+
+    if args.execute and not args.allow_failures and plan["summary"]["failed_required"]:
+        raise TaskError("Final validation suite failed")
+
+
 def _load_emergency_response_policy(policy_file: Optional[str] = None) -> Dict[str, Any]:
     policy_path = Path(policy_file) if policy_file else REPO_STRUCTURE.emergency_response_policy_path
     if not policy_path.is_absolute():
@@ -4431,6 +4926,43 @@ def build_parser() -> argparse.ArgumentParser:
     agent_compatibility.add_argument("--strict", action="store_true", help="Fail when matrix validation issues are present")
     agent_compatibility.add_argument("--dry-run", action="store_true", help="Print the compatibility report JSON without writing files")
     agent_compatibility.set_defaults(func=handle_agent_compatibility_report)
+
+    validation_parser = subparsers.add_parser("validation", help="Final validation suite operations")
+    validation_sub = validation_parser.add_subparsers(dest="subcommand", required=True)
+    validation_final_suite = validation_sub.add_parser(
+        "final-suite",
+        help="Plan or execute the portable final validation suite and sign-off runbook",
+    )
+    validation_final_suite.add_argument("--label", default="final-validation-suite", help="Human-readable validation label")
+    validation_final_suite.add_argument(
+        "--report-dir",
+        default=(REPO_STRUCTURE.reports_root / "final-validation-suite").relative_to(REPO_ROOT).as_posix(),
+        help="Directory for final validation report, runbook, and evidence logs",
+    )
+    validation_final_suite.add_argument("--report-file", help="Optional path to write the final validation JSON report")
+    validation_final_suite.add_argument("--runbook-file", help="Optional path to write the final validation Markdown runbook")
+    validation_final_suite.add_argument(
+        "--execute",
+        action="store_true",
+        help="Run validation commands and capture per-check evidence logs",
+    )
+    validation_final_suite.add_argument(
+        "--allow-failures",
+        action="store_true",
+        help="Write failed evidence without exiting nonzero when required checks fail",
+    )
+    validation_final_suite.add_argument(
+        "--pytest-target",
+        action="append",
+        help="Pytest target to pass to the regression-test check; repeatable. Defaults to the full suite.",
+    )
+    validation_final_suite.add_argument(
+        "--skip-pytest",
+        action="store_true",
+        help="Omit the pytest check from the final suite, for scoped rehearsal only",
+    )
+    validation_final_suite.add_argument("--dry-run", action="store_true", help="Print the final validation JSON without writing files")
+    validation_final_suite.set_defaults(func=handle_validation_final_suite)
 
     emergency_parser = subparsers.add_parser("emergency", help="Emergency response planning operations")
     emergency_sub = emergency_parser.add_subparsers(dest="subcommand", required=True)
