@@ -1,0 +1,114 @@
+{
+  "version": "1.0.0",
+  "description": "Portable template governance policy. Repos can customize review classes, roles, approval rules, escalation guidance, and notification-evidence expectations without adding live meeting or notification infrastructure.",
+  "schema": "template-governance-review.v1",
+  "default_review_class": "routine",
+  "emergency_review_class": "emergency",
+  "roles": {
+    "template_owner": "Owns the changed template or template family.",
+    "foundation_maintainer": "Maintains the portable foundation contract and guard behavior.",
+    "compatibility_reviewer": "Reviews migration, rollback, and compatibility impact for breaking changes.",
+    "emergency_approver": "Approves urgent changes that bypass normal review sequencing."
+  },
+  "review_classes": {
+    "routine": {
+      "priority": 10,
+      "required_roles": [
+        "template_owner"
+      ],
+      "approval": "One template-owner approval or equivalent active-session decision record.",
+      "escalation": "No escalation required unless guard, tests, or user feedback reveal compatibility risk.",
+      "notification_audiences": [
+        "active work-tracking folder"
+      ],
+      "required_evidence": [
+        "DECISIONS.md entry when a design choice is made",
+        "CHANGELOG.md entry for user-visible template behavior changes",
+        "focused test or guard evidence when behavior changes"
+      ]
+    },
+    "coordinated": {
+      "priority": 20,
+      "required_roles": [
+        "template_owner",
+        "foundation_maintainer"
+      ],
+      "approval": "Template-owner and foundation-maintainer acknowledgement recorded in work tracking.",
+      "escalation": "Escalate to breaking review if compatibility or migration risk is identified.",
+      "notification_audiences": [
+        "active work-tracking folder",
+        "task handoff"
+      ],
+      "required_evidence": [
+        "FINDINGS.md impact note",
+        "DECISIONS.md rationale",
+        "IMPLEMENTATION.md summary",
+        "guard and focused test evidence"
+      ]
+    },
+    "breaking": {
+      "priority": 30,
+      "required_roles": [
+        "template_owner",
+        "foundation_maintainer",
+        "compatibility_reviewer"
+      ],
+      "approval": "All listed roles or explicit user approval recorded in DECISIONS.md.",
+      "escalation": "Create migration and rollback notes before merge; defer if evidence is incomplete.",
+      "notification_audiences": [
+        "active work-tracking folder",
+        "task handoff",
+        "migration/adoption notes"
+      ],
+      "required_evidence": [
+        "FINDINGS.md compatibility impact",
+        "DECISIONS.md approval and alternatives",
+        "migration or rollback note",
+        "guard, focused test, and relevant integration evidence"
+      ]
+    },
+    "emergency": {
+      "priority": 40,
+      "required_roles": [
+        "foundation_maintainer",
+        "emergency_approver"
+      ],
+      "approval": "Explicit user approval and emergency-bypass record before merge.",
+      "escalation": "Follow the repo-local emergency response policy and create a post-incident follow-up task.",
+      "notification_audiences": [
+        "active work-tracking folder",
+        "session log",
+        "handoff",
+        "post-incident follow-up"
+      ],
+      "required_evidence": [
+        "emergency bypass reason",
+        "current-state snapshot",
+        "post-incident follow-up plan",
+        "guard and recovery evidence"
+      ]
+    }
+  },
+  "version_change_review": {
+    "same": "routine",
+    "patch": "routine",
+    "minor": "routine",
+    "release": "routine",
+    "prerelease": "coordinated",
+    "major": "breaking",
+    "downgrade": "breaking"
+  },
+  "lifecycle_transition_review": {
+    "draft->review": "routine",
+    "review->draft": "routine",
+    "review->stable": "coordinated",
+    "draft->archived": "coordinated",
+    "review->archived": "coordinated",
+    "stable->deprecated": "breaking",
+    "stable->archived": "breaking",
+    "deprecated->stable": "breaking",
+    "deprecated->archived": "coordinated",
+    "archived->stable": "breaking"
+  },
+  "notification_mode": "evidence-only"
+}

@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+collected 243 items
+
+tests/meta_workflow_guard/test_ci_workflows.py .....                     [  2%]
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 13%]
+......................................                                   [ 28%]
+tests/meta_workflow_guard/test_communication_templates.py ......         [ 31%]
+tests/meta_workflow_guard/test_guard_integration.py .                    [ 31%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 42%]
+...............................................                          [ 61%]
+tests/meta_workflow_guard/test_phase0_scanner_validation.py .......      [ 64%]
+tests/meta_workflow_guard/test_registration.py .....                     [ 66%]
+tests/meta_workflow_guard/test_repo_structure_config.py ...              [ 67%]
+tests/meta_workflow_guard/test_template_cost_report.py ......            [ 70%]
+tests/meta_workflow_guard/test_template_governance.py .........          [ 74%]
+tests/meta_workflow_guard/test_template_lifecycle.py ..........          [ 78%]
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ....        [ 79%]
+tests/meta_workflow_guard/test_template_monitoring.py ........           [ 83%]
+tests/meta_workflow_guard/test_template_performance_harness.py .....     [ 85%]
+tests/meta_workflow_guard/test_template_registry.py ................     [ 91%]
+tests/meta_workflow_guard/test_template_testing.py .....                 [ 93%]
+tests/meta_workflow_guard/test_template_versioning.py ...........        [ 98%]
+tests/meta_workflow_guard/test_training_materials.py ....                [100%]
+
+============================= 243 passed in 2.42s ==============================

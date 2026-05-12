@@ -46,6 +46,7 @@ Examples:
 - `scripts/template-metrics-dashboard`
 - plan/tracker/session validation rules
 - metadata validation semantics
+- template lifecycle, versioning, and governance assessment semantics
 - work-tracking lifecycle rules
 
 Core logic may read configuration, but it should not hardcode a single repo shape as a requirement.
@@ -88,6 +89,12 @@ The metadata policy file is repo-local data, not core logic.
 Current canonical file:
 
 - `templates/metadata/template-metadata-policy.json`
+
+Related repo-local policy files may extend the same pattern for adjacent governance concerns:
+
+- `templates/metadata/template-lifecycle-policy.json`
+- `templates/metadata/template-versioning-policy.json`
+- `templates/metadata/template-governance-policy.json`
 
 The portable policy contract includes:
 
@@ -249,4 +256,5 @@ Those belong to follow-on tasks.
 
 ## Progress Log
 
+- **2026-05-12 16:08** — [S:20260512|W:task36-template-governance-board|H:templates/engine/core/portable-foundation-spec.md|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/designs/template-governance-scope-reconciliation.md] Added template governance policy to the repo-local policy-file contract and core semantic inventory.
 - **2026-04-24 19:14** — [S:20260424|W:task99-portable-foundation-spec|H:templates/engine/core/portable-foundation-spec.md|E:docs/ai/work-tracking/active/20260424-task99-portable-foundation-spec-ACTIVE/designs/portable-foundation-spec-outline.md] Drafted the canonical portable foundation specification by combining the Task 91 metadata policy model, Task 98 repo-structure contract, and current workflow lifecycle rules

@@ -1,0 +1,15 @@
+emergency: templates/example.md
+schema: template-governance-review.v1
+required_roles: foundation_maintainer, emergency_approver
+approval: Explicit user approval and emergency-bypass record before merge.
+escalation: Follow the repo-local emergency response policy and create a post-incident follow-up task.
+notification_mode: evidence-only
+notification_audiences: active work-tracking folder, session log, handoff, post-incident follow-up
+required_evidence:
+- emergency bypass reason
+- current-state snapshot
+- post-incident follow-up plan
+- guard and recovery evidence
+reasons:
+- version_change: patch -> routine: Version change 1.2.3 -> 1.2.4 classified as patch
+- emergency: true -> emergency: Emergency flag forces emergency governance review

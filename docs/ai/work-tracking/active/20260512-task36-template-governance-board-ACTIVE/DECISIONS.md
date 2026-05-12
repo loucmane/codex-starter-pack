@@ -1,0 +1,4 @@
+# Decisions
+
+- 2026-05-12 — [S:20260512|W:task36-template-governance-board|H:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/designs/template-governance-scope-reconciliation.md|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/designs/template-governance-scope-reconciliation.md] Implement Task 36 as a non-mutating governance assessor with repo-local policy, not as a meeting board, live voting system, or external notification service. This matches the portable foundation's config-driven model and avoids adding operational side effects.
+- 2026-05-12 — [S:20260512|W:task36-template-governance-board|H:templates/metadata/template-governance-policy.json|E:scripts/template_governance.py] Keep governance notifications evidence-only. The helper reports required audiences and evidence; it never sends messages, schedules meetings, or mutates workflow files.
