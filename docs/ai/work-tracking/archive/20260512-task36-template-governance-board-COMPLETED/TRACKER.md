@@ -1,13 +1,13 @@
 # Task 36 Implement Template Governance Board Tracker
 
 **Started**: 2026-05-12
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-12
 
 ## Goals
-- [ ] Reconcile old governance-board requirements against the current portable foundation
-- [ ] Implement only the proven current-state governance gap with evidence
-- [ ] Keep governance lightweight, file-backed, and portable across projects
+- [x] Reconcile old governance-board requirements against the current portable foundation
+- [x] Implement only the proven current-state governance gap with evidence
+- [x] Keep governance lightweight, file-backed, and portable across projects
 
 ## Progress Log
 - **2026-05-12 15:43** — [S:20260512|W:task36-template-governance-board|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-05-12 15:43 CEST`
@@ -23,6 +23,7 @@
 - **2026-05-12 16:04** — [S:20260512|W:task36-template-governance-board|H:verification|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/reports/template-governance-board/] Stored focused tests, CLI evidence, plan sync, audit, guard, Taskmaster health, and diff-check evidence
 - **2026-05-12 16:05** — [S:20260512|W:task36-template-governance-board|H:pytest|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/reports/template-governance-board/tests-2026-05-12-meta-workflow.txt] Full `tests/meta_workflow_guard` regression passed: `243 passed`
 - **2026-05-12 16:08** — [S:20260512|W:task36-template-governance-board|H:templates/TOOLS.md|E:templates/engine/core/portable-foundation-spec.md] Documented the governance assessor in the tool guide and portable foundation policy contract
+- **2026-05-12 17:27** — [S:20260512|W:task36-template-governance-board|H:gh:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/77] PR #77 merged, remote feature branch deleted, work-tracking archived, and session/plan pointers cleared
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -31,4 +32,5 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: `sessions/2026/05/2026-05-12-002-task36-template-governance-board.md`
+- Archived folder: `docs/ai/work-tracking/archive/20260512-task36-template-governance-board-COMPLETED/`

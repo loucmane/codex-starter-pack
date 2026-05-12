@@ -21,8 +21,8 @@ title: Task 36 - Implement Template Governance Board
 - [x] Scaffold Task 36 work tracking.
 - [x] Repoint `sessions/current` and `plans/current` to Task 36.
 - [x] Mark Taskmaster Task 36 in progress and update its generated task file.
-- [ ] Review the design baseline and implementation boundary for Implement Template Governance Board.
-- [ ] Capture implementation and verification evidence.
+- [x] Review the design baseline and implementation boundary for Implement Template Governance Board.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 36 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -40,3 +40,4 @@ Task 36 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cr
 - **[16:04]** — [S:20260512|W:task36-template-governance-board|H:verification|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/reports/template-governance-board/] Stored final Task 36 verification evidence
 - **[16:05]** — [S:20260512|W:task36-template-governance-board|H:pytest|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/reports/template-governance-board/tests-2026-05-12-meta-workflow.txt] Full `tests/meta_workflow_guard` regression passed: `243 passed`
 - **[16:08]** — [S:20260512|W:task36-template-governance-board|H:templates/TOOLS.md|E:templates/engine/core/portable-foundation-spec.md] Documented the governance assessor in the tool guide and portable foundation policy contract
+- **[17:27]** — [S:20260512|W:task36-template-governance-board|H:gh:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/77] PR #77 merged, remote feature branch deleted, work-tracking archived, and `sessions/current` / `plans/current` cleared
