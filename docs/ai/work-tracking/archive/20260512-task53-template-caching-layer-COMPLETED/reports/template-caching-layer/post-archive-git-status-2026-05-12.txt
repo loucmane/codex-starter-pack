@@ -1,0 +1,21 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/designs/template-caching-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/diff-check-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/guard-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/performance-final-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/performance-final/latest.json
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/performance-final/latest.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/performance-smoke/latest.json
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/performance-smoke/latest.md
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/plan-sync-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/taskmaster-health-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/taskmaster-show-53-final-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/tests-focused-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task53-template-caching-layer-ACTIVE/reports/template-caching-layer/work-tracking-audit-2026-05-12.txt
+?? docs/ai/work-tracking/archive/20260512-task53-template-caching-layer-COMPLETED/

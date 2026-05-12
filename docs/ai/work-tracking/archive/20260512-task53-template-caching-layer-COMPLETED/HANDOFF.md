@@ -6,10 +6,10 @@
 - Selected implementation is narrow cache diagnostics on the existing `TemplateRegistry`; external Redis/distributed/persistent cache work is out of scope.
 - Implementation is complete: `TemplateRegistry.cache_stats()`, `reset_cache_stats()`, focused tests, and warm-cache performance diagnostics are in place.
 - Taskmaster Task 53 and subtasks 53.1/53.2 are done.
+- PR #80 has merged to `main`; this work-tracking folder is archived.
 
 ## Next Steps
-- Open PR for `feat/task-53-template-caching-layer`.
-- After merge, switch to `main`, pull, delete the feature branch, and archive this work-tracking folder in a separate cleanup commit.
+- Continue with the next Taskmaster task from clean `main`.
 
 ## Evidence
 - Focused tests: `reports/template-caching-layer/tests-focused-2026-05-12.txt`
@@ -19,3 +19,8 @@
 - Guard: `reports/template-caching-layer/guard-2026-05-12.txt`
 - Taskmaster health: `reports/template-caching-layer/taskmaster-health-2026-05-12.txt`
 - Diff check: `reports/template-caching-layer/diff-check-2026-05-12.txt`
+- Post-archive audit: `reports/template-caching-layer/post-archive-audit-2026-05-12.txt`
+- Post-archive guard: `reports/template-caching-layer/post-archive-guard-2026-05-12.txt`
+- Post-archive diff check: `reports/template-caching-layer/post-archive-diff-check-2026-05-12.txt`
+- Post-archive git status: `reports/template-caching-layer/post-archive-git-status-2026-05-12.txt`
+- Archived on 2026-05-12 22:16 CEST — Folder moved to archive and tracker marked COMPLETED.
