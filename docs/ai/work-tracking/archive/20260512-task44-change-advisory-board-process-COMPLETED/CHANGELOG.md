@@ -4,3 +4,5 @@
 - 2026-05-12 18:42 CEST — Completed scope reconciliation and selected a non-destructive change advisory packet/runbook helper as the Task 44 implementation target.
 - 2026-05-12 18:56 CEST — Added `python3 scripts/codex-task change advisory`, focused codex-task tests, and Task 44 advisory JSON/Markdown evidence.
 - 2026-05-12 19:03 CEST — Completed verification evidence and marked Taskmaster Task 44 done.
+- 2026-05-12 19:48 CEST — Archived active work-tracking folder.
+- 2026-05-12 19:53 CEST — Merged PR #79, cleared current session/plan pointers, and captured post-archive audit/guard/diff-check evidence.
