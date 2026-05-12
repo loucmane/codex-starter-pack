@@ -1,0 +1,223 @@
+{
+  "agents": [
+    {
+      "contract_versions": [
+        "portable-agent-runtime.v1"
+      ],
+      "entrypoint": "CODEX.md",
+      "fallback_count": 2,
+      "id": "codex",
+      "mechanical_feature_count": 7,
+      "planned_feature_count": 0,
+      "policy_only_feature_count": 0,
+      "required_gate_count": 5,
+      "status": "supported",
+      "title": "Codex Deep Work Agent",
+      "transformation_count": 1
+    },
+    {
+      "contract_versions": [
+        "portable-agent-runtime.v1"
+      ],
+      "entrypoint": "CLAUDE.md",
+      "fallback_count": 3,
+      "id": "claude",
+      "mechanical_feature_count": 9,
+      "planned_feature_count": 0,
+      "policy_only_feature_count": 0,
+      "required_gate_count": 6,
+      "status": "supported",
+      "title": "Claude Runtime Adapter",
+      "transformation_count": 2
+    },
+    {
+      "contract_versions": [
+        "portable-agent-runtime.v1"
+      ],
+      "entrypoint": "templates/integration/guides/adding-agents.md",
+      "fallback_count": 2,
+      "id": "generic-agent",
+      "mechanical_feature_count": 1,
+      "planned_feature_count": 9,
+      "policy_only_feature_count": 0,
+      "required_gate_count": 3,
+      "status": "planned",
+      "title": "Future Agent/Profile Adapter",
+      "transformation_count": 1
+    }
+  ],
+  "contract": {
+    "current_version": "portable-agent-runtime.v1",
+    "id": "portable-agent-runtime",
+    "minimum_version": "portable-agent-runtime.v1",
+    "negotiation": "Agents declare supported contract_versions. The current version is required for supported and canary agents; planned agents must declare their target version before rollout."
+  },
+  "created_at": "2026-05-12T12:52:18+02:00",
+  "features": [
+    {
+      "id": "task_scoped_workflow",
+      "mechanical_agents": [
+        "claude",
+        "codex"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "native",
+        "generic-agent": "planned"
+      },
+      "title": "Task-scoped workflow lifecycle"
+    },
+    {
+      "id": "guard_validation",
+      "mechanical_agents": [
+        "claude",
+        "codex"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "native",
+        "generic-agent": "planned"
+      },
+      "title": "Guard and audit validation"
+    },
+    {
+      "id": "pre_mutation_gate",
+      "mechanical_agents": [
+        "claude"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "documented",
+        "generic-agent": "planned"
+      },
+      "title": "Pre-mutation gate"
+    },
+    {
+      "id": "protected_path_boundaries",
+      "mechanical_agents": [
+        "claude"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "documented",
+        "generic-agent": "planned"
+      },
+      "title": "Protected path ownership boundaries"
+    },
+    {
+      "id": "bash_write_surface_control",
+      "mechanical_agents": [
+        "claude"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "documented",
+        "generic-agent": "planned"
+      },
+      "title": "Bash write-surface control"
+    },
+    {
+      "id": "mcp_tool_routing",
+      "mechanical_agents": [
+        "claude",
+        "codex"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "native",
+        "generic-agent": "planned"
+      },
+      "title": "MCP tool routing and mutation classification"
+    },
+    {
+      "id": "git_github_execution",
+      "mechanical_agents": [
+        "claude",
+        "codex"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "native",
+        "generic-agent": "planned"
+      },
+      "title": "Git and GitHub execution"
+    },
+    {
+      "id": "memory_continuity",
+      "mechanical_agents": [
+        "claude",
+        "codex"
+      ],
+      "support_by_agent": {
+        "claude": "gated",
+        "codex": "native",
+        "generic-agent": "planned"
+      },
+      "title": "Memory as continuity, not evidence"
+    },
+    {
+      "id": "portable_project_adoption",
+      "mechanical_agents": [
+        "codex"
+      ],
+      "support_by_agent": {
+        "claude": "documented",
+        "codex": "native",
+        "generic-agent": "planned"
+      },
+      "title": "Portable project adoption"
+    },
+    {
+      "id": "compatibility_metrics",
+      "mechanical_agents": [
+        "claude",
+        "codex",
+        "generic-agent"
+      ],
+      "support_by_agent": {
+        "claude": "native",
+        "codex": "native",
+        "generic-agent": "native"
+      },
+      "title": "Compatibility metrics"
+    }
+  ],
+  "issues": [],
+  "matrix_file": "templates/registry/agent-compatibility-matrix.json",
+  "matrix_schema": "agent-compatibility-matrix.v1",
+  "matrix_version": "1.0.0",
+  "metrics": {
+    "agent_count": 3,
+    "agent_status_counts": {
+      "planned": 1,
+      "supported": 2
+    },
+    "agents_with_fallbacks": 3,
+    "feature_count": 10,
+    "feature_support_counts": {
+      "documented": 4,
+      "gated": 8,
+      "native": 9,
+      "planned": 9
+    },
+    "mechanical_coverage_percent": 56.67,
+    "mechanical_feature_count": 17,
+    "planned_feature_count": 9,
+    "policy_only_feature_count": 0,
+    "total_feature_slots": 30,
+    "validation_issue_count": 0
+  },
+  "non_goals": [
+    "No MCP installer is implemented by the matrix.",
+    "No live negotiation service is started.",
+    "No agent-specific file transformation is executed by validation.",
+    "No template path compatibility mapping is duplicated."
+  ],
+  "valid": true,
+  "validation_commands": [
+    "python3 scripts/codex-task agent compatibility-report --strict",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_codex_task.py",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "version": 1
+}

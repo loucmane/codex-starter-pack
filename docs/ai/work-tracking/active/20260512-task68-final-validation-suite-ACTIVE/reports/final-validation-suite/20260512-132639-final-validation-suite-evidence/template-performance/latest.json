@@ -1,0 +1,96 @@
+{
+  "generated_at": "2026-05-12T13:26:51.020184+02:00",
+  "policy_version": "1.0.0",
+  "status": "pass",
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "warnings": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "id": "template_registry_records",
+      "title": "Template registry record discovery",
+      "probe": "template_registry_records",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.043414,
+      "warning_seconds": 0.15,
+      "critical_seconds": 0.35,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [],
+      "message": "Discovered 261 template registry records",
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "id": "template_registry_warm_cache",
+      "title": "Template registry warm-cache resolution",
+      "probe": "template_registry_warm_cache",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.0405,
+      "warning_seconds": 0.05,
+      "critical_seconds": 0.25,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [],
+      "message": "Warmed 3 query result(s), 0 failure(s)",
+      "stdout_tail": "",
+      "stderr_tail": ""
+    },
+    {
+      "id": "codex_guard_validate",
+      "title": "Codex guard validation runtime",
+      "probe": "command",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.183986,
+      "warning_seconds": 5.0,
+      "critical_seconds": 10.0,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-guard",
+        "validate",
+        "--include-untracked"
+      ],
+      "message": "Command completed",
+      "stdout_tail": "Guard validation passed: all S:W:H:E entries look compliant.\n",
+      "stderr_tail": ""
+    },
+    {
+      "id": "scanner_no_checkpoints",
+      "title": "Template scanner no-checkpoint runtime",
+      "probe": "command",
+      "status": "pass",
+      "severity": "info",
+      "elapsed_seconds": 0.678099,
+      "warning_seconds": 10.0,
+      "critical_seconds": 20.0,
+      "baseline_seconds": null,
+      "regression_pct": null,
+      "returncode": 0,
+      "command": [
+        "/usr/bin/python3",
+        "scripts/template-ssot-scanner/scanner.py",
+        "--base",
+        "/home/loucmane/codex",
+        "--out",
+        "/tmp/codex-performance-6tpiezdr/template_scan_results.json",
+        "--no-checkpoints",
+        "--profile",
+        "ci"
+      ],
+      "message": "Command completed",
+      "stdout_tail": "Template System Scanner v1.1.0\n==================================================\nStarting scan of /home/loucmane/codex\nTemplates dir: /home/loucmane/codex/templates\nConfig dirs: /home/loucmane/codex/.codex, /home/loucmane/codex/.claude\n\nFound 275 files in templates (after filtering)\n  Processed 10/275 files...\n  Processed 20/275 files...\n  Processed 30/275 files...\n  Processed 40/275 files...\n  Processed 50/275 files...\n  Processed 60/275 files...\n  Processed 70/275 files...\n  Processed 80/275 files...\n  Processed 90/275 files...\n  Processed 100/275 files...\n  Processed 110/275 files...\n  Processed 120/275 files...\n  Processed 130/275 files...\n  Processed 140/275 files...\n  Processed 150/275 files...\n  Processed 160/275 files...\n  Processed 170/275 files...\n  Processed 180/275 files...\n  Processed 190/275 files...\n  Processed 200/275 files...\n  Processed 210/275 files...\n  Processed 220/275 files...\n  Processed 230/275 files...\n  Processed 240/275 files...\n  Processed 250/275 files...\n  Processed 260/275 files...\n  Processed 270/275 files...\n\nFound 1 files in codex (after filtering)\n\nFound 67 files in claude (after filtering)\n  Processed 10/67 files...\n  Processed 20/67 files...\n  Processed 30/67 files...\n  Processed 40/67 files...\n  Processed 50/67 files...\n  Processed 60/67 files...\n\n\u2705 Scan complete!\n  Total files: 343\n  Total lines: 55840\n  Results saved to: output/data/template_scan_results.json\n\nFile type distribution:\n  agent: 9 files, 1644 lines\n  behavior: 17 files, 2980 lines\n  command: 56 files, 3996 lines\n  convention: 24 files, 6072 lines\n  engine: 24 files, 3688 lines\n  guide: 12 files, 3154 lines\n  handler: 12 files, 3652 lines\n  hook: 1 files, 95 lines\n  integration: 7 files, 3310 lines\n  json-config: 9 files, 966 lines\n  matrix: 9 files, 1480 lines\n  operator: 23 files, 1391 lines\n  orchestrator: 25 files, 1184 lines\n  other: 6 files, 1824 lines\n  pattern: 24 files, 7285 lines\n  prompt: 6 files, 775 lines\n  registry: 6 files, 2341 lines\n  trigger: 27 files, 2240 lines\n  workflow: 46 files, 7763 lines\n\nResults saved to: /tmp/codex-performance-6tpiezdr/template_scan_results.json\n\n==================================================\nScan complete. Use analyze_references.py for detailed analysis.\n",
+      "stderr_tail": ""
+    }
+  ]
+}

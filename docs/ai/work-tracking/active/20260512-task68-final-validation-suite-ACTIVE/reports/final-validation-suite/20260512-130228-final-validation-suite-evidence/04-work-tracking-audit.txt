@@ -1,0 +1,10 @@
+Check: work-tracking-audit
+Title: Work-tracking audit
+Command: python3 scripts/codex-task work-tracking audit
+Exit code: 0
+
+STDOUT:
+Audit warnings:
+- Tracker for 20260512-task68-final-validation-suite-ACTIVE missing Serena memory entry for 2026-05-12; capture memory and log via presets.
+
+STDERR:

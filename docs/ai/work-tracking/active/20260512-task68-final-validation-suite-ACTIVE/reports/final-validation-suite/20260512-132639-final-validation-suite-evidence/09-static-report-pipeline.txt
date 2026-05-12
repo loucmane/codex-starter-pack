@@ -1,0 +1,36 @@
+Check: static-report-pipeline
+Title: Static validation report pipeline
+Command: python3 scripts/codex-task report generate --kind all --drift-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics --metrics-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics/latest.json --monitoring-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring --phase0-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/phase0-scanner-validation --performance-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-performance --cost-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking --strict-drift --strict-monitoring --strict-phase0 --strict-performance --strict-cost
+Exit code: 0
+
+STDOUT:
+Template drift report
+
+Generated: 2026-05-12T13:26:46.817632+02:00
+Findings: 0
+
+No drift findings detected.
+Saved text report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift/summary-20260512-132646.txt
+Saved JSON report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift/summary-20260512-132646.json
+Wrote metrics dashboard to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics/latest.md
+Wrote metrics JSON to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics/latest.json
+Wrote monitoring report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring/latest.md
+Wrote monitoring JSON to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring/latest.json
+Monitoring status: warn
+Wrote Phase 0 validation report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/phase0-scanner-validation/latest.md
+Wrote Phase 0 validation JSON to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/phase0-scanner-validation/latest.json
+Phase 0 validation status: warn
+Wrote performance report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-performance/latest.md
+Wrote performance JSON to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-performance/latest.json
+Performance status: pass
+Wrote cost report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking/latest.md
+Wrote cost JSON to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking/latest.json
+Cost status: warn
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/codex-guard drift-check --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-metrics-dashboard --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-monitoring --metrics docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics/latest.json --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-phase0-validation --scanner-data-dir scripts/template-ssot-scanner/output/data --monitoring-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring/latest.json --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/phase0-scanner-validation --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-performance-harness --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-performance --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-cost-report --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking --strict
+
+STDERR:

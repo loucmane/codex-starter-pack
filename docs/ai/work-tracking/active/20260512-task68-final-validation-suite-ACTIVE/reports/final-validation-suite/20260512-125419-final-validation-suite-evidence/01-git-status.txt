@@ -1,0 +1,34 @@
+Check: git-status
+Title: Current Git status
+Command: git status --short --branch
+Exit code: 0
+
+STDOUT:
+## feat/task-68-final-validation-suite
+ M .taskmaster/tasks/task_068.txt
+ M .taskmaster/tasks/tasks.json
+ M output/data/template_scan_results.json
+ M reports/template-metrics/latest.json
+ M reports/template-metrics/latest.md
+ M reports/template-performance/latest.json
+ M reports/template-performance/latest.md
+ M scripts/codex-task
+ M sessions/state.json
+ M templates/engine/validation/foundation-adoption-guide.md
+ M tests/meta_workflow_guard/test_codex_task.py
+?? .serena/memories/2026-05-12_task68_final_validation_suite_kickoff.md
+?? docs/ai/work-tracking/active/
+?? plans/2026-05-12-task68-final-validation-suite.md
+?? plans/current
+?? reports/phase0-scanner-validation/latest.json
+?? reports/phase0-scanner-validation/latest.md
+?? reports/template-drift/summary-20260512-125213.json
+?? reports/template-drift/summary-20260512-125213.txt
+?? reports/template-drift/summary-20260512-125215.json
+?? reports/template-drift/summary-20260512-125215.txt
+?? reports/template-monitoring/latest.json
+?? reports/template-monitoring/latest.md
+?? sessions/2026/05/2026-05-12-001-task68-final-validation-suite.md
+?? sessions/current
+
+STDERR:

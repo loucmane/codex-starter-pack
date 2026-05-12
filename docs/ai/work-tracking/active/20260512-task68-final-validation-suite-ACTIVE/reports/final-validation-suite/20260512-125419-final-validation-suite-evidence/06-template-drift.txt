@@ -1,0 +1,16 @@
+Check: template-drift
+Title: Template drift check
+Command: python3 scripts/codex-guard drift-check --strict
+Exit code: 0
+
+STDOUT:
+Template drift report
+
+Generated: 2026-05-12T12:54:20.073250+02:00
+Findings: 0
+
+No drift findings detected.
+Saved text report to reports/template-drift/summary-20260512-125420.txt
+Saved JSON report to reports/template-drift/summary-20260512-125420.json
+
+STDERR:

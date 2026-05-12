@@ -119,6 +119,35 @@ python3 scripts/codex-guard validate --include-untracked
 
 If the target repository has local compatibility tests, run them as well.
 
+### 4.1 Run final validation before sign-off
+
+When a repository or migration slice is ready for final review, run the portable final validation suite:
+
+```bash
+python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite
+```
+
+The suite is an orchestration layer over the existing validators. It captures per-check logs, writes a JSON report, and writes a Markdown sign-off runbook covering:
+
+- Taskmaster health
+- plan sync
+- work-tracking audit
+- Codex guard validation
+- template drift
+- scanner/reference integrity
+- static monitoring, Phase 0, performance, and cost reports
+- agent compatibility
+- pytest regression coverage
+- patch whitespace checks
+
+Use dry-run mode to inspect the planned command set without executing it:
+
+```bash
+python3 scripts/codex-task validation final-suite --dry-run
+```
+
+The suite should not replace the underlying validators. It is the repeatable final sign-off entrypoint that proves those validators were run and stores their evidence together.
+
 ### 5. Start the first task
 
 After bootstrap and validation:

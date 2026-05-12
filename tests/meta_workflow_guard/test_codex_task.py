@@ -530,6 +530,28 @@ def test_build_parser_accepts_agent_compatibility_report() -> None:
     assert args.dry_run is True
 
 
+def test_build_parser_accepts_validation_final_suite() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "validation",
+        "final-suite",
+        "--label",
+        "task68-final",
+        "--report-dir",
+        "reports/final-validation-suite",
+        "--execute",
+        "--pytest-target",
+        "tests/meta_workflow_guard/test_codex_task.py",
+    ])
+    assert args.command == "validation"
+    assert args.subcommand == "final-suite"
+    assert args.label == "task68-final"
+    assert args.report_dir == "reports/final-validation-suite"
+    assert args.execute is True
+    assert args.pytest_target == ["tests/meta_workflow_guard/test_codex_task.py"]
+
+
 def test_build_parser_accepts_sync_plan() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1071,6 +1093,140 @@ def test_handle_agent_compatibility_report_writes_json_and_runbook(monkeypatch, 
     assert payload["metrics"]["agent_count"] == 3
     assert payload["metrics"]["validation_issue_count"] == 0
     assert "Claude Runtime Adapter" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_final_validation_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-68-final-validation-suite"
+        if args == ["rev-parse", "HEAD"]:
+            return "feed123"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-12-task68.md"},
+            "current_plan": {"resolved": "plans/2026-05-12-task68-final-validation-suite.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_refs": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 6})
+
+
+def _final_validation_args(tmp_path: Path, *, execute: bool = False, allow_failures: bool = False, skip_pytest: bool = False):
+    return argparse.Namespace(
+        label="task68-final",
+        report_dir=str(tmp_path / "reports" / "final-validation-suite"),
+        report_file=None,
+        runbook_file=None,
+        execute=execute,
+        allow_failures=allow_failures,
+        pytest_target=["tests/meta_workflow_guard/test_codex_task.py"],
+        skip_pytest=skip_pytest,
+        dry_run=False,
+    )
+
+
+def test_build_final_validation_suite_maps_historical_requirements(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _patch_final_validation_snapshots(module, monkeypatch)
+
+    plan = module._build_final_validation_suite(_final_validation_args(tmp_path))
+
+    assert plan["mode"] == "final-validation-suite"
+    assert plan["executes_commands"] is False
+    assert plan["current_state"]["git"]["branch"] == "feat/task-68-final-validation-suite"
+    requirement_ids = {requirement["id"] for requirement in plan["requirements"]}
+    assert {
+        "reference-integrity",
+        "security-validation",
+        "performance-validation",
+        "cost-validation",
+        "compatibility-validation",
+        "sign-off-workflow",
+    }.issubset(requirement_ids)
+    check_ids = [check["id"] for check in plan["checks"]]
+    assert "scanner-suite" in check_ids
+    assert "static-report-pipeline" in check_ids
+    assert "agent-compatibility" in check_ids
+    assert "pytest" in check_ids
+    assert any("--strict-performance" in check["command"] for check in plan["checks"])
+
+
+def test_render_final_validation_runbook_names_signoff_and_commands(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _patch_final_validation_snapshots(module, monkeypatch)
+    plan = module._build_final_validation_suite(_final_validation_args(tmp_path, skip_pytest=True))
+    module._summarise_final_validation_suite(plan)
+
+    runbook = module._render_final_validation_runbook(plan)
+
+    assert "# Final Validation Suite Runbook" in runbook
+    assert "Reference integrity checks" in runbook
+    assert "Static validation report pipeline" in runbook
+    assert "Sign-Off Checklist" in runbook
+    assert "No validation commands were executed by this planned suite." in runbook
+
+
+def test_handle_validation_final_suite_executes_and_captures_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    _patch_final_validation_snapshots(module, monkeypatch)
+    calls = []
+
+    def fake_run(command, cwd, capture_output, text, env):
+        calls.append((command, cwd, env))
+        return FakeCompletedProcess(returncode=0, stdout=f"ok: {' '.join(command)}\n", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    args = _final_validation_args(tmp_path, execute=True, skip_pytest=True)
+
+    module.handle_validation_final_suite(args)
+
+    report = tmp_path / "reports" / "final-validation-suite" / "20260424-150313-task68-final.json"
+    runbook = tmp_path / "reports" / "final-validation-suite" / "20260424-150313-task68-final.md"
+    assert report.exists()
+    assert runbook.exists()
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["summary"]["status"] == "passed"
+    assert payload["summary"]["failed_required"] == 0
+    assert payload["valid"] is True
+    assert len(calls) == len(payload["checks"])
+    first_evidence = tmp_path / payload["checks"][0]["result"]["evidence"]
+    assert "Exit code: 0" in first_evidence.read_text(encoding="utf-8")
+    assert "Validation command outputs are captured" in runbook.read_text(encoding="utf-8")
+
+
+def test_handle_validation_final_suite_fails_after_writing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    _patch_final_validation_snapshots(module, monkeypatch)
+
+    def fake_run(command, cwd, capture_output, text, env):
+        if any(str(part).endswith("codex-guard") for part in command) and "validate" in command:
+            return FakeCompletedProcess(returncode=2, stdout="", stderr="guard blocked")
+        return FakeCompletedProcess(returncode=0, stdout="ok\n", stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    args = _final_validation_args(tmp_path, execute=True, skip_pytest=True)
+
+    with pytest.raises(module.TaskError, match="Final validation suite failed"):
+        module.handle_validation_final_suite(args)
+
+    report = tmp_path / "reports" / "final-validation-suite" / "20260424-150313-task68-final.json"
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["summary"]["status"] == "failed"
+    assert payload["summary"]["failed_required"] == 1
+    failed = [check for check in payload["checks"] if check["result"]["status"] == "failed"]
+    assert failed[0]["id"] == "codex-guard"
+    failed_evidence = tmp_path / failed[0]["result"]["evidence"]
+    assert "guard blocked" in failed_evidence.read_text(encoding="utf-8")
 
 
 def _write_emergency_response_policy(path: Path) -> None:

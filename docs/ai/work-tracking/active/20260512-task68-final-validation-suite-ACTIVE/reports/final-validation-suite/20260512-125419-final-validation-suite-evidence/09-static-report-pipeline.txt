@@ -1,0 +1,36 @@
+Check: static-report-pipeline
+Title: Static validation report pipeline
+Command: python3 scripts/codex-task report generate --kind all --strict-drift --strict-monitoring --strict-phase0 --strict-performance --strict-cost
+Exit code: 0
+
+STDOUT:
+Template drift report
+
+Generated: 2026-05-12T12:54:22.935802+02:00
+Findings: 0
+
+No drift findings detected.
+Saved text report to reports/template-drift/summary-20260512-125422.txt
+Saved JSON report to reports/template-drift/summary-20260512-125422.json
+Wrote metrics dashboard to reports/template-metrics/latest.md
+Wrote metrics JSON to reports/template-metrics/latest.json
+Wrote monitoring report to reports/template-monitoring/latest.md
+Wrote monitoring JSON to reports/template-monitoring/latest.json
+Monitoring status: pass
+Wrote Phase 0 validation report to reports/phase0-scanner-validation/latest.md
+Wrote Phase 0 validation JSON to reports/phase0-scanner-validation/latest.json
+Phase 0 validation status: warn
+Wrote performance report to reports/template-performance/latest.md
+Wrote performance JSON to reports/template-performance/latest.json
+Performance status: pass
+Wrote cost report to reports/cost-tracking/latest.md
+Wrote cost JSON to reports/cost-tracking/latest.json
+Cost status: warn
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/codex-guard drift-check --report-dir reports/template-drift --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-metrics-dashboard --report-dir reports/template-metrics
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-monitoring --metrics reports/template-metrics/latest.json --report-dir reports/template-monitoring --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-phase0-validation --scanner-data-dir scripts/template-ssot-scanner/output/data --monitoring-file reports/template-monitoring/latest.json --report-dir reports/phase0-scanner-validation --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-performance-harness --report-dir reports/template-performance --strict
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-cost-report --report-dir reports/cost-tracking --strict
+
+STDERR:

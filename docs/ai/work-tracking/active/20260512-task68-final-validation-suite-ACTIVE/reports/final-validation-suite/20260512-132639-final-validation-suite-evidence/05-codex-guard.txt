@@ -1,0 +1,9 @@
+Check: codex-guard
+Title: Codex guard validation
+Command: python3 scripts/codex-guard validate --include-untracked
+Exit code: 0
+
+STDOUT:
+Guard validation passed: all S:W:H:E entries look compliant.
+
+STDERR:

@@ -1,0 +1,10 @@
+Check: agent-compatibility
+Title: Agent compatibility validation
+Command: python3 scripts/codex-task agent compatibility-report --strict --report-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-125419-final-validation-suite-evidence/agent-compatibility.json --runbook-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-125419-final-validation-suite-evidence/agent-compatibility.md
+Exit code: 0
+
+STDOUT:
+Wrote agent compatibility report to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-125419-final-validation-suite-evidence/agent-compatibility.json
+Wrote agent compatibility runbook to docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-125419-final-validation-suite-evidence/agent-compatibility.md
+
+STDERR:

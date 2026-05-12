@@ -1,0 +1,517 @@
+{
+  "allow_failures": false,
+  "checks": [
+    {
+      "category": "workflow-state",
+      "command": [
+        "git",
+        "status",
+        "--short",
+        "--branch"
+      ],
+      "command_display": "git status --short --branch",
+      "id": "git-status",
+      "required": true,
+      "requirements": [
+        "checklist-automation"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/01-git-status.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Current Git status"
+    },
+    {
+      "category": "workflow-state",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-task",
+        "taskmaster",
+        "health"
+      ],
+      "command_display": "python3 scripts/codex-task taskmaster health",
+      "id": "taskmaster-health",
+      "required": true,
+      "requirements": [
+        "checklist-automation"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/02-taskmaster-health.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Taskmaster graph health"
+    },
+    {
+      "category": "workflow-state",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-task",
+        "plan",
+        "sync"
+      ],
+      "command_display": "python3 scripts/codex-task plan sync",
+      "id": "plan-sync",
+      "required": true,
+      "requirements": [
+        "checklist-automation",
+        "sign-off-workflow"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/03-plan-sync.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Plan and tracker sync"
+    },
+    {
+      "category": "workflow-state",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-task",
+        "work-tracking",
+        "audit"
+      ],
+      "command_display": "python3 scripts/codex-task work-tracking audit",
+      "id": "work-tracking-audit",
+      "required": true,
+      "requirements": [
+        "checklist-automation",
+        "sign-off-workflow"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/04-work-tracking-audit.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Work-tracking audit"
+    },
+    {
+      "category": "guard",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-guard",
+        "validate",
+        "--include-untracked"
+      ],
+      "command_display": "python3 scripts/codex-guard validate --include-untracked",
+      "id": "codex-guard",
+      "required": true,
+      "requirements": [
+        "checklist-automation",
+        "security-validation",
+        "sign-off-workflow"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/05-codex-guard.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Codex guard validation"
+    },
+    {
+      "category": "guard",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-guard",
+        "drift-check",
+        "--strict",
+        "--report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift"
+      ],
+      "command_display": "python3 scripts/codex-guard drift-check --strict --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift",
+      "id": "template-drift",
+      "required": true,
+      "requirements": [
+        "reference-integrity",
+        "report-generation"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/06-template-drift.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Template drift check"
+    },
+    {
+      "category": "scanner",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/template-ssot-scanner/run_all_scanners.py",
+        "--profile",
+        "ci"
+      ],
+      "command_display": "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci",
+      "id": "scanner-suite",
+      "required": true,
+      "requirements": [
+        "reference-integrity",
+        "security-validation"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/07-scanner-suite.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Scanner validation suite"
+    },
+    {
+      "category": "scanner",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/template-ssot-scanner/apply_reference_fixes.py",
+        "--dry-run",
+        "--fail-on-changes",
+        "--log-file",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/reference-fix-gate.json"
+      ],
+      "command_display": "python3 scripts/template-ssot-scanner/apply_reference_fixes.py --dry-run --fail-on-changes --log-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/reference-fix-gate.json",
+      "id": "reference-fix-gate",
+      "required": true,
+      "requirements": [
+        "reference-integrity"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/08-reference-fix-gate.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Automatic reference-fix gate"
+    },
+    {
+      "category": "reports",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-task",
+        "report",
+        "generate",
+        "--kind",
+        "all",
+        "--drift-report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift",
+        "--report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics",
+        "--metrics-file",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics/latest.json",
+        "--monitoring-report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring",
+        "--phase0-report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/phase0-scanner-validation",
+        "--performance-report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-performance",
+        "--cost-report-dir",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking",
+        "--strict-drift",
+        "--strict-monitoring",
+        "--strict-phase0",
+        "--strict-performance",
+        "--strict-cost"
+      ],
+      "command_display": "python3 scripts/codex-task report generate --kind all --drift-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-drift --report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics --metrics-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-metrics/latest.json --monitoring-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring --phase0-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/phase0-scanner-validation --performance-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-performance --cost-report-dir docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking --strict-drift --strict-monitoring --strict-phase0 --strict-performance --strict-cost",
+      "id": "static-report-pipeline",
+      "required": true,
+      "requirements": [
+        "performance-validation",
+        "cost-validation",
+        "security-validation",
+        "report-generation"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/09-static-report-pipeline.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Static validation report pipeline"
+    },
+    {
+      "category": "compatibility",
+      "command": [
+        "/usr/bin/python3",
+        "scripts/codex-task",
+        "agent",
+        "compatibility-report",
+        "--strict",
+        "--report-file",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/agent-compatibility.json",
+        "--runbook-file",
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/agent-compatibility.md"
+      ],
+      "command_display": "python3 scripts/codex-task agent compatibility-report --strict --report-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/agent-compatibility.json --runbook-file docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/agent-compatibility.md",
+      "id": "agent-compatibility",
+      "required": true,
+      "requirements": [
+        "compatibility-validation",
+        "report-generation"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/10-agent-compatibility.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Agent compatibility validation"
+    },
+    {
+      "category": "tests",
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "pytest",
+        "tests/meta_workflow_guard/test_codex_task.py"
+      ],
+      "command_display": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_codex_task.py",
+      "env": {
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "id": "pytest",
+      "required": true,
+      "requirements": [
+        "regression-tests",
+        "sign-off-workflow"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/11-pytest.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Python regression tests"
+    },
+    {
+      "category": "git",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "command_display": "git diff --check",
+      "id": "diff-check",
+      "required": true,
+      "requirements": [
+        "sign-off-workflow"
+      ],
+      "result": {
+        "evidence": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/12-diff-check.txt",
+        "exit_code": 0,
+        "status": "passed"
+      },
+      "title": "Patch whitespace check"
+    }
+  ],
+  "created_at": "2026-05-12T13:26:39+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-68-final-validation-suite",
+      "head": "80dccaf4ff616c31a70174d471dbd9d44d45ad9c",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_068.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/engine/validation/foundation-adoption-guide.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-12_task68_final_validation_suite_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-12-task68-final-validation-suite.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-12-001-task68-final-validation-suite.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 118,
+      "exists": true,
+      "latest": [
+        ".serena/memories/session_2026-05-11_task61-template-discovery-optimization-closeout.md",
+        ".serena/memories/2026-05-11_task32_documentation_suite_kickoff.md",
+        ".serena/memories/session_2026-05-11_task32-documentation-suite-closeout.md",
+        ".serena/memories/2026-05-11_task37_telemetry_pipeline_kickoff.md",
+        ".serena/memories/session_2026-05-11_task37-telemetry-pipeline-closeout.md",
+        ".serena/memories/2026-05-11_task39_guard_auto_fix_kickoff.md",
+        ".serena/memories/session_2026-05-11_task39-guard-auto-fix-mode-closeout.md",
+        ".serena/memories/2026-05-11_task62_agent_compatibility_layer_kickoff.md",
+        ".serena/memories/session_2026-05-11_task62-closeout.md",
+        ".serena/memories/2026-05-12_task68_final_validation_suite_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "d0408d0ba62680508a58d3e2dcfb3f4033a540260d3a6a8262b3b985dd97827b",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 76,
+          "pending": 32
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-12-task68-final-validation-suite.md",
+        "sha256": "02e3498fa427ab38c2cd2fdb9351f99f5c71d10c8796880b36dbfff04fbe7fcd",
+        "target": "2026-05-12-task68-final-validation-suite.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-12-001-task68-final-validation-suite.md",
+        "sha256": "b91069a2f8c3a0bb4017f0e43e30a1b5cbb9a0d1a09e6bca3ef5ee3fc6621794",
+        "target": "2026/05/2026-05-12-001-task68-final-validation-suite.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "d20c0e7803ccfe1d7ed283bb3bd583968af2aa10c17feeee2349cc9a0953b889"
+      }
+    }
+  },
+  "executes_commands": true,
+  "label": "final-validation-suite",
+  "mode": "final-validation-suite",
+  "non_goals": [
+    "No standalone security, performance, cost, reference, or compatibility validator is created by this suite.",
+    "No external service, repository setting, hosted dashboard, or approval workflow is modified.",
+    "Dirty Git status is recorded as evidence; patch hygiene is enforced by git diff --check."
+  ],
+  "paths": {
+    "evidence_dir": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence",
+    "report_dir": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite",
+    "report_file": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+    "runbook_file": "docs/ai/work-tracking/active/20260512-task68-final-validation-suite-ACTIVE/reports/final-validation-suite/20260512-132639-final-validation-suite.md"
+  },
+  "requirements": [
+    {
+      "covered_by": [
+        "validation final-suite manifest",
+        "validation final-suite runbook"
+      ],
+      "id": "checklist-automation",
+      "title": "Validation checklist automation"
+    },
+    {
+      "covered_by": [
+        "scanner suite",
+        "automatic reference-fix gate"
+      ],
+      "id": "reference-integrity",
+      "title": "Reference integrity checks"
+    },
+    {
+      "covered_by": [
+        "scanner security validator",
+        "Phase 0 validation report"
+      ],
+      "id": "security-validation",
+      "title": "Security validation"
+    },
+    {
+      "covered_by": [
+        "template performance harness"
+      ],
+      "id": "performance-validation",
+      "title": "Performance validation"
+    },
+    {
+      "covered_by": [
+        "template cost report"
+      ],
+      "id": "cost-validation",
+      "title": "Cost validation"
+    },
+    {
+      "covered_by": [
+        "agent compatibility report"
+      ],
+      "id": "compatibility-validation",
+      "title": "Compatibility validation"
+    },
+    {
+      "covered_by": [
+        "report generate --kind all",
+        "final validation report outputs"
+      ],
+      "id": "report-generation",
+      "title": "Validation report generation"
+    },
+    {
+      "covered_by": [
+        "pytest suite"
+      ],
+      "id": "regression-tests",
+      "title": "Regression tests"
+    },
+    {
+      "covered_by": [
+        "final validation runbook sign-off checklist"
+      ],
+      "id": "sign-off-workflow",
+      "title": "Validation sign-off workflow"
+    }
+  ],
+  "sign_off_checklist": [
+    "All required final-suite checks passed or have an explicit documented waiver.",
+    "Final validation JSON and Markdown runbook are stored in the task evidence folder.",
+    "Plan, tracker, session, handoff, findings, decisions, and changelog reference the final evidence.",
+    "Taskmaster status and generated task file are current.",
+    "No policy-only validation gap is hidden by prose-only documentation."
+  ],
+  "summary": {
+    "failed": 0,
+    "failed_required": 0,
+    "not_run": 0,
+    "passed": 12,
+    "status": "passed",
+    "total_checks": 12
+  },
+  "valid": true,
+  "version": 1
+}
