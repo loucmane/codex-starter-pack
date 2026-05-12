@@ -2112,32 +2112,35 @@
         "dependencies": [
           "28"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 36,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-12T13:58:38.747Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 36,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-12T14:01:31.588Z"
           }
         ],
         "complexity": 4,
         "recommendedSubtasks": 5,
-        "expansionPrompt": "Define board composition, create charter document, establish meeting schedule, implement review process, create voting mechanism, add decision tracking, and implement stakeholder notifications."
+        "expansionPrompt": "Define board composition, create charter document, establish meeting schedule, implement review process, create voting mechanism, add decision tracking, and implement stakeholder notifications.",
+        "updatedAt": "2026-05-12T14:01:31.588Z"
       },
       {
         "id": "37",
@@ -5077,9 +5080,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-12T11:19:24.768Z",
+      "lastModified": "2026-05-12T14:01:31.589Z",
       "taskCount": 108,
-      "completedCount": 76,
+      "completedCount": 77,
       "tags": [
         "master"
       ]

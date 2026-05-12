@@ -170,6 +170,21 @@ Static performance telemetry for portable foundation operations. It reads `templ
 ### `scripts/template-cost-report`
 Static cost-governance telemetry. It reads `templates/metadata/template-cost-policy.json`, accepts an optional usage JSON file, writes `reports/cost-tracking/latest.md` and `latest.json`, and reports missing usage data as `not-measured` rather than inventing live billing data.
 
+### `scripts/template_governance.py`
+Non-mutating template governance assessor. It reads `templates/metadata/template-governance-policy.json` and maps proposed template changes to a required review class.
+
+Use it when a template change needs a review path:
+
+```bash
+python3 scripts/template_governance.py assess \
+  --path templates/example.md \
+  --previous-version 1.2.3 \
+  --current-version 2.0.0 \
+  --format json
+```
+
+The helper reports required roles, approval guidance, escalation guidance, notification audiences, and required evidence. It never sends notifications, schedules meetings, creates votes, or mutates repository files.
+
 ### `view_image`
 Limited to image previews. Document file path and purpose.
 
@@ -197,6 +212,7 @@ Tools are part of the protocol. Use them deliberately and leave a clear evidence
 
 ## Progress Log
 
+- **2026-05-12 16:08** — [S:20260512|W:task36-template-governance-board|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260512-task36-template-governance-board-ACTIVE/designs/template-governance-scope-reconciliation.md] Added `scripts/template_governance.py` to the tool inventory as a non-mutating template governance assessor.
 - **2026-05-08 14:25** — [S:20260508|W:task15-serena-integration-template-system|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260508-task15-serena-integration-template-system-ACTIVE/designs/serena-integration-scope-reconciliation.md] Added `codex-task serena status` to the command inventory and clarified Serena as semantic/memory evidence rather than an ad hoc replacement for deterministic registry discovery.
 - **2026-05-08 13:52** — [S:20260508|W:task42-session-management-system|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260508-task42-session-management-system-ACTIVE/designs/session-management-scope-reconciliation.md] Added `sessions continue` to the codex-task command inventory and documented it as the correct fresh-session path for existing active tasks.
 - **2026-04-23 13:15** — [S:20260423|W:task92-expand-workflow-guard-coverage|H:templates/TOOLS.md|E:docs/ai/work-tracking/active/20260422-task92-expand-workflow-guard-coverage-ACTIVE/designs/guard-coverage-audit.md] Documented the expanded `scripts/codex-guard` coverage for runtime artifacts, Taskmaster evidence, session-state consistency, and canonical GAC guidance

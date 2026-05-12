@@ -1,0 +1,33 @@
+{
+  "schema": "template-governance-review.v1",
+  "path": "templates/example.md",
+  "review_class": "breaking",
+  "priority": 30,
+  "required_roles": [
+    "template_owner",
+    "foundation_maintainer",
+    "compatibility_reviewer"
+  ],
+  "approval": "All listed roles or explicit user approval recorded in DECISIONS.md.",
+  "escalation": "Create migration and rollback notes before merge; defer if evidence is incomplete.",
+  "notification_audiences": [
+    "active work-tracking folder",
+    "task handoff",
+    "migration/adoption notes"
+  ],
+  "notification_mode": "evidence-only",
+  "required_evidence": [
+    "FINDINGS.md compatibility impact",
+    "DECISIONS.md approval and alternatives",
+    "migration or rollback note",
+    "guard, focused test, and relevant integration evidence"
+  ],
+  "reasons": [
+    {
+      "signal": "version_change",
+      "value": "major",
+      "review_class": "breaking",
+      "message": "Version change 1.2.3 -> 2.0.0 classified as major"
+    }
+  ]
+}
