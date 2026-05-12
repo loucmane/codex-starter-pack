@@ -11,6 +11,8 @@
 - Taskmaster Task 41 is done with subtasks 41.1 and 41.2 done.
 
 ## Next Steps
-- Commit and push the Task 41 branch.
-- Open the pull request for review/merge.
-- After merge, archive `20260512-task41-migration-health-dashboard-ACTIVE` on `main`.
+- Archived on 2026-05-12 18:24 CEST — Folder moved to archive and tracker marked COMPLETED.
+- PR #78 merged into `main` at merge commit `52b6f8b`.
+- Post-merge cleanup should commit the archive move and between-session state reset.
+- No remaining Task 41 implementation work is pending.
+- Post-archive guard passed; work-tracking audit reports the expected between-session warnings for no active folder and missing `sessions/current`.

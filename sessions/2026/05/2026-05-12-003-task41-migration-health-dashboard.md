@@ -21,8 +21,8 @@ title: Task 41 - Build Migration Health Dashboard
 - [x] Scaffold Task 41 work tracking.
 - [x] Repoint `sessions/current` and `plans/current` to Task 41.
 - [x] Mark Taskmaster Task 41 in progress and update its generated task file.
-- [ ] Review the design baseline and implementation boundary for Build Migration Health Dashboard.
-- [ ] Capture implementation and verification evidence.
+- [x] Review the design baseline and implementation boundary for Build Migration Health Dashboard.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 41 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -40,3 +40,4 @@ Task 41 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cr
 - **[18:07]** — [S:20260512|W:task41-migration-health-dashboard|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260512-task41-migration-health-dashboard-ACTIVE/reports/migration-health-dashboard/telemetry-dry-run-2026-05-12.txt] Confirmed dry-run telemetry ordering ends with `scripts/template-migration-health-dashboard`
 - **[18:07]** — [S:20260512|W:task41-migration-health-dashboard|H:verification/final|E:docs/ai/work-tracking/active/20260512-task41-migration-health-dashboard-ACTIVE/reports/migration-health-dashboard/guard-2026-05-12.txt] Final verification passed: plan sync, work-tracking audit, guard, diff-check, Taskmaster health, and focused pytest
 - **[18:07]** — [S:20260512|W:task41-migration-health-dashboard|H:task-master:show|E:.taskmaster/tasks/task_041.txt] Confirmed Taskmaster Task 41 and subtasks 41.1/41.2 are done
+- **[18:25]** — [S:20260512|W:task41-migration-health-dashboard|H:scripts/codex-task|E:docs/ai/work-tracking/archive/20260512-task41-migration-health-dashboard-COMPLETED/HANDOFF.md] Archived Task 41 work tracking after PR #78 merged and cleared between-session pointers
