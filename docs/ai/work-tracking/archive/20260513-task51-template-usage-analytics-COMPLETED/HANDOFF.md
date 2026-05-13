@@ -10,4 +10,6 @@
 - Serena completion memory: `2026-05-13_task51_template_usage_analytics_completion`.
 
 ## Next Steps
-- Prepare PR, merge, then archive the Task 51 ACTIVE folder only after the PR is merged.
+- None for Task 51. PR #88 is merged, the task is done, and the work-tracking folder is archived.
+- Continue with the next Taskmaster task from a fresh session/branch after `main` is clean.
+- Archived on 2026-05-13 16:25 CEST — Folder moved to archive and tracker marked COMPLETED.
