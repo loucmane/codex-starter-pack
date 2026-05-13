@@ -1,0 +1,25 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/designs/post-migration-monitoring-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/diff-check-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/guard-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/plan-sync-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/source-migration-health-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/source-migration-health/latest.json
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/source-migration-health/latest.md
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/taskmaster-health-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/taskmaster-show-60-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/tests-2026-05-13-codex-task.txt
+ D docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/work-tracking-audit-2026-05-13.txt
+D  plans/current
+D  sessions/current
+ M sessions/state.json
+?? docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/

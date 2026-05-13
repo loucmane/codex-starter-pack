@@ -24,3 +24,4 @@
 - Guard: `docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/guard-2026-05-13.txt`
 - Diff check: `docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/diff-check-2026-05-13.txt`
 - Serena memory: `serena/memory:2026-05-13_task60_post_migration_monitoring_completion`
+- Archived on 2026-05-13 14:49 CEST — Folder moved to archive and tracker marked COMPLETED.
