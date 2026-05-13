@@ -3265,6 +3265,259 @@ def handle_rollout_canary_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+EXPERIMENT_METRICS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "guard",
+        "title": "Guard validation",
+        "command": "python3 scripts/codex-guard validate --include-untracked",
+        "success_criteria": "Exit code 0 and no S:W:H:E or workflow-state issues.",
+    },
+    {
+        "id": "focused-tests",
+        "title": "Focused regression tests",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest <focused tests>",
+        "success_criteria": "Exit code 0 for the experiment-specific regression surface.",
+    },
+    {
+        "id": "performance",
+        "title": "Performance policy",
+        "command": "python3 scripts/template-performance-harness --strict",
+        "success_criteria": "Status pass; warn/fail deltas must be documented before promotion.",
+    },
+    {
+        "id": "monitoring",
+        "title": "Monitoring policy",
+        "command": "python3 scripts/template-monitoring --strict",
+        "success_criteria": "Status pass against repo-local monitoring thresholds.",
+    },
+    {
+        "id": "taskmaster-health",
+        "title": "Taskmaster health",
+        "command": "python3 scripts/codex-task taskmaster health",
+        "success_criteria": "Zero invalid dependency references.",
+    },
+)
+
+
+def _experiment_verification_commands() -> List[str]:
+    return [
+        "python3 scripts/codex-task rollout experiment-plan --report-file <plan.json> --runbook-file <runbook.md>",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_codex_task.py",
+        "git diff --check",
+    ]
+
+
+def _experiment_variants(control: str, raw_variants: Optional[Sequence[str]]) -> List[Dict[str, Any]]:
+    names = [control.strip() or "control"]
+    names.extend(variant.strip() for variant in raw_variants or [] if variant.strip())
+    if len(names) == 1:
+        names.append("candidate-foundation")
+
+    base = round(100.0 / len(names), 2)
+    allocations = [base for _ in names]
+    allocations[-1] = round(100.0 - sum(allocations[:-1]), 2)
+
+    variants: List[Dict[str, Any]] = []
+    seen: Dict[str, int] = {}
+    for index, (name, allocation) in enumerate(zip(names, allocations)):
+        variant_id = _slugify(name)
+        if variant_id in seen:
+            seen[variant_id] += 1
+            variant_id = f"{variant_id}-{seen[variant_id]}"
+        else:
+            seen[variant_id] = 1
+        variants.append(
+            {
+                "id": variant_id,
+                "name": name,
+                "role": "control" if index == 0 else "candidate",
+                "allocation_percent": allocation,
+            }
+        )
+    return variants
+
+
+def _build_experiment_rollout_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    variants = _experiment_variants(args.control, args.variant)
+    error_threshold_pct = float(args.error_threshold_pct)
+    if error_threshold_pct < 0:
+        raise TaskError("--error-threshold-pct must be non-negative")
+
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "non-destructive-foundation-experiment-plan",
+        "executes_mutations": False,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "variant_count": len(variants),
+        "variants": variants,
+        "allocation_model": {
+            "automatic_assignment": False,
+            "traffic_split": False,
+            "reviewed_evidence_only": True,
+            "guidance": [
+                "Run the same verification commands for the control and each candidate variant.",
+                "Store evidence for every variant before comparing outcomes.",
+                "Treat missing evidence as a stop condition, not a warning.",
+            ],
+        },
+        "metric_model": {
+            "metrics": list(EXPERIMENT_METRICS),
+            "comparison_rule": "Promote a candidate only when it is no worse than control on required checks and any tradeoff is documented in FINDINGS/DECISIONS.",
+            "error_threshold_pct": error_threshold_pct,
+            "stop_conditions": [
+                f"Candidate error or failure rate exceeds control by more than {error_threshold_pct:.2f}%.",
+                "Any required guard, audit, health, or focused test command fails.",
+                "Performance or monitoring reports fail strict policy.",
+                "Evidence is missing for any control or candidate variant.",
+            ],
+        },
+        "promotion_model": {
+            "automatic_promotion": False,
+            "requires_reviewed_evidence": True,
+            "requires_decision_log": True,
+            "guidance": [
+                "Document the selected variant and rationale in DECISIONS.md.",
+                "Attach JSON/Markdown experiment evidence to work tracking before merge.",
+                "Use the canary rollout planner for staged adoption after selecting a variant.",
+            ],
+        },
+        "rollback_policy": {
+            "automatic_rollback": False,
+            "guidance": [
+                "Stop and render a reviewed rollback/recovery plan if a stop condition fires.",
+                "Do not execute destructive rollback commands from this experiment planner.",
+            ],
+        },
+        "recommended_verification_commands": _experiment_verification_commands(),
+        "non_goals": [
+            "No LaunchDarkly or external feature flag service is configured.",
+            "No runtime user segmentation is performed.",
+            "No traffic is split or routed.",
+            "No automatic rollback command is executed.",
+            "No dashboard is generated.",
+            "No notification is sent.",
+        ],
+    }
+
+
+def _render_experiment_rollout_runbook(plan: Dict[str, Any]) -> str:
+    current = plan.get("current_state", {})
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    metric_model = plan.get("metric_model", {}) if isinstance(plan.get("metric_model"), dict) else {}
+    promotion = plan.get("promotion_model", {}) if isinstance(plan.get("promotion_model"), dict) else {}
+    rollback = plan.get("rollback_policy", {}) if isinstance(plan.get("rollback_policy"), dict) else {}
+    lines = [
+        "# Foundation Experiment Runbook",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes mutations: {plan.get('executes_mutations')}",
+        f"- Current branch: {git_info.get('branch')}",
+        f"- Current HEAD: {git_info.get('head')}",
+        f"- Current dirty status entries: {len(git_info.get('status') or [])}",
+        "",
+        "## Variants",
+        "",
+    ]
+    variants = plan.get("variants") if isinstance(plan.get("variants"), list) else []
+    if variants:
+        for variant in variants:
+            if not isinstance(variant, dict):
+                continue
+            lines.append(
+                f"- {variant.get('name')} ({variant.get('role')}): {variant.get('allocation_percent')}%"
+            )
+    else:
+        lines.append("- No variants defined.")
+
+    lines.extend(["", "## Metrics", ""])
+    for metric in metric_model.get("metrics", []):
+        if not isinstance(metric, dict):
+            continue
+        lines.append(f"- {metric.get('title')}: `{metric.get('command')}`")
+        lines.append(f"  - Success: {metric.get('success_criteria')}")
+
+    lines.extend(["", "## Stop Conditions", ""])
+    for condition in metric_model.get("stop_conditions", []):
+        lines.append(f"- {condition}")
+
+    lines.extend(
+        [
+            "",
+            "## Promotion Model",
+            "",
+            f"- Automatic promotion: {promotion.get('automatic_promotion')}",
+            f"- Reviewed evidence required: {promotion.get('requires_reviewed_evidence')}",
+            f"- Decision log required: {promotion.get('requires_decision_log')}",
+            "",
+            "## Rollback Policy",
+            "",
+            f"- Automatic rollback: {rollback.get('automatic_rollback')}",
+        ]
+    )
+    for item in rollback.get("guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No feature flag service, traffic split, promotion, rollback, dashboard update, or notification was executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_rollout_experiment_plan(args: argparse.Namespace) -> None:
+    plan = _build_experiment_rollout_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_experiment_rollout_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote experiment plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote experiment runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def _resolve_agent_compatibility_matrix(matrix_file: Optional[str]) -> Path:
     matrix_path = Path(matrix_file) if matrix_file else AGENT_COMPATIBILITY_MATRIX
     if not matrix_path.is_absolute():
@@ -5311,6 +5564,15 @@ def build_parser() -> argparse.ArgumentParser:
     rollout_canary.add_argument("--runbook-file", help="Optional path to write the canary rollout runbook markdown")
     rollout_canary.add_argument("--dry-run", action="store_true", help="Print the canary rollout plan JSON without writing files")
     rollout_canary.set_defaults(func=handle_rollout_canary_plan)
+    rollout_experiment = rollout_sub.add_parser("experiment-plan", help="Render a non-destructive foundation experiment plan")
+    rollout_experiment.add_argument("--label", default="foundation-experiment", help="Human-readable experiment label")
+    rollout_experiment.add_argument("--control", default="current-foundation", help="Control variant name")
+    rollout_experiment.add_argument("--variant", action="append", help="Candidate variant name; may be provided multiple times")
+    rollout_experiment.add_argument("--error-threshold-pct", type=float, default=5.0, help="Failure-rate delta that stops the experiment")
+    rollout_experiment.add_argument("--report-file", help="Optional path to write the experiment plan JSON")
+    rollout_experiment.add_argument("--runbook-file", help="Optional path to write the experiment runbook markdown")
+    rollout_experiment.add_argument("--dry-run", action="store_true", help="Print the experiment plan JSON without writing files")
+    rollout_experiment.set_defaults(func=handle_rollout_experiment_plan)
 
     change_parser = subparsers.add_parser("change", help="Change advisory planning operations")
     change_sub = change_parser.add_subparsers(dest="subcommand", required=True)
