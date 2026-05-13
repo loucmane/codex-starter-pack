@@ -9,5 +9,7 @@
 - Current-day guard and tests pass. The work-tracking audit warning about the `20260512` folder prefix is intentional because the ACTIVE folder is task-scoped and reused across days until PR merge.
 
 ## Next Steps
-- Commit and open the Task 34 pull request.
-- After merge, archive `20260512-task34-ab-testing-framework-ACTIVE` and record post-archive evidence.
+- Task 34 is complete and archived.
+- Continue from the next Taskmaster task after confirming between-session audit/guard state.
+- Post-archive guard passed; audit warnings are expected between-session state (`no ACTIVE work-tracking folders`, no `sessions/current`).
+- Archived on 2026-05-13 11:03 CEST — Folder moved to archive and tracker marked COMPLETED.

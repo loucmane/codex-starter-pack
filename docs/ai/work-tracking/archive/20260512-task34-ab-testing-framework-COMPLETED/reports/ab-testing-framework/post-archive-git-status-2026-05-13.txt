@@ -1,0 +1,29 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/designs/ab-testing-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/diff-check-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/diff-check-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/experiment-plan-2026-05-12.json
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/experiment-runbook-2026-05-12.md
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/guard-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/guard-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/plan-sync-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/plan-sync-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/taskmaster-health-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/taskmaster-health-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/taskmaster-show-34-final-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/taskmaster-show-34-final-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/tests-codex-task-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/tests-codex-task-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/work-tracking-audit-2026-05-12.txt
+ D docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE/reports/ab-testing-framework/work-tracking-audit-2026-05-13.txt
+ D plans/current
+ M sessions/2026/05/2026-05-13-001-task34-ab-testing-framework-continuation.md
+ D sessions/current
+ M sessions/state.json
+?? docs/ai/work-tracking/archive/20260512-task34-ab-testing-framework-COMPLETED/
