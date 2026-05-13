@@ -5363,6 +5363,404 @@ def handle_phase3_automation_review(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+PHASE4_DOCUMENTATION_NON_GOALS: Tuple[str, ...] = (
+    "No production documentation publication or hosted docs deployment is executed.",
+    "No LMS, training platform, calendar event, office-hours scheduler, survey, email, Slack, chat, notification, webhook, dashboard, analytics, or external communication system is created or contacted.",
+    "No live training session delivery, attendance collection, or feedback collection is claimed.",
+    "No documentation is automatically updated based on feedback.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, or external state is mutated beyond requested review artifacts.",
+)
+
+PHASE4_DOCUMENTATION_OUT_OF_SCOPE: Tuple[Dict[str, str], ...] = (
+    {
+        "historical_requirement": "Publish all documentation to production",
+        "current_boundary": "Documentation is versioned in repository files; no hosted production documentation target exists in this starter pack.",
+    },
+    {
+        "historical_requirement": "Deploy training materials and deliver training sessions",
+        "current_boundary": "Training material is repository-native guide content; this command does not deploy an LMS package or claim live attendance.",
+    },
+    {
+        "historical_requirement": "Schedule office hours and execute communications",
+        "current_boundary": "Communication templates exist as repo guidance. No calendar, email, chat, or notification integration is configured.",
+    },
+    {
+        "historical_requirement": "Collect feedback and update documentation automatically",
+        "current_boundary": "Feedback capture is represented by templates and follow-up prompts. Documentation changes still require normal task workflow.",
+    },
+)
+
+PHASE4_DOCUMENTATION_DOMAINS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "documentation-suite",
+        "title": "Documentation suite",
+        "purpose": "Confirm the current user guide, quickstart, guide index, and adoption guide are present and have prior evidence.",
+        "source_tasks": ("32",),
+        "required_paths": (
+            "templates/USER-GUIDE.md",
+            "templates/guides/index.md",
+            "templates/guides/quickstart/getting-started.md",
+            "templates/engine/validation/foundation-adoption-guide.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260511-task32-documentation-suite-COMPLETED/reports/documentation-suite/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-guard validate --include-untracked",
+            "python3 scripts/codex-task work-tracking audit",
+        ),
+    },
+    {
+        "id": "training-materials",
+        "title": "Training materials",
+        "purpose": "Confirm repository-native onboarding material exists without claiming external training delivery.",
+        "source_tasks": ("33",),
+        "required_paths": (
+            "templates/guides/training/foundation-onboarding.md",
+            "templates/guides/index.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task33-training-materials-COMPLETED/reports/training-materials/",
+        ),
+        "refresh_commands": (
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_training_materials.py",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+    },
+    {
+        "id": "communication-templates",
+        "title": "Communication templates",
+        "purpose": "Confirm repo-native communication payload templates exist for PRs, task completion, incidents, milestones, and feedback.",
+        "source_tasks": ("49",),
+        "required_paths": (
+            "templates/guides/communication/foundation-communication-templates.md",
+            "templates/guides/index.md",
+            "templates/conventions/git/commit-format.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED/reports/communication-templates/",
+        ),
+        "refresh_commands": (
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+    },
+    {
+        "id": "operational-runbook",
+        "title": "Operational runbook",
+        "purpose": "Confirm operator-facing procedure guidance exists for daily work, recurring review, incidents, escalation, and validation.",
+        "source_tasks": ("57",),
+        "required_paths": (
+            "scripts/codex-task",
+            "templates/TOOLS.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json",
+            "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task operations runbook --label <label> --report-file <operations.json> --runbook-file <operations.md>",
+        ),
+    },
+    {
+        "id": "phase3-automation-review",
+        "title": "Phase 3 automation review",
+        "purpose": "Confirm Phase 3 automation integration evidence is available before Phase 4 delivery closeout.",
+        "source_tasks": ("56",),
+        "required_paths": (
+            "scripts/codex-task",
+            "reports/README.md",
+            "templates/TOOLS.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260513-task56-phase3-automation-integration-COMPLETED/reports/phase3-automation-integration/phase3-review-2026-05-13.json",
+            "docs/ai/work-tracking/archive/20260513-task56-phase3-automation-integration-COMPLETED/reports/phase3-automation-integration/phase3-review-2026-05-13.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task automation phase3-review --label <label> --report-file <phase3.json> --runbook-file <phase3.md>",
+        ),
+    },
+    {
+        "id": "final-validation",
+        "title": "Final validation suite",
+        "purpose": "Confirm an executable validation/sign-off suite exists for release or migration gate review.",
+        "source_tasks": ("68",),
+        "required_paths": (
+            "scripts/codex-task",
+            "tests/meta_workflow_guard/test_codex_task.py",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        ),
+    },
+)
+
+PHASE4_DOCUMENTATION_GATE_CHECKLIST: Tuple[Dict[str, str], ...] = (
+    {
+        "id": "required-docs-present",
+        "item": "Required documentation, training, communication, operations, Phase 3, and validation surfaces exist.",
+        "evidence": "phase4-review domain summary",
+    },
+    {
+        "id": "evidence-current",
+        "item": "Each domain has linked evidence or an explicit refresh command before claiming delivery readiness.",
+        "evidence": "domain evidence paths and refresh commands",
+    },
+    {
+        "id": "feedback-captured-as-repo-artifact",
+        "item": "Feedback capture is represented as repo evidence or follow-up prompts, not an external survey claim.",
+        "evidence": "feedback capture guidance",
+    },
+    {
+        "id": "non-goals-visible",
+        "item": "Production publishing, live training delivery, scheduling, notifications, surveys, and dashboards are listed as non-goals.",
+        "evidence": "phase4-review Markdown runbook",
+    },
+)
+
+PHASE4_DOCUMENTATION_FEEDBACK_GUIDANCE: Tuple[str, ...] = (
+    "Use `templates/guides/communication/foundation-communication-templates.md` to draft feedback requests or milestone updates.",
+    "Record feedback summaries in the active work-tracking folder, HANDOFF.md, FINDINGS.md, or a follow-up Taskmaster task.",
+    "Treat documentation updates from feedback as normal scoped tasks with session, plan, tracker, guard, and test evidence.",
+    "Do not claim training delivery or feedback collection unless the evidence exists in repo-local artifacts.",
+)
+
+
+def _phase4_path_state(path_value: str) -> Dict[str, Any]:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    exists = path.exists()
+    if path.is_dir():
+        kind = "directory"
+    elif path.is_file():
+        kind = "file"
+    else:
+        kind = "missing"
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": exists,
+        "kind": kind,
+    }
+
+
+def _phase4_domain_review(domain: Dict[str, Any]) -> Dict[str, Any]:
+    required_paths = [_phase4_path_state(path) for path in domain.get("required_paths", ())]
+    evidence_paths = [_phase4_path_state(path) for path in domain.get("evidence_paths", ())]
+    missing_required = [item["path"] for item in required_paths if not item["exists"]]
+    missing_evidence = [item["path"] for item in evidence_paths if not item["exists"]]
+    if missing_required:
+        status = "needs-implementation"
+        required_action = "Implement or restore the missing required files before Phase 4 delivery review."
+    elif missing_evidence:
+        status = "needs-evidence"
+        required_action = "Run the refresh commands and capture the missing evidence before claiming this domain is delivered."
+    else:
+        status = "ready"
+        required_action = "Review the linked evidence and keep it referenced from Task 63 closeout."
+    return {
+        "id": domain["id"],
+        "title": domain["title"],
+        "purpose": domain["purpose"],
+        "status": status,
+        "source_tasks": list(domain.get("source_tasks", ())),
+        "required_paths": required_paths,
+        "evidence_paths": evidence_paths,
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+        "refresh_commands": list(domain.get("refresh_commands", ())),
+        "required_action": required_action,
+    }
+
+
+def _summarise_phase4_documentation_domains(domains: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    status_counts = Counter(str(domain.get("status")) for domain in domains)
+    missing_required = sum(len(domain.get("missing_required_paths", [])) for domain in domains)
+    missing_evidence = sum(len(domain.get("missing_evidence_paths", [])) for domain in domains)
+    if missing_required:
+        aggregate_status = "needs-implementation"
+    elif missing_evidence:
+        aggregate_status = "needs-evidence"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "domains": len(domains),
+        "ready": status_counts.get("ready", 0),
+        "needs_evidence": status_counts.get("needs-evidence", 0),
+        "needs_implementation": status_counts.get("needs-implementation", 0),
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+    }
+
+
+def _build_phase4_documentation_review(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "phase4-documentation-delivery"
+    domains = [_phase4_domain_review(dict(domain)) for domain in PHASE4_DOCUMENTATION_DOMAINS]
+    summary = _summarise_phase4_documentation_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-phase4-documentation-delivery-review",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "out_of_scope_requirements": list(PHASE4_DOCUMENTATION_OUT_OF_SCOPE),
+        "gate_review_checklist": list(PHASE4_DOCUMENTATION_GATE_CHECKLIST),
+        "feedback_capture_guidance": list(PHASE4_DOCUMENTATION_FEEDBACK_GUIDANCE),
+        "non_goals": list(PHASE4_DOCUMENTATION_NON_GOALS),
+    }
+
+
+def _render_phase4_documentation_review(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+    lines = [
+        "# Phase 4 Documentation Delivery Review",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), dict) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), dict) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Domain Summary",
+        "",
+        "| Domain | Status | Missing Required | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        missing_required = "<br>".join(domain.get("missing_required_paths", []))
+        missing_evidence = "<br>".join(domain.get("missing_evidence_paths", []))
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | `{_md_cell(domain.get('status'))}` | "
+            f"{_md_cell(missing_required or 'None')} | {_md_cell(missing_evidence or 'None')} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Status: `{domain.get('status')}`",
+                f"- Source tasks: {', '.join(str(task) for task in domain.get('source_tasks', []))}",
+                f"- Purpose: {domain.get('purpose')}",
+                f"- Required action: {domain.get('required_action')}",
+                "",
+                "Refresh commands:",
+            ]
+        )
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        lines.extend(["", "Evidence paths:"])
+        for item in domain.get("evidence_paths", []):
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('path')}` ({item.get('kind')})")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Historical Requirements Reconciled Out Of Scope",
+            "",
+            "| Historical Requirement | Current Boundary |",
+            "| --- | --- |",
+        ]
+    )
+    for item in report.get("out_of_scope_requirements", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(item.get('historical_requirement'))} | {_md_cell(item.get('current_boundary'))} |"
+        )
+
+    lines.extend(["", "## Feedback Capture Guidance", ""])
+    for item in report.get("feedback_capture_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Gate Review Checklist", ""])
+    for item in report.get("gate_review_checklist", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- [ ] {item.get('item')} Evidence: {item.get('evidence')}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static Phase 4 documentation delivery review artifact. It composes existing documentation, training, communication, operations, Phase 3, and validation evidence, but it does not publish docs, deploy training, schedule meetings, send communications, collect surveys, update dashboards, or contact external systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_phase4_documentation_review(args: argparse.Namespace) -> None:
+    report = _build_phase4_documentation_review(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_phase4_documentation_review(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote Phase 4 documentation review to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote Phase 4 documentation runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 TEMPLATE_USAGE_ANALYTICS_NON_GOALS: Tuple[str, ...] = (
     "No runtime decorators, counters, instrumentation hooks, or tracking code are added to templates.",
     "No database, warehouse, event stream, time-series backend, or long-running aggregation service is created.",
@@ -9260,6 +9658,26 @@ def build_parser() -> argparse.ArgumentParser:
     automation_phase3.add_argument("--runbook-file", help="Optional path to write the review Markdown")
     automation_phase3.add_argument("--dry-run", action="store_true", help="Print the review JSON without writing files")
     automation_phase3.set_defaults(func=handle_phase3_automation_review)
+
+    documentation_parser = subparsers.add_parser("documentation", help="Documentation delivery review operations")
+    documentation_sub = documentation_parser.add_subparsers(dest="subcommand", required=True)
+    documentation_phase4 = documentation_sub.add_parser(
+        "phase4-review",
+        help="Render a static Phase 4 documentation delivery review packet",
+    )
+    documentation_phase4.add_argument(
+        "--label",
+        default="phase4-documentation-delivery",
+        help="Human-readable review label",
+    )
+    documentation_phase4.add_argument("--report-file", help="Optional path to write the review JSON")
+    documentation_phase4.add_argument("--runbook-file", help="Optional path to write the review Markdown")
+    documentation_phase4.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the review JSON without writing files",
+    )
+    documentation_phase4.set_defaults(func=handle_phase4_documentation_review)
 
     hooks_parser = subparsers.add_parser("hooks", help="Git hook verification operations")
     hooks_sub = hooks_parser.add_subparsers(dest="subcommand", required=True)

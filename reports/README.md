@@ -89,6 +89,16 @@ python3 scripts/codex-task automation phase3-review \
 
 This command composes CI/CD gates, guard auto-fix, cost tracking, canary rollout, usage analytics, migration health, operational runbook, and final validation readiness into a static review packet. It does not deploy code, wait five days, run production auto-fix, split traffic, start monitoring services, create dashboards, send notifications, install schedulers, or contact external systems.
 
+Phase 4 documentation delivery review packets can be generated when an operator needs one gate-review artifact over repository-native documentation, training, communication, operations, Phase 3, and final validation evidence:
+
+```bash
+python3 scripts/codex-task documentation phase4-review \
+  --report-file reports/phase4-documentation-delivery/latest.json \
+  --runbook-file reports/phase4-documentation-delivery/latest.md
+```
+
+This command classifies each delivery domain as ready, needs-evidence, or needs-implementation and lists refresh commands for evidence gaps. It does not publish hosted documentation, deploy training, schedule office hours, send communications, collect surveys, update dashboards, mutate existing evidence sources, or contact external systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -103,6 +113,7 @@ This command composes CI/CD gates, guard auto-fix, cost tracking, canary rollout
 - `post-mortem-process/` - optional static incident post-mortem packets with timeline, RCA, action, prevention, lesson, and metric sections.
 - `template-usage-analytics/` - optional static registry-backed usage analytics over sessions, plans, work tracking, and Taskmaster task files.
 - `phase3-automation-integration/` - optional static Phase 3 gate-review packets over existing automation evidence and refresh commands.
+- `phase4-documentation-delivery/` - optional static Phase 4 gate-review packets over documentation, training, communication, operations, Phase 3, and final validation evidence.
 
 ## Task Evidence
 

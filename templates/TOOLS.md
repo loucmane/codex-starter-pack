@@ -78,6 +78,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `operations runbook --label <label>` – render a static operational runbook packet that composes daily workflow, recurring maintenance, incident response, troubleshooting, escalation, and validation guidance over existing helpers.
 - `incident post-mortem --summary <summary> --severity <P0-P3>` – render a static incident post-mortem packet with timeline, root-cause, action-item, prevention, lessons, and metric sections from explicit inputs.
 - `automation phase3-review --label <label>` – render a static Phase 3 automation integration gate-review packet over CI/CD gates, guard auto-fix, cost tracking, canary rollout, usage analytics, migration health, operational runbook, and final validation evidence.
+- `documentation phase4-review --label <label>` – render a static Phase 4 documentation delivery gate-review packet over documentation, training, communication, operations, Phase 3, and final validation evidence.
 - `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
@@ -238,6 +239,20 @@ python3 scripts/codex-task automation phase3-review \
 ```
 
 The command reports ready, needs-evidence, or needs-implementation status per domain and lists refresh commands for missing evidence. It does not deploy code, wait for five days, run production auto-fix, split traffic, start monitoring services, create dashboards, send notifications, install schedulers, mutate existing evidence sources, or contact external systems.
+
+### `scripts/codex-task documentation phase4-review`
+Static Phase 4 documentation delivery reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering repository-native documentation, training, communication, operations, Phase 3 automation review, and final validation evidence.
+
+Use it when preparing or reviewing the Phase 4 documentation delivery gate:
+
+```bash
+python3 scripts/codex-task documentation phase4-review \
+  --label <label> \
+  --report-file <phase4-review.json> \
+  --runbook-file <phase4-review.md>
+```
+
+The command reports ready, needs-evidence, or needs-implementation status per domain, lists refresh commands for missing evidence, and includes feedback-capture guidance that stays inside the repo workflow. It does not publish hosted documentation, deploy training, schedule office hours, send communications, collect surveys, update dashboards, mutate existing evidence sources, or contact external systems.
 
 ### `scripts/template_governance.py`
 Non-mutating template governance assessor. It reads `templates/metadata/template-governance-policy.json` and maps proposed template changes to a required review class.
