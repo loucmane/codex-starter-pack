@@ -1,0 +1,525 @@
+{
+  "created_at": "2026-05-13T16:49:34+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-56-phase3-automation-integration",
+      "head": "9f968bd90084f38e0ef94be2731232bb3f454a5e",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_056.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task56_phase3_automation_integration_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task56-phase3-automation-integration.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-009-task56-phase3-automation-integration.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 142,
+      "exists": true,
+      "latest": [
+        ".serena/memories/session_2026-05-13_task55-migration-metrics-collection-closeout.md",
+        ".serena/memories/2026-05-13_task60_post_migration_monitoring_completion.md",
+        ".serena/memories/2026-05-13_task60_post_migration_monitoring_kickoff.md",
+        ".serena/memories/2026-05-13_task46_template_import_export_system_complete.md",
+        ".serena/memories/2026-05-13_task46_template_import_export_system_kickoff.md",
+        ".serena/memories/2026-05-13_task57_operational_runbook_completion.md",
+        ".serena/memories/2026-05-13_task57_operational_runbook_kickoff.md",
+        ".serena/memories/2026-05-13_task51_template_usage_analytics_completion.md",
+        ".serena/memories/2026-05-13_task51_template_usage_analytics_kickoff.md",
+        ".serena/memories/2026-05-13_task56_phase3_automation_integration_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "a391347753ff2aed8d0cd0a783cf0429ffca9450546aaff6a22ba388956e296e",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 88,
+          "in-progress": 1,
+          "pending": 19
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260513-task56-phase3-automation-integration-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-13-task56-phase3-automation-integration.md",
+        "sha256": "6ea57ce2465301bfb9feb04f49cba8f54bd4b72532e8473fb412ce07f88277ef",
+        "target": "2026-05-13-task56-phase3-automation-integration.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-13-009-task56-phase3-automation-integration.md",
+        "sha256": "065cace29ed76b45a1e94d981d78f58b41568028fd05509d9dcf9c706dfd9fe7",
+        "target": "2026/05/2026-05-13-009-task56-phase3-automation-integration.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "57aeea52bb924d6abbc4cb68e46347e638aaf1aad9c3e01f03f55df5ce21e1af"
+      }
+    }
+  },
+  "domains": [
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/ci"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/reference-fix-gate"
+        }
+      ],
+      "id": "ci-cd-gates",
+      "missing_evidence_paths": [
+        "reports/ci",
+        "reports/reference-fix-gate"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm the repository-level guard, drift, scanner, reference-fix, Taskmaster health, and pytest gates are present.",
+      "refresh_commands": [
+        "python3 scripts/codex-task taskmaster health",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "scripts/template-ssot-scanner/apply_reference_fixes.py --dry-run --fail-on-changes --data-dir scripts/template-ssot-scanner/output/data"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".github/workflows/ci.yml"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".github/workflows/codex-guard.yml"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".github/workflows/meta-workflow-guard.yml"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".pre-commit-config.yaml"
+        }
+      ],
+      "source_tasks": [
+        "20",
+        "52"
+      ],
+      "status": "needs-evidence",
+      "title": "CI/CD gates"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/guard-fixes"
+        }
+      ],
+      "id": "guard-auto-fix",
+      "missing_evidence_paths": [
+        "reports/guard-fixes"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm auto-fix remains bounded, preview-first, history-backed, and never silently applies broad semantic changes.",
+      "refresh_commands": [
+        "python3 scripts/codex-guard validate --fix-preview",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-guard"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "tests/meta_workflow_guard/test_guard_rules.py"
+        }
+      ],
+      "source_tasks": [
+        "39"
+      ],
+      "status": "needs-evidence",
+      "title": "Guard auto-fix readiness"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/cost-tracking/latest.json"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/cost-tracking/latest.md"
+        }
+      ],
+      "id": "cost-tracking",
+      "missing_evidence_paths": [
+        "reports/cost-tracking/latest.json",
+        "reports/cost-tracking/latest.md"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm the static cost policy/reporting layer can be refreshed before Phase 3 review.",
+      "refresh_commands": [
+        "python3 scripts/codex-task report generate --kind cost"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-cost-report"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/metadata/template-cost-policy.json"
+        }
+      ],
+      "source_tasks": [
+        "24"
+      ],
+      "status": "needs-evidence",
+      "title": "Cost tracking"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/canary-rollout"
+        }
+      ],
+      "id": "canary-rollout",
+      "missing_evidence_paths": [
+        "reports/canary-rollout"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm staged rollout review is represented by deterministic canary-plan evidence instead of live traffic splitting.",
+      "refresh_commands": [
+        "python3 scripts/codex-task rollout canary-plan --label phase3-canary --report-file <canary.json> --runbook-file <canary.md>"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-task"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/registry/agent-compatibility-matrix.json"
+        }
+      ],
+      "source_tasks": [
+        "40"
+      ],
+      "status": "needs-evidence",
+      "title": "Canary rollout plan"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/template-usage-analytics/latest.json"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/template-usage-analytics/latest.md"
+        }
+      ],
+      "id": "usage-analytics",
+      "missing_evidence_paths": [
+        "reports/template-usage-analytics/latest.json",
+        "reports/template-usage-analytics/latest.md"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm registry-backed usage evidence is available for adoption review.",
+      "refresh_commands": [
+        "python3 scripts/codex-task template usage-analytics --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template_registry.py"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/template-usage-analytics/README.md"
+        }
+      ],
+      "source_tasks": [
+        "51"
+      ],
+      "status": "needs-evidence",
+      "title": "Template usage analytics"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/migration-health/latest.json"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/migration-health/latest.md"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "reports/post-migration-monitoring"
+        }
+      ],
+      "id": "migration-health",
+      "missing_evidence_paths": [
+        "reports/migration-health/latest.json",
+        "reports/migration-health/latest.md"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm static migration health and KPI packets can be refreshed from scanner-backed evidence.",
+      "refresh_commands": [
+        "python3 scripts/codex-task report generate --kind migration-health",
+        "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+        "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-migration-health-dashboard"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/migration-health/README.md"
+        }
+      ],
+      "source_tasks": [
+        "41",
+        "55",
+        "60"
+      ],
+      "status": "needs-evidence",
+      "title": "Migration health and metrics"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/operational-runbook/latest.json"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/operational-runbook/latest.md"
+        }
+      ],
+      "id": "operational-runbook",
+      "missing_evidence_paths": [
+        "reports/operational-runbook/latest.json",
+        "reports/operational-runbook/latest.md"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm daily, recurring, incident, emergency, recovery, escalation, and validation procedures are composed into operator evidence.",
+      "refresh_commands": [
+        "python3 scripts/codex-task operations runbook --label phase3-operations --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/operational-runbook/README.md"
+        }
+      ],
+      "source_tasks": [
+        "57"
+      ],
+      "status": "needs-evidence",
+      "title": "Operational runbook"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "reports/final-validation-suite"
+        }
+      ],
+      "id": "final-validation",
+      "missing_evidence_paths": [
+        "reports/final-validation-suite"
+      ],
+      "missing_required_paths": [],
+      "purpose": "Confirm final sign-off is executable as one ordered suite over existing validators.",
+      "refresh_commands": [
+        "python3 scripts/codex-task validation final-suite --dry-run",
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite"
+      ],
+      "required_action": "Run the refresh commands and capture the missing evidence before claiming this domain is ready.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-task"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/engine/validation/foundation-adoption-guide.md"
+        }
+      ],
+      "source_tasks": [
+        "68"
+      ],
+      "status": "needs-evidence",
+      "title": "Final validation suite"
+    }
+  ],
+  "executes_actions": false,
+  "gate_review_checklist": [
+    {
+      "evidence": "Task 56 scope reconciliation document",
+      "id": "scope-reconciled",
+      "item": "Historical live deployment and monitoring wording is reconciled against the static portable foundation."
+    },
+    {
+      "evidence": "phase3-review JSON domain statuses",
+      "id": "domain-evidence-current",
+      "item": "Every Phase 3 automation domain is ready or has an explicit missing-evidence action."
+    },
+    {
+      "evidence": "Task 56 verification reports",
+      "id": "verification-stack-run",
+      "item": "Plan sync, work-tracking audit, Taskmaster health, guard, focused tests, and diff-check evidence are captured."
+    },
+    {
+      "evidence": "phase3-review Markdown runbook",
+      "id": "non-goals-visible",
+      "item": "Production deployment, five-day monitoring, production auto-fix, traffic splitting, dashboards, alerts, and schedulers are listed as non-goals."
+    }
+  ],
+  "label": "task56-phase3-automation-integration",
+  "mode": "static-phase3-automation-integration-review",
+  "non_goals": [
+    "No production deployment is executed.",
+    "No five-day monitoring loop, scheduler, daemon, cron job, or background worker is installed.",
+    "No guard auto-fix is applied automatically.",
+    "No canary traffic split, automatic promotion, rollback command, or service rollout is executed.",
+    "No dashboard, alert, ticket, notification, webhook, database, or external observability service is created or contacted.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, or external state is mutated beyond requested review artifacts."
+  ],
+  "out_of_scope_requirements": [
+    {
+      "current_boundary": "CI/CD gates are repository workflow files and local hooks; this starter pack has no product deployment target.",
+      "historical_requirement": "Deploy CI/CD gates to production"
+    },
+    {
+      "current_boundary": "Gate evidence is static report/CI output. Review windows can be recorded, but this command does not wait or invent metrics.",
+      "historical_requirement": "Monitor gate performance for five days"
+    },
+    {
+      "current_boundary": "Guard auto-fix remains bounded, preview-first, and explicitly invoked by an operator.",
+      "historical_requirement": "Implement auto-fix in production"
+    },
+    {
+      "current_boundary": "Canary rollout is represented by the non-destructive canary-plan helper; no traffic or service deployment exists here.",
+      "historical_requirement": "Execute canary deployment and monitor canary metrics"
+    }
+  ],
+  "summary": {
+    "aggregate_status": "needs-evidence",
+    "domains": 8,
+    "missing_evidence_paths": 13,
+    "missing_required_paths": 0,
+    "needs_evidence": 8,
+    "needs_implementation": 0,
+    "ready": 0
+  },
+  "version": 1
+}

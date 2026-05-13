@@ -1,0 +1,6 @@
+# Findings
+
+- 2026-05-13 16:39 CEST — Task 56's original wording assumes production deployment, five-day live monitoring, production auto-fix, live canary execution, and canary metrics, but the current foundation implements those concerns as static repo-local helpers and evidence packets.
+- 2026-05-13 16:39 CEST — The current gap is integration, not another specialized subsystem: no command composes CI/CD gates, guard auto-fix, cost tracking, canary rollout, usage analytics, migration health, operational runbook, and final validation into one Phase 3 gate-review packet.
+- 2026-05-13 16:42 CEST — `task-master update-subtask` currently fails in this sandbox because the configured Claude provider writes debug/cache logs under `/home/loucmane/.claude` and `/home/loucmane/.cache`, which are outside writable roots. Non-AI status changes and targeted generated-file refresh still work.
+- 2026-05-13 16:50 CEST — The first live Phase 3 review report has no missing required implementation paths, but reports missing repo-level latest evidence for several domains. This is expected: the command composes the gate review and lists refresh commands rather than silently regenerating all upstream evidence.
