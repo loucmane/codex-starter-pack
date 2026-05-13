@@ -1,0 +1,23 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/designs/security-audit-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/diff-check-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/guard-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/plan-sync-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/plan-sync-scope-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/security-audit-2026-05-13.json
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/security-audit-2026-05-13.md
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/taskmaster-health-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/taskmaster-show-50-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/tests-codex-task-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task50-security-audit-process-ACTIVE/reports/security-audit-process/work-tracking-audit-2026-05-13.txt
+D  plans/current
+ M sessions/2026/05/2026-05-13-003-task50-security-audit-process.md
+D  sessions/current
+ M sessions/state.json
+?? docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/
