@@ -2807,6 +2807,330 @@ def handle_recovery_plan(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+SECURITY_AUDIT_CONTROLS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "template-security-validator",
+        "title": "Template and config security validator",
+        "category": "scanner",
+        "evidence_paths": (
+            "scripts/template-ssot-scanner/security_validator.py",
+            "scripts/template-ssot-scanner/output/data/security_validation.json",
+        ),
+        "commands": (
+            "python3 scripts/template-ssot-scanner/security_validator.py --base . --profile ci --output <security_validation.json>",
+            "python3 -m pytest scripts/template-ssot-scanner/test_security_validator.py",
+        ),
+        "notes": (
+            "Scoped template/config security validation exists from Task 18.",
+            "This is not broad SAST and does not query an external vulnerability service.",
+        ),
+    },
+    {
+        "id": "phase0-security-gate",
+        "title": "Phase 0 security warning/error gate",
+        "category": "validation",
+        "evidence_paths": (
+            "scripts/template-phase0-validation",
+            "reports/phase0-scanner-validation/latest.json",
+        ),
+        "commands": (
+            "python3 scripts/template-phase0-validation --strict",
+        ),
+        "notes": (
+            "Phase 0 validation evaluates security warning/error counts from scanner output.",
+        ),
+    },
+    {
+        "id": "ci-and-guard",
+        "title": "CI, guard, and workflow enforcement",
+        "category": "workflow",
+        "evidence_paths": (
+            ".github/workflows/ci.yml",
+            ".github/workflows/codex-guard.yml",
+            "scripts/codex-guard",
+        ),
+        "commands": (
+            "python3 scripts/codex-guard validate --include-untracked",
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+        ),
+        "notes": (
+            "CI and guard evidence cover repository workflow security boundaries.",
+        ),
+    },
+    {
+        "id": "final-validation-security",
+        "title": "Final validation security requirement",
+        "category": "sign-off",
+        "evidence_paths": (
+            "scripts/codex-task",
+            "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/",
+        ),
+        "commands": (
+            "python3 scripts/codex-task validation final-suite --dry-run",
+        ),
+        "notes": (
+            "Final validation maps security-validation to the scanner security validator and Phase 0 report.",
+        ),
+    },
+    {
+        "id": "remediation-tracking",
+        "title": "Security remediation tracking",
+        "category": "remediation",
+        "evidence_paths": (
+            "scripts/template-ssot-scanner/migration_roadmap.py",
+            "scripts/codex-task",
+        ),
+        "commands": (
+            "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+            "python3 scripts/codex-task recovery plan --error-class security --summary <summary>",
+        ),
+        "notes": (
+            "Roadmap generation can turn security findings into reviewable remediation items.",
+            "Recovery planning remains non-destructive and requires review before protected-surface remediation.",
+        ),
+    },
+)
+
+
+SECURITY_AUDIT_COMPLIANCE_NOTES: Tuple[str, ...] = (
+    "This repository is a portable workflow foundation, not a deployed application processing production personal data.",
+    "GDPR/SOC2/ISO compliance certification is not performed by this helper.",
+    "Runtime projects adopting the foundation must add project-specific data-flow, retention, threat-model, and compliance evidence.",
+    "This audit packet is evidence for repository controls and follow-up planning only.",
+)
+
+
+def _resolve_repo_path(path_value: str | Path) -> Path:
+    path = Path(path_value)
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def _security_audit_path_status(paths: Iterable[str]) -> List[Dict[str, Any]]:
+    results = []
+    for item in paths:
+        path = _resolve_repo_path(item)
+        results.append(
+            {
+                "path": _relative_to_root(path, REPO_ROOT),
+                "exists": path.exists(),
+            }
+        )
+    return results
+
+
+def _security_audit_control(control: Mapping[str, Any]) -> Dict[str, Any]:
+    evidence = _security_audit_path_status(str(path) for path in control.get("evidence_paths", ()))
+    missing = [item["path"] for item in evidence if not item["exists"]]
+    return {
+        "id": control.get("id"),
+        "title": control.get("title"),
+        "category": control.get("category"),
+        "status": "available" if not missing else "missing-evidence",
+        "evidence": evidence,
+        "missing_evidence": missing,
+        "commands": list(control.get("commands", ())),
+        "notes": list(control.get("notes", ())),
+    }
+
+
+def _security_audit_wrapped_report(path_value: str | Path) -> Dict[str, Any]:
+    path = _resolve_repo_path(path_value)
+    payload = _load_json_file_document(path)
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    stats = metadata.get("stats") if isinstance(metadata.get("stats"), dict) else {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    findings = data.get("findings") if isinstance(data.get("findings"), list) else []
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": path.exists(),
+        "scanner": metadata.get("scanner"),
+        "scanner_version": metadata.get("scanner_version"),
+        "output_format_version": metadata.get("output_format_version"),
+        "stats": stats,
+        "summary": summary,
+        "finding_count": len(findings),
+        "sample_findings": findings[:5],
+    }
+
+
+def _security_audit_phase0_report(path_value: str | Path) -> Dict[str, Any]:
+    path = _resolve_repo_path(path_value)
+    payload = _load_json_file_document(path)
+    checks = payload.get("checks") if isinstance(payload.get("checks"), list) else []
+    security_checks = [
+        check
+        for check in checks
+        if isinstance(check, dict)
+        and ("security" in str(check.get("id", "")) or "security" in str(check.get("title", "")).lower())
+    ]
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": path.exists(),
+        "status": payload.get("status"),
+        "summary": payload.get("summary") if isinstance(payload.get("summary"), dict) else {},
+        "security_checks": security_checks,
+    }
+
+
+def _security_audit_dependency_inventory(path_value: str | Path = "pyproject.toml") -> Dict[str, Any]:
+    path = _resolve_repo_path(path_value)
+    payload = _load_toml_document(path)
+    project = payload.get("project") if isinstance(payload.get("project"), dict) else {}
+    groups = payload.get("dependency-groups") if isinstance(payload.get("dependency-groups"), dict) else {}
+    runtime = project.get("dependencies") if isinstance(project.get("dependencies"), list) else []
+    group_dependencies = {
+        str(name): list(values)
+        for name, values in groups.items()
+        if isinstance(values, list)
+    }
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": path.exists(),
+        "runtime": list(runtime),
+        "groups": group_dependencies,
+        "counts": {
+            "runtime": len(runtime),
+            "groups": {name: len(values) for name, values in group_dependencies.items()},
+            "total": len(runtime) + sum(len(values) for values in group_dependencies.values()),
+        },
+        "vulnerability_lookup": {
+            "performed": False,
+            "reason": "No external CVE database, SBOM service, or dependency-audit integration is configured for this portable foundation task.",
+        },
+    }
+
+
+def _build_security_audit(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or _slugify(args.summary)
+    security_report = args.security_report or "scripts/template-ssot-scanner/output/data/security_validation.json"
+    phase0_report = args.phase0_report or "reports/phase0-scanner-validation/latest.json"
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "mode": "non-destructive-security-audit-packet",
+        "executes_actions": False,
+        "label": label,
+        "summary": args.summary,
+        "controls": [_security_audit_control(control) for control in SECURITY_AUDIT_CONTROLS],
+        "security_validation": _security_audit_wrapped_report(security_report),
+        "phase0_validation": _security_audit_phase0_report(phase0_report),
+        "dependency_inventory": _security_audit_dependency_inventory(),
+        "compliance_notes": list(SECURITY_AUDIT_COMPLIANCE_NOTES),
+        "remediation_tracking": {
+            "automatic_remediation": False,
+            "reviewed_follow_up_commands": [
+                "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+                "python3 scripts/codex-task recovery plan --error-class security --summary <summary>",
+                "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+                "python3 scripts/codex-task validation final-suite --dry-run",
+            ],
+        },
+        "recommended_verification_commands": [
+            "python3 scripts/template-ssot-scanner/security_validator.py --base . --profile ci --output <security_validation.json>",
+            "python3 scripts/template-phase0-validation --strict",
+            "python3 scripts/codex-task validation final-suite --dry-run",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-guard validate --include-untracked",
+            "git diff --check",
+        ],
+        "non_goals": [
+            "No broad SAST integration is executed.",
+            "No external dependency vulnerability lookup is executed.",
+            "No penetration-test automation is executed.",
+            "No GDPR, SOC2, ISO, or legal compliance certification is claimed.",
+            "No dependency update, remediation mutation, dashboard update, ticket creation, notification, or external security service call is executed.",
+        ],
+    }
+
+
+def _render_security_audit_runbook(audit: Dict[str, Any]) -> str:
+    dependency_inventory = audit.get("dependency_inventory", {})
+    counts = dependency_inventory.get("counts", {}) if isinstance(dependency_inventory, dict) else {}
+    security_validation = audit.get("security_validation", {})
+    phase0_validation = audit.get("phase0_validation", {})
+    lines = [
+        "# Security Audit Runbook",
+        "",
+        f"- Label: {audit.get('label')}",
+        f"- Created at: {audit.get('created_at')}",
+        f"- Mode: {audit.get('mode')}",
+        f"- Executes actions: {audit.get('executes_actions')}",
+        f"- Summary: {audit.get('summary')}",
+        "",
+        "## Security Evidence Summary",
+        "",
+        f"- Security validation report: {security_validation.get('path')} (exists: {security_validation.get('exists')})",
+        f"- Security finding count: {security_validation.get('finding_count')}",
+        f"- Phase 0 report: {phase0_validation.get('path')} (exists: {phase0_validation.get('exists')})",
+        f"- Phase 0 status: {phase0_validation.get('status')}",
+        f"- Dependency entries inventoried: {counts.get('total')}",
+        "- External vulnerability lookup: not performed",
+        "",
+        "## Controls",
+        "",
+    ]
+    for control in audit.get("controls", []):
+        lines.append(f"- {control.get('id')}: {control.get('status')} - {control.get('title')}")
+        missing = control.get("missing_evidence") or []
+        if missing:
+            lines.append(f"  - Missing evidence: {', '.join(missing)}")
+
+    lines.extend(["", "## Compliance Notes", ""])
+    for note in audit.get("compliance_notes", []):
+        lines.append(f"- {note}")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in audit.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    remediation = audit.get("remediation_tracking", {})
+    lines.extend(["", "## Remediation Tracking", ""])
+    lines.append(f"- Automatic remediation: {remediation.get('automatic_remediation')}")
+    for command in remediation.get("reviewed_follow_up_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in audit.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+    lines.extend(["", "No external scan, CVE lookup, pentest, remediation mutation, notification, dashboard update, ticket creation, or compliance certification was executed by this audit packet.", ""])
+    return "\n".join(lines)
+
+
+def handle_security_audit(args: argparse.Namespace) -> None:
+    audit = _build_security_audit(args)
+    rendered_json = json.dumps(audit, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_security_audit_runbook(audit)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote security audit packet to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote security audit runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -5892,6 +6216,18 @@ def build_parser() -> argparse.ArgumentParser:
     recovery_plan.add_argument("--runbook-file", help="Optional path to write the recovery runbook markdown")
     recovery_plan.add_argument("--dry-run", action="store_true", help="Print the recovery plan JSON without writing files")
     recovery_plan.set_defaults(func=handle_recovery_plan)
+
+    security_parser = subparsers.add_parser("security", help="Security audit process operations")
+    security_sub = security_parser.add_subparsers(dest="subcommand", required=True)
+    security_audit = security_sub.add_parser("audit", help="Render a non-destructive security audit packet")
+    security_audit.add_argument("--summary", required=True, help="One-line audit summary")
+    security_audit.add_argument("--label", help="Human-readable audit label; defaults to a slug from --summary")
+    security_audit.add_argument("--security-report", help="Existing security_validation.json path to include")
+    security_audit.add_argument("--phase0-report", help="Existing Phase 0 validation JSON path to include")
+    security_audit.add_argument("--report-file", help="Optional path to write the audit packet JSON")
+    security_audit.add_argument("--runbook-file", help="Optional path to write the audit runbook markdown")
+    security_audit.add_argument("--dry-run", action="store_true", help="Print the audit packet JSON without writing files")
+    security_audit.set_defaults(func=handle_security_audit)
 
     compaction_parser = subparsers.add_parser("compaction", help="Context compaction checkpoint operations")
     compaction_sub = compaction_parser.add_subparsers(dest="subcommand", required=True)

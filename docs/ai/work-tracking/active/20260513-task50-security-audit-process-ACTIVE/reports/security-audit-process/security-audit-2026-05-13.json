@@ -1,0 +1,226 @@
+{
+  "compliance_notes": [
+    "This repository is a portable workflow foundation, not a deployed application processing production personal data.",
+    "GDPR/SOC2/ISO compliance certification is not performed by this helper.",
+    "Runtime projects adopting the foundation must add project-specific data-flow, retention, threat-model, and compliance evidence.",
+    "This audit packet is evidence for repository controls and follow-up planning only."
+  ],
+  "controls": [
+    {
+      "category": "scanner",
+      "commands": [
+        "python3 scripts/template-ssot-scanner/security_validator.py --base . --profile ci --output <security_validation.json>",
+        "python3 -m pytest scripts/template-ssot-scanner/test_security_validator.py"
+      ],
+      "evidence": [
+        {
+          "exists": true,
+          "path": "scripts/template-ssot-scanner/security_validator.py"
+        },
+        {
+          "exists": true,
+          "path": "scripts/template-ssot-scanner/output/data/security_validation.json"
+        }
+      ],
+      "id": "template-security-validator",
+      "missing_evidence": [],
+      "notes": [
+        "Scoped template/config security validation exists from Task 18.",
+        "This is not broad SAST and does not query an external vulnerability service."
+      ],
+      "status": "available",
+      "title": "Template and config security validator"
+    },
+    {
+      "category": "validation",
+      "commands": [
+        "python3 scripts/template-phase0-validation --strict"
+      ],
+      "evidence": [
+        {
+          "exists": true,
+          "path": "scripts/template-phase0-validation"
+        },
+        {
+          "exists": false,
+          "path": "reports/phase0-scanner-validation/latest.json"
+        }
+      ],
+      "id": "phase0-security-gate",
+      "missing_evidence": [
+        "reports/phase0-scanner-validation/latest.json"
+      ],
+      "notes": [
+        "Phase 0 validation evaluates security warning/error counts from scanner output."
+      ],
+      "status": "missing-evidence",
+      "title": "Phase 0 security warning/error gate"
+    },
+    {
+      "category": "workflow",
+      "commands": [
+        "python3 scripts/codex-guard validate --include-untracked",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest"
+      ],
+      "evidence": [
+        {
+          "exists": true,
+          "path": ".github/workflows/ci.yml"
+        },
+        {
+          "exists": true,
+          "path": ".github/workflows/codex-guard.yml"
+        },
+        {
+          "exists": true,
+          "path": "scripts/codex-guard"
+        }
+      ],
+      "id": "ci-and-guard",
+      "missing_evidence": [],
+      "notes": [
+        "CI and guard evidence cover repository workflow security boundaries."
+      ],
+      "status": "available",
+      "title": "CI, guard, and workflow enforcement"
+    },
+    {
+      "category": "sign-off",
+      "commands": [
+        "python3 scripts/codex-task validation final-suite --dry-run"
+      ],
+      "evidence": [
+        {
+          "exists": true,
+          "path": "scripts/codex-task"
+        },
+        {
+          "exists": true,
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED"
+        }
+      ],
+      "id": "final-validation-security",
+      "missing_evidence": [],
+      "notes": [
+        "Final validation maps security-validation to the scanner security validator and Phase 0 report."
+      ],
+      "status": "available",
+      "title": "Final validation security requirement"
+    },
+    {
+      "category": "remediation",
+      "commands": [
+        "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+        "python3 scripts/codex-task recovery plan --error-class security --summary <summary>"
+      ],
+      "evidence": [
+        {
+          "exists": true,
+          "path": "scripts/template-ssot-scanner/migration_roadmap.py"
+        },
+        {
+          "exists": true,
+          "path": "scripts/codex-task"
+        }
+      ],
+      "id": "remediation-tracking",
+      "missing_evidence": [],
+      "notes": [
+        "Roadmap generation can turn security findings into reviewable remediation items.",
+        "Recovery planning remains non-destructive and requires review before protected-surface remediation."
+      ],
+      "status": "available",
+      "title": "Security remediation tracking"
+    }
+  ],
+  "created_at": "2026-05-13T12:42:05+02:00",
+  "dependency_inventory": {
+    "counts": {
+      "groups": {
+        "dev": 7
+      },
+      "runtime": 4,
+      "total": 11
+    },
+    "exists": true,
+    "groups": {
+      "dev": [
+        "black>=24.0.0,<27.0.0",
+        "mypy>=1.8.0,<2.0.0",
+        "pre-commit>=3.6.0,<5.0.0",
+        "pytest>=7.4.0,<8.0.0",
+        "pytest-benchmark>=4.0.0,<5.0.0",
+        "pytest-cov>=4.1.0,<5.0.0",
+        "ruff>=0.4.0,<1.0.0"
+      ]
+    },
+    "path": "pyproject.toml",
+    "runtime": [
+      "click>=8.1.0,<9.0.0",
+      "jsonschema>=4.22,<5.0",
+      "pyyaml>=6.0,<7.0",
+      "rich>=13.5.0,<16.0.0"
+    ],
+    "vulnerability_lookup": {
+      "performed": false,
+      "reason": "No external CVE database, SBOM service, or dependency-audit integration is configured for this portable foundation task."
+    }
+  },
+  "executes_actions": false,
+  "label": "task50-security-audit",
+  "mode": "non-destructive-security-audit-packet",
+  "non_goals": [
+    "No broad SAST integration is executed.",
+    "No external dependency vulnerability lookup is executed.",
+    "No penetration-test automation is executed.",
+    "No GDPR, SOC2, ISO, or legal compliance certification is claimed.",
+    "No dependency update, remediation mutation, dashboard update, ticket creation, notification, or external security service call is executed."
+  ],
+  "phase0_validation": {
+    "exists": false,
+    "path": "reports/phase0-scanner-validation/latest.json",
+    "security_checks": [],
+    "status": null,
+    "summary": {}
+  },
+  "recommended_verification_commands": [
+    "python3 scripts/template-ssot-scanner/security_validator.py --base . --profile ci --output <security_validation.json>",
+    "python3 scripts/template-phase0-validation --strict",
+    "python3 scripts/codex-task validation final-suite --dry-run",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "git diff --check"
+  ],
+  "remediation_tracking": {
+    "automatic_remediation": false,
+    "reviewed_follow_up_commands": [
+      "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+      "python3 scripts/codex-task recovery plan --error-class security --summary <summary>",
+      "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+      "python3 scripts/codex-task validation final-suite --dry-run"
+    ]
+  },
+  "security_validation": {
+    "exists": true,
+    "finding_count": 0,
+    "output_format_version": "2.0.0",
+    "path": "scripts/template-ssot-scanner/output/data/security_validation.json",
+    "sample_findings": [],
+    "scanner": "security_validator",
+    "scanner_version": "1.0.0",
+    "stats": {
+      "errors": 0,
+      "files_scanned": 343,
+      "findings": 0,
+      "warnings": 0
+    },
+    "summary": {
+      "rule_counts": {},
+      "severity_counts": {},
+      "total_findings": 0
+    }
+  },
+  "summary": "Task 50 foundation security audit",
+  "version": 1
+}
