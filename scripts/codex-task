@@ -4568,6 +4568,430 @@ def handle_operational_runbook(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+PHASE3_AUTOMATION_NON_GOALS: Tuple[str, ...] = (
+    "No production deployment is executed.",
+    "No five-day monitoring loop, scheduler, daemon, cron job, or background worker is installed.",
+    "No guard auto-fix is applied automatically.",
+    "No canary traffic split, automatic promotion, rollback command, or service rollout is executed.",
+    "No dashboard, alert, ticket, notification, webhook, database, or external observability service is created or contacted.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, or external state is mutated beyond requested review artifacts.",
+)
+
+PHASE3_AUTOMATION_OUT_OF_SCOPE: Tuple[Dict[str, str], ...] = (
+    {
+        "historical_requirement": "Deploy CI/CD gates to production",
+        "current_boundary": "CI/CD gates are repository workflow files and local hooks; this starter pack has no product deployment target.",
+    },
+    {
+        "historical_requirement": "Monitor gate performance for five days",
+        "current_boundary": "Gate evidence is static report/CI output. Review windows can be recorded, but this command does not wait or invent metrics.",
+    },
+    {
+        "historical_requirement": "Implement auto-fix in production",
+        "current_boundary": "Guard auto-fix remains bounded, preview-first, and explicitly invoked by an operator.",
+    },
+    {
+        "historical_requirement": "Execute canary deployment and monitor canary metrics",
+        "current_boundary": "Canary rollout is represented by the non-destructive canary-plan helper; no traffic or service deployment exists here.",
+    },
+)
+
+PHASE3_AUTOMATION_DOMAINS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "ci-cd-gates",
+        "title": "CI/CD gates",
+        "purpose": "Confirm the repository-level guard, drift, scanner, reference-fix, Taskmaster health, and pytest gates are present.",
+        "source_tasks": ("20", "52"),
+        "required_paths": (
+            ".github/workflows/ci.yml",
+            ".github/workflows/codex-guard.yml",
+            ".github/workflows/meta-workflow-guard.yml",
+            ".pre-commit-config.yaml",
+        ),
+        "evidence_paths": (
+            "reports/ci/",
+            "reports/reference-fix-gate/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task taskmaster health",
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+            "python3 scripts/codex-guard validate --include-untracked",
+            "scripts/template-ssot-scanner/apply_reference_fixes.py --dry-run --fail-on-changes --data-dir scripts/template-ssot-scanner/output/data",
+        ),
+    },
+    {
+        "id": "guard-auto-fix",
+        "title": "Guard auto-fix readiness",
+        "purpose": "Confirm auto-fix remains bounded, preview-first, history-backed, and never silently applies broad semantic changes.",
+        "source_tasks": ("39",),
+        "required_paths": (
+            "scripts/codex-guard",
+            "tests/meta_workflow_guard/test_guard_rules.py",
+        ),
+        "evidence_paths": (
+            "reports/guard-fixes/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-guard validate --fix-preview",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+    },
+    {
+        "id": "cost-tracking",
+        "title": "Cost tracking",
+        "purpose": "Confirm the static cost policy/reporting layer can be refreshed before Phase 3 review.",
+        "source_tasks": ("24",),
+        "required_paths": (
+            "scripts/template-cost-report",
+            "templates/metadata/template-cost-policy.json",
+        ),
+        "evidence_paths": (
+            "reports/cost-tracking/latest.json",
+            "reports/cost-tracking/latest.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task report generate --kind cost",
+        ),
+    },
+    {
+        "id": "canary-rollout",
+        "title": "Canary rollout plan",
+        "purpose": "Confirm staged rollout review is represented by deterministic canary-plan evidence instead of live traffic splitting.",
+        "source_tasks": ("40",),
+        "required_paths": (
+            "scripts/codex-task",
+            "templates/registry/agent-compatibility-matrix.json",
+        ),
+        "evidence_paths": (
+            "reports/canary-rollout/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task rollout canary-plan --label phase3-canary --report-file <canary.json> --runbook-file <canary.md>",
+        ),
+    },
+    {
+        "id": "usage-analytics",
+        "title": "Template usage analytics",
+        "purpose": "Confirm registry-backed usage evidence is available for adoption review.",
+        "source_tasks": ("51",),
+        "required_paths": (
+            "scripts/template_registry.py",
+            "reports/template-usage-analytics/README.md",
+        ),
+        "evidence_paths": (
+            "reports/template-usage-analytics/latest.json",
+            "reports/template-usage-analytics/latest.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task template usage-analytics --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+        ),
+    },
+    {
+        "id": "migration-health",
+        "title": "Migration health and metrics",
+        "purpose": "Confirm static migration health and KPI packets can be refreshed from scanner-backed evidence.",
+        "source_tasks": ("41", "55", "60"),
+        "required_paths": (
+            "scripts/template-migration-health-dashboard",
+            "reports/migration-health/README.md",
+        ),
+        "evidence_paths": (
+            "reports/migration-health/latest.json",
+            "reports/migration-health/latest.md",
+            "reports/post-migration-monitoring/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task report generate --kind migration-health",
+            "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+            "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>",
+        ),
+    },
+    {
+        "id": "operational-runbook",
+        "title": "Operational runbook",
+        "purpose": "Confirm daily, recurring, incident, emergency, recovery, escalation, and validation procedures are composed into operator evidence.",
+        "source_tasks": ("57",),
+        "required_paths": (
+            "reports/operational-runbook/README.md",
+        ),
+        "evidence_paths": (
+            "reports/operational-runbook/latest.json",
+            "reports/operational-runbook/latest.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task operations runbook --label phase3-operations --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+        ),
+    },
+    {
+        "id": "final-validation",
+        "title": "Final validation suite",
+        "purpose": "Confirm final sign-off is executable as one ordered suite over existing validators.",
+        "source_tasks": ("68",),
+        "required_paths": (
+            "scripts/codex-task",
+            "templates/engine/validation/foundation-adoption-guide.md",
+        ),
+        "evidence_paths": (
+            "reports/final-validation-suite/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task validation final-suite --dry-run",
+            "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        ),
+    },
+)
+
+PHASE3_AUTOMATION_REVIEW_CHECKLIST: Tuple[Dict[str, str], ...] = (
+    {
+        "id": "scope-reconciled",
+        "item": "Historical live deployment and monitoring wording is reconciled against the static portable foundation.",
+        "evidence": "Task 56 scope reconciliation document",
+    },
+    {
+        "id": "domain-evidence-current",
+        "item": "Every Phase 3 automation domain is ready or has an explicit missing-evidence action.",
+        "evidence": "phase3-review JSON domain statuses",
+    },
+    {
+        "id": "verification-stack-run",
+        "item": "Plan sync, work-tracking audit, Taskmaster health, guard, focused tests, and diff-check evidence are captured.",
+        "evidence": "Task 56 verification reports",
+    },
+    {
+        "id": "non-goals-visible",
+        "item": "Production deployment, five-day monitoring, production auto-fix, traffic splitting, dashboards, alerts, and schedulers are listed as non-goals.",
+        "evidence": "phase3-review Markdown runbook",
+    },
+)
+
+
+def _phase3_path_state(path_value: str) -> Dict[str, Any]:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    exists = path.exists()
+    if path.is_dir():
+        kind = "directory"
+    elif path.is_file():
+        kind = "file"
+    else:
+        kind = "missing"
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": exists,
+        "kind": kind,
+    }
+
+
+def _phase3_domain_review(domain: Dict[str, Any]) -> Dict[str, Any]:
+    required_paths = [_phase3_path_state(path) for path in domain.get("required_paths", ())]
+    evidence_paths = [_phase3_path_state(path) for path in domain.get("evidence_paths", ())]
+    missing_required = [item["path"] for item in required_paths if not item["exists"]]
+    missing_evidence = [item["path"] for item in evidence_paths if not item["exists"]]
+    if missing_required:
+        status = "needs-implementation"
+        required_action = "Implement or restore the missing required files before Phase 3 review."
+    elif missing_evidence:
+        status = "needs-evidence"
+        required_action = "Run the refresh commands and capture the missing evidence before claiming this domain is ready."
+    else:
+        status = "ready"
+        required_action = "Review the current evidence and keep it linked from Task 56 closeout."
+    return {
+        "id": domain["id"],
+        "title": domain["title"],
+        "purpose": domain["purpose"],
+        "status": status,
+        "source_tasks": list(domain.get("source_tasks", ())),
+        "required_paths": required_paths,
+        "evidence_paths": evidence_paths,
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+        "refresh_commands": list(domain.get("refresh_commands", ())),
+        "required_action": required_action,
+    }
+
+
+def _summarise_phase3_domains(domains: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    status_counts = Counter(str(domain.get("status")) for domain in domains)
+    missing_required = sum(len(domain.get("missing_required_paths", [])) for domain in domains)
+    missing_evidence = sum(len(domain.get("missing_evidence_paths", [])) for domain in domains)
+    if missing_required:
+        aggregate_status = "needs-implementation"
+    elif missing_evidence:
+        aggregate_status = "needs-evidence"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "domains": len(domains),
+        "ready": status_counts.get("ready", 0),
+        "needs_evidence": status_counts.get("needs-evidence", 0),
+        "needs_implementation": status_counts.get("needs-implementation", 0),
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+    }
+
+
+def _build_phase3_automation_review(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "phase3-automation-review"
+    domains = [_phase3_domain_review(dict(domain)) for domain in PHASE3_AUTOMATION_DOMAINS]
+    summary = _summarise_phase3_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-phase3-automation-integration-review",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "out_of_scope_requirements": list(PHASE3_AUTOMATION_OUT_OF_SCOPE),
+        "gate_review_checklist": list(PHASE3_AUTOMATION_REVIEW_CHECKLIST),
+        "non_goals": list(PHASE3_AUTOMATION_NON_GOALS),
+    }
+
+
+def _render_phase3_automation_review(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+    lines = [
+        "# Phase 3 Automation Integration Review",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), dict) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), dict) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Domain Summary",
+        "",
+        "| Domain | Status | Missing Required | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        missing_required = "<br>".join(domain.get("missing_required_paths", []))
+        missing_evidence = "<br>".join(domain.get("missing_evidence_paths", []))
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | `{_md_cell(domain.get('status'))}` | "
+            f"{_md_cell(missing_required or 'None')} | {_md_cell(missing_evidence or 'None')} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Status: `{domain.get('status')}`",
+                f"- Source tasks: {', '.join(str(task) for task in domain.get('source_tasks', []))}",
+                f"- Purpose: {domain.get('purpose')}",
+                f"- Required action: {domain.get('required_action')}",
+                "",
+                "Refresh commands:",
+            ]
+        )
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        lines.extend(["", "Evidence paths:"])
+        for item in domain.get("evidence_paths", []):
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('path')}` ({item.get('kind')})")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Historical Requirements Reconciled Out Of Scope",
+            "",
+            "| Historical Requirement | Current Boundary |",
+            "| --- | --- |",
+        ]
+    )
+    for item in report.get("out_of_scope_requirements", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(item.get('historical_requirement'))} | {_md_cell(item.get('current_boundary'))} |"
+        )
+
+    lines.extend(["", "## Gate Review Checklist", ""])
+    for item in report.get("gate_review_checklist", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- [ ] {item.get('item')} Evidence: {item.get('evidence')}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static Phase 3 review artifact. It composes existing automation evidence and does not execute deployment, monitoring, auto-fix, canary, dashboard, scheduler, notification, or external service actions.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_phase3_automation_review(args: argparse.Namespace) -> None:
+    report = _build_phase3_automation_review(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_phase3_automation_review(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote Phase 3 automation review to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote Phase 3 automation runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 TEMPLATE_USAGE_ANALYTICS_NON_GOALS: Tuple[str, ...] = (
     "No runtime decorators, counters, instrumentation hooks, or tracking code are added to templates.",
     "No database, warehouse, event stream, time-series backend, or long-running aggregation service is created.",
@@ -8406,6 +8830,18 @@ def build_parser() -> argparse.ArgumentParser:
     operations_runbook.add_argument("--runbook-file", help="Optional path to write the operational runbook Markdown")
     operations_runbook.add_argument("--dry-run", action="store_true", help="Print the operational runbook JSON without writing files")
     operations_runbook.set_defaults(func=handle_operational_runbook)
+
+    automation_parser = subparsers.add_parser("automation", help="Automation integration review operations")
+    automation_sub = automation_parser.add_subparsers(dest="subcommand", required=True)
+    automation_phase3 = automation_sub.add_parser(
+        "phase3-review",
+        help="Render a static Phase 3 automation integration review packet",
+    )
+    automation_phase3.add_argument("--label", default="phase3-automation-review", help="Human-readable review label")
+    automation_phase3.add_argument("--report-file", help="Optional path to write the review JSON")
+    automation_phase3.add_argument("--runbook-file", help="Optional path to write the review Markdown")
+    automation_phase3.add_argument("--dry-run", action="store_true", help="Print the review JSON without writing files")
+    automation_phase3.set_defaults(func=handle_phase3_automation_review)
 
     hooks_parser = subparsers.add_parser("hooks", help="Git hook verification operations")
     hooks_sub = hooks_parser.add_subparsers(dest="subcommand", required=True)

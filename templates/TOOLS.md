@@ -76,6 +76,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `serena status --strict [--report-file <path>]` – verify Codex and project-level Serena MCP configuration plus `.serena/memories/` readiness before relying on Serena evidence.
 - `compaction checkpoint --task <id> --slug <slug> --summary <state> --next-step <next>` – create a continuation checkpoint before context compaction, including manifest, resume message, Serena memory file, session/tracker entries, handoff note, and `.plan_state/compaction-history.jsonl`.
 - `operations runbook --label <label>` – render a static operational runbook packet that composes daily workflow, recurring maintenance, incident response, troubleshooting, escalation, and validation guidance over existing helpers.
+- `automation phase3-review --label <label>` – render a static Phase 3 automation integration gate-review packet over CI/CD gates, guard auto-fix, cost tracking, canary rollout, usage analytics, migration health, operational runbook, and final validation evidence.
 - `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
@@ -203,6 +204,20 @@ python3 scripts/codex-task operations runbook \
 ```
 
 It does not install schedulers, send notifications, create tickets, update dashboards, deploy code, execute rollback, mutate Taskmaster/session/work-tracking state beyond requested artifacts, or contact external operations systems.
+
+### `scripts/codex-task automation phase3-review`
+Static Phase 3 automation integration reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering CI/CD gates, guard auto-fix, cost tracking, canary rollout, template usage analytics, migration health, operational runbook, and final validation readiness.
+
+Use it when preparing or reviewing the Phase 3 automation gate:
+
+```bash
+python3 scripts/codex-task automation phase3-review \
+  --label <label> \
+  --report-file <phase3-review.json> \
+  --runbook-file <phase3-review.md>
+```
+
+The command reports ready, needs-evidence, or needs-implementation status per domain and lists refresh commands for missing evidence. It does not deploy code, wait for five days, run production auto-fix, split traffic, start monitoring services, create dashboards, send notifications, install schedulers, mutate existing evidence sources, or contact external systems.
 
 ### `scripts/template_governance.py`
 Non-mutating template governance assessor. It reads `templates/metadata/template-governance-policy.json` and maps proposed template changes to a required review class.
