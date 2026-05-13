@@ -14,3 +14,4 @@
 ## Next Steps
 - Commit, push, open PR, merge, then archive the Task 72 work-tracking folder after merge.
 - Do not archive the ACTIVE work-tracking folder before the PR is merged.
+- Archived on 2026-05-13 17:45 CEST — Folder moved to archive and tracker marked COMPLETED.
