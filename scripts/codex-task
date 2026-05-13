@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -4567,6 +4568,462 @@ def handle_operational_runbook(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+TEMPLATE_USAGE_ANALYTICS_NON_GOALS: Tuple[str, ...] = (
+    "No runtime decorators, counters, instrumentation hooks, or tracking code are added to templates.",
+    "No database, warehouse, event stream, time-series backend, or long-running aggregation service is created.",
+    "No live dashboard, WebSocket, Grafana board, hosted analytics page, or external observability service is contacted.",
+    "No alert, notification, ticket, issue, webhook, or anomaly service is sent or configured.",
+    "No predictive capacity-planning model is trained or executed.",
+    "No template, Taskmaster, session, plan, work-tracking, Git, or external state is mutated beyond requested report artifacts.",
+)
+
+TEMPLATE_USAGE_SOURCE_PATTERNS: Tuple[Tuple[str, str, Tuple[str, ...]], ...] = (
+    ("sessions", "sessions_root", ("*.md",)),
+    ("plans", "plans_root", ("*.md",)),
+    ("work_tracking_active", "work_tracking_active_root", ("*.md",)),
+    ("taskmaster", "taskmaster_tasks_dir", ("task_*.txt", "task-*.md")),
+)
+
+
+def _template_usage_source_date(relative_path: str) -> Optional[str]:
+    session_match = re.search(r"sessions/\d{4}/\d{2}/(\d{4}-\d{2}-\d{2})", relative_path)
+    if session_match:
+        return session_match.group(1)
+    plan_match = re.search(r"plans/(\d{4}-\d{2}-\d{2})-", relative_path)
+    if plan_match:
+        return plan_match.group(1)
+    work_tracking_match = re.search(r"work-tracking/(?:active|archive)/(\d{4})(\d{2})(\d{2})-", relative_path)
+    if work_tracking_match:
+        return "-".join(work_tracking_match.groups())
+    return None
+
+
+def _iter_template_usage_source_files(
+    source_dir: Path,
+    structure: RepoStructure,
+    *,
+    include_archive: bool,
+) -> List[Tuple[str, Path]]:
+    sources: List[Tuple[str, Path]] = []
+    seen: set[Path] = set()
+
+    def add_files(source_type: str, root: Path, patterns: Sequence[str]) -> None:
+        if not root.exists():
+            return
+        for pattern in patterns:
+            for path in sorted(root.rglob(pattern)):
+                if path in seen or path.is_symlink() or not path.is_file():
+                    continue
+                seen.add(path)
+                sources.append((source_type, path))
+
+    for source_type, attr, patterns in TEMPLATE_USAGE_SOURCE_PATTERNS:
+        add_files(source_type, getattr(structure, attr), patterns)
+    if include_archive:
+        add_files("work_tracking_archive", structure.work_tracking_archive_root, ("*.md",))
+    return sorted(sources, key=lambda item: (_relative_to_root(item[1], source_dir), item[0]))
+
+
+def _read_usage_source(path: Path) -> Optional[str]:
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _template_usage_tokens(record: TemplateRecord) -> Dict[str, Tuple[str, ...]]:
+    aliases = tuple(alias for alias in record.aliases if alias and alias != record.id)
+    return {
+        "id": (record.id,),
+        "path": (record.path,),
+        "alias": aliases,
+    }
+
+
+def _count_standalone_usage_token(text: str, token: str) -> int:
+    if not token:
+        return 0
+    pattern = rf"(?<![A-Za-z0-9_./-]){re.escape(token)}(?![A-Za-z0-9_./-])"
+    return len(re.findall(pattern, text))
+
+
+def _empty_template_usage_record(record: TemplateRecord) -> Dict[str, Any]:
+    return {
+        "id": record.id,
+        "path": record.path,
+        "title": record.title,
+        "type": record.type,
+        "category": record.category,
+        "status": record.status,
+        "source": record.source,
+        "aliases": list(record.aliases),
+        "good_first_handler": record.good_first_handler,
+        "good_first_workflow": record.good_first_workflow,
+        "total_mentions": 0,
+        "id_mentions": 0,
+        "path_mentions": 0,
+        "alias_mentions": 0,
+        "source_counts": {},
+        "first_seen": None,
+        "latest_seen": None,
+        "examples": [],
+    }
+
+
+def _count_template_usage_mentions(
+    text: str,
+    record: TemplateRecord,
+) -> Tuple[int, int, int]:
+    tokens = _template_usage_tokens(record)
+    id_mentions = sum(text.count(token) for token in tokens["id"])
+    path_mentions = sum(text.count(token) for token in tokens["path"])
+    alias_mentions = sum(_count_standalone_usage_token(text, token) for token in tokens["alias"])
+    return id_mentions, path_mentions, alias_mentions
+
+
+def _template_usage_example(
+    *,
+    relative_path: str,
+    source_type: str,
+    source_date: Optional[str],
+    id_mentions: int,
+    path_mentions: int,
+    alias_mentions: int,
+) -> Dict[str, Any]:
+    return {
+        "path": relative_path,
+        "source_type": source_type,
+        "date": source_date,
+        "id_mentions": id_mentions,
+        "path_mentions": path_mentions,
+        "alias_mentions": alias_mentions,
+    }
+
+
+def _build_template_usage_analytics(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    source_dir = _resolve_repo_directory(args.source_dir, "Source repository")
+    structure = load_repo_structure(source_dir)
+    registry = TemplateRegistry(repo_root=source_dir)
+    records = sorted(registry.records(), key=lambda item: item.id)
+    usage_records: Dict[str, Dict[str, Any]] = {
+        record.id: _empty_template_usage_record(record)
+        for record in records
+    }
+    source_counts: Dict[str, Dict[str, int]] = {}
+    category_counts: Counter[str] = Counter()
+    monthly_counts: Counter[str] = Counter()
+    source_files = _iter_template_usage_source_files(source_dir, structure, include_archive=args.include_archive)
+    files_with_matches: set[str] = set()
+    unreadable_files: List[str] = []
+    total_mentions = 0
+    id_mentions_total = 0
+    path_mentions_total = 0
+    alias_mentions_total = 0
+
+    for source_type, path in source_files:
+        relative_path = _relative_to_root(path, source_dir)
+        source_counts.setdefault(source_type, {"files_scanned": 0, "files_with_matches": 0, "mentions": 0})
+        source_counts[source_type]["files_scanned"] += 1
+        text = _read_usage_source(path)
+        if text is None:
+            unreadable_files.append(relative_path)
+            continue
+        source_date = _template_usage_source_date(relative_path)
+        file_mentions = 0
+        for record in records:
+            id_mentions, path_mentions, alias_mentions = _count_template_usage_mentions(text, record)
+            mentions = id_mentions + path_mentions + alias_mentions
+            if mentions <= 0:
+                continue
+            stats = usage_records[record.id]
+            stats["total_mentions"] += mentions
+            stats["id_mentions"] += id_mentions
+            stats["path_mentions"] += path_mentions
+            stats["alias_mentions"] += alias_mentions
+            stats["source_counts"][source_type] = stats["source_counts"].get(source_type, 0) + mentions
+            if source_date:
+                dates = [value for value in (stats["first_seen"], stats["latest_seen"]) if isinstance(value, str)]
+                dates.append(source_date)
+                stats["first_seen"] = min(dates)
+                stats["latest_seen"] = max(dates)
+                monthly_counts[source_date[:7]] += mentions
+            if len(stats["examples"]) < args.max_examples:
+                stats["examples"].append(
+                    _template_usage_example(
+                        relative_path=relative_path,
+                        source_type=source_type,
+                        source_date=source_date,
+                        id_mentions=id_mentions,
+                        path_mentions=path_mentions,
+                        alias_mentions=alias_mentions,
+                    )
+                )
+            category_counts[str(record.category or "uncategorized")] += mentions
+            file_mentions += mentions
+            total_mentions += mentions
+            id_mentions_total += id_mentions
+            path_mentions_total += path_mentions
+            alias_mentions_total += alias_mentions
+        if file_mentions:
+            files_with_matches.add(relative_path)
+            source_counts[source_type]["files_with_matches"] += 1
+            source_counts[source_type]["mentions"] += file_mentions
+
+    usage_list = sorted(
+        usage_records.values(),
+        key=lambda item: (-int(item["total_mentions"]), str(item["id"])),
+    )
+    observed = [item for item in usage_list if int(item["total_mentions"]) > 0]
+    zero_observed = [item for item in usage_list if int(item["total_mentions"]) == 0]
+    path_only = [
+        item for item in observed
+        if int(item["path_mentions"]) > 0 and int(item["id_mentions"]) == 0 and int(item["alias_mentions"]) == 0
+    ]
+    alias_observed = [item for item in observed if int(item["alias_mentions"]) > 0]
+
+    top_templates = [
+        {
+            "id": item["id"],
+            "path": item["path"],
+            "category": item["category"],
+            "total_mentions": item["total_mentions"],
+            "id_mentions": item["id_mentions"],
+            "path_mentions": item["path_mentions"],
+            "alias_mentions": item["alias_mentions"],
+        }
+        for item in observed[: args.max_items]
+    ]
+    zero_summary = [
+        {
+            "id": item["id"],
+            "path": item["path"],
+            "category": item["category"],
+            "status": item["status"],
+        }
+        for item in zero_observed[: args.max_items]
+    ]
+    path_only_summary = [
+        {
+            "id": item["id"],
+            "path": item["path"],
+            "category": item["category"],
+            "path_mentions": item["path_mentions"],
+            "examples": item["examples"][: args.max_examples],
+        }
+        for item in path_only[: args.max_items]
+    ]
+    alias_summary = [
+        {
+            "id": item["id"],
+            "path": item["path"],
+            "category": item["category"],
+            "alias_mentions": item["alias_mentions"],
+            "examples": item["examples"][: args.max_examples],
+        }
+        for item in alias_observed[: args.max_items]
+    ]
+
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "non-destructive-template-usage-analytics",
+        "executes_mutations": False,
+        "source": {
+            "path": _relative_to_root(source_dir, REPO_ROOT),
+            "include_archive": args.include_archive,
+            "source_types": sorted(source_counts),
+            "workflow_sources": (
+                ["sessions", "plans", "work_tracking_active", "taskmaster"]
+                + (["work_tracking_archive"] if args.include_archive else [])
+            ),
+        },
+        "registry": {
+            "template_count": len(records),
+        },
+        "source_summary": {
+            "files_scanned": len(source_files),
+            "files_with_matches": len(files_with_matches),
+            "unreadable_files": unreadable_files,
+            "by_type": source_counts,
+        },
+        "usage_summary": {
+            "total_mentions": total_mentions,
+            "id_mentions": id_mentions_total,
+            "path_mentions": path_mentions_total,
+            "alias_mentions": alias_mentions_total,
+            "templates_with_observed_usage": len(observed),
+            "templates_without_observed_usage": len(zero_observed),
+            "category_mentions": dict(sorted(category_counts.items())),
+            "monthly_mentions": dict(sorted(monthly_counts.items())),
+            "top_templates": top_templates,
+        },
+        "review_queues": {
+            "path_only_references": path_only_summary,
+            "alias_references": alias_summary,
+            "zero_observed_references": zero_summary,
+        },
+        "template_usage": usage_list,
+        "recommended_actions": [
+            "Review path-only references and prefer registry IDs where workflow portability matters.",
+            "Use zero-observed-reference templates as candidates for documentation, lifecycle, or deprecation review.",
+            "Review the highest-mentioned templates before changing shared workflow behavior.",
+            "Rerun this report after major template registry, Taskmaster, session, or work-tracking migrations.",
+        ],
+        "display_limits": {
+            "max_items": args.max_items,
+            "max_examples": args.max_examples,
+        },
+        "non_goals": list(TEMPLATE_USAGE_ANALYTICS_NON_GOALS),
+    }
+
+
+def _render_template_usage_analytics(report: Dict[str, Any]) -> str:
+    source_summary = report.get("source_summary", {}) if isinstance(report.get("source_summary"), dict) else {}
+    usage_summary = report.get("usage_summary", {}) if isinstance(report.get("usage_summary"), dict) else {}
+    review_queues = report.get("review_queues", {}) if isinstance(report.get("review_queues"), dict) else {}
+    registry = report.get("registry", {}) if isinstance(report.get("registry"), dict) else {}
+    source = report.get("source", {}) if isinstance(report.get("source"), dict) else {}
+    lines = [
+        "# Template Usage Analytics",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes mutations: {report.get('executes_mutations')}",
+        f"- Source: `{source.get('path')}`",
+        f"- Include archive: {source.get('include_archive')}",
+        "",
+        "## Summary",
+        "",
+        f"- Registered templates: {registry.get('template_count')}",
+        f"- Workflow files scanned: {source_summary.get('files_scanned')}",
+        f"- Workflow files with template references: {source_summary.get('files_with_matches')}",
+        f"- Total mentions: {usage_summary.get('total_mentions')}",
+        f"- ID mentions: {usage_summary.get('id_mentions')}",
+        f"- Path mentions: {usage_summary.get('path_mentions')}",
+        f"- Alias mentions: {usage_summary.get('alias_mentions')}",
+        f"- Templates with observed usage: {usage_summary.get('templates_with_observed_usage')}",
+        f"- Templates without observed usage: {usage_summary.get('templates_without_observed_usage')}",
+        "",
+        "## Source Coverage",
+        "",
+        "| Source type | Files scanned | Files with matches | Mentions |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+    by_type = source_summary.get("by_type") if isinstance(source_summary.get("by_type"), dict) else {}
+    for source_type, stats in sorted(by_type.items()):
+        if not isinstance(stats, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(source_type)} | {stats.get('files_scanned', 0)} | {stats.get('files_with_matches', 0)} | {stats.get('mentions', 0)} |"
+        )
+
+    lines.extend(["", "## Top Templates", "", "| Template | Category | Mentions | ID | Path | Alias |", "| --- | --- | ---: | ---: | ---: | ---: |"])
+    for item in usage_summary.get("top_templates", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| `{_md_cell(item.get('id'))}` | {_md_cell(item.get('category'))} | {item.get('total_mentions', 0)} | "
+            f"{item.get('id_mentions', 0)} | {item.get('path_mentions', 0)} | {item.get('alias_mentions', 0)} |"
+        )
+    if not usage_summary.get("top_templates"):
+        lines.append("| _None_ |  | 0 | 0 | 0 | 0 |")
+
+    lines.extend(["", "## Category Mentions", ""])
+    category_mentions = usage_summary.get("category_mentions") if isinstance(usage_summary.get("category_mentions"), dict) else {}
+    if category_mentions:
+        for category, count in sorted(category_mentions.items(), key=lambda item: (-int(item[1]), item[0])):
+            lines.append(f"- {category}: {count}")
+    else:
+        lines.append("- No category mentions observed.")
+
+    lines.extend(["", "## Monthly Trend", ""])
+    monthly_mentions = usage_summary.get("monthly_mentions") if isinstance(usage_summary.get("monthly_mentions"), dict) else {}
+    if monthly_mentions:
+        for month, count in sorted(monthly_mentions.items()):
+            lines.append(f"- {month}: {count}")
+    else:
+        lines.append("- No dated workflow references observed.")
+
+    lines.extend(["", "## Review Queues", "", "### Path-Only References", ""])
+    path_only = review_queues.get("path_only_references") if isinstance(review_queues.get("path_only_references"), list) else []
+    if path_only:
+        for item in path_only:
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('id')}`: {item.get('path_mentions')} path mentions; prefer registry ID when practical.")
+    else:
+        lines.append("- No path-only reference candidates in the displayed set.")
+
+    lines.extend(["", "### Alias References", ""])
+    alias_references = review_queues.get("alias_references") if isinstance(review_queues.get("alias_references"), list) else []
+    if alias_references:
+        for item in alias_references:
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('id')}`: {item.get('alias_mentions')} alias mentions.")
+    else:
+        lines.append("- No alias reference candidates in the displayed set.")
+
+    lines.extend(["", "### Zero Observed References", ""])
+    zero_observed = review_queues.get("zero_observed_references") if isinstance(review_queues.get("zero_observed_references"), list) else []
+    if zero_observed:
+        for item in zero_observed:
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('id')}` ({item.get('category') or 'uncategorized'}, {item.get('status') or 'status unknown'})")
+    else:
+        lines.append("- No zero-observed-reference candidates in the displayed set.")
+
+    lines.extend(["", "## Recommended Actions", ""])
+    for action in report.get("recommended_actions", []):
+        lines.append(f"- {action}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "No runtime tracker, database, live dashboard, alert, predictive service, template mutation, or external analytics action was executed by this report.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_template_usage_analytics(args: argparse.Namespace) -> None:
+    report = _build_template_usage_analytics(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_template_usage_analytics(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote template usage analytics report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote template usage analytics runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -8217,6 +8674,23 @@ def build_parser() -> argparse.ArgumentParser:
     template_bundle_plan.add_argument("--no-dependencies", action="store_true", help="Do not include template frontmatter dependencies")
     template_bundle_plan.add_argument("--dry-run", action="store_true", help="Print the bundle manifest JSON without writing files")
     template_bundle_plan.set_defaults(func=handle_template_bundle_plan)
+    template_usage_analytics = template_sub.add_parser(
+        "usage-analytics",
+        help="Render static template usage analytics from registry and workflow evidence",
+    )
+    template_usage_analytics.add_argument("--label", default="template-usage-analytics", help="Human-readable analytics label")
+    template_usage_analytics.add_argument("--source-dir", default=".", help="Repository root to analyze (default: current repo)")
+    template_usage_analytics.add_argument(
+        "--include-archive",
+        action="store_true",
+        help="Include archived work-tracking folders in addition to sessions, plans, active work tracking, and Taskmaster task files",
+    )
+    template_usage_analytics.add_argument("--max-items", type=int, default=10, help="Number of review queue items to display")
+    template_usage_analytics.add_argument("--max-examples", type=int, default=3, help="Number of source examples to retain per template")
+    template_usage_analytics.add_argument("--report-file", help="Optional path to write the usage analytics JSON")
+    template_usage_analytics.add_argument("--runbook-file", help="Optional path to write the usage analytics Markdown")
+    template_usage_analytics.add_argument("--dry-run", action="store_true", help="Print the usage analytics JSON without writing files")
+    template_usage_analytics.set_defaults(func=handle_template_usage_analytics)
 
     sync_parser = subparsers.add_parser("sync", help="Cross-repository foundation sync planning operations")
     sync_sub = sync_parser.add_subparsers(dest="subcommand", required=True)

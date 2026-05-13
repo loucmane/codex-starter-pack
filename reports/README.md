@@ -53,6 +53,16 @@ python3 scripts/codex-task operations runbook \
 
 This command composes daily work, recurring maintenance, incident response, escalation, troubleshooting, and validation guidance from existing helpers. It does not install schedulers, send notifications, create tickets, update dashboards, deploy code, execute rollback, or mutate external operations systems.
 
+Template usage analytics packets can be generated when an operator needs a registry-backed view of how templates are referenced by workflow artifacts:
+
+```bash
+python3 scripts/codex-task template usage-analytics \
+  --report-file reports/template-usage-analytics/latest.json \
+  --runbook-file reports/template-usage-analytics/latest.md
+```
+
+This command scans static workflow evidence and reports registry ID, path, and alias references. It does not add runtime decorators, create a database, run a live dashboard, send alerts, train predictive models, mutate templates, or contact external analytics services.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -64,6 +74,7 @@ This command composes daily work, recurring maintenance, incident response, esca
 - `migration-health/` - aggregate health report over the latest static telemetry artifacts.
 - `post-migration-monitoring/` - optional static monitoring packets that combine migration KPIs, migration health, and recurring review cadences.
 - `operational-runbook/` - optional static operator runbook packets that compose daily, recurring, incident, escalation, and validation procedures.
+- `template-usage-analytics/` - optional static registry-backed usage analytics over sessions, plans, work tracking, and Taskmaster task files.
 
 ## Task Evidence
 
