@@ -9,8 +9,11 @@
 - Taskmaster Task 56, 56.1, and 56.2 are done.
 - Serena kickoff memory exists at `.serena/memories/2026-05-13_task56_phase3_automation_integration_kickoff.md`.
 - Serena completion memory exists at `.serena/memories/2026-05-13_task56_phase3_automation_integration_completion.md`.
+- PR #89 merged, and this folder is archived at `docs/ai/work-tracking/archive/20260513-task56-phase3-automation-integration-COMPLETED/`.
+- Post-archive audit, Taskmaster health, guard, and diff-check evidence passed under `reports/phase3-automation-integration/`.
 
 ## Next Steps
-- Commit and push the Task 56 implementation.
-- Open and merge the Task 56 PR after CI passes.
-- Archive the active work-tracking folder only after the PR is merged.
+- Commit and push the post-archive cleanup.
+- Delete the local/remote Task 56 branch if still present after merge cleanup.
+- Continue with the next Taskmaster task from clean `main`.
+- Archived on 2026-05-13 17:07 CEST — Folder moved to archive and tracker marked COMPLETED.
