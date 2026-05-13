@@ -76,6 +76,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `serena status --strict [--report-file <path>]` – verify Codex and project-level Serena MCP configuration plus `.serena/memories/` readiness before relying on Serena evidence.
 - `compaction checkpoint --task <id> --slug <slug> --summary <state> --next-step <next>` – create a continuation checkpoint before context compaction, including manifest, resume message, Serena memory file, session/tracker entries, handoff note, and `.plan_state/compaction-history.jsonl`.
 - `operations runbook --label <label>` – render a static operational runbook packet that composes daily workflow, recurring maintenance, incident response, troubleshooting, escalation, and validation guidance over existing helpers.
+- `incident post-mortem --summary <summary> --severity <P0-P3>` – render a static incident post-mortem packet with timeline, root-cause, action-item, prevention, lessons, and metric sections from explicit inputs.
 - `automation phase3-review --label <label>` – render a static Phase 3 automation integration gate-review packet over CI/CD gates, guard auto-fix, cost tracking, canary rollout, usage analytics, migration health, operational runbook, and final validation evidence.
 - `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
@@ -204,6 +205,25 @@ python3 scripts/codex-task operations runbook \
 ```
 
 It does not install schedulers, send notifications, create tickets, update dashboards, deploy code, execute rollback, mutate Taskmaster/session/work-tracking state beyond requested artifacts, or contact external operations systems.
+
+### `scripts/codex-task incident post-mortem`
+Static incident post-mortem packet composer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet from explicit incident facts, timeline entries, root causes, action items, prevention measures, and lessons learned.
+
+Use it after an emergency, recovery, guard failure, workflow incident, or bypass review needs auditable RCA evidence:
+
+```bash
+python3 scripts/codex-task incident post-mortem \
+  --summary <summary> \
+  --severity <P0-P3> \
+  --timeline "<timestamp>|<phase>|<description>|<evidence>" \
+  --root-cause "<category>|<description>" \
+  --action-item "<owner>|<description>|<status>|<due>" \
+  --prevention "<measure>|<verification command>|<status>" \
+  --report-file <post-mortem.json> \
+  --runbook-file <post-mortem.md>
+```
+
+The command computes simple static metrics such as timeline count, action count, open action count, prevention count, lesson count, and detection-to-recovery minutes when the supplied timeline has detection and recovery phases. It does not create tickets, send notifications, update dashboards, scrape timelines, infer blame, mutate Taskmaster/session/work-tracking state beyond requested artifacts, install schedulers, or contact external incident systems.
 
 ### `scripts/codex-task automation phase3-review`
 Static Phase 3 automation integration reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering CI/CD gates, guard auto-fix, cost tracking, canary rollout, template usage analytics, migration health, operational runbook, and final validation readiness.

@@ -1,0 +1,223 @@
+{
+  "action_items": [
+    {
+      "description": "Implement incident post-mortem packet command with tests and docs",
+      "due": "2026-05-13",
+      "id": "action-1",
+      "owner": "active_agent",
+      "status": "done"
+    },
+    {
+      "description": "Review generated post-mortem packet during Task 72 PR review",
+      "due": "2026-05-14",
+      "id": "action-2",
+      "owner": "foundation_maintainer",
+      "status": "open"
+    }
+  ],
+  "contributing_factors": [
+    "Related emergency, recovery, rollback, advisory, operational runbook, and validation helpers already existed but no dedicated post-mortem packet composed them into RCA evidence"
+  ],
+  "created_at": "2026-05-13T17:29:18+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-72-post-mortem-process",
+      "head": "6c2b4adf1adf9b7be35a21886b8cbd04318c3d77",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_072.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task72_post_mortem_process_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task72-post-mortem-process.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-010-task72-post-mortem-process.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 144,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task60_post_migration_monitoring_kickoff.md",
+        ".serena/memories/2026-05-13_task46_template_import_export_system_complete.md",
+        ".serena/memories/2026-05-13_task46_template_import_export_system_kickoff.md",
+        ".serena/memories/2026-05-13_task57_operational_runbook_completion.md",
+        ".serena/memories/2026-05-13_task57_operational_runbook_kickoff.md",
+        ".serena/memories/2026-05-13_task51_template_usage_analytics_completion.md",
+        ".serena/memories/2026-05-13_task51_template_usage_analytics_kickoff.md",
+        ".serena/memories/2026-05-13_task56_phase3_automation_integration_completion.md",
+        ".serena/memories/2026-05-13_task56_phase3_automation_integration_kickoff.md",
+        ".serena/memories/2026-05-13_task72_post_mortem_process_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "1a42da9e30e8bac64bf98fbadb9f868388e77d80c961670673ca211524ac8270",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 89,
+          "in-progress": 1,
+          "pending": 18
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260513-task72-post-mortem-process-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-13-task72-post-mortem-process.md",
+        "sha256": "4d70f03a0390f36180704c5af1ed4386d859dc291154bf9e42094b5326a2a60e",
+        "target": "2026-05-13-task72-post-mortem-process.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-13-010-task72-post-mortem-process.md",
+        "sha256": "504b4bf847428f95abb080dcb09ab87e9d56c9abb690e61a4cfea8b2ca3c49bb",
+        "target": "2026/05/2026-05-13-010-task72-post-mortem-process.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "963703c1109965baef52b08f13c61fd9f42cd9041c083cc75007667218b16cec"
+      }
+    }
+  },
+  "executes_actions": false,
+  "incident": {
+    "detection_source": "codex-guard validation",
+    "id": "20260513-172918-task72-post-mortem-process",
+    "impact": "Task closeout would be blocked until session, tracker, and evidence links were reconciled",
+    "severity": "P1",
+    "summary": "Guard baseline mismatch after workflow artifact update"
+  },
+  "knowledge_extraction_prompts": [
+    "What reusable workflow lesson should be added to FINDINGS.md or DECISIONS.md?",
+    "Which prevention measure belongs in tests, guard policy, docs, or Taskmaster follow-up?",
+    "Which evidence files should future agents read first if this class of incident recurs?",
+    "Does the handoff need a new compaction or Serena memory reference?"
+  ],
+  "label": "task72-post-mortem-process",
+  "lessons_learned": [
+    "Legacy operational tasks should become deterministic static packets unless a live integration is explicitly proven and scoped"
+  ],
+  "metrics": {
+    "action_item_count": 2,
+    "detection_to_recovery_minutes": 2,
+    "lesson_count": 1,
+    "open_action_item_count": 1,
+    "open_prevention_measure_count": 1,
+    "prevention_measure_count": 1,
+    "root_cause_count": 1,
+    "timeline_entries": 2
+  },
+  "mode": "static-incident-post-mortem-packet",
+  "non_goals": [
+    "No external incident, issue, ticket, dashboard, notification, webhook, email, Slack, PagerDuty, or knowledge-base system is created or contacted.",
+    "No Taskmaster task, status, dependency, session, plan, work-tracking, Git, or external state is mutated beyond requested post-mortem artifacts.",
+    "No timeline is scraped from GitHub, CI, sessions, logs, or external systems.",
+    "No root-cause inference, blame assignment, predictive analysis, or automatic prioritization is performed.",
+    "No scheduler, daemon, reminder service, or long-running follow-up automation is installed."
+  ],
+  "prevention_measures": [
+    {
+      "description": "Run scope reconciliation before literal execution of legacy operational tasks",
+      "id": "prevention-1",
+      "status": "open",
+      "verification_command": "python3 scripts/codex-task work-tracking audit"
+    }
+  ],
+  "recommended_helpers": {
+    "change_advisory": "python3 scripts/codex-task change advisory --summary <summary> --report-file <advisory.json> --runbook-file <advisory.md>",
+    "emergency_plan": "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>",
+    "final_validation": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "guard": "python3 scripts/codex-guard validate --include-untracked",
+    "operational_runbook": "python3 scripts/codex-task operations runbook --label <label> --report-file <operations.json> --runbook-file <operations.md>",
+    "recovery_plan": "python3 scripts/codex-task recovery plan --error-class <class> --summary <summary> --report-file <recovery.json> --runbook-file <recovery.md>",
+    "rollback_checkpoint": "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+    "rollback_plan": "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <rollback-plan.md>",
+    "taskmaster_health": "python3 scripts/codex-task taskmaster health",
+    "work_tracking_audit": "python3 scripts/codex-task work-tracking audit"
+  },
+  "root_causes": [
+    {
+      "category": "scope-drift",
+      "description": "Historical Taskmaster wording asked for live post-mortem automation before the portable foundation settled on static repo-local evidence packets",
+      "id": "rca-1"
+    }
+  ],
+  "timeline": [
+    {
+      "description": "Task 72 kickoff identified historical post-mortem wording that did not match the current static portable foundation",
+      "evidence": "sessions/2026/05/2026-05-13-010-task72-post-mortem-process.md",
+      "order": 1,
+      "phase": "Detection",
+      "timestamp": "2026-05-13T17:17:32+02:00"
+    },
+    {
+      "description": "Scope reconciliation selected a deterministic incident post-mortem packet instead of live incident infrastructure",
+      "evidence": "docs/ai/work-tracking/active/20260513-task72-post-mortem-process-ACTIVE/designs/post-mortem-process-scope-reconciliation.md",
+      "order": 2,
+      "phase": "Recovery",
+      "timestamp": "2026-05-13T17:20:29+02:00"
+    }
+  ],
+  "version": 1
+}

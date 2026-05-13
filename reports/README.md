@@ -53,6 +53,22 @@ python3 scripts/codex-task operations runbook \
 
 This command composes daily work, recurring maintenance, incident response, escalation, troubleshooting, and validation guidance from existing helpers. It does not install schedulers, send notifications, create tickets, update dashboards, deploy code, execute rollback, or mutate external operations systems.
 
+Incident post-mortem packets can be generated after a workflow incident or emergency response when an operator needs a static RCA, timeline, follow-up, and prevention artifact:
+
+```bash
+python3 scripts/codex-task incident post-mortem \
+  --summary <summary> \
+  --severity <P0-P3> \
+  --timeline "<timestamp>|<phase>|<description>|<evidence>" \
+  --root-cause "<category>|<description>" \
+  --action-item "<owner>|<description>|<status>|<due>" \
+  --prevention "<measure>|<verification command>|<status>" \
+  --report-file <post-mortem.json> \
+  --runbook-file <post-mortem.md>
+```
+
+This command records supplied incident facts, timeline entries, root causes, action items, prevention measures, lessons learned, and static metrics. It does not create tickets, send notifications, update dashboards, scrape timelines, infer blame, mutate Taskmaster/session/work-tracking state beyond requested artifacts, install schedulers, or contact external incident systems.
+
 Template usage analytics packets can be generated when an operator needs a registry-backed view of how templates are referenced by workflow artifacts:
 
 ```bash
@@ -84,6 +100,7 @@ This command composes CI/CD gates, guard auto-fix, cost tracking, canary rollout
 - `migration-health/` - aggregate health report over the latest static telemetry artifacts.
 - `post-migration-monitoring/` - optional static monitoring packets that combine migration KPIs, migration health, and recurring review cadences.
 - `operational-runbook/` - optional static operator runbook packets that compose daily, recurring, incident, escalation, and validation procedures.
+- `post-mortem-process/` - optional static incident post-mortem packets with timeline, RCA, action, prevention, lesson, and metric sections.
 - `template-usage-analytics/` - optional static registry-backed usage analytics over sessions, plans, work tracking, and Taskmaster task files.
 - `phase3-automation-integration/` - optional static Phase 3 gate-review packets over existing automation evidence and refresh commands.
 

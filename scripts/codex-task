@@ -4568,6 +4568,377 @@ def handle_operational_runbook(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+POST_MORTEM_NON_GOALS: Tuple[str, ...] = (
+    "No external incident, issue, ticket, dashboard, notification, webhook, email, Slack, PagerDuty, or knowledge-base system is created or contacted.",
+    "No Taskmaster task, status, dependency, session, plan, work-tracking, Git, or external state is mutated beyond requested post-mortem artifacts.",
+    "No timeline is scraped from GitHub, CI, sessions, logs, or external systems.",
+    "No root-cause inference, blame assignment, predictive analysis, or automatic prioritization is performed.",
+    "No scheduler, daemon, reminder service, or long-running follow-up automation is installed.",
+)
+
+POST_MORTEM_RECOMMENDED_HELPERS: Dict[str, str] = {
+    "emergency_plan": "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>",
+    "recovery_plan": "python3 scripts/codex-task recovery plan --error-class <class> --summary <summary> --report-file <recovery.json> --runbook-file <recovery.md>",
+    "rollback_checkpoint": "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+    "rollback_plan": "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <rollback-plan.md>",
+    "change_advisory": "python3 scripts/codex-task change advisory --summary <summary> --report-file <advisory.json> --runbook-file <advisory.md>",
+    "operational_runbook": "python3 scripts/codex-task operations runbook --label <label> --report-file <operations.json> --runbook-file <operations.md>",
+    "final_validation": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "work_tracking_audit": "python3 scripts/codex-task work-tracking audit",
+    "taskmaster_health": "python3 scripts/codex-task taskmaster health",
+    "guard": "python3 scripts/codex-guard validate --include-untracked",
+}
+
+
+def _split_post_mortem_fields(raw_value: str, *, label: str, minimum: int, maximum: int) -> List[str]:
+    parts = [part.strip() for part in str(raw_value).split("|")]
+    if len(parts) < minimum or len(parts) > maximum or any(not part for part in parts[:minimum]):
+        if minimum == maximum:
+            expected = str(minimum)
+        else:
+            expected = f"{minimum}-{maximum}"
+        raise TaskError(f"{label} entry must contain {expected} pipe-delimited fields: {raw_value}")
+    return parts
+
+
+def _parse_post_mortem_timeline(entries: Sequence[str]) -> List[Dict[str, Any]]:
+    timeline: List[Dict[str, Any]] = []
+    for index, entry in enumerate(entries, start=1):
+        timestamp, phase, description, *rest = _split_post_mortem_fields(
+            entry,
+            label="Timeline",
+            minimum=3,
+            maximum=4,
+        )
+        timeline.append(
+            {
+                "order": index,
+                "timestamp": timestamp,
+                "phase": phase,
+                "description": description,
+                "evidence": rest[0] if rest else None,
+            }
+        )
+    return timeline
+
+
+def _parse_post_mortem_root_causes(entries: Sequence[str]) -> List[Dict[str, Any]]:
+    root_causes: List[Dict[str, Any]] = []
+    for index, entry in enumerate(entries, start=1):
+        category, description = _split_post_mortem_fields(
+            entry,
+            label="Root cause",
+            minimum=2,
+            maximum=2,
+        )
+        root_causes.append({"id": f"rca-{index}", "category": category, "description": description})
+    return root_causes
+
+
+def _parse_post_mortem_action_items(entries: Sequence[str]) -> List[Dict[str, Any]]:
+    action_items: List[Dict[str, Any]] = []
+    for index, entry in enumerate(entries, start=1):
+        owner, description, status, *rest = _split_post_mortem_fields(
+            entry,
+            label="Action item",
+            minimum=3,
+            maximum=4,
+        )
+        action_items.append(
+            {
+                "id": f"action-{index}",
+                "owner": owner,
+                "description": description,
+                "status": status,
+                "due": rest[0] if rest else None,
+            }
+        )
+    return action_items
+
+
+def _parse_post_mortem_prevention(entries: Sequence[str]) -> List[Dict[str, Any]]:
+    prevention: List[Dict[str, Any]] = []
+    for index, entry in enumerate(entries, start=1):
+        description, verification_command, *rest = _split_post_mortem_fields(
+            entry,
+            label="Prevention",
+            minimum=2,
+            maximum=3,
+        )
+        prevention.append(
+            {
+                "id": f"prevention-{index}",
+                "description": description,
+                "verification_command": verification_command,
+                "status": rest[0] if rest else "proposed",
+            }
+        )
+    return prevention
+
+
+def _post_mortem_parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    candidate = value.strip()
+    if candidate.endswith("Z"):
+        candidate = f"{candidate[:-1]}+00:00"
+    try:
+        return datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+
+
+def _post_mortem_duration_minutes(timeline: Sequence[Dict[str, Any]]) -> Optional[int]:
+    detection: Optional[datetime] = None
+    recovery: Optional[datetime] = None
+    recovery_phases = {"recovery", "recovered", "resolved", "resolution", "restored", "closeout"}
+    for item in timeline:
+        phase = str(item.get("phase") or "").strip().lower()
+        parsed = _post_mortem_parse_timestamp(str(item.get("timestamp") or ""))
+        if parsed is None:
+            continue
+        if detection is None and phase in {"detection", "detected"}:
+            detection = parsed
+        if recovery is None and phase in recovery_phases:
+            recovery = parsed
+    if detection is None or recovery is None:
+        return None
+    seconds = (recovery - detection).total_seconds()
+    if seconds < 0:
+        return None
+    return int(seconds // 60)
+
+
+def _post_mortem_static_metrics(
+    timeline: Sequence[Dict[str, Any]],
+    root_causes: Sequence[Dict[str, Any]],
+    action_items: Sequence[Dict[str, Any]],
+    prevention: Sequence[Dict[str, Any]],
+    lessons: Sequence[str],
+) -> Dict[str, Any]:
+    closed_statuses = {"done", "closed", "complete", "completed", "verified"}
+    open_actions = [item for item in action_items if str(item.get("status") or "").strip().lower() not in closed_statuses]
+    open_prevention = [item for item in prevention if str(item.get("status") or "").strip().lower() not in closed_statuses]
+    return {
+        "timeline_entries": len(timeline),
+        "root_cause_count": len(root_causes),
+        "action_item_count": len(action_items),
+        "open_action_item_count": len(open_actions),
+        "prevention_measure_count": len(prevention),
+        "open_prevention_measure_count": len(open_prevention),
+        "lesson_count": len(lessons),
+        "detection_to_recovery_minutes": _post_mortem_duration_minutes(timeline),
+    }
+
+
+def _build_incident_post_mortem(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or _slugify(args.summary)
+    timeline = _parse_post_mortem_timeline(tuple(args.timeline or ()))
+    root_causes = _parse_post_mortem_root_causes(tuple(args.root_cause or ()))
+    action_items = _parse_post_mortem_action_items(tuple(args.action_item or ()))
+    prevention = _parse_post_mortem_prevention(tuple(args.prevention or ()))
+    lessons = [str(item).strip() for item in tuple(args.lesson or ()) if str(item).strip()]
+    contributing_factors = [str(item).strip() for item in tuple(args.contributing_factor or ()) if str(item).strip()]
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-incident-post-mortem-packet",
+        "executes_actions": False,
+        "incident": {
+            "id": f"{now.strftime('%Y%m%d-%H%M%S')}-{_slugify(label)}",
+            "summary": args.summary,
+            "severity": args.severity,
+            "impact": args.impact,
+            "detection_source": args.detection_source,
+        },
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "timeline": timeline,
+        "root_causes": root_causes,
+        "contributing_factors": contributing_factors,
+        "action_items": action_items,
+        "prevention_measures": prevention,
+        "lessons_learned": lessons,
+        "metrics": _post_mortem_static_metrics(timeline, root_causes, action_items, prevention, lessons),
+        "recommended_helpers": dict(POST_MORTEM_RECOMMENDED_HELPERS),
+        "knowledge_extraction_prompts": [
+            "What reusable workflow lesson should be added to FINDINGS.md or DECISIONS.md?",
+            "Which prevention measure belongs in tests, guard policy, docs, or Taskmaster follow-up?",
+            "Which evidence files should future agents read first if this class of incident recurs?",
+            "Does the handoff need a new compaction or Serena memory reference?",
+        ],
+        "non_goals": list(POST_MORTEM_NON_GOALS),
+    }
+
+
+def _render_incident_post_mortem(report: Dict[str, Any]) -> str:
+    incident = report.get("incident", {}) if isinstance(report.get("incident"), dict) else {}
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    metrics = report.get("metrics", {}) if isinstance(report.get("metrics"), dict) else {}
+    lines = [
+        "# Incident Post-Mortem Packet",
+        "",
+        f"- Incident ID: `{incident.get('id')}`",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Severity: {incident.get('severity')}",
+        f"- Summary: {incident.get('summary')}",
+        f"- Impact: {incident.get('impact')}",
+        f"- Detection source: {incident.get('detection_source')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), dict) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), dict) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Timeline",
+        "",
+        "| Time | Phase | Description | Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for item in report.get("timeline", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(item.get('timestamp'))} | {_md_cell(item.get('phase'))} | "
+            f"{_md_cell(item.get('description'))} | {_md_cell(item.get('evidence') or 'n/a')} |"
+        )
+
+    lines.extend(["", "## Root Cause Analysis", ""])
+    root_causes = [item for item in report.get("root_causes", []) if isinstance(item, dict)]
+    if root_causes:
+        for item in root_causes:
+            lines.append(f"- `{item.get('category')}`: {item.get('description')}")
+    else:
+        lines.append("- No root causes supplied.")
+
+    lines.extend(["", "## Contributing Factors", ""])
+    contributing = [str(item) for item in report.get("contributing_factors", []) if str(item).strip()]
+    if contributing:
+        for item in contributing:
+            lines.append(f"- {item}")
+    else:
+        lines.append("- None supplied.")
+
+    lines.extend(
+        [
+            "",
+            "## Action Items",
+            "",
+            "| ID | Owner | Status | Due | Description |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+    )
+    for item in report.get("action_items", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| `{_md_cell(item.get('id'))}` | `{_md_cell(item.get('owner'))}` | "
+            f"{_md_cell(item.get('status'))} | {_md_cell(item.get('due') or 'n/a')} | {_md_cell(item.get('description'))} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Prevention Measures",
+            "",
+            "| ID | Status | Measure | Verification Command |",
+            "| --- | --- | --- | --- |",
+        ]
+    )
+    for item in report.get("prevention_measures", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| `{_md_cell(item.get('id'))}` | {_md_cell(item.get('status'))} | "
+            f"{_md_cell(item.get('description'))} | `{_md_cell(item.get('verification_command'))}` |"
+        )
+
+    lines.extend(["", "## Lessons Learned", ""])
+    lessons = [str(item) for item in report.get("lessons_learned", []) if str(item).strip()]
+    if lessons:
+        for item in lessons:
+            lines.append(f"- {item}")
+    else:
+        lines.append("- None supplied.")
+
+    lines.extend(["", "## Static Metrics", ""])
+    for key, value in metrics.items():
+        lines.append(f"- {key}: {value}")
+
+    lines.extend(["", "## Knowledge Extraction Prompts", ""])
+    for prompt in report.get("knowledge_extraction_prompts", []):
+        lines.append(f"- {prompt}")
+
+    lines.extend(["", "## Recommended Follow-Up Helpers", ""])
+    helpers = report.get("recommended_helpers") if isinstance(report.get("recommended_helpers"), dict) else {}
+    for name, command in sorted(helpers.items()):
+        lines.append(f"- {name}: `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static post-mortem artifact. It records supplied incident facts and follow-up guidance, but it does not create tickets, send notifications, update dashboards, mutate workflow state, install schedulers, or contact external systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_incident_post_mortem(args: argparse.Namespace) -> None:
+    report = _build_incident_post_mortem(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_incident_post_mortem(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote incident post-mortem report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote incident post-mortem runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 PHASE3_AUTOMATION_NON_GOALS: Tuple[str, ...] = (
     "No production deployment is executed.",
     "No five-day monitoring loop, scheduler, daemon, cron job, or background worker is installed.",
@@ -8830,6 +9201,53 @@ def build_parser() -> argparse.ArgumentParser:
     operations_runbook.add_argument("--runbook-file", help="Optional path to write the operational runbook Markdown")
     operations_runbook.add_argument("--dry-run", action="store_true", help="Print the operational runbook JSON without writing files")
     operations_runbook.set_defaults(func=handle_operational_runbook)
+
+    incident_parser = subparsers.add_parser("incident", help="Incident post-mortem and review operations")
+    incident_sub = incident_parser.add_subparsers(dest="subcommand", required=True)
+    incident_post_mortem = incident_sub.add_parser(
+        "post-mortem",
+        help="Render a static incident post-mortem packet",
+    )
+    incident_post_mortem.add_argument("--summary", required=True, help="One-line incident summary")
+    incident_post_mortem.add_argument("--severity", default="P2", choices=("P0", "P1", "P2", "P3"), help="Incident severity")
+    incident_post_mortem.add_argument("--impact", default="Not specified", help="Impact summary")
+    incident_post_mortem.add_argument("--detection-source", default="manual", help="How the incident was detected")
+    incident_post_mortem.add_argument("--label", help="Human-readable packet label; defaults to a slug from --summary")
+    incident_post_mortem.add_argument(
+        "--timeline",
+        action="append",
+        default=[],
+        help="Timeline entry as 'timestamp|phase|description|evidence' (evidence optional)",
+    )
+    incident_post_mortem.add_argument(
+        "--root-cause",
+        action="append",
+        default=[],
+        help="Root cause entry as 'category|description'",
+    )
+    incident_post_mortem.add_argument(
+        "--contributing-factor",
+        action="append",
+        default=[],
+        help="Contributing factor text",
+    )
+    incident_post_mortem.add_argument(
+        "--action-item",
+        action="append",
+        default=[],
+        help="Action item as 'owner|description|status|due' (due optional)",
+    )
+    incident_post_mortem.add_argument(
+        "--prevention",
+        action="append",
+        default=[],
+        help="Prevention measure as 'description|verification command|status' (status optional)",
+    )
+    incident_post_mortem.add_argument("--lesson", action="append", default=[], help="Lesson learned text")
+    incident_post_mortem.add_argument("--report-file", help="Optional path to write the post-mortem JSON")
+    incident_post_mortem.add_argument("--runbook-file", help="Optional path to write the post-mortem Markdown")
+    incident_post_mortem.add_argument("--dry-run", action="store_true", help="Print the post-mortem JSON without writing files")
+    incident_post_mortem.set_defaults(func=handle_incident_post_mortem)
 
     automation_parser = subparsers.add_parser("automation", help="Automation integration review operations")
     automation_sub = automation_parser.add_subparsers(dest="subcommand", required=True)
