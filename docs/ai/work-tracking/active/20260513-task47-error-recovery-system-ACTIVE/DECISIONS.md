@@ -1,0 +1,4 @@
+# Decisions
+
+- **2026-05-13 11:27** — [S:20260513|W:task47-error-recovery-system|H:scope-reconciliation|E:docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/designs/error-recovery-scope-reconciliation.md] Implement `python3 scripts/codex-task recovery plan` as a portable, non-destructive JSON/Markdown planning surface. Automatic retries, automatic rollback, reset/clean/restore, notifications, dashboards, and external recovery services are rejected until a future runtime repository proves those surfaces exist.
+- **2026-05-13 11:41** — [S:20260513|W:task47-error-recovery-system|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/recovery-plan-2026-05-13.json] Keep retry behavior advisory only. Retryable classes receive an exponential backoff schedule in the report, but `automatic_retry` remains false and the helper executes no follow-up commands.
