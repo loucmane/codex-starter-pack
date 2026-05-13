@@ -2452,6 +2452,361 @@ def handle_rollback_plan(args: argparse.Namespace) -> None:
     print(rendered, end="")
 
 
+ERROR_RECOVERY_TAXONOMY: Dict[str, Dict[str, Any]] = {
+    "guard": {
+        "title": "Guard or workflow policy failure",
+        "severity": "P1",
+        "retryable": False,
+        "operator_message": "A foundation guard blocked progress; inspect the workflow state and fix evidence or policy drift before retrying.",
+        "commands": [
+            "python3 scripts/codex-guard validate --include-untracked",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task plan sync",
+        ],
+        "recovery_steps": [
+            "Read the guard failure and identify the exact missing or stale workflow artifact.",
+            "Repair session, plan, tracker, Taskmaster, or evidence state with explicit entries.",
+            "Rerun guard and preserve the passing evidence before committing.",
+        ],
+    },
+    "taskmaster": {
+        "title": "Taskmaster graph or generated-file inconsistency",
+        "severity": "P1",
+        "retryable": False,
+        "operator_message": "Taskmaster state needs review before implementation or commit continues.",
+        "commands": [
+            "python3 scripts/codex-task taskmaster health",
+            "task-master show <id>",
+            "python3 scripts/codex-task taskmaster generate-one --id <id>",
+        ],
+        "recovery_steps": [
+            "Use full-graph health instead of filtered list output.",
+            "Regenerate only the affected task file unless a repo-wide refresh is explicitly scoped.",
+            "Log Taskmaster changes in the current session and tracker before guard.",
+        ],
+    },
+    "git": {
+        "title": "Git state or branch hygiene issue",
+        "severity": "P1",
+        "retryable": False,
+        "operator_message": "Git state is not safe for automated continuation until branch, dirty tree, or sync state is inspected.",
+        "commands": [
+            "git status --short --branch",
+            "git diff --check",
+            "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+        ],
+        "recovery_steps": [
+            "Inspect branch and dirty paths.",
+            "Separate unrelated user changes from task-owned changes.",
+            "Create a rollback checkpoint before any risky remediation.",
+        ],
+    },
+    "mcp": {
+        "title": "MCP or external tool availability issue",
+        "severity": "P2",
+        "retryable": True,
+        "operator_message": "An MCP or external helper may be temporarily unavailable; retry only bounded inspection before falling back.",
+        "commands": [
+            "python3 scripts/codex-task serena status --strict",
+            "python3 scripts/codex-task taskmaster health",
+        ],
+        "recovery_steps": [
+            "Confirm whether the failed action was read-only or mutating.",
+            "Retry read-only probes with bounded backoff.",
+            "Use CLI fallback only when the workflow template allows it and evidence is logged.",
+        ],
+    },
+    "validation": {
+        "title": "Test, validation, or final-suite failure",
+        "severity": "P1",
+        "retryable": False,
+        "operator_message": "A validation gate failed; inspect logs and fix the underlying issue rather than changing tests to pass.",
+        "commands": [
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest <focused tests>",
+            "python3 scripts/codex-task validation final-suite --dry-run",
+            "python3 scripts/codex-task taskmaster health",
+        ],
+        "recovery_steps": [
+            "Read failing evidence before editing implementation or tests.",
+            "Fix the behavior or scoped fixture issue, not the assertion expectation, unless the assertion is proven stale.",
+            "Rerun the same failing command and store fresh evidence.",
+        ],
+    },
+    "security": {
+        "title": "Security validation or protected-path issue",
+        "severity": "P0",
+        "retryable": False,
+        "operator_message": "Security or ownership boundaries blocked progress; stop and require explicit review before remediation.",
+        "commands": [
+            "python3 scripts/codex-guard validate --include-untracked",
+            "python3 scripts/codex-task emergency plan --severity P0 --summary <summary>",
+            "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+        ],
+        "recovery_steps": [
+            "Stop implementation and inspect protected-path or security findings.",
+            "Capture emergency and rollback context before any mutation.",
+            "Require explicit user review for remediation touching protected surfaces.",
+        ],
+    },
+    "config": {
+        "title": "Configuration or metadata drift",
+        "severity": "P2",
+        "retryable": False,
+        "operator_message": "Configuration drift needs deterministic reconciliation against repo policy.",
+        "commands": [
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/template-monitoring --strict",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ],
+        "recovery_steps": [
+            "Identify the authoritative policy file or template registry entry.",
+            "Document whether the drift is intentional before editing config.",
+            "Rerun guard and monitoring evidence after the reconciliation.",
+        ],
+    },
+    "transient": {
+        "title": "Transient command or network failure",
+        "severity": "P2",
+        "retryable": True,
+        "operator_message": "A likely transient command failure can be retried with bounded backoff if the command is non-destructive.",
+        "commands": [
+            "git status --short --branch",
+            "python3 scripts/codex-task taskmaster health",
+        ],
+        "recovery_steps": [
+            "Confirm the command is non-destructive or explicitly authorized.",
+            "Retry with bounded backoff and stop after the maximum attempt count.",
+            "Escalate to a task-local finding if the failure persists.",
+        ],
+    },
+    "monitoring": {
+        "title": "Static monitoring or telemetry warning",
+        "severity": "P2",
+        "retryable": False,
+        "operator_message": "Monitoring evidence reported a warning or failure that needs reviewed follow-up.",
+        "commands": [
+            "python3 scripts/template-monitoring --strict",
+            "python3 scripts/template-performance-harness --strict",
+            "python3 scripts/codex-task report generate --kind all",
+        ],
+        "recovery_steps": [
+            "Read the static monitoring report and identify the failed check.",
+            "Decide whether the finding blocks the current task or becomes follow-up.",
+            "Store updated monitoring evidence after remediation.",
+        ],
+    },
+}
+
+
+def _error_recovery_verification_commands(error_class: str) -> List[str]:
+    commands = [
+        "git status --short --branch",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+    ]
+    classification = ERROR_RECOVERY_TAXONOMY.get(error_class, {})
+    for command in classification.get("commands", []):
+        if command not in commands:
+            commands.append(command)
+    return commands
+
+
+def _recovery_backoff_schedule(
+    *, retryable: bool, max_attempts: int, base_delay_seconds: int, max_delay_seconds: int
+) -> List[Dict[str, int]]:
+    if max_attempts < 1:
+        raise TaskError("--max-attempts must be at least 1")
+    if base_delay_seconds < 1:
+        raise TaskError("--base-delay-seconds must be at least 1")
+    if max_delay_seconds < base_delay_seconds:
+        raise TaskError("--max-delay-seconds must be greater than or equal to --base-delay-seconds")
+    if not retryable:
+        return []
+    return [
+        {
+            "attempt": attempt,
+            "delay_seconds": min(base_delay_seconds * (2 ** (attempt - 1)), max_delay_seconds),
+        }
+        for attempt in range(1, max_attempts + 1)
+    ]
+
+
+def _build_error_recovery_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    error_class = str(args.error_class).strip().lower()
+    if error_class not in ERROR_RECOVERY_TAXONOMY:
+        valid = ", ".join(sorted(ERROR_RECOVERY_TAXONOMY))
+        raise TaskError(f"Unknown recovery error class {args.error_class}; expected one of: {valid}")
+
+    classification = dict(ERROR_RECOVERY_TAXONOMY[error_class])
+    label = args.label or _slugify(args.summary)
+    retryable = bool(classification.get("retryable", False))
+    backoff_schedule = _recovery_backoff_schedule(
+        retryable=retryable,
+        max_attempts=int(args.max_attempts),
+        base_delay_seconds=int(args.base_delay_seconds),
+        max_delay_seconds=int(args.max_delay_seconds),
+    )
+
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "mode": "non-destructive-error-recovery-plan",
+        "executes_actions": False,
+        "recovery": {
+            "id": f"{now.strftime('%Y%m%d-%H%M%S')}-{_slugify(label)}",
+            "label": label,
+            "summary": args.summary,
+            "error_class": error_class,
+            "classification": classification,
+        },
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "retry_policy": {
+            "retryable": retryable,
+            "automatic_retry": False,
+            "max_attempts": int(args.max_attempts),
+            "base_delay_seconds": int(args.base_delay_seconds),
+            "max_delay_seconds": int(args.max_delay_seconds),
+            "schedule": backoff_schedule,
+            "guidance": "Retry only non-destructive or explicitly authorized commands; stop after the final scheduled attempt.",
+        },
+        "decision_path": [
+            "Classify the error and confirm whether it is retryable.",
+            "Capture current Git, workflow, Taskmaster, and Serena context.",
+            "Run the recommended evidence commands for this error class.",
+            "If severity is P0 or P1, render an emergency response plan before remediation.",
+            "If remediation may touch tracked state, capture a rollback checkpoint and reviewed recovery plan.",
+            "Document findings, decisions, and final evidence before continuing.",
+        ],
+        "recommended_recovery_steps": list(classification.get("recovery_steps", [])),
+        "recommended_verification_commands": _error_recovery_verification_commands(error_class),
+        "related_helpers": {
+            "rollback_checkpoint": "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+            "rollback_plan": "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <recovery-plan.md>",
+            "emergency_plan": "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>",
+            "monitoring": "python3 scripts/template-monitoring --strict",
+            "final_validation": "python3 scripts/codex-task validation final-suite --dry-run",
+        },
+        "non_goals": [
+            "No automatic retry loop is executed.",
+            "No rollback, reset, clean, restore, branch deletion, or force push is executed.",
+            "No Taskmaster, session, plan, or work-tracking state is changed beyond requested report files.",
+            "No notification, dashboard update, external ticket, or incident integration is triggered.",
+            "No external recovery service is configured.",
+        ],
+    }
+
+
+def _render_error_recovery_runbook(plan: Dict[str, Any]) -> str:
+    recovery = plan.get("recovery", {}) if isinstance(plan.get("recovery"), dict) else {}
+    classification = recovery.get("classification", {}) if isinstance(recovery.get("classification"), dict) else {}
+    current = plan.get("current_state", {}) if isinstance(plan.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    retry_policy = plan.get("retry_policy", {}) if isinstance(plan.get("retry_policy"), dict) else {}
+
+    lines = [
+        "# Error Recovery Runbook",
+        "",
+        f"- Recovery ID: {recovery.get('id')}",
+        f"- Label: {recovery.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes actions: {plan.get('executes_actions')}",
+        f"- Error class: {recovery.get('error_class')} - {classification.get('title')}",
+        f"- Severity: {classification.get('severity')}",
+        f"- Summary: {recovery.get('summary')}",
+        f"- Operator message: {classification.get('operator_message')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: {git_info.get('branch')}",
+        f"- HEAD: {git_info.get('head')}",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: {workflow.get('current_session', {}).get('resolved')}",
+        f"- Current plan: {workflow.get('current_plan', {}).get('resolved')}",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Retry And Backoff Guidance",
+        "",
+        f"- Retryable: {retry_policy.get('retryable')}",
+        f"- Automatic retry: {retry_policy.get('automatic_retry')}",
+    ]
+    schedule = retry_policy.get("schedule", []) if isinstance(retry_policy.get("schedule"), list) else []
+    if schedule:
+        for item in schedule:
+            lines.append(f"- Attempt {item.get('attempt')}: wait {item.get('delay_seconds')} seconds")
+    else:
+        lines.append("- No retry schedule; treat this class as requiring reviewed remediation.")
+
+    lines.extend(["", "## Decision Path", ""])
+    for item in plan.get("decision_path", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Recovery Steps", ""])
+    for item in plan.get("recommended_recovery_steps", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Related Helpers", ""])
+    related = plan.get("related_helpers", {}) if isinstance(plan.get("related_helpers"), dict) else {}
+    for name, command in related.items():
+        lines.append(f"- {name}: `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No retry, rollback, reset, cleanup, notification, dashboard update, or external recovery action was executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_recovery_plan(args: argparse.Namespace) -> None:
+    plan = _build_error_recovery_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_error_recovery_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote error recovery plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote error recovery runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -5523,6 +5878,20 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_plan.add_argument("--snapshot", required=True, help="Checkpoint JSON produced by rollback checkpoint")
     rollback_plan.add_argument("--report-file", help="Optional path to write the rendered recovery plan")
     rollback_plan.set_defaults(func=handle_rollback_plan)
+
+    recovery_parser = subparsers.add_parser("recovery", help="Error recovery classification and planning operations")
+    recovery_sub = recovery_parser.add_subparsers(dest="subcommand", required=True)
+    recovery_plan = recovery_sub.add_parser("plan", help="Render a non-destructive error recovery plan")
+    recovery_plan.add_argument("--error-class", required=True, choices=sorted(ERROR_RECOVERY_TAXONOMY), help="Error class to classify")
+    recovery_plan.add_argument("--summary", required=True, help="One-line recovery summary")
+    recovery_plan.add_argument("--label", help="Human-readable recovery label; defaults to a slug from --summary")
+    recovery_plan.add_argument("--max-attempts", type=int, default=4, help="Maximum bounded retry attempts for retryable classes")
+    recovery_plan.add_argument("--base-delay-seconds", type=int, default=30, help="Initial delay for retryable class backoff guidance")
+    recovery_plan.add_argument("--max-delay-seconds", type=int, default=300, help="Maximum delay for retryable class backoff guidance")
+    recovery_plan.add_argument("--report-file", help="Optional path to write the recovery plan JSON")
+    recovery_plan.add_argument("--runbook-file", help="Optional path to write the recovery runbook markdown")
+    recovery_plan.add_argument("--dry-run", action="store_true", help="Print the recovery plan JSON without writing files")
+    recovery_plan.set_defaults(func=handle_recovery_plan)
 
     compaction_parser = subparsers.add_parser("compaction", help="Context compaction checkpoint operations")
     compaction_sub = compaction_parser.add_subparsers(dest="subcommand", required=True)

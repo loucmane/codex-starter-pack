@@ -416,6 +416,35 @@ def test_build_parser_accepts_rollback_checkpoint_and_plan() -> None:
     assert plan_args.report_file == "reports/rollback/plan.md"
 
 
+def test_build_parser_accepts_recovery_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "recovery",
+        "plan",
+        "--error-class",
+        "transient",
+        "--summary",
+        "Network timeout while checking PR status",
+        "--label",
+        "pr-timeout",
+        "--max-attempts",
+        "3",
+        "--base-delay-seconds",
+        "10",
+        "--max-delay-seconds",
+        "30",
+    ])
+    assert args.command == "recovery"
+    assert args.subcommand == "plan"
+    assert args.error_class == "transient"
+    assert args.summary == "Network timeout while checking PR status"
+    assert args.label == "pr-timeout"
+    assert args.max_attempts == 3
+    assert args.base_delay_seconds == 10
+    assert args.max_delay_seconds == 30
+
+
 def test_build_parser_accepts_compaction_checkpoint() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1174,6 +1203,134 @@ def test_handle_rollout_experiment_plan_writes_manifest_and_runbook(monkeypatch,
     runbook_text = runbook.read_text(encoding="utf-8")
     assert "# Foundation Experiment Runbook" in runbook_text
     assert "No feature flag service, traffic split, promotion, rollback, dashboard update, or notification was executed by this plan." in runbook_text
+
+
+def _patch_error_recovery_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-47-error-recovery-system"
+        if args == ["rev-parse", "HEAD"]:
+            return "abc123"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/session.md"},
+            "current_plan": {"resolved": "plans/2026-05-13-task47-error-recovery-system.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_dependencies": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 4})
+
+
+def test_build_error_recovery_plan_classifies_and_stays_non_destructive(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_error_recovery_snapshots(module, monkeypatch)
+
+    plan = module._build_error_recovery_plan(
+        argparse.Namespace(
+            error_class="transient",
+            summary="Network timeout while checking PR status",
+            label="pr-timeout",
+            max_attempts=3,
+            base_delay_seconds=10,
+            max_delay_seconds=30,
+        )
+    )
+
+    assert plan["version"] == 1
+    assert plan["mode"] == "non-destructive-error-recovery-plan"
+    assert plan["executes_actions"] is False
+    assert plan["recovery"]["error_class"] == "transient"
+    assert plan["recovery"]["classification"]["severity"] == "P2"
+    assert plan["current_state"]["git"]["branch"] == "feat/task-47-error-recovery-system"
+    assert plan["retry_policy"]["retryable"] is True
+    assert plan["retry_policy"]["automatic_retry"] is False
+    assert [item["delay_seconds"] for item in plan["retry_policy"]["schedule"]] == [10, 20, 30]
+    assert "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>" in plan["related_helpers"]["rollback_checkpoint"]
+    assert "No automatic retry loop is executed." in plan["non_goals"]
+
+
+def test_build_error_recovery_plan_rejects_unknown_class(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_error_recovery_snapshots(module, monkeypatch)
+
+    with pytest.raises(module.TaskError, match="Unknown recovery error class unknown"):
+        module._build_error_recovery_plan(
+            argparse.Namespace(
+                error_class="unknown",
+                summary="Unknown issue",
+                label="unknown-issue",
+                max_attempts=3,
+                base_delay_seconds=10,
+                max_delay_seconds=30,
+            )
+        )
+
+
+def test_render_error_recovery_runbook_names_class_backoff_and_non_goals(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_error_recovery_snapshots(module, monkeypatch)
+    plan = module._build_error_recovery_plan(
+        argparse.Namespace(
+            error_class="guard",
+            summary="Guard blocked stale session",
+            label="guard-stale-session",
+            max_attempts=3,
+            base_delay_seconds=10,
+            max_delay_seconds=30,
+        )
+    )
+
+    runbook = module._render_error_recovery_runbook(plan)
+
+    assert "# Error Recovery Runbook" in runbook
+    assert "Error class: guard - Guard or workflow policy failure" in runbook
+    assert "Severity: P1" in runbook
+    assert "No retry schedule; treat this class as requiring reviewed remediation." in runbook
+    assert "python3 scripts/codex-guard validate --include-untracked" in runbook
+    assert "No retry, rollback, reset, cleanup, notification, dashboard update, or external recovery action was executed by this plan." in runbook
+
+
+def test_handle_recovery_plan_writes_manifest_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_error_recovery_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "recovery-plan.json"
+    runbook = repo / "reports" / "recovery-runbook.md"
+    args = argparse.Namespace(
+        error_class="validation",
+        summary="Focused tests failed after recovery helper change",
+        label="test-failure",
+        max_attempts=4,
+        base_delay_seconds=30,
+        max_delay_seconds=300,
+        report_file=str(report.relative_to(repo)),
+        runbook_file=str(runbook.relative_to(repo)),
+        dry_run=False,
+    )
+
+    module.handle_recovery_plan(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["recovery"]["error_class"] == "validation"
+    assert payload["executes_actions"] is False
+    assert payload["retry_policy"]["retryable"] is False
+    assert payload["retry_policy"]["schedule"] == []
+    assert "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest <focused tests>" in payload["recommended_verification_commands"]
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Error Recovery Runbook" in runbook_text
+    assert "A validation gate failed" in runbook_text
+    assert "No retry, rollback, reset, cleanup, notification, dashboard update, or external recovery action was executed by this plan." in runbook_text
 
 
 def _write_change_advisory_governance_policy(path: Path) -> None:

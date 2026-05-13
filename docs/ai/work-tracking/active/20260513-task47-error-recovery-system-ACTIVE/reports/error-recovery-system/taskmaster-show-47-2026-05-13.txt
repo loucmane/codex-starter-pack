@@ -1,0 +1,60 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭─────────────────────────────────────────╮
+│ Task: #47 - Build Error Recovery System │
+╰─────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 47                                                                             [90m│[39m
+[90m│[39m Title:             [90m│[39m Build Error Recovery System                                                    [90m│[39m
+[90m│[39m Status:            [90m│[39m ✓ done                                                                         [90m│[39m
+[90m│[39m Priority:          [90m│[39m high                                                                           [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 34                                                                             [90m│[39m
+[90m│[39m Complexity:        [90m│[39m ● 7                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Create comprehensive error handling and recovery                               [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Create error classification taxonomy. Implement recovery strategies for each error type. Add   │
+│   exponential backoff for transient errors. Create error context capture. Implement error        │
+│   reporting to monitoring. Add user-friendly error messages. Create error recovery flowchart.    │
+│   Implement automatic error resolution where possible.                                           │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Test Strategy:                                                                                 │
+│                                                                                                  │
+│   Test each recovery strategy, verify backoff behavior, test error reporting, validate           │
+│   automatic resolution                                                                           │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+[90m┌──────────[39m[90m┬───────────────[39m[90m┬────────────────────────────────────────────────────────────[39m[90m┬───────────────┐[39m
+[90m│[39m ID       [90m│[39m Status        [90m│[39m Title                                                      [90m│[39m Deps          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 47.1     [90m│[39m ✓ done        [90m│[39m Scope reconciliation against portable foundation           [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 47.2     [90m│[39m ✓ done        [90m│[39m Implement proven current-state gap with evidence           [90m│[39m None          [90m│[39m
+[90m└──────────[39m[90m┴───────────────[39m[90m┴────────────────────────────────────────────────────────────[39m[90m┴───────────────┘[39m
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=47 --status=in-progress to start working                    │
+│   2. Run task-master expand --id=47 to break down into subtasks                                  │
+│   3. Run task-master update-task --id=47 --prompt="..." to update details                        │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

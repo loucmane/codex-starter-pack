@@ -1,0 +1,4 @@
+# Findings
+
+- **2026-05-13 11:27** — [S:20260513|W:task47-error-recovery-system|H:scope-reconciliation|E:docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/designs/error-recovery-scope-reconciliation.md] Existing rollback, emergency, guard auto-fix, monitoring, and validation surfaces already cover specialized recovery slices. The remaining Task 47 gap is a unified non-destructive classifier/planner that captures context and points to those helpers.
+- **2026-05-13 11:41** — [S:20260513|W:task47-error-recovery-system|H:implementation-review|E:scripts/codex-task] The recovery helper can satisfy the current Task 47 need without introducing automatic runtime behavior: it captures state, classifies risk, recommends evidence commands, and renders a reviewed runbook while leaving remediation execution to the operator.

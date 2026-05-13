@@ -1,0 +1,185 @@
+{
+  "created_at": "2026-05-13T11:37:17+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-47-error-recovery-system",
+      "head": "929e58f6982b03b316c7c1f313b144b9c85120aa",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_047.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task47_error_recovery_system_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task47-error-recovery-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-002-task47-error-recovery-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 127,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-12_task68_final_validation_suite_kickoff.md",
+        ".serena/memories/session_2026-05-12_task68-final-validation-suite-closeout.md",
+        ".serena/memories/2026-05-12_task36_template_governance_board_kickoff.md",
+        ".serena/memories/2026-05-12_task41_migration_health_dashboard_kickoff.md",
+        ".serena/memories/2026-05-12_task44_change_advisory_board_kickoff.md",
+        ".serena/memories/2026-05-12_task53_template_caching_layer_kickoff.md",
+        ".serena/memories/2026-05-12_task34_ab_testing_framework_completion.md",
+        ".serena/memories/2026-05-12_task34_ab_testing_framework_kickoff.md",
+        ".serena/memories/2026-05-13_task34_daily_rollover.md",
+        ".serena/memories/2026-05-13_task47_error_recovery_system_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "76ab6cf7a5b932fc576678de55b9b037dc880ef199216becf1b3250d8270d6ae",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 81,
+          "in-progress": 1,
+          "pending": 26
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-13-task47-error-recovery-system.md",
+        "sha256": "a642ebcc38c39bad07275283c73ad8a7530d1e2ebfda11f2cce59b0d1c09d8bd",
+        "target": "2026-05-13-task47-error-recovery-system.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-13-002-task47-error-recovery-system.md",
+        "sha256": "c32bcbf166c3a5adf5eae72697f0d63775925146d3cc214d2a0bddd2b9c90f3c",
+        "target": "2026/05/2026-05-13-002-task47-error-recovery-system.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "8becbc0a8117ce5eb4a30f0f95cf422a71fcb98a96b18fff37f59bbde1dc8105"
+      }
+    }
+  },
+  "decision_path": [
+    "Classify the error and confirm whether it is retryable.",
+    "Capture current Git, workflow, Taskmaster, and Serena context.",
+    "Run the recommended evidence commands for this error class.",
+    "If severity is P0 or P1, render an emergency response plan before remediation.",
+    "If remediation may touch tracked state, capture a rollback checkpoint and reviewed recovery plan.",
+    "Document findings, decisions, and final evidence before continuing."
+  ],
+  "executes_actions": false,
+  "mode": "non-destructive-error-recovery-plan",
+  "non_goals": [
+    "No automatic retry loop is executed.",
+    "No rollback, reset, clean, restore, branch deletion, or force push is executed.",
+    "No Taskmaster, session, plan, or work-tracking state is changed beyond requested report files.",
+    "No notification, dashboard update, external ticket, or incident integration is triggered.",
+    "No external recovery service is configured."
+  ],
+  "recommended_recovery_steps": [
+    "Read the guard failure and identify the exact missing or stale workflow artifact.",
+    "Repair session, plan, tracker, Taskmaster, or evidence state with explicit entries.",
+    "Rerun guard and preserve the passing evidence before committing."
+  ],
+  "recommended_verification_commands": [
+    "git status --short --branch",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "git diff --check",
+    "python3 scripts/codex-task plan sync"
+  ],
+  "recovery": {
+    "classification": {
+      "commands": [
+        "python3 scripts/codex-guard validate --include-untracked",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task plan sync"
+      ],
+      "operator_message": "A foundation guard blocked progress; inspect the workflow state and fix evidence or policy drift before retrying.",
+      "recovery_steps": [
+        "Read the guard failure and identify the exact missing or stale workflow artifact.",
+        "Repair session, plan, tracker, Taskmaster, or evidence state with explicit entries.",
+        "Rerun guard and preserve the passing evidence before committing."
+      ],
+      "retryable": false,
+      "severity": "P1",
+      "title": "Guard or workflow policy failure"
+    },
+    "error_class": "guard",
+    "id": "20260513-113717-task47-guard-recovery",
+    "label": "task47-guard-recovery",
+    "summary": "Guard failed after workflow date rollover"
+  },
+  "related_helpers": {
+    "emergency_plan": "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>",
+    "final_validation": "python3 scripts/codex-task validation final-suite --dry-run",
+    "monitoring": "python3 scripts/template-monitoring --strict",
+    "rollback_checkpoint": "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+    "rollback_plan": "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <recovery-plan.md>"
+  },
+  "retry_policy": {
+    "automatic_retry": false,
+    "base_delay_seconds": 30,
+    "guidance": "Retry only non-destructive or explicitly authorized commands; stop after the final scheduled attempt.",
+    "max_attempts": 4,
+    "max_delay_seconds": 300,
+    "retryable": false,
+    "schedule": []
+  },
+  "version": 1
+}
