@@ -445,6 +445,29 @@ def test_build_parser_accepts_recovery_plan() -> None:
     assert args.max_delay_seconds == 30
 
 
+def test_build_parser_accepts_security_audit() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "security",
+        "audit",
+        "--summary",
+        "Task 50 foundation security audit",
+        "--label",
+        "task50-security",
+        "--security-report",
+        "reports/security.json",
+        "--phase0-report",
+        "reports/phase0.json",
+    ])
+    assert args.command == "security"
+    assert args.subcommand == "audit"
+    assert args.summary == "Task 50 foundation security audit"
+    assert args.label == "task50-security"
+    assert args.security_report == "reports/security.json"
+    assert args.phase0_report == "reports/phase0.json"
+
+
 def test_build_parser_accepts_compaction_checkpoint() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1331,6 +1354,175 @@ def test_handle_recovery_plan_writes_manifest_and_runbook(monkeypatch, tmp_path)
     assert "# Error Recovery Runbook" in runbook_text
     assert "A validation gate failed" in runbook_text
     assert "No retry, rollback, reset, cleanup, notification, dashboard update, or external recovery action was executed by this plan." in runbook_text
+
+
+def _write_security_audit_fixture(repo: Path) -> tuple[Path, Path]:
+    security_report = repo / "reports" / "security_validation.json"
+    phase0_report = repo / "reports" / "phase0.json"
+    security_report.parent.mkdir(parents=True, exist_ok=True)
+    security_report.write_text(
+        json.dumps(
+            {
+                "metadata": {
+                    "scanner": "security_validator",
+                    "scanner_version": "1.0.0",
+                    "output_format_version": "2.0.0",
+                    "stats": {"files_scanned": 3, "findings": 1, "warnings": 1, "errors": 0},
+                },
+                "data": {
+                    "summary": {"rule_counts": {"security_path_traversal": 1}},
+                    "findings": [
+                        {
+                            "severity": "warning",
+                            "source_file": "templates/example.md",
+                            "message": "Potential path traversal reference",
+                        }
+                    ],
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    phase0_report.write_text(
+        json.dumps(
+            {
+                "status": "warning",
+                "summary": {"total": 7, "warnings": 1, "errors": 0},
+                "checks": [
+                    {"id": "security-warning-findings", "title": "Security warnings", "status": "warn"},
+                    {"id": "monitoring-status", "title": "Monitoring", "status": "pass"},
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (repo / "pyproject.toml").write_text(
+        "[project]\n"
+        "dependencies = [\"click>=8\"]\n"
+        "\n"
+        "[dependency-groups]\n"
+        "dev = [\"pytest>=7\"]\n",
+        encoding="utf-8",
+    )
+    return security_report, phase0_report
+
+
+def test_security_audit_dependency_inventory_counts_pyproject(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\n"
+        "dependencies = [\"click>=8\", \"rich>=13\"]\n"
+        "\n"
+        "[dependency-groups]\n"
+        "dev = [\"pytest>=7\"]\n",
+        encoding="utf-8",
+    )
+
+    inventory = module._security_audit_dependency_inventory()
+
+    assert inventory["counts"]["runtime"] == 2
+    assert inventory["counts"]["groups"]["dev"] == 1
+    assert inventory["counts"]["total"] == 3
+    assert inventory["vulnerability_lookup"]["performed"] is False
+
+
+def test_build_security_audit_uses_existing_evidence_without_external_actions(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    evidence_file = tmp_path / "evidence.txt"
+    evidence_file.write_text("ok\n", encoding="utf-8")
+    monkeypatch.setattr(
+        module,
+        "SECURITY_AUDIT_CONTROLS",
+        (
+            {
+                "id": "fixture-control",
+                "title": "Fixture control",
+                "category": "fixture",
+                "evidence_paths": ("evidence.txt",),
+                "commands": ("echo verify",),
+                "notes": ("fixture note",),
+            },
+        ),
+    )
+    security_report, phase0_report = _write_security_audit_fixture(tmp_path)
+
+    audit = module._build_security_audit(
+        argparse.Namespace(
+            summary="Task 50 foundation security audit",
+            label="task50-security",
+            security_report=str(security_report.relative_to(tmp_path)),
+            phase0_report=str(phase0_report.relative_to(tmp_path)),
+        )
+    )
+
+    assert audit["mode"] == "non-destructive-security-audit-packet"
+    assert audit["executes_actions"] is False
+    assert audit["controls"][0]["status"] == "available"
+    assert audit["security_validation"]["scanner"] == "security_validator"
+    assert audit["security_validation"]["finding_count"] == 1
+    assert audit["phase0_validation"]["status"] == "warning"
+    assert audit["dependency_inventory"]["counts"]["total"] == 2
+    assert audit["dependency_inventory"]["vulnerability_lookup"]["performed"] is False
+    assert "No external dependency vulnerability lookup is executed." in audit["non_goals"]
+
+
+def test_render_security_audit_runbook_names_controls_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    security_report, phase0_report = _write_security_audit_fixture(tmp_path)
+    audit = module._build_security_audit(
+        argparse.Namespace(
+            summary="Task 50 foundation security audit",
+            label="task50-security",
+            security_report=str(security_report.relative_to(tmp_path)),
+            phase0_report=str(phase0_report.relative_to(tmp_path)),
+        )
+    )
+
+    runbook = module._render_security_audit_runbook(audit)
+
+    assert "# Security Audit Runbook" in runbook
+    assert "Security finding count: 1" in runbook
+    assert "External vulnerability lookup: not performed" in runbook
+    assert "No GDPR, SOC2, ISO, or legal compliance certification is claimed." in runbook
+    assert "No external scan, CVE lookup, pentest, remediation mutation, notification, dashboard update, ticket creation, or compliance certification was executed by this audit packet." in runbook
+
+
+def test_handle_security_audit_writes_packet_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    security_report, phase0_report = _write_security_audit_fixture(tmp_path)
+    report = tmp_path / "reports" / "security-audit.json"
+    runbook = tmp_path / "reports" / "security-audit.md"
+
+    module.handle_security_audit(
+        argparse.Namespace(
+            summary="Task 50 foundation security audit",
+            label="task50-security",
+            security_report=str(security_report.relative_to(tmp_path)),
+            phase0_report=str(phase0_report.relative_to(tmp_path)),
+            report_file=str(report.relative_to(tmp_path)),
+            runbook_file=str(runbook.relative_to(tmp_path)),
+            dry_run=False,
+        )
+    )
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task50-security"
+    assert payload["executes_actions"] is False
+    assert payload["security_validation"]["finding_count"] == 1
+    assert payload["dependency_inventory"]["vulnerability_lookup"]["performed"] is False
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Security Audit Runbook" in runbook_text
+    assert "No external scan, CVE lookup, pentest, remediation mutation" in runbook_text
 
 
 def _write_change_advisory_governance_policy(path: Path) -> None:
