@@ -2523,32 +2523,35 @@
           "20",
           "21"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
             "title": "Scope reconciliation against portable foundation",
             "description": "Before implementation, audit this task against templates/engine/core/portable-foundation-spec.md, the Task 1 codebase analysis, and the Task 4 backlog-alignment audit. Treat original details as historical context until current repository evidence confirms the remaining gap.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 46,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-13T13:05:47.659Z"
           },
           {
             "id": 2,
             "title": "Implement proven current-state gap with evidence",
             "description": "After the scope gate, update or expand this task with current implementation subtasks and capture guard, test, work-tracking, and Taskmaster evidence. Do not execute stale migration wording or unrelated generated subtasks.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 46,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-13T13:05:47.707Z"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 7,
-        "expansionPrompt": "Design bundle format with manifest, implement export with dependencies, add import with conflict detection, create marketplace integration, implement signing, add version checking, and create preview system."
+        "expansionPrompt": "Design bundle format with manifest, implement export with dependencies, add import with conflict detection, create marketplace integration, implement signing, add version checking, and create preview system.",
+        "updatedAt": "2026-05-13T13:05:47.707Z"
       },
       {
         "id": "47",
@@ -5104,9 +5107,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-13T12:33:53.410Z",
+      "lastModified": "2026-05-13T13:05:47.707Z",
       "taskCount": 108,
-      "completedCount": 85,
+      "completedCount": 86,
       "tags": [
         "master"
       ]

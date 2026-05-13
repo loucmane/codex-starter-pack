@@ -23,6 +23,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
+from template_registry import TemplateDiscoveryAPI, TemplateRecord, TemplateRegistry
 from template_governance import assessment_to_dict, assess_governance, load_governance_policy
 
 REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
@@ -6555,6 +6556,357 @@ def handle_change_advisory(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+def _template_bundle_verification_commands() -> List[str]:
+    return [
+        "python3 scripts/codex-task template bundle-plan --template <id> --target-dir <target-repo> --report-file <manifest.json> --runbook-file <runbook.md>",
+        "python3 scripts/codex-task bootstrap init --target-dir <target-repo>",
+        "python3 scripts/codex-guard drift-check --strict",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+    ]
+
+
+def _template_relative_path(record: TemplateRecord, structure: RepoStructure) -> str:
+    try:
+        return record.absolute_path.relative_to(structure.templates_root).as_posix()
+    except ValueError:
+        return record.path
+
+
+def _template_bundle_target_path(
+    record: TemplateRecord,
+    source_structure: RepoStructure,
+    target_structure: RepoStructure | None,
+) -> Path | None:
+    if target_structure is None:
+        return None
+    return target_structure.templates_root / _template_relative_path(record, source_structure)
+
+
+def _template_bundle_status(source_path: Path, target_path: Path | None) -> Tuple[str, str, str]:
+    source_exists = source_path.exists() and source_path.is_file()
+    if target_path is None:
+        if source_exists:
+            return "not-checked", "select-target", "No target repository was supplied."
+        return "source-missing", "review-source", "Source template is missing."
+    target_exists = target_path.exists() and target_path.is_file()
+    if not source_exists:
+        return "source-missing", "review-source", "Source template is missing."
+    if not target_exists:
+        return "missing", "copy-from-source", "Target template is missing."
+    if _file_sha256(source_path) == _file_sha256(target_path):
+        return "identical", "none", "Source and target template hashes match."
+    return "different", "review-update", "Target template differs from source."
+
+
+def _template_bundle_serialized_record(api: TemplateDiscoveryAPI, record: TemplateRecord) -> Dict[str, object]:
+    serialized = api.serialize_record(record)
+    return {
+        "id": serialized.get("id"),
+        "path": serialized.get("path"),
+        "title": serialized.get("title"),
+        "type": serialized.get("type"),
+        "category": serialized.get("category"),
+        "status": serialized.get("status"),
+        "version": serialized.get("version"),
+        "tags": serialized.get("tags") if isinstance(serialized.get("tags"), list) else [],
+        "dependencies": serialized.get("dependencies") if isinstance(serialized.get("dependencies"), list) else [],
+        "source": serialized.get("source"),
+    }
+
+
+def _collect_template_bundle_records(
+    registry: TemplateRegistry,
+    api: TemplateDiscoveryAPI,
+    queries: Sequence[str],
+    *,
+    include_dependencies: bool,
+) -> Tuple[List[Tuple[TemplateRecord, List[str]]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    records: Dict[str, TemplateRecord] = {}
+    requested_by: Dict[str, List[str]] = {}
+    missing_templates: List[Dict[str, Any]] = []
+    missing_dependencies: List[Dict[str, Any]] = []
+    queue: List[Tuple[str, str]] = [(query, "requested") for query in queries]
+    seen_edges: set[Tuple[str, str]] = set()
+
+    while queue:
+        query, parent = queue.pop(0)
+        edge = (query, parent)
+        if edge in seen_edges:
+            continue
+        seen_edges.add(edge)
+        result = registry.resolve(query, allow_serena=False, strict=False)
+        if result.record is None:
+            missing_templates.append(
+                {
+                    "query": query,
+                    "requested_by": parent,
+                    "status": result.status,
+                    "message": result.message,
+                    "suggestions": list(result.suggestions),
+                }
+            )
+            continue
+
+        record = result.record
+        records.setdefault(record.id, record)
+        requested_by.setdefault(record.id, [])
+        if parent not in requested_by[record.id]:
+            requested_by[record.id].append(parent)
+
+        if not include_dependencies:
+            continue
+        dependency_report = api.get_dependencies(record.id) or {}
+        for missing in dependency_report.get("missing", []):
+            missing_dependencies.append(
+                {
+                    "query": str(missing),
+                    "requested_by": record.id,
+                    "message": "Dependency could not be resolved from the local registry.",
+                }
+            )
+        for resolved in dependency_report.get("resolved", []):
+            if not isinstance(resolved, dict):
+                continue
+            dependency_id = str(resolved.get("id") or resolved.get("query") or "").strip()
+            if dependency_id:
+                queue.append((dependency_id, record.id))
+
+    return [(record, requested_by.get(record.id, [])) for record in records.values()], missing_templates, missing_dependencies
+
+
+def _template_bundle_asset(
+    record: TemplateRecord,
+    requested_by: Sequence[str],
+    *,
+    api: TemplateDiscoveryAPI,
+    source_dir: Path,
+    source_structure: RepoStructure,
+    target_dir: Path | None,
+    target_structure: RepoStructure | None,
+) -> Dict[str, Any]:
+    target_path = _template_bundle_target_path(record, source_structure, target_structure)
+    status, action, reason = _template_bundle_status(record.absolute_path, target_path)
+    dependencies = api.get_dependencies(record.id) or {}
+    return {
+        **_template_bundle_serialized_record(api, record),
+        "requested_by": list(requested_by),
+        "source_path": _relative_to_root(record.absolute_path, source_dir),
+        "source_template_path": _template_relative_path(record, source_structure),
+        "target_path": _relative_to_root(target_path, target_dir) if target_path and target_dir else None,
+        "source_exists": record.absolute_path.exists() and record.absolute_path.is_file(),
+        "target_exists": target_path.exists() and target_path.is_file() if target_path else None,
+        "source_sha256": _file_sha256(record.absolute_path),
+        "target_sha256": _file_sha256(target_path) if target_path else None,
+        "bundle_status": status,
+        "action": action,
+        "reason": reason,
+        "dependency_resolution": dependencies,
+    }
+
+
+def _template_bundle_manual_review_queue(assets: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    queue = []
+    for asset in assets:
+        if asset.get("bundle_status") == "identical":
+            continue
+        queue.append(
+            {
+                "template_id": asset.get("id"),
+                "title": asset.get("title"),
+                "status": asset.get("bundle_status"),
+                "action": asset.get("action"),
+                "source_path": asset.get("source_path"),
+                "target_path": asset.get("target_path"),
+                "reason": asset.get("reason"),
+            }
+        )
+    return queue
+
+
+def _build_template_bundle_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    source_dir = _resolve_repo_directory(args.source_dir, "Source repository")
+    target_dir = _resolve_repo_directory(args.target_dir, "Target repository") if args.target_dir else None
+    source_structure = load_repo_structure(source_dir)
+    target_structure = load_repo_structure(target_dir) if target_dir else None
+    registry = TemplateRegistry(repo_root=source_dir)
+    api = TemplateDiscoveryAPI(registry)
+    collected, missing_templates, missing_dependencies = _collect_template_bundle_records(
+        registry,
+        api,
+        args.templates,
+        include_dependencies=not args.no_dependencies,
+    )
+    assets = [
+        _template_bundle_asset(
+            record,
+            requested_by,
+            api=api,
+            source_dir=source_dir,
+            source_structure=source_structure,
+            target_dir=target_dir,
+            target_structure=target_structure,
+        )
+        for record, requested_by in collected
+    ]
+    status_counts: Dict[str, int] = {}
+    for asset in assets:
+        status = str(asset.get("bundle_status"))
+        status_counts[status] = status_counts.get(status, 0) + 1
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "non-destructive-template-bundle-plan",
+        "executes_mutations": False,
+        "source": {
+            "path": _relative_to_root(source_dir, REPO_ROOT),
+            "templates_root": _relative_to_root(source_structure.templates_root, source_dir),
+            "git": _git_snapshot_for_repo(source_dir),
+        },
+        "target": {
+            "path": _relative_to_root(target_dir, REPO_ROOT) if target_dir else None,
+            "templates_root": _relative_to_root(target_structure.templates_root, target_dir) if target_structure and target_dir else None,
+            "git": _git_snapshot_for_repo(target_dir) if target_dir else None,
+        },
+        "requested_templates": list(args.templates),
+        "include_dependencies": not args.no_dependencies,
+        "template_count": len(assets),
+        "status_counts": status_counts,
+        "templates": assets,
+        "missing": {
+            "templates": missing_templates,
+            "dependencies": missing_dependencies,
+        },
+        "manual_review_queue": _template_bundle_manual_review_queue(assets),
+        "recommended_verification_commands": _template_bundle_verification_commands(),
+        "non_goals": [
+            "No template files are copied into the target repository.",
+            "No ZIP archive is created or extracted.",
+            "No marketplace, package registry, or remote service is contacted.",
+            "No cryptographic signing or key management is performed.",
+            "No bulk import/export mutation is executed.",
+            "No target repository branch, commit, push, or pull request is created.",
+        ],
+    }
+
+
+def _render_template_bundle_runbook(plan: Dict[str, Any]) -> str:
+    source = plan.get("source", {}) if isinstance(plan.get("source"), dict) else {}
+    target = plan.get("target", {}) if isinstance(plan.get("target"), dict) else {}
+    counts = plan.get("status_counts", {}) if isinstance(plan.get("status_counts"), dict) else {}
+    templates = plan.get("templates") if isinstance(plan.get("templates"), list) else []
+    missing = plan.get("missing", {}) if isinstance(plan.get("missing"), dict) else {}
+    queue = plan.get("manual_review_queue") if isinstance(plan.get("manual_review_queue"), list) else []
+    lines = [
+        "# Template Bundle Plan",
+        "",
+        f"- Label: {plan.get('label')}",
+        f"- Created at: {plan.get('created_at')}",
+        f"- Mode: {plan.get('mode')}",
+        f"- Executes mutations: {plan.get('executes_mutations')}",
+        f"- Source: {source.get('path')} (`{source.get('templates_root')}`)",
+        f"- Target: {target.get('path') or 'not supplied'}",
+        f"- Include dependencies: {plan.get('include_dependencies')}",
+        "",
+        "## Requested Templates",
+        "",
+    ]
+    for query in plan.get("requested_templates", []):
+        lines.append(f"- `{query}`")
+
+    lines.extend(["", "## Status Counts", ""])
+    for status in ("identical", "different", "missing", "source-missing", "not-checked"):
+        lines.append(f"- {status}: {counts.get(status, 0)}")
+
+    lines.extend(["", "## Planned Templates", ""])
+    if templates:
+        lines.append("| Template | Status | Source | Target | Dependencies |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for item in templates:
+            if not isinstance(item, dict):
+                continue
+            deps = item.get("dependencies") if isinstance(item.get("dependencies"), list) else []
+            lines.append(
+                f"| {_md_cell(item.get('id'))} | {_md_cell(item.get('bundle_status'))} | "
+                f"{_md_cell(item.get('source_path'))} | {_md_cell(item.get('target_path') or 'not checked')} | "
+                f"{_md_cell(', '.join(str(dep) for dep in deps) or 'none')} |"
+            )
+    else:
+        lines.append("- No templates resolved.")
+
+    lines.extend(["", "## Missing Inputs", ""])
+    missing_templates = missing.get("templates") if isinstance(missing.get("templates"), list) else []
+    missing_dependencies = missing.get("dependencies") if isinstance(missing.get("dependencies"), list) else []
+    if not missing_templates and not missing_dependencies:
+        lines.append("- No missing templates or dependencies.")
+    for item in missing_templates:
+        if isinstance(item, dict):
+            lines.append(f"- Template `{item.get('query')}` requested by `{item.get('requested_by')}`: {item.get('message')}")
+    for item in missing_dependencies:
+        if isinstance(item, dict):
+            lines.append(f"- Dependency `{item.get('query')}` requested by `{item.get('requested_by')}`: {item.get('message')}")
+
+    lines.extend(["", "## Manual Review Queue", ""])
+    if queue:
+        lines.append("| Template | Status | Action | Reason |")
+        lines.append("| --- | --- | --- | --- |")
+        for item in queue:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"| {_md_cell(item.get('template_id'))} | {_md_cell(item.get('status'))} | "
+                f"{_md_cell(item.get('action'))} | {_md_cell(item.get('reason'))} |"
+            )
+    else:
+        lines.append("- No manual review items. All compared templates are identical.")
+
+    lines.extend(["", "## Recommended Verification Commands", ""])
+    for command in plan.get("recommended_verification_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in plan.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(["", "No template copy, archive, extraction, marketplace, signing, Git, or target-repository mutation was executed by this plan.", ""])
+    return "\n".join(lines)
+
+
+def handle_template_bundle_plan(args: argparse.Namespace) -> None:
+    plan = _build_template_bundle_plan(args)
+    rendered_json = json.dumps(plan, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_template_bundle_runbook(plan)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote template bundle plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote template bundle runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 SYNC_FOUNDATION_ASSETS: Tuple[Dict[str, str], ...] = (
     {
         "id": "codex-config",
@@ -7364,6 +7716,28 @@ def build_parser() -> argparse.ArgumentParser:
     emergency_plan.add_argument("--runbook-file", help="Optional path to write the emergency response runbook markdown")
     emergency_plan.add_argument("--dry-run", action="store_true", help="Print the emergency response plan JSON without writing files")
     emergency_plan.set_defaults(func=handle_emergency_plan)
+
+    template_parser = subparsers.add_parser("template", help="Template bundle and portability operations")
+    template_sub = template_parser.add_subparsers(dest="subcommand", required=True)
+    template_bundle_plan = template_sub.add_parser(
+        "bundle-plan",
+        help="Render a non-destructive template bundle manifest and import preview",
+    )
+    template_bundle_plan.add_argument(
+        "--template",
+        dest="templates",
+        action="append",
+        required=True,
+        help="Template ID or path to include; repeatable",
+    )
+    template_bundle_plan.add_argument("--source-dir", default=".", help="Source repository root (default: current repo)")
+    template_bundle_plan.add_argument("--target-dir", help="Target repository root for conflict preview")
+    template_bundle_plan.add_argument("--label", default="template-bundle-plan", help="Human-readable bundle label")
+    template_bundle_plan.add_argument("--report-file", help="Optional path to write the bundle manifest JSON")
+    template_bundle_plan.add_argument("--runbook-file", help="Optional path to write the bundle runbook Markdown")
+    template_bundle_plan.add_argument("--no-dependencies", action="store_true", help="Do not include template frontmatter dependencies")
+    template_bundle_plan.add_argument("--dry-run", action="store_true", help="Print the bundle manifest JSON without writing files")
+    template_bundle_plan.set_defaults(func=handle_template_bundle_plan)
 
     sync_parser = subparsers.add_parser("sync", help="Cross-repository foundation sync planning operations")
     sync_sub = sync_parser.add_subparsers(dest="subcommand", required=True)

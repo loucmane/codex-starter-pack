@@ -44,6 +44,33 @@ class FixedDatetime(datetime):
         return base.replace(tzinfo=tz)
 
 
+def _write_repo_config(repo: Path, templates_root: str = "templates") -> None:
+    config_dir = repo / ".codex"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.toml").write_text(
+        "[repo_structure]\n"
+        f'templates_root = "{templates_root}"\n'
+        'sessions_root = "sessions"\n'
+        'plans_root = "plans"\n'
+        'plan_state_dir = ".plan_state"\n'
+        'taskmaster_root = ".taskmaster"\n'
+        'work_tracking_root = "docs/ai/work-tracking"\n'
+        'reports_root = "reports"\n',
+        encoding="utf-8",
+    )
+
+
+def _write_template_doc(path: Path, frontmatter: str, body: str = "# Template\n") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"---\n{frontmatter.strip()}\n---\n\n{body}", encoding="utf-8")
+
+
+def _write_template_registry(repo: Path, templates_root: str, entries: list[dict[str, object]]) -> None:
+    registry_path = repo / templates_root / "registry" / "index.json"
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+
+
 def test_build_parser_accepts_wizard_kickoff() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -107,6 +134,26 @@ def test_build_parser_accepts_post_migration_monitoring() -> None:
     assert args.command == "migration"
     assert args.subcommand == "monitoring"
     assert args.label == "task-60"
+
+
+def test_build_parser_accepts_template_bundle_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "template",
+        "bundle-plan",
+        "--template",
+        "engine-core-ultrathink-protocol",
+        "--target-dir",
+        "/tmp/template-target",
+        "--label",
+        "task46",
+    ])
+    assert args.command == "template"
+    assert args.subcommand == "bundle-plan"
+    assert args.templates == ["engine-core-ultrathink-protocol"]
+    assert args.target_dir == "/tmp/template-target"
+    assert args.label == "task46"
 
 
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
@@ -3306,6 +3353,165 @@ def test_taskmaster_health_rejects_invalid_parent_dependency(monkeypatch, tmp_pa
 
     with pytest.raises(module.TaskError, match="Taskmaster dependency health failed"):
         module.handle_taskmaster_health(argparse.Namespace(tag=None, report_file=None))
+
+
+def test_build_template_bundle_plan_includes_dependencies_and_target_conflicts(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.mkdir()
+    target.mkdir()
+    _write_repo_config(source, "templates")
+    _write_repo_config(target, "target_templates")
+    _write_template_doc(
+        source / "templates" / "workflows" / "deploy.md",
+        """
+id: workflow-deploy
+title: Deploy Workflow
+type: workflow
+status: stable
+category: deployment
+dependencies:
+  - shared-evidence
+  - missing-helper
+""",
+        "# Deploy\n",
+    )
+    _write_template_doc(
+        source / "templates" / "shared" / "evidence.md",
+        """
+id: shared-evidence
+title: Evidence Pattern
+type: pattern
+status: stable
+category: evidence
+""",
+        "# Evidence\n",
+    )
+    _write_template_registry(
+        source,
+        "templates",
+        [
+            {"id": "workflow-deploy", "path": "templates/workflows/deploy.md", "tags": ["deployment"]},
+            {"id": "shared-evidence", "path": "templates/shared/evidence.md", "tags": ["evidence"]},
+        ],
+    )
+    _write_template_doc(
+        target / "target_templates" / "workflows" / "deploy.md",
+        """
+id: workflow-deploy
+title: Deploy Workflow
+type: workflow
+status: stable
+category: deployment
+""",
+        "# Target variant\n",
+    )
+
+    monkeypatch.setattr(module, "REPO_ROOT", source)
+    plan = module._build_template_bundle_plan(
+        argparse.Namespace(
+            source_dir=".",
+            target_dir=str(target),
+            templates=["workflow-deploy"],
+            label="task46",
+            no_dependencies=False,
+        )
+    )
+
+    assert plan["mode"] == "non-destructive-template-bundle-plan"
+    assert plan["executes_mutations"] is False
+    assert plan["source"]["templates_root"] == "templates"
+    assert plan["target"]["templates_root"] == "target_templates"
+    assert plan["requested_templates"] == ["workflow-deploy"]
+    assert plan["template_count"] == 2
+
+    assets = {asset["id"]: asset for asset in plan["templates"]}
+    assert assets["workflow-deploy"]["bundle_status"] == "different"
+    assert assets["workflow-deploy"]["target_path"] == "target_templates/workflows/deploy.md"
+    assert assets["shared-evidence"]["bundle_status"] == "missing"
+    assert assets["shared-evidence"]["target_path"] == "target_templates/shared/evidence.md"
+    assert plan["missing"]["dependencies"] == [
+        {
+            "query": "missing-helper",
+            "requested_by": "workflow-deploy",
+            "message": "Dependency could not be resolved from the local registry.",
+        }
+    ]
+    assert {item["status"] for item in plan["manual_review_queue"]} == {"different", "missing"}
+
+
+def test_handle_template_bundle_plan_writes_manifest_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_repo_config(repo, "templates")
+    _write_template_doc(
+        repo / "templates" / "engine" / "core" / "readiness.md",
+        """
+id: engine-core-readiness
+title: Readiness
+type: engine
+status: stable
+category: core
+""",
+    )
+    _write_template_registry(
+        repo,
+        "templates",
+        [{"id": "engine-core-readiness", "path": "templates/engine/core/readiness.md"}],
+    )
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    manifest = repo / "reports" / "bundle.json"
+    runbook = repo / "reports" / "bundle.md"
+
+    module.handle_template_bundle_plan(
+        argparse.Namespace(
+            source_dir=".",
+            target_dir=None,
+            templates=["engine-core-readiness"],
+            label="task46",
+            report_file="reports/bundle.json",
+            runbook_file="reports/bundle.md",
+            no_dependencies=False,
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote template bundle plan to reports/bundle.json" in output
+    assert "Wrote template bundle runbook to reports/bundle.md" in output
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["templates"][0]["id"] == "engine-core-readiness"
+    assert payload["templates"][0]["bundle_status"] == "not-checked"
+    assert "No template copy, archive, extraction" in runbook.read_text(encoding="utf-8")
+
+
+def test_handle_template_bundle_plan_dry_run_prints_json_without_writing(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_repo_config(repo, "templates")
+    _write_template_registry(repo, "templates", [])
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+
+    module.handle_template_bundle_plan(
+        argparse.Namespace(
+            source_dir=".",
+            target_dir=None,
+            templates=["missing-template"],
+            label="task46",
+            report_file="reports/bundle.json",
+            runbook_file="reports/bundle.md",
+            no_dependencies=False,
+            dry_run=True,
+        )
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["template_count"] == 0
+    assert payload["missing"]["templates"][0]["query"] == "missing-template"
+    assert not (repo / "reports").exists()
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
