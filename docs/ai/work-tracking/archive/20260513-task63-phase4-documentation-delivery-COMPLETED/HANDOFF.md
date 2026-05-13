@@ -14,3 +14,4 @@
 ## Next Steps
 - Commit, push, open/merge the PR, then archive the Task 63 work-tracking folder after merge.
 - After archive, clear `sessions/current` and `plans/current`, reset `sessions/state.json.current` to `null`, and capture post-archive audit/guard/diff-check evidence.
+- Archived on 2026-05-13 18:24 CEST — Folder moved to archive and tracker marked COMPLETED.
