@@ -42,6 +42,17 @@ python3 scripts/codex-task migration monitoring \
 
 This command composes existing static reports into weekly/monthly/quarterly/yearly review guidance. It does not install a scheduler, create a live dashboard, send alerts, or contact external observability services.
 
+Operational runbook packets can be generated when an operator needs one consolidated procedure index over the existing static helpers:
+
+```bash
+python3 scripts/codex-task operations runbook \
+  --label <label> \
+  --report-file <operational-runbook.json> \
+  --runbook-file <operational-runbook.md>
+```
+
+This command composes daily work, recurring maintenance, incident response, escalation, troubleshooting, and validation guidance from existing helpers. It does not install schedulers, send notifications, create tickets, update dashboards, deploy code, execute rollback, or mutate external operations systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -52,6 +63,7 @@ This command composes existing static reports into weekly/monthly/quarterly/year
 - `cost-tracking/` - cost policy evaluation using optional usage data.
 - `migration-health/` - aggregate health report over the latest static telemetry artifacts.
 - `post-migration-monitoring/` - optional static monitoring packets that combine migration KPIs, migration health, and recurring review cadences.
+- `operational-runbook/` - optional static operator runbook packets that compose daily, recurring, incident, escalation, and validation procedures.
 
 ## Task Evidence
 

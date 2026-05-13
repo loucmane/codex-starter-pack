@@ -3216,6 +3216,274 @@ POST_MIGRATION_MONITORING_CADENCES: Tuple[Dict[str, Any], ...] = (
     },
 )
 
+OPERATIONAL_RUNBOOK_NON_GOALS: Tuple[str, ...] = (
+    "No scheduler, daemon, cron job, or background worker is installed.",
+    "No live dashboard, hosted observability service, database, or production endpoint is contacted.",
+    "No Slack, email, PagerDuty, ticket, issue, webhook, or contact-directory action is sent or updated.",
+    "No deployment, promotion, traffic split, rollback, reset, clean, restore, branch deletion, or force push is executed.",
+    "No Taskmaster, session, plan, or work-tracking state is mutated beyond the requested runbook artifacts.",
+    "No external incident, approval, meeting, or on-call system is created.",
+)
+
+OPERATIONAL_RUNBOOK_PROCEDURES: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "daily-start",
+        "cadence": "daily",
+        "title": "Daily session start",
+        "purpose": "Establish current date, branch, Taskmaster, session, plan, work-tracking, and Serena evidence before implementation.",
+        "commands": (
+            "date '+%Y-%m-%d %H:%M:%S %Z %z'",
+            "git status --short --branch",
+            "task-master next",
+            "task-master show <id>",
+            "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug>",
+            "python3 scripts/codex-task sessions continue --task <id> --slug <slug>",
+        ),
+        "evidence": (
+            "sessions/current",
+            "plans/current",
+            "docs/ai/work-tracking/active/<YYYYMMDD-task-slug-ACTIVE>/TRACKER.md",
+            "serena/memory:<session-memory-name>",
+        ),
+        "owner_roles": ("active_agent", "operator_owner"),
+    },
+    {
+        "id": "daily-progress",
+        "cadence": "daily",
+        "title": "Daily implementation logging",
+        "purpose": "Keep plan, tracker, session, Taskmaster, and generated task files aligned while work is happening.",
+        "commands": (
+            "python3 scripts/codex-task sessions update --work <work> --handler <handler> --evidence <evidence> --note <note>",
+            "python3 scripts/codex-task work-tracking update --work <work> --handler <handler> --evidence <evidence> --note <note>",
+            "python3 scripts/codex-task plan sync",
+            "python3 scripts/codex-task taskmaster generate-one --id <id>",
+        ),
+        "evidence": (
+            "current session progress log",
+            "ACTIVE tracker/findings/decisions/implementation/handoff files",
+            ".plan_state/plan-sync.jsonl",
+            ".taskmaster/tasks/task_<id>.txt",
+        ),
+        "owner_roles": ("active_agent",),
+    },
+    {
+        "id": "daily-closeout",
+        "cadence": "daily",
+        "title": "Daily closeout and GitHub handoff",
+        "purpose": "Capture evidence, commit/push with normal Git workflow when auth cache is active, and leave an unambiguous handoff.",
+        "commands": (
+            "python3 scripts/codex-task plan sync",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-guard validate --include-untracked",
+            "git diff --check",
+            "git add <paths>",
+            "git commit",
+            "git push",
+        ),
+        "evidence": (
+            "plan-sync report",
+            "work-tracking audit report",
+            "Taskmaster health report",
+            "guard report",
+            "diff-check report",
+            "commit SHA / PR link",
+        ),
+        "owner_roles": ("active_agent", "operator_owner"),
+    },
+    {
+        "id": "weekly-maintenance",
+        "cadence": "weekly",
+        "title": "Weekly static telemetry refresh",
+        "purpose": "Refresh scanner, drift, metrics, monitoring, Phase 0, performance, cost, and migration-health artifacts.",
+        "commands": (
+            "python3 scripts/codex-task report generate --kind telemetry --strict-drift --strict-monitoring --strict-phase0 --strict-performance --strict-cost --strict-migration-health",
+            "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+            "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>",
+        ),
+        "evidence": (
+            "reports/template-drift/",
+            "reports/template-metrics/",
+            "reports/template-monitoring/",
+            "reports/phase0-scanner-validation/",
+            "reports/template-performance/",
+            "reports/cost-tracking/",
+            "reports/migration-health/",
+            "post-migration monitoring packet",
+        ),
+        "owner_roles": ("foundation_maintainer",),
+    },
+    {
+        "id": "monthly-review",
+        "cadence": "monthly",
+        "title": "Monthly backlog, cost, and adoption review",
+        "purpose": "Review Taskmaster health, cost telemetry, active/archive work tracking, and open adoption risks before drift accumulates.",
+        "commands": (
+            "python3 scripts/codex-task taskmaster health --report-file <taskmaster-health.txt>",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task report generate --kind cost",
+            "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>",
+        ),
+        "evidence": (
+            "Taskmaster health report",
+            "work-tracking audit report",
+            "cost tracking report",
+            "post-migration monitoring packet",
+        ),
+        "owner_roles": ("operator_owner", "foundation_maintainer"),
+    },
+    {
+        "id": "quarterly-review",
+        "cadence": "quarterly",
+        "title": "Quarterly benchmark and regression review",
+        "purpose": "Refresh performance baselines and compare regression evidence against current foundation expectations.",
+        "commands": (
+            "python3 scripts/template-performance-harness --report-dir reports/template-performance",
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+            "python3 scripts/codex-task validation final-suite --dry-run",
+        ),
+        "evidence": (
+            "performance report",
+            "pytest report",
+            "final validation dry-run",
+        ),
+        "owner_roles": ("foundation_maintainer",),
+    },
+    {
+        "id": "yearly-planning-review",
+        "cadence": "yearly",
+        "title": "Yearly roadmap and planning review",
+        "purpose": "Regenerate planning inputs and compare open work against the portable foundation contract.",
+        "commands": (
+            "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+            "python3 scripts/codex-task taskmaster health --report-file <taskmaster-health.txt>",
+            "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        ),
+        "evidence": (
+            "migration roadmap",
+            "Taskmaster health report",
+            "final validation suite report and runbook",
+        ),
+        "owner_roles": ("operator_owner", "foundation_maintainer"),
+    },
+    {
+        "id": "incident-response",
+        "cadence": "as-needed",
+        "title": "Incident, recovery, and emergency response",
+        "purpose": "Classify the incident and route to emergency, recovery, rollback, advisory, or validation helpers without executing destructive actions.",
+        "commands": (
+            "python3 scripts/codex-task recovery plan --error-class <class> --summary <summary> --report-file <recovery.json> --runbook-file <recovery.md>",
+            "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>",
+            "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+            "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <rollback-plan.md>",
+            "python3 scripts/codex-task change advisory --summary <summary> --review-class <class> --report-file <advisory.json> --runbook-file <advisory.md>",
+        ),
+        "evidence": (
+            "recovery plan/runbook",
+            "emergency plan/runbook",
+            "rollback checkpoint/plan",
+            "change advisory packet",
+            "session/tracker/decision entries",
+        ),
+        "owner_roles": ("active_agent", "operator_owner", "emergency_approver"),
+    },
+    {
+        "id": "validation-signoff",
+        "cadence": "release-or-migration-signoff",
+        "title": "Final validation sign-off",
+        "purpose": "Collect the required validation evidence bundle before merge, release, or migration sign-off.",
+        "commands": (
+            "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+            "python3 scripts/codex-task plan sync",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-guard validate --include-untracked",
+            "git diff --check",
+        ),
+        "evidence": (
+            "final validation suite report",
+            "final validation runbook",
+            "plan sync report",
+            "audit report",
+            "guard report",
+            "diff-check report",
+        ),
+        "owner_roles": ("active_agent", "operator_owner", "foundation_maintainer"),
+    },
+)
+
+OPERATIONAL_RUNBOOK_TROUBLESHOOTING: Tuple[Dict[str, Any], ...] = (
+    {
+        "symptom": "Missing sessions/current or plans/current",
+        "first_check": "python3 scripts/codex-task work-tracking audit",
+        "response": "Use wizard kickoff for a new task or sessions continue for the next day on an already-active task.",
+    },
+    {
+        "symptom": "Filtered Taskmaster list shows dependency warnings",
+        "first_check": "python3 scripts/codex-task taskmaster health",
+        "response": "Treat full-graph health as authoritative before running dependency repair commands.",
+    },
+    {
+        "symptom": "Guard validation fails",
+        "first_check": "python3 scripts/codex-guard validate --include-untracked",
+        "response": "Capture a recovery plan for guard failures and repair the named lifecycle or evidence gap.",
+    },
+    {
+        "symptom": "GitHub fetch, push, merge, or signed commit fails with auth/signing errors",
+        "first_check": "git status --short --branch",
+        "response": "Refresh the local SSH/GPG cache, then retry the same operation without disabling signing or verification.",
+    },
+    {
+        "symptom": "ACTIVE work-tracking folder appears stale",
+        "first_check": "python3 scripts/codex-task work-tracking audit",
+        "response": "Continue the active task with sessions continue; archive only after the task PR is merged.",
+    },
+    {
+        "symptom": "Monitoring, metrics, or migration-health status is warn/fail",
+        "first_check": "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json",
+        "response": "Use the required-actions list in the generated monitoring packet before closing the review.",
+    },
+)
+
+OPERATIONAL_RUNBOOK_ESCALATION: Tuple[Dict[str, Any], ...] = (
+    {
+        "level": 1,
+        "role": "active_agent",
+        "trigger": "Routine task execution, validation, and evidence updates.",
+        "action": "Record S:W:H:E evidence in session, tracker, and task-local reports.",
+    },
+    {
+        "level": 2,
+        "role": "operator_owner",
+        "trigger": "Ambiguous scope, auth/cache refresh, merge decision, protected-path change, or destructive command request.",
+        "action": "Give explicit instruction and ensure decisions are logged before mutation.",
+    },
+    {
+        "level": 3,
+        "role": "foundation_maintainer",
+        "trigger": "Portable foundation contract, guard, Taskmaster graph, template policy, or cross-project behavior needs review.",
+        "action": "Require change advisory, focused tests, guard evidence, and handoff notes.",
+    },
+    {
+        "level": 4,
+        "role": "emergency_approver",
+        "trigger": "P0/P1 emergency, security boundary issue, protected-surface incident, or bypass request.",
+        "action": "Require emergency plan/runbook, rollback checkpoint, explicit approval, and post-incident follow-up.",
+    },
+)
+
+OPERATIONAL_RUNBOOK_VALIDATION_CHECKLIST: Tuple[Dict[str, Any], ...] = (
+    {"id": "date-confirmed", "command": "date '+%Y-%m-%d %H:%M:%S %Z %z'", "evidence": "session validation entry"},
+    {"id": "branch-task-aligned", "command": "git status --short --branch", "evidence": "branch/status report"},
+    {"id": "taskmaster-health", "command": "python3 scripts/codex-task taskmaster health", "evidence": "Taskmaster health report"},
+    {"id": "plan-sync", "command": "python3 scripts/codex-task plan sync", "evidence": "plan sync report/log entry"},
+    {"id": "work-tracking-audit", "command": "python3 scripts/codex-task work-tracking audit", "evidence": "work-tracking audit report"},
+    {"id": "guard-validation", "command": "python3 scripts/codex-guard validate --include-untracked", "evidence": "guard report"},
+    {"id": "focused-tests", "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest <focused tests>", "evidence": "pytest report"},
+    {"id": "diff-check", "command": "git diff --check", "evidence": "diff-check report"},
+    {"id": "final-validation", "command": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite", "evidence": "final suite JSON and Markdown runbook"},
+    {"id": "handoff-current", "command": "Review HANDOFF.md and Serena memory references", "evidence": "handoff and memory references"},
+)
+
 
 def _wrapped_data_document(path_value: str | Path, label: str) -> Dict[str, Any]:
     path = Path(path_value)
@@ -4095,6 +4363,208 @@ def handle_post_migration_monitoring(args: argparse.Namespace) -> None:
 
     if args.strict and report["aggregate_status"] == "fail":
         raise TaskError("Post-migration monitoring aggregate status is fail")
+
+
+def _build_operational_runbook(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "operational-runbook"
+    procedures = [dict(item) for item in OPERATIONAL_RUNBOOK_PROCEDURES]
+    troubleshooting = [dict(item) for item in OPERATIONAL_RUNBOOK_TROUBLESHOOTING]
+    escalation = [dict(item) for item in OPERATIONAL_RUNBOOK_ESCALATION]
+    validation_checklist = [dict(item) for item in OPERATIONAL_RUNBOOK_VALIDATION_CHECKLIST]
+
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "non-destructive-operational-runbook",
+        "executes_actions": False,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "procedure_count": len(procedures),
+        "procedures": procedures,
+        "troubleshooting_matrix": troubleshooting,
+        "escalation_tree": escalation,
+        "validation_checklist": validation_checklist,
+        "related_helpers": {
+            "daily_start": "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug>",
+            "daily_continuation": "python3 scripts/codex-task sessions continue --task <id> --slug <slug>",
+            "guard": "python3 scripts/codex-guard validate --include-untracked",
+            "taskmaster_health": "python3 scripts/codex-task taskmaster health",
+            "work_tracking_audit": "python3 scripts/codex-task work-tracking audit",
+            "recovery_plan": "python3 scripts/codex-task recovery plan --error-class <class> --summary <summary>",
+            "emergency_plan": "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary>",
+            "change_advisory": "python3 scripts/codex-task change advisory --summary <summary>",
+            "post_migration_monitoring": "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json",
+            "final_validation": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        },
+        "non_goals": list(OPERATIONAL_RUNBOOK_NON_GOALS),
+    }
+
+
+def _render_operational_runbook(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    taskmaster = current.get("taskmaster", {}) if isinstance(current.get("taskmaster"), dict) else {}
+    taskmaster_summary = taskmaster.get("summary", {}) if isinstance(taskmaster.get("summary"), dict) else {}
+    lines = [
+        "# Operational Runbook",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), dict) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), dict) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        f"- Taskmaster tasks: {taskmaster_summary.get('tasks')}",
+        f"- Taskmaster invalid dependency refs: {taskmaster_summary.get('invalid_refs', taskmaster_summary.get('invalid_dependencies'))}",
+        "",
+        "## Procedure Index",
+        "",
+        "| Cadence | Procedure | Purpose |",
+        "| --- | --- | --- |",
+    ]
+    for procedure in report.get("procedures", []):
+        if not isinstance(procedure, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(procedure.get('cadence'))} | {_md_cell(procedure.get('title'))} | {_md_cell(procedure.get('purpose'))} |"
+        )
+
+    lines.extend(["", "## Procedures", ""])
+    for procedure in report.get("procedures", []):
+        if not isinstance(procedure, dict):
+            continue
+        lines.extend(
+            [
+                f"### {procedure.get('title')}",
+                "",
+                f"- ID: `{procedure.get('id')}`",
+                f"- Cadence: {procedure.get('cadence')}",
+                f"- Purpose: {procedure.get('purpose')}",
+                f"- Owner roles: {', '.join(str(role) for role in procedure.get('owner_roles', []))}",
+                "",
+                "Commands:",
+            ]
+        )
+        for command in procedure.get("commands", []):
+            lines.append(f"- `{command}`")
+        lines.extend(["", "Evidence:"])
+        for item in procedure.get("evidence", []):
+            lines.append(f"- {item}")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Troubleshooting Matrix",
+            "",
+            "| Symptom | First Check | Response |",
+            "| --- | --- | --- |",
+        ]
+    )
+    for item in report.get("troubleshooting_matrix", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(item.get('symptom'))} | `{_md_cell(item.get('first_check'))}` | {_md_cell(item.get('response'))} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Role-Based Escalation",
+            "",
+            "| Level | Role | Trigger | Action |",
+            "| --- | --- | --- | --- |",
+        ]
+    )
+    for item in report.get("escalation_tree", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(item.get('level'))} | `{_md_cell(item.get('role'))}` | {_md_cell(item.get('trigger'))} | {_md_cell(item.get('action'))} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "## Validation Checklist",
+            "",
+            "| Check | Command | Evidence |",
+            "| --- | --- | --- |",
+        ]
+    )
+    for item in report.get("validation_checklist", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| `{_md_cell(item.get('id'))}` | `{_md_cell(item.get('command'))}` | {_md_cell(item.get('evidence'))} |"
+        )
+
+    lines.extend(["", "## Related Helpers", ""])
+    helpers = report.get("related_helpers") if isinstance(report.get("related_helpers"), dict) else {}
+    for name, command in sorted(helpers.items()):
+        lines.append(f"- {name}: `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "No scheduler, notification, ticket, dashboard update, deployment, rollback, reset, cleanup, or external incident action was executed by this runbook.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_operational_runbook(args: argparse.Namespace) -> None:
+    report = _build_operational_runbook(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_operational_runbook(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote operational runbook report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote operational runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
 
 
 def _resolve_current_plan_path() -> Path:
@@ -7470,6 +7940,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Exit nonzero when aggregate migration health fails",
     )
     report_generate.set_defaults(func=handle_report_generate)
+
+    operations_parser = subparsers.add_parser("operations", help="Operational runbook composition")
+    operations_sub = operations_parser.add_subparsers(dest="subcommand", required=True)
+    operations_runbook = operations_sub.add_parser("runbook", help="Render a non-destructive operational runbook packet")
+    operations_runbook.add_argument("--label", default="operational-runbook", help="Human-readable runbook label")
+    operations_runbook.add_argument("--report-file", help="Optional path to write the operational runbook JSON packet")
+    operations_runbook.add_argument("--runbook-file", help="Optional path to write the operational runbook Markdown")
+    operations_runbook.add_argument("--dry-run", action="store_true", help="Print the operational runbook JSON without writing files")
+    operations_runbook.set_defaults(func=handle_operational_runbook)
 
     hooks_parser = subparsers.add_parser("hooks", help="Git hook verification operations")
     hooks_sub = hooks_parser.add_subparsers(dest="subcommand", required=True)
