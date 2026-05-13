@@ -1,0 +1,475 @@
+{
+  "action_guidance": [
+    {
+      "action": "Record deprecation timeline evidence",
+      "evidence": "`deprecated_since`, version history entry, active work-tracking tracker, and generated deprecation review packet",
+      "id": "timeline"
+    },
+    {
+      "action": "Surface deprecation warnings from lifecycle audit output",
+      "evidence": "`scripts/template_lifecycle.py audit` issue codes such as `deprecation_grace_expired` and `archive_recommended`",
+      "id": "warning"
+    },
+    {
+      "action": "Review grace-period status before claiming enforcement",
+      "evidence": "lifecycle policy `grace_days` plus deprecation review metrics",
+      "id": "grace-period"
+    },
+    {
+      "action": "Require replacement or migration notice evidence for deprecated templates",
+      "evidence": "frontmatter `replacement` or `migration_notice`, communication template, and versioning assessment",
+      "id": "migration-guidance"
+    },
+    {
+      "action": "Treat archive recommendations as operator-reviewed follow-up work",
+      "evidence": "`archive_recommended` issue, follow-up Taskmaster task, and explicit file-move PR if archival is later approved",
+      "id": "archival"
+    },
+    {
+      "action": "Use repo-native communication templates for deprecation announcements",
+      "evidence": "`templates/guides/communication/foundation-communication-templates.md`; no external send is claimed",
+      "id": "notification"
+    },
+    {
+      "action": "Document emergency overrides through emergency/recovery workflow artifacts",
+      "evidence": "emergency plan, recovery plan, decision log, and guard/test evidence",
+      "id": "override"
+    },
+    {
+      "action": "Close deprecation work only after validation evidence is current",
+      "evidence": "plan sync, work-tracking audit, Taskmaster health, guard, diff-check, and final validation where in scope",
+      "id": "closeout"
+    }
+  ],
+  "created_at": "2026-05-13T18:49:39+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-66-deprecation-management",
+      "head": "b77f3e75bcdc3c9879d8ad2872cafa399e754164",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_066.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task66_deprecation_management_completion.md",
+          "status": "??"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task66_deprecation_management_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task66-deprecation-management.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-012-task66-deprecation-management.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 149,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task51_template_usage_analytics_completion.md",
+        ".serena/memories/2026-05-13_task51_template_usage_analytics_kickoff.md",
+        ".serena/memories/2026-05-13_task56_phase3_automation_integration_completion.md",
+        ".serena/memories/2026-05-13_task56_phase3_automation_integration_kickoff.md",
+        ".serena/memories/2026-05-13_task72_post_mortem_process_completion.md",
+        ".serena/memories/2026-05-13_task72_post_mortem_process_kickoff.md",
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_completion.md",
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_kickoff.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_kickoff.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_completion.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "d1cd98a9334606ccfdd2b7702592d00183867bd8c0a768fe030e96f5f6a18deb",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 92,
+          "pending": 16
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260513-task66-deprecation-management-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-13-task66-deprecation-management.md",
+        "sha256": "c70129a2fb1101cd85a43874b6fda06b76231ed52f86e12762063ba181f8ed6d",
+        "target": "2026-05-13-task66-deprecation-management.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-13-012-task66-deprecation-management.md",
+        "sha256": "493b9ca9f1a187a9acda839154977bec5056de21591a021a7e1666f323689df7",
+        "target": "2026/05/2026-05-13-012-task66-deprecation-management.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "c2e832134175ed34842d4bd0f7fcd205e6416a5ca322483de09913fe0bf0cf14"
+      }
+    }
+  },
+  "domains": [
+    {
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260508-task29-template-lifecycle-management-COMPLETED/reports/template-lifecycle-management"
+        }
+      ],
+      "id": "lifecycle-policy-audit",
+      "missing_evidence_paths": [],
+      "missing_required_paths": [],
+      "purpose": "Confirm deprecation states, grace periods, archive recommendations, replacement metadata, and registry audit behavior are available.",
+      "refresh_commands": [
+        "python3 scripts/template_lifecycle.py audit --today <YYYY-MM-DD>",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_lifecycle.py"
+      ],
+      "required_action": "Review the linked evidence and keep it referenced from Task 66 closeout.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/metadata/template-lifecycle-policy.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template_lifecycle.py"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "tests/meta_workflow_guard/test_template_lifecycle.py"
+        }
+      ],
+      "source_tasks": [
+        "29"
+      ],
+      "status": "ready",
+      "title": "Lifecycle policy and audit"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260508-task58-template-versioning-system-COMPLETED/reports/template-versioning-system"
+        }
+      ],
+      "id": "versioning-policy",
+      "missing_evidence_paths": [],
+      "missing_required_paths": [],
+      "purpose": "Confirm version comparison, compatibility assessment, migration requirement, rollback target, and history-entry evidence exist.",
+      "refresh_commands": [
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_versioning.py",
+        "python3 scripts/template_versioning.py assess --previous <old> --current <new> --format json"
+      ],
+      "required_action": "Review the linked evidence and keep it referenced from Task 66 closeout.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/metadata/template-versioning-policy.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template_versioning.py"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "tests/meta_workflow_guard/test_template_versioning.py"
+        }
+      ],
+      "source_tasks": [
+        "58"
+      ],
+      "status": "ready",
+      "title": "Versioning policy and migration evidence"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED/reports/communication-templates"
+        }
+      ],
+      "id": "communication-guidance",
+      "missing_evidence_paths": [],
+      "missing_required_paths": [],
+      "purpose": "Confirm breaking-change, milestone, feedback, and follow-up communication language exists without external delivery automation.",
+      "refresh_commands": [
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py"
+      ],
+      "required_action": "Review the linked evidence and keep it referenced from Task 66 closeout.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/communication/foundation-communication-templates.md"
+        }
+      ],
+      "source_tasks": [
+        "49"
+      ],
+      "status": "ready",
+      "title": "Deprecation communication guidance"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.md"
+        }
+      ],
+      "id": "operational-runbook",
+      "missing_evidence_paths": [],
+      "missing_required_paths": [],
+      "purpose": "Confirm deprecation review can point to daily, recurring, incident, escalation, and closeout operating procedures.",
+      "refresh_commands": [
+        "python3 scripts/codex-task operations runbook --label <label> --report-file <operations.json> --runbook-file <operations.md>"
+      ],
+      "required_action": "Review the linked evidence and keep it referenced from Task 66 closeout.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/operational-runbook/README.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-task"
+        }
+      ],
+      "source_tasks": [
+        "57"
+      ],
+      "status": "ready",
+      "title": "Operational runbook guidance"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260510-task35-emergency-response-system-COMPLETED/reports/emergency-response-system/emergency-plan-2026-05-10.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task47-error-recovery-system-COMPLETED/reports/error-recovery-system/recovery-plan-2026-05-13.json"
+        }
+      ],
+      "id": "emergency-recovery-guidance",
+      "missing_evidence_paths": [],
+      "missing_required_paths": [],
+      "purpose": "Confirm emergency override and recovery decisions have static planning evidence instead of bypass automation.",
+      "refresh_commands": [
+        "python3 scripts/codex-task emergency plan --label <label> --scenario <scenario> --report-file <emergency.json> --runbook-file <emergency.md>",
+        "python3 scripts/codex-task recovery plan --label <label> --failure <failure> --report-file <recovery.json> --runbook-file <recovery.md>"
+      ],
+      "required_action": "Review the linked evidence and keep it referenced from Task 66 closeout.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/metadata/emergency-response-policy.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-task"
+        }
+      ],
+      "source_tasks": [
+        "35",
+        "47"
+      ],
+      "status": "ready",
+      "title": "Emergency and recovery guidance"
+    },
+    {
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite"
+        }
+      ],
+      "id": "final-validation",
+      "missing_evidence_paths": [],
+      "missing_required_paths": [],
+      "purpose": "Confirm deprecation closeout can require the standard validation suite before claiming completion.",
+      "refresh_commands": [
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite"
+      ],
+      "required_action": "Review the linked evidence and keep it referenced from Task 66 closeout.",
+      "required_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-task"
+        }
+      ],
+      "source_tasks": [
+        "68"
+      ],
+      "status": "ready",
+      "title": "Final validation"
+    }
+  ],
+  "executes_actions": false,
+  "label": "task66-deprecation-management",
+  "lifecycle_audit": {
+    "available": true,
+    "deprecated_records": [
+      {
+        "canonical_status": "deprecated",
+        "issues": [],
+        "ok": true,
+        "path": "templates/behaviors/session/compaction-detection.md",
+        "status": "deprecated"
+      }
+    ],
+    "issue_records": [],
+    "metrics": {
+      "archive_recommended": 0,
+      "deprecated_records": 1,
+      "error_count": 0,
+      "grace_expired": 0,
+      "issue_code_counts": {},
+      "issue_records": 0,
+      "missing_migration_guidance": 0,
+      "ok_records": 226,
+      "recommendation_count": 0,
+      "records": 226,
+      "severity_counts": {},
+      "status_counts": {
+        "deprecated": 1,
+        "draft": 14,
+        "modular": 1,
+        "review": 2,
+        "stable": 208
+      },
+      "warning_count": 0
+    },
+    "policy": {
+      "archive_after_days": 90,
+      "compatibility_statuses": {
+        "beta": "review",
+        "experimental": "draft"
+      },
+      "deprecated_since_key": "deprecated_since",
+      "grace_days": 30,
+      "ignored_statuses": [
+        "modular"
+      ],
+      "migration_notice_key": "migration_notice",
+      "replacement_key": "replacement",
+      "states": [
+        "draft",
+        "review",
+        "stable",
+        "deprecated",
+        "archived"
+      ],
+      "version": "1.0.0"
+    },
+    "today": "2026-05-13"
+  },
+  "mode": "static-deprecation-management-review",
+  "non_goals": [
+    "No runtime log instrumentation or warning injection is added.",
+    "No automatic template archival, file movement, deletion, or migration is executed.",
+    "No cron job, scheduler, daemon, background reminder, GitHub scheduled workflow, or long-running service is installed.",
+    "No email, Slack, chat, ticket, webhook, dashboard, analytics backend, or external notification system is created or contacted.",
+    "No emergency bypass or override is automated; overrides remain explicit, documented workflow decisions.",
+    "No Taskmaster, session, plan, work-tracking, Git, template, report source, or external state is mutated beyond requested review artifacts."
+  ],
+  "review_date": "2026-05-13",
+  "summary": {
+    "aggregate_status": "ready",
+    "archive_recommended": 0,
+    "deprecated_records": 1,
+    "domains": 6,
+    "grace_expired": 0,
+    "lifecycle_audit_available": true,
+    "lifecycle_issue_records": 0,
+    "lifecycle_records": 226,
+    "missing_evidence_paths": 0,
+    "missing_migration_guidance": 0,
+    "missing_required_paths": 0,
+    "needs_evidence": 0,
+    "needs_implementation": 0,
+    "ready": 6
+  },
+  "version": 1
+}

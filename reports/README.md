@@ -99,6 +99,17 @@ python3 scripts/codex-task documentation phase4-review \
 
 This command classifies each delivery domain as ready, needs-evidence, or needs-implementation and lists refresh commands for evidence gaps. It does not publish hosted documentation, deploy training, schedule office hours, send communications, collect surveys, update dashboards, mutate existing evidence sources, or contact external systems.
 
+Deprecation management review packets can be generated when an operator needs one static gate-review artifact over lifecycle policy, lifecycle audit metrics, versioning policy, communication guidance, operational runbook guidance, emergency/recovery guidance, and final validation evidence:
+
+```bash
+python3 scripts/codex-task deprecation review \
+  --today <YYYY-MM-DD> \
+  --report-file reports/deprecation-management/latest.json \
+  --runbook-file reports/deprecation-management/latest.md
+```
+
+This command summarizes lifecycle status counts, deprecation warnings, grace-period expirations, archive recommendations, missing migration guidance, supporting evidence domains, and operator-reviewed deprecation actions. It does not instrument runtime logs, move files automatically, send notifications, install schedulers, update dashboards, automate emergency overrides, mutate existing evidence sources, or contact external systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -114,6 +125,7 @@ This command classifies each delivery domain as ready, needs-evidence, or needs-
 - `template-usage-analytics/` - optional static registry-backed usage analytics over sessions, plans, work tracking, and Taskmaster task files.
 - `phase3-automation-integration/` - optional static Phase 3 gate-review packets over existing automation evidence and refresh commands.
 - `phase4-documentation-delivery/` - optional static Phase 4 gate-review packets over documentation, training, communication, operations, Phase 3, and final validation evidence.
+- `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
 
 ## Task Evidence
 

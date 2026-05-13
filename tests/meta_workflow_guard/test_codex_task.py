@@ -178,6 +178,29 @@ def test_build_parser_accepts_phase4_documentation_review() -> None:
     assert args.runbook_file == "reports/phase4.md"
 
 
+def test_build_parser_accepts_deprecation_review() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "deprecation",
+        "review",
+        "--label",
+        "task66",
+        "--today",
+        "2026-05-13",
+        "--report-file",
+        "reports/deprecation.json",
+        "--runbook-file",
+        "reports/deprecation.md",
+    ])
+    assert args.command == "deprecation"
+    assert args.subcommand == "review"
+    assert args.label == "task66"
+    assert args.today == "2026-05-13"
+    assert args.report_file == "reports/deprecation.json"
+    assert args.runbook_file == "reports/deprecation.md"
+
+
 def test_build_parser_accepts_incident_post_mortem() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -2152,6 +2175,235 @@ def test_handle_phase4_documentation_review_writes_packet_and_runbook(monkeypatc
     assert payload["label"] == "task63"
     assert payload["summary"]["aggregate_status"] == "ready"
     assert "# Phase 4 Documentation Delivery Review" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_deprecation_review_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-66-deprecation-management"
+        if args == ["rev-parse", "HEAD"]:
+            return "deprecationabc"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-13-012-task66-deprecation.md"},
+            "current_plan": {"resolved": "plans/2026-05-13-task66-deprecation.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260513-task66-deprecation-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_refs": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 12})
+    monkeypatch.setattr(module, "_build_deprecation_lifecycle_snapshot", _fake_deprecation_lifecycle_snapshot)
+
+
+def _fake_deprecation_lifecycle_snapshot(today):
+    records = [
+        {
+            "path": "templates/stable.md",
+            "status": "stable",
+            "canonical_status": "stable",
+            "ok": True,
+            "issues": [],
+        },
+        {
+            "path": "templates/old.md",
+            "status": "deprecated",
+            "canonical_status": "deprecated",
+            "ok": True,
+            "issues": [
+                {
+                    "severity": "warning",
+                    "code": "deprecation_grace_expired",
+                    "message": "Deprecated template is 45 days old; 30-day grace period expired",
+                },
+                {
+                    "severity": "recommendation",
+                    "code": "archive_recommended",
+                    "message": "Deprecated template is 95 days old; archive threshold is 90 days",
+                },
+            ],
+        },
+        {
+            "path": "templates/missing-guidance.md",
+            "status": "deprecated",
+            "canonical_status": "deprecated",
+            "ok": True,
+            "issues": [
+                {
+                    "severity": "warning",
+                    "code": "missing_migration_notice",
+                    "message": "Deprecated template should define replacement or migration_notice",
+                }
+            ],
+        },
+    ]
+    return {
+        "available": True,
+        "today": today.isoformat(),
+        "policy": {
+            "version": "test",
+            "states": ["draft", "review", "stable", "deprecated", "archived"],
+            "grace_days": 30,
+            "archive_after_days": 90,
+            "deprecated_since_key": "deprecated_since",
+            "replacement_key": "replacement",
+            "migration_notice_key": "migration_notice",
+        },
+        "metrics": _summarise_deprecation_records_for_test(records),
+        "issue_records": [record for record in records if record["issues"]],
+        "deprecated_records": [record for record in records if record["canonical_status"] == "deprecated"],
+    }
+
+
+def _summarise_deprecation_records_for_test(records):
+    module = load_task_module()
+    return module._summarise_deprecation_audit_records(records)
+
+
+def _write_deprecation_required_paths(repo: Path, module) -> None:
+    for domain in module.DEPRECATION_MANAGEMENT_DOMAINS:
+        for raw_path in domain["required_paths"]:
+            path = repo / raw_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n", encoding="utf-8")
+
+
+def _write_deprecation_evidence_paths(repo: Path, module) -> None:
+    for domain in module.DEPRECATION_MANAGEMENT_DOMAINS:
+        for raw_path in domain["evidence_paths"]:
+            path = repo / raw_path
+            if raw_path.endswith("/"):
+                path.mkdir(parents=True, exist_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("{}\n", encoding="utf-8")
+
+
+def test_summarise_deprecation_audit_records_counts_recommendations() -> None:
+    module = load_task_module()
+    records = [
+        {"canonical_status": "stable", "ok": True, "issues": []},
+        {
+            "canonical_status": "deprecated",
+            "ok": True,
+            "issues": [
+                {"severity": "warning", "code": "deprecation_grace_expired"},
+                {"severity": "recommendation", "code": "archive_recommended"},
+            ],
+        },
+        {
+            "canonical_status": "deprecated",
+            "ok": True,
+            "issues": [{"severity": "warning", "code": "missing_migration_notice"}],
+        },
+    ]
+
+    summary = module._summarise_deprecation_audit_records(records)
+
+    assert summary["records"] == 3
+    assert summary["deprecated_records"] == 2
+    assert summary["grace_expired"] == 1
+    assert summary["archive_recommended"] == 1
+    assert summary["missing_migration_guidance"] == 1
+    assert summary["status_counts"]["deprecated"] == 2
+
+
+def test_build_deprecation_management_review_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_deprecation_review_snapshots(module, monkeypatch)
+    _write_deprecation_required_paths(repo, module)
+    _write_deprecation_evidence_paths(repo, module)
+
+    report = module._build_deprecation_management_review(argparse.Namespace(label="task66", today="2026-05-13"))
+
+    assert report["mode"] == "static-deprecation-management-review"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["ready"] == len(module.DEPRECATION_MANAGEMENT_DOMAINS)
+    assert report["summary"]["deprecated_records"] == 2
+    assert report["summary"]["archive_recommended"] == 1
+    assert report["current_state"]["git"]["branch"] == "feat/task-66-deprecation-management"
+    assert {domain["id"] for domain in report["domains"]} >= {
+        "lifecycle-policy-audit",
+        "versioning-policy",
+        "communication-guidance",
+        "operational-runbook",
+        "emergency-recovery-guidance",
+        "final-validation",
+    }
+    assert "No automatic template archival, file movement, deletion, or migration is executed." in report["non_goals"]
+
+
+def test_build_deprecation_management_review_reports_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_deprecation_review_snapshots(module, monkeypatch)
+    _write_deprecation_required_paths(repo, module)
+
+    report = module._build_deprecation_management_review(argparse.Namespace(label="task66", today="2026-05-13"))
+
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert report["summary"]["needs_evidence"] == len(module.DEPRECATION_MANAGEMENT_DOMAINS)
+    assert all(domain["missing_evidence_paths"] for domain in report["domains"])
+    assert not any(domain["missing_required_paths"] for domain in report["domains"])
+
+
+def test_render_deprecation_management_review_lists_metrics_guidance_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_deprecation_review_snapshots(module, monkeypatch)
+    _write_deprecation_required_paths(repo, module)
+    _write_deprecation_evidence_paths(repo, module)
+    report = module._build_deprecation_management_review(argparse.Namespace(label="task66", today="2026-05-13"))
+
+    runbook = module._render_deprecation_management_review(report)
+
+    assert "# Deprecation Management Review" in runbook
+    assert "Lifecycle Audit Metrics" in runbook
+    assert "Archive recommended: 1" in runbook
+    assert "Deprecation Action Guidance" in runbook
+    assert "Lifecycle policy and audit" in runbook
+    assert "No automatic template archival, file movement, deletion, or migration is executed." in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_deprecation_review_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_deprecation_review_snapshots(module, monkeypatch)
+    _write_deprecation_required_paths(repo, module)
+    _write_deprecation_evidence_paths(repo, module)
+
+    report = repo / "reports" / "deprecation.json"
+    runbook = repo / "reports" / "deprecation.md"
+    module.handle_deprecation_review(
+        argparse.Namespace(
+            label="task66",
+            today="2026-05-13",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote deprecation review to reports/deprecation.json" in output
+    assert "Wrote deprecation runbook to reports/deprecation.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task66"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Deprecation Management Review" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
