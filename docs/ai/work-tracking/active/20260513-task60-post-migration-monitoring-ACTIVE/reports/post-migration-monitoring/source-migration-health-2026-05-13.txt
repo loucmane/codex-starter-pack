@@ -1,0 +1,4 @@
+Wrote migration health dashboard to docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/source-migration-health/latest.md
+Wrote migration health JSON to docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/source-migration-health/latest.json
+Migration health status: warn
+Running: /usr/bin/python3 /home/loucmane/codex/scripts/template-migration-health-dashboard --metrics-file reports/template-metrics/latest.json --monitoring-file reports/template-monitoring/latest.json --phase0-file reports/phase0-scanner-validation/latest.json --performance-file reports/template-performance/latest.json --cost-file reports/cost-tracking/latest.json --report-dir docs/ai/work-tracking/active/20260513-task60-post-migration-monitoring-ACTIVE/reports/post-migration-monitoring/source-migration-health

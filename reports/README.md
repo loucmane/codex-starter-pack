@@ -30,6 +30,18 @@ The pipeline runs stages in this order:
 6. `scripts/template-cost-report` -> `reports/cost-tracking/`
 7. `scripts/template-migration-health-dashboard` -> `reports/migration-health/`
 
+Post-migration monitoring packets can be generated after those source artifacts exist:
+
+```bash
+python3 scripts/codex-task migration monitoring \
+  --metrics-report <migration-metrics.json> \
+  --migration-health-report reports/migration-health/latest.json \
+  --report-file <post-migration-monitoring.json> \
+  --runbook-file <post-migration-monitoring.md>
+```
+
+This command composes existing static reports into weekly/monthly/quarterly/yearly review guidance. It does not install a scheduler, create a live dashboard, send alerts, or contact external observability services.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -39,6 +51,7 @@ The pipeline runs stages in this order:
 - `template-performance/` - performance and regression checks for portable foundation operations.
 - `cost-tracking/` - cost policy evaluation using optional usage data.
 - `migration-health/` - aggregate health report over the latest static telemetry artifacts.
+- `post-migration-monitoring/` - optional static monitoring packets that combine migration KPIs, migration health, and recurring review cadences.
 
 ## Task Evidence
 

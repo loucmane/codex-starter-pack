@@ -175,6 +175,12 @@ Static cost-governance telemetry. It reads `templates/metadata/template-cost-pol
 ### `scripts/template-migration-health-dashboard`
 Static aggregate migration-health dashboard/report. It reads the latest metrics, monitoring, Phase 0, performance, and cost JSON artifacts, writes `reports/migration-health/latest.md` and `latest.json`, and classifies missing telemetry as visible warnings instead of inventing live data. Use `--strict` when fail-level aggregate migration health should fail the command.
 
+### `scripts/codex-task migration metrics`
+Scanner-backed migration KPI packet generator. It reads a metadata-wrapped scanner `baseline_summary.json`, optional migration roadmap JSON, and optional `security_validation.json`, then writes deterministic JSON/Markdown metrics artifacts. It does not start metric agents, write time-series data, create dashboards, send alerts, regenerate scanners, or mutate remediation files.
+
+### `scripts/codex-task migration monitoring`
+Static post-migration monitoring packet generator. It reads a migration metrics JSON packet plus `reports/migration-health/latest.json`, classifies aggregate post-migration status, and renders required actions plus weekly/monthly/quarterly/yearly review cadences. It is the portable replacement for live production-monitoring wording in legacy Taskmaster tasks. It does not install schedulers, daemons, live dashboards, alert delivery, external service calls, scanner regeneration, or remediation mutation.
+
 ### `scripts/template_governance.py`
 Non-mutating template governance assessor. It reads `templates/metadata/template-governance-policy.json` and maps proposed template changes to a required review class.
 
