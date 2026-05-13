@@ -15,7 +15,7 @@ import sys
 import tempfile
 import tomllib
 from collections import Counter
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
@@ -5761,6 +5761,525 @@ def handle_phase4_documentation_review(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
+    "No runtime log instrumentation or warning injection is added.",
+    "No automatic template archival, file movement, deletion, or migration is executed.",
+    "No cron job, scheduler, daemon, background reminder, GitHub scheduled workflow, or long-running service is installed.",
+    "No email, Slack, chat, ticket, webhook, dashboard, analytics backend, or external notification system is created or contacted.",
+    "No emergency bypass or override is automated; overrides remain explicit, documented workflow decisions.",
+    "No Taskmaster, session, plan, work-tracking, Git, template, report source, or external state is mutated beyond requested review artifacts.",
+)
+
+DEPRECATION_MANAGEMENT_DOMAINS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "lifecycle-policy-audit",
+        "title": "Lifecycle policy and audit",
+        "purpose": "Confirm deprecation states, grace periods, archive recommendations, replacement metadata, and registry audit behavior are available.",
+        "source_tasks": ("29",),
+        "required_paths": (
+            "templates/metadata/template-lifecycle-policy.json",
+            "scripts/template_lifecycle.py",
+            "tests/meta_workflow_guard/test_template_lifecycle.py",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task29-template-lifecycle-management-COMPLETED/reports/template-lifecycle-management/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/template_lifecycle.py audit --today <YYYY-MM-DD>",
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_lifecycle.py",
+        ),
+    },
+    {
+        "id": "versioning-policy",
+        "title": "Versioning policy and migration evidence",
+        "purpose": "Confirm version comparison, compatibility assessment, migration requirement, rollback target, and history-entry evidence exist.",
+        "source_tasks": ("58",),
+        "required_paths": (
+            "templates/metadata/template-versioning-policy.json",
+            "scripts/template_versioning.py",
+            "tests/meta_workflow_guard/test_template_versioning.py",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task58-template-versioning-system-COMPLETED/reports/template-versioning-system/",
+        ),
+        "refresh_commands": (
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_versioning.py",
+            "python3 scripts/template_versioning.py assess --previous <old> --current <new> --format json",
+        ),
+    },
+    {
+        "id": "communication-guidance",
+        "title": "Deprecation communication guidance",
+        "purpose": "Confirm breaking-change, milestone, feedback, and follow-up communication language exists without external delivery automation.",
+        "source_tasks": ("49",),
+        "required_paths": (
+            "templates/guides/communication/foundation-communication-templates.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED/reports/communication-templates/",
+        ),
+        "refresh_commands": (
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py",
+        ),
+    },
+    {
+        "id": "operational-runbook",
+        "title": "Operational runbook guidance",
+        "purpose": "Confirm deprecation review can point to daily, recurring, incident, escalation, and closeout operating procedures.",
+        "source_tasks": ("57",),
+        "required_paths": (
+            "reports/operational-runbook/README.md",
+            "scripts/codex-task",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json",
+            "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task operations runbook --label <label> --report-file <operations.json> --runbook-file <operations.md>",
+        ),
+    },
+    {
+        "id": "emergency-recovery-guidance",
+        "title": "Emergency and recovery guidance",
+        "purpose": "Confirm emergency override and recovery decisions have static planning evidence instead of bypass automation.",
+        "source_tasks": ("35", "47"),
+        "required_paths": (
+            "templates/metadata/emergency-response-policy.json",
+            "scripts/codex-task",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260510-task35-emergency-response-system-COMPLETED/reports/emergency-response-system/emergency-plan-2026-05-10.json",
+            "docs/ai/work-tracking/archive/20260513-task47-error-recovery-system-COMPLETED/reports/error-recovery-system/recovery-plan-2026-05-13.json",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task emergency plan --label <label> --scenario <scenario> --report-file <emergency.json> --runbook-file <emergency.md>",
+            "python3 scripts/codex-task recovery plan --label <label> --failure <failure> --report-file <recovery.json> --runbook-file <recovery.md>",
+        ),
+    },
+    {
+        "id": "final-validation",
+        "title": "Final validation",
+        "purpose": "Confirm deprecation closeout can require the standard validation suite before claiming completion.",
+        "source_tasks": ("68",),
+        "required_paths": (
+            "scripts/codex-task",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        ),
+    },
+)
+
+DEPRECATION_MANAGEMENT_ACTIONS: Tuple[Dict[str, str], ...] = (
+    {
+        "id": "timeline",
+        "action": "Record deprecation timeline evidence",
+        "evidence": "`deprecated_since`, version history entry, active work-tracking tracker, and generated deprecation review packet",
+    },
+    {
+        "id": "warning",
+        "action": "Surface deprecation warnings from lifecycle audit output",
+        "evidence": "`scripts/template_lifecycle.py audit` issue codes such as `deprecation_grace_expired` and `archive_recommended`",
+    },
+    {
+        "id": "grace-period",
+        "action": "Review grace-period status before claiming enforcement",
+        "evidence": "lifecycle policy `grace_days` plus deprecation review metrics",
+    },
+    {
+        "id": "migration-guidance",
+        "action": "Require replacement or migration notice evidence for deprecated templates",
+        "evidence": "frontmatter `replacement` or `migration_notice`, communication template, and versioning assessment",
+    },
+    {
+        "id": "archival",
+        "action": "Treat archive recommendations as operator-reviewed follow-up work",
+        "evidence": "`archive_recommended` issue, follow-up Taskmaster task, and explicit file-move PR if archival is later approved",
+    },
+    {
+        "id": "notification",
+        "action": "Use repo-native communication templates for deprecation announcements",
+        "evidence": "`templates/guides/communication/foundation-communication-templates.md`; no external send is claimed",
+    },
+    {
+        "id": "override",
+        "action": "Document emergency overrides through emergency/recovery workflow artifacts",
+        "evidence": "emergency plan, recovery plan, decision log, and guard/test evidence",
+    },
+    {
+        "id": "closeout",
+        "action": "Close deprecation work only after validation evidence is current",
+        "evidence": "plan sync, work-tracking audit, Taskmaster health, guard, diff-check, and final validation where in scope",
+    },
+)
+
+
+def _deprecation_path_state(path_value: str) -> Dict[str, Any]:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    exists = path.exists()
+    if path.is_dir():
+        kind = "directory"
+    elif path.is_file():
+        kind = "file"
+    else:
+        kind = "missing"
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": exists,
+        "kind": kind,
+    }
+
+
+def _deprecation_domain_review(domain: Dict[str, Any]) -> Dict[str, Any]:
+    required_paths = [_deprecation_path_state(path) for path in domain.get("required_paths", ())]
+    evidence_paths = [_deprecation_path_state(path) for path in domain.get("evidence_paths", ())]
+    missing_required = [item["path"] for item in required_paths if not item["exists"]]
+    missing_evidence = [item["path"] for item in evidence_paths if not item["exists"]]
+    if missing_required:
+        status = "needs-implementation"
+        required_action = "Implement or restore the missing deprecation-management surface before review."
+    elif missing_evidence:
+        status = "needs-evidence"
+        required_action = "Run the refresh commands and capture the missing evidence before claiming this domain is ready."
+    else:
+        status = "ready"
+        required_action = "Review the linked evidence and keep it referenced from Task 66 closeout."
+    return {
+        "id": domain["id"],
+        "title": domain["title"],
+        "purpose": domain["purpose"],
+        "status": status,
+        "source_tasks": list(domain.get("source_tasks", ())),
+        "required_paths": required_paths,
+        "evidence_paths": evidence_paths,
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+        "refresh_commands": list(domain.get("refresh_commands", ())),
+        "required_action": required_action,
+    }
+
+
+def _summarise_deprecation_domains(domains: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    status_counts = Counter(str(domain.get("status")) for domain in domains)
+    missing_required = sum(len(domain.get("missing_required_paths", [])) for domain in domains)
+    missing_evidence = sum(len(domain.get("missing_evidence_paths", [])) for domain in domains)
+    if missing_required:
+        aggregate_status = "needs-implementation"
+    elif missing_evidence:
+        aggregate_status = "needs-evidence"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "domains": len(domains),
+        "ready": status_counts.get("ready", 0),
+        "needs_evidence": status_counts.get("needs-evidence", 0),
+        "needs_implementation": status_counts.get("needs-implementation", 0),
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+    }
+
+
+def _lifecycle_audit_to_dict(audit: Any) -> Dict[str, Any]:
+    return {
+        "path": str(getattr(audit, "path", "")),
+        "status": getattr(audit, "status", None),
+        "canonical_status": getattr(audit, "canonical_status", None),
+        "ok": bool(getattr(audit, "ok", False)),
+        "issues": [
+            {
+                "severity": str(getattr(issue, "severity", "")),
+                "code": str(getattr(issue, "code", "")),
+                "message": str(getattr(issue, "message", "")),
+            }
+            for issue in getattr(audit, "issues", ())
+        ],
+    }
+
+
+def _summarise_deprecation_audit_records(records: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    status_counts: Counter[str] = Counter()
+    severity_counts: Counter[str] = Counter()
+    code_counts: Counter[str] = Counter()
+    deprecated_records: list[Mapping[str, Any]] = []
+    issue_records: list[Mapping[str, Any]] = []
+    for record in records:
+        canonical = str(record.get("canonical_status") or record.get("status") or "unknown")
+        status_counts[canonical] += 1
+        if canonical == "deprecated":
+            deprecated_records.append(record)
+        issues = record.get("issues", [])
+        if issues:
+            issue_records.append(record)
+        for issue in issues if isinstance(issues, Sequence) and not isinstance(issues, (str, bytes)) else []:
+            if not isinstance(issue, Mapping):
+                continue
+            severity_counts[str(issue.get("severity") or "unknown")] += 1
+            code_counts[str(issue.get("code") or "unknown")] += 1
+    return {
+        "records": len(records),
+        "ok_records": sum(1 for record in records if record.get("ok")),
+        "issue_records": len(issue_records),
+        "deprecated_records": len(deprecated_records),
+        "status_counts": dict(sorted(status_counts.items())),
+        "severity_counts": dict(sorted(severity_counts.items())),
+        "issue_code_counts": dict(sorted(code_counts.items())),
+        "grace_expired": code_counts.get("deprecation_grace_expired", 0),
+        "archive_recommended": code_counts.get("archive_recommended", 0),
+        "missing_migration_guidance": code_counts.get("missing_migration_notice", 0),
+        "error_count": severity_counts.get("error", 0),
+        "warning_count": severity_counts.get("warning", 0),
+        "recommendation_count": severity_counts.get("recommendation", 0),
+    }
+
+
+def _build_deprecation_lifecycle_snapshot(today: date) -> Dict[str, Any]:
+    try:
+        from template_lifecycle import audit_registry, load_lifecycle_policy
+
+        policy = load_lifecycle_policy(REPO_ROOT)
+        audits = [_lifecycle_audit_to_dict(audit) for audit in audit_registry(REPO_ROOT, today=today)]
+        metrics = _summarise_deprecation_audit_records(audits)
+        issue_records = [record for record in audits if record.get("issues")]
+        deprecated_records = [record for record in audits if record.get("canonical_status") == "deprecated"]
+        return {
+            "available": True,
+            "today": today.isoformat(),
+            "policy": {
+                "version": policy.version,
+                "states": list(policy.states),
+                "compatibility_statuses": dict(policy.compatibility_statuses),
+                "ignored_statuses": list(policy.ignored_statuses),
+                "grace_days": policy.grace_days,
+                "archive_after_days": policy.archive_after_days,
+                "deprecated_since_key": policy.deprecated_since_key,
+                "replacement_key": policy.replacement_key,
+                "migration_notice_key": policy.migration_notice_key,
+            },
+            "metrics": metrics,
+            "issue_records": issue_records[:25],
+            "deprecated_records": deprecated_records[:25],
+        }
+    except Exception as exc:  # pragma: no cover - exercised by callers as a degraded snapshot
+        return {
+            "available": False,
+            "today": today.isoformat(),
+            "error": str(exc),
+            "metrics": _summarise_deprecation_audit_records(()),
+            "issue_records": [],
+            "deprecated_records": [],
+        }
+
+
+def _parse_review_date(value: Optional[str], fallback: datetime) -> date:
+    if value:
+        return date.fromisoformat(value)
+    return fallback.date()
+
+
+def _build_deprecation_management_review(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    today = _parse_review_date(getattr(args, "today", None), now)
+    label = args.label or "deprecation-management"
+    domains = [_deprecation_domain_review(dict(domain)) for domain in DEPRECATION_MANAGEMENT_DOMAINS]
+    domain_summary = _summarise_deprecation_domains(domains)
+    lifecycle = _build_deprecation_lifecycle_snapshot(today)
+    aggregate_status = domain_summary["aggregate_status"]
+    if not lifecycle.get("available"):
+        aggregate_status = "needs-implementation"
+    elif lifecycle.get("metrics", {}).get("error_count"):
+        aggregate_status = "needs-evidence"
+    summary = {
+        **domain_summary,
+        "aggregate_status": aggregate_status,
+        "lifecycle_audit_available": bool(lifecycle.get("available")),
+        "lifecycle_records": lifecycle.get("metrics", {}).get("records", 0),
+        "lifecycle_issue_records": lifecycle.get("metrics", {}).get("issue_records", 0),
+        "deprecated_records": lifecycle.get("metrics", {}).get("deprecated_records", 0),
+        "grace_expired": lifecycle.get("metrics", {}).get("grace_expired", 0),
+        "archive_recommended": lifecycle.get("metrics", {}).get("archive_recommended", 0),
+        "missing_migration_guidance": lifecycle.get("metrics", {}).get("missing_migration_guidance", 0),
+    }
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-deprecation-management-review",
+        "executes_actions": False,
+        "review_date": today.isoformat(),
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "lifecycle_audit": lifecycle,
+        "domains": domains,
+        "action_guidance": list(DEPRECATION_MANAGEMENT_ACTIONS),
+        "non_goals": list(DEPRECATION_MANAGEMENT_NON_GOALS),
+    }
+
+
+def _render_deprecation_management_review(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+    lifecycle = report.get("lifecycle_audit", {}) if isinstance(report.get("lifecycle_audit"), dict) else {}
+    lifecycle_metrics = lifecycle.get("metrics", {}) if isinstance(lifecycle.get("metrics"), dict) else {}
+    lines = [
+        "# Deprecation Management Review",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Review date: {report.get('review_date')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), dict) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), dict) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Lifecycle Audit Metrics",
+        "",
+        f"- Audit available: {lifecycle.get('available')}",
+        f"- Records: {lifecycle_metrics.get('records')}",
+        f"- Issue records: {lifecycle_metrics.get('issue_records')}",
+        f"- Deprecated records: {lifecycle_metrics.get('deprecated_records')}",
+        f"- Grace expired: {lifecycle_metrics.get('grace_expired')}",
+        f"- Archive recommended: {lifecycle_metrics.get('archive_recommended')}",
+        f"- Missing migration guidance: {lifecycle_metrics.get('missing_migration_guidance')}",
+        "",
+        "Status counts:",
+    ]
+    for status, count in (lifecycle_metrics.get("status_counts") or {}).items():
+        lines.append(f"- `{status}`: {count}")
+
+    lines.extend(
+        [
+            "",
+            "## Domain Summary",
+            "",
+            "| Domain | Status | Missing Required | Missing Evidence |",
+            "| --- | --- | --- | --- |",
+        ]
+    )
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        missing_required = "<br>".join(domain.get("missing_required_paths", []))
+        missing_evidence = "<br>".join(domain.get("missing_evidence_paths", []))
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | `{_md_cell(domain.get('status'))}` | "
+            f"{_md_cell(missing_required or 'None')} | {_md_cell(missing_evidence or 'None')} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Status: `{domain.get('status')}`",
+                f"- Source tasks: {', '.join(str(task) for task in domain.get('source_tasks', []))}",
+                f"- Purpose: {domain.get('purpose')}",
+                f"- Required action: {domain.get('required_action')}",
+                "",
+                "Refresh commands:",
+            ]
+        )
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        lines.extend(["", "Evidence paths:"])
+        for item in domain.get("evidence_paths", []):
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('path')}` ({item.get('kind')})")
+        lines.append("")
+
+    lines.extend(["## Deprecation Action Guidance", ""])
+    for item in report.get("action_guidance", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(f"- **{item.get('action')}**: {item.get('evidence')}")
+
+    issue_records = lifecycle.get("issue_records", []) if isinstance(lifecycle, dict) else []
+    if issue_records:
+        lines.extend(["", "## Current Lifecycle Issues", ""])
+        for record in issue_records:
+            if not isinstance(record, dict):
+                continue
+            lines.append(f"### `{record.get('path')}`")
+            for issue in record.get("issues", []):
+                if isinstance(issue, dict):
+                    lines.append(f"- `{issue.get('severity')}` `{issue.get('code')}`: {issue.get('message')}")
+            lines.append("")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static deprecation-management review artifact. It composes existing lifecycle, versioning, communication, operations, emergency, recovery, and validation evidence, but it does not instrument runtime logs, move files, send notifications, install schedulers, update dashboards, automate overrides, or contact external systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_deprecation_review(args: argparse.Namespace) -> None:
+    report = _build_deprecation_management_review(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_deprecation_management_review(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote deprecation review to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote deprecation runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 TEMPLATE_USAGE_ANALYTICS_NON_GOALS: Tuple[str, ...] = (
     "No runtime decorators, counters, instrumentation hooks, or tracking code are added to templates.",
     "No database, warehouse, event stream, time-series backend, or long-running aggregation service is created.",
@@ -9678,6 +10197,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the review JSON without writing files",
     )
     documentation_phase4.set_defaults(func=handle_phase4_documentation_review)
+
+    deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
+    deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)
+    deprecation_review = deprecation_sub.add_parser(
+        "review",
+        help="Render a static deprecation-management review packet",
+    )
+    deprecation_review.add_argument("--label", default="deprecation-management", help="Human-readable review label")
+    deprecation_review.add_argument("--today", help="Optional review date as YYYY-MM-DD")
+    deprecation_review.add_argument("--report-file", help="Optional path to write the review JSON")
+    deprecation_review.add_argument("--runbook-file", help="Optional path to write the review Markdown")
+    deprecation_review.add_argument("--dry-run", action="store_true", help="Print the review JSON without writing files")
+    deprecation_review.set_defaults(func=handle_deprecation_review)
 
     hooks_parser = subparsers.add_parser("hooks", help="Git hook verification operations")
     hooks_sub = hooks_parser.add_subparsers(dest="subcommand", required=True)
