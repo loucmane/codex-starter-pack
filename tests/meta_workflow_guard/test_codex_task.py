@@ -176,6 +176,32 @@ def test_build_parser_accepts_template_bundle_plan() -> None:
     assert args.label == "task46"
 
 
+def test_build_parser_accepts_template_usage_analytics() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "template",
+        "usage-analytics",
+        "--label",
+        "task51",
+        "--include-archive",
+        "--max-items",
+        "5",
+        "--max-examples",
+        "2",
+        "--report-file",
+        "reports/usage.json",
+        "--runbook-file",
+        "reports/usage.md",
+    ])
+    assert args.command == "template"
+    assert args.subcommand == "usage-analytics"
+    assert args.label == "task51"
+    assert args.include_archive is True
+    assert args.max_items == 5
+    assert args.max_examples == 2
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -3623,6 +3649,177 @@ def test_handle_template_bundle_plan_dry_run_prints_json_without_writing(monkeyp
     assert payload["template_count"] == 0
     assert payload["missing"]["templates"][0]["query"] == "missing-template"
     assert not (repo / "reports").exists()
+
+
+def _write_template_usage_test_repo(repo: Path) -> None:
+    _write_repo_config(repo, "templates")
+    _write_template_doc(
+        repo / "templates" / "engine" / "core" / "codex-readiness.md",
+        """
+id: engine-core-codex-readiness
+title: Codex Readiness
+type: critical-enforcement
+status: stable
+category: engine
+aliases:
+  - codex-readiness
+""",
+        "# Codex Readiness\n",
+    )
+    _write_template_doc(
+        repo / "templates" / "guides" / "index.md",
+        """
+id: guide-index
+title: Guide Index
+type: user-guide
+status: stable
+category: guides
+""",
+        "# Guide Index\n",
+    )
+    _write_template_registry(
+        repo,
+        "templates",
+        [
+            {
+                "id": "engine-core-codex-readiness",
+                "path": "templates/engine/core/codex-readiness.md",
+                "aliases": ["codex-readiness"],
+            },
+            {"id": "guide-index", "path": "templates/guides/index.md"},
+        ],
+    )
+    session = repo / "sessions" / "2026" / "05" / "2026-05-13-001-usage.md"
+    session.parent.mkdir(parents=True)
+    session.write_text(
+        "Use engine-core-codex-readiness and templates/engine/core/codex-readiness.md.\n",
+        encoding="utf-8",
+    )
+    plan = repo / "plans" / "2026-05-13-task51.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text("Review codex-readiness before changing hooks.\n", encoding="utf-8")
+    active = repo / "docs" / "ai" / "work-tracking" / "active" / "20260513-task51-ACTIVE" / "TRACKER.md"
+    active.parent.mkdir(parents=True)
+    active.write_text("Template path: templates/guides/index.md\n", encoding="utf-8")
+    archived = repo / "docs" / "ai" / "work-tracking" / "archive" / "20260512-task50-COMPLETED" / "TRACKER.md"
+    archived.parent.mkdir(parents=True)
+    archived.write_text("Historical reference: engine-core-codex-readiness\n", encoding="utf-8")
+    task_file = repo / ".taskmaster" / "tasks" / "task_051.txt"
+    task_file.parent.mkdir(parents=True)
+    task_file.write_text("Task references guide-index.\n", encoding="utf-8")
+
+
+def test_build_template_usage_analytics_counts_static_references(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_template_usage_test_repo(repo)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    report = module._build_template_usage_analytics(
+        argparse.Namespace(
+            label="task51",
+            source_dir=".",
+            include_archive=False,
+            max_items=5,
+            max_examples=2,
+        )
+    )
+
+    assert report["mode"] == "non-destructive-template-usage-analytics"
+    assert report["executes_mutations"] is False
+    assert report["source"]["include_archive"] is False
+    assert report["source_summary"]["files_scanned"] == 4
+    usage = {item["id"]: item for item in report["template_usage"]}
+    assert usage["engine-core-codex-readiness"]["id_mentions"] == 1
+    assert usage["engine-core-codex-readiness"]["path_mentions"] == 1
+    assert usage["engine-core-codex-readiness"]["alias_mentions"] == 1
+    assert usage["engine-core-codex-readiness"]["total_mentions"] == 3
+    assert usage["guide-index"]["id_mentions"] == 1
+    assert usage["guide-index"]["path_mentions"] == 1
+    assert usage["guide-index"]["total_mentions"] == 2
+    assert report["usage_summary"]["monthly_mentions"]["2026-05"] == 4
+    assert "work_tracking_archive" not in report["source"]["source_types"]
+
+
+def test_template_usage_analytics_optionally_includes_archive(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_template_usage_test_repo(repo)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    report = module._build_template_usage_analytics(
+        argparse.Namespace(
+            label="task51",
+            source_dir=".",
+            include_archive=True,
+            max_items=5,
+            max_examples=2,
+        )
+    )
+
+    usage = {item["id"]: item for item in report["template_usage"]}
+    assert report["source"]["include_archive"] is True
+    assert "work_tracking_archive" in report["source"]["source_types"]
+    assert usage["engine-core-codex-readiness"]["total_mentions"] == 4
+    assert usage["engine-core-codex-readiness"]["source_counts"]["work_tracking_archive"] == 1
+
+
+def test_render_template_usage_analytics_names_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_template_usage_test_repo(repo)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    report = module._build_template_usage_analytics(
+        argparse.Namespace(
+            label="task51",
+            source_dir=".",
+            include_archive=False,
+            max_items=5,
+            max_examples=2,
+        )
+    )
+    runbook = module._render_template_usage_analytics(report)
+
+    assert "# Template Usage Analytics" in runbook
+    assert "engine-core-codex-readiness" in runbook
+    assert "Path-Only References" in runbook
+    assert "No runtime tracker, database, live dashboard" in runbook
+
+
+def test_handle_template_usage_analytics_writes_report_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _write_template_usage_test_repo(repo)
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    module.handle_template_usage_analytics(
+        argparse.Namespace(
+            label="task51",
+            source_dir=".",
+            include_archive=False,
+            max_items=5,
+            max_examples=2,
+            report_file="reports/template-usage-analytics/latest.json",
+            runbook_file="reports/template-usage-analytics/latest.md",
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote template usage analytics report to reports/template-usage-analytics/latest.json" in output
+    assert "Wrote template usage analytics runbook to reports/template-usage-analytics/latest.md" in output
+    payload = json.loads((repo / "reports" / "template-usage-analytics" / "latest.json").read_text(encoding="utf-8"))
+    assert payload["usage_summary"]["templates_with_observed_usage"] == 2
+    assert "Template Usage Analytics" in (repo / "reports" / "template-usage-analytics" / "latest.md").read_text(encoding="utf-8")
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:

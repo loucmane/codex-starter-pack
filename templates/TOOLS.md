@@ -76,6 +76,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `serena status --strict [--report-file <path>]` – verify Codex and project-level Serena MCP configuration plus `.serena/memories/` readiness before relying on Serena evidence.
 - `compaction checkpoint --task <id> --slug <slug> --summary <state> --next-step <next>` – create a continuation checkpoint before context compaction, including manifest, resume message, Serena memory file, session/tracker entries, handoff note, and `.plan_state/compaction-history.jsonl`.
 - `operations runbook --label <label>` – render a static operational runbook packet that composes daily workflow, recurring maintenance, incident response, troubleshooting, escalation, and validation guidance over existing helpers.
+- `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:
@@ -131,6 +132,13 @@ Inputs come from Taskmaster state, template-drift reports, plan-sync history, wo
 
 Repo-structure note:
 - The metrics generator also reads `[repo_structure]` from `.codex/config.toml`, so alternate repos can relocate Taskmaster, reports, sessions, and work-tracking without patching the script.
+
+### `scripts/codex-task template usage-analytics`
+Static template usage analytics over the registry and workflow evidence. Use it to produce:
+- `reports/template-usage-analytics/latest.json`
+- `reports/template-usage-analytics/latest.md`
+
+The report loads templates via `TemplateRegistry`, scans sessions, plans, active work tracking, and `.taskmaster/tasks/`, and reports template ID/path/alias mentions plus review queues for path-only references and zero-observed-reference templates. It does not add runtime decorators, create a data store, run a live dashboard, send alerts, train predictive models, mutate templates, or contact external analytics services.
 
 ### Static Telemetry Pipeline
 Use the static telemetry pipeline when you need a complete local/CI snapshot of workflow health:
