@@ -3139,6 +3139,82 @@ MIGRATION_METRIC_NON_GOALS: Tuple[str, ...] = (
     "No scanner output is regenerated and no remediation mutation is applied.",
 )
 
+POST_MIGRATION_MONITORING_NON_GOALS: Tuple[str, ...] = (
+    "No scheduler, daemon, cron job, or background worker is installed.",
+    "No Prometheus, Grafana, OpenTelemetry, Elasticsearch, StatsD, or database service is configured.",
+    "No Slack, email, PagerDuty, ticket, issue, or webhook alert is sent.",
+    "No scanner output, telemetry artifact, Taskmaster state, or remediation file is mutated by this report.",
+    "No live production endpoint, secret, billing account, or hosted observability backend is contacted.",
+)
+
+POST_MIGRATION_MONITORING_CADENCES: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "weekly-scanner-health",
+        "cadence": "weekly",
+        "title": "Weekly scanner and migration-health refresh",
+        "purpose": "Keep scanner-derived migration KPIs and aggregate static telemetry current.",
+        "commands": (
+            "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci",
+            "python3 scripts/template-ssot-scanner/baseline_summary.py --data-dir scripts/template-ssot-scanner/output/data",
+            "python3 scripts/codex-task report generate --kind telemetry",
+            "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+            "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>",
+        ),
+        "evidence": (
+            "scanner baseline summary",
+            "migration metrics packet",
+            "migration health report",
+            "post-migration monitoring packet",
+        ),
+    },
+    {
+        "id": "monthly-usage-review",
+        "cadence": "monthly",
+        "title": "Monthly usage and cost review",
+        "purpose": "Review static cost telemetry and open migration actions before scope drift accumulates.",
+        "commands": (
+            "python3 scripts/codex-task report generate --kind cost",
+            "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>",
+        ),
+        "evidence": (
+            "cost tracking report",
+            "post-migration monitoring packet",
+        ),
+    },
+    {
+        "id": "quarterly-benchmark-update",
+        "cadence": "quarterly",
+        "title": "Quarterly benchmark and regression review",
+        "purpose": "Refresh performance baselines and review migration-health trend inputs.",
+        "commands": (
+            "python3 scripts/template-performance-harness --report-dir reports/template-performance",
+            "python3 scripts/codex-task report generate --kind migration-health",
+            "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>",
+        ),
+        "evidence": (
+            "template performance report",
+            "migration health report",
+            "post-migration monitoring packet",
+        ),
+    },
+    {
+        "id": "yearly-planning-review",
+        "cadence": "yearly",
+        "title": "Yearly roadmap and planning review",
+        "purpose": "Regenerate the migration roadmap and compare remaining work against Taskmaster health.",
+        "commands": (
+            "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+            "python3 scripts/codex-task taskmaster health --report-file <taskmaster-health.txt>",
+            "python3 scripts/codex-task validation final-suite --dry-run",
+        ),
+        "evidence": (
+            "migration roadmap",
+            "Taskmaster health report",
+            "final validation dry-run",
+        ),
+    },
+)
+
 
 def _wrapped_data_document(path_value: str | Path, label: str) -> Dict[str, Any]:
     path = Path(path_value)
@@ -3671,6 +3747,353 @@ def handle_migration_metrics(args: argparse.Namespace) -> None:
 
     if args.strict and report["aggregate_status"] == "fail":
         raise TaskError("Migration metrics aggregate status is fail")
+
+
+def _normalise_monitoring_status(value: object) -> str:
+    normalised = str(value or "missing").strip().lower()
+    aliases = {
+        "ok": "pass",
+        "passed": "pass",
+        "success": "pass",
+        "warning": "warn",
+        "warnings": "warn",
+        "error": "fail",
+        "failed": "fail",
+        "failure": "fail",
+    }
+    normalised = aliases.get(normalised, normalised)
+    if normalised in {"pass", "warn", "fail", "missing", "not-measured"}:
+        return normalised
+    return "warn"
+
+
+def _post_migration_monitoring_severity(status: str) -> str:
+    if status == "fail":
+        return "error"
+    if status in {"warn", "missing", "not-measured"}:
+        return "warning"
+    return "info"
+
+
+def _extract_report_status(payload: Mapping[str, Any], fields: Sequence[str]) -> str:
+    for field in fields:
+        if field in payload:
+            return _normalise_monitoring_status(payload.get(field))
+    return "missing"
+
+
+def _summarise_post_migration_items(payload: Mapping[str, Any], max_items: int) -> List[Dict[str, Any]]:
+    raw_items = payload.get("kpis")
+    if not isinstance(raw_items, list):
+        raw_items = payload.get("components")
+    if not isinstance(raw_items, list):
+        return []
+    items: List[Dict[str, Any]] = []
+    for raw in raw_items[: max(0, max_items)]:
+        if not isinstance(raw, dict):
+            continue
+        items.append(
+            {
+                "id": raw.get("id"),
+                "title": raw.get("title"),
+                "status": _normalise_monitoring_status(raw.get("status")),
+                "severity": raw.get("severity") or _post_migration_monitoring_severity(_normalise_monitoring_status(raw.get("status"))),
+                "value": raw.get("value"),
+                "target": raw.get("target"),
+                "evidence": raw.get("evidence"),
+                "message": raw.get("message"),
+            }
+        )
+    return items
+
+
+def _normalise_post_migration_input(
+    path_value: str | Path | None,
+    label: str,
+    status_fields: Sequence[str],
+    max_items: int,
+) -> Dict[str, Any]:
+    if not path_value:
+        return {
+            "path": None,
+            "exists": False,
+            "status": "missing",
+            "severity": "warning",
+            "generated_at": None,
+            "summary": None,
+            "items": [],
+            "message": f"{label} was not provided.",
+        }
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    relative = _relative_to_root(path, REPO_ROOT)
+    if not path.exists():
+        return {
+            "path": relative,
+            "exists": False,
+            "status": "missing",
+            "severity": "warning",
+            "generated_at": None,
+            "summary": None,
+            "items": [],
+            "message": f"{label} was not found.",
+        }
+    payload = _load_json_document(path.as_posix(), label)
+    status = _extract_report_status(payload, status_fields)
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else None
+    return {
+        "path": relative,
+        "exists": True,
+        "status": status,
+        "severity": _post_migration_monitoring_severity(status),
+        "generated_at": payload.get("created_at") or payload.get("generated_at"),
+        "summary": summary,
+        "items": _summarise_post_migration_items(payload, max_items),
+        "message": f"{label} loaded successfully.",
+    }
+
+
+def _post_migration_monitoring_status(inputs: Sequence[Mapping[str, Any]]) -> str:
+    statuses = {_normalise_monitoring_status(item.get("status")) for item in inputs}
+    if "fail" in statuses:
+        return "fail"
+    if statuses.intersection({"warn", "missing", "not-measured"}):
+        return "warn"
+    return "pass"
+
+
+def _post_migration_monitoring_actions(
+    metrics: Mapping[str, Any],
+    health: Mapping[str, Any],
+) -> List[Dict[str, str]]:
+    actions: List[Dict[str, str]] = []
+    if metrics.get("status") == "missing":
+        actions.append(
+            {
+                "id": "generate-migration-metrics",
+                "severity": "warning",
+                "title": "Generate the migration metrics packet.",
+                "command": "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+            }
+        )
+    elif metrics.get("status") == "fail":
+        actions.append(
+            {
+                "id": "resolve-failing-migration-kpis",
+                "severity": "error",
+                "title": "Resolve or explicitly waive failing migration KPIs.",
+                "command": "Review the migration metrics runbook and update the roadmap before closing monitoring.",
+            }
+        )
+    elif metrics.get("status") in {"warn", "not-measured"}:
+        actions.append(
+            {
+                "id": "review-warning-migration-kpis",
+                "severity": "warning",
+                "title": "Review warning-level or incomplete migration KPI inputs.",
+                "command": "Refresh scanner, roadmap, and security inputs before the next monitoring review.",
+            }
+        )
+
+    if health.get("status") == "missing":
+        actions.append(
+            {
+                "id": "generate-migration-health",
+                "severity": "warning",
+                "title": "Generate the aggregate migration-health report.",
+                "command": "python3 scripts/codex-task report generate --kind migration-health",
+            }
+        )
+    elif health.get("status") == "fail":
+        actions.append(
+            {
+                "id": "resolve-failing-migration-health",
+                "severity": "error",
+                "title": "Resolve fail-level migration-health components.",
+                "command": "Review reports/migration-health/latest.md and refresh failing source reports.",
+            }
+        )
+    elif health.get("status") in {"warn", "not-measured"}:
+        actions.append(
+            {
+                "id": "review-warning-migration-health",
+                "severity": "warning",
+                "title": "Review warning or missing migration-health components.",
+                "command": "python3 scripts/codex-task report generate --kind telemetry",
+            }
+        )
+    if not actions:
+        actions.append(
+            {
+                "id": "continue-monitoring-cadence",
+                "severity": "info",
+                "title": "Continue the post-migration monitoring cadence.",
+                "command": "Store the monitoring packet with weekly/monthly/quarterly/yearly evidence.",
+            }
+        )
+    return actions
+
+
+def _build_post_migration_monitoring_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    metrics = _normalise_post_migration_input(
+        args.metrics_report,
+        "Migration metrics report",
+        ("aggregate_status", "status"),
+        args.max_items,
+    )
+    health = _normalise_post_migration_input(
+        args.migration_health_report,
+        "Migration health report",
+        ("status", "aggregate_status"),
+        args.max_items,
+    )
+    aggregate_status = _post_migration_monitoring_status((metrics, health))
+    actions = _post_migration_monitoring_actions(metrics, health)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "static-file-backed-post-migration-monitoring",
+        "executes_external_actions": False,
+        "aggregate_status": aggregate_status,
+        "summary": {
+            "inputs": 2,
+            "available_inputs": sum(1 for item in (metrics, health) if item.get("exists")),
+            "cadence_checks": len(POST_MIGRATION_MONITORING_CADENCES),
+            "required_actions": len(actions),
+            "failures": sum(1 for item in (metrics, health) if item.get("status") == "fail"),
+            "warnings": sum(1 for item in (metrics, health) if item.get("status") in {"warn", "missing", "not-measured"}),
+        },
+        "inputs": {
+            "migration_metrics": metrics,
+            "migration_health": health,
+        },
+        "required_actions": actions,
+        "cadence_plan": list(POST_MIGRATION_MONITORING_CADENCES),
+        "automation_guidance": {
+            "report_refresh": "Run static report commands manually, in CI, or in a reviewed scheduler owned by the downstream project.",
+            "default_review_packet": "Store the generated JSON and Markdown packet as task-local evidence before acting on findings.",
+            "strict_gate": "Use --strict only when fail-level post-migration status should fail the caller.",
+        },
+        "non_goals": list(POST_MIGRATION_MONITORING_NON_GOALS),
+    }
+
+
+def _render_post_migration_monitoring_runbook(report: Dict[str, Any]) -> str:
+    lines = [
+        "# Post-Migration Monitoring",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Aggregate status: {report.get('aggregate_status')}",
+        f"- Executes external actions: {report.get('executes_external_actions')}",
+        "",
+        "## Inputs",
+        "",
+        "| Input | Path | Exists | Status | Severity | Generated at |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    for name, value in inputs.items():
+        if not isinstance(value, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(name)} | {_md_cell(value.get('path'))} | {_md_cell(value.get('exists'))} | "
+            f"{_md_cell(value.get('status'))} | {_md_cell(value.get('severity'))} | {_md_cell(value.get('generated_at'))} |"
+        )
+
+    lines.extend(["", "## Required Actions", ""])
+    for action in report.get("required_actions", []):
+        if not isinstance(action, dict):
+            continue
+        lines.append(f"- **{action.get('severity')}** - {action.get('title')} `{action.get('command')}`")
+
+    lines.extend(["", "## Source Highlights", ""])
+    for name, value in inputs.items():
+        if not isinstance(value, dict):
+            continue
+        items = value.get("items") if isinstance(value.get("items"), list) else []
+        if not items:
+            continue
+        lines.extend([f"### {name.replace('_', ' ').title()}", "", "| Item | Status | Severity | Value | Target | Evidence |", "| --- | --- | --- | --- | --- | --- |"])
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"| {_md_cell(item.get('title') or item.get('id'))} | {_md_cell(item.get('status'))} | "
+                f"{_md_cell(item.get('severity'))} | {_md_cell(item.get('value'))} | "
+                f"{_md_cell(item.get('target'))} | {_md_cell(item.get('evidence'))} |"
+            )
+        lines.append("")
+
+    lines.extend(["## Cadence Plan", "", "| Cadence | Check | Purpose | Commands | Evidence |", "| --- | --- | --- | --- | --- |"])
+    for item in report.get("cadence_plan", []):
+        if not isinstance(item, dict):
+            continue
+        commands = "<br>".join(f"`{command}`" for command in item.get("commands", []))
+        evidence = "<br>".join(str(value) for value in item.get("evidence", []))
+        lines.append(
+            f"| {_md_cell(item.get('cadence'))} | {_md_cell(item.get('title'))} | "
+            f"{_md_cell(item.get('purpose'))} | {commands} | {_md_cell(evidence)} |"
+        )
+
+    lines.extend(["", "## Automation Guidance", ""])
+    guidance = report.get("automation_guidance") if isinstance(report.get("automation_guidance"), dict) else {}
+    for key, value in guidance.items():
+        lines.append(f"- {key}: {value}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static review artifact. It coordinates existing reports and review cadences, but it does not install or execute a production monitoring system.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_post_migration_monitoring(args: argparse.Namespace) -> None:
+    report = _build_post_migration_monitoring_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_post_migration_monitoring_runbook(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["aggregate_status"] == "fail":
+            raise TaskError("Post-migration monitoring aggregate status is fail")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote post-migration monitoring report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote post-migration monitoring runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["aggregate_status"] == "fail":
+        raise TaskError("Post-migration monitoring aggregate status is fail")
 
 
 def _resolve_current_plan_path() -> Path:
@@ -6792,6 +7215,20 @@ def build_parser() -> argparse.ArgumentParser:
     migration_metrics.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate migration metrics fail")
     migration_metrics.add_argument("--dry-run", action="store_true", help="Print the metrics JSON without writing files")
     migration_metrics.set_defaults(func=handle_migration_metrics)
+    migration_monitoring = migration_sub.add_parser("monitoring", help="Render a static post-migration monitoring packet")
+    migration_monitoring.add_argument("--label", default="post-migration-monitoring", help="Human-readable monitoring label")
+    migration_monitoring.add_argument("--metrics-report", help="Migration metrics JSON produced by `codex-task migration metrics`")
+    migration_monitoring.add_argument(
+        "--migration-health-report",
+        default=(REPO_ROOT / "reports" / "migration-health" / "latest.json").relative_to(REPO_ROOT).as_posix(),
+        help="Migration health JSON produced by `codex-task report generate --kind migration-health`",
+    )
+    migration_monitoring.add_argument("--report-file", help="Optional path to write the monitoring JSON packet")
+    migration_monitoring.add_argument("--runbook-file", help="Optional path to write the monitoring Markdown runbook")
+    migration_monitoring.add_argument("--max-items", type=int, default=10, help="Number of source KPI/component items to include")
+    migration_monitoring.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate post-migration monitoring status fails")
+    migration_monitoring.add_argument("--dry-run", action="store_true", help="Print the monitoring JSON without writing files")
+    migration_monitoring.set_defaults(func=handle_post_migration_monitoring)
 
     compaction_parser = subparsers.add_parser("compaction", help="Context compaction checkpoint operations")
     compaction_sub = compaction_parser.add_subparsers(dest="subcommand", required=True)

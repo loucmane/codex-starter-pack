@@ -100,6 +100,15 @@ def test_build_parser_accepts_migration_metrics() -> None:
     assert args.label == "task-55"
 
 
+def test_build_parser_accepts_post_migration_monitoring() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["migration", "monitoring", "--label", "task-60"])
+    assert args.command == "migration"
+    assert args.subcommand == "monitoring"
+    assert args.label == "task-60"
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -1281,6 +1290,204 @@ def test_handle_migration_metrics_strict_fails_after_writing(monkeypatch, tmp_pa
                 roadmap=str(roadmap),
                 security_report=str(security),
                 max_roadmap_items=1,
+                report_file=str(report),
+                runbook_file=None,
+                dry_run=False,
+                strict=True,
+            )
+        )
+
+    assert report.exists()
+
+
+def _write_post_migration_monitoring_inputs(repo: Path, metrics_status: str = "fail", health_status: str = "warn"):
+    metrics = repo / "reports" / "migration-metrics.json"
+    health = repo / "reports" / "migration-health" / "latest.json"
+    metrics.parent.mkdir(parents=True, exist_ok=True)
+    health.parent.mkdir(parents=True, exist_ok=True)
+    metrics.write_text(
+        json.dumps(
+            {
+                "created_at": "2026-05-13T14:00:00+02:00",
+                "aggregate_status": metrics_status,
+                "summary": {"total_kpis": 2, "failures": 1 if metrics_status == "fail" else 0},
+                "kpis": [
+                    {
+                        "id": "migration-completion",
+                        "title": "Migration completion",
+                        "status": "pass",
+                        "severity": "info",
+                        "value": 100.0,
+                        "target": "100",
+                        "evidence": "baseline_summary.json",
+                    },
+                    {
+                        "id": "broken-references",
+                        "title": "Broken references",
+                        "status": metrics_status,
+                        "severity": "error" if metrics_status == "fail" else "info",
+                        "value": 4 if metrics_status == "fail" else 0,
+                        "target": "0",
+                        "evidence": "baseline_summary.json",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    health.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-05-13T14:05:00+02:00",
+                "status": health_status,
+                "summary": {"total": 2, "warnings": 1 if health_status == "warn" else 0, "errors": 0},
+                "components": [
+                    {
+                        "id": "metrics",
+                        "title": "Template metrics dashboard",
+                        "status": "pass",
+                        "severity": "info",
+                        "evidence": "reports/template-metrics/latest.json",
+                        "message": "Loaded.",
+                    },
+                    {
+                        "id": "monitoring",
+                        "title": "Template monitoring",
+                        "status": health_status,
+                        "severity": "warning" if health_status == "warn" else "info",
+                        "evidence": "reports/template-monitoring/latest.json",
+                        "message": "Review warning.",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return metrics, health
+
+
+def test_build_post_migration_monitoring_report_combines_metrics_and_health(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    metrics, health = _write_post_migration_monitoring_inputs(repo)
+
+    report = module._build_post_migration_monitoring_report(
+        argparse.Namespace(
+            label="task-60",
+            metrics_report=str(metrics),
+            migration_health_report=str(health),
+            max_items=5,
+        )
+    )
+
+    assert report["mode"] == "static-file-backed-post-migration-monitoring"
+    assert report["executes_external_actions"] is False
+    assert report["aggregate_status"] == "fail"
+    assert report["summary"]["available_inputs"] == 2
+    assert report["inputs"]["migration_metrics"]["items"][1]["title"] == "Broken references"
+    assert report["inputs"]["migration_health"]["items"][1]["title"] == "Template monitoring"
+    assert {action["id"] for action in report["required_actions"]} == {
+        "resolve-failing-migration-kpis",
+        "review-warning-migration-health",
+    }
+    assert "No scheduler, daemon, cron job, or background worker is installed." in report["non_goals"]
+
+
+def test_post_migration_monitoring_report_handles_missing_inputs(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    report = module._build_post_migration_monitoring_report(
+        argparse.Namespace(
+            label="task-60",
+            metrics_report=None,
+            migration_health_report=str(repo / "reports" / "migration-health" / "latest.json"),
+            max_items=5,
+        )
+    )
+
+    assert report["aggregate_status"] == "warn"
+    assert report["summary"]["available_inputs"] == 0
+    assert report["inputs"]["migration_metrics"]["status"] == "missing"
+    assert report["inputs"]["migration_health"]["status"] == "missing"
+    assert {action["id"] for action in report["required_actions"]} == {
+        "generate-migration-metrics",
+        "generate-migration-health",
+    }
+
+
+def test_render_post_migration_monitoring_runbook_lists_cadences_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    metrics, health = _write_post_migration_monitoring_inputs(repo, metrics_status="pass", health_status="pass")
+    report = module._build_post_migration_monitoring_report(
+        argparse.Namespace(
+            label="task-60",
+            metrics_report=str(metrics),
+            migration_health_report=str(health),
+            max_items=5,
+        )
+    )
+
+    runbook = module._render_post_migration_monitoring_runbook(report)
+
+    assert "# Post-Migration Monitoring" in runbook
+    assert "Weekly scanner and migration-health refresh" in runbook
+    assert "Monthly usage and cost review" in runbook
+    assert "No scheduler, daemon, cron job" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_post_migration_monitoring_writes_report_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    metrics, health = _write_post_migration_monitoring_inputs(repo)
+    report = repo / "reports" / "post-migration-monitoring.json"
+    runbook = repo / "reports" / "post-migration-monitoring.md"
+
+    module.handle_post_migration_monitoring(
+        argparse.Namespace(
+            label="task-60",
+            metrics_report=str(metrics),
+            migration_health_report=str(health),
+            max_items=5,
+            report_file=str(report),
+            runbook_file=str(runbook),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote post-migration monitoring report to reports/post-migration-monitoring.json" in output
+    assert "Wrote post-migration monitoring runbook to reports/post-migration-monitoring.md" in output
+    assert json.loads(report.read_text(encoding="utf-8"))["aggregate_status"] == "fail"
+    assert "Post-Migration Monitoring" in runbook.read_text(encoding="utf-8")
+
+
+def test_handle_post_migration_monitoring_strict_fails_after_writing(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    metrics, health = _write_post_migration_monitoring_inputs(repo)
+    report = repo / "reports" / "post-migration-monitoring.json"
+
+    with pytest.raises(module.TaskError, match="aggregate status is fail"):
+        module.handle_post_migration_monitoring(
+            argparse.Namespace(
+                label="task-60",
+                metrics_report=str(metrics),
+                migration_health_report=str(health),
+                max_items=5,
                 report_file=str(report),
                 runbook_file=None,
                 dry_run=False,
