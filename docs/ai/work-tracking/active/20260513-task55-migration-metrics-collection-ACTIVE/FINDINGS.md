@@ -1,0 +1,6 @@
+# Findings
+
+- 2026-05-13 13:30 CEST — Task 55's historical wording assumes live metrics infrastructure, but the current foundation already standardized telemetry, monitoring, migration health, security, rehearsal, rollout, and final validation as static file-backed reports.
+- 2026-05-13 13:30 CEST — The current gap is not another dashboard or collector; it is a dedicated migration KPI packet that combines scanner baseline, roadmap, and security outputs into one exportable migration-metrics artifact.
+- 2026-05-13 13:38 CEST — Current scanner evidence truthfully reports migration debt: 37.5% migration completion, 43 broken references, 19 circular dependencies, 4 duplicate files, 45 recommended fixes, and 24 critical roadmap items. The metrics packet correctly exports aggregate status `fail` rather than hiding those blockers.
+- 2026-05-13 13:58 CEST — Attempting to update the completed Taskmaster parent details through `task-master update-task` required reopening the task and then hung in the Claude provider after needing home-directory writes. The process was stopped, Task 55 was restored to `done`, and the authoritative current-scope explanation remains in the task plan, tracker, handoff, and generated evidence.

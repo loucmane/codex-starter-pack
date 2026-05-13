@@ -1,0 +1,3427 @@
+{
+  "metadata": {
+    "scan_timestamp": "2026-05-13T13:37:58.842670",
+    "scanner": "migration_roadmap",
+    "scanner_version": "1.0.0",
+    "output_format_version": "2.0.0",
+    "duration_seconds": 0.0,
+    "stats": {
+      "roadmap_items": 51,
+      "taskmaster_items": 51,
+      "priority_critical": 24,
+      "priority_high": 24,
+      "priority_medium": 2,
+      "priority_low": 1
+    }
+  },
+  "data": {
+    "generated_at": "2026-05-13T13:37:58.841972",
+    "migration_roadmap_version": "1.0.0",
+    "data_dir": "scripts/template-ssot-scanner/output/data",
+    "summary_metrics": {
+      "total_files": 343,
+      "total_lines": 55840,
+      "checkpoints_saved": 0,
+      "total_references": 741,
+      "unique_references": 327,
+      "files_with_references": 108,
+      "broken_references": 43,
+      "circular_dependencies": 19,
+      "orphaned_files": 87,
+      "duplicate_count": 4,
+      "exact_duplicate_groups": 2,
+      "partial_duplicate_pairs": 1,
+      "migration_percentage": 37.5,
+      "monolithic_files": 8,
+      "modular_files": 335,
+      "total_fixes": 45,
+      "broken_reference_fixes": 43,
+      "duplicate_removals": 2,
+      "recommendations": 5,
+      "migration_files_scanned": 10,
+      "fully_migrated": 4,
+      "partially_migrated": 5,
+      "not_migrated": 1,
+      "pending_migration": 6
+    },
+    "priority_counts": {
+      "critical": 24,
+      "high": 24,
+      "medium": 2,
+      "low": 1
+    },
+    "category_counts": {
+      "references": 24,
+      "dependencies": 19,
+      "migration": 5,
+      "duplicates": 2,
+      "orphaned-files": 1
+    },
+    "phases": [
+      {
+        "id": "phase-1-critical-integrity",
+        "title": "Critical integrity",
+        "priorities": [
+          "critical"
+        ],
+        "start_day": 0,
+        "duration_days": 2
+      },
+      {
+        "id": "phase-2-foundation-correctness",
+        "title": "Foundation correctness",
+        "priorities": [
+          "high"
+        ],
+        "start_day": 2,
+        "duration_days": 3
+      },
+      {
+        "id": "phase-3-maintenance-risk",
+        "title": "Maintenance risk",
+        "priorities": [
+          "medium"
+        ],
+        "start_day": 5,
+        "duration_days": 2
+      },
+      {
+        "id": "phase-4-optimization-backlog",
+        "title": "Optimization backlog",
+        "priorities": [
+          "low"
+        ],
+        "start_day": 7,
+        "duration_days": 2
+      }
+    ],
+    "items": [
+      {
+        "id": "critical-references-004",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/MATRICES.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/MATRICES.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/MATRICES.md",
+            "broken_reference": "CONVENTIONS.md#resolve-session-void",
+            "normalized": "templates/CONVENTIONS.md",
+            "type": "anchor",
+            "anchor": "resolve-session-void",
+            "line_count": 241
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/MATRICES.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/MATRICES.md. Sample evidence: {\"anchor\": \"resolve-session-void\", \"broken_reference\": \"CONVENTIONS.md#resolve-session-void\", \"line_count\": 241, \"normalized\": \"templates/CONVENTIONS.md\", \"source_file\": \"templates/MATRICES.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-004",
+            "category": "references",
+            "source_files": [
+              "templates/MATRICES.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-005",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/REGISTRY.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/REGISTRY.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/REGISTRY.md",
+            "broken_reference": "USER-GUIDE.md#troubleshooting-guide",
+            "normalized": "templates/USER-GUIDE.md",
+            "type": "anchor",
+            "anchor": "troubleshooting-guide",
+            "line_count": 841
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/REGISTRY.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/REGISTRY.md. Sample evidence: {\"anchor\": \"troubleshooting-guide\", \"broken_reference\": \"USER-GUIDE.md#troubleshooting-guide\", \"line_count\": 841, \"normalized\": \"templates/USER-GUIDE.md\", \"source_file\": \"templates/REGISTRY.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-005",
+            "category": "references",
+            "source_files": [
+              "templates/REGISTRY.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-007",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/behaviors/planning/plan-compliance.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/behaviors/planning/plan-compliance.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/behaviors/planning/plan-compliance.md",
+            "broken_reference": "../../designs/meta-workflow-authoring-draft.md",
+            "normalized": "../../designs/meta-workflow-authoring-draft.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 59
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/behaviors/planning/plan-compliance.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/behaviors/planning/plan-compliance.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../../designs/meta-workflow-authoring-draft.md\", \"line_count\": 59, \"normalized\": \"../../designs/meta-workflow-authoring-draft.md\", \"source_file\": \"templates/behaviors/planning/plan-compliance.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-007",
+            "category": "references",
+            "source_files": [
+              "templates/behaviors/planning/plan-compliance.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-008",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/behaviors/work-tracking/update-tracker.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/behaviors/work-tracking/update-tracker.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/behaviors/work-tracking/update-tracker.md",
+            "broken_reference": "../../templates/workflows/handlers/intent-handlers.md#create-todos",
+            "normalized": "../../templates/workflows/handlers/intent-handlers.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 259
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/behaviors/work-tracking/update-tracker.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/behaviors/work-tracking/update-tracker.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../../templates/workflows/handlers/intent-handlers.md#create-todos\", \"line_count\": 259, \"normalized\": \"../../templates/workflows/handlers/intent-handlers.md\", \"source_file\": \"templates/behaviors/work-tracking/update-tracker.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-008",
+            "category": "references",
+            "source_files": [
+              "templates/behaviors/work-tracking/update-tracker.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-009",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/conventions/docs/documentation-standards.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/conventions/docs/documentation-standards.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/conventions/docs/documentation-standards.md",
+            "broken_reference": "CONTRIBUTING.md",
+            "normalized": "CONTRIBUTING.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 326
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/conventions/docs/documentation-standards.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/conventions/docs/documentation-standards.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"CONTRIBUTING.md\", \"line_count\": 326, \"normalized\": \"CONTRIBUTING.md\", \"source_file\": \"templates/conventions/docs/documentation-standards.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-009",
+            "category": "references",
+            "source_files": [
+              "templates/conventions/docs/documentation-standards.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-011",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/coordination/session-swhe-integration.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/coordination/session-swhe-integration.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/coordination/session-swhe-integration.md",
+            "broken_reference": "templates/handlers/*/session/*.md",
+            "normalized": "templates/handlers/*/session/*.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 572
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/coordination/session-swhe-integration.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/coordination/session-swhe-integration.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/*/session/*.md\", \"line_count\": 572, \"normalized\": \"templates/handlers/*/session/*.md\", \"source_file\": \"templates/coordination/session-swhe-integration.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-011",
+            "category": "references",
+            "source_files": [
+              "templates/coordination/session-swhe-integration.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-012",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/engine/navigation/common-flows.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/engine/navigation/common-flows.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/engine/navigation/common-flows.md",
+            "broken_reference": "handlers/operators/git/commit-changes.md",
+            "normalized": "handlers/operators/git/commit-changes.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 60
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/engine/navigation/common-flows.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/engine/navigation/common-flows.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"handlers/operators/git/commit-changes.md\", \"line_count\": 60, \"normalized\": \"handlers/operators/git/commit-changes.md\", \"source_file\": \"templates/engine/navigation/common-flows.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-012",
+            "category": "references",
+            "source_files": [
+              "templates/engine/navigation/common-flows.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-013",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/engine/validation/foundation-adoption-guide.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/engine/validation/foundation-adoption-guide.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/engine/validation/foundation-adoption-guide.md",
+            "broken_reference": ".codex/bootstrap/FOUNDATION-SETUP.md",
+            "normalized": ".codex/bootstrap/FOUNDATION-SETUP.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 302
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/engine/validation/foundation-adoption-guide.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/engine/validation/foundation-adoption-guide.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \".codex/bootstrap/FOUNDATION-SETUP.md\", \"line_count\": 302, \"normalized\": \".codex/bootstrap/FOUNDATION-SETUP.md\", \"source_file\": \"templates/engine/validation/foundation-adoption-guide.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-013",
+            "category": "references",
+            "source_files": [
+              "templates/engine/validation/foundation-adoption-guide.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-015",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/integration/best-practices/template-design.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/integration/best-practices/template-design.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/integration/best-practices/template-design.md",
+            "broken_reference": "new-template.md",
+            "normalized": "new-template.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 605
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/integration/best-practices/template-design.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/integration/best-practices/template-design.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"new-template.md\", \"line_count\": 605, \"normalized\": \"new-template.md\", \"source_file\": \"templates/integration/best-practices/template-design.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-015",
+            "category": "references",
+            "source_files": [
+              "templates/integration/best-practices/template-design.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-016",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/integration/guides/adding-agents.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/integration/guides/adding-agents.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/integration/guides/adding-agents.md",
+            "broken_reference": ".claude/agents/api-doc-generator.md",
+            "normalized": ".claude/agents/api-doc-generator.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 462
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/integration/guides/adding-agents.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/integration/guides/adding-agents.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \".claude/agents/api-doc-generator.md\", \"line_count\": 462, \"normalized\": \".claude/agents/api-doc-generator.md\", \"source_file\": \"templates/integration/guides/adding-agents.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-016",
+            "category": "references",
+            "source_files": [
+              "templates/integration/guides/adding-agents.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-018",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/matrices/index.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/matrices/index.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/matrices/index.md",
+            "broken_reference": "../registry/index.md#resolve-handler-void",
+            "normalized": "templates/registry/index.md",
+            "type": "anchor",
+            "anchor": "resolve-handler-void",
+            "line_count": 116
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/matrices/index.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/matrices/index.md. Sample evidence: {\"anchor\": \"resolve-handler-void\", \"broken_reference\": \"../registry/index.md#resolve-handler-void\", \"line_count\": 116, \"normalized\": \"templates/registry/index.md\", \"source_file\": \"templates/matrices/index.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-018",
+            "category": "references",
+            "source_files": [
+              "templates/matrices/index.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-019",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/registry/MIGRATION-REPORT.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/registry/MIGRATION-REPORT.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/registry/MIGRATION-REPORT.md",
+            "broken_reference": ".claude/registry/[component].md",
+            "normalized": ".claude/registry/[component].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 159
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/registry/MIGRATION-REPORT.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/MIGRATION-REPORT.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \".claude/registry/[component].md\", \"line_count\": 159, \"normalized\": \".claude/registry/[component].md\", \"source_file\": \"templates/registry/MIGRATION-REPORT.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-019",
+            "category": "references",
+            "source_files": [
+              "templates/registry/MIGRATION-REPORT.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-020",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/registry/handlers/operators-registry.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/registry/handlers/operators-registry.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/registry/handlers/operators-registry.md",
+            "broken_reference": "templates/handlers/operators/[domain]/[handler].md",
+            "normalized": "templates/handlers/operators/[domain]/[handler].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 238
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/registry/handlers/operators-registry.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/handlers/operators-registry.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/operators/[domain]/[handler].md\", \"line_count\": 238, \"normalized\": \"templates/handlers/operators/[domain]/[handler].md\", \"source_file\": \"templates/registry/handlers/operators-registry.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-020",
+            "category": "references",
+            "source_files": [
+              "templates/registry/handlers/operators-registry.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-021",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/registry/handlers/orchestrators-registry.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/registry/handlers/orchestrators-registry.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/registry/handlers/orchestrators-registry.md",
+            "broken_reference": "templates/handlers/orchestrators/[handler].md",
+            "normalized": "templates/handlers/orchestrators/[handler].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 101
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/registry/handlers/orchestrators-registry.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/handlers/orchestrators-registry.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/orchestrators/[handler].md\", \"line_count\": 101, \"normalized\": \"templates/handlers/orchestrators/[handler].md\", \"source_file\": \"templates/registry/handlers/orchestrators-registry.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-021",
+            "category": "references",
+            "source_files": [
+              "templates/registry/handlers/orchestrators-registry.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-022",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/registry/handlers/triggers-registry.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/registry/handlers/triggers-registry.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/registry/handlers/triggers-registry.md",
+            "broken_reference": "templates/handlers/triggers/[domain]/[handler].md",
+            "normalized": "templates/handlers/triggers/[domain]/[handler].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 200
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/registry/handlers/triggers-registry.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/handlers/triggers-registry.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/triggers/[domain]/[handler].md\", \"line_count\": 200, \"normalized\": \"templates/handlers/triggers/[domain]/[handler].md\", \"source_file\": \"templates/registry/handlers/triggers-registry.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-022",
+            "category": "references",
+            "source_files": [
+              "templates/registry/handlers/triggers-registry.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-023",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/registry/index.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/registry/index.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/registry/index.md",
+            "broken_reference": "../USER-GUIDE.md#troubleshooting-guide",
+            "normalized": "templates/USER-GUIDE.md",
+            "type": "anchor",
+            "anchor": "troubleshooting-guide",
+            "line_count": 69
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/registry/index.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/index.md. Sample evidence: {\"anchor\": \"troubleshooting-guide\", \"broken_reference\": \"../USER-GUIDE.md#troubleshooting-guide\", \"line_count\": 69, \"normalized\": \"templates/USER-GUIDE.md\", \"source_file\": \"templates/registry/index.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-023",
+            "category": "references",
+            "source_files": [
+              "templates/registry/index.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-024",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 1 broken reference in templates/workflows/protocols/universal-flight.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/workflows/protocols/universal-flight.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/workflows/protocols/universal-flight.md",
+            "broken_reference": "../../TOOLS.md#mandatory-tool-selection-router---check-before-every-tool-use",
+            "normalized": "templates/TOOLS.md",
+            "type": "anchor",
+            "anchor": "mandatory-tool-selection-router---check-before-every-tool-use",
+            "line_count": 79
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 1 broken reference in templates/workflows/protocols/universal-flight.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/workflows/protocols/universal-flight.md. Sample evidence: {\"anchor\": \"mandatory-tool-selection-router---check-before-every-tool-use\", \"broken_reference\": \"../../TOOLS.md#mandatory-tool-selection-router---check-before-every-tool-use\", \"line_count\": 79, \"normalized\": \"templates/TOOLS.md\", \"source_file\": \"templates/workflows/protocols/universal-flight.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-024",
+            "category": "references",
+            "source_files": [
+              "templates/workflows/protocols/universal-flight.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-003",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 12 broken references in templates/HANDLERS.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/HANDLERS.md"
+        ],
+        "finding_count": 12,
+        "effort": "L",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/HANDLERS.md",
+            "broken_reference": "TOOLS.md#handler-debug",
+            "normalized": "templates/TOOLS.md",
+            "type": "anchor",
+            "anchor": "handler-debug",
+            "line_count": 253
+          },
+          {
+            "source_file": "templates/HANDLERS.md",
+            "broken_reference": "TOOLS.md#handler-search-code",
+            "normalized": "templates/TOOLS.md",
+            "type": "anchor",
+            "anchor": "handler-search-code",
+            "line_count": 253
+          },
+          {
+            "source_file": "templates/HANDLERS.md",
+            "broken_reference": "TOOLS.md#handler-find-symbol",
+            "normalized": "templates/TOOLS.md",
+            "type": "anchor",
+            "anchor": "handler-find-symbol",
+            "line_count": 253
+          },
+          {
+            "source_file": "templates/HANDLERS.md",
+            "broken_reference": "TOOLS.md#handler-read-file",
+            "normalized": "templates/TOOLS.md",
+            "type": "anchor",
+            "anchor": "handler-read-file",
+            "line_count": 253
+          },
+          {
+            "source_file": "templates/HANDLERS.md",
+            "broken_reference": "TOOLS.md#handler-edit-file",
+            "normalized": "templates/TOOLS.md",
+            "type": "anchor",
+            "anchor": "handler-edit-file",
+            "line_count": 253
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 12 broken references in templates/HANDLERS.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 12. Primary source(s): templates/HANDLERS.md. Sample evidence: {\"anchor\": \"handler-debug\", \"broken_reference\": \"TOOLS.md#handler-debug\", \"line_count\": 253, \"normalized\": \"templates/TOOLS.md\", \"source_file\": \"templates/HANDLERS.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-003",
+            "category": "references",
+            "source_files": [
+              "templates/HANDLERS.md"
+            ],
+            "finding_count": 12,
+            "effort": "L",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-001",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 2 broken references in templates/BEHAVIORS.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/BEHAVIORS.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/BEHAVIORS.md",
+            "broken_reference": "CONVENTIONS.md#resolve-session-void",
+            "normalized": "templates/CONVENTIONS.md",
+            "type": "anchor",
+            "anchor": "resolve-session-void",
+            "line_count": 542
+          },
+          {
+            "source_file": "templates/BEHAVIORS.md",
+            "broken_reference": "registry/index.md#resolve-handler-void",
+            "normalized": "templates/registry/index.md",
+            "type": "anchor",
+            "anchor": "resolve-handler-void",
+            "line_count": 542
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 2 broken references in templates/BEHAVIORS.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/BEHAVIORS.md. Sample evidence: {\"anchor\": \"resolve-session-void\", \"broken_reference\": \"CONVENTIONS.md#resolve-session-void\", \"line_count\": 542, \"normalized\": \"templates/CONVENTIONS.md\", \"source_file\": \"templates/BEHAVIORS.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-001",
+            "category": "references",
+            "source_files": [
+              "templates/BEHAVIORS.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-002",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 2 broken references in templates/BUILDING-BETTER.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/BUILDING-BETTER.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/BUILDING-BETTER.md",
+            "broken_reference": "../../agent-outputs/template-migrator/migration-mapping.md",
+            "normalized": null,
+            "type": "file",
+            "anchor": null,
+            "line_count": 654
+          },
+          {
+            "source_file": "templates/BUILDING-BETTER.md",
+            "broken_reference": "CONVENTIONS.md#resolve-session-void",
+            "normalized": "templates/CONVENTIONS.md",
+            "type": "anchor",
+            "anchor": "resolve-session-void",
+            "line_count": 654
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 2 broken references in templates/BUILDING-BETTER.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/BUILDING-BETTER.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../../agent-outputs/template-migrator/migration-mapping.md\", \"line_count\": 654, \"normalized\": null, \"source_file\": \"templates/BUILDING-BETTER.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-002",
+            "category": "references",
+            "source_files": [
+              "templates/BUILDING-BETTER.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-006",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 2 broken references in templates/WORKFLOWS.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/WORKFLOWS.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/WORKFLOWS.md",
+            "broken_reference": "workflows/handlers/intent-handlers.md#start-new-work",
+            "normalized": "templates/workflows/handlers/intent-handlers.md",
+            "type": "anchor",
+            "anchor": "start-new-work",
+            "line_count": 80
+          },
+          {
+            "source_file": "templates/WORKFLOWS.md",
+            "broken_reference": "CLAUDE-NEW.md",
+            "normalized": "CLAUDE-NEW.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 80
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 2 broken references in templates/WORKFLOWS.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/WORKFLOWS.md. Sample evidence: {\"anchor\": \"start-new-work\", \"broken_reference\": \"workflows/handlers/intent-handlers.md#start-new-work\", \"line_count\": 80, \"normalized\": \"templates/workflows/handlers/intent-handlers.md\", \"source_file\": \"templates/WORKFLOWS.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-006",
+            "category": "references",
+            "source_files": [
+              "templates/WORKFLOWS.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-010",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 2 broken references in templates/conventions/docs/readme-format.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/conventions/docs/readme-format.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/conventions/docs/readme-format.md",
+            "broken_reference": "CONTRIBUTING.md",
+            "normalized": "CONTRIBUTING.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 383
+          },
+          {
+            "source_file": "templates/conventions/docs/readme-format.md",
+            "broken_reference": "CODE_OF_CONDUCT.md",
+            "normalized": "CODE_OF_CONDUCT.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 383
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 2 broken references in templates/conventions/docs/readme-format.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/conventions/docs/readme-format.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"CONTRIBUTING.md\", \"line_count\": 383, \"normalized\": \"CONTRIBUTING.md\", \"source_file\": \"templates/conventions/docs/readme-format.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-010",
+            "category": "references",
+            "source_files": [
+              "templates/conventions/docs/readme-format.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-014",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 2 broken references in templates/handlers/tools/external/consult-gpt5.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/handlers/tools/external/consult-gpt5.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/handlers/tools/external/consult-gpt5.md",
+            "broken_reference": "../analysis/analyze-code.md",
+            "normalized": "../analysis/analyze-code.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 129
+          },
+          {
+            "source_file": "templates/handlers/tools/external/consult-gpt5.md",
+            "broken_reference": "../optimization/optimize-performance.md",
+            "normalized": "../optimization/optimize-performance.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 129
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 2 broken references in templates/handlers/tools/external/consult-gpt5.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/handlers/tools/external/consult-gpt5.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../analysis/analyze-code.md\", \"line_count\": 129, \"normalized\": \"../analysis/analyze-code.md\", \"source_file\": \"templates/handlers/tools/external/consult-gpt5.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-014",
+            "category": "references",
+            "source_files": [
+              "templates/handlers/tools/external/consult-gpt5.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "critical-references-017",
+        "priority": "critical",
+        "category": "references",
+        "title": "Repair 4 broken references in templates/integration/guides/creating-handlers.md",
+        "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+        "source_files": [
+          "templates/integration/guides/creating-handlers.md"
+        ],
+        "finding_count": 4,
+        "effort": "M",
+        "risk": "high",
+        "dependencies": [],
+        "evidence": [
+          {
+            "source_file": "templates/integration/guides/creating-handlers.md",
+            "broken_reference": "templates/handlers/triggers/[domain]/[handler-id].md",
+            "normalized": "templates/handlers/triggers/[domain]/[handler-id].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 369
+          },
+          {
+            "source_file": "templates/integration/guides/creating-handlers.md",
+            "broken_reference": "templates/handlers/orchestrators/[handler-id].md",
+            "normalized": "templates/handlers/orchestrators/[handler-id].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 369
+          },
+          {
+            "source_file": "templates/integration/guides/creating-handlers.md",
+            "broken_reference": "templates/handlers/operators/[domain]/[handler-id].md",
+            "normalized": "templates/handlers/operators/[domain]/[handler-id].md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 369
+          },
+          {
+            "source_file": "templates/integration/guides/creating-handlers.md",
+            "broken_reference": "templates/handlers/triggers/development/implement-feature.md",
+            "normalized": "templates/handlers/triggers/development/implement-feature.md",
+            "type": "file",
+            "anchor": null,
+            "line_count": 369
+          }
+        ],
+        "taskmaster": {
+          "title": "Repair 4 broken references in templates/integration/guides/creating-handlers.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 4. Primary source(s): templates/integration/guides/creating-handlers.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/triggers/[domain]/[handler-id].md\", \"line_count\": 369, \"normalized\": \"templates/handlers/triggers/[domain]/[handler-id].md\", \"source_file\": \"templates/integration/guides/creating-handlers.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-017",
+            "category": "references",
+            "source_files": [
+              "templates/integration/guides/creating-handlers.md"
+            ],
+            "finding_count": 4,
+            "effort": "M",
+            "risk": "high"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-001",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 1",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/best-practices/handler-design.md",
+          "templates/integration/guides/creating-handlers.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/guides/creating-handlers.md",
+              "templates/integration/best-practices/handler-design.md",
+              "templates/integration/guides/creating-handlers.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 1",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/best-practices/handler-design.md, templates/integration/guides/creating-handlers.md. Sample evidence: {\"cycle\": [\"templates/integration/guides/creating-handlers.md\", \"templates/integration/best-practices/handler-design.md\", \"templates/integration/guides/creating-handlers.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-001",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/best-practices/handler-design.md",
+              "templates/integration/guides/creating-handlers.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-010",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 10",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/architecture/template-architecture.md",
+          "templates/integration/best-practices/template-design.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/architecture/template-architecture.md",
+              "templates/integration/best-practices/template-design.md",
+              "templates/integration/architecture/template-architecture.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 10",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/architecture/template-architecture.md, templates/integration/best-practices/template-design.md. Sample evidence: {\"cycle\": [\"templates/integration/architecture/template-architecture.md\", \"templates/integration/best-practices/template-design.md\", \"templates/integration/architecture/template-architecture.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-010",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/architecture/template-architecture.md",
+              "templates/integration/best-practices/template-design.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-011",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 11",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/best-practices/integration-patterns.md",
+          "templates/integration/guides/extending-templates.md",
+          "templates/integration/guides/system-integration.md"
+        ],
+        "finding_count": 3,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/best-practices/integration-patterns.md",
+              "templates/integration/guides/system-integration.md",
+              "templates/integration/guides/extending-templates.md",
+              "templates/integration/best-practices/integration-patterns.md"
+            ],
+            "length": 3
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 11",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 3. Primary source(s): templates/integration/best-practices/integration-patterns.md, templates/integration/guides/extending-templates.md, templates/integration/guides/system-integration.md. Sample evidence: {\"cycle\": [\"templates/integration/best-practices/integration-patterns.md\", \"templates/integration/guides/system-integration.md\", \"templates/integration/guides/extending-templates.md\", \"templates/integration/best-practices/integration-patterns.md\"], \"length\": 3}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-011",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/best-practices/integration-patterns.md",
+              "templates/integration/guides/extending-templates.md",
+              "templates/integration/guides/system-integration.md"
+            ],
+            "finding_count": 3,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-012",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 12",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/composition/handler-chaining.md",
+          "templates/integration/composition/workflow-composition.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/composition/handler-chaining.md",
+              "templates/integration/composition/workflow-composition.md",
+              "templates/integration/composition/handler-chaining.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 12",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/composition/handler-chaining.md, templates/integration/composition/workflow-composition.md. Sample evidence: {\"cycle\": [\"templates/integration/composition/handler-chaining.md\", \"templates/integration/composition/workflow-composition.md\", \"templates/integration/composition/handler-chaining.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-012",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/composition/handler-chaining.md",
+              "templates/integration/composition/workflow-composition.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-013",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 13",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/cross-system/agent-coordination.md",
+          "templates/integration/guides/adding-agents.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/cross-system/agent-coordination.md",
+              "templates/integration/guides/adding-agents.md",
+              "templates/integration/cross-system/agent-coordination.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 13",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/cross-system/agent-coordination.md, templates/integration/guides/adding-agents.md. Sample evidence: {\"cycle\": [\"templates/integration/cross-system/agent-coordination.md\", \"templates/integration/guides/adding-agents.md\", \"templates/integration/cross-system/agent-coordination.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-013",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/cross-system/agent-coordination.md",
+              "templates/integration/guides/adding-agents.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-014",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 14",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/cross-system/mcp-integration.md",
+          "templates/integration/cross-system/tool-integration.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/cross-system/mcp-integration.md",
+              "templates/integration/cross-system/tool-integration.md",
+              "templates/integration/cross-system/mcp-integration.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 14",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/cross-system/mcp-integration.md, templates/integration/cross-system/tool-integration.md. Sample evidence: {\"cycle\": [\"templates/integration/cross-system/mcp-integration.md\", \"templates/integration/cross-system/tool-integration.md\", \"templates/integration/cross-system/mcp-integration.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-014",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/cross-system/mcp-integration.md",
+              "templates/integration/cross-system/tool-integration.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-015",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 15",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/patterns/evidence/evidence-patterns.md",
+          "templates/patterns/evidence/validation-patterns.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/patterns/evidence/evidence-patterns.md",
+              "templates/patterns/evidence/validation-patterns.md",
+              "templates/patterns/evidence/evidence-patterns.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 15",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/evidence/evidence-patterns.md, templates/patterns/evidence/validation-patterns.md. Sample evidence: {\"cycle\": [\"templates/patterns/evidence/evidence-patterns.md\", \"templates/patterns/evidence/validation-patterns.md\", \"templates/patterns/evidence/evidence-patterns.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-015",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/evidence/evidence-patterns.md",
+              "templates/patterns/evidence/validation-patterns.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-016",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 16",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/patterns/selection/agent-selection.md",
+          "templates/patterns/selection/handler-selection.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/patterns/selection/handler-selection.md",
+              "templates/patterns/selection/agent-selection.md",
+              "templates/patterns/selection/handler-selection.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 16",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/selection/agent-selection.md, templates/patterns/selection/handler-selection.md. Sample evidence: {\"cycle\": [\"templates/patterns/selection/handler-selection.md\", \"templates/patterns/selection/agent-selection.md\", \"templates/patterns/selection/handler-selection.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-016",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/selection/agent-selection.md",
+              "templates/patterns/selection/handler-selection.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-017",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 17",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/patterns/integration/composition.md",
+          "templates/patterns/integration/cross-system.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/patterns/integration/composition.md",
+              "templates/patterns/integration/cross-system.md",
+              "templates/patterns/integration/composition.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 17",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/integration/composition.md, templates/patterns/integration/cross-system.md. Sample evidence: {\"cycle\": [\"templates/patterns/integration/composition.md\", \"templates/patterns/integration/cross-system.md\", \"templates/patterns/integration/composition.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-017",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/integration/composition.md",
+              "templates/patterns/integration/cross-system.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-018",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 18",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/patterns/session/session-patterns.md",
+          "templates/patterns/session/state-patterns.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/patterns/session/session-patterns.md",
+              "templates/patterns/session/state-patterns.md",
+              "templates/patterns/session/session-patterns.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 18",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/session/session-patterns.md, templates/patterns/session/state-patterns.md. Sample evidence: {\"cycle\": [\"templates/patterns/session/session-patterns.md\", \"templates/patterns/session/state-patterns.md\", \"templates/patterns/session/session-patterns.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-018",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/session/session-patterns.md",
+              "templates/patterns/session/state-patterns.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-019",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 19",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/patterns/work-tracking/progress-patterns.md",
+          "templates/patterns/work-tracking/work-patterns.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/patterns/work-tracking/work-patterns.md",
+              "templates/patterns/work-tracking/progress-patterns.md",
+              "templates/patterns/work-tracking/work-patterns.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 19",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/work-tracking/progress-patterns.md, templates/patterns/work-tracking/work-patterns.md. Sample evidence: {\"cycle\": [\"templates/patterns/work-tracking/work-patterns.md\", \"templates/patterns/work-tracking/progress-patterns.md\", \"templates/patterns/work-tracking/work-patterns.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-019",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/work-tracking/progress-patterns.md",
+              "templates/patterns/work-tracking/work-patterns.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-002",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 2",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/workflows/taskmaster/alignment.md",
+          "templates/workflows/taskmaster/work-tracking-enforcement.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/workflows/taskmaster/work-tracking-enforcement.md",
+              "templates/workflows/taskmaster/alignment.md",
+              "templates/workflows/taskmaster/work-tracking-enforcement.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 2",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/workflows/taskmaster/alignment.md, templates/workflows/taskmaster/work-tracking-enforcement.md. Sample evidence: {\"cycle\": [\"templates/workflows/taskmaster/work-tracking-enforcement.md\", \"templates/workflows/taskmaster/alignment.md\", \"templates/workflows/taskmaster/work-tracking-enforcement.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-002",
+            "category": "dependencies",
+            "source_files": [
+              "templates/workflows/taskmaster/alignment.md",
+              "templates/workflows/taskmaster/work-tracking-enforcement.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-003",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 3",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/patterns/routing/meta-routing.md",
+          "templates/patterns/routing/request-analysis.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/patterns/routing/meta-routing.md",
+              "templates/patterns/routing/request-analysis.md",
+              "templates/patterns/routing/meta-routing.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 3",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/routing/meta-routing.md, templates/patterns/routing/request-analysis.md. Sample evidence: {\"cycle\": [\"templates/patterns/routing/meta-routing.md\", \"templates/patterns/routing/request-analysis.md\", \"templates/patterns/routing/meta-routing.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-003",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/routing/meta-routing.md",
+              "templates/patterns/routing/request-analysis.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-004",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 4",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/handlers/index.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/handlers/index.md",
+              "templates/handlers/index.md"
+            ],
+            "length": 1
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 4",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 1. Primary source(s): templates/handlers/index.md. Sample evidence: {\"cycle\": [\"templates/handlers/index.md\", \"templates/handlers/index.md\"], \"length\": 1}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-004",
+            "category": "dependencies",
+            "source_files": [
+              "templates/handlers/index.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-005",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 5",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/behaviors/file-operations/before-create.md",
+          "templates/behaviors/file-operations/before-edit.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/behaviors/file-operations/before-create.md",
+              "templates/behaviors/file-operations/before-edit.md",
+              "templates/behaviors/file-operations/before-create.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 5",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/behaviors/file-operations/before-create.md, templates/behaviors/file-operations/before-edit.md. Sample evidence: {\"cycle\": [\"templates/behaviors/file-operations/before-create.md\", \"templates/behaviors/file-operations/before-edit.md\", \"templates/behaviors/file-operations/before-create.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-005",
+            "category": "dependencies",
+            "source_files": [
+              "templates/behaviors/file-operations/before-create.md",
+              "templates/behaviors/file-operations/before-edit.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-006",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 6",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/behaviors/timestamps/before-adding.md",
+          "templates/behaviors/work-tracking/update-tracker.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/behaviors/timestamps/before-adding.md",
+              "templates/behaviors/work-tracking/update-tracker.md",
+              "templates/behaviors/timestamps/before-adding.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 6",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/behaviors/timestamps/before-adding.md, templates/behaviors/work-tracking/update-tracker.md. Sample evidence: {\"cycle\": [\"templates/behaviors/timestamps/before-adding.md\", \"templates/behaviors/work-tracking/update-tracker.md\", \"templates/behaviors/timestamps/before-adding.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-006",
+            "category": "dependencies",
+            "source_files": [
+              "templates/behaviors/timestamps/before-adding.md",
+              "templates/behaviors/work-tracking/update-tracker.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-007",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 7",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/engine/README.md",
+          "templates/metadata/template-overview.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/engine/README.md",
+              "templates/metadata/template-overview.md",
+              "templates/engine/README.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 7",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/engine/README.md, templates/metadata/template-overview.md. Sample evidence: {\"cycle\": [\"templates/engine/README.md\", \"templates/metadata/template-overview.md\", \"templates/engine/README.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-007",
+            "category": "dependencies",
+            "source_files": [
+              "templates/engine/README.md",
+              "templates/metadata/template-overview.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-008",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 8",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/guides/reference/triggers.md",
+          "templates/guides/workflows/common.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/guides/reference/triggers.md",
+              "templates/guides/workflows/common.md",
+              "templates/guides/reference/triggers.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 8",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/guides/reference/triggers.md, templates/guides/workflows/common.md. Sample evidence: {\"cycle\": [\"templates/guides/reference/triggers.md\", \"templates/guides/workflows/common.md\", \"templates/guides/reference/triggers.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-008",
+            "category": "dependencies",
+            "source_files": [
+              "templates/guides/reference/triggers.md",
+              "templates/guides/workflows/common.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-cycle-009",
+        "priority": "high",
+        "category": "dependencies",
+        "title": "Break circular dependency cycle 9",
+        "description": "Refactor references so template dependencies remain acyclic.",
+        "source_files": [
+          "templates/integration/architecture/handler-architecture.md",
+          "templates/integration/architecture/system-architecture.md"
+        ],
+        "finding_count": 2,
+        "effort": "M",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "cycle": [
+              "templates/integration/architecture/handler-architecture.md",
+              "templates/integration/architecture/system-architecture.md",
+              "templates/integration/architecture/handler-architecture.md"
+            ],
+            "length": 2
+          }
+        ],
+        "taskmaster": {
+          "title": "Break circular dependency cycle 9",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/architecture/handler-architecture.md, templates/integration/architecture/system-architecture.md. Sample evidence: {\"cycle\": [\"templates/integration/architecture/handler-architecture.md\", \"templates/integration/architecture/system-architecture.md\", \"templates/integration/architecture/handler-architecture.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-009",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/architecture/handler-architecture.md",
+              "templates/integration/architecture/system-architecture.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-migration-003",
+        "priority": "high",
+        "category": "migration",
+        "title": "Complete migration work for templates/BEHAVIORS.md",
+        "description": "Migrate remaining 19 sections to modular files",
+        "source_files": [
+          "templates/BEHAVIORS.md"
+        ],
+        "finding_count": 10,
+        "effort": "L",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "file": "templates/BEHAVIORS.md",
+            "action": "complete_migration",
+            "unmigrated_sections": [
+              "Adding New Behaviors {#adding-new-behaviors}",
+              "Cross-Reference Map {#cross-reference-map}",
+              "Development Work {#development-work}",
+              "Evidence & Claims {#evidence-claims}",
+              "File Operations {#file-operations}",
+              "Git Operations {#git-operations}",
+              "Integration with CLAUDE.md {#integration-claude}",
+              "Progress Log",
+              "Session Management {#session-management}",
+              "Special Behaviors {#special-behaviors}"
+            ],
+            "migration_percentage": 0.0,
+            "recommendation": "Migrate remaining 19 sections to modular files"
+          }
+        ],
+        "taskmaster": {
+          "title": "Complete migration work for templates/BEHAVIORS.md",
+          "description": "Migrate remaining 19 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 10. Primary source(s): templates/BEHAVIORS.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/BEHAVIORS.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 19 sections to modular files\", \"unmigrated_sections\": [\"Adding New Behaviors {#adding-new-behaviors}\", \"Cross-Reference Map {#cross-reference-map}\", \"Development Work {#development-work}\", \"Evidence & Claims {#evidence-claims}\", \"File Operations {#file-operations}\", \"Git Operations {#git-operations}\", \"Integration with CLAUDE.md {#integration-claude}\", \"Progress Log\", \"Session Management {#session-management}\", \"Special Behaviors {#special-behaviors}\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-003",
+            "category": "migration",
+            "source_files": [
+              "templates/BEHAVIORS.md"
+            ],
+            "finding_count": 10,
+            "effort": "L",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-migration-002",
+        "priority": "high",
+        "category": "migration",
+        "title": "Complete migration work for templates/HANDLERS.md",
+        "description": "Migrate remaining 8 sections to modular files",
+        "source_files": [
+          "templates/HANDLERS.md"
+        ],
+        "finding_count": 8,
+        "effort": "L",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "file": "templates/HANDLERS.md",
+            "action": "complete_migration",
+            "unmigrated_sections": [
+              "header",
+              "\ud83c\udfaf Common Patterns & Examples {#common-patterns}",
+              "\ud83c\udfaf Quick Navigation {#quick-navigation}",
+              "\ud83d\udcca Coverage Matrix {#coverage-matrix}",
+              "\ud83d\udccd Handler Registry {#handler-registry}",
+              "\ud83d\udd04 Disambiguation Guide {#disambiguation-guide}",
+              "\ud83d\udd0d Search Tips {#search-tips}",
+              "\ud83d\udd17 Adding New Handlers {#adding-new-handlers}"
+            ],
+            "migration_percentage": 0.0,
+            "recommendation": "Migrate remaining 8 sections to modular files"
+          }
+        ],
+        "taskmaster": {
+          "title": "Complete migration work for templates/HANDLERS.md",
+          "description": "Migrate remaining 8 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 8. Primary source(s): templates/HANDLERS.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/HANDLERS.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 8 sections to modular files\", \"unmigrated_sections\": [\"header\", \"\\ud83c\\udfaf Common Patterns & Examples {#common-patterns}\", \"\\ud83c\\udfaf Quick Navigation {#quick-navigation}\", \"\\ud83d\\udcca Coverage Matrix {#coverage-matrix}\", \"\\ud83d\\udccd Handler Registry {#handler-registry}\", \"\\ud83d\\udd04 Disambiguation Guide {#disambiguation-guide}\", \"\\ud83d\\udd0d Search Tips {#search-tips}\", \"\\ud83d\\udd17 Adding New Handlers {#adding-new-handlers}\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-002",
+            "category": "migration",
+            "source_files": [
+              "templates/HANDLERS.md"
+            ],
+            "finding_count": 8,
+            "effort": "L",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-migration-004",
+        "priority": "high",
+        "category": "migration",
+        "title": "Complete migration work for templates/MATRICES.md",
+        "description": "Migrate remaining 13 sections to modular files",
+        "source_files": [
+          "templates/MATRICES.md"
+        ],
+        "finding_count": 10,
+        "effort": "L",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "file": "templates/MATRICES.md",
+            "action": "complete_migration",
+            "unmigrated_sections": [
+              "Behavior \u2192 Workflow Coverage Matrix {#behavior-workflow-matrix}",
+              "Common Matrix Queries {#common-matrix-queries}",
+              "Context \u2192 Mode Matrix {#context-mode-matrix}",
+              "Error \u2192 Recovery Matrix {#error-recovery-matrix}",
+              "File Type \u2192 Convention Matrix {#file-type-convention-matrix}",
+              "Integration Points {#integration-points}",
+              "Matrix Usage Patterns {#matrix-usage-patterns}",
+              "Problem Type \u2192 Solution Matrix {#problem-type-solution-matrix}",
+              "Progress Log",
+              "Request Type \u2192 Handler Matrix {#request-type-handler-matrix}"
+            ],
+            "migration_percentage": 0.0,
+            "recommendation": "Migrate remaining 13 sections to modular files"
+          }
+        ],
+        "taskmaster": {
+          "title": "Complete migration work for templates/MATRICES.md",
+          "description": "Migrate remaining 13 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 10. Primary source(s): templates/MATRICES.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/MATRICES.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 13 sections to modular files\", \"unmigrated_sections\": [\"Behavior \\u2192 Workflow Coverage Matrix {#behavior-workflow-matrix}\", \"Common Matrix Queries {#common-matrix-queries}\", \"Context \\u2192 Mode Matrix {#context-mode-matrix}\", \"Error \\u2192 Recovery Matrix {#error-recovery-matrix}\", \"File Type \\u2192 Convention Matrix {#file-type-convention-matrix}\", \"Integration Points {#integration-points}\", \"Matrix Usage Patterns {#matrix-usage-patterns}\", \"Problem Type \\u2192 Solution Matrix {#problem-type-solution-matrix}\", \"Progress Log\", \"Request Type \\u2192 Handler Matrix {#request-type-handler-matrix}\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-004",
+            "category": "migration",
+            "source_files": [
+              "templates/MATRICES.md"
+            ],
+            "finding_count": 10,
+            "effort": "L",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-migration-001",
+        "priority": "high",
+        "category": "migration",
+        "title": "Complete migration work for templates/REGISTRY.md",
+        "description": "Migrate remaining 19 sections to modular files",
+        "source_files": [
+          "templates/REGISTRY.md"
+        ],
+        "finding_count": 10,
+        "effort": "L",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "file": "templates/REGISTRY.md",
+            "action": "complete_migration",
+            "unmigrated_sections": [
+              "Behavioral Hooks (10 categories)",
+              "Behavioral Templates (6 total)",
+              "Common Commands",
+              "Decision Matrices (5 total)",
+              "Intent Handlers (63 existing + 6 to add = 69 total)",
+              "Key Improvements in This Registry",
+              "Meta-Routing Patterns (13 total)",
+              "Progress Log",
+              "Registry Maintenance",
+              "Special Files"
+            ],
+            "migration_percentage": 0.0,
+            "recommendation": "Migrate remaining 19 sections to modular files"
+          }
+        ],
+        "taskmaster": {
+          "title": "Complete migration work for templates/REGISTRY.md",
+          "description": "Migrate remaining 19 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 10. Primary source(s): templates/REGISTRY.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/REGISTRY.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 19 sections to modular files\", \"unmigrated_sections\": [\"Behavioral Hooks (10 categories)\", \"Behavioral Templates (6 total)\", \"Common Commands\", \"Decision Matrices (5 total)\", \"Intent Handlers (63 existing + 6 to add = 69 total)\", \"Key Improvements in This Registry\", \"Meta-Routing Patterns (13 total)\", \"Progress Log\", \"Registry Maintenance\", \"Special Files\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-001",
+            "category": "migration",
+            "source_files": [
+              "templates/REGISTRY.md"
+            ],
+            "finding_count": 10,
+            "effort": "L",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "high-migration-005",
+        "priority": "high",
+        "category": "migration",
+        "title": "Complete migration work for templates/TOOLS.md",
+        "description": "Migrate remaining 7 sections to modular files",
+        "source_files": [
+          "templates/TOOLS.md"
+        ],
+        "finding_count": 7,
+        "effort": "L",
+        "risk": "medium",
+        "dependencies": [
+          "critical-references"
+        ],
+        "evidence": [
+          {
+            "file": "templates/TOOLS.md",
+            "action": "complete_migration",
+            "unmigrated_sections": [
+              "Anti-Patterns",
+              "Built-in Tools",
+              "Evidence Expectations",
+              "Progress Log",
+              "Quick Reference",
+              "header",
+              "\ud83d\udea6 Decision Router"
+            ],
+            "migration_percentage": 0.0,
+            "recommendation": "Migrate remaining 7 sections to modular files"
+          }
+        ],
+        "taskmaster": {
+          "title": "Complete migration work for templates/TOOLS.md",
+          "description": "Migrate remaining 7 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 7. Primary source(s): templates/TOOLS.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/TOOLS.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 7 sections to modular files\", \"unmigrated_sections\": [\"Anti-Patterns\", \"Built-in Tools\", \"Evidence Expectations\", \"Progress Log\", \"Quick Reference\", \"header\", \"\\ud83d\\udea6 Decision Router\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-005",
+            "category": "migration",
+            "source_files": [
+              "templates/TOOLS.md"
+            ],
+            "finding_count": 7,
+            "effort": "L",
+            "risk": "medium"
+          }
+        }
+      },
+      {
+        "id": "medium-duplicates-001",
+        "priority": "medium",
+        "category": "duplicates",
+        "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+        "description": "Review duplicate-removal recommendations and archive only after manual confirmation.",
+        "source_files": [
+          ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+          ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "low",
+        "dependencies": [
+          "critical-references",
+          "high-migration"
+        ],
+        "evidence": [
+          {
+            "remove": ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md",
+            "keep": ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+            "archive_to": "archive/.claude/commands/tm/remove-subtasks/remove-all-subtasks.md",
+            "reason": "exact_duplicate",
+            "command": "mkdir -p \"archive/.claude/commands/tm/remove-subtasks\" && git mv \".claude/commands/tm/remove-subtasks/remove-all-subtasks.md\" \"archive/.claude/commands/tm/remove-subtasks/remove-all-subtasks.md\""
+          }
+        ],
+        "taskmaster": {
+          "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+          "description": "Review duplicate-removal recommendations and archive only after manual confirmation.",
+          "priority": "medium",
+          "details": "Roadmap category: duplicates. Finding count: 1. Primary source(s): .claude/commands/tm/clear-subtasks/clear-all-subtasks.md, .claude/commands/tm/remove-subtasks/remove-all-subtasks.md. Sample evidence: {\"archive_to\": \"archive/.claude/commands/tm/remove-subtasks/remove-all-subtasks.md\", \"command\": \"mkdir -p \\\"archive/.claude/commands/tm/remove-subtasks\\\" && git mv \\\".claude/commands/tm/remove-subtasks/remove-all-subtasks.md\\\" \\\"archive/.claude/commands/tm/remove-subtasks/remove-all-subtasks.md\\\"\", \"keep\": \".claude/commands/tm/clear-subtasks/clear-all-subtasks.md\", \"reason\": \"exact_duplicate\", \"remove\": \".claude/commands/tm/remove-subtasks/remove-all-subtasks.md\"}",
+          "testStrategy": "Rerun duplicate finder and confirm duplicate group no longer appears.",
+          "metadata": {
+            "roadmap_item_id": "medium-duplicates-001",
+            "category": "duplicates",
+            "source_files": [
+              ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+              ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "low"
+          }
+        }
+      },
+      {
+        "id": "medium-duplicates-002",
+        "priority": "medium",
+        "category": "duplicates",
+        "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-subtasks.md",
+        "description": "Review duplicate-removal recommendations and archive only after manual confirmation.",
+        "source_files": [
+          ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+          ".claude/commands/tm/remove-subtasks/remove-subtasks.md"
+        ],
+        "finding_count": 1,
+        "effort": "S",
+        "risk": "low",
+        "dependencies": [
+          "critical-references",
+          "high-migration"
+        ],
+        "evidence": [
+          {
+            "remove": ".claude/commands/tm/remove-subtasks/remove-subtasks.md",
+            "keep": ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+            "archive_to": "archive/.claude/commands/tm/remove-subtasks/remove-subtasks.md",
+            "reason": "exact_duplicate",
+            "command": "mkdir -p \"archive/.claude/commands/tm/remove-subtasks\" && git mv \".claude/commands/tm/remove-subtasks/remove-subtasks.md\" \"archive/.claude/commands/tm/remove-subtasks/remove-subtasks.md\""
+          }
+        ],
+        "taskmaster": {
+          "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-subtasks.md",
+          "description": "Review duplicate-removal recommendations and archive only after manual confirmation.",
+          "priority": "medium",
+          "details": "Roadmap category: duplicates. Finding count: 1. Primary source(s): .claude/commands/tm/clear-subtasks/clear-subtasks.md, .claude/commands/tm/remove-subtasks/remove-subtasks.md. Sample evidence: {\"archive_to\": \"archive/.claude/commands/tm/remove-subtasks/remove-subtasks.md\", \"command\": \"mkdir -p \\\"archive/.claude/commands/tm/remove-subtasks\\\" && git mv \\\".claude/commands/tm/remove-subtasks/remove-subtasks.md\\\" \\\"archive/.claude/commands/tm/remove-subtasks/remove-subtasks.md\\\"\", \"keep\": \".claude/commands/tm/clear-subtasks/clear-subtasks.md\", \"reason\": \"exact_duplicate\", \"remove\": \".claude/commands/tm/remove-subtasks/remove-subtasks.md\"}",
+          "testStrategy": "Rerun duplicate finder and confirm duplicate group no longer appears.",
+          "metadata": {
+            "roadmap_item_id": "medium-duplicates-002",
+            "category": "duplicates",
+            "source_files": [
+              ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+              ".claude/commands/tm/remove-subtasks/remove-subtasks.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "low"
+          }
+        }
+      },
+      {
+        "id": "low-orphaned-files-001",
+        "priority": "low",
+        "category": "orphaned-files",
+        "title": "Review 87 orphaned scanner files",
+        "description": "Review orphaned files after higher-priority reference and migration work is complete.",
+        "source_files": [
+          "{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}",
+          "{'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}",
+          "{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}",
+          "{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}",
+          "{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}",
+          "{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}",
+          "{'file': '.claude/commands/kickoff.md', 'type': 'command', 'line_count': 13}",
+          "{'file': '.claude/commands/plan-sync.md', 'type': 'command', 'line_count': 12}",
+          "{'file': '.claude/commands/readiness.md', 'type': 'command', 'line_count': 12}",
+          "{'file': '.claude/commands/scanner-run.md', 'type': 'command', 'line_count': 13}",
+          "{'file': '.claude/commands/sessions-update.md', 'type': 'command', 'line_count': 13}",
+          "{'file': '.claude/commands/tm/add-dependency/add-dependency.md', 'type': 'command', 'line_count': 55}",
+          "{'file': '.claude/commands/tm/add-subtask/add-subtask.md', 'type': 'command', 'line_count': 76}",
+          "{'file': '.claude/commands/tm/add-subtask/convert-task-to-subtask.md', 'type': 'command', 'line_count': 71}",
+          "{'file': '.claude/commands/tm/add-task/add-task.md', 'type': 'command', 'line_count': 78}",
+          "{'file': '.claude/commands/tm/analyze-complexity/analyze-complexity.md', 'type': 'command', 'line_count': 121}",
+          "{'file': '.claude/commands/tm/clear-subtasks/clear-all-subtasks.md', 'type': 'command', 'line_count': 93}",
+          "{'file': '.claude/commands/tm/clear-subtasks/clear-subtasks.md', 'type': 'command', 'line_count': 86}",
+          "{'file': '.claude/commands/tm/complexity-report/complexity-report.md', 'type': 'command', 'line_count': 117}",
+          "{'file': '.codex/AGENTS.md', 'type': 'agent', 'line_count': 13}"
+        ],
+        "finding_count": 87,
+        "effort": "XL",
+        "risk": "high",
+        "dependencies": [
+          "critical-references",
+          "high-migration",
+          "medium-duplicates"
+        ],
+        "evidence": [
+          {
+            "sample": [
+              "{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}",
+              "{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}",
+              "{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}",
+              "{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}",
+              "{'file': '.codex/AGENTS.md', 'type': 'agent', 'line_count': 13}",
+              "{'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}",
+              "{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/kickoff.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/plan-sync.md', 'type': 'command', 'line_count': 12}",
+              "{'file': '.claude/commands/readiness.md', 'type': 'command', 'line_count': 12}"
+            ],
+            "total": 87
+          }
+        ],
+        "taskmaster": {
+          "title": "Review 87 orphaned scanner files",
+          "description": "Review orphaned files after higher-priority reference and migration work is complete.",
+          "priority": "low",
+          "details": "Roadmap category: orphaned-files. Finding count: 87. Primary source(s): {'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}, {'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}, {'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}, {'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}, {'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}, plus 15 more. Sample evidence: {\"sample\": [\"{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}\", \"{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}\", \"{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}\", \"{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}\", \"{'file': '.codex/AGENTS.md', 'type': 'agent', 'line_count': 13}\", \"{'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}\", \"{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}\", \"{'file': '.claude/commands/kickoff.md', 'type': 'command', 'line_count': 13}\", \"{'file': '.claude/commands/plan-sync.md', 'type': 'command', 'line_count': 12}\", \"{'file': '.claude/commands/readiness.md', 'type': 'command', 'line_count': 12}\"], \"total\": 87}",
+          "testStrategy": "Rerun reference analyzer and confirm reviewed files are referenced or intentionally exempted.",
+          "metadata": {
+            "roadmap_item_id": "low-orphaned-files-001",
+            "category": "orphaned-files",
+            "source_files": [
+              "{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}",
+              "{'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}",
+              "{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}",
+              "{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}",
+              "{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}",
+              "{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/kickoff.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/plan-sync.md', 'type': 'command', 'line_count': 12}",
+              "{'file': '.claude/commands/readiness.md', 'type': 'command', 'line_count': 12}",
+              "{'file': '.claude/commands/scanner-run.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/sessions-update.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/tm/add-dependency/add-dependency.md', 'type': 'command', 'line_count': 55}",
+              "{'file': '.claude/commands/tm/add-subtask/add-subtask.md', 'type': 'command', 'line_count': 76}",
+              "{'file': '.claude/commands/tm/add-subtask/convert-task-to-subtask.md', 'type': 'command', 'line_count': 71}",
+              "{'file': '.claude/commands/tm/add-task/add-task.md', 'type': 'command', 'line_count': 78}",
+              "{'file': '.claude/commands/tm/analyze-complexity/analyze-complexity.md', 'type': 'command', 'line_count': 121}",
+              "{'file': '.claude/commands/tm/clear-subtasks/clear-all-subtasks.md', 'type': 'command', 'line_count': 93}",
+              "{'file': '.claude/commands/tm/clear-subtasks/clear-subtasks.md', 'type': 'command', 'line_count': 86}",
+              "{'file': '.claude/commands/tm/complexity-report/complexity-report.md', 'type': 'command', 'line_count': 117}",
+              "{'file': '.codex/AGENTS.md', 'type': 'agent', 'line_count': 13}"
+            ],
+            "finding_count": 87,
+            "effort": "XL",
+            "risk": "high"
+          }
+        }
+      }
+    ],
+    "taskmaster_export": {
+      "format": "taskmaster-compatible-draft",
+      "note": "Review before importing. This export must not mutate Taskmaster automatically.",
+      "tasks": [
+        {
+          "title": "Repair 1 broken reference in templates/MATRICES.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/MATRICES.md. Sample evidence: {\"anchor\": \"resolve-session-void\", \"broken_reference\": \"CONVENTIONS.md#resolve-session-void\", \"line_count\": 241, \"normalized\": \"templates/CONVENTIONS.md\", \"source_file\": \"templates/MATRICES.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-004",
+            "category": "references",
+            "source_files": [
+              "templates/MATRICES.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/REGISTRY.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/REGISTRY.md. Sample evidence: {\"anchor\": \"troubleshooting-guide\", \"broken_reference\": \"USER-GUIDE.md#troubleshooting-guide\", \"line_count\": 841, \"normalized\": \"templates/USER-GUIDE.md\", \"source_file\": \"templates/REGISTRY.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-005",
+            "category": "references",
+            "source_files": [
+              "templates/REGISTRY.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/behaviors/planning/plan-compliance.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/behaviors/planning/plan-compliance.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../../designs/meta-workflow-authoring-draft.md\", \"line_count\": 59, \"normalized\": \"../../designs/meta-workflow-authoring-draft.md\", \"source_file\": \"templates/behaviors/planning/plan-compliance.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-007",
+            "category": "references",
+            "source_files": [
+              "templates/behaviors/planning/plan-compliance.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/behaviors/work-tracking/update-tracker.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/behaviors/work-tracking/update-tracker.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../../templates/workflows/handlers/intent-handlers.md#create-todos\", \"line_count\": 259, \"normalized\": \"../../templates/workflows/handlers/intent-handlers.md\", \"source_file\": \"templates/behaviors/work-tracking/update-tracker.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-008",
+            "category": "references",
+            "source_files": [
+              "templates/behaviors/work-tracking/update-tracker.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/conventions/docs/documentation-standards.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/conventions/docs/documentation-standards.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"CONTRIBUTING.md\", \"line_count\": 326, \"normalized\": \"CONTRIBUTING.md\", \"source_file\": \"templates/conventions/docs/documentation-standards.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-009",
+            "category": "references",
+            "source_files": [
+              "templates/conventions/docs/documentation-standards.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/coordination/session-swhe-integration.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/coordination/session-swhe-integration.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/*/session/*.md\", \"line_count\": 572, \"normalized\": \"templates/handlers/*/session/*.md\", \"source_file\": \"templates/coordination/session-swhe-integration.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-011",
+            "category": "references",
+            "source_files": [
+              "templates/coordination/session-swhe-integration.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/engine/navigation/common-flows.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/engine/navigation/common-flows.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"handlers/operators/git/commit-changes.md\", \"line_count\": 60, \"normalized\": \"handlers/operators/git/commit-changes.md\", \"source_file\": \"templates/engine/navigation/common-flows.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-012",
+            "category": "references",
+            "source_files": [
+              "templates/engine/navigation/common-flows.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/engine/validation/foundation-adoption-guide.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/engine/validation/foundation-adoption-guide.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \".codex/bootstrap/FOUNDATION-SETUP.md\", \"line_count\": 302, \"normalized\": \".codex/bootstrap/FOUNDATION-SETUP.md\", \"source_file\": \"templates/engine/validation/foundation-adoption-guide.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-013",
+            "category": "references",
+            "source_files": [
+              "templates/engine/validation/foundation-adoption-guide.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/integration/best-practices/template-design.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/integration/best-practices/template-design.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"new-template.md\", \"line_count\": 605, \"normalized\": \"new-template.md\", \"source_file\": \"templates/integration/best-practices/template-design.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-015",
+            "category": "references",
+            "source_files": [
+              "templates/integration/best-practices/template-design.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/integration/guides/adding-agents.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/integration/guides/adding-agents.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \".claude/agents/api-doc-generator.md\", \"line_count\": 462, \"normalized\": \".claude/agents/api-doc-generator.md\", \"source_file\": \"templates/integration/guides/adding-agents.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-016",
+            "category": "references",
+            "source_files": [
+              "templates/integration/guides/adding-agents.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/matrices/index.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/matrices/index.md. Sample evidence: {\"anchor\": \"resolve-handler-void\", \"broken_reference\": \"../registry/index.md#resolve-handler-void\", \"line_count\": 116, \"normalized\": \"templates/registry/index.md\", \"source_file\": \"templates/matrices/index.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-018",
+            "category": "references",
+            "source_files": [
+              "templates/matrices/index.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/registry/MIGRATION-REPORT.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/MIGRATION-REPORT.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \".claude/registry/[component].md\", \"line_count\": 159, \"normalized\": \".claude/registry/[component].md\", \"source_file\": \"templates/registry/MIGRATION-REPORT.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-019",
+            "category": "references",
+            "source_files": [
+              "templates/registry/MIGRATION-REPORT.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/registry/handlers/operators-registry.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/handlers/operators-registry.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/operators/[domain]/[handler].md\", \"line_count\": 238, \"normalized\": \"templates/handlers/operators/[domain]/[handler].md\", \"source_file\": \"templates/registry/handlers/operators-registry.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-020",
+            "category": "references",
+            "source_files": [
+              "templates/registry/handlers/operators-registry.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/registry/handlers/orchestrators-registry.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/handlers/orchestrators-registry.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/orchestrators/[handler].md\", \"line_count\": 101, \"normalized\": \"templates/handlers/orchestrators/[handler].md\", \"source_file\": \"templates/registry/handlers/orchestrators-registry.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-021",
+            "category": "references",
+            "source_files": [
+              "templates/registry/handlers/orchestrators-registry.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/registry/handlers/triggers-registry.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/handlers/triggers-registry.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/triggers/[domain]/[handler].md\", \"line_count\": 200, \"normalized\": \"templates/handlers/triggers/[domain]/[handler].md\", \"source_file\": \"templates/registry/handlers/triggers-registry.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-022",
+            "category": "references",
+            "source_files": [
+              "templates/registry/handlers/triggers-registry.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/registry/index.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/registry/index.md. Sample evidence: {\"anchor\": \"troubleshooting-guide\", \"broken_reference\": \"../USER-GUIDE.md#troubleshooting-guide\", \"line_count\": 69, \"normalized\": \"templates/USER-GUIDE.md\", \"source_file\": \"templates/registry/index.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-023",
+            "category": "references",
+            "source_files": [
+              "templates/registry/index.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 1 broken reference in templates/workflows/protocols/universal-flight.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 1. Primary source(s): templates/workflows/protocols/universal-flight.md. Sample evidence: {\"anchor\": \"mandatory-tool-selection-router---check-before-every-tool-use\", \"broken_reference\": \"../../TOOLS.md#mandatory-tool-selection-router---check-before-every-tool-use\", \"line_count\": 79, \"normalized\": \"templates/TOOLS.md\", \"source_file\": \"templates/workflows/protocols/universal-flight.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-024",
+            "category": "references",
+            "source_files": [
+              "templates/workflows/protocols/universal-flight.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 12 broken references in templates/HANDLERS.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 12. Primary source(s): templates/HANDLERS.md. Sample evidence: {\"anchor\": \"handler-debug\", \"broken_reference\": \"TOOLS.md#handler-debug\", \"line_count\": 253, \"normalized\": \"templates/TOOLS.md\", \"source_file\": \"templates/HANDLERS.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-003",
+            "category": "references",
+            "source_files": [
+              "templates/HANDLERS.md"
+            ],
+            "finding_count": 12,
+            "effort": "L",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 2 broken references in templates/BEHAVIORS.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/BEHAVIORS.md. Sample evidence: {\"anchor\": \"resolve-session-void\", \"broken_reference\": \"CONVENTIONS.md#resolve-session-void\", \"line_count\": 542, \"normalized\": \"templates/CONVENTIONS.md\", \"source_file\": \"templates/BEHAVIORS.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-001",
+            "category": "references",
+            "source_files": [
+              "templates/BEHAVIORS.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 2 broken references in templates/BUILDING-BETTER.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/BUILDING-BETTER.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../../agent-outputs/template-migrator/migration-mapping.md\", \"line_count\": 654, \"normalized\": null, \"source_file\": \"templates/BUILDING-BETTER.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-002",
+            "category": "references",
+            "source_files": [
+              "templates/BUILDING-BETTER.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 2 broken references in templates/WORKFLOWS.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/WORKFLOWS.md. Sample evidence: {\"anchor\": \"start-new-work\", \"broken_reference\": \"workflows/handlers/intent-handlers.md#start-new-work\", \"line_count\": 80, \"normalized\": \"templates/workflows/handlers/intent-handlers.md\", \"source_file\": \"templates/WORKFLOWS.md\", \"type\": \"anchor\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-006",
+            "category": "references",
+            "source_files": [
+              "templates/WORKFLOWS.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 2 broken references in templates/conventions/docs/readme-format.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/conventions/docs/readme-format.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"CONTRIBUTING.md\", \"line_count\": 383, \"normalized\": \"CONTRIBUTING.md\", \"source_file\": \"templates/conventions/docs/readme-format.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-010",
+            "category": "references",
+            "source_files": [
+              "templates/conventions/docs/readme-format.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 2 broken references in templates/handlers/tools/external/consult-gpt5.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 2. Primary source(s): templates/handlers/tools/external/consult-gpt5.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"../analysis/analyze-code.md\", \"line_count\": 129, \"normalized\": \"../analysis/analyze-code.md\", \"source_file\": \"templates/handlers/tools/external/consult-gpt5.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-014",
+            "category": "references",
+            "source_files": [
+              "templates/handlers/tools/external/consult-gpt5.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Repair 4 broken references in templates/integration/guides/creating-handlers.md",
+          "description": "Fix or explicitly document broken template references before migration cleanup depends on them.",
+          "priority": "critical",
+          "details": "Roadmap category: references. Finding count: 4. Primary source(s): templates/integration/guides/creating-handlers.md. Sample evidence: {\"anchor\": null, \"broken_reference\": \"templates/handlers/triggers/[domain]/[handler-id].md\", \"line_count\": 369, \"normalized\": \"templates/handlers/triggers/[domain]/[handler-id].md\", \"source_file\": \"templates/integration/guides/creating-handlers.md\", \"type\": \"file\"}",
+          "testStrategy": "Rerun reference analyzer and confirm broken reference count decreases or is documented.",
+          "metadata": {
+            "roadmap_item_id": "critical-references-017",
+            "category": "references",
+            "source_files": [
+              "templates/integration/guides/creating-handlers.md"
+            ],
+            "finding_count": 4,
+            "effort": "M",
+            "risk": "high"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 1",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/best-practices/handler-design.md, templates/integration/guides/creating-handlers.md. Sample evidence: {\"cycle\": [\"templates/integration/guides/creating-handlers.md\", \"templates/integration/best-practices/handler-design.md\", \"templates/integration/guides/creating-handlers.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-001",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/best-practices/handler-design.md",
+              "templates/integration/guides/creating-handlers.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 10",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/architecture/template-architecture.md, templates/integration/best-practices/template-design.md. Sample evidence: {\"cycle\": [\"templates/integration/architecture/template-architecture.md\", \"templates/integration/best-practices/template-design.md\", \"templates/integration/architecture/template-architecture.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-010",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/architecture/template-architecture.md",
+              "templates/integration/best-practices/template-design.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 11",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 3. Primary source(s): templates/integration/best-practices/integration-patterns.md, templates/integration/guides/extending-templates.md, templates/integration/guides/system-integration.md. Sample evidence: {\"cycle\": [\"templates/integration/best-practices/integration-patterns.md\", \"templates/integration/guides/system-integration.md\", \"templates/integration/guides/extending-templates.md\", \"templates/integration/best-practices/integration-patterns.md\"], \"length\": 3}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-011",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/best-practices/integration-patterns.md",
+              "templates/integration/guides/extending-templates.md",
+              "templates/integration/guides/system-integration.md"
+            ],
+            "finding_count": 3,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 12",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/composition/handler-chaining.md, templates/integration/composition/workflow-composition.md. Sample evidence: {\"cycle\": [\"templates/integration/composition/handler-chaining.md\", \"templates/integration/composition/workflow-composition.md\", \"templates/integration/composition/handler-chaining.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-012",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/composition/handler-chaining.md",
+              "templates/integration/composition/workflow-composition.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 13",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/cross-system/agent-coordination.md, templates/integration/guides/adding-agents.md. Sample evidence: {\"cycle\": [\"templates/integration/cross-system/agent-coordination.md\", \"templates/integration/guides/adding-agents.md\", \"templates/integration/cross-system/agent-coordination.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-013",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/cross-system/agent-coordination.md",
+              "templates/integration/guides/adding-agents.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 14",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/cross-system/mcp-integration.md, templates/integration/cross-system/tool-integration.md. Sample evidence: {\"cycle\": [\"templates/integration/cross-system/mcp-integration.md\", \"templates/integration/cross-system/tool-integration.md\", \"templates/integration/cross-system/mcp-integration.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-014",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/cross-system/mcp-integration.md",
+              "templates/integration/cross-system/tool-integration.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 15",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/evidence/evidence-patterns.md, templates/patterns/evidence/validation-patterns.md. Sample evidence: {\"cycle\": [\"templates/patterns/evidence/evidence-patterns.md\", \"templates/patterns/evidence/validation-patterns.md\", \"templates/patterns/evidence/evidence-patterns.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-015",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/evidence/evidence-patterns.md",
+              "templates/patterns/evidence/validation-patterns.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 16",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/selection/agent-selection.md, templates/patterns/selection/handler-selection.md. Sample evidence: {\"cycle\": [\"templates/patterns/selection/handler-selection.md\", \"templates/patterns/selection/agent-selection.md\", \"templates/patterns/selection/handler-selection.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-016",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/selection/agent-selection.md",
+              "templates/patterns/selection/handler-selection.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 17",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/integration/composition.md, templates/patterns/integration/cross-system.md. Sample evidence: {\"cycle\": [\"templates/patterns/integration/composition.md\", \"templates/patterns/integration/cross-system.md\", \"templates/patterns/integration/composition.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-017",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/integration/composition.md",
+              "templates/patterns/integration/cross-system.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 18",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/session/session-patterns.md, templates/patterns/session/state-patterns.md. Sample evidence: {\"cycle\": [\"templates/patterns/session/session-patterns.md\", \"templates/patterns/session/state-patterns.md\", \"templates/patterns/session/session-patterns.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-018",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/session/session-patterns.md",
+              "templates/patterns/session/state-patterns.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 19",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/work-tracking/progress-patterns.md, templates/patterns/work-tracking/work-patterns.md. Sample evidence: {\"cycle\": [\"templates/patterns/work-tracking/work-patterns.md\", \"templates/patterns/work-tracking/progress-patterns.md\", \"templates/patterns/work-tracking/work-patterns.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-019",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/work-tracking/progress-patterns.md",
+              "templates/patterns/work-tracking/work-patterns.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 2",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/workflows/taskmaster/alignment.md, templates/workflows/taskmaster/work-tracking-enforcement.md. Sample evidence: {\"cycle\": [\"templates/workflows/taskmaster/work-tracking-enforcement.md\", \"templates/workflows/taskmaster/alignment.md\", \"templates/workflows/taskmaster/work-tracking-enforcement.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-002",
+            "category": "dependencies",
+            "source_files": [
+              "templates/workflows/taskmaster/alignment.md",
+              "templates/workflows/taskmaster/work-tracking-enforcement.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 3",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/patterns/routing/meta-routing.md, templates/patterns/routing/request-analysis.md. Sample evidence: {\"cycle\": [\"templates/patterns/routing/meta-routing.md\", \"templates/patterns/routing/request-analysis.md\", \"templates/patterns/routing/meta-routing.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-003",
+            "category": "dependencies",
+            "source_files": [
+              "templates/patterns/routing/meta-routing.md",
+              "templates/patterns/routing/request-analysis.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 4",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 1. Primary source(s): templates/handlers/index.md. Sample evidence: {\"cycle\": [\"templates/handlers/index.md\", \"templates/handlers/index.md\"], \"length\": 1}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-004",
+            "category": "dependencies",
+            "source_files": [
+              "templates/handlers/index.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 5",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/behaviors/file-operations/before-create.md, templates/behaviors/file-operations/before-edit.md. Sample evidence: {\"cycle\": [\"templates/behaviors/file-operations/before-create.md\", \"templates/behaviors/file-operations/before-edit.md\", \"templates/behaviors/file-operations/before-create.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-005",
+            "category": "dependencies",
+            "source_files": [
+              "templates/behaviors/file-operations/before-create.md",
+              "templates/behaviors/file-operations/before-edit.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 6",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/behaviors/timestamps/before-adding.md, templates/behaviors/work-tracking/update-tracker.md. Sample evidence: {\"cycle\": [\"templates/behaviors/timestamps/before-adding.md\", \"templates/behaviors/work-tracking/update-tracker.md\", \"templates/behaviors/timestamps/before-adding.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-006",
+            "category": "dependencies",
+            "source_files": [
+              "templates/behaviors/timestamps/before-adding.md",
+              "templates/behaviors/work-tracking/update-tracker.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 7",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/engine/README.md, templates/metadata/template-overview.md. Sample evidence: {\"cycle\": [\"templates/engine/README.md\", \"templates/metadata/template-overview.md\", \"templates/engine/README.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-007",
+            "category": "dependencies",
+            "source_files": [
+              "templates/engine/README.md",
+              "templates/metadata/template-overview.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 8",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/guides/reference/triggers.md, templates/guides/workflows/common.md. Sample evidence: {\"cycle\": [\"templates/guides/reference/triggers.md\", \"templates/guides/workflows/common.md\", \"templates/guides/reference/triggers.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-008",
+            "category": "dependencies",
+            "source_files": [
+              "templates/guides/reference/triggers.md",
+              "templates/guides/workflows/common.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Break circular dependency cycle 9",
+          "description": "Refactor references so template dependencies remain acyclic.",
+          "priority": "high",
+          "details": "Roadmap category: dependencies. Finding count: 2. Primary source(s): templates/integration/architecture/handler-architecture.md, templates/integration/architecture/system-architecture.md. Sample evidence: {\"cycle\": [\"templates/integration/architecture/handler-architecture.md\", \"templates/integration/architecture/system-architecture.md\", \"templates/integration/architecture/handler-architecture.md\"], \"length\": 2}",
+          "testStrategy": "Rerun reference analyzer and confirm circular dependency count decreases.",
+          "metadata": {
+            "roadmap_item_id": "high-cycle-009",
+            "category": "dependencies",
+            "source_files": [
+              "templates/integration/architecture/handler-architecture.md",
+              "templates/integration/architecture/system-architecture.md"
+            ],
+            "finding_count": 2,
+            "effort": "M",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Complete migration work for templates/BEHAVIORS.md",
+          "description": "Migrate remaining 19 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 10. Primary source(s): templates/BEHAVIORS.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/BEHAVIORS.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 19 sections to modular files\", \"unmigrated_sections\": [\"Adding New Behaviors {#adding-new-behaviors}\", \"Cross-Reference Map {#cross-reference-map}\", \"Development Work {#development-work}\", \"Evidence & Claims {#evidence-claims}\", \"File Operations {#file-operations}\", \"Git Operations {#git-operations}\", \"Integration with CLAUDE.md {#integration-claude}\", \"Progress Log\", \"Session Management {#session-management}\", \"Special Behaviors {#special-behaviors}\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-003",
+            "category": "migration",
+            "source_files": [
+              "templates/BEHAVIORS.md"
+            ],
+            "finding_count": 10,
+            "effort": "L",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Complete migration work for templates/HANDLERS.md",
+          "description": "Migrate remaining 8 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 8. Primary source(s): templates/HANDLERS.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/HANDLERS.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 8 sections to modular files\", \"unmigrated_sections\": [\"header\", \"\\ud83c\\udfaf Common Patterns & Examples {#common-patterns}\", \"\\ud83c\\udfaf Quick Navigation {#quick-navigation}\", \"\\ud83d\\udcca Coverage Matrix {#coverage-matrix}\", \"\\ud83d\\udccd Handler Registry {#handler-registry}\", \"\\ud83d\\udd04 Disambiguation Guide {#disambiguation-guide}\", \"\\ud83d\\udd0d Search Tips {#search-tips}\", \"\\ud83d\\udd17 Adding New Handlers {#adding-new-handlers}\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-002",
+            "category": "migration",
+            "source_files": [
+              "templates/HANDLERS.md"
+            ],
+            "finding_count": 8,
+            "effort": "L",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Complete migration work for templates/MATRICES.md",
+          "description": "Migrate remaining 13 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 10. Primary source(s): templates/MATRICES.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/MATRICES.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 13 sections to modular files\", \"unmigrated_sections\": [\"Behavior \\u2192 Workflow Coverage Matrix {#behavior-workflow-matrix}\", \"Common Matrix Queries {#common-matrix-queries}\", \"Context \\u2192 Mode Matrix {#context-mode-matrix}\", \"Error \\u2192 Recovery Matrix {#error-recovery-matrix}\", \"File Type \\u2192 Convention Matrix {#file-type-convention-matrix}\", \"Integration Points {#integration-points}\", \"Matrix Usage Patterns {#matrix-usage-patterns}\", \"Problem Type \\u2192 Solution Matrix {#problem-type-solution-matrix}\", \"Progress Log\", \"Request Type \\u2192 Handler Matrix {#request-type-handler-matrix}\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-004",
+            "category": "migration",
+            "source_files": [
+              "templates/MATRICES.md"
+            ],
+            "finding_count": 10,
+            "effort": "L",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Complete migration work for templates/REGISTRY.md",
+          "description": "Migrate remaining 19 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 10. Primary source(s): templates/REGISTRY.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/REGISTRY.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 19 sections to modular files\", \"unmigrated_sections\": [\"Behavioral Hooks (10 categories)\", \"Behavioral Templates (6 total)\", \"Common Commands\", \"Decision Matrices (5 total)\", \"Intent Handlers (63 existing + 6 to add = 69 total)\", \"Key Improvements in This Registry\", \"Meta-Routing Patterns (13 total)\", \"Progress Log\", \"Registry Maintenance\", \"Special Files\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-001",
+            "category": "migration",
+            "source_files": [
+              "templates/REGISTRY.md"
+            ],
+            "finding_count": 10,
+            "effort": "L",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Complete migration work for templates/TOOLS.md",
+          "description": "Migrate remaining 7 sections to modular files",
+          "priority": "high",
+          "details": "Roadmap category: migration. Finding count: 7. Primary source(s): templates/TOOLS.md. Sample evidence: {\"action\": \"complete_migration\", \"file\": \"templates/TOOLS.md\", \"migration_percentage\": 0.0, \"recommendation\": \"Migrate remaining 7 sections to modular files\", \"unmigrated_sections\": [\"Anti-Patterns\", \"Built-in Tools\", \"Evidence Expectations\", \"Progress Log\", \"Quick Reference\", \"header\", \"\\ud83d\\udea6 Decision Router\"]}",
+          "testStrategy": "Rerun migration detector and fix generator; confirm migration recommendation is resolved or updated.",
+          "metadata": {
+            "roadmap_item_id": "high-migration-005",
+            "category": "migration",
+            "source_files": [
+              "templates/TOOLS.md"
+            ],
+            "finding_count": 7,
+            "effort": "L",
+            "risk": "medium"
+          }
+        },
+        {
+          "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+          "description": "Review duplicate-removal recommendations and archive only after manual confirmation.",
+          "priority": "medium",
+          "details": "Roadmap category: duplicates. Finding count: 1. Primary source(s): .claude/commands/tm/clear-subtasks/clear-all-subtasks.md, .claude/commands/tm/remove-subtasks/remove-all-subtasks.md. Sample evidence: {\"archive_to\": \"archive/.claude/commands/tm/remove-subtasks/remove-all-subtasks.md\", \"command\": \"mkdir -p \\\"archive/.claude/commands/tm/remove-subtasks\\\" && git mv \\\".claude/commands/tm/remove-subtasks/remove-all-subtasks.md\\\" \\\"archive/.claude/commands/tm/remove-subtasks/remove-all-subtasks.md\\\"\", \"keep\": \".claude/commands/tm/clear-subtasks/clear-all-subtasks.md\", \"reason\": \"exact_duplicate\", \"remove\": \".claude/commands/tm/remove-subtasks/remove-all-subtasks.md\"}",
+          "testStrategy": "Rerun duplicate finder and confirm duplicate group no longer appears.",
+          "metadata": {
+            "roadmap_item_id": "medium-duplicates-001",
+            "category": "duplicates",
+            "source_files": [
+              ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+              ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "low"
+          }
+        },
+        {
+          "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-subtasks.md",
+          "description": "Review duplicate-removal recommendations and archive only after manual confirmation.",
+          "priority": "medium",
+          "details": "Roadmap category: duplicates. Finding count: 1. Primary source(s): .claude/commands/tm/clear-subtasks/clear-subtasks.md, .claude/commands/tm/remove-subtasks/remove-subtasks.md. Sample evidence: {\"archive_to\": \"archive/.claude/commands/tm/remove-subtasks/remove-subtasks.md\", \"command\": \"mkdir -p \\\"archive/.claude/commands/tm/remove-subtasks\\\" && git mv \\\".claude/commands/tm/remove-subtasks/remove-subtasks.md\\\" \\\"archive/.claude/commands/tm/remove-subtasks/remove-subtasks.md\\\"\", \"keep\": \".claude/commands/tm/clear-subtasks/clear-subtasks.md\", \"reason\": \"exact_duplicate\", \"remove\": \".claude/commands/tm/remove-subtasks/remove-subtasks.md\"}",
+          "testStrategy": "Rerun duplicate finder and confirm duplicate group no longer appears.",
+          "metadata": {
+            "roadmap_item_id": "medium-duplicates-002",
+            "category": "duplicates",
+            "source_files": [
+              ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+              ".claude/commands/tm/remove-subtasks/remove-subtasks.md"
+            ],
+            "finding_count": 1,
+            "effort": "S",
+            "risk": "low"
+          }
+        },
+        {
+          "title": "Review 87 orphaned scanner files",
+          "description": "Review orphaned files after higher-priority reference and migration work is complete.",
+          "priority": "low",
+          "details": "Roadmap category: orphaned-files. Finding count: 87. Primary source(s): {'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}, {'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}, {'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}, {'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}, {'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}, plus 15 more. Sample evidence: {\"sample\": [\"{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}\", \"{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}\", \"{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}\", \"{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}\", \"{'file': '.codex/AGENTS.md', 'type': 'agent', 'line_count': 13}\", \"{'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}\", \"{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}\", \"{'file': '.claude/commands/kickoff.md', 'type': 'command', 'line_count': 13}\", \"{'file': '.claude/commands/plan-sync.md', 'type': 'command', 'line_count': 12}\", \"{'file': '.claude/commands/readiness.md', 'type': 'command', 'line_count': 12}\"], \"total\": 87}",
+          "testStrategy": "Rerun reference analyzer and confirm reviewed files are referenced or intentionally exempted.",
+          "metadata": {
+            "roadmap_item_id": "low-orphaned-files-001",
+            "category": "orphaned-files",
+            "source_files": [
+              "{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}",
+              "{'file': '.claude/TM_COMMANDS_GUIDE.md', 'type': 'command', 'line_count': 147}",
+              "{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}",
+              "{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}",
+              "{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}",
+              "{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/kickoff.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/plan-sync.md', 'type': 'command', 'line_count': 12}",
+              "{'file': '.claude/commands/readiness.md', 'type': 'command', 'line_count': 12}",
+              "{'file': '.claude/commands/scanner-run.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/sessions-update.md', 'type': 'command', 'line_count': 13}",
+              "{'file': '.claude/commands/tm/add-dependency/add-dependency.md', 'type': 'command', 'line_count': 55}",
+              "{'file': '.claude/commands/tm/add-subtask/add-subtask.md', 'type': 'command', 'line_count': 76}",
+              "{'file': '.claude/commands/tm/add-subtask/convert-task-to-subtask.md', 'type': 'command', 'line_count': 71}",
+              "{'file': '.claude/commands/tm/add-task/add-task.md', 'type': 'command', 'line_count': 78}",
+              "{'file': '.claude/commands/tm/analyze-complexity/analyze-complexity.md', 'type': 'command', 'line_count': 121}",
+              "{'file': '.claude/commands/tm/clear-subtasks/clear-all-subtasks.md', 'type': 'command', 'line_count': 93}",
+              "{'file': '.claude/commands/tm/clear-subtasks/clear-subtasks.md', 'type': 'command', 'line_count': 86}",
+              "{'file': '.claude/commands/tm/complexity-report/complexity-report.md', 'type': 'command', 'line_count': 117}",
+              "{'file': '.codex/AGENTS.md', 'type': 'agent', 'line_count': 13}"
+            ],
+            "finding_count": 87,
+            "effort": "XL",
+            "risk": "high"
+          }
+        }
+      ]
+    },
+    "source_outputs": {
+      "migration_status": {
+        "path": "scripts/template-ssot-scanner/output/data/migration_status.json",
+        "scanner": "migration_detector",
+        "scan_timestamp": "2026-05-12T13:26:41.181113",
+        "scanner_version": "1.0.0"
+      },
+      "reference_analysis": {
+        "path": "scripts/template-ssot-scanner/output/data/reference_analysis.json",
+        "scanner": "reference_analyzer",
+        "scan_timestamp": "2026-05-12T13:26:46.057312",
+        "scanner_version": "1.1.0"
+      },
+      "duplicate_analysis": {
+        "path": "scripts/template-ssot-scanner/output/data/duplicate_analysis.json",
+        "scanner": "duplicate_finder",
+        "scan_timestamp": "2026-05-12T13:26:46.291556",
+        "scanner_version": "1.1.0"
+      },
+      "fix_recommendations": {
+        "path": "scripts/template-ssot-scanner/output/data/fix_recommendations.json",
+        "scanner": "fix_generator",
+        "scan_timestamp": "2026-05-12T13:26:46.472794",
+        "scanner_version": "1.1.0"
+      },
+      "baseline_summary": {
+        "path": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+        "scanner": "baseline_summary",
+        "scan_timestamp": "2026-05-12T13:26:46.501387",
+        "scanner_version": "1.0.0"
+      },
+      "security_validation": {
+        "path": "scripts/template-ssot-scanner/output/data/security_validation.json",
+        "scanner": "security_validator",
+        "scan_timestamp": "2026-05-12T13:26:45.879072",
+        "scanner_version": "1.0.0"
+      }
+    }
+  }
+}

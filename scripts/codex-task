@@ -3131,6 +3131,548 @@ def handle_security_audit(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+MIGRATION_METRIC_NON_GOALS: Tuple[str, ...] = (
+    "No metric collection agent is started.",
+    "No time-series database is read or written.",
+    "No live dashboard, WebSocket, or hosted observability service is created.",
+    "No alert, notification, ticket, or external webhook is sent.",
+    "No scanner output is regenerated and no remediation mutation is applied.",
+)
+
+
+def _wrapped_data_document(path_value: str | Path, label: str) -> Dict[str, Any]:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    payload = _load_json_document(path.as_posix(), label)
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else None
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    if not isinstance(data, dict):
+        raise TaskError(f"{label} data must be a JSON object")
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "metadata": metadata,
+        "data": data,
+    }
+
+
+def _normalise_migration_metrics_baseline(path_value: str | Path) -> Dict[str, Any]:
+    baseline = _wrapped_data_document(path_value, "Baseline summary")
+    data = baseline["data"]
+    metrics = data.get("metrics")
+    if not isinstance(metrics, dict):
+        raise TaskError("Baseline summary must include data.metrics")
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+    return {
+        "path": baseline["path"],
+        "metadata": baseline.get("metadata"),
+        "generated_at": data.get("generated_at"),
+        "metrics": metrics,
+        "outputs": outputs,
+    }
+
+
+def _normalise_migration_metrics_security(path_value: str | Path | None) -> Dict[str, Any]:
+    if not path_value:
+        return {
+            "path": None,
+            "exists": False,
+            "status": "not-provided",
+            "findings": None,
+            "severity_counts": {},
+            "generated_at": None,
+        }
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    display = _relative_to_root(path, REPO_ROOT)
+    if not path.exists():
+        return {
+            "path": display,
+            "exists": False,
+            "status": "missing",
+            "findings": None,
+            "severity_counts": {},
+            "generated_at": None,
+        }
+    security = _wrapped_data_document(path, "Security validation report")
+    data = security["data"]
+    metadata = security.get("metadata") if isinstance(security.get("metadata"), dict) else {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    stats = metadata.get("stats") if isinstance(metadata.get("stats"), dict) else {}
+    severity_counts = summary.get("severity_counts") if isinstance(summary.get("severity_counts"), dict) else {}
+    findings = summary.get("total_findings", stats.get("findings"))
+    return {
+        "path": security["path"],
+        "exists": True,
+        "status": "present",
+        "findings": int(findings or 0),
+        "severity_counts": dict(severity_counts),
+        "generated_at": metadata.get("scan_timestamp") or data.get("generated_at"),
+    }
+
+
+def _optional_migration_metrics_roadmap(path_value: str | None, max_items: int) -> Dict[str, Any]:
+    if not path_value:
+        return {
+            "path": None,
+            "exists": False,
+            "status": "not-provided",
+            "summary": None,
+        }
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    if not path.exists():
+        raise TaskError(f"Migration roadmap not found: {_relative_to_root(path, REPO_ROOT)}")
+    roadmap = _normalise_roadmap_payload(path.as_posix())
+    return {
+        "path": roadmap["path"],
+        "exists": True,
+        "status": "present",
+        "summary": _summarise_rehearsal_roadmap(roadmap, max_items),
+    }
+
+
+def _numeric_metric(metrics: Mapping[str, Any], key: str) -> float | int | None:
+    value = metrics.get(key)
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return value
+    return None
+
+
+def _migration_kpi(
+    *,
+    metric_id: str,
+    title: str,
+    value: object,
+    unit: str,
+    target: str,
+    status: str,
+    severity: str,
+    evidence: str,
+    message: str,
+) -> Dict[str, Any]:
+    return {
+        "id": metric_id,
+        "title": title,
+        "value": value,
+        "unit": unit,
+        "target": target,
+        "status": status,
+        "severity": severity,
+        "evidence": evidence,
+        "message": message,
+    }
+
+
+def _zero_target_kpi(
+    *,
+    metrics: Mapping[str, Any],
+    key: str,
+    metric_id: str,
+    title: str,
+    unit: str,
+    fail_on_positive: bool,
+    evidence: str,
+) -> Dict[str, Any]:
+    value = _numeric_metric(metrics, key)
+    if value is None:
+        return _migration_kpi(
+            metric_id=metric_id,
+            title=title,
+            value=None,
+            unit=unit,
+            target="0",
+            status="missing",
+            severity="warning",
+            evidence=evidence,
+            message=f"`{key}` is missing from the baseline summary.",
+        )
+    if value == 0:
+        status = "pass"
+        severity = "info"
+        message = "Target met."
+    else:
+        status = "fail" if fail_on_positive else "warn"
+        severity = "error" if fail_on_positive else "warning"
+        message = f"{value} item(s) remain above the zero target."
+    return _migration_kpi(
+        metric_id=metric_id,
+        title=title,
+        value=value,
+        unit=unit,
+        target="0",
+        status=status,
+        severity=severity,
+        evidence=evidence,
+        message=message,
+    )
+
+
+def _migration_metrics_kpis(
+    baseline: Mapping[str, Any],
+    roadmap: Mapping[str, Any],
+    security: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    metrics = baseline.get("metrics") if isinstance(baseline.get("metrics"), dict) else {}
+    evidence = str(baseline.get("path"))
+    kpis: List[Dict[str, Any]] = []
+    migration_percentage = _numeric_metric(metrics, "migration_percentage")
+    if migration_percentage is None:
+        kpis.append(
+            _migration_kpi(
+                metric_id="migration-completion",
+                title="Migration completion",
+                value=None,
+                unit="percent",
+                target="100",
+                status="missing",
+                severity="warning",
+                evidence=evidence,
+                message="`migration_percentage` is missing from the baseline summary.",
+            )
+        )
+    else:
+        status = "pass" if migration_percentage >= 100 else "warn"
+        kpis.append(
+            _migration_kpi(
+                metric_id="migration-completion",
+                title="Migration completion",
+                value=migration_percentage,
+                unit="percent",
+                target="100",
+                status=status,
+                severity="info" if status == "pass" else "warning",
+                evidence=evidence,
+                message="Migration is complete." if status == "pass" else "Migration is not yet complete.",
+            )
+        )
+
+    kpis.extend(
+        [
+            _zero_target_kpi(
+                metrics=metrics,
+                key="pending_migration",
+                metric_id="pending-migration",
+                title="Pending migration files",
+                unit="files",
+                fail_on_positive=False,
+                evidence=evidence,
+            ),
+            _zero_target_kpi(
+                metrics=metrics,
+                key="broken_references",
+                metric_id="broken-references",
+                title="Broken references",
+                unit="references",
+                fail_on_positive=True,
+                evidence=evidence,
+            ),
+            _zero_target_kpi(
+                metrics=metrics,
+                key="circular_dependencies",
+                metric_id="circular-dependencies",
+                title="Circular dependencies",
+                unit="cycles",
+                fail_on_positive=True,
+                evidence=evidence,
+            ),
+            _zero_target_kpi(
+                metrics=metrics,
+                key="duplicate_count",
+                metric_id="duplicate-files",
+                title="Duplicate files",
+                unit="files",
+                fail_on_positive=False,
+                evidence=evidence,
+            ),
+            _zero_target_kpi(
+                metrics=metrics,
+                key="total_fixes",
+                metric_id="recommended-fixes",
+                title="Recommended fixes",
+                unit="fixes",
+                fail_on_positive=False,
+                evidence=evidence,
+            ),
+        ]
+    )
+
+    security_findings = security.get("findings")
+    if security.get("exists") is False:
+        kpis.append(
+            _migration_kpi(
+                metric_id="security-findings",
+                title="Security findings",
+                value=None,
+                unit="findings",
+                target="0",
+                status="missing",
+                severity="warning",
+                evidence=str(security.get("path") or "not provided"),
+                message="Security validation report is missing or not provided.",
+            )
+        )
+    else:
+        severity_counts = security.get("severity_counts") if isinstance(security.get("severity_counts"), dict) else {}
+        errors = int(severity_counts.get("error", 0) or 0)
+        findings = int(security_findings or 0)
+        if findings == 0:
+            status = "pass"
+            severity = "info"
+            message = "Target met."
+        elif errors:
+            status = "fail"
+            severity = "error"
+            message = f"{errors} error-level security finding(s) block migration readiness."
+        else:
+            status = "warn"
+            severity = "warning"
+            message = f"{findings} non-error security finding(s) require review."
+        kpis.append(
+            _migration_kpi(
+                metric_id="security-findings",
+                title="Security findings",
+                value=findings,
+                unit="findings",
+                target="0",
+                status=status,
+                severity=severity,
+                evidence=str(security.get("path")),
+                message=message,
+            )
+        )
+
+    roadmap_summary = roadmap.get("summary") if isinstance(roadmap.get("summary"), dict) else None
+    if roadmap_summary is None:
+        kpis.append(
+            _migration_kpi(
+                metric_id="roadmap-critical-items",
+                title="Critical roadmap items",
+                value=None,
+                unit="items",
+                target="0",
+                status="missing",
+                severity="warning",
+                evidence=str(roadmap.get("path") or "not provided"),
+                message="Migration roadmap was not provided; roadmap backlog metrics are unavailable.",
+            )
+        )
+    else:
+        priority_counts = roadmap_summary.get("priority_counts") if isinstance(roadmap_summary.get("priority_counts"), dict) else {}
+        critical = int(priority_counts.get("critical", 0) or 0)
+        total_items = int(roadmap_summary.get("total_items", 0) or 0)
+        kpis.append(
+            _migration_kpi(
+                metric_id="roadmap-critical-items",
+                title="Critical roadmap items",
+                value=critical,
+                unit="items",
+                target="0",
+                status="fail" if critical else "pass",
+                severity="error" if critical else "info",
+                evidence=str(roadmap_summary.get("path")),
+                message="Critical roadmap items remain." if critical else "No critical roadmap items remain.",
+            )
+        )
+        kpis.append(
+            _migration_kpi(
+                metric_id="roadmap-total-items",
+                title="Total roadmap items",
+                value=total_items,
+                unit="items",
+                target="reviewed backlog",
+                status="warn" if total_items else "pass",
+                severity="warning" if total_items else "info",
+                evidence=str(roadmap_summary.get("path")),
+                message="Roadmap backlog remains." if total_items else "Roadmap has no remaining items.",
+            )
+        )
+    return kpis
+
+
+def _migration_metrics_status(kpis: Sequence[Mapping[str, Any]]) -> str:
+    if any(kpi.get("status") == "fail" for kpi in kpis):
+        return "fail"
+    if any(kpi.get("status") in {"warn", "missing"} for kpi in kpis):
+        return "warn"
+    return "pass"
+
+
+def _migration_metrics_verification_commands() -> List[str]:
+    return [
+        "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci",
+        "python3 scripts/template-ssot-scanner/baseline_summary.py --data-dir scripts/template-ssot-scanner/output/data",
+        "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+        "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+        "python3 scripts/codex-task report generate --kind migration-health",
+        "python3 scripts/codex-task validation final-suite --dry-run",
+    ]
+
+
+def _build_migration_metrics_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    baseline = _normalise_migration_metrics_baseline(args.baseline_summary)
+    security = _normalise_migration_metrics_security(args.security_report)
+    roadmap = _optional_migration_metrics_roadmap(args.roadmap, args.max_roadmap_items)
+    kpis = _migration_metrics_kpis(baseline, roadmap, security)
+    status = _migration_metrics_status(kpis)
+    baseline_metadata = baseline.get("metadata") if isinstance(baseline.get("metadata"), dict) else {}
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "static-file-backed-migration-metrics",
+        "executes_external_actions": False,
+        "aggregate_status": status,
+        "summary": {
+            "total_kpis": len(kpis),
+            "passed": sum(1 for kpi in kpis if kpi.get("status") == "pass"),
+            "warnings": sum(1 for kpi in kpis if kpi.get("status") in {"warn", "missing"}),
+            "failures": sum(1 for kpi in kpis if kpi.get("status") == "fail"),
+        },
+        "inputs": {
+            "baseline_summary": {
+                "path": baseline["path"],
+                "generated_at": baseline.get("generated_at"),
+                "scanner_timestamp": baseline_metadata.get("scan_timestamp"),
+            },
+            "roadmap": {
+                "path": roadmap.get("path"),
+                "status": roadmap.get("status"),
+                "exists": roadmap.get("exists"),
+            },
+            "security_report": {
+                "path": security.get("path"),
+                "status": security.get("status"),
+                "exists": security.get("exists"),
+                "generated_at": security.get("generated_at"),
+            },
+        },
+        "source_outputs": baseline.get("outputs", {}),
+        "kpis": kpis,
+        "roadmap": roadmap.get("summary"),
+        "recommended_refresh_commands": _migration_metrics_verification_commands(),
+        "non_goals": list(MIGRATION_METRIC_NON_GOALS),
+    }
+
+
+def _render_migration_metrics_runbook(report: Dict[str, Any]) -> str:
+    lines = [
+        "# Migration Metrics Collection",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Aggregate status: {report.get('aggregate_status')}",
+        f"- Executes external actions: {report.get('executes_external_actions')}",
+        "",
+        "## Inputs",
+        "",
+    ]
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    for key, value in inputs.items():
+        if not isinstance(value, dict):
+            continue
+        lines.append(f"- {key}: `{value.get('path')}`")
+
+    lines.extend(["", "## KPI Summary", ""])
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    lines.extend(
+        [
+            f"- Total KPIs: {summary.get('total_kpis')}",
+            f"- Passed: {summary.get('passed')}",
+            f"- Warnings: {summary.get('warnings')}",
+            f"- Failures: {summary.get('failures')}",
+            "",
+            "## KPIs",
+            "",
+            "| KPI | Value | Unit | Target | Status | Severity | Evidence |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+        ]
+    )
+    for kpi in report.get("kpis", []):
+        if not isinstance(kpi, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(kpi.get('title'))} | {_md_cell(kpi.get('value'))} | "
+            f"{_md_cell(kpi.get('unit'))} | {_md_cell(kpi.get('target'))} | "
+            f"{_md_cell(kpi.get('status'))} | {_md_cell(kpi.get('severity'))} | "
+            f"{_md_cell(kpi.get('evidence'))} |"
+        )
+
+    roadmap = report.get("roadmap") if isinstance(report.get("roadmap"), dict) else None
+    lines.extend(["", "## Roadmap Backlog", ""])
+    if roadmap:
+        lines.extend(
+            [
+                f"- Roadmap: `{roadmap.get('path')}`",
+                f"- Total items: {roadmap.get('total_items')}",
+                f"- Priority counts: {roadmap.get('priority_counts')}",
+                f"- Category counts: {roadmap.get('category_counts')}",
+            ]
+        )
+    else:
+        lines.append("- No migration roadmap was provided.")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "No metric agent, time-series database, live dashboard, alert delivery, external service call, scanner regeneration, or remediation mutation was executed by this report.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_migration_metrics(args: argparse.Namespace) -> None:
+    report = _build_migration_metrics_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_migration_metrics_runbook(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["aggregate_status"] == "fail":
+            raise TaskError("Migration metrics aggregate status is fail")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote migration metrics report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote migration metrics runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["aggregate_status"] == "fail":
+        raise TaskError("Migration metrics aggregate status is fail")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -6228,6 +6770,28 @@ def build_parser() -> argparse.ArgumentParser:
     security_audit.add_argument("--runbook-file", help="Optional path to write the audit runbook markdown")
     security_audit.add_argument("--dry-run", action="store_true", help="Print the audit packet JSON without writing files")
     security_audit.set_defaults(func=handle_security_audit)
+
+    migration_parser = subparsers.add_parser("migration", help="Migration metrics and planning operations")
+    migration_sub = migration_parser.add_subparsers(dest="subcommand", required=True)
+    migration_metrics = migration_sub.add_parser("metrics", help="Render a scanner-backed migration KPI packet")
+    migration_metrics.add_argument("--label", default="migration-metrics", help="Human-readable metrics label")
+    migration_metrics.add_argument(
+        "--baseline-summary",
+        default=(REPO_ROOT / "scripts" / "template-ssot-scanner" / "output" / "data" / "baseline_summary.json").relative_to(REPO_ROOT).as_posix(),
+        help="Metadata-wrapped baseline_summary.json produced by baseline_summary.py",
+    )
+    migration_metrics.add_argument("--roadmap", help="Optional migration roadmap JSON produced by migration_roadmap.py")
+    migration_metrics.add_argument(
+        "--security-report",
+        default=(REPO_ROOT / "scripts" / "template-ssot-scanner" / "output" / "data" / "security_validation.json").relative_to(REPO_ROOT).as_posix(),
+        help="Optional metadata-wrapped security_validation.json produced by security_validator.py",
+    )
+    migration_metrics.add_argument("--report-file", help="Optional path to write the metrics JSON packet")
+    migration_metrics.add_argument("--runbook-file", help="Optional path to write the metrics Markdown runbook")
+    migration_metrics.add_argument("--max-roadmap-items", type=int, default=10, help="Number of roadmap items to include")
+    migration_metrics.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate migration metrics fail")
+    migration_metrics.add_argument("--dry-run", action="store_true", help="Print the metrics JSON without writing files")
+    migration_metrics.set_defaults(func=handle_migration_metrics)
 
     compaction_parser = subparsers.add_parser("compaction", help="Context compaction checkpoint operations")
     compaction_sub = compaction_parser.add_subparsers(dest="subcommand", required=True)

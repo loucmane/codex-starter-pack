@@ -91,6 +91,15 @@ def test_build_parser_accepts_telemetry_report_kind() -> None:
     assert args.kind == "telemetry"
 
 
+def test_build_parser_accepts_migration_metrics() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["migration", "metrics", "--label", "task-55"])
+    assert args.command == "migration"
+    assert args.subcommand == "metrics"
+    assert args.label == "task-55"
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -1040,6 +1049,246 @@ def test_handle_rehearsal_plan_writes_manifest_and_runbook(monkeypatch, tmp_path
     assert "Repair broken reference" in runbook_text
     assert "No rehearsal commands were executed by this plan." in runbook_text
     assert "git reset --hard" not in runbook_text
+
+
+def _write_migration_metrics_inputs(repo: Path, *, clean: bool = False) -> tuple[Path, Path, Path]:
+    reports = repo / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    baseline = reports / "baseline_summary.json"
+    roadmap = reports / "migration-roadmap.json"
+    security = reports / "security_validation.json"
+    baseline.write_text(
+        json.dumps(
+            {
+                "metadata": {
+                    "scan_timestamp": "2026-05-13T10:00:00",
+                    "scanner": "baseline_summary",
+                    "stats": {},
+                },
+                "data": {
+                    "generated_at": "2026-05-13T10:00:00",
+                    "metrics": {
+                        "migration_percentage": 100.0 if clean else 37.5,
+                        "pending_migration": 0 if clean else 6,
+                        "broken_references": 0 if clean else 2,
+                        "circular_dependencies": 0 if clean else 1,
+                        "duplicate_count": 0 if clean else 4,
+                        "total_fixes": 0 if clean else 7,
+                    },
+                    "outputs": {
+                        "migration_status": {
+                            "path": "scripts/template-ssot-scanner/output/data/migration_status.json",
+                            "scanner": "migration_detector",
+                            "scan_timestamp": "2026-05-13T09:59:00",
+                        }
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    roadmap.write_text(
+        json.dumps(
+            {
+                "metadata": {"scanner": "migration_roadmap", "scanner_version": "1.0.0"},
+                "data": {
+                    "generated_at": "2026-05-13T10:01:00",
+                    "migration_roadmap_version": "1.0.0",
+                    "summary_metrics": {"pending_migration": 0 if clean else 6},
+                    "priority_counts": {"critical": 0 if clean else 1, "high": 2},
+                    "category_counts": {"references": 1, "migration": 2},
+                    "phases": [
+                        {
+                            "title": "Critical integrity",
+                            "priorities": ["critical"],
+                            "start_day": 0,
+                            "duration_days": 2,
+                        }
+                    ],
+                    "items": [
+                        {
+                            "id": "critical-references-001",
+                            "priority": "critical",
+                            "category": "references",
+                            "title": "Repair broken reference",
+                            "effort": "S",
+                            "risk": "high",
+                            "finding_count": 1,
+                            "source_files": ["templates/example.md"],
+                            "dependencies": [],
+                        },
+                        {
+                            "id": "high-migration-001",
+                            "priority": "high",
+                            "category": "migration",
+                            "title": "Complete migration",
+                            "effort": "M",
+                            "risk": "medium",
+                            "finding_count": 2,
+                            "source_files": ["templates/legacy.md"],
+                            "dependencies": ["critical-references-001"],
+                        },
+                    ],
+                    "taskmaster_export": {"tasks": [{"title": "Repair broken reference"}]},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    security.write_text(
+        json.dumps(
+            {
+                "metadata": {
+                    "scan_timestamp": "2026-05-13T10:02:00",
+                    "scanner": "security_validator",
+                    "stats": {"findings": 0 if clean else 1},
+                },
+                "data": {
+                    "summary": {
+                        "total_findings": 0 if clean else 1,
+                        "severity_counts": {} if clean else {"error": 1},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return baseline, roadmap, security
+
+
+def test_build_migration_metrics_report_summarizes_baseline_roadmap_and_security(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    baseline, roadmap, security = _write_migration_metrics_inputs(repo)
+
+    report = module._build_migration_metrics_report(
+        argparse.Namespace(
+            label="task-55",
+            baseline_summary=str(baseline),
+            roadmap=str(roadmap),
+            security_report=str(security),
+            max_roadmap_items=1,
+        )
+    )
+
+    assert report["mode"] == "static-file-backed-migration-metrics"
+    assert report["executes_external_actions"] is False
+    assert report["aggregate_status"] == "fail"
+    assert report["summary"]["failures"] >= 3
+    kpis = {kpi["id"]: kpi for kpi in report["kpis"]}
+    assert kpis["migration-completion"]["value"] == 37.5
+    assert kpis["broken-references"]["status"] == "fail"
+    assert kpis["security-findings"]["status"] == "fail"
+    assert kpis["roadmap-critical-items"]["value"] == 1
+    assert report["roadmap"]["first_items"][0]["id"] == "critical-references-001"
+    assert "No time-series database is read or written." in report["non_goals"]
+
+
+def test_migration_metrics_report_handles_missing_optional_inputs(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    baseline, _, _ = _write_migration_metrics_inputs(repo, clean=True)
+
+    report = module._build_migration_metrics_report(
+        argparse.Namespace(
+            label="task-55",
+            baseline_summary=str(baseline),
+            roadmap=None,
+            security_report=str(repo / "missing-security.json"),
+            max_roadmap_items=5,
+        )
+    )
+
+    assert report["aggregate_status"] == "warn"
+    kpis = {kpi["id"]: kpi for kpi in report["kpis"]}
+    assert kpis["security-findings"]["status"] == "missing"
+    assert kpis["roadmap-critical-items"]["status"] == "missing"
+    assert report["roadmap"] is None
+
+
+def test_render_migration_metrics_runbook_lists_kpis_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    baseline, roadmap, security = _write_migration_metrics_inputs(repo)
+    report = module._build_migration_metrics_report(
+        argparse.Namespace(
+            label="task-55",
+            baseline_summary=str(baseline),
+            roadmap=str(roadmap),
+            security_report=str(security),
+            max_roadmap_items=1,
+        )
+    )
+
+    runbook = module._render_migration_metrics_runbook(report)
+
+    assert "# Migration Metrics Collection" in runbook
+    assert "Broken references" in runbook
+    assert "Critical roadmap items" in runbook
+    assert "No metric agent, time-series database, live dashboard" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_migration_metrics_writes_report_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    baseline, roadmap, security = _write_migration_metrics_inputs(repo)
+    report = repo / "reports" / "migration-metrics.json"
+    runbook = repo / "reports" / "migration-metrics.md"
+
+    module.handle_migration_metrics(
+        argparse.Namespace(
+            label="task-55",
+            baseline_summary=str(baseline),
+            roadmap=str(roadmap),
+            security_report=str(security),
+            max_roadmap_items=1,
+            report_file=str(report),
+            runbook_file=str(runbook),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote migration metrics report to reports/migration-metrics.json" in output
+    assert "Wrote migration metrics runbook to reports/migration-metrics.md" in output
+    assert json.loads(report.read_text(encoding="utf-8"))["aggregate_status"] == "fail"
+    assert "Migration Metrics Collection" in runbook.read_text(encoding="utf-8")
+
+
+def test_handle_migration_metrics_strict_fails_after_writing(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    baseline, roadmap, security = _write_migration_metrics_inputs(repo)
+    report = repo / "reports" / "migration-metrics.json"
+
+    with pytest.raises(module.TaskError, match="aggregate status is fail"):
+        module.handle_migration_metrics(
+            argparse.Namespace(
+                label="task-55",
+                baseline_summary=str(baseline),
+                roadmap=str(roadmap),
+                security_report=str(security),
+                max_roadmap_items=1,
+                report_file=str(report),
+                runbook_file=None,
+                dry_run=False,
+                strict=True,
+            )
+        )
+
+    assert report.exists()
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
