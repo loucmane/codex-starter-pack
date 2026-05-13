@@ -5,3 +5,6 @@
 - 2026-05-13 11:41 CEST — Implemented `codex-task recovery plan`, added focused tests, and captured live JSON/Markdown recovery evidence.
 - 2026-05-13 11:46 CEST — Completed Taskmaster Task 47 and captured final plan sync, audit, health, guard, diff-check, and task status evidence.
 - 2026-05-13 11:49 CEST — Captured Task 47 completion memory.
+- 2026-05-13 12:01 CEST — Archived Task 47 work tracking after PR #82 merged and cleared current session/plan pointers.
+- 2026-05-13 12:05 CEST — Captured post-archive audit, Taskmaster health, guard, diff-check, and git status evidence.
+- 2026-05-13 12:00 CEST — Archived active work-tracking folder.

@@ -1,0 +1,22 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/designs/error-recovery-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/diff-check-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/guard-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/plan-sync-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/recovery-plan-2026-05-13.json
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/recovery-runbook-2026-05-13.md
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/taskmaster-health-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/taskmaster-show-47-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/tests-codex-task-2026-05-13.txt
+ D docs/ai/work-tracking/active/20260513-task47-error-recovery-system-ACTIVE/reports/error-recovery-system/work-tracking-audit-2026-05-13.txt
+D  plans/current
+ M sessions/2026/05/2026-05-13-002-task47-error-recovery-system.md
+D  sessions/current
+ M sessions/state.json
+?? docs/ai/work-tracking/archive/20260513-task47-error-recovery-system-COMPLETED/
