@@ -1,0 +1,4 @@
+# Decisions
+
+- 2026-05-13 — Implement Task 63 as `python3 scripts/codex-task documentation phase4-review`, a non-destructive static delivery review packet. It will review required documentation/training/communication/operations/Phase 3/final validation surfaces, classify each domain as ready, needs-evidence, or needs-implementation, list refresh commands, and write requested JSON/Markdown artifacts. It will not publish docs, deploy training, schedule office hours, send communications, create surveys, claim live attendance, mutate documentation based on feedback, or contact external systems.
+- 2026-05-13 — Keep feedback capture as repo-local guidance inside the Phase 4 review packet. Feedback summaries or documentation updates must become normal scoped workflow artifacts or follow-up Taskmaster tasks; the Phase 4 review command must not create survey infrastructure or claim collected feedback without evidence.

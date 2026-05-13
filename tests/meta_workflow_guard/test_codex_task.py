@@ -158,6 +158,26 @@ def test_build_parser_accepts_phase3_automation_review() -> None:
     assert args.runbook_file == "reports/phase3.md"
 
 
+def test_build_parser_accepts_phase4_documentation_review() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "documentation",
+        "phase4-review",
+        "--label",
+        "task63",
+        "--report-file",
+        "reports/phase4.json",
+        "--runbook-file",
+        "reports/phase4.md",
+    ])
+    assert args.command == "documentation"
+    assert args.subcommand == "phase4-review"
+    assert args.label == "task63"
+    assert args.report_file == "reports/phase4.json"
+    assert args.runbook_file == "reports/phase4.md"
+
+
 def test_build_parser_accepts_incident_post_mortem() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1998,6 +2018,140 @@ def test_handle_phase3_automation_review_writes_packet_and_runbook(monkeypatch, 
     assert payload["label"] == "task56"
     assert payload["summary"]["aggregate_status"] == "ready"
     assert "# Phase 3 Automation Integration Review" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_phase4_documentation_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-63-phase4-documentation-delivery"
+        if args == ["rev-parse", "HEAD"]:
+            return "phase4abc"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-13-011-task63-phase4.md"},
+            "current_plan": {"resolved": "plans/2026-05-13-task63-phase4.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260513-task63-phase4-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_refs": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 11})
+
+
+def _write_phase4_required_paths(repo: Path, module) -> None:
+    for domain in module.PHASE4_DOCUMENTATION_DOMAINS:
+        for raw_path in domain["required_paths"]:
+            path = repo / raw_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("fixture\n", encoding="utf-8")
+
+
+def _write_phase4_evidence_paths(repo: Path, module) -> None:
+    for domain in module.PHASE4_DOCUMENTATION_DOMAINS:
+        for raw_path in domain["evidence_paths"]:
+            path = repo / raw_path
+            if raw_path.endswith("/"):
+                path.mkdir(parents=True, exist_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("{}\n", encoding="utf-8")
+
+
+def test_build_phase4_documentation_review_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_phase4_documentation_snapshots(module, monkeypatch)
+    _write_phase4_required_paths(repo, module)
+    _write_phase4_evidence_paths(repo, module)
+
+    report = module._build_phase4_documentation_review(argparse.Namespace(label="task63"))
+
+    assert report["mode"] == "static-phase4-documentation-delivery-review"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["ready"] == len(module.PHASE4_DOCUMENTATION_DOMAINS)
+    assert report["current_state"]["git"]["branch"] == "feat/task-63-phase4-documentation-delivery"
+    assert {domain["id"] for domain in report["domains"]} >= {
+        "documentation-suite",
+        "training-materials",
+        "communication-templates",
+        "operational-runbook",
+        "phase3-automation-review",
+        "final-validation",
+    }
+    assert "No production documentation publication or hosted docs deployment is executed." in report["non_goals"]
+
+
+def test_build_phase4_documentation_review_reports_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_phase4_documentation_snapshots(module, monkeypatch)
+    _write_phase4_required_paths(repo, module)
+
+    report = module._build_phase4_documentation_review(argparse.Namespace(label="task63"))
+
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert report["summary"]["needs_evidence"] == len(module.PHASE4_DOCUMENTATION_DOMAINS)
+    assert all(domain["missing_evidence_paths"] for domain in report["domains"])
+    assert not any(domain["missing_required_paths"] for domain in report["domains"])
+
+
+def test_render_phase4_documentation_review_lists_domains_guidance_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_phase4_documentation_snapshots(module, monkeypatch)
+    _write_phase4_required_paths(repo, module)
+    _write_phase4_evidence_paths(repo, module)
+    report = module._build_phase4_documentation_review(argparse.Namespace(label="task63"))
+
+    runbook = module._render_phase4_documentation_review(report)
+
+    assert "# Phase 4 Documentation Delivery Review" in runbook
+    assert "Documentation suite" in runbook
+    assert "Training materials" in runbook
+    assert "Communication templates" in runbook
+    assert "Operational runbook" in runbook
+    assert "Feedback Capture Guidance" in runbook
+    assert "Historical Requirements Reconciled Out Of Scope" in runbook
+    assert "No production documentation publication or hosted docs deployment is executed." in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_phase4_documentation_review_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_phase4_documentation_snapshots(module, monkeypatch)
+    _write_phase4_required_paths(repo, module)
+    _write_phase4_evidence_paths(repo, module)
+
+    report = repo / "reports" / "phase4.json"
+    runbook = repo / "reports" / "phase4.md"
+    module.handle_phase4_documentation_review(
+        argparse.Namespace(
+            label="task63",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote Phase 4 documentation review to reports/phase4.json" in output
+    assert "Wrote Phase 4 documentation runbook to reports/phase4.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task63"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Phase 4 Documentation Delivery Review" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
