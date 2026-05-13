@@ -158,6 +158,40 @@ def test_build_parser_accepts_phase3_automation_review() -> None:
     assert args.runbook_file == "reports/phase3.md"
 
 
+def test_build_parser_accepts_incident_post_mortem() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "incident",
+        "post-mortem",
+        "--summary",
+        "Guard regression after merge",
+        "--severity",
+        "P1",
+        "--timeline",
+        "2026-05-13T10:00:00+02:00|Detection|Guard failed|reports/guard.txt",
+        "--root-cause",
+        "workflow|Evidence was missing",
+        "--action-item",
+        "foundation_maintainer|Add test|open|2026-05-20",
+        "--prevention",
+        "Run audit before guard|python3 scripts/codex-task work-tracking audit",
+        "--lesson",
+        "Capture evidence before plan sync",
+        "--report-file",
+        "reports/post-mortem.json",
+        "--runbook-file",
+        "reports/post-mortem.md",
+    ])
+    assert args.command == "incident"
+    assert args.subcommand == "post-mortem"
+    assert args.summary == "Guard regression after merge"
+    assert args.severity == "P1"
+    assert args.timeline == ["2026-05-13T10:00:00+02:00|Detection|Guard failed|reports/guard.txt"]
+    assert args.report_file == "reports/post-mortem.json"
+    assert args.runbook_file == "reports/post-mortem.md"
+
+
 def test_build_parser_accepts_migration_metrics() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1700,6 +1734,135 @@ def test_handle_operational_runbook_writes_packet_and_runbook(monkeypatch, tmp_p
     assert payload["executes_actions"] is False
     assert payload["procedure_count"] >= 8
     assert "# Operational Runbook" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_incident_post_mortem_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-72-post-mortem-process"
+        if args == ["rev-parse", "HEAD"]:
+            return "pm72abc"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-13-010-task72-post-mortem-process.md"},
+            "current_plan": {"resolved": "plans/2026-05-13-task72-post-mortem-process.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260513-task72-post-mortem-process-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_refs": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 10})
+
+
+def _incident_post_mortem_args(**overrides):
+    values = {
+        "summary": "Guard regression after merge",
+        "severity": "P1",
+        "impact": "Guard blocked closeout until evidence was repaired",
+        "detection_source": "codex-guard",
+        "label": "guard-regression",
+        "timeline": [
+            "2026-05-13T10:00:00+02:00|Detection|Guard failed during validation|reports/guard-fail.txt",
+            "2026-05-13T10:45:00+02:00|Recovery|Tracker evidence repaired|reports/guard-pass.txt",
+        ],
+        "root_cause": ["workflow|Tracker referenced evidence before it existed"],
+        "contributing_factor": ["Plan sync ran before final report capture"],
+        "action_item": [
+            "foundation_maintainer|Add regression coverage for missing evidence links|open|2026-05-20",
+            "active_agent|Record final guard evidence in tracker|done|2026-05-13",
+        ],
+        "prevention": [
+            "Run work-tracking audit before guard|python3 scripts/codex-task work-tracking audit|open",
+        ],
+        "lesson": ["Capture report files before marking plan-step-verify complete"],
+        "report_file": None,
+        "runbook_file": None,
+        "dry_run": False,
+    }
+    values.update(overrides)
+    return argparse.Namespace(**values)
+
+
+def test_build_incident_post_mortem_composes_packet_and_metrics(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_incident_post_mortem_snapshots(module, monkeypatch)
+
+    report = module._build_incident_post_mortem(_incident_post_mortem_args())
+
+    assert report["mode"] == "static-incident-post-mortem-packet"
+    assert report["executes_actions"] is False
+    assert report["incident"]["id"] == "20260424-150313-guard-regression"
+    assert report["incident"]["severity"] == "P1"
+    assert report["current_state"]["git"]["branch"] == "feat/task-72-post-mortem-process"
+    assert report["metrics"]["timeline_entries"] == 2
+    assert report["metrics"]["action_item_count"] == 2
+    assert report["metrics"]["open_action_item_count"] == 1
+    assert report["metrics"]["prevention_measure_count"] == 1
+    assert report["metrics"]["detection_to_recovery_minutes"] == 45
+    assert "python3 scripts/codex-task recovery plan" in report["recommended_helpers"]["recovery_plan"]
+    assert "No external incident, issue, ticket" in report["non_goals"][0]
+
+
+def test_render_incident_post_mortem_names_sections_and_non_goals(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_incident_post_mortem_snapshots(module, monkeypatch)
+    report = module._build_incident_post_mortem(_incident_post_mortem_args())
+
+    runbook = module._render_incident_post_mortem(report)
+
+    assert "# Incident Post-Mortem Packet" in runbook
+    assert "Guard regression after merge" in runbook
+    assert "## Timeline" in runbook
+    assert "## Root Cause Analysis" in runbook
+    assert "## Action Items" in runbook
+    assert "## Prevention Measures" in runbook
+    assert "detection_to_recovery_minutes: 45" in runbook
+    assert "python3 scripts/codex-task validation final-suite" in runbook
+    assert "No scheduler, daemon, reminder service" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_build_incident_post_mortem_rejects_malformed_entries(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_incident_post_mortem_snapshots(module, monkeypatch)
+
+    with pytest.raises(module.TaskError, match="Timeline entry must contain"):
+        module._build_incident_post_mortem(
+            _incident_post_mortem_args(timeline=["2026-05-13T10:00:00+02:00|Detection"])
+        )
+
+    with pytest.raises(module.TaskError, match="Action item entry must contain"):
+        module._build_incident_post_mortem(_incident_post_mortem_args(action_item=["owner|missing status"]))
+
+
+def test_handle_incident_post_mortem_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_incident_post_mortem_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "post-mortem.json"
+    runbook = repo / "reports" / "post-mortem.md"
+    module.handle_incident_post_mortem(
+        _incident_post_mortem_args(
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote incident post-mortem report to reports/post-mortem.json" in output
+    assert "Wrote incident post-mortem runbook to reports/post-mortem.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "guard-regression"
+    assert payload["metrics"]["open_action_item_count"] == 1
+    assert "# Incident Post-Mortem Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_phase3_automation_snapshots(module, monkeypatch) -> None:
