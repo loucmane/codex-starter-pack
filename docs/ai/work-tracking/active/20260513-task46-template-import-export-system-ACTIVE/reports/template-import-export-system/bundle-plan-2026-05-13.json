@@ -1,0 +1,589 @@
+{
+  "created_at": "2026-05-13T15:02:57+02:00",
+  "executes_mutations": false,
+  "include_dependencies": true,
+  "label": "task46-baseline",
+  "manual_review_queue": [],
+  "missing": {
+    "dependencies": [
+      {
+        "message": "Dependency could not be resolved from the local registry.",
+        "query": "templates/patterns/#execute-ultrathink",
+        "requested_by": "engine-core-ultrathink-protocol"
+      },
+      {
+        "message": "Dependency could not be resolved from the local registry.",
+        "query": "templates/handlers/templates/handlers/triggers/development/start-new-work.md",
+        "requested_by": "handlers-index"
+      },
+      {
+        "message": "Dependency could not be resolved from the local registry.",
+        "query": "templates/handlers/templates/handlers/triggers/debug/fix-bug.md",
+        "requested_by": "handlers-index"
+      },
+      {
+        "message": "Dependency could not be resolved from the local registry.",
+        "query": "templates/handlers/templates/handlers/triggers/test/create-test-checkpoint.md",
+        "requested_by": "handlers-index"
+      }
+    ],
+    "templates": []
+  },
+  "mode": "non-destructive-template-bundle-plan",
+  "non_goals": [
+    "No template files are copied into the target repository.",
+    "No ZIP archive is created or extracted.",
+    "No marketplace, package registry, or remote service is contacted.",
+    "No cryptographic signing or key management is performed.",
+    "No bulk import/export mutation is executed.",
+    "No target repository branch, commit, push, or pull request is created."
+  ],
+  "recommended_verification_commands": [
+    "python3 scripts/codex-task template bundle-plan --template <id> --target-dir <target-repo> --report-file <manifest.json> --runbook-file <runbook.md>",
+    "python3 scripts/codex-task bootstrap init --target-dir <target-repo>",
+    "python3 scripts/codex-guard drift-check --strict",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "git diff --check"
+  ],
+  "requested_templates": [
+    "engine-core-ultrathink-protocol",
+    "handlers-index"
+  ],
+  "source": {
+    "git": {
+      "branch": "feat/task-46-template-import-export-system",
+      "head": "c8be6584bb4f8f01388797bbfe98aff9d613691b",
+      "inside_work_tree": true,
+      "path": ".",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_046.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task46_template_import_export_system_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task46-template-import-export-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-006-task46-template-import-export-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "path": ".",
+    "templates_root": "templates"
+  },
+  "status_counts": {
+    "identical": 9
+  },
+  "target": {
+    "git": {
+      "branch": "feat/task-46-template-import-export-system",
+      "head": "c8be6584bb4f8f01388797bbfe98aff9d613691b",
+      "inside_work_tree": true,
+      "path": ".",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_046.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task46_template_import_export_system_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task46-template-import-export-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-006-task46-template-import-export-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "path": ".",
+    "templates_root": "templates"
+  },
+  "template_count": 9,
+  "templates": [
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "engine",
+      "dependencies": [
+        "templates/engine/core/enforcement-check.md",
+        "templates/engine/core/pre-ultrathink.md",
+        "templates/patterns/#execute-ultrathink"
+      ],
+      "dependency_resolution": {
+        "dependencies": [
+          "templates/engine/core/enforcement-check.md",
+          "templates/engine/core/pre-ultrathink.md",
+          "templates/patterns/#execute-ultrathink"
+        ],
+        "id": "engine-core-ultrathink-protocol",
+        "missing": [
+          "templates/patterns/#execute-ultrathink"
+        ],
+        "path": "templates/engine/core/ultrathink-protocol.md",
+        "resolved": [
+          {
+            "id": "engine-core-enforcement-check",
+            "path": "templates/engine/core/enforcement-check.md",
+            "query": "templates/engine/core/enforcement-check.md",
+            "source": "modular",
+            "status": "found"
+          },
+          {
+            "id": "engine-core-pre-ultrathink",
+            "path": "templates/engine/core/pre-ultrathink.md",
+            "query": "templates/engine/core/pre-ultrathink.md",
+            "source": "modular",
+            "status": "found"
+          }
+        ]
+      },
+      "id": "engine-core-ultrathink-protocol",
+      "path": "templates/engine/core/ultrathink-protocol.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "requested"
+      ],
+      "source": "modular",
+      "source_exists": true,
+      "source_path": "templates/engine/core/ultrathink-protocol.md",
+      "source_sha256": "1d935ddf7a0fc08c26cd9ac30562a195f003a741a36a06546cb85b2c746c8378",
+      "source_template_path": "engine/core/ultrathink-protocol.md",
+      "status": "stable",
+      "tags": [
+        "engine",
+        "core",
+        "ultrathink-protocol"
+      ],
+      "target_exists": true,
+      "target_path": "templates/engine/core/ultrathink-protocol.md",
+      "target_sha256": "1d935ddf7a0fc08c26cd9ac30562a195f003a741a36a06546cb85b2c746c8378",
+      "title": "Ultrathink Protocol",
+      "type": "engine-component",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "handlers",
+      "dependencies": [
+        "templates/registry/handlers/triggers-registry.md",
+        "templates/registry/handlers/orchestrators-registry.md",
+        "templates/registry/handlers/operators-registry.md",
+        "templates/handlers/templates/handlers/triggers/development/start-new-work.md",
+        "templates/handlers/templates/handlers/triggers/debug/fix-bug.md",
+        "templates/handlers/templates/handlers/triggers/test/create-test-checkpoint.md"
+      ],
+      "dependency_resolution": {
+        "dependencies": [
+          "templates/registry/handlers/triggers-registry.md",
+          "templates/registry/handlers/orchestrators-registry.md",
+          "templates/registry/handlers/operators-registry.md",
+          "templates/handlers/templates/handlers/triggers/development/start-new-work.md",
+          "templates/handlers/templates/handlers/triggers/debug/fix-bug.md",
+          "templates/handlers/templates/handlers/triggers/test/create-test-checkpoint.md"
+        ],
+        "id": "handlers-index",
+        "missing": [
+          "templates/handlers/templates/handlers/triggers/development/start-new-work.md",
+          "templates/handlers/templates/handlers/triggers/debug/fix-bug.md",
+          "templates/handlers/templates/handlers/triggers/test/create-test-checkpoint.md"
+        ],
+        "path": "templates/handlers/index.md",
+        "resolved": [
+          {
+            "id": "triggers-registry",
+            "path": "templates/registry/handlers/triggers-registry.md",
+            "query": "templates/registry/handlers/triggers-registry.md",
+            "source": "legacy",
+            "status": "found"
+          },
+          {
+            "id": "orchestrators-registry",
+            "path": "templates/registry/handlers/orchestrators-registry.md",
+            "query": "templates/registry/handlers/orchestrators-registry.md",
+            "source": "legacy",
+            "status": "found"
+          },
+          {
+            "id": "operators-registry",
+            "path": "templates/registry/handlers/operators-registry.md",
+            "query": "templates/registry/handlers/operators-registry.md",
+            "source": "legacy",
+            "status": "found"
+          }
+        ]
+      },
+      "id": "handlers-index",
+      "path": "templates/handlers/index.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "requested"
+      ],
+      "source": "modular",
+      "source_exists": true,
+      "source_path": "templates/handlers/index.md",
+      "source_sha256": "f064c31383be8511fe8df01ece96933de1f4460d29a3d842f65c355378b25592",
+      "source_template_path": "handlers/index.md",
+      "status": "stable",
+      "tags": [
+        "handlers",
+        "index",
+        "critical-handlers"
+      ],
+      "target_exists": true,
+      "target_path": "templates/handlers/index.md",
+      "target_sha256": "f064c31383be8511fe8df01ece96933de1f4460d29a3d842f65c355378b25592",
+      "title": "Handler Templates Index",
+      "type": "handler-index",
+      "version": "1.0.0"
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "engine",
+      "dependencies": [
+        "templates/engine/core/codex-readiness.md",
+        "templates/engine/core/pre-ultrathink.md"
+      ],
+      "dependency_resolution": {
+        "dependencies": [
+          "templates/engine/core/codex-readiness.md",
+          "templates/engine/core/pre-ultrathink.md"
+        ],
+        "id": "engine-core-enforcement-check",
+        "missing": [],
+        "path": "templates/engine/core/enforcement-check.md",
+        "resolved": [
+          {
+            "id": "engine-core-codex-readiness",
+            "path": "templates/engine/core/codex-readiness.md",
+            "query": "templates/engine/core/codex-readiness.md",
+            "source": "modular",
+            "status": "found"
+          },
+          {
+            "id": "engine-core-pre-ultrathink",
+            "path": "templates/engine/core/pre-ultrathink.md",
+            "query": "templates/engine/core/pre-ultrathink.md",
+            "source": "modular",
+            "status": "found"
+          }
+        ]
+      },
+      "id": "engine-core-enforcement-check",
+      "path": "templates/engine/core/enforcement-check.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "engine-core-ultrathink-protocol",
+        "engine-core-pre-ultrathink"
+      ],
+      "source": "modular",
+      "source_exists": true,
+      "source_path": "templates/engine/core/enforcement-check.md",
+      "source_sha256": "ab60c1441b50d7ab0c5306dd35ab8c9227e2f668e0f3651c74fe26bf1ee992f2",
+      "source_template_path": "engine/core/enforcement-check.md",
+      "status": "stable",
+      "tags": [
+        "engine",
+        "core",
+        "enforcement-check"
+      ],
+      "target_exists": true,
+      "target_path": "templates/engine/core/enforcement-check.md",
+      "target_sha256": "ab60c1441b50d7ab0c5306dd35ab8c9227e2f668e0f3651c74fe26bf1ee992f2",
+      "title": "Codex Enforcement Gate",
+      "type": "critical-enforcement",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "engine",
+      "dependencies": [
+        "templates/registry/index.md",
+        "templates/engine/core/enforcement-check.md"
+      ],
+      "dependency_resolution": {
+        "dependencies": [
+          "templates/registry/index.md",
+          "templates/engine/core/enforcement-check.md"
+        ],
+        "id": "engine-core-pre-ultrathink",
+        "missing": [],
+        "path": "templates/engine/core/pre-ultrathink.md",
+        "resolved": [
+          {
+            "id": "registry-index",
+            "path": "templates/registry/index.md",
+            "query": "templates/registry/index.md",
+            "source": "legacy",
+            "status": "found"
+          },
+          {
+            "id": "engine-core-enforcement-check",
+            "path": "templates/engine/core/enforcement-check.md",
+            "query": "templates/engine/core/enforcement-check.md",
+            "source": "modular",
+            "status": "found"
+          }
+        ]
+      },
+      "id": "engine-core-pre-ultrathink",
+      "path": "templates/engine/core/pre-ultrathink.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "engine-core-ultrathink-protocol",
+        "engine-core-enforcement-check"
+      ],
+      "source": "modular",
+      "source_exists": true,
+      "source_path": "templates/engine/core/pre-ultrathink.md",
+      "source_sha256": "34a43da1b5cc7d509744a93ec0821b278ca231e3453f7ab937a1565a7d102081",
+      "source_template_path": "engine/core/pre-ultrathink.md",
+      "status": "stable",
+      "tags": [
+        "engine",
+        "core",
+        "pre-ultrathink"
+      ],
+      "target_exists": true,
+      "target_path": "templates/engine/core/pre-ultrathink.md",
+      "target_sha256": "34a43da1b5cc7d509744a93ec0821b278ca231e3453f7ab937a1565a7d102081",
+      "title": "Pre-Ultrathink Protocol",
+      "type": "critical-enforcement",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "registry",
+      "dependencies": [],
+      "dependency_resolution": {
+        "dependencies": [],
+        "id": "triggers-registry",
+        "missing": [],
+        "path": "templates/registry/handlers/triggers-registry.md",
+        "resolved": []
+      },
+      "id": "triggers-registry",
+      "path": "templates/registry/handlers/triggers-registry.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "handlers-index"
+      ],
+      "source": "discovered",
+      "source_exists": true,
+      "source_path": "templates/registry/handlers/triggers-registry.md",
+      "source_sha256": "13416303afdbe71637c589faf3702c971c2b26fbe463bc03c7faaf43e1b6dccb",
+      "source_template_path": "registry/handlers/triggers-registry.md",
+      "status": "stable",
+      "tags": [],
+      "target_exists": true,
+      "target_path": "templates/registry/handlers/triggers-registry.md",
+      "target_sha256": "13416303afdbe71637c589faf3702c971c2b26fbe463bc03c7faaf43e1b6dccb",
+      "title": "Trigger Handlers Registry",
+      "type": "registry-component",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "registry",
+      "dependencies": [],
+      "dependency_resolution": {
+        "dependencies": [],
+        "id": "orchestrators-registry",
+        "missing": [],
+        "path": "templates/registry/handlers/orchestrators-registry.md",
+        "resolved": []
+      },
+      "id": "orchestrators-registry",
+      "path": "templates/registry/handlers/orchestrators-registry.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "handlers-index"
+      ],
+      "source": "discovered",
+      "source_exists": true,
+      "source_path": "templates/registry/handlers/orchestrators-registry.md",
+      "source_sha256": "0867c997f1b8f3ec4e7d326a8967bce34c0f0f9826c1a43f01683ee1cfdc475e",
+      "source_template_path": "registry/handlers/orchestrators-registry.md",
+      "status": "stable",
+      "tags": [],
+      "target_exists": true,
+      "target_path": "templates/registry/handlers/orchestrators-registry.md",
+      "target_sha256": "0867c997f1b8f3ec4e7d326a8967bce34c0f0f9826c1a43f01683ee1cfdc475e",
+      "title": "Orchestrator Handlers Registry",
+      "type": "registry-component",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "registry",
+      "dependencies": [],
+      "dependency_resolution": {
+        "dependencies": [],
+        "id": "operators-registry",
+        "missing": [],
+        "path": "templates/registry/handlers/operators-registry.md",
+        "resolved": []
+      },
+      "id": "operators-registry",
+      "path": "templates/registry/handlers/operators-registry.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "handlers-index"
+      ],
+      "source": "discovered",
+      "source_exists": true,
+      "source_path": "templates/registry/handlers/operators-registry.md",
+      "source_sha256": "f69604ee804617a6c0fbded1a6c789c0910d73bd63a14e5909fa8afa7a750b93",
+      "source_template_path": "registry/handlers/operators-registry.md",
+      "status": "stable",
+      "tags": [],
+      "target_exists": true,
+      "target_path": "templates/registry/handlers/operators-registry.md",
+      "target_sha256": "f69604ee804617a6c0fbded1a6c789c0910d73bd63a14e5909fa8afa7a750b93",
+      "title": "Operator Handlers Registry",
+      "type": "registry-component",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "engine",
+      "dependencies": [],
+      "dependency_resolution": {
+        "dependencies": [],
+        "id": "engine-core-codex-readiness",
+        "missing": [],
+        "path": "templates/engine/core/codex-readiness.md",
+        "resolved": []
+      },
+      "id": "engine-core-codex-readiness",
+      "path": "templates/engine/core/codex-readiness.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "engine-core-enforcement-check"
+      ],
+      "source": "modular",
+      "source_exists": true,
+      "source_path": "templates/engine/core/codex-readiness.md",
+      "source_sha256": "53773f2b05a1c44983d5af089b986fd6b83078ef755d0964aa816ddedfd1b60d",
+      "source_template_path": "engine/core/codex-readiness.md",
+      "status": "stable",
+      "tags": [
+        "engine",
+        "core",
+        "codex-readiness"
+      ],
+      "target_exists": true,
+      "target_path": "templates/engine/core/codex-readiness.md",
+      "target_sha256": "53773f2b05a1c44983d5af089b986fd6b83078ef755d0964aa816ddedfd1b60d",
+      "title": "Codex Readiness Checklist",
+      "type": "critical-enforcement",
+      "version": null
+    },
+    {
+      "action": "none",
+      "bundle_status": "identical",
+      "category": "registry",
+      "dependencies": [],
+      "dependency_resolution": {
+        "dependencies": [],
+        "id": "registry-index",
+        "missing": [],
+        "path": "templates/registry/index.md",
+        "resolved": []
+      },
+      "id": "registry-index",
+      "path": "templates/registry/index.md",
+      "reason": "Source and target template hashes match.",
+      "requested_by": [
+        "engine-core-pre-ultrathink"
+      ],
+      "source": "discovered",
+      "source_exists": true,
+      "source_path": "templates/registry/index.md",
+      "source_sha256": "eba0fd437f57363587032e81ebf0000b42a482673a0f6989ccfa38c294939685",
+      "source_template_path": "registry/index.md",
+      "status": "modular",
+      "tags": [],
+      "target_exists": true,
+      "target_path": "templates/registry/index.md",
+      "target_sha256": "eba0fd437f57363587032e81ebf0000b42a482673a0f6989ccfa38c294939685",
+      "title": "Claude Template System Registry Index",
+      "type": "registry-component",
+      "version": "3.0"
+    }
+  ],
+  "version": 1
+}

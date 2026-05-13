@@ -1,0 +1,4 @@
+# Findings
+
+- 2026-05-13 — The existing foundation already covers registry lookup, dependency metadata, compatibility redirects, lifecycle audit, bootstrap scaffolding, and cross-repo sync planning. The missing Task 46 gap is the bridge artifact: a deterministic template bundle manifest/runbook that resolves templates and dependencies and previews target conflicts without mutating another repository.
+- 2026-05-13 — Real bundle-plan evidence found unresolved current dependency strings in existing templates (`templates/patterns/#execute-ultrathink` and several duplicated `templates/handlers/templates/...` paths). The command reports these as missing dependencies rather than failing silently; cleanup belongs to a future metadata hygiene task unless Task 46 verification finds the unresolved entries blocking.
