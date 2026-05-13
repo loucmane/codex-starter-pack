@@ -1,0 +1,474 @@
+{
+  "created_at": "2026-05-13T15:36:43+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-57-operational-runbook",
+      "head": "a5b23979f6829011f995db0d2b9228a4ad88766f",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_057.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-13_task57_operational_runbook_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-13-task57-operational-runbook.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/operational-runbook/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-13-007-task57-operational-runbook.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 138,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task50_security_audit_process_completion.md",
+        ".serena/memories/2026-05-13_task50_security_audit_process_kickoff.md",
+        ".serena/memories/2026-05-13_task55_migration_metrics_collection_completion.md",
+        ".serena/memories/2026-05-13_task55_migration_metrics_collection_kickoff.md",
+        ".serena/memories/session_2026-05-13_task55-migration-metrics-collection-closeout.md",
+        ".serena/memories/2026-05-13_task60_post_migration_monitoring_completion.md",
+        ".serena/memories/2026-05-13_task60_post_migration_monitoring_kickoff.md",
+        ".serena/memories/2026-05-13_task46_template_import_export_system_complete.md",
+        ".serena/memories/2026-05-13_task46_template_import_export_system_kickoff.md",
+        ".serena/memories/2026-05-13_task57_operational_runbook_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "5f97ea6f07f35dc63c382893345b96f75bb7dcda26988f75b3d97d1932d40b95",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 86,
+          "in-progress": 1,
+          "pending": 21
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260513-task57-operational-runbook-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-13-task57-operational-runbook.md",
+        "sha256": "00e4b0bb1d5eb62f745530a66bd2572f8f63fb1ab756f158298661f02cbbddfc",
+        "target": "2026-05-13-task57-operational-runbook.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-13-007-task57-operational-runbook.md",
+        "sha256": "5629055205063ef94314b263d9598f9663a6ab47f2abf84510650704788ed06e",
+        "target": "2026/05/2026-05-13-007-task57-operational-runbook.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "ddd6a31bfb6c093e75d9f6e6f1db41903081643905979161a2120abea20eb31d"
+      }
+    }
+  },
+  "escalation_tree": [
+    {
+      "action": "Record S:W:H:E evidence in session, tracker, and task-local reports.",
+      "level": 1,
+      "role": "active_agent",
+      "trigger": "Routine task execution, validation, and evidence updates."
+    },
+    {
+      "action": "Give explicit instruction and ensure decisions are logged before mutation.",
+      "level": 2,
+      "role": "operator_owner",
+      "trigger": "Ambiguous scope, auth/cache refresh, merge decision, protected-path change, or destructive command request."
+    },
+    {
+      "action": "Require change advisory, focused tests, guard evidence, and handoff notes.",
+      "level": 3,
+      "role": "foundation_maintainer",
+      "trigger": "Portable foundation contract, guard, Taskmaster graph, template policy, or cross-project behavior needs review."
+    },
+    {
+      "action": "Require emergency plan/runbook, rollback checkpoint, explicit approval, and post-incident follow-up.",
+      "level": 4,
+      "role": "emergency_approver",
+      "trigger": "P0/P1 emergency, security boundary issue, protected-surface incident, or bypass request."
+    }
+  ],
+  "executes_actions": false,
+  "label": "task57-operational-runbook",
+  "mode": "non-destructive-operational-runbook",
+  "non_goals": [
+    "No scheduler, daemon, cron job, or background worker is installed.",
+    "No live dashboard, hosted observability service, database, or production endpoint is contacted.",
+    "No Slack, email, PagerDuty, ticket, issue, webhook, or contact-directory action is sent or updated.",
+    "No deployment, promotion, traffic split, rollback, reset, clean, restore, branch deletion, or force push is executed.",
+    "No Taskmaster, session, plan, or work-tracking state is mutated beyond the requested runbook artifacts.",
+    "No external incident, approval, meeting, or on-call system is created."
+  ],
+  "procedure_count": 9,
+  "procedures": [
+    {
+      "cadence": "daily",
+      "commands": [
+        "date '+%Y-%m-%d %H:%M:%S %Z %z'",
+        "git status --short --branch",
+        "task-master next",
+        "task-master show <id>",
+        "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug>",
+        "python3 scripts/codex-task sessions continue --task <id> --slug <slug>"
+      ],
+      "evidence": [
+        "sessions/current",
+        "plans/current",
+        "docs/ai/work-tracking/active/<YYYYMMDD-task-slug-ACTIVE>/TRACKER.md",
+        "serena/memory:<session-memory-name>"
+      ],
+      "id": "daily-start",
+      "owner_roles": [
+        "active_agent",
+        "operator_owner"
+      ],
+      "purpose": "Establish current date, branch, Taskmaster, session, plan, work-tracking, and Serena evidence before implementation.",
+      "title": "Daily session start"
+    },
+    {
+      "cadence": "daily",
+      "commands": [
+        "python3 scripts/codex-task sessions update --work <work> --handler <handler> --evidence <evidence> --note <note>",
+        "python3 scripts/codex-task work-tracking update --work <work> --handler <handler> --evidence <evidence> --note <note>",
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task taskmaster generate-one --id <id>"
+      ],
+      "evidence": [
+        "current session progress log",
+        "ACTIVE tracker/findings/decisions/implementation/handoff files",
+        ".plan_state/plan-sync.jsonl",
+        ".taskmaster/tasks/task_<id>.txt"
+      ],
+      "id": "daily-progress",
+      "owner_roles": [
+        "active_agent"
+      ],
+      "purpose": "Keep plan, tracker, session, Taskmaster, and generated task files aligned while work is happening.",
+      "title": "Daily implementation logging"
+    },
+    {
+      "cadence": "daily",
+      "commands": [
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+        "git add <paths>",
+        "git commit",
+        "git push"
+      ],
+      "evidence": [
+        "plan-sync report",
+        "work-tracking audit report",
+        "Taskmaster health report",
+        "guard report",
+        "diff-check report",
+        "commit SHA / PR link"
+      ],
+      "id": "daily-closeout",
+      "owner_roles": [
+        "active_agent",
+        "operator_owner"
+      ],
+      "purpose": "Capture evidence, commit/push with normal Git workflow when auth cache is active, and leave an unambiguous handoff.",
+      "title": "Daily closeout and GitHub handoff"
+    },
+    {
+      "cadence": "weekly",
+      "commands": [
+        "python3 scripts/codex-task report generate --kind telemetry --strict-drift --strict-monitoring --strict-phase0 --strict-performance --strict-cost --strict-migration-health",
+        "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+        "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>"
+      ],
+      "evidence": [
+        "reports/template-drift/",
+        "reports/template-metrics/",
+        "reports/template-monitoring/",
+        "reports/phase0-scanner-validation/",
+        "reports/template-performance/",
+        "reports/cost-tracking/",
+        "reports/migration-health/",
+        "post-migration monitoring packet"
+      ],
+      "id": "weekly-maintenance",
+      "owner_roles": [
+        "foundation_maintainer"
+      ],
+      "purpose": "Refresh scanner, drift, metrics, monitoring, Phase 0, performance, cost, and migration-health artifacts.",
+      "title": "Weekly static telemetry refresh"
+    },
+    {
+      "cadence": "monthly",
+      "commands": [
+        "python3 scripts/codex-task taskmaster health --report-file <taskmaster-health.txt>",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task report generate --kind cost",
+        "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>"
+      ],
+      "evidence": [
+        "Taskmaster health report",
+        "work-tracking audit report",
+        "cost tracking report",
+        "post-migration monitoring packet"
+      ],
+      "id": "monthly-review",
+      "owner_roles": [
+        "operator_owner",
+        "foundation_maintainer"
+      ],
+      "purpose": "Review Taskmaster health, cost telemetry, active/archive work tracking, and open adoption risks before drift accumulates.",
+      "title": "Monthly backlog, cost, and adoption review"
+    },
+    {
+      "cadence": "quarterly",
+      "commands": [
+        "python3 scripts/template-performance-harness --report-dir reports/template-performance",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest",
+        "python3 scripts/codex-task validation final-suite --dry-run"
+      ],
+      "evidence": [
+        "performance report",
+        "pytest report",
+        "final validation dry-run"
+      ],
+      "id": "quarterly-review",
+      "owner_roles": [
+        "foundation_maintainer"
+      ],
+      "purpose": "Refresh performance baselines and compare regression evidence against current foundation expectations.",
+      "title": "Quarterly benchmark and regression review"
+    },
+    {
+      "cadence": "yearly",
+      "commands": [
+        "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+        "python3 scripts/codex-task taskmaster health --report-file <taskmaster-health.txt>",
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite"
+      ],
+      "evidence": [
+        "migration roadmap",
+        "Taskmaster health report",
+        "final validation suite report and runbook"
+      ],
+      "id": "yearly-planning-review",
+      "owner_roles": [
+        "operator_owner",
+        "foundation_maintainer"
+      ],
+      "purpose": "Regenerate planning inputs and compare open work against the portable foundation contract.",
+      "title": "Yearly roadmap and planning review"
+    },
+    {
+      "cadence": "as-needed",
+      "commands": [
+        "python3 scripts/codex-task recovery plan --error-class <class> --summary <summary> --report-file <recovery.json> --runbook-file <recovery.md>",
+        "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file <emergency.json> --runbook-file <emergency.md>",
+        "python3 scripts/codex-task rollback checkpoint --label <label> --report-file <checkpoint.json>",
+        "python3 scripts/codex-task rollback plan --snapshot <checkpoint.json> --report-file <rollback-plan.md>",
+        "python3 scripts/codex-task change advisory --summary <summary> --review-class <class> --report-file <advisory.json> --runbook-file <advisory.md>"
+      ],
+      "evidence": [
+        "recovery plan/runbook",
+        "emergency plan/runbook",
+        "rollback checkpoint/plan",
+        "change advisory packet",
+        "session/tracker/decision entries"
+      ],
+      "id": "incident-response",
+      "owner_roles": [
+        "active_agent",
+        "operator_owner",
+        "emergency_approver"
+      ],
+      "purpose": "Classify the incident and route to emergency, recovery, rollback, advisory, or validation helpers without executing destructive actions.",
+      "title": "Incident, recovery, and emergency response"
+    },
+    {
+      "cadence": "release-or-migration-signoff",
+      "commands": [
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check"
+      ],
+      "evidence": [
+        "final validation suite report",
+        "final validation runbook",
+        "plan sync report",
+        "audit report",
+        "guard report",
+        "diff-check report"
+      ],
+      "id": "validation-signoff",
+      "owner_roles": [
+        "active_agent",
+        "operator_owner",
+        "foundation_maintainer"
+      ],
+      "purpose": "Collect the required validation evidence bundle before merge, release, or migration sign-off.",
+      "title": "Final validation sign-off"
+    }
+  ],
+  "related_helpers": {
+    "change_advisory": "python3 scripts/codex-task change advisory --summary <summary>",
+    "daily_continuation": "python3 scripts/codex-task sessions continue --task <id> --slug <slug>",
+    "daily_start": "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug>",
+    "emergency_plan": "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary>",
+    "final_validation": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "guard": "python3 scripts/codex-guard validate --include-untracked",
+    "post_migration_monitoring": "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json",
+    "recovery_plan": "python3 scripts/codex-task recovery plan --error-class <class> --summary <summary>",
+    "taskmaster_health": "python3 scripts/codex-task taskmaster health",
+    "work_tracking_audit": "python3 scripts/codex-task work-tracking audit"
+  },
+  "troubleshooting_matrix": [
+    {
+      "first_check": "python3 scripts/codex-task work-tracking audit",
+      "response": "Use wizard kickoff for a new task or sessions continue for the next day on an already-active task.",
+      "symptom": "Missing sessions/current or plans/current"
+    },
+    {
+      "first_check": "python3 scripts/codex-task taskmaster health",
+      "response": "Treat full-graph health as authoritative before running dependency repair commands.",
+      "symptom": "Filtered Taskmaster list shows dependency warnings"
+    },
+    {
+      "first_check": "python3 scripts/codex-guard validate --include-untracked",
+      "response": "Capture a recovery plan for guard failures and repair the named lifecycle or evidence gap.",
+      "symptom": "Guard validation fails"
+    },
+    {
+      "first_check": "git status --short --branch",
+      "response": "Refresh the local SSH/GPG cache, then retry the same operation without disabling signing or verification.",
+      "symptom": "GitHub fetch, push, merge, or signed commit fails with auth/signing errors"
+    },
+    {
+      "first_check": "python3 scripts/codex-task work-tracking audit",
+      "response": "Continue the active task with sessions continue; archive only after the task PR is merged.",
+      "symptom": "ACTIVE work-tracking folder appears stale"
+    },
+    {
+      "first_check": "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json",
+      "response": "Use the required-actions list in the generated monitoring packet before closing the review.",
+      "symptom": "Monitoring, metrics, or migration-health status is warn/fail"
+    }
+  ],
+  "validation_checklist": [
+    {
+      "command": "date '+%Y-%m-%d %H:%M:%S %Z %z'",
+      "evidence": "session validation entry",
+      "id": "date-confirmed"
+    },
+    {
+      "command": "git status --short --branch",
+      "evidence": "branch/status report",
+      "id": "branch-task-aligned"
+    },
+    {
+      "command": "python3 scripts/codex-task taskmaster health",
+      "evidence": "Taskmaster health report",
+      "id": "taskmaster-health"
+    },
+    {
+      "command": "python3 scripts/codex-task plan sync",
+      "evidence": "plan sync report/log entry",
+      "id": "plan-sync"
+    },
+    {
+      "command": "python3 scripts/codex-task work-tracking audit",
+      "evidence": "work-tracking audit report",
+      "id": "work-tracking-audit"
+    },
+    {
+      "command": "python3 scripts/codex-guard validate --include-untracked",
+      "evidence": "guard report",
+      "id": "guard-validation"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest <focused tests>",
+      "evidence": "pytest report",
+      "id": "focused-tests"
+    },
+    {
+      "command": "git diff --check",
+      "evidence": "diff-check report",
+      "id": "diff-check"
+    },
+    {
+      "command": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+      "evidence": "final suite JSON and Markdown runbook",
+      "id": "final-validation"
+    },
+    {
+      "command": "Review HANDOFF.md and Serena memory references",
+      "evidence": "handoff and memory references",
+      "id": "handoff-current"
+    }
+  ],
+  "version": 1
+}

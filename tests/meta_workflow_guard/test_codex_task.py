@@ -118,6 +118,26 @@ def test_build_parser_accepts_telemetry_report_kind() -> None:
     assert args.kind == "telemetry"
 
 
+def test_build_parser_accepts_operations_runbook() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "operations",
+        "runbook",
+        "--label",
+        "task57",
+        "--report-file",
+        "reports/operations.json",
+        "--runbook-file",
+        "reports/operations.md",
+    ])
+    assert args.command == "operations"
+    assert args.subcommand == "runbook"
+    assert args.label == "task57"
+    assert args.report_file == "reports/operations.json"
+    assert args.runbook_file == "reports/operations.md"
+
+
 def test_build_parser_accepts_migration_metrics() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1543,6 +1563,97 @@ def test_handle_post_migration_monitoring_strict_fails_after_writing(monkeypatch
         )
 
     assert report.exists()
+
+
+def _patch_operational_runbook_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-57-operational-runbook"
+        if args == ["rev-parse", "HEAD"]:
+            return "op57abc"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-13-007-task57-operational-runbook.md"},
+            "current_plan": {"resolved": "plans/2026-05-13-task57-operational-runbook.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260513-task57-operational-runbook-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"summary": {"tasks": 108, "invalid_refs": 0}})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"count": 7})
+
+
+def test_build_operational_runbook_composes_procedures_and_state(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_operational_runbook_snapshots(module, monkeypatch)
+
+    report = module._build_operational_runbook(argparse.Namespace(label="task57"))
+
+    assert report["mode"] == "non-destructive-operational-runbook"
+    assert report["executes_actions"] is False
+    assert report["current_state"]["git"]["branch"] == "feat/task-57-operational-runbook"
+    assert report["procedure_count"] == len(report["procedures"])
+    assert {procedure["id"] for procedure in report["procedures"]} >= {
+        "daily-start",
+        "weekly-maintenance",
+        "monthly-review",
+        "incident-response",
+        "validation-signoff",
+    }
+    assert any("wizard kickoff" in command for command in report["related_helpers"].values())
+    assert "No scheduler, daemon, cron job, or background worker is installed." in report["non_goals"]
+
+
+def test_render_operational_runbook_names_cadences_escalation_and_non_goals(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_operational_runbook_snapshots(module, monkeypatch)
+    report = module._build_operational_runbook(argparse.Namespace(label="task57"))
+
+    runbook = module._render_operational_runbook(report)
+
+    assert "# Operational Runbook" in runbook
+    assert "Daily session start" in runbook
+    assert "Weekly static telemetry refresh" in runbook
+    assert "Monthly backlog, cost, and adoption review" in runbook
+    assert "Incident, recovery, and emergency response" in runbook
+    assert "Role-Based Escalation" in runbook
+    assert "`emergency_approver`" in runbook
+    assert "python3 scripts/codex-task validation final-suite" in runbook
+    assert "No scheduler, notification, ticket, dashboard update, deployment, rollback, reset, cleanup, or external incident action was executed by this runbook." in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_operational_runbook_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_operational_runbook_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "operations.json"
+    runbook = repo / "reports" / "operations.md"
+    args = argparse.Namespace(
+        label="task57",
+        report_file=str(report.relative_to(repo)),
+        runbook_file=str(runbook.relative_to(repo)),
+        dry_run=False,
+    )
+
+    module.handle_operational_runbook(args)
+
+    output = capsys.readouterr().out
+    assert "Wrote operational runbook report to reports/operations.json" in output
+    assert "Wrote operational runbook to reports/operations.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task57"
+    assert payload["executes_actions"] is False
+    assert payload["procedure_count"] >= 8
+    assert "# Operational Runbook" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:

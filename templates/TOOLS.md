@@ -75,6 +75,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `scanner run <tool>` – execute SSOT scanners and optionally log results (`--log-note`).
 - `serena status --strict [--report-file <path>]` – verify Codex and project-level Serena MCP configuration plus `.serena/memories/` readiness before relying on Serena evidence.
 - `compaction checkpoint --task <id> --slug <slug> --summary <state> --next-step <next>` – create a continuation checkpoint before context compaction, including manifest, resume message, Serena memory file, session/tracker entries, handoff note, and `.plan_state/compaction-history.jsonl`.
+- `operations runbook --label <label>` – render a static operational runbook packet that composes daily workflow, recurring maintenance, incident response, troubleshooting, escalation, and validation guidance over existing helpers.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:
@@ -180,6 +181,20 @@ Scanner-backed migration KPI packet generator. It reads a metadata-wrapped scann
 
 ### `scripts/codex-task migration monitoring`
 Static post-migration monitoring packet generator. It reads a migration metrics JSON packet plus `reports/migration-health/latest.json`, classifies aggregate post-migration status, and renders required actions plus weekly/monthly/quarterly/yearly review cadences. It is the portable replacement for live production-monitoring wording in legacy Taskmaster tasks. It does not install schedulers, daemons, live dashboards, alert delivery, external service calls, scanner regeneration, or remediation mutation.
+
+### `scripts/codex-task operations runbook`
+Static operational runbook composer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering daily session work, weekly/monthly/quarterly/yearly maintenance, incident routing, troubleshooting, role-based escalation, and validation checklist entries.
+
+Use it when an operator needs a consolidated procedure index over the existing helpers:
+
+```bash
+python3 scripts/codex-task operations runbook \
+  --label <label> \
+  --report-file <operational-runbook.json> \
+  --runbook-file <operational-runbook.md>
+```
+
+It does not install schedulers, send notifications, create tickets, update dashboards, deploy code, execute rollback, mutate Taskmaster/session/work-tracking state beyond requested artifacts, or contact external operations systems.
 
 ### `scripts/template_governance.py`
 Non-mutating template governance assessor. It reads `templates/metadata/template-governance-policy.json` and maps proposed template changes to a required review class.
