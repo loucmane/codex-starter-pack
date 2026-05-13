@@ -1,7 +1,7 @@
 # Task 66 Deprecation Management Tracker
 
 **Started**: 2026-05-13
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-13
 
 ## Goals
@@ -26,6 +26,8 @@
 - **2026-05-13 18:46** — [S:20260513|W:task66-deprecation-management|H:task-master:set-status|E:.taskmaster/tasks/task_066.txt] Marked Taskmaster subtask 66.2 and parent Task 66 done, then refreshed only Task 66's generated file
 - **2026-05-13 18:47** — [S:20260513|W:task66-deprecation-management|H:verification|E:docs/ai/work-tracking/active/20260513-task66-deprecation-management-ACTIVE/reports/deprecation-management/guard-2026-05-13-final.txt] Captured final verification evidence: plan sync, work-tracking audit, Taskmaster health, guard, and diff-check all passed
 - **2026-05-13 18:47** — [S:20260513|W:task66-deprecation-management|H:serena/memory|E:.serena/memories/2026-05-13_task66_deprecation_management_completion.md] Captured Serena completion memory `2026-05-13_task66_deprecation_management_completion`
+- **2026-05-13 19:07** — [S:20260513|W:task66-deprecation-management|H:github:pr-92|E:https://github.com/loucmane/codex-starter-pack/pull/92] Merged Task 66 PR #92 after guard and Python matrix checks passed
+- **2026-05-13 19:07** — [S:20260513|W:task66-deprecation-management|H:archive-verification|E:docs/ai/work-tracking/archive/20260513-task66-deprecation-management-COMPLETED/reports/deprecation-management/post-archive-guard-2026-05-13.txt] Archived Task 66 work tracking, cleared active session/plan pointers, and captured post-archive audit, Taskmaster health, guard, and diff-check evidence
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -34,4 +36,6 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-13-012-task66-deprecation-management.md
+- PR: https://github.com/loucmane/codex-starter-pack/pull/92
+- Archive evidence: reports/deprecation-management/post-archive-audit-2026-05-13.txt, post-archive-taskmaster-health-2026-05-13.txt, post-archive-guard-2026-05-13.txt, post-archive-diff-check-2026-05-13.txt

@@ -5,3 +5,5 @@
 - 2026-05-13 18:43 CEST — Added `deprecation review` to `scripts/codex-task`, parser wiring, focused tests, and command documentation.
 - 2026-05-13 18:44 CEST — Generated the Task 66 deprecation review packet and captured focused codex-task/lifecycle pytest evidence.
 - 2026-05-13 18:47 CEST — Marked Taskmaster Task 66 done and captured final plan sync, work-tracking audit, Taskmaster health, guard, and diff-check evidence.
+- 2026-05-13 19:05 CEST — Archived active work-tracking folder.
+- 2026-05-13 19:07 CEST — Merged PR #92, cleared active session/plan pointers, and captured post-archive audit, Taskmaster health, guard, and diff-check evidence.
