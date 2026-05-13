@@ -1,0 +1,220 @@
+{
+  "allocation_model": {
+    "automatic_assignment": false,
+    "guidance": [
+      "Run the same verification commands for the control and each candidate variant.",
+      "Store evidence for every variant before comparing outcomes.",
+      "Treat missing evidence as a stop condition, not a warning."
+    ],
+    "reviewed_evidence_only": true,
+    "traffic_split": false
+  },
+  "created_at": "2026-05-12T22:32:01+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-34-ab-testing-framework",
+      "head": "e98d6f1f9cfb799d07659e97d868351374bc51e2",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_034.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "plans/current",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/current",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-12_task34_ab_testing_framework_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-12-task34-ab-testing-framework.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-12-006-task34-ab-testing-framework.md",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 124,
+      "exists": true,
+      "latest": [
+        ".serena/memories/session_2026-05-11_task39-guard-auto-fix-mode-closeout.md",
+        ".serena/memories/2026-05-11_task62_agent_compatibility_layer_kickoff.md",
+        ".serena/memories/session_2026-05-11_task62-closeout.md",
+        ".serena/memories/2026-05-12_task68_final_validation_suite_kickoff.md",
+        ".serena/memories/session_2026-05-12_task68-final-validation-suite-closeout.md",
+        ".serena/memories/2026-05-12_task36_template_governance_board_kickoff.md",
+        ".serena/memories/2026-05-12_task41_migration_health_dashboard_kickoff.md",
+        ".serena/memories/2026-05-12_task44_change_advisory_board_kickoff.md",
+        ".serena/memories/2026-05-12_task53_template_caching_layer_kickoff.md",
+        ".serena/memories/2026-05-12_task34_ab_testing_framework_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "b1af2bee6d85edf15cf34b925afbd1088a333afbc44eb49b1efc0015afa32677",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 80,
+          "in-progress": 1,
+          "pending": 27
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260512-task34-ab-testing-framework-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-12-task34-ab-testing-framework.md",
+        "sha256": "f1483822ee7ff36696ebbf41f9a121f6c3592547ddc7de9ba43dc54b1c9619e8",
+        "target": "2026-05-12-task34-ab-testing-framework.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-12-006-task34-ab-testing-framework.md",
+        "sha256": "b7d9f9be406873d3b1a552d39b1e97806b7f622978deb8cbb027fb942370f066",
+        "target": "2026/05/2026-05-12-006-task34-ab-testing-framework.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "22475352305cd9c944e10e1de4afebac357ad8a6576c888b6c5c1b64c8f876c6"
+      }
+    }
+  },
+  "executes_mutations": false,
+  "label": "task34-foundation-experiment",
+  "metric_model": {
+    "comparison_rule": "Promote a candidate only when it is no worse than control on required checks and any tradeoff is documented in FINDINGS/DECISIONS.",
+    "error_threshold_pct": 5.0,
+    "metrics": [
+      {
+        "command": "python3 scripts/codex-guard validate --include-untracked",
+        "id": "guard",
+        "success_criteria": "Exit code 0 and no S:W:H:E or workflow-state issues.",
+        "title": "Guard validation"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest <focused tests>",
+        "id": "focused-tests",
+        "success_criteria": "Exit code 0 for the experiment-specific regression surface.",
+        "title": "Focused regression tests"
+      },
+      {
+        "command": "python3 scripts/template-performance-harness --strict",
+        "id": "performance",
+        "success_criteria": "Status pass; warn/fail deltas must be documented before promotion.",
+        "title": "Performance policy"
+      },
+      {
+        "command": "python3 scripts/template-monitoring --strict",
+        "id": "monitoring",
+        "success_criteria": "Status pass against repo-local monitoring thresholds.",
+        "title": "Monitoring policy"
+      },
+      {
+        "command": "python3 scripts/codex-task taskmaster health",
+        "id": "taskmaster-health",
+        "success_criteria": "Zero invalid dependency references.",
+        "title": "Taskmaster health"
+      }
+    ],
+    "stop_conditions": [
+      "Candidate error or failure rate exceeds control by more than 5.00%.",
+      "Any required guard, audit, health, or focused test command fails.",
+      "Performance or monitoring reports fail strict policy.",
+      "Evidence is missing for any control or candidate variant."
+    ]
+  },
+  "mode": "non-destructive-foundation-experiment-plan",
+  "non_goals": [
+    "No LaunchDarkly or external feature flag service is configured.",
+    "No runtime user segmentation is performed.",
+    "No traffic is split or routed.",
+    "No automatic rollback command is executed.",
+    "No dashboard is generated.",
+    "No notification is sent."
+  ],
+  "promotion_model": {
+    "automatic_promotion": false,
+    "guidance": [
+      "Document the selected variant and rationale in DECISIONS.md.",
+      "Attach JSON/Markdown experiment evidence to work tracking before merge.",
+      "Use the canary rollout planner for staged adoption after selecting a variant."
+    ],
+    "requires_decision_log": true,
+    "requires_reviewed_evidence": true
+  },
+  "recommended_verification_commands": [
+    "python3 scripts/codex-task rollout experiment-plan --report-file <plan.json> --runbook-file <runbook.md>",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_codex_task.py",
+    "git diff --check"
+  ],
+  "rollback_policy": {
+    "automatic_rollback": false,
+    "guidance": [
+      "Stop and render a reviewed rollback/recovery plan if a stop condition fires.",
+      "Do not execute destructive rollback commands from this experiment planner."
+    ]
+  },
+  "variant_count": 2,
+  "variants": [
+    {
+      "allocation_percent": 50.0,
+      "id": "current-foundation",
+      "name": "current-foundation",
+      "role": "control"
+    },
+    {
+      "allocation_percent": 50.0,
+      "id": "candidate-foundation",
+      "name": "candidate-foundation",
+      "role": "candidate"
+    }
+  ],
+  "version": 1
+}

@@ -506,6 +506,39 @@ def test_build_parser_accepts_rollout_canary_plan() -> None:
     assert args.dry_run is True
 
 
+def test_build_parser_accepts_rollout_experiment_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "rollout",
+        "experiment-plan",
+        "--label",
+        "foundation-experiment",
+        "--control",
+        "current-foundation",
+        "--variant",
+        "candidate-a",
+        "--variant",
+        "candidate-b",
+        "--error-threshold-pct",
+        "4.5",
+        "--report-file",
+        "reports/experiment.json",
+        "--runbook-file",
+        "reports/experiment.md",
+        "--dry-run",
+    ])
+    assert args.command == "rollout"
+    assert args.subcommand == "experiment-plan"
+    assert args.label == "foundation-experiment"
+    assert args.control == "current-foundation"
+    assert args.variant == ["candidate-a", "candidate-b"]
+    assert args.error_threshold_pct == 4.5
+    assert args.report_file == "reports/experiment.json"
+    assert args.runbook_file == "reports/experiment.md"
+    assert args.dry_run is True
+
+
 def test_build_parser_accepts_change_advisory() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1049,6 +1082,98 @@ def test_handle_rollout_canary_plan_writes_manifest_and_runbook(monkeypatch, tmp
     runbook_text = runbook.read_text(encoding="utf-8")
     assert "# Foundation Canary Rollout Runbook" in runbook_text
     assert "No deployment, promotion, rollback, traffic split, dashboard update, or notification was executed by this plan." in runbook_text
+
+
+def test_build_experiment_rollout_plan_is_non_destructive(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_canary_rollout_snapshots(module, monkeypatch)
+
+    plan = module._build_experiment_rollout_plan(
+        argparse.Namespace(
+            label="foundation-experiment",
+            control="current-foundation",
+            variant=["candidate-a", "candidate-b"],
+            error_threshold_pct=4.5,
+        )
+    )
+
+    assert plan["version"] == 1
+    assert plan["label"] == "foundation-experiment"
+    assert plan["mode"] == "non-destructive-foundation-experiment-plan"
+    assert plan["executes_mutations"] is False
+    assert plan["current_state"]["git"]["branch"] == "feat/task-40-canary-deployment-system"
+    assert plan["variant_count"] == 3
+    assert [variant["id"] for variant in plan["variants"]] == ["current-foundation", "candidate-a", "candidate-b"]
+    assert [variant["role"] for variant in plan["variants"]] == ["control", "candidate", "candidate"]
+    assert [variant["allocation_percent"] for variant in plan["variants"]] == [33.33, 33.33, 33.34]
+    assert plan["allocation_model"]["automatic_assignment"] is False
+    assert plan["allocation_model"]["traffic_split"] is False
+    assert plan["metric_model"]["error_threshold_pct"] == 4.5
+    assert plan["promotion_model"]["automatic_promotion"] is False
+    assert plan["rollback_policy"]["automatic_rollback"] is False
+    assert "No LaunchDarkly or external feature flag service is configured." in plan["non_goals"]
+    assert "python3 scripts/template-performance-harness --strict" in [
+        metric["command"] for metric in plan["metric_model"]["metrics"]
+    ]
+
+
+def test_render_experiment_rollout_runbook_names_variants_metrics_and_non_goals(monkeypatch) -> None:
+    module = load_task_module()
+    _patch_canary_rollout_snapshots(module, monkeypatch)
+    plan = module._build_experiment_rollout_plan(
+        argparse.Namespace(
+            label="foundation-experiment",
+            control="current-foundation",
+            variant=["candidate-foundation"],
+            error_threshold_pct=5.0,
+        )
+    )
+
+    runbook = module._render_experiment_rollout_runbook(plan)
+
+    assert "# Foundation Experiment Runbook" in runbook
+    assert "current-foundation (control): 50.0%" in runbook
+    assert "candidate-foundation (candidate): 50.0%" in runbook
+    assert "Guard validation" in runbook
+    assert "Performance policy" in runbook
+    assert "Automatic promotion: False" in runbook
+    assert "No LaunchDarkly or external feature flag service is configured." in runbook
+    assert "No feature flag service, traffic split, promotion, rollback, dashboard update, or notification was executed by this plan." in runbook
+
+
+def test_handle_rollout_experiment_plan_writes_manifest_and_runbook(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_canary_rollout_snapshots(module, monkeypatch)
+
+    report = repo / "reports" / "experiment-plan.json"
+    runbook = repo / "reports" / "experiment-runbook.md"
+    args = argparse.Namespace(
+        label="task34-foundation-experiment",
+        control="current-foundation",
+        variant=["candidate-foundation"],
+        error_threshold_pct=5.0,
+        report_file=str(report.relative_to(repo)),
+        runbook_file=str(runbook.relative_to(repo)),
+        dry_run=False,
+    )
+
+    module.handle_rollout_experiment_plan(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task34-foundation-experiment"
+    assert payload["executes_mutations"] is False
+    assert payload["variant_count"] == 2
+    assert payload["variants"][0]["role"] == "control"
+    assert payload["variants"][1]["role"] == "candidate"
+    assert payload["allocation_model"]["traffic_split"] is False
+    assert payload["metric_model"]["error_threshold_pct"] == 5.0
+    assert payload["rollback_policy"]["automatic_rollback"] is False
+
+    runbook_text = runbook.read_text(encoding="utf-8")
+    assert "# Foundation Experiment Runbook" in runbook_text
+    assert "No feature flag service, traffic split, promotion, rollback, dashboard update, or notification was executed by this plan." in runbook_text
 
 
 def _write_change_advisory_governance_policy(path: Path) -> None:
