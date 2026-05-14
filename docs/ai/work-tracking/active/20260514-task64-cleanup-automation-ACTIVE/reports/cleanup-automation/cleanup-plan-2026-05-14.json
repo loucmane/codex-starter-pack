@@ -1,0 +1,428 @@
+{
+  "approval_gates": [
+    {
+      "gate": "scope",
+      "requirement": "A Taskmaster task and work-tracking folder explicitly name the cleanup target and allowed operation."
+    },
+    {
+      "gate": "dry_run",
+      "requirement": "Scanner, duplicate, reference-fix, or command dry-run evidence exists before any mutation is proposed."
+    },
+    {
+      "gate": "backup",
+      "requirement": "A backup, archive, or restore path is documented before deleting or rewriting generated artifacts."
+    },
+    {
+      "gate": "rollback",
+      "requirement": "A rollback checkpoint or recovery plan exists for any multi-file cleanup."
+    },
+    {
+      "gate": "review",
+      "requirement": "The user approves the exact cleanup command or patch after reviewing evidence."
+    },
+    {
+      "gate": "verification",
+      "requirement": "Guard, tests, audit, Taskmaster health, and diff-check pass after cleanup."
+    }
+  ],
+  "backup_rollback_guidance": [
+    "Capture `python3 scripts/codex-task rollback checkpoint` before risky multi-file cleanup.",
+    "Use `python3 scripts/codex-task rollback plan` to render recovery guidance from the checkpoint.",
+    "Prefer targeted `git restore -- <path>` only after review; never use `git reset --hard` as a default cleanup path.",
+    "Keep scanner backup directories until the related PR is merged and the archive commit is pushed."
+  ],
+  "cleanup_candidates": [
+    {
+      "approval_required": true,
+      "evidence_domain": "scanner-cleanup-evidence",
+      "id": "scanner-generated-artifacts",
+      "manual_action": "Review generated duplicate/reference outputs and archive only explicitly approved stale artifacts.",
+      "risk": "medium",
+      "title": "Scanner-generated cleanup artifacts"
+    },
+    {
+      "approval_required": true,
+      "evidence_domain": "reference-fix-safety",
+      "id": "reference-fix-backups",
+      "manual_action": "Review backup age and restore value before pruning or archiving backup directories.",
+      "risk": "medium",
+      "title": "Reference-fix backup directories"
+    },
+    {
+      "approval_required": true,
+      "evidence_domain": "deprecation-lifecycle",
+      "id": "deprecated-template-candidates",
+      "manual_action": "Use deprecation review status before archive/removal decisions; create a scoped cleanup task for each accepted change.",
+      "risk": "high",
+      "title": "Deprecated template candidates"
+    },
+    {
+      "approval_required": true,
+      "evidence_domain": "legacy-cleanup-example",
+      "id": "legacy-project-blog-precedent",
+      "manual_action": "Reuse the Task 108 pattern: isolate one legacy finding, apply the smallest change, and verify scanners/guard.",
+      "risk": "low",
+      "title": "Legacy PROJECT-BLOG cleanup precedent"
+    },
+    {
+      "approval_required": true,
+      "evidence_domain": "taskmaster-cleanup-health",
+      "id": "active-workflow-state",
+      "manual_action": "Never clear active session, plan, or work-tracking pointers except during post-merge archive closeout.",
+      "risk": "high",
+      "title": "Active workflow state cleanup"
+    }
+  ],
+  "created_at": "2026-05-14T17:04:04+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-64-cleanup-automation",
+      "head": "7902a1012c3e9522489078360cd5800a899207fc",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_064.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task64_cleanup_automation_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task64-cleanup-automation.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/cleanup-automation/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-007-task64-cleanup-automation.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 162,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_completion.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_kickoff.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_completion.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_completion.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_completion.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_kickoff.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "e5c782dedb54eedf2247c2f9e7ba6ea6a08ca8450ccce475ffe01f65634f2360",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 98,
+          "in-progress": 1,
+          "pending": 9
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task64-cleanup-automation-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task64-cleanup-automation.md",
+        "sha256": "cc872e71be8111290f00955ecc1b5330095d0af2203466c1a11b6a2970145c46",
+        "target": "2026-05-14-task64-cleanup-automation.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-007-task64-cleanup-automation.md",
+        "sha256": "9d534e4c88aaaa9235a926c6e1ef11119746a9386a829e96bdc266c09f687efb",
+        "target": "2026/05/2026-05-14-007-task64-cleanup-automation.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "ef57c39cc42501885aecf03e5e757cb2728f2beeea945bd0bce2e04d4d170573"
+      }
+    }
+  },
+  "domains": [
+    {
+      "details": {
+        "invalid_refs": [],
+        "summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 98,
+            "in-progress": 1,
+            "pending": 9
+          },
+          "subtasks": 304,
+          "tasks": 108
+        }
+      },
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".taskmaster/tasks/tasks.json"
+        }
+      ],
+      "id": "taskmaster-cleanup-health",
+      "message": "Taskmaster cleanup health evidence is ready for cleanup planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm cleanup follow-up work can be tracked without dependency corruption.",
+      "refresh_command": "python3 scripts/codex-task taskmaster health",
+      "status": "ready",
+      "title": "Taskmaster cleanup health"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-ssot-scanner/output/data/duplicate_analysis.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-ssot-scanner/output/data/fix_recommendations.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-ssot-scanner/output/scripts/archive_duplicates.sh"
+        }
+      ],
+      "id": "scanner-cleanup-evidence",
+      "message": "Scanner cleanup evidence evidence is ready for cleanup planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Use generated scanner/duplicate/reference data as cleanup candidate evidence.",
+      "refresh_command": "python3 scripts/template-ssot-scanner/run_all_scanners.py",
+      "status": "ready",
+      "title": "Scanner cleanup evidence"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-ssot-scanner/apply_reference_fixes.py"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911"
+        }
+      ],
+      "id": "reference-fix-safety",
+      "message": "Reference-fix safety tools evidence is ready for cleanup planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm dry-run, backup, and rollback tooling exists for reference cleanup.",
+      "refresh_command": "python3 scripts/template-ssot-scanner/apply_reference_fixes.py --help",
+      "status": "ready",
+      "title": "Reference-fix safety tools"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task66-deprecation-management-COMPLETED/reports/deprecation-management/deprecation-review-2026-05-13.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template_lifecycle.py"
+        }
+      ],
+      "id": "deprecation-lifecycle",
+      "message": "Deprecation lifecycle review evidence is ready for cleanup planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Use lifecycle/deprecation evidence before deciding archive or removal candidates.",
+      "refresh_command": "python3 scripts/codex-task deprecation review --report-file reports/deprecation-management/latest.json --runbook-file reports/deprecation-management/latest.md",
+      "status": "ready",
+      "title": "Deprecation lifecycle review"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260507-task19-rollback-mechanism-COMPLETED/reports/rollback-mechanism/checkpoint-2026-05-07.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/metadata/emergency-response-policy.json"
+        }
+      ],
+      "id": "rollback-and-emergency-policy",
+      "message": "Rollback and emergency policy evidence is ready for cleanup planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Require recovery context before risky cleanup work.",
+      "refresh_command": "python3 scripts/codex-task rollback checkpoint --label cleanup-review --report-file reports/cleanup-automation/rollback-checkpoint.json",
+      "status": "ready",
+      "title": "Rollback and emergency policy"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260507-task108-legacy-project-blog-cleanup-COMPLETED/reports/legacy-project-blog-cleanup"
+        }
+      ],
+      "id": "legacy-cleanup-example",
+      "message": "Legacy cleanup example evidence is ready for cleanup planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Ground cleanup planning in the scoped Task 108 legacy PROJECT-BLOG cleanup precedent.",
+      "refresh_command": "python3 scripts/codex-guard validate --include-untracked",
+      "status": "ready",
+      "title": "Legacy cleanup example"
+    }
+  ],
+  "dry_run_checks": [
+    {
+      "check": "scanner-output-review",
+      "command": "python3 scripts/template-ssot-scanner/run_all_scanners.py --help",
+      "purpose": "Confirm scanner command surface before using generated cleanup data."
+    },
+    {
+      "check": "reference-fix-preview",
+      "command": "python3 scripts/template-ssot-scanner/apply_reference_fixes.py --dry-run --fixes scripts/template-ssot-scanner/output/data/fix_recommendations.json",
+      "purpose": "Preview reference-fix candidates without writing files."
+    },
+    {
+      "check": "work-tracking-audit",
+      "command": "python3 scripts/codex-task work-tracking audit",
+      "purpose": "Confirm active/archive state before moving work-tracking folders."
+    },
+    {
+      "check": "guard-validation",
+      "command": "python3 scripts/codex-guard validate --include-untracked",
+      "purpose": "Confirm cleanup planning does not break workflow evidence."
+    }
+  ],
+  "executes_actions": false,
+  "label": "cleanup-automation",
+  "manual_notification_guidance": [
+    "Use communication templates to draft cleanup notices when stakeholders need review.",
+    "Do not send notifications from this command; record draft or decision in work tracking.",
+    "Mention exact candidate IDs, evidence paths, and verification commands in any PR description."
+  ],
+  "metrics_checklist": [
+    {
+      "metric": "candidate_count",
+      "review_question": "How many cleanup candidates are proposed by scanner, lifecycle, or historical evidence?"
+    },
+    {
+      "metric": "missing_evidence_count",
+      "review_question": "How many candidates lack source evidence or dry-run output?"
+    },
+    {
+      "metric": "risk_mix",
+      "review_question": "How many candidates are low, medium, high, or destructive-risk?"
+    },
+    {
+      "metric": "approval_coverage",
+      "review_question": "Do all candidates have scope, dry-run, backup, rollback, review, and verification gates?"
+    },
+    {
+      "metric": "rollback_coverage",
+      "review_question": "Which candidates have rollback checkpoint or restore guidance?"
+    },
+    {
+      "metric": "post_cleanup_health",
+      "review_question": "Will guard, tests, audit, Taskmaster health, and diff-check be captured after cleanup?"
+    }
+  ],
+  "mode": "static-non-destructive-cleanup-planning-packet",
+  "non_goals": [
+    "No cron job, scheduler, daemon, GitHub scheduled workflow, background cleanup service, or long-running process is installed.",
+    "No file is deleted, moved, archived, restored, rolled back, cleaned, reset, or modified by this command.",
+    "No `git clean`, `git reset`, destructive restore, branch deletion, retention enforcement, or automatic cleanup approval is executed.",
+    "No backup is created or restored; backup and rollback guidance is advisory only.",
+    "No email, chat, webhook, ticket, stakeholder notification, or external service call is sent.",
+    "No source report, scanner output, template, Taskmaster, session, plan, work-tracking, Git, or external state is mutated beyond requested cleanup planning artifacts."
+  ],
+  "planning_guidance": [
+    "Treat this packet as a cleanup review contract; a human must approve every cleanup action separately.",
+    "Run dry-run scanners and capture rollback context before any cleanup implementation task.",
+    "Keep candidate rows advisory until an explicit Taskmaster task scopes the exact file operation.",
+    "Prefer archive or rewrite decisions over deletion when historical evidence may still be useful."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/template-ssot-scanner/run_all_scanners.py",
+    "python3 scripts/template-ssot-scanner/apply_reference_fixes.py --help",
+    "python3 scripts/codex-task deprecation review --report-file reports/deprecation-management/latest.json --runbook-file reports/deprecation-management/latest.md",
+    "python3 scripts/codex-task rollback checkpoint --label cleanup-review --report-file reports/cleanup-automation/rollback-checkpoint.json",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+    "python3 scripts/codex-task work-tracking audit"
+  ],
+  "summary": {
+    "aggregate_status": "ready",
+    "blocked": 0,
+    "needs_evidence": 0,
+    "ready": 6,
+    "total_domains": 6
+  },
+  "version": 1
+}
