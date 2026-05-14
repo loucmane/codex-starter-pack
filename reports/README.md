@@ -160,6 +160,16 @@ python3 scripts/codex-task celebration plan \
 
 This command renders a static JSON/Markdown planning packet for human review. It does not schedule events, send announcements, publish posts, create awards, generate slide decks, collect feedback, or contact external systems.
 
+Feedback collection planning packets can be generated when an operator needs one static intake and triage artifact over feedback categories, manual severity/sentiment labels, routing, response states, metrics, archive guidance, and follow-up-task criteria:
+
+```bash
+python3 scripts/codex-task feedback collection-plan \
+  --report-file reports/feedback-collection/latest.json \
+  --runbook-file reports/feedback-collection/latest.md
+```
+
+This command renders a static JSON/Markdown planning packet for human review. It does not create forms, API endpoints, dashboards, sentiment automation, notifications, tickets, external archives, or response delivery systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -181,6 +191,7 @@ This command renders a static JSON/Markdown planning packet for human review. It
 - `stakeholder-reporting/` - optional static stakeholder-facing status packets over delivery health, workflow compliance, success metrics, knowledge transfer, deprecation governance, risk/compliance, and communication guidance.
 - `enhancement-planning/` - optional static Phase 5 planning packets over enhancement candidates, readiness evidence, refresh commands, next actions, and non-goal boundaries.
 - `celebration-planning/` - optional static celebration/readout planning packets over success evidence, stakeholder narrative, roadmap talking points, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps.
+- `feedback-collection/` - optional static feedback collection planning packets over intake schema, categories, manual severity/sentiment labels, routing, metrics, response states, archive guidance, and follow-up-task criteria.
 
 ## Task Evidence
 

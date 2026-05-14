@@ -286,6 +286,28 @@ def test_build_parser_accepts_celebration_plan() -> None:
     assert args.runbook_file == "reports/celebration.md"
 
 
+def test_build_parser_accepts_feedback_collection_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "feedback",
+        "collection-plan",
+        "--label",
+        "task59",
+        "--strict",
+        "--report-file",
+        "reports/feedback.json",
+        "--runbook-file",
+        "reports/feedback.md",
+    ])
+    assert args.command == "feedback"
+    assert args.subcommand == "collection-plan"
+    assert args.label == "task59"
+    assert args.strict is True
+    assert args.report_file == "reports/feedback.json"
+    assert args.runbook_file == "reports/feedback.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -3354,6 +3376,164 @@ def test_handle_celebration_plan_writes_packet_and_runbook(monkeypatch, tmp_path
     assert payload["label"] == "task76"
     assert payload["summary"]["aggregate_status"] == "ready"
     assert "# Celebration Planning Packet" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_feedback_collection_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-59-feedback-collection-system"
+        if args == ["rev-parse", "HEAD"]:
+            return "feedbackabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-006-task59.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task59.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task59-feedback-collection-system-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 97, "pending": 10, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task59.md"]})
+
+
+def _write_feedback_collection_sources(repo: Path, include_communication: bool = True) -> None:
+    _touch_enhancement_source(repo, ".taskmaster/tasks/tasks.json", "{}\n")
+    if include_communication:
+        _touch_enhancement_source(repo, "templates/guides/communication/foundation-communication-templates.md")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED")
+    _touch_enhancement_source(repo, "templates/guides/training/foundation-onboarding.md")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task63-phase4-documentation-delivery-COMPLETED/reports/phase4-documentation-delivery/phase4-review-2026-05-13.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "reports/README.md")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-2026-05-14-final.json",
+        "{}\n",
+    )
+
+
+def test_build_feedback_collection_plan_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_feedback_collection_state(module, monkeypatch, repo)
+    _write_feedback_collection_sources(repo)
+
+    report = module._build_feedback_collection_plan(argparse.Namespace(label="task59"))
+
+    assert report["mode"] == "static-feedback-collection-planning-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["ready"] == 5
+    assert {domain["id"] for domain in report["domains"]} == {
+        "taskmaster-follow-up-health",
+        "communication-feedback-template",
+        "onboarding-feedback-guidance",
+        "phase4-feedback-guidance",
+        "stakeholder-response-context",
+    }
+    assert any(field["field"] == "sentiment" for field in report["intake_schema"])
+    assert any(route["category"] == "guard" for route in report["routing_matrix"])
+    assert "No hosted form" in report["non_goals"][0]
+
+
+def test_build_feedback_collection_plan_surfaces_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_feedback_collection_state(module, monkeypatch, repo)
+    _write_feedback_collection_sources(repo, include_communication=False)
+
+    report = module._build_feedback_collection_plan(argparse.Namespace(label="task59"))
+
+    communication = next(domain for domain in report["domains"] if domain["id"] == "communication-feedback-template")
+    assert communication["status"] == "needs-evidence"
+    assert "templates/guides/communication/foundation-communication-templates.md" in communication["missing_evidence_paths"]
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(command.startswith("PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py") for command in report["recommended_refresh_commands"])
+
+
+def test_render_feedback_collection_plan_lists_intake_routing_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_feedback_collection_state(module, monkeypatch, repo)
+    _write_feedback_collection_sources(repo)
+    report = module._build_feedback_collection_plan(argparse.Namespace(label="task59"))
+
+    runbook = module._render_feedback_collection_plan(report)
+
+    assert "# Feedback Collection Planning Packet" in runbook
+    assert "Intake Schema" in runbook
+    assert "Routing Matrix" in runbook
+    assert "Manual Sentiment Labels" in runbook
+    assert "No hosted form" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_feedback_collection_plan_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_feedback_collection_state(module, monkeypatch, repo)
+    _write_feedback_collection_sources(repo)
+    report = repo / "reports" / "feedback.json"
+    runbook = repo / "reports" / "feedback.md"
+
+    module.handle_feedback_collection_plan(
+        argparse.Namespace(
+            label="task59",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote feedback collection plan to reports/feedback.json" in output
+    assert "Wrote feedback collection runbook to reports/feedback.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task59"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Feedback Collection Planning Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
