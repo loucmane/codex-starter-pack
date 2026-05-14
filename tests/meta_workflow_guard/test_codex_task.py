@@ -220,6 +220,28 @@ def test_build_parser_accepts_success_metrics() -> None:
     assert args.runbook_file == "reports/success.md"
 
 
+def test_build_parser_accepts_stakeholder_report() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "stakeholder",
+        "report",
+        "--label",
+        "task73",
+        "--strict",
+        "--report-file",
+        "reports/stakeholder.json",
+        "--runbook-file",
+        "reports/stakeholder.md",
+    ])
+    assert args.command == "stakeholder"
+    assert args.subcommand == "report"
+    assert args.label == "task73"
+    assert args.strict is True
+    assert args.report_file == "reports/stakeholder.json"
+    assert args.runbook_file == "reports/stakeholder.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -2761,6 +2783,187 @@ def test_handle_success_metrics_writes_packet_and_runbook(monkeypatch, tmp_path,
     assert payload["label"] == "task67"
     assert payload["summary"]["aggregate_status"] == "pass"
     assert "# Success Metrics Dashboard" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_stakeholder_report_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-73-stakeholder-reporting"
+        if args == ["rev-parse", "HEAD"]:
+            return "stakeholderabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-003-task73.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task73.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task73-stakeholder-reporting-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 94, "pending": 13, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["memory.md"]})
+
+
+def _write_stakeholder_report_sources(repo: Path, include_success: bool = True) -> None:
+    if include_success:
+        success = (
+            repo
+            / "docs"
+            / "ai"
+            / "work-tracking"
+            / "archive"
+            / "20260514-task67-success-metrics-dashboard-COMPLETED"
+            / "reports"
+            / "success-metrics-dashboard"
+            / "success-metrics-2026-05-14-final.json"
+        )
+        success.parent.mkdir(parents=True, exist_ok=True)
+        success.write_text(
+            json.dumps({"summary": {"aggregate_status": "pass", "success_score_pct": 100.0, "missing": 0}}),
+            encoding="utf-8",
+        )
+    knowledge = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20260514-task54-knowledge-transfer-process-COMPLETED"
+        / "reports"
+        / "knowledge-transfer-process"
+        / "knowledge-transfer-review-2026-05-14.json"
+    )
+    knowledge.parent.mkdir(parents=True, exist_ok=True)
+    knowledge.write_text(json.dumps({"summary": {"aggregate_status": "ready", "ready": 6}}), encoding="utf-8")
+    deprecation = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20260513-task66-deprecation-management-COMPLETED"
+        / "reports"
+        / "deprecation-management"
+        / "deprecation-review-2026-05-13.json"
+    )
+    deprecation.parent.mkdir(parents=True, exist_ok=True)
+    deprecation.write_text(json.dumps({"summary": {"aggregate_status": "ready", "ready": 7}}), encoding="utf-8")
+    communication = repo / "templates" / "guides" / "communication" / "foundation-communication-templates.md"
+    communication.parent.mkdir(parents=True, exist_ok=True)
+    communication.write_text("# Communication Templates\n", encoding="utf-8")
+
+
+def test_build_stakeholder_report_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_stakeholder_report_state(module, monkeypatch, repo)
+    _write_stakeholder_report_sources(repo)
+
+    report = module._build_stakeholder_report(argparse.Namespace(label="task73"))
+
+    assert report["mode"] == "static-stakeholder-reporting-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "pass"
+    assert report["summary"]["stakeholder_signal"] == "ready-to-share"
+    assert {domain["id"] for domain in report["domains"]} >= {
+        "taskmaster-delivery-health",
+        "workflow-compliance",
+        "success-metrics",
+        "knowledge-transfer",
+        "deprecation-governance",
+        "stakeholder-communication-guidance",
+        "risk-compliance-summary",
+    }
+    assert "No hosted executive dashboard" in report["non_goals"][0]
+
+
+def test_build_stakeholder_report_surfaces_missing_success_source(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_stakeholder_report_state(module, monkeypatch, repo)
+    _write_stakeholder_report_sources(repo, include_success=False)
+
+    report = module._build_stakeholder_report(argparse.Namespace(label="task73"))
+
+    success = next(domain for domain in report["domains"] if domain["id"] == "success-metrics")
+    risk = next(domain for domain in report["domains"] if domain["id"] == "risk-compliance-summary")
+    assert success["status"] == "missing"
+    assert risk["status"] == "warn"
+    assert report["summary"]["aggregate_status"] == "warn"
+    assert any(
+        command.startswith("python3 scripts/codex-task success metrics")
+        for command in report["recommended_refresh_commands"]
+    )
+
+
+def test_render_stakeholder_report_lists_messages_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_stakeholder_report_state(module, monkeypatch, repo)
+    _write_stakeholder_report_sources(repo)
+    report = module._build_stakeholder_report(argparse.Namespace(label="task73"))
+
+    runbook = module._render_stakeholder_report(report)
+
+    assert "# Stakeholder Reporting Packet" in runbook
+    assert "Stakeholder Messages" in runbook
+    assert "Success metrics" in runbook
+    assert "No hosted executive dashboard" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_stakeholder_report_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_stakeholder_report_state(module, monkeypatch, repo)
+    _write_stakeholder_report_sources(repo)
+    report = repo / "reports" / "stakeholder.json"
+    runbook = repo / "reports" / "stakeholder.md"
+
+    module.handle_stakeholder_report(
+        argparse.Namespace(
+            label="task73",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote stakeholder report to reports/stakeholder.json" in output
+    assert "Wrote stakeholder runbook to reports/stakeholder.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task73"
+    assert payload["summary"]["aggregate_status"] == "pass"
+    assert "# Stakeholder Reporting Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:

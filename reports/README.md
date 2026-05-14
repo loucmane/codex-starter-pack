@@ -130,6 +130,16 @@ python3 scripts/codex-task deprecation review \
 
 This command summarizes lifecycle status counts, deprecation warnings, grace-period expirations, archive recommendations, missing migration guidance, supporting evidence domains, and operator-reviewed deprecation actions. It does not instrument runtime logs, move files automatically, send notifications, install schedulers, update dashboards, automate emergency overrides, mutate existing evidence sources, or contact external systems.
 
+Stakeholder reporting packets can be generated when an operator needs one stakeholder-facing status artifact over delivery health, workflow compliance, success metrics, knowledge transfer, deprecation governance, risk/compliance, and communication guidance:
+
+```bash
+python3 scripts/codex-task stakeholder report \
+  --report-file reports/stakeholder-reporting/latest.json \
+  --runbook-file reports/stakeholder-reporting/latest.md
+```
+
+This command renders a static JSON/Markdown packet with stakeholder messages and refresh commands. It does not create a hosted executive dashboard, scheduler, notification delivery, BI backend, ROI engine, or external reporting integration.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -148,6 +158,7 @@ This command summarizes lifecycle status counts, deprecation warnings, grace-per
 - `knowledge-transfer-process/` - optional static knowledge-transfer review packets over documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence.
 - `success-metrics/` - optional static success scorecards over Taskmaster, workflow, telemetry, validation, and knowledge-transfer evidence.
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
+- `stakeholder-reporting/` - optional static stakeholder-facing status packets over delivery health, workflow compliance, success metrics, knowledge transfer, deprecation governance, risk/compliance, and communication guidance.
 
 ## Task Evidence
 

@@ -1,0 +1,339 @@
+{
+  "communication_guidance": [
+    "Lead with the aggregate stakeholder signal and list warning domains before implementation detail.",
+    "Use missing-source warnings as refresh prompts, not as synthetic pass/fail claims.",
+    "Route distribution through existing communication templates; this command does not send stakeholder notifications.",
+    "Attach the JSON and Markdown packet to PR, release, or handoff evidence when sharing status outside the repo."
+  ],
+  "created_at": "2026-05-14T12:52:05+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-73-stakeholder-reporting",
+      "head": "86c55cd6a53ef31a8b01742507074037a03b5ca4",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_073.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task73_stakeholder_reporting_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task73-stakeholder-reporting.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/stakeholder-reporting/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-003-task73-stakeholder-reporting.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 154,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task72_post_mortem_process_kickoff.md",
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_completion.md",
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_kickoff.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_completion.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_kickoff.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_completion.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_kickoff.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_completion.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "fe5c01f363b8b86aab04d53974e9fa126ddfcb8abfab12de3cbae382305e056a",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 95,
+          "pending": 13
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task73-stakeholder-reporting-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task73-stakeholder-reporting.md",
+        "sha256": "4ae715c70247cffaaffe807df1aaa112eab47ba5c4c9e92f635419201576c0cd",
+        "target": "2026-05-14-task73-stakeholder-reporting.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-003-task73-stakeholder-reporting.md",
+        "sha256": "e6e41fffd2c1883c3c8764f5e689f9743d5d8cad0f4578fc2f4fd50e46442cb6",
+        "target": "2026/05/2026-05-14-003-task73-stakeholder-reporting.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "456a3075cf35021db15ceaaece99132fb72e05217c6a86bfc26a6cbd245b3237"
+      }
+    }
+  },
+  "domains": [
+    {
+      "audience": "Delivery owners and project sponsors",
+      "details": {
+        "invalid_refs": [],
+        "summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 95,
+            "pending": 13
+          },
+          "subtasks": 304,
+          "tasks": 108
+        }
+      },
+      "evidence": ".taskmaster/tasks/tasks.json",
+      "id": "taskmaster-delivery-health",
+      "message": "95/108 parent tasks done; 13 pending; dependency graph healthy.",
+      "refresh_command": "python3 scripts/codex-task taskmaster health",
+      "severity": "info",
+      "status": "pass",
+      "title": "Taskmaster delivery health"
+    },
+    {
+      "audience": "Maintainers and reviewers",
+      "details": {
+        "active_work_tracking": [
+          "docs/ai/work-tracking/active/20260514-task73-stakeholder-reporting-ACTIVE"
+        ],
+        "current_plan": {
+          "exists": true,
+          "is_symlink": true,
+          "path": "plans/current",
+          "resolved": "plans/2026-05-14-task73-stakeholder-reporting.md",
+          "sha256": "4ae715c70247cffaaffe807df1aaa112eab47ba5c4c9e92f635419201576c0cd",
+          "target": "2026-05-14-task73-stakeholder-reporting.md"
+        },
+        "current_session": {
+          "exists": true,
+          "is_symlink": true,
+          "path": "sessions/current",
+          "resolved": "sessions/2026/05/2026-05-14-003-task73-stakeholder-reporting.md",
+          "sha256": "e6e41fffd2c1883c3c8764f5e689f9743d5d8cad0f4578fc2f4fd50e46442cb6",
+          "target": "2026/05/2026-05-14-003-task73-stakeholder-reporting.md"
+        },
+        "session_state": {
+          "exists": true,
+          "path": "sessions/state.json",
+          "sha256": "456a3075cf35021db15ceaaece99132fb72e05217c6a86bfc26a6cbd245b3237"
+        }
+      },
+      "evidence": "sessions/2026/05/2026-05-14-003-task73-stakeholder-reporting.md",
+      "id": "workflow-compliance",
+      "message": "Workflow pointers are aligned for the active task.",
+      "refresh_command": "python3 scripts/codex-task work-tracking audit",
+      "severity": "info",
+      "status": "pass",
+      "title": "Workflow compliance"
+    },
+    {
+      "audience": "Executive sponsors",
+      "details": {
+        "pattern": "*-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-*-final.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json",
+          "status": "loaded"
+        },
+        "status_value": "warn",
+        "values": {
+          "summary.missing": 1,
+          "summary.success_score_pct": 92.86
+        }
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json",
+      "id": "success-metrics",
+      "message": "Success metrics source status is `warn`.",
+      "refresh_command": "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+      "severity": "warning",
+      "status": "warn",
+      "title": "Success metrics"
+    },
+    {
+      "audience": "Adopters and maintainers",
+      "details": {
+        "pattern": "*-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-*.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json",
+          "status": "loaded"
+        },
+        "status_value": "ready",
+        "values": {
+          "summary.needs_evidence": 0,
+          "summary.needs_implementation": 0,
+          "summary.ready": 6
+        }
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json",
+      "id": "knowledge-transfer",
+      "message": "Knowledge transfer source status is `ready`.",
+      "refresh_command": "python3 scripts/codex-task knowledge transfer-review --report-file reports/knowledge-transfer-process/latest.json --runbook-file reports/knowledge-transfer-process/latest.md",
+      "severity": "info",
+      "status": "pass",
+      "title": "Knowledge transfer"
+    },
+    {
+      "audience": "Governance reviewers",
+      "details": {
+        "pattern": "*-task66-deprecation-management-COMPLETED/reports/deprecation-management/deprecation-review-*.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260513-task66-deprecation-management-COMPLETED/reports/deprecation-management/deprecation-review-2026-05-13.json",
+          "status": "loaded"
+        },
+        "status_value": "ready",
+        "values": {
+          "summary.needs_evidence": 0,
+          "summary.needs_implementation": 0,
+          "summary.ready": 6
+        }
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260513-task66-deprecation-management-COMPLETED/reports/deprecation-management/deprecation-review-2026-05-13.json",
+      "id": "deprecation-governance",
+      "message": "Deprecation governance source status is `ready`.",
+      "refresh_command": "python3 scripts/codex-task deprecation review --report-file reports/deprecation-management/latest.json --runbook-file reports/deprecation-management/latest.md",
+      "severity": "info",
+      "status": "pass",
+      "title": "Deprecation governance"
+    },
+    {
+      "audience": "Project sponsors and downstream adopters",
+      "details": {
+        "exists": true
+      },
+      "evidence": "templates/guides/communication/foundation-communication-templates.md",
+      "id": "stakeholder-communication-guidance",
+      "message": "Communication templates are available for stakeholder distribution.",
+      "refresh_command": "Review templates/guides/communication/foundation-communication-templates.md",
+      "severity": "info",
+      "status": "pass",
+      "title": "Stakeholder communication guidance"
+    },
+    {
+      "audience": "Sponsors, governance, and release reviewers",
+      "details": {
+        "failing_domains": [],
+        "warning_domains": [
+          "success-metrics"
+        ]
+      },
+      "evidence": "computed from stakeholder report domains",
+      "id": "risk-compliance-summary",
+      "message": "Stakeholder report has warning domains: success-metrics.",
+      "refresh_command": "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+      "severity": "warning",
+      "status": "warn",
+      "title": "Risk and compliance summary"
+    }
+  ],
+  "executes_actions": false,
+  "label": "task73-stakeholder-reporting",
+  "mode": "static-stakeholder-reporting-packet",
+  "non_goals": [
+    "No hosted executive dashboard, BI workspace, database, warehouse, analytics backend, or external reporting platform is created or contacted.",
+    "No scheduler, cron job, daemon, background worker, email, Slack, chat, webhook, ticket, or notification delivery is created or contacted.",
+    "No ROI, cost-benefit, risk, or compliance values are fabricated when source evidence is absent.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, template, or external state is mutated beyond requested stakeholder report artifacts."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+    "python3 scripts/codex-task knowledge transfer-review --report-file reports/knowledge-transfer-process/latest.json --runbook-file reports/knowledge-transfer-process/latest.md",
+    "python3 scripts/codex-task deprecation review --report-file reports/deprecation-management/latest.json --runbook-file reports/deprecation-management/latest.md",
+    "Review templates/guides/communication/foundation-communication-templates.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "stakeholder_messages": [
+    {
+      "audience": "Executive sponsors",
+      "id": "executive-summary",
+      "message": "Stakeholder report signal is needs-refresh with aggregate status warn."
+    },
+    {
+      "audience": "Governance reviewers",
+      "id": "risk-summary",
+      "message": "Refresh or address these domains before broad stakeholder distribution: Success metrics"
+    },
+    {
+      "audience": "Maintainers",
+      "id": "distribution-guidance",
+      "message": "Share the Markdown packet with the linked evidence paths; use existing communication templates for delivery language."
+    }
+  ],
+  "summary": {
+    "aggregate_status": "warn",
+    "failures": 0,
+    "missing": 0,
+    "passed": 5,
+    "stakeholder_signal": "needs-refresh",
+    "total_domains": 7,
+    "warnings": 2
+  },
+  "version": 1
+}
