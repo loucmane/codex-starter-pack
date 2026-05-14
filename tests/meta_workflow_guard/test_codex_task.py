@@ -264,6 +264,28 @@ def test_build_parser_accepts_enhancement_phase5_plan() -> None:
     assert args.runbook_file == "reports/enhancement.md"
 
 
+def test_build_parser_accepts_celebration_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "celebration",
+        "plan",
+        "--label",
+        "task76",
+        "--strict",
+        "--report-file",
+        "reports/celebration.json",
+        "--runbook-file",
+        "reports/celebration.md",
+    ])
+    assert args.command == "celebration"
+    assert args.subcommand == "plan"
+    assert args.label == "task76"
+    assert args.strict is True
+    assert args.report_file == "reports/celebration.json"
+    assert args.runbook_file == "reports/celebration.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -3179,6 +3201,159 @@ def test_handle_enhancement_phase5_plan_writes_packet_and_runbook(monkeypatch, t
     assert payload["label"] == "task69"
     assert payload["summary"]["aggregate_status"] == "ready-with-planned-candidates"
     assert "# Phase 5 Enhancement Planning Packet" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_celebration_plan_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-76-celebration-planning"
+        if args == ["rev-parse", "HEAD"]:
+            return "celebrationabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-005-task76.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task76.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task76-celebration-planning-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 96, "pending": 11, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task76.md"]})
+
+
+def _write_celebration_plan_sources(repo: Path, include_success: bool = True) -> None:
+    _touch_enhancement_source(repo, ".taskmaster/tasks/tasks.json", "{}\n")
+    if include_success:
+        _touch_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json",
+            "{}\n",
+        )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "templates/guides/communication/foundation-communication-templates.md")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/reports/phase5-enhancement-planning/phase5-plan-2026-05-14-final.json",
+        "{}\n",
+    )
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED")
+
+
+def test_build_celebration_plan_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_celebration_plan_state(module, monkeypatch, repo)
+    _write_celebration_plan_sources(repo)
+
+    report = module._build_celebration_plan(argparse.Namespace(label="task76"))
+
+    assert report["mode"] == "static-celebration-planning-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["ready"] == 5
+    assert {domain["id"] for domain in report["domains"]} == {
+        "taskmaster-delivery-health",
+        "success-metrics",
+        "stakeholder-reporting",
+        "phase5-roadmap",
+        "work-tracking-archive",
+    }
+    assert report["announcement_draft"]["headline"] == "Portable foundation milestone ready for celebration"
+    assert len(report["demo_candidates"]) == 3
+    assert "No calendar event" in report["non_goals"][0]
+
+
+def test_build_celebration_plan_surfaces_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_celebration_plan_state(module, monkeypatch, repo)
+    _write_celebration_plan_sources(repo, include_success=False)
+
+    report = module._build_celebration_plan(argparse.Namespace(label="task76"))
+
+    success = next(domain for domain in report["domains"] if domain["id"] == "success-metrics")
+    assert success["status"] == "needs-evidence"
+    assert "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json" in success["missing_evidence_paths"]
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(command.startswith("python3 scripts/codex-task success metrics") for command in report["recommended_refresh_commands"])
+
+
+def test_render_celebration_plan_lists_review_materials_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_celebration_plan_state(module, monkeypatch, repo)
+    _write_celebration_plan_sources(repo)
+    report = module._build_celebration_plan(argparse.Namespace(label="task76"))
+
+    runbook = module._render_celebration_plan(report)
+
+    assert "# Celebration Planning Packet" in runbook
+    assert "Announcement Draft" in runbook
+    assert "Demo Candidates" in runbook
+    assert "Retrospective Prompts" in runbook
+    assert "No calendar event" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_celebration_plan_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_celebration_plan_state(module, monkeypatch, repo)
+    _write_celebration_plan_sources(repo)
+    report = repo / "reports" / "celebration.json"
+    runbook = repo / "reports" / "celebration.md"
+
+    module.handle_celebration_plan(
+        argparse.Namespace(
+            label="task76",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote celebration plan to reports/celebration.json" in output
+    assert "Wrote celebration runbook to reports/celebration.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task76"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Celebration Planning Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
