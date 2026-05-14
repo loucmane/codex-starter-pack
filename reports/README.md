@@ -140,6 +140,16 @@ python3 scripts/codex-task stakeholder report \
 
 This command renders a static JSON/Markdown packet with stakeholder messages and refresh commands. It does not create a hosted executive dashboard, scheduler, notification delivery, BI backend, ROI engine, or external reporting integration.
 
+Phase 5 enhancement planning packets can be generated when an operator needs one static roadmap artifact over compaction continuity, discovery/search, template generation guardrails, optimization evidence, optional MCP evaluation, metrics, and scanner-roadmap refreshes:
+
+```bash
+python3 scripts/codex-task enhancement phase5-plan \
+  --report-file reports/enhancement-planning/latest.json \
+  --runbook-file reports/enhancement-planning/latest.md
+```
+
+This command renders a static JSON/Markdown planning packet with candidate readiness, evidence paths, refresh commands, next actions, and explicit non-goals. It does not install triggers, enable optional MCPs, generate templates with AI, apply optimizations, mutate Taskmaster, or contact external systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -159,6 +169,7 @@ This command renders a static JSON/Markdown packet with stakeholder messages and
 - `success-metrics/` - optional static success scorecards over Taskmaster, workflow, telemetry, validation, and knowledge-transfer evidence.
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
 - `stakeholder-reporting/` - optional static stakeholder-facing status packets over delivery health, workflow compliance, success metrics, knowledge transfer, deprecation governance, risk/compliance, and communication guidance.
+- `enhancement-planning/` - optional static Phase 5 planning packets over enhancement candidates, readiness evidence, refresh commands, next actions, and non-goal boundaries.
 
 ## Task Evidence
 

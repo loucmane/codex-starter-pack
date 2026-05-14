@@ -7178,6 +7178,422 @@ def handle_stakeholder_report(args: argparse.Namespace) -> None:
         raise TaskError("Stakeholder report aggregate status is fail")
 
 
+ENHANCEMENT_PLANNING_NON_GOALS: Tuple[str, ...] = (
+    "No automatic compaction trigger, scheduler, daemon, background monitor, or context watcher is installed.",
+    "No semantic-search service, vector database, indexer daemon, or replacement for registry/rg discovery is created.",
+    "No AI-assisted template generation calls an external model, creates new templates, or mutates template sources.",
+    "No optional MCP server is installed, enabled, or configured by this command.",
+    "No performance optimization is applied without measured bottleneck evidence.",
+    "No Taskmaster tasks, sessions, plans, work tracking, Git state, report sources, templates, or external systems are mutated beyond requested enhancement planning artifacts.",
+)
+
+ENHANCEMENT_PLANNING_GUIDANCE: Tuple[str, ...] = (
+    "Treat ready candidates as evidence-backed next-task options, not automatic implementation authority.",
+    "Treat planned candidates as backlog concepts that require their own Taskmaster task and scope reconciliation before code changes.",
+    "Refresh source reports before sharing the plan externally or promoting a candidate to implementation.",
+    "Prefer static packet, guard, and helper improvements over live services until a measured repository gap proves the need.",
+)
+
+ENHANCEMENT_PRIORITY_ORDER: Dict[str, int] = {"high": 0, "medium": 1, "low": 2}
+ENHANCEMENT_READINESS_ORDER: Dict[str, int] = {"ready": 0, "needs-evidence": 1, "planned": 2, "blocked": 3}
+
+
+def _enhancement_path_state(path_value: str) -> Dict[str, Any]:
+    path = REPO_ROOT / path_value
+    if path.is_dir():
+        kind = "directory"
+    elif path.is_file():
+        kind = "file"
+    else:
+        kind = "missing"
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": path.exists(),
+        "kind": kind,
+    }
+
+
+def _enhancement_candidate(definition: Mapping[str, Any]) -> Dict[str, Any]:
+    evidence_paths = [_enhancement_path_state(str(path)) for path in definition.get("evidence_paths", ())]
+    missing = [item["path"] for item in evidence_paths if not item["exists"]]
+    planned = bool(definition.get("planned"))
+    blocked = bool(definition.get("blocked"))
+    if blocked:
+        readiness = "blocked"
+        required_action = str(definition.get("blocked_action") or "Resolve blocker before this candidate can be planned.")
+    elif missing:
+        readiness = "needs-evidence"
+        required_action = "Refresh or add the missing evidence before promoting this candidate."
+    elif planned:
+        readiness = "planned"
+        required_action = str(definition.get("planned_action") or "Create a dedicated Taskmaster task before implementation.")
+    else:
+        readiness = "ready"
+        required_action = str(definition.get("ready_action") or "Ready for a scoped follow-up task.")
+    return {
+        "id": definition["id"],
+        "title": definition["title"],
+        "area": definition["area"],
+        "priority": definition["priority"],
+        "readiness": readiness,
+        "evidence_paths": evidence_paths,
+        "missing_evidence_paths": missing,
+        "refresh_commands": list(definition.get("refresh_commands", ())),
+        "required_action": required_action,
+        "non_goal_boundary": definition["non_goal_boundary"],
+        "rationale": definition["rationale"],
+    }
+
+
+def _enhancement_candidate_definitions() -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": "compaction-trigger-policy-review",
+            "title": "Compaction trigger policy review",
+            "area": "continuity",
+            "priority": "high",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260508-task31-compaction-protocol-COMPLETED/reports/compaction-protocol/",
+                "templates/workflows/session/compaction.md",
+                "scripts/codex-task",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task compaction checkpoint --task <id> --slug <slug> --summary <summary> --next-step <next>",
+            ),
+            "ready_action": "Review whether existing compaction checkpoint evidence needs stricter trigger guidance before adding automation.",
+            "non_goal_boundary": "Do not install automatic compaction triggers or background context monitors in Task 69.",
+            "rationale": "The checkpoint helper exists; the enhancement question is policy and review cadence, not a new runtime service.",
+        },
+        {
+            "id": "semantic-discovery-verification",
+            "title": "Serena and semantic discovery verification",
+            "area": "search",
+            "priority": "high",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260508-task15-serena-integration-template-system-COMPLETED/designs/serena-integration-scope-reconciliation.md",
+                "docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/designs/template-discovery-optimization-scope-reconciliation.md",
+                "scripts/template_registry.py",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task serena status --strict",
+                "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_registry.py",
+            ),
+            "ready_action": "Keep deterministic registry/rg lookup first and use Serena as capability-aware semantic support.",
+            "non_goal_boundary": "Do not replace registry or exact-text search with live semantic calls.",
+            "rationale": "Search foundations are implemented; future enhancement should verify routing and evidence, not add a parallel discovery stack.",
+        },
+        {
+            "id": "ai-template-generation-guardrails",
+            "title": "AI-assisted template generation guardrail plan",
+            "area": "template-generation",
+            "priority": "medium",
+            "planned": True,
+            "evidence_paths": (
+                "templates/metadata/template-metadata-policy.json",
+                "templates/registry/index.json",
+                "reports/template-metrics/latest.json",
+            ),
+            "refresh_commands": (
+                "python3 scripts/template-metrics-dashboard",
+                "python3 scripts/codex-guard validate --include-untracked",
+            ),
+            "planned_action": "Create a dedicated task for generation guardrails before invoking any model or writing templates.",
+            "non_goal_boundary": "Do not call external AI models or create generated templates in Task 69.",
+            "rationale": "Metadata and registry policy exist, but generation requires explicit safety gates and its own implementation scope.",
+        },
+        {
+            "id": "registry-performance-follow-up",
+            "title": "Registry and performance optimization follow-up",
+            "area": "optimization",
+            "priority": "medium",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260512-task53-template-caching-layer-COMPLETED/reports/template-caching-layer/performance-final-2026-05-12.txt",
+                "docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/reports/template-discovery-optimization/",
+                "reports/template-performance/latest.json",
+            ),
+            "refresh_commands": (
+                "python3 scripts/template-performance-harness --strict",
+                "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_registry.py",
+            ),
+            "ready_action": "Use performance reports to decide whether a specific measured optimization task is warranted.",
+            "non_goal_boundary": "Do not implement speculative performance changes without baseline evidence.",
+            "rationale": "Caching and discovery optimizations already exist; future work should be evidence-triggered.",
+        },
+        {
+            "id": "optional-mcp-integration-evaluation",
+            "title": "Optional MCP integration evaluation",
+            "area": "mcp",
+            "priority": "medium",
+            "planned": True,
+            "evidence_paths": (
+                ".mcp.json",
+                ".codex/config.toml",
+                "docs/ai/work-tracking/archive/20260508-task15-serena-integration-template-system-COMPLETED/reports/serena-integration-template-system/",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task serena status --strict",
+                "Review optional MCP startup logs before enabling any new server",
+            ),
+            "planned_action": "Create separate MCP-specific tasks for any optional server, with startup verification and rollback notes.",
+            "non_goal_boundary": "Do not enable context7, firecrawl, elevenlabs, fpl, or other optional MCPs in Task 69.",
+            "rationale": "Core Serena/Taskmaster MCPs are established; optional MCPs need concrete use cases and current startup verification.",
+        },
+        {
+            "id": "enhancement-metrics-refresh",
+            "title": "Enhancement metrics and stakeholder refresh",
+            "area": "metrics",
+            "priority": "high",
+            "evidence_paths": (
+                "reports/success-metrics/README.md",
+                "reports/stakeholder-reporting/README.md",
+                "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+                "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+            ),
+            "ready_action": "Regenerate reusable metrics before selecting a Phase 5 implementation candidate.",
+            "non_goal_boundary": "Do not create live metric dashboards or notification systems.",
+            "rationale": "Stakeholder and success metrics packets now exist and can support enhancement prioritization.",
+        },
+        {
+            "id": "scanner-roadmap-backlog-refresh",
+            "title": "Scanner roadmap backlog refresh",
+            "area": "roadmap",
+            "priority": "low",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260508-task11-migration-roadmap-generator-COMPLETED/designs/migration-roadmap-scope-reconciliation.md",
+                "scripts/template-ssot-scanner/migration_roadmap.py",
+                "scripts/template-ssot-scanner/output/data/",
+            ),
+            "refresh_commands": (
+                "python3 scripts/template-ssot-scanner/run_all_scanners.py",
+                "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+            ),
+            "ready_action": "Refresh scanner data before using roadmap counts as Phase 5 priority evidence.",
+            "non_goal_boundary": "Do not import scanner roadmap items into Taskmaster automatically.",
+            "rationale": "Scanner roadmap generation exists, but source data freshness should be confirmed before driving enhancement planning.",
+        },
+    ]
+
+
+def _build_enhancement_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "phase5-enhancement-planning"
+    candidates = [_enhancement_candidate(definition) for definition in _enhancement_candidate_definitions()]
+    candidates.sort(
+        key=lambda item: (
+            ENHANCEMENT_READINESS_ORDER.get(str(item.get("readiness")), 9),
+            ENHANCEMENT_PRIORITY_ORDER.get(str(item.get("priority")), 9),
+            str(item.get("id")),
+        )
+    )
+    counts = Counter(str(candidate.get("readiness")) for candidate in candidates)
+    if counts.get("blocked"):
+        aggregate_status = "blocked"
+    elif counts.get("needs-evidence"):
+        aggregate_status = "needs-evidence"
+    elif counts.get("planned") and counts.get("ready"):
+        aggregate_status = "ready-with-planned-candidates"
+    elif counts.get("planned") and not counts.get("ready"):
+        aggregate_status = "planned"
+    else:
+        aggregate_status = "ready"
+    recommended_next = [
+        {
+            "candidate_id": candidate["id"],
+            "title": candidate["title"],
+            "priority": candidate["priority"],
+            "readiness": candidate["readiness"],
+            "required_action": candidate["required_action"],
+        }
+        for candidate in candidates
+        if candidate.get("readiness") in {"ready", "needs-evidence"}
+    ][:5]
+    refresh_commands: List[str] = []
+    for candidate in candidates:
+        for command in candidate.get("refresh_commands", []):
+            if command not in refresh_commands:
+                refresh_commands.append(command)
+    refresh_commands.extend(
+        command
+        for command in (
+            "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+            "python3 scripts/codex-guard validate --include-untracked",
+        )
+        if command not in refresh_commands
+    )
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-phase5-enhancement-planning-packet",
+        "executes_actions": False,
+        "summary": {
+            "aggregate_status": aggregate_status,
+            "total_candidates": len(candidates),
+            "ready": counts.get("ready", 0),
+            "needs_evidence": counts.get("needs-evidence", 0),
+            "planned": counts.get("planned", 0),
+            "blocked": counts.get("blocked", 0),
+        },
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "candidates": candidates,
+        "recommended_next_actions": recommended_next,
+        "recommended_refresh_commands": refresh_commands,
+        "planning_guidance": list(ENHANCEMENT_PLANNING_GUIDANCE),
+        "non_goals": list(ENHANCEMENT_PLANNING_NON_GOALS),
+    }
+
+
+def _render_enhancement_plan(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Phase 5 Enhancement Planning Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total candidates: {summary.get('total_candidates')}",
+        f"- Ready: {summary.get('ready')}",
+        f"- Needs evidence: {summary.get('needs_evidence')}",
+        f"- Planned: {summary.get('planned')}",
+        f"- Blocked: {summary.get('blocked')}",
+        "",
+        "## Enhancement Candidates",
+        "",
+        "| Candidate | Area | Priority | Readiness | Missing Evidence |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for candidate in report.get("candidates", []):
+        if not isinstance(candidate, Mapping):
+            continue
+        missing = "<br>".join(candidate.get("missing_evidence_paths", [])) or "None"
+        lines.append(
+            f"| {_md_cell(candidate.get('title'))} | `{_md_cell(candidate.get('area'))}` | "
+            f"`{_md_cell(candidate.get('priority'))}` | `{_md_cell(candidate.get('readiness'))}` | {_md_cell(missing)} |"
+        )
+
+    lines.extend(["", "## Candidate Details", ""])
+    for candidate in report.get("candidates", []):
+        if not isinstance(candidate, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {candidate.get('title')}",
+                "",
+                f"- ID: `{candidate.get('id')}`",
+                f"- Area: `{candidate.get('area')}`",
+                f"- Priority: `{candidate.get('priority')}`",
+                f"- Readiness: `{candidate.get('readiness')}`",
+                f"- Rationale: {candidate.get('rationale')}",
+                f"- Required action: {candidate.get('required_action')}",
+                f"- Boundary: {candidate.get('non_goal_boundary')}",
+                "",
+                "Evidence paths:",
+            ]
+        )
+        for item in candidate.get("evidence_paths", []):
+            if isinstance(item, Mapping):
+                lines.append(f"- `{item.get('path')}` ({item.get('kind')})")
+        lines.extend(["", "Refresh commands:"])
+        for command in candidate.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        lines.append("")
+
+    lines.extend(["## Recommended Next Actions", ""])
+    for action in report.get("recommended_next_actions", []):
+        if not isinstance(action, Mapping):
+            continue
+        lines.append(
+            f"- `{action.get('candidate_id')}` ({action.get('priority')}, {action.get('readiness')}): {action.get('required_action')}"
+        )
+
+    lines.extend(["", "## Planning Guidance", ""])
+    for item in report.get("planning_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static Phase 5 enhancement planning artifact. It composes existing evidence and requested output files only; it does not install triggers, enable optional MCPs, generate templates with AI, apply optimizations, or mutate Taskmaster from candidate rows.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_enhancement_phase5_plan(args: argparse.Namespace) -> None:
+    report = _build_enhancement_plan(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_enhancement_plan(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] == "blocked":
+            raise TaskError("Phase 5 enhancement plan aggregate status is blocked")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote enhancement plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote enhancement runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] == "blocked":
+        raise TaskError("Phase 5 enhancement plan aggregate status is blocked")
+
+
 DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
     "No runtime log instrumentation or warning injection is added.",
     "No automatic template archival, file movement, deletion, or migration is executed.",
@@ -11660,6 +12076,19 @@ def build_parser() -> argparse.ArgumentParser:
     stakeholder_report.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate stakeholder status fails")
     stakeholder_report.add_argument("--dry-run", action="store_true", help="Print the stakeholder report JSON without writing files")
     stakeholder_report.set_defaults(func=handle_stakeholder_report)
+
+    enhancement_parser = subparsers.add_parser("enhancement", help="Enhancement planning operations")
+    enhancement_sub = enhancement_parser.add_subparsers(dest="subcommand", required=True)
+    enhancement_phase5 = enhancement_sub.add_parser(
+        "phase5-plan",
+        help="Render a static Phase 5 enhancement planning packet",
+    )
+    enhancement_phase5.add_argument("--label", default="phase5-enhancement-planning", help="Human-readable planning label")
+    enhancement_phase5.add_argument("--report-file", help="Optional path to write the enhancement planning JSON")
+    enhancement_phase5.add_argument("--runbook-file", help="Optional path to write the enhancement planning Markdown")
+    enhancement_phase5.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate enhancement planning status is blocked")
+    enhancement_phase5.add_argument("--dry-run", action="store_true", help="Print the enhancement planning JSON without writing files")
+    enhancement_phase5.set_defaults(func=handle_enhancement_phase5_plan)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)

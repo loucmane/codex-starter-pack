@@ -242,6 +242,28 @@ def test_build_parser_accepts_stakeholder_report() -> None:
     assert args.runbook_file == "reports/stakeholder.md"
 
 
+def test_build_parser_accepts_enhancement_phase5_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "enhancement",
+        "phase5-plan",
+        "--label",
+        "task69",
+        "--strict",
+        "--report-file",
+        "reports/enhancement.json",
+        "--runbook-file",
+        "reports/enhancement.md",
+    ])
+    assert args.command == "enhancement"
+    assert args.subcommand == "phase5-plan"
+    assert args.label == "task69"
+    assert args.strict is True
+    assert args.report_file == "reports/enhancement.json"
+    assert args.runbook_file == "reports/enhancement.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -2964,6 +2986,199 @@ def test_handle_stakeholder_report_writes_packet_and_runbook(monkeypatch, tmp_pa
     assert payload["label"] == "task73"
     assert payload["summary"]["aggregate_status"] == "pass"
     assert "# Stakeholder Reporting Packet" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_enhancement_plan_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-69-phase5-enhancement-planning"
+        if args == ["rev-parse", "HEAD"]:
+            return "enhancementabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-004-task69.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task69.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task69-phase5-enhancement-planning-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 95, "pending": 12, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task69.md"]})
+
+
+def _touch_enhancement_source(repo: Path, path: str, content: str = "source\n") -> None:
+    target = repo / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+
+
+def _mkdir_enhancement_source(repo: Path, path: str) -> None:
+    (repo / path).mkdir(parents=True, exist_ok=True)
+
+
+def _write_enhancement_plan_sources(repo: Path, include_compaction: bool = True) -> None:
+    if include_compaction:
+        _mkdir_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260508-task31-compaction-protocol-COMPLETED/reports/compaction-protocol",
+        )
+    _touch_enhancement_source(repo, "templates/workflows/session/compaction.md")
+    _touch_enhancement_source(repo, "scripts/codex-task")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260508-task15-serena-integration-template-system-COMPLETED/designs/serena-integration-scope-reconciliation.md",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/designs/template-discovery-optimization-scope-reconciliation.md",
+    )
+    _touch_enhancement_source(repo, "scripts/template_registry.py")
+    _touch_enhancement_source(repo, "templates/metadata/template-metadata-policy.json", "{}\n")
+    _touch_enhancement_source(repo, "templates/registry/index.json", "[]\n")
+    _touch_enhancement_source(repo, "reports/template-metrics/latest.json", "{}\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260512-task53-template-caching-layer-COMPLETED/reports/template-caching-layer/performance-final-2026-05-12.txt",
+    )
+    _mkdir_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/reports/template-discovery-optimization",
+    )
+    _touch_enhancement_source(repo, "reports/template-performance/latest.json", "{}\n")
+    _touch_enhancement_source(repo, ".mcp.json", "{}\n")
+    _touch_enhancement_source(repo, ".codex/config.toml", "[repo_structure]\n")
+    _mkdir_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260508-task15-serena-integration-template-system-COMPLETED/reports/serena-integration-template-system",
+    )
+    _touch_enhancement_source(repo, "reports/success-metrics/README.md")
+    _touch_enhancement_source(repo, "reports/stakeholder-reporting/README.md")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260508-task11-migration-roadmap-generator-COMPLETED/designs/migration-roadmap-scope-reconciliation.md",
+    )
+    _touch_enhancement_source(repo, "scripts/template-ssot-scanner/migration_roadmap.py")
+    _mkdir_enhancement_source(repo, "scripts/template-ssot-scanner/output/data")
+
+
+def test_build_enhancement_plan_summarizes_ready_and_planned_candidates(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_enhancement_plan_state(module, monkeypatch, repo)
+    _write_enhancement_plan_sources(repo)
+
+    report = module._build_enhancement_plan(argparse.Namespace(label="task69"))
+
+    assert report["mode"] == "static-phase5-enhancement-planning-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready-with-planned-candidates"
+    assert report["summary"]["total_candidates"] == 7
+    assert report["summary"]["ready"] == 5
+    assert report["summary"]["planned"] == 2
+    assert {candidate["id"] for candidate in report["candidates"]} == {
+        "compaction-trigger-policy-review",
+        "semantic-discovery-verification",
+        "ai-template-generation-guardrails",
+        "registry-performance-follow-up",
+        "optional-mcp-integration-evaluation",
+        "enhancement-metrics-refresh",
+        "scanner-roadmap-backlog-refresh",
+    }
+    generation = next(candidate for candidate in report["candidates"] if candidate["id"] == "ai-template-generation-guardrails")
+    assert generation["readiness"] == "planned"
+    assert "No optional MCP server is installed" in report["non_goals"][3]
+
+
+def test_build_enhancement_plan_surfaces_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_enhancement_plan_state(module, monkeypatch, repo)
+    _write_enhancement_plan_sources(repo, include_compaction=False)
+
+    report = module._build_enhancement_plan(argparse.Namespace(label="task69"))
+
+    compaction = next(candidate for candidate in report["candidates"] if candidate["id"] == "compaction-trigger-policy-review")
+    assert compaction["readiness"] == "needs-evidence"
+    assert "docs/ai/work-tracking/archive/20260508-task31-compaction-protocol-COMPLETED/reports/compaction-protocol" in compaction["missing_evidence_paths"]
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(action["candidate_id"] == "compaction-trigger-policy-review" for action in report["recommended_next_actions"])
+
+
+def test_render_enhancement_plan_lists_candidates_guidance_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_enhancement_plan_state(module, monkeypatch, repo)
+    _write_enhancement_plan_sources(repo)
+    report = module._build_enhancement_plan(argparse.Namespace(label="task69"))
+
+    runbook = module._render_enhancement_plan(report)
+
+    assert "# Phase 5 Enhancement Planning Packet" in runbook
+    assert "Compaction trigger policy review" in runbook
+    assert "AI-assisted template generation guardrail plan" in runbook
+    assert "ready-with-planned-candidates" in runbook
+    assert "No automatic compaction trigger" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_enhancement_phase5_plan_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_enhancement_plan_state(module, monkeypatch, repo)
+    _write_enhancement_plan_sources(repo)
+    report = repo / "reports" / "enhancement.json"
+    runbook = repo / "reports" / "enhancement.md"
+
+    module.handle_enhancement_phase5_plan(
+        argparse.Namespace(
+            label="task69",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote enhancement plan to reports/enhancement.json" in output
+    assert "Wrote enhancement runbook to reports/enhancement.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task69"
+    assert payload["summary"]["aggregate_status"] == "ready-with-planned-candidates"
+    assert "# Phase 5 Enhancement Planning Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
