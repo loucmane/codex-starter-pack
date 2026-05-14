@@ -99,6 +99,16 @@ python3 scripts/codex-task documentation phase4-review \
 
 This command classifies each delivery domain as ready, needs-evidence, or needs-implementation and lists refresh commands for evidence gaps. It does not publish hosted documentation, deploy training, schedule office hours, send communications, collect surveys, update dashboards, mutate existing evidence sources, or contact external systems.
 
+Knowledge transfer review packets can be generated when an operator needs one static readiness artifact over repository-native documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence:
+
+```bash
+python3 scripts/codex-task knowledge transfer-review \
+  --report-file reports/knowledge-transfer-process/latest.json \
+  --runbook-file reports/knowledge-transfer-process/latest.md
+```
+
+This command classifies each knowledge-transfer domain as ready, needs-evidence, or needs-implementation and lists refresh commands for evidence gaps. It does not create hosted knowledge-base software, produce videos, run Q&A systems, create analytics dashboards, maintain contact databases, send notifications, mutate existing evidence sources, or contact external systems.
+
 Deprecation management review packets can be generated when an operator needs one static gate-review artifact over lifecycle policy, lifecycle audit metrics, versioning policy, communication guidance, operational runbook guidance, emergency/recovery guidance, and final validation evidence:
 
 ```bash
@@ -125,6 +135,7 @@ This command summarizes lifecycle status counts, deprecation warnings, grace-per
 - `template-usage-analytics/` - optional static registry-backed usage analytics over sessions, plans, work tracking, and Taskmaster task files.
 - `phase3-automation-integration/` - optional static Phase 3 gate-review packets over existing automation evidence and refresh commands.
 - `phase4-documentation-delivery/` - optional static Phase 4 gate-review packets over documentation, training, communication, operations, Phase 3, and final validation evidence.
+- `knowledge-transfer-process/` - optional static knowledge-transfer review packets over documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence.
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
 
 ## Task Evidence
