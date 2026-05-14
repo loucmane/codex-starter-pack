@@ -10,3 +10,4 @@
 - After PR merge, archive this work-tracking folder with `python3 scripts/codex-task work-tracking archive --folder 20260514-task73-stakeholder-reporting-ACTIVE`.
 - Capture post-archive audit, Taskmaster health, guard, and diff-check evidence on `main`.
 - If stakeholders need a green packet, refresh `reports/migration-health/latest.json` via the existing static telemetry pipeline and rerun Task 67/73 report commands.
+- Archived on 2026-05-14 13:13 CEST — Folder moved to archive and tracker marked COMPLETED.

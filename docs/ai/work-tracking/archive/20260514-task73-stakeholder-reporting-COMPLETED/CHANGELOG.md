@@ -4,3 +4,4 @@
 - 2026-05-14 12:42 CEST — Completed scope reconciliation and selected static stakeholder report packet boundary.
 - 2026-05-14 12:50 CEST — Implemented `stakeholder report`, report docs, focused tests, and sample evidence.
 - 2026-05-14 12:52 CEST — Marked Taskmaster Task 73 done and prepared final verification evidence.
+- 2026-05-14 13:13 CEST — Archived active work-tracking folder.
