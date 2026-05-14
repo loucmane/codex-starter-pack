@@ -6,5 +6,5 @@
 - 2026-05-14 18:17 CEST — Implemented the quality scorecard command, focused tests, report docs, and sample task-local output.
 - 2026-05-14 18:20 CEST — Marked Task 65 done, generated the final strict scorecard, captured completion memory, and prepared final verification evidence capture.
 - 2026-05-14 18:22 CEST — Completed final verification: pytest, plan sync, work-tracking audit, Taskmaster health, guard, and diff-check all passed.
-
-- 2026-05-14 18:05 CEST — Initialized active work-tracking folder.
+- 2026-05-14 18:45 CEST — Archived Task 65 work tracking after PR #100 merge, cleared current session/plan pointers, and captured post-archive evidence.
+- 2026-05-14 18:45 CEST — Archived active work-tracking folder.

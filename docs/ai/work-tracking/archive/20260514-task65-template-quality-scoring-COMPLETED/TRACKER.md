@@ -1,7 +1,7 @@
 # Task 65 Build Template Quality Scoring Tracker
 
 **Started**: 2026-05-14
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-14
 
 ## Goals
@@ -23,6 +23,10 @@
 - **2026-05-14 18:20** — [S:20260514|W:task65-template-quality-scoring|H:serena:write_memory|E:serena/memory:2026-05-14_task65_template_quality_scoring_completion] Captured the Task 65 completion memory for compaction recovery
 - **2026-05-14 18:20** — [S:20260514|W:task65-template-quality-scoring|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260514-task65-template-quality-scoring-ACTIVE/reports/template-quality-scoring/template-quality-score-2026-05-14-final.json] Generated the final strict template quality scorecard after Taskmaster completion
 - **2026-05-14 18:22** — [S:20260514|W:task65-template-quality-scoring|H:verification|E:docs/ai/work-tracking/active/20260514-task65-template-quality-scoring-ACTIVE/reports/template-quality-scoring/] Final evidence passed: pytest `169 passed`, plan sync recorded, work-tracking audit passed, Taskmaster health OK (`done=100`, `pending=8`), guard passed, and diff-check was empty
+- **2026-05-14 18:45** — [S:20260514|W:task65-template-quality-scoring|H:github-pr|E:https://github.com/loucmane/codex-starter-pack/pull/100] Merged PR #100 for Task 65 into `main`
+- **2026-05-14 18:45** — [S:20260514|W:task65-template-quality-scoring|H:scripts/codex-task:archive|E:docs/ai/work-tracking/archive/20260514-task65-template-quality-scoring-COMPLETED/] Archived the Task 65 work-tracking folder after PR #100 merged
+- **2026-05-14 18:45** — [S:20260514|W:task65-template-quality-scoring|H:between-session-state|E:sessions/state.json] Cleared `sessions/current`, `plans/current`, and `sessions/state.json` into between-session state
+- **2026-05-14 18:45** — [S:20260514|W:task65-template-quality-scoring|H:post-archive-verification|E:docs/ai/work-tracking/archive/20260514-task65-template-quality-scoring-COMPLETED/reports/template-quality-scoring/post-archive-guard-2026-05-14.txt] Captured post-archive audit, guard, Taskmaster health, and diff-check evidence
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -31,6 +35,7 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-14-008-task65-template-quality-scoring.md
 - Serena memory: .serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md
 - Completion Serena memory: .serena/memories/2026-05-14_task65_template_quality_scoring_completion.md
+- Archive evidence: docs/ai/work-tracking/archive/20260514-task65-template-quality-scoring-COMPLETED/reports/template-quality-scoring/post-archive-*.txt
