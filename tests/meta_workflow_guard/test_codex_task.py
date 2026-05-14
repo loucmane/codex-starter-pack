@@ -308,6 +308,28 @@ def test_build_parser_accepts_feedback_collection_plan() -> None:
     assert args.runbook_file == "reports/feedback.md"
 
 
+def test_build_parser_accepts_cleanup_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "cleanup",
+        "plan",
+        "--label",
+        "task64",
+        "--strict",
+        "--report-file",
+        "reports/cleanup.json",
+        "--runbook-file",
+        "reports/cleanup.md",
+    ])
+    assert args.command == "cleanup"
+    assert args.subcommand == "plan"
+    assert args.label == "task64"
+    assert args.strict is True
+    assert args.report_file == "reports/cleanup.json"
+    assert args.runbook_file == "reports/cleanup.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -3534,6 +3556,160 @@ def test_handle_feedback_collection_plan_writes_packet_and_runbook(monkeypatch, 
     assert payload["label"] == "task59"
     assert payload["summary"]["aggregate_status"] == "ready"
     assert "# Feedback Collection Planning Packet" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_cleanup_plan_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-64-cleanup-automation"
+        if args == ["rev-parse", "HEAD"]:
+            return "cleanupabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-007-task64.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task64.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task64-cleanup-automation-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 98, "pending": 9, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task64.md"]})
+
+
+def _write_cleanup_plan_sources(repo: Path, include_scanner: bool = True) -> None:
+    _touch_enhancement_source(repo, ".taskmaster/tasks/tasks.json", "{}\n")
+    if include_scanner:
+        _touch_enhancement_source(repo, "scripts/template-ssot-scanner/output/data/duplicate_analysis.json", "{}\n")
+    _touch_enhancement_source(repo, "scripts/template-ssot-scanner/output/data/fix_recommendations.json", "{}\n")
+    _touch_enhancement_source(repo, "scripts/template-ssot-scanner/output/scripts/archive_duplicates.sh", "#!/usr/bin/env bash\n")
+    _touch_enhancement_source(repo, "scripts/template-ssot-scanner/apply_reference_fixes.py")
+    _mkdir_enhancement_source(repo, "scripts/template-ssot-scanner/output/backups/reference-fixes/20260510_165911")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task66-deprecation-management-COMPLETED/reports/deprecation-management/deprecation-review-2026-05-13.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "scripts/template_lifecycle.py")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260507-task19-rollback-mechanism-COMPLETED/reports/rollback-mechanism/checkpoint-2026-05-07.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "templates/metadata/emergency-response-policy.json", "{}\n")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260507-task108-legacy-project-blog-cleanup-COMPLETED/reports/legacy-project-blog-cleanup")
+
+
+def test_build_cleanup_plan_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_cleanup_plan_state(module, monkeypatch, repo)
+    _write_cleanup_plan_sources(repo)
+
+    report = module._build_cleanup_plan(argparse.Namespace(label="task64"))
+
+    assert report["mode"] == "static-non-destructive-cleanup-planning-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["ready"] == 6
+    assert {domain["id"] for domain in report["domains"]} == {
+        "taskmaster-cleanup-health",
+        "scanner-cleanup-evidence",
+        "reference-fix-safety",
+        "deprecation-lifecycle",
+        "rollback-and-emergency-policy",
+        "legacy-cleanup-example",
+    }
+    assert any(candidate["id"] == "scanner-generated-artifacts" for candidate in report["cleanup_candidates"])
+    assert any(gate["gate"] == "rollback" for gate in report["approval_gates"])
+    assert "No cron job" in report["non_goals"][0]
+
+
+def test_build_cleanup_plan_surfaces_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_cleanup_plan_state(module, monkeypatch, repo)
+    _write_cleanup_plan_sources(repo, include_scanner=False)
+
+    report = module._build_cleanup_plan(argparse.Namespace(label="task64"))
+
+    scanner = next(domain for domain in report["domains"] if domain["id"] == "scanner-cleanup-evidence")
+    assert scanner["status"] == "needs-evidence"
+    assert "scripts/template-ssot-scanner/output/data/duplicate_analysis.json" in scanner["missing_evidence_paths"]
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(command == "python3 scripts/template-ssot-scanner/run_all_scanners.py" for command in report["recommended_refresh_commands"])
+
+
+def test_render_cleanup_plan_lists_candidates_gates_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_cleanup_plan_state(module, monkeypatch, repo)
+    _write_cleanup_plan_sources(repo)
+    report = module._build_cleanup_plan(argparse.Namespace(label="task64"))
+
+    runbook = module._render_cleanup_plan(report)
+
+    assert "# Cleanup Automation Planning Packet" in runbook
+    assert "Cleanup Candidates" in runbook
+    assert "Approval Gates" in runbook
+    assert "Backup And Rollback Guidance" in runbook
+    assert "No cron job" in runbook
+    assert "git reset --hard" in runbook
+    assert "executes actions: True" not in runbook
+
+
+def test_handle_cleanup_plan_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_cleanup_plan_state(module, monkeypatch, repo)
+    _write_cleanup_plan_sources(repo)
+    report = repo / "reports" / "cleanup.json"
+    runbook = repo / "reports" / "cleanup.md"
+
+    module.handle_cleanup_plan(
+        argparse.Namespace(
+            label="task64",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote cleanup plan to reports/cleanup.json" in output
+    assert "Wrote cleanup runbook to reports/cleanup.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task64"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Cleanup Automation Planning Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:

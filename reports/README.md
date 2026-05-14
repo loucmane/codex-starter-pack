@@ -170,6 +170,16 @@ python3 scripts/codex-task feedback collection-plan \
 
 This command renders a static JSON/Markdown planning packet for human review. It does not create forms, API endpoints, dashboards, sentiment automation, notifications, tickets, external archives, or response delivery systems.
 
+Cleanup automation planning packets can be generated when an operator needs one static, non-destructive cleanup review artifact over scanner evidence, reference-fix safety, deprecation lifecycle, rollback policy, legacy cleanup precedents, candidates, approval gates, dry-run checks, and manual notification guidance:
+
+```bash
+python3 scripts/codex-task cleanup plan \
+  --report-file reports/cleanup-automation/latest.json \
+  --runbook-file reports/cleanup-automation/latest.md
+```
+
+This command renders a static JSON/Markdown planning packet for human review. It does not install schedulers, delete files, move files, create backups, run rollback, send notifications, enforce retention, or contact external systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -192,6 +202,7 @@ This command renders a static JSON/Markdown planning packet for human review. It
 - `enhancement-planning/` - optional static Phase 5 planning packets over enhancement candidates, readiness evidence, refresh commands, next actions, and non-goal boundaries.
 - `celebration-planning/` - optional static celebration/readout planning packets over success evidence, stakeholder narrative, roadmap talking points, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps.
 - `feedback-collection/` - optional static feedback collection planning packets over intake schema, categories, manual severity/sentiment labels, routing, metrics, response states, archive guidance, and follow-up-task criteria.
+- `cleanup-automation/` - optional static cleanup planning packets over scanner evidence, reference-fix safety, deprecation lifecycle, rollback policy, cleanup candidates, dry-run checks, approval gates, and non-destructive cleanup boundaries.
 
 ## Task Evidence
 
