@@ -14,3 +14,4 @@
 ## Next Steps
 - Commit the Task 59 implementation, push the branch, open the PR, and merge once checks are green.
 - After merge, archive `20260514-task59-feedback-collection-system-ACTIVE` and return the repo to between-session state.
+- Archived on 2026-05-14 16:52 CEST — Folder moved to archive and tracker marked COMPLETED.
