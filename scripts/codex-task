@@ -6700,6 +6700,484 @@ def handle_success_metrics(args: argparse.Namespace) -> None:
         raise TaskError("Success metrics aggregate status is fail")
 
 
+STAKEHOLDER_REPORTING_NON_GOALS: Tuple[str, ...] = (
+    "No hosted executive dashboard, BI workspace, database, warehouse, analytics backend, or external reporting platform is created or contacted.",
+    "No scheduler, cron job, daemon, background worker, email, Slack, chat, webhook, ticket, or notification delivery is created or contacted.",
+    "No ROI, cost-benefit, risk, or compliance values are fabricated when source evidence is absent.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, template, or external state is mutated beyond requested stakeholder report artifacts.",
+)
+
+STAKEHOLDER_REPORTING_COMMUNICATION_GUIDANCE: Tuple[str, ...] = (
+    "Lead with the aggregate stakeholder signal and list warning domains before implementation detail.",
+    "Use missing-source warnings as refresh prompts, not as synthetic pass/fail claims.",
+    "Route distribution through existing communication templates; this command does not send stakeholder notifications.",
+    "Attach the JSON and Markdown packet to PR, release, or handoff evidence when sharing status outside the repo.",
+)
+
+
+def _stakeholder_report_status(value: object) -> str:
+    return _success_metrics_status(value)
+
+
+def _stakeholder_report_domain(
+    *,
+    domain_id: str,
+    title: str,
+    audience: str,
+    status: str,
+    evidence: str,
+    message: str,
+    refresh_command: str,
+    details: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    normalised = _stakeholder_report_status(status)
+    return {
+        "id": domain_id,
+        "title": title,
+        "audience": audience,
+        "status": normalised,
+        "severity": _success_metrics_severity(normalised),
+        "evidence": evidence,
+        "message": message,
+        "refresh_command": refresh_command,
+        "details": dict(details or {}),
+    }
+
+
+def _build_stakeholder_taskmaster_domain() -> Dict[str, Any]:
+    snapshot = _taskmaster_snapshot()
+    summary = snapshot.get("summary") if isinstance(snapshot.get("summary"), Mapping) else {}
+    status_counts = summary.get("status_counts") if isinstance(summary.get("status_counts"), Mapping) else {}
+    total_tasks = int(summary.get("tasks") or 0)
+    done_tasks = int(status_counts.get("done", 0) or 0)
+    pending_tasks = int(status_counts.get("pending", 0) or 0)
+    invalid_refs = int(summary.get("invalid_refs") or 0)
+    if not snapshot.get("exists"):
+        status = "missing"
+        message = "Taskmaster database is missing; delivery health cannot be reported."
+    elif invalid_refs:
+        status = "fail"
+        message = f"{invalid_refs} invalid Taskmaster dependency reference(s) require correction."
+    else:
+        status = "pass"
+        message = f"{done_tasks}/{total_tasks} parent tasks done; {pending_tasks} pending; dependency graph healthy."
+    return _stakeholder_report_domain(
+        domain_id="taskmaster-delivery-health",
+        title="Taskmaster delivery health",
+        audience="Delivery owners and project sponsors",
+        status=status,
+        evidence=str(snapshot.get("path")),
+        message=message,
+        refresh_command="python3 scripts/codex-task taskmaster health",
+        details={"summary": summary, "invalid_refs": snapshot.get("invalid_refs") or []},
+    )
+
+
+def _build_stakeholder_workflow_domain() -> Dict[str, Any]:
+    workflow = _workflow_snapshot()
+    current_session = workflow.get("current_session") if isinstance(workflow.get("current_session"), Mapping) else {}
+    current_plan = workflow.get("current_plan") if isinstance(workflow.get("current_plan"), Mapping) else {}
+    active = workflow.get("active_work_tracking") if isinstance(workflow.get("active_work_tracking"), list) else []
+    blockers = []
+    if not current_session.get("resolved"):
+        blockers.append("sessions/current missing")
+    if not current_plan.get("resolved"):
+        blockers.append("plans/current missing")
+    if len(active) != 1:
+        blockers.append(f"expected 1 active work-tracking folder, found {len(active)}")
+    status = "pass" if not blockers else "warn"
+    message = "Workflow pointers are aligned for the active task." if not blockers else "; ".join(blockers)
+    return _stakeholder_report_domain(
+        domain_id="workflow-compliance",
+        title="Workflow compliance",
+        audience="Maintainers and reviewers",
+        status=status,
+        evidence=str(current_session.get("resolved") or current_session.get("path")),
+        message=message,
+        refresh_command="python3 scripts/codex-task work-tracking audit",
+        details=workflow,
+    )
+
+
+def _stakeholder_latest_packet_domain(
+    *,
+    domain_id: str,
+    title: str,
+    audience: str,
+    pattern: str,
+    refresh_command: str,
+    status_fields: Sequence[str] = ("summary.aggregate_status", "aggregate_status", "status"),
+    value_fields: Sequence[str] = (),
+) -> Dict[str, Any]:
+    latest = _success_metrics_latest(pattern)
+    if latest is None:
+        return _stakeholder_report_domain(
+            domain_id=domain_id,
+            title=title,
+            audience=audience,
+            status="missing",
+            evidence=pattern,
+            message=f"{title} source packet is missing.",
+            refresh_command=refresh_command,
+            details={"pattern": pattern},
+        )
+
+    source = _success_metrics_load_json(latest)
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    if source["status"] == "invalid":
+        return _stakeholder_report_domain(
+            domain_id=domain_id,
+            title=title,
+            audience=audience,
+            status="fail",
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command=refresh_command,
+            details=source,
+        )
+
+    def get_nested(mapping: Mapping[str, Any], dotted: str) -> object:
+        current: object = mapping
+        for part in dotted.split("."):
+            if not isinstance(current, Mapping):
+                return None
+            current = current.get(part)
+        return current
+
+    status_value: object = None
+    for field in status_fields:
+        status_value = get_nested(payload, field)
+        if status_value is not None:
+            break
+    detail_values = {field: get_nested(payload, field) for field in value_fields}
+    status = _stakeholder_report_status(status_value)
+    message = f"{title} source status is `{status_value}`."
+    return _stakeholder_report_domain(
+        domain_id=domain_id,
+        title=title,
+        audience=audience,
+        status=status,
+        evidence=str(source["path"]),
+        message=message,
+        refresh_command=refresh_command,
+        details={
+            "pattern": pattern,
+            "source": {key: source[key] for key in ("path", "exists", "status", "message")},
+            "status_value": status_value,
+            "values": detail_values,
+        },
+    )
+
+
+def _build_stakeholder_communication_domain() -> Dict[str, Any]:
+    path = REPO_ROOT / "templates/guides/communication/foundation-communication-templates.md"
+    status = "pass" if path.exists() else "missing"
+    message = "Communication templates are available for stakeholder distribution." if path.exists() else "Communication template evidence is missing."
+    return _stakeholder_report_domain(
+        domain_id="stakeholder-communication-guidance",
+        title="Stakeholder communication guidance",
+        audience="Project sponsors and downstream adopters",
+        status=status,
+        evidence=_relative_to_root(path, REPO_ROOT),
+        message=message,
+        refresh_command="Review templates/guides/communication/foundation-communication-templates.md",
+        details={"exists": path.exists()},
+    )
+
+
+def _build_stakeholder_report_domains() -> List[Dict[str, Any]]:
+    domains = [
+        _build_stakeholder_taskmaster_domain(),
+        _build_stakeholder_workflow_domain(),
+        _stakeholder_latest_packet_domain(
+            domain_id="success-metrics",
+            title="Success metrics",
+            audience="Executive sponsors",
+            pattern="*-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-*-final.json",
+            refresh_command="python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+            status_fields=("summary.aggregate_status",),
+            value_fields=("summary.success_score_pct", "summary.missing"),
+        ),
+        _stakeholder_latest_packet_domain(
+            domain_id="knowledge-transfer",
+            title="Knowledge transfer",
+            audience="Adopters and maintainers",
+            pattern="*-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-*.json",
+            refresh_command="python3 scripts/codex-task knowledge transfer-review --report-file reports/knowledge-transfer-process/latest.json --runbook-file reports/knowledge-transfer-process/latest.md",
+            status_fields=("summary.aggregate_status",),
+            value_fields=("summary.ready", "summary.needs_evidence", "summary.needs_implementation"),
+        ),
+        _stakeholder_latest_packet_domain(
+            domain_id="deprecation-governance",
+            title="Deprecation governance",
+            audience="Governance reviewers",
+            pattern="*-task66-deprecation-management-COMPLETED/reports/deprecation-management/deprecation-review-*.json",
+            refresh_command="python3 scripts/codex-task deprecation review --report-file reports/deprecation-management/latest.json --runbook-file reports/deprecation-management/latest.md",
+            status_fields=("summary.aggregate_status",),
+            value_fields=("summary.ready", "summary.needs_evidence", "summary.needs_implementation"),
+        ),
+        _build_stakeholder_communication_domain(),
+    ]
+    warning_domains = [domain["id"] for domain in domains if domain.get("status") in {"warn", "missing"}]
+    failing_domains = [domain["id"] for domain in domains if domain.get("status") == "fail"]
+    if failing_domains:
+        status = "fail"
+        message = f"Blocking stakeholder risks found: {', '.join(failing_domains)}."
+    elif warning_domains:
+        status = "warn"
+        message = f"Stakeholder report has warning domains: {', '.join(warning_domains)}."
+    else:
+        status = "pass"
+        message = "No blocking stakeholder reporting risks found in current evidence."
+    domains.append(
+        _stakeholder_report_domain(
+            domain_id="risk-compliance-summary",
+            title="Risk and compliance summary",
+            audience="Sponsors, governance, and release reviewers",
+            status=status,
+            evidence="computed from stakeholder report domains",
+            message=message,
+            refresh_command="python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+            details={"warning_domains": warning_domains, "failing_domains": failing_domains},
+        )
+    )
+    return domains
+
+
+def _summarise_stakeholder_report(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    total = len(domains)
+    passed = sum(1 for domain in domains if domain.get("status") == "pass")
+    warnings = sum(1 for domain in domains if domain.get("status") in {"warn", "missing"})
+    failures = sum(1 for domain in domains if domain.get("status") == "fail")
+    missing = sum(1 for domain in domains if domain.get("status") == "missing")
+    if failures:
+        aggregate_status = "fail"
+        stakeholder_signal = "blocked"
+    elif warnings:
+        aggregate_status = "warn"
+        stakeholder_signal = "needs-refresh"
+    else:
+        aggregate_status = "pass"
+        stakeholder_signal = "ready-to-share"
+    return {
+        "aggregate_status": aggregate_status,
+        "stakeholder_signal": stakeholder_signal,
+        "total_domains": total,
+        "passed": passed,
+        "warnings": warnings,
+        "failures": failures,
+        "missing": missing,
+    }
+
+
+def _stakeholder_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+
+    def add_command(command: object) -> None:
+        if isinstance(command, str) and command and command not in commands:
+            commands.append(command)
+
+    for domain in domains:
+        add_command(domain.get("refresh_command"))
+    add_command("python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md")
+    add_command("python3 scripts/codex-guard validate --include-untracked")
+    return commands
+
+
+def _stakeholder_messages(summary: Mapping[str, Any], domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, str]]:
+    warning_titles = [
+        str(domain.get("title"))
+        for domain in domains
+        if domain.get("id") != "risk-compliance-summary" and domain.get("status") in {"warn", "missing", "fail"}
+    ]
+    if warning_titles:
+        risk_text = "Refresh or address these domains before broad stakeholder distribution: " + ", ".join(warning_titles)
+    else:
+        risk_text = "All stakeholder report domains are ready based on current static evidence."
+    return [
+        {
+            "id": "executive-summary",
+            "audience": "Executive sponsors",
+            "message": f"Stakeholder report signal is {summary.get('stakeholder_signal')} with aggregate status {summary.get('aggregate_status')}.",
+        },
+        {
+            "id": "risk-summary",
+            "audience": "Governance reviewers",
+            "message": risk_text,
+        },
+        {
+            "id": "distribution-guidance",
+            "audience": "Maintainers",
+            "message": "Share the Markdown packet with the linked evidence paths; use existing communication templates for delivery language.",
+        },
+    ]
+
+
+def _build_stakeholder_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "stakeholder-reporting"
+    domains = _build_stakeholder_report_domains()
+    summary = _summarise_stakeholder_report(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-stakeholder-reporting-packet",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "stakeholder_messages": _stakeholder_messages(summary, domains),
+        "communication_guidance": list(STAKEHOLDER_REPORTING_COMMUNICATION_GUIDANCE),
+        "recommended_refresh_commands": _stakeholder_refresh_commands(domains),
+        "non_goals": list(STAKEHOLDER_REPORTING_NON_GOALS),
+    }
+
+
+def _render_stakeholder_report(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Stakeholder Reporting Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        f"- Stakeholder signal: {summary.get('stakeholder_signal')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Passed: {summary.get('passed')}",
+        f"- Warnings: {summary.get('warnings')}",
+        f"- Failures: {summary.get('failures')}",
+        f"- Missing: {summary.get('missing')}",
+        "",
+        "## Stakeholder Domains",
+        "",
+        "| Domain | Audience | Status | Severity | Evidence |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(domain.get('audience'))} | "
+            f"`{_md_cell(domain.get('status'))}` | `{_md_cell(domain.get('severity'))}` | "
+            f"`{_md_cell(domain.get('evidence'))}` |"
+        )
+
+    lines.extend(["", "## Domain Notes", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Audience: {domain.get('audience')}",
+                f"- Message: {domain.get('message')}",
+                f"- Refresh command: `{domain.get('refresh_command')}`",
+                "",
+            ]
+        )
+
+    lines.extend(["## Stakeholder Messages", ""])
+    for message in report.get("stakeholder_messages", []):
+        if not isinstance(message, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {message.get('id')}",
+                "",
+                f"- Audience: {message.get('audience')}",
+                f"- Message: {message.get('message')}",
+                "",
+            ]
+        )
+
+    lines.extend(["## Communication Guidance", ""])
+    for item in report.get("communication_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static stakeholder reporting artifact. It composes existing evidence and requested output files only; it does not create a live executive dashboard, scheduler, notification system, BI backend, or external reporting integration.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_stakeholder_report(args: argparse.Namespace) -> None:
+    report = _build_stakeholder_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_stakeholder_report(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] == "fail":
+            raise TaskError("Stakeholder report aggregate status is fail")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote stakeholder report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote stakeholder runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] == "fail":
+        raise TaskError("Stakeholder report aggregate status is fail")
+
+
 DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
     "No runtime log instrumentation or warning injection is added.",
     "No automatic template archival, file movement, deletion, or migration is executed.",
@@ -11169,6 +11647,19 @@ def build_parser() -> argparse.ArgumentParser:
     success_metrics.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate success metrics fail")
     success_metrics.add_argument("--dry-run", action="store_true", help="Print the success metrics JSON without writing files")
     success_metrics.set_defaults(func=handle_success_metrics)
+
+    stakeholder_parser = subparsers.add_parser("stakeholder", help="Stakeholder reporting operations")
+    stakeholder_sub = stakeholder_parser.add_subparsers(dest="subcommand", required=True)
+    stakeholder_report = stakeholder_sub.add_parser(
+        "report",
+        help="Render a static stakeholder reporting packet",
+    )
+    stakeholder_report.add_argument("--label", default="stakeholder-reporting", help="Human-readable report label")
+    stakeholder_report.add_argument("--report-file", help="Optional path to write the stakeholder report JSON")
+    stakeholder_report.add_argument("--runbook-file", help="Optional path to write the stakeholder report Markdown")
+    stakeholder_report.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate stakeholder status fails")
+    stakeholder_report.add_argument("--dry-run", action="store_true", help="Print the stakeholder report JSON without writing files")
+    stakeholder_report.set_defaults(func=handle_stakeholder_report)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)
