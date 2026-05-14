@@ -79,6 +79,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `incident post-mortem --summary <summary> --severity <P0-P3>` – render a static incident post-mortem packet with timeline, root-cause, action-item, prevention, lessons, and metric sections from explicit inputs.
 - `automation phase3-review --label <label>` – render a static Phase 3 automation integration gate-review packet over CI/CD gates, guard auto-fix, cost tracking, canary rollout, usage analytics, migration health, operational runbook, and final validation evidence.
 - `documentation phase4-review --label <label>` – render a static Phase 4 documentation delivery gate-review packet over documentation, training, communication, operations, Phase 3, and final validation evidence.
+- `knowledge transfer-review --label <label>` – render a static knowledge-transfer review packet over documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence.
 - `deprecation review --label <label>` – render a static deprecation-management review packet over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and final validation evidence.
 - `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
@@ -254,6 +255,20 @@ python3 scripts/codex-task documentation phase4-review \
 ```
 
 The command reports ready, needs-evidence, or needs-implementation status per domain, lists refresh commands for missing evidence, and includes feedback-capture guidance that stays inside the repo workflow. It does not publish hosted documentation, deploy training, schedule office hours, send communications, collect surveys, update dashboards, mutate existing evidence sources, or contact external systems.
+
+### `scripts/codex-task knowledge transfer-review`
+Static knowledge-transfer reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering repository-native documentation, onboarding training, troubleshooting/runbook guidance, communication/feedback capture, continuity/handoff, and validation evidence.
+
+Use it when preparing or reviewing knowledge-transfer readiness:
+
+```bash
+python3 scripts/codex-task knowledge transfer-review \
+  --label <label> \
+  --report-file <knowledge-transfer-review.json> \
+  --runbook-file <knowledge-transfer-review.md>
+```
+
+The command reports ready, needs-evidence, or needs-implementation status per domain, lists refresh commands for missing evidence, and includes continuity guidance for using guide hubs, training, communication templates, session lifecycle, work-tracking handoffs, and Serena memories. It does not create hosted knowledge-base software, produce videos, run Q&A systems, create analytics dashboards, maintain contact databases, send notifications, mutate existing evidence sources, or contact external systems.
 
 ### `scripts/codex-task deprecation review`
 Static deprecation-management reviewer. It snapshots current Git/workflow/Taskmaster/Serena state, runs the existing lifecycle audit, and renders one JSON/Markdown packet covering lifecycle policy/audit, versioning policy, communication guidance, operational runbook guidance, emergency/recovery guidance, and final validation readiness.

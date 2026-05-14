@@ -178,6 +178,26 @@ def test_build_parser_accepts_phase4_documentation_review() -> None:
     assert args.runbook_file == "reports/phase4.md"
 
 
+def test_build_parser_accepts_knowledge_transfer_review() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "knowledge",
+        "transfer-review",
+        "--label",
+        "task54",
+        "--report-file",
+        "reports/knowledge.json",
+        "--runbook-file",
+        "reports/knowledge.md",
+    ])
+    assert args.command == "knowledge"
+    assert args.subcommand == "transfer-review"
+    assert args.label == "task54"
+    assert args.report_file == "reports/knowledge.json"
+    assert args.runbook_file == "reports/knowledge.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -2404,6 +2424,137 @@ def test_handle_deprecation_review_writes_packet_and_runbook(monkeypatch, tmp_pa
     assert payload["label"] == "task66"
     assert payload["summary"]["aggregate_status"] == "ready"
     assert "# Deprecation Management Review" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_knowledge_transfer_snapshots(module, monkeypatch) -> None:
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-54-knowledge-transfer-process"
+        if args == ["rev-parse", "HEAD"]:
+            return "knowledgeabc"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [{"status": " M", "path": "scripts/codex-task"}])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-001-task54.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task54.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task54-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"available": True})
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"available": True, "memories": ["task54"]})
+
+
+def _write_knowledge_transfer_paths(repo: Path, module, key: str) -> None:
+    for domain in module.KNOWLEDGE_TRANSFER_DOMAINS:
+        for path_text in domain.get(key, ()):
+            path = repo / path_text.rstrip("/")
+            if path_text.endswith("/"):
+                path.mkdir(parents=True, exist_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("knowledge transfer evidence\n", encoding="utf-8")
+
+
+def _write_knowledge_transfer_required_paths(repo: Path, module) -> None:
+    _write_knowledge_transfer_paths(repo, module, "required_paths")
+
+
+def _write_knowledge_transfer_evidence_paths(repo: Path, module) -> None:
+    _write_knowledge_transfer_paths(repo, module, "evidence_paths")
+
+
+def test_build_knowledge_transfer_review_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_knowledge_transfer_snapshots(module, monkeypatch)
+    _write_knowledge_transfer_required_paths(repo, module)
+    _write_knowledge_transfer_evidence_paths(repo, module)
+
+    report = module._build_knowledge_transfer_review(argparse.Namespace(label="task54"))
+
+    assert report["mode"] == "static-knowledge-transfer-review"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["ready"] == len(module.KNOWLEDGE_TRANSFER_DOMAINS)
+    assert report["current_state"]["git"]["branch"] == "feat/task-54-knowledge-transfer-process"
+    assert {domain["id"] for domain in report["domains"]} >= {
+        "documentation-suite",
+        "onboarding-training",
+        "troubleshooting-operations",
+        "communication-feedback",
+        "continuity-handoff",
+        "validation-and-delivery",
+    }
+    assert "No hosted knowledge-base platform" in report["non_goals"][0]
+
+
+def test_build_knowledge_transfer_review_reports_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_knowledge_transfer_snapshots(module, monkeypatch)
+    _write_knowledge_transfer_required_paths(repo, module)
+
+    report = module._build_knowledge_transfer_review(argparse.Namespace(label="task54"))
+
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert report["summary"]["needs_evidence"] == len(module.KNOWLEDGE_TRANSFER_DOMAINS)
+    assert all(domain["missing_evidence_paths"] for domain in report["domains"])
+    assert not any(domain["missing_required_paths"] for domain in report["domains"])
+
+
+def test_render_knowledge_transfer_review_lists_domains_guidance_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_knowledge_transfer_snapshots(module, monkeypatch)
+    _write_knowledge_transfer_required_paths(repo, module)
+    _write_knowledge_transfer_evidence_paths(repo, module)
+    report = module._build_knowledge_transfer_review(argparse.Namespace(label="task54"))
+
+    runbook = module._render_knowledge_transfer_review(report)
+
+    assert "# Knowledge Transfer Process Review" in runbook
+    assert "Onboarding training" in runbook
+    assert "Continuity Guidance" in runbook
+    assert "Task 75 remains the future platform-oriented knowledge-base task" in runbook
+    assert "No hosted knowledge-base platform" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_knowledge_transfer_review_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    _patch_knowledge_transfer_snapshots(module, monkeypatch)
+    _write_knowledge_transfer_required_paths(repo, module)
+    _write_knowledge_transfer_evidence_paths(repo, module)
+
+    report = repo / "reports" / "knowledge.json"
+    runbook = repo / "reports" / "knowledge.md"
+    module.handle_knowledge_transfer_review(
+        argparse.Namespace(
+            label="task54",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote knowledge transfer review to reports/knowledge.json" in output
+    assert "Wrote knowledge transfer runbook to reports/knowledge.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task54"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Knowledge Transfer Process Review" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:

@@ -5761,6 +5761,383 @@ def handle_phase4_documentation_review(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+KNOWLEDGE_TRANSFER_NON_GOALS: Tuple[str, ...] = (
+    "No hosted knowledge-base platform, search service, LMS, video host, Q&A service, contact database, dashboard, analytics backend, or external communication system is created or contacted.",
+    "No recorded video production, video quality review, live training delivery, attendance tracking, expert roster ownership, or succession-plan execution is claimed.",
+    "No surveys, calendar events, email, Slack, chat, notification, webhook, ticket, or external feedback system is created or contacted.",
+    "No documentation is automatically updated based on feedback.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, or external state is mutated beyond requested review artifacts.",
+)
+
+KNOWLEDGE_TRANSFER_OUT_OF_SCOPE: Tuple[Dict[str, str], ...] = (
+    {
+        "historical_requirement": "Create searchable knowledge base",
+        "current_boundary": "Repository-native guides and evidence already provide the starter-pack knowledge base. Task 75 remains the future platform-oriented knowledge-base task.",
+    },
+    {
+        "historical_requirement": "Record video tutorials and verify video quality",
+        "current_boundary": "Training material is Markdown-based and test-backed. No video production or video-hosting workflow exists in this repository.",
+    },
+    {
+        "historical_requirement": "Implement Q&A system and expert contact list",
+        "current_boundary": "Feedback and escalation are represented by communication templates, work-tracking notes, handoff files, and operational runbook guidance.",
+    },
+    {
+        "historical_requirement": "Add knowledge tracking metrics",
+        "current_boundary": "This command reports static evidence-domain readiness. It does not create analytics storage, dashboards, or attendance/usage telemetry.",
+    },
+    {
+        "historical_requirement": "Create knowledge retention and succession planning",
+        "current_boundary": "Continuity is represented by session lifecycle, compaction, work-tracking archive, handoff, and Serena memory evidence. Runtime succession execution is out of scope.",
+    },
+)
+
+KNOWLEDGE_TRANSFER_DOMAINS: Tuple[Dict[str, Any], ...] = (
+    {
+        "id": "documentation-suite",
+        "title": "Documentation suite",
+        "purpose": "Confirm the user guide, quickstart, guide hub, and foundation adoption guide exist as the primary repository knowledge surface.",
+        "source_tasks": ("32",),
+        "required_paths": (
+            "templates/USER-GUIDE.md",
+            "templates/guides/index.md",
+            "templates/guides/quickstart/getting-started.md",
+            "templates/engine/validation/foundation-adoption-guide.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260511-task32-documentation-suite-COMPLETED/reports/documentation-suite/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-guard validate --include-untracked",
+            "python3 scripts/codex-task work-tracking audit",
+        ),
+    },
+    {
+        "id": "onboarding-training",
+        "title": "Onboarding training",
+        "purpose": "Confirm repository-native onboarding training exists with exercises, evidence gates, completion checklist, and feedback notes.",
+        "source_tasks": ("33",),
+        "required_paths": (
+            "templates/guides/training/foundation-onboarding.md",
+            "tests/meta_workflow_guard/test_training_materials.py",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task33-training-materials-COMPLETED/reports/training-materials/",
+        ),
+        "refresh_commands": (
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_training_materials.py",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+    },
+    {
+        "id": "troubleshooting-operations",
+        "title": "Troubleshooting and operations",
+        "purpose": "Confirm troubleshooting guidance and operational runbook evidence exist for common workflow failures and escalation paths.",
+        "source_tasks": ("57",),
+        "required_paths": (
+            "templates/guides/troubleshooting/issues.md",
+            "reports/operational-runbook/README.md",
+            "scripts/codex-task",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json",
+            "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.md",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task operations runbook --label <label> --report-file <operations.json> --runbook-file <operations.md>",
+        ),
+    },
+    {
+        "id": "communication-feedback",
+        "title": "Communication and feedback capture",
+        "purpose": "Confirm repo-native communication templates exist for PRs, task completion, incidents, milestones, and feedback follow-up.",
+        "source_tasks": ("49",),
+        "required_paths": (
+            "templates/guides/communication/foundation-communication-templates.md",
+            "templates/guides/index.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED/reports/communication-templates/",
+        ),
+        "refresh_commands": (
+            "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py",
+        ),
+    },
+    {
+        "id": "continuity-handoff",
+        "title": "Continuity and handoff",
+        "purpose": "Confirm the foundation has session lifecycle, Taskmaster alignment, work-tracking enforcement, compaction, and runtime contract surfaces for retaining knowledge across sessions and agents.",
+        "source_tasks": ("31", "42", "103"),
+        "required_paths": (
+            "templates/workflows/session/lifecycle.md",
+            "templates/workflows/taskmaster/alignment.md",
+            "templates/workflows/taskmaster/work-tracking-enforcement.md",
+            ".claude/engine/runtime-contract.md",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260508-task31-compaction-protocol-COMPLETED/reports/compaction-protocol/",
+            "docs/ai/work-tracking/archive/20260508-task42-session-management-system-COMPLETED/reports/session-management-system/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task compaction checkpoint --task <id> --slug <slug> --summary <summary> --next-step <next>",
+            "python3 scripts/codex-task work-tracking audit",
+        ),
+    },
+    {
+        "id": "validation-and-delivery",
+        "title": "Validation and delivery evidence",
+        "purpose": "Confirm final validation and Phase 4 delivery review evidence are available before claiming knowledge transfer readiness.",
+        "source_tasks": ("63", "68"),
+        "required_paths": (
+            "reports/README.md",
+            "templates/TOOLS.md",
+            "scripts/codex-task",
+        ),
+        "evidence_paths": (
+            "docs/ai/work-tracking/archive/20260513-task63-phase4-documentation-delivery-COMPLETED/reports/phase4-documentation-delivery/phase4-review-2026-05-13.json",
+            "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/",
+        ),
+        "refresh_commands": (
+            "python3 scripts/codex-task documentation phase4-review --label <label> --report-file <phase4.json> --runbook-file <phase4.md>",
+            "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        ),
+    },
+)
+
+KNOWLEDGE_TRANSFER_GUIDANCE: Tuple[str, ...] = (
+    "Use `templates/guides/index.md` as the human-facing knowledge hub.",
+    "Use `templates/guides/training/foundation-onboarding.md` for onboarding exercises and completion checks.",
+    "Use `templates/guides/communication/foundation-communication-templates.md` to capture feedback, milestones, incidents, and follow-up requests as repo-native evidence.",
+    "Use `templates/workflows/session/lifecycle.md`, active work-tracking handoff files, and Serena memories for continuity across days and compaction boundaries.",
+    "Create follow-up Taskmaster tasks for real knowledge-base platform, video, Q&A, analytics, or succession-plan work instead of claiming those systems inside this static review.",
+)
+
+
+def _knowledge_transfer_path_state(path_value: str) -> Dict[str, Any]:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    exists = path.exists()
+    if path.is_dir():
+        kind = "directory"
+    elif path.is_file():
+        kind = "file"
+    else:
+        kind = "missing"
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": exists,
+        "kind": kind,
+    }
+
+
+def _knowledge_transfer_domain_review(domain: Dict[str, Any]) -> Dict[str, Any]:
+    required_paths = [_knowledge_transfer_path_state(path) for path in domain.get("required_paths", ())]
+    evidence_paths = [_knowledge_transfer_path_state(path) for path in domain.get("evidence_paths", ())]
+    missing_required = [item["path"] for item in required_paths if not item["exists"]]
+    missing_evidence = [item["path"] for item in evidence_paths if not item["exists"]]
+    if missing_required:
+        status = "needs-implementation"
+        required_action = "Implement or restore the missing required knowledge-transfer surfaces before claiming readiness."
+    elif missing_evidence:
+        status = "needs-evidence"
+        required_action = "Run the refresh commands and capture the missing evidence before claiming this domain is ready."
+    else:
+        status = "ready"
+        required_action = "Review the linked evidence and keep it referenced from Task 54 closeout."
+    return {
+        "id": domain["id"],
+        "title": domain["title"],
+        "purpose": domain["purpose"],
+        "status": status,
+        "source_tasks": list(domain.get("source_tasks", ())),
+        "required_paths": required_paths,
+        "evidence_paths": evidence_paths,
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+        "refresh_commands": list(domain.get("refresh_commands", ())),
+        "required_action": required_action,
+    }
+
+
+def _summarise_knowledge_transfer_domains(domains: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    status_counts = Counter(str(domain.get("status")) for domain in domains)
+    missing_required = sum(len(domain.get("missing_required_paths", [])) for domain in domains)
+    missing_evidence = sum(len(domain.get("missing_evidence_paths", [])) for domain in domains)
+    if missing_required:
+        aggregate_status = "needs-implementation"
+    elif missing_evidence:
+        aggregate_status = "needs-evidence"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "domains": len(domains),
+        "ready": status_counts.get("ready", 0),
+        "needs_evidence": status_counts.get("needs-evidence", 0),
+        "needs_implementation": status_counts.get("needs-implementation", 0),
+        "missing_required_paths": missing_required,
+        "missing_evidence_paths": missing_evidence,
+    }
+
+
+def _build_knowledge_transfer_review(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "knowledge-transfer-process"
+    domains = [_knowledge_transfer_domain_review(dict(domain)) for domain in KNOWLEDGE_TRANSFER_DOMAINS]
+    summary = _summarise_knowledge_transfer_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-knowledge-transfer-review",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "out_of_scope_requirements": list(KNOWLEDGE_TRANSFER_OUT_OF_SCOPE),
+        "continuity_guidance": list(KNOWLEDGE_TRANSFER_GUIDANCE),
+        "non_goals": list(KNOWLEDGE_TRANSFER_NON_GOALS),
+    }
+
+
+def _render_knowledge_transfer_review(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), dict) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), dict) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), dict) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+    lines = [
+        "# Knowledge Transfer Process Review",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), dict) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), dict) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Domain Summary",
+        "",
+        "| Domain | Status | Missing Required | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        missing_required = "<br>".join(domain.get("missing_required_paths", []))
+        missing_evidence = "<br>".join(domain.get("missing_evidence_paths", []))
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | `{_md_cell(domain.get('status'))}` | "
+            f"{_md_cell(missing_required or 'None')} | {_md_cell(missing_evidence or 'None')} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, dict):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Status: `{domain.get('status')}`",
+                f"- Source tasks: {', '.join(str(task) for task in domain.get('source_tasks', []))}",
+                f"- Purpose: {domain.get('purpose')}",
+                f"- Required action: {domain.get('required_action')}",
+                "",
+                "Refresh commands:",
+            ]
+        )
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        lines.extend(["", "Evidence paths:"])
+        for item in domain.get("evidence_paths", []):
+            if isinstance(item, dict):
+                lines.append(f"- `{item.get('path')}` ({item.get('kind')})")
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Historical Requirements Reconciled Out Of Scope",
+            "",
+            "| Historical Requirement | Current Boundary |",
+            "| --- | --- |",
+        ]
+    )
+    for item in report.get("out_of_scope_requirements", []):
+        if not isinstance(item, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(item.get('historical_requirement'))} | {_md_cell(item.get('current_boundary'))} |"
+        )
+
+    lines.extend(["", "## Continuity Guidance", ""])
+    for item in report.get("continuity_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static knowledge-transfer review artifact. It composes existing documentation, training, troubleshooting, communication, continuity, handoff, and validation evidence, but it does not create hosted knowledge-base software, video workflows, Q&A services, analytics, notifications, or external succession-planning systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_knowledge_transfer_review(args: argparse.Namespace) -> None:
+    report = _build_knowledge_transfer_review(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_knowledge_transfer_review(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote knowledge transfer review to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote knowledge transfer runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
     "No runtime log instrumentation or warning injection is added.",
     "No automatic template archival, file movement, deletion, or migration is executed.",
@@ -10197,6 +10574,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the review JSON without writing files",
     )
     documentation_phase4.set_defaults(func=handle_phase4_documentation_review)
+
+    knowledge_parser = subparsers.add_parser("knowledge", help="Knowledge transfer review operations")
+    knowledge_sub = knowledge_parser.add_subparsers(dest="subcommand", required=True)
+    knowledge_transfer = knowledge_sub.add_parser(
+        "transfer-review",
+        help="Render a static knowledge-transfer review packet",
+    )
+    knowledge_transfer.add_argument(
+        "--label",
+        default="knowledge-transfer-process",
+        help="Human-readable review label",
+    )
+    knowledge_transfer.add_argument("--report-file", help="Optional path to write the review JSON")
+    knowledge_transfer.add_argument("--runbook-file", help="Optional path to write the review Markdown")
+    knowledge_transfer.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the review JSON without writing files",
+    )
+    knowledge_transfer.set_defaults(func=handle_knowledge_transfer_review)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)
