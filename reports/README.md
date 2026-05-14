@@ -180,6 +180,16 @@ python3 scripts/codex-task cleanup plan \
 
 This command renders a static JSON/Markdown planning packet for human review. It does not install schedulers, delete files, move files, create backups, run rollback, send notifications, enforce retention, or contact external systems.
 
+Template quality scorecards can be generated when an operator needs one static, evidence-backed score over metadata/drift, registry health, scanner complexity, performance, usage analytics, security audit, and workflow continuity:
+
+```bash
+python3 scripts/codex-task template quality-score \
+  --report-file reports/template-quality/latest.json \
+  --runbook-file reports/template-quality/latest.md
+```
+
+This command renders a static JSON/Markdown scorecard for human review. It does not install dashboards, mutate templates, enforce CI gates, run benchmarks, send notifications, train predictive models, or contact external services.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -203,6 +213,7 @@ This command renders a static JSON/Markdown planning packet for human review. It
 - `celebration-planning/` - optional static celebration/readout planning packets over success evidence, stakeholder narrative, roadmap talking points, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps.
 - `feedback-collection/` - optional static feedback collection planning packets over intake schema, categories, manual severity/sentiment labels, routing, metrics, response states, archive guidance, and follow-up-task criteria.
 - `cleanup-automation/` - optional static cleanup planning packets over scanner evidence, reference-fix safety, deprecation lifecycle, rollback policy, cleanup candidates, dry-run checks, approval gates, and non-destructive cleanup boundaries.
+- `template-quality/` - optional static template quality scorecards over metadata/drift, registry health, scanner complexity, performance, usage analytics, security audit, workflow continuity, quality gates, and improvement suggestions.
 
 ## Task Evidence
 
