@@ -1,0 +1,375 @@
+{
+  "achievement_highlights": [
+    {
+      "evidence_domain": "taskmaster-delivery-health",
+      "id": "delivery-progress",
+      "message": "Taskmaster reports 96 completed parent tasks, 11 pending tasks, and 0 invalid dependency refs.",
+      "title": "Foundation delivery progress"
+    },
+    {
+      "evidence_domain": "success-metrics",
+      "id": "success-scorecard",
+      "message": "The static success metrics packet provides a reusable scorecard for the foundation state.",
+      "title": "Success metrics are reportable"
+    },
+    {
+      "evidence_domain": "stakeholder-reporting",
+      "id": "stakeholder-ready",
+      "message": "The stakeholder packet gives review-ready delivery, workflow, risk, and communication framing.",
+      "title": "Stakeholder narrative is available"
+    },
+    {
+      "evidence_domain": "phase5-roadmap",
+      "id": "roadmap-grounded",
+      "message": "The Phase 5 enhancement packet separates ready next actions from planned future work.",
+      "title": "Next roadmap is grounded"
+    }
+  ],
+  "announcement_draft": {
+    "headline": "Portable foundation milestone ready for celebration",
+    "opening": "The repository now has a portable, evidence-backed foundation with static reporting, workflow enforcement, and planning packets that can be reviewed and extended across future projects.",
+    "proof_points": [
+      "Taskmaster health is clean with zero invalid dependency refs.",
+      "Success metrics, stakeholder reporting, and Phase 5 planning packets are available as file-backed evidence.",
+      "Work-tracking archives preserve the implementation trail for review."
+    ],
+    "review_note": "Human review is required before sending, posting, or publishing this draft."
+  },
+  "created_at": "2026-05-14T14:37:42+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-76-celebration-planning",
+      "head": "106f559a8aeb8f8cac06814ec54c9823c7642c89",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_076.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task76_celebration_planning_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task76-celebration-planning.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/celebration-planning/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-005-task76-celebration-planning.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 158,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task66_deprecation_management_kickoff.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_completion.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_kickoff.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_completion.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_completion.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_kickoff.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_completion.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "9bd656659a2519728921a8ff3e52112a58a06f9e9077396913fce7e0afd81c1c",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 96,
+          "in-progress": 1,
+          "pending": 11
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task76-celebration-planning-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task76-celebration-planning.md",
+        "sha256": "efc0e3ead888337c7ec34cd31eca4ca4e50661b81e3c39312bb15ef26e075d0e",
+        "target": "2026-05-14-task76-celebration-planning.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-005-task76-celebration-planning.md",
+        "sha256": "75d70aadd105aae60f8f0597f82cc09915b4517aec634c6bd556c65fd6155282",
+        "target": "2026/05/2026-05-14-005-task76-celebration-planning.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "15c58db76b8c6a6b55080ba719d07ba7985cc1f66217908798f19de7d30b5d0b"
+      }
+    }
+  },
+  "demo_candidates": [
+    {
+      "command": "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+      "evidence_domain": "success-metrics",
+      "title": "Generate success metrics packet"
+    },
+    {
+      "command": "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+      "evidence_domain": "stakeholder-reporting",
+      "title": "Generate stakeholder report packet"
+    },
+    {
+      "command": "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+      "evidence_domain": "phase5-roadmap",
+      "title": "Generate Phase 5 enhancement plan"
+    }
+  ],
+  "domains": [
+    {
+      "details": {
+        "invalid_refs": [],
+        "summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 96,
+            "in-progress": 1,
+            "pending": 11
+          },
+          "subtasks": 304,
+          "tasks": 108
+        }
+      },
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".taskmaster/tasks/tasks.json"
+        }
+      ],
+      "id": "taskmaster-delivery-health",
+      "message": "Taskmaster delivery health evidence is ready for celebration planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Ground achievement claims in completed task count and dependency health.",
+      "refresh_command": "python3 scripts/codex-task taskmaster health",
+      "status": "ready",
+      "title": "Taskmaster delivery health"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json"
+        }
+      ],
+      "id": "success-metrics",
+      "message": "Success metrics packet evidence is ready for celebration planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Support celebration claims with the latest static success scorecard.",
+      "refresh_command": "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+      "status": "ready",
+      "title": "Success metrics packet"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/communication/foundation-communication-templates.md"
+        }
+      ],
+      "id": "stakeholder-reporting",
+      "message": "Stakeholder reporting packet evidence is ready for celebration planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Reuse stakeholder-safe messages, risks, and communication framing.",
+      "refresh_command": "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+      "status": "ready",
+      "title": "Stakeholder reporting packet"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/reports/phase5-enhancement-planning/phase5-plan-2026-05-14-final.json"
+        }
+      ],
+      "id": "phase5-roadmap",
+      "message": "Phase 5 enhancement roadmap evidence is ready for celebration planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Connect celebration material to grounded next-step roadmap candidates.",
+      "refresh_command": "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+      "status": "ready",
+      "title": "Phase 5 enhancement roadmap"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED"
+        }
+      ],
+      "id": "work-tracking-archive",
+      "message": "Work-tracking archive evidence is ready for celebration planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Give reviewers an audit trail for the foundation milestones being celebrated.",
+      "refresh_command": "python3 scripts/codex-task work-tracking audit",
+      "status": "ready",
+      "title": "Work-tracking archive"
+    }
+  ],
+  "event_agenda": [
+    {
+      "duration_minutes": 10,
+      "evidence_domain": "taskmaster-delivery-health",
+      "title": "Milestone recap"
+    },
+    {
+      "duration_minutes": 10,
+      "evidence_domain": "success-metrics",
+      "title": "Success metrics walkthrough"
+    },
+    {
+      "duration_minutes": 10,
+      "evidence_domain": "stakeholder-reporting",
+      "title": "Stakeholder-ready narrative"
+    },
+    {
+      "duration_minutes": 10,
+      "evidence_domain": "phase5-roadmap",
+      "title": "Roadmap and next candidates"
+    },
+    {
+      "duration_minutes": 15,
+      "evidence_domain": "work-tracking-archive",
+      "title": "Retrospective prompts and next commitments"
+    }
+  ],
+  "executes_actions": false,
+  "label": "task76-celebration-planning",
+  "manual_next_steps": [
+    "Review this packet with the project owner before sharing.",
+    "Refresh referenced reports immediately before any celebration/readout.",
+    "Choose which announcement, agenda, demo, and retrospective sections to use manually.",
+    "Record any follow-up implementation ideas as separate Taskmaster tasks."
+  ],
+  "mode": "static-celebration-planning-packet",
+  "non_goals": [
+    "No calendar event, meeting invitation, reminder, scheduling workflow, or event logistics automation is created.",
+    "No email, chat, social post, blog post, website, external publication, notification, or webhook is sent or published.",
+    "No award decision, compensation action, HR record, or personal attribution is made by this command.",
+    "No slide deck, hosted demo, video, media asset, live dashboard, or external presentation system is generated.",
+    "No survey, response collection, sentiment analysis, analytics tracking, or contact database is created.",
+    "No Taskmaster tasks, sessions, plans, work tracking, Git state, report sources, templates, or external systems are mutated beyond requested celebration planning artifacts."
+  ],
+  "planning_guidance": [
+    "Treat this packet as draft review material; a human owner must approve any announcement, event, or publication.",
+    "Refresh success, stakeholder, and roadmap evidence before sharing celebration materials externally.",
+    "Keep recognition prompts team-safe and evidence-based; do not infer individual awards or sensitive people decisions.",
+    "Use static evidence paths in the packet so reviewers can verify every celebration claim."
+  ],
+  "recognition_prompts": [
+    "Recognize maintainers for preserving session, plan, work-tracking, and guard discipline across the migration.",
+    "Recognize implementation work through evidence-backed task outcomes rather than personal claims inferred by automation.",
+    "Recognize review discipline that caught scope drift and kept broad PRD wording grounded in current-state gaps."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task celebration plan --report-file reports/celebration-planning/latest.json --runbook-file reports/celebration-planning/latest.md",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "retrospective_prompts": [
+    "Which workflow gates most improved reliability?",
+    "Which task patterns should become reusable foundation defaults?",
+    "Where did historical PRD wording diverge most from current project needs?",
+    "Which remaining planned candidates need new Taskmaster tasks before implementation?"
+  ],
+  "roadmap_talking_points": [
+    "Use Task 69's ready candidates as the next review queue, not automatic implementation authority.",
+    "Keep planned AI-generation and optional MCP work behind dedicated scope reconciliation tasks.",
+    "Continue static packet and guard-first improvements before adding live services."
+  ],
+  "summary": {
+    "aggregate_status": "ready",
+    "blocked": 0,
+    "needs_evidence": 0,
+    "ready": 5,
+    "total_domains": 5
+  },
+  "version": 1
+}

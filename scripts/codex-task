@@ -7594,6 +7594,416 @@ def handle_enhancement_phase5_plan(args: argparse.Namespace) -> None:
         raise TaskError("Phase 5 enhancement plan aggregate status is blocked")
 
 
+CELEBRATION_PLANNING_NON_GOALS: Tuple[str, ...] = (
+    "No calendar event, meeting invitation, reminder, scheduling workflow, or event logistics automation is created.",
+    "No email, chat, social post, blog post, website, external publication, notification, or webhook is sent or published.",
+    "No award decision, compensation action, HR record, or personal attribution is made by this command.",
+    "No slide deck, hosted demo, video, media asset, live dashboard, or external presentation system is generated.",
+    "No survey, response collection, sentiment analysis, analytics tracking, or contact database is created.",
+    "No Taskmaster tasks, sessions, plans, work tracking, Git state, report sources, templates, or external systems are mutated beyond requested celebration planning artifacts.",
+)
+
+CELEBRATION_PLANNING_GUIDANCE: Tuple[str, ...] = (
+    "Treat this packet as draft review material; a human owner must approve any announcement, event, or publication.",
+    "Refresh success, stakeholder, and roadmap evidence before sharing celebration materials externally.",
+    "Keep recognition prompts team-safe and evidence-based; do not infer individual awards or sensitive people decisions.",
+    "Use static evidence paths in the packet so reviewers can verify every celebration claim.",
+)
+
+
+def _celebration_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    evidence_paths: Sequence[str],
+    refresh_command: str,
+    details: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    evidence = [_enhancement_path_state(path) for path in evidence_paths]
+    missing = [item["path"] for item in evidence if not item["exists"]]
+    status = "needs-evidence" if missing else "ready"
+    message = (
+        f"{title} evidence is ready for celebration planning."
+        if status == "ready"
+        else f"{title} is missing evidence: {', '.join(missing)}."
+    )
+    return {
+        "id": domain_id,
+        "title": title,
+        "purpose": purpose,
+        "status": status,
+        "evidence_paths": evidence,
+        "missing_evidence_paths": missing,
+        "message": message,
+        "refresh_command": refresh_command,
+        "details": dict(details or {}),
+    }
+
+
+def _build_celebration_domains() -> List[Dict[str, Any]]:
+    taskmaster = _taskmaster_snapshot()
+    taskmaster_summary = taskmaster.get("summary") if isinstance(taskmaster.get("summary"), Mapping) else {}
+    return [
+        _celebration_domain(
+            domain_id="taskmaster-delivery-health",
+            title="Taskmaster delivery health",
+            purpose="Ground achievement claims in completed task count and dependency health.",
+            evidence_paths=(".taskmaster/tasks/tasks.json",),
+            refresh_command="python3 scripts/codex-task taskmaster health",
+            details={"summary": taskmaster_summary, "invalid_refs": taskmaster.get("invalid_refs") or []},
+        ),
+        _celebration_domain(
+            domain_id="success-metrics",
+            title="Success metrics packet",
+            purpose="Support celebration claims with the latest static success scorecard.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json",
+            ),
+            refresh_command="python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+        ),
+        _celebration_domain(
+            domain_id="stakeholder-reporting",
+            title="Stakeholder reporting packet",
+            purpose="Reuse stakeholder-safe messages, risks, and communication framing.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+                "templates/guides/communication/foundation-communication-templates.md",
+            ),
+            refresh_command="python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+        ),
+        _celebration_domain(
+            domain_id="phase5-roadmap",
+            title="Phase 5 enhancement roadmap",
+            purpose="Connect celebration material to grounded next-step roadmap candidates.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/reports/phase5-enhancement-planning/phase5-plan-2026-05-14-final.json",
+            ),
+            refresh_command="python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+        ),
+        _celebration_domain(
+            domain_id="work-tracking-archive",
+            title="Work-tracking archive",
+            purpose="Give reviewers an audit trail for the foundation milestones being celebrated.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/",
+                "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/",
+                "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/",
+            ),
+            refresh_command="python3 scripts/codex-task work-tracking audit",
+        ),
+    ]
+
+
+def _summarise_celebration_domains(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    total = len(domains)
+    ready = sum(1 for domain in domains if domain.get("status") == "ready")
+    needs_evidence = sum(1 for domain in domains if domain.get("status") == "needs-evidence")
+    blocked = sum(1 for domain in domains if domain.get("status") == "blocked")
+    if blocked:
+        aggregate_status = "blocked"
+    elif needs_evidence:
+        aggregate_status = "needs-evidence"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "total_domains": total,
+        "ready": ready,
+        "needs_evidence": needs_evidence,
+        "blocked": blocked,
+    }
+
+
+def _celebration_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+    for domain in domains:
+        command = domain.get("refresh_command")
+        if isinstance(command, str) and command and command not in commands:
+            commands.append(command)
+    commands.extend(
+        command
+        for command in (
+            "python3 scripts/codex-task celebration plan --report-file reports/celebration-planning/latest.json --runbook-file reports/celebration-planning/latest.md",
+            "python3 scripts/codex-guard validate --include-untracked",
+        )
+        if command not in commands
+    )
+    return commands
+
+
+def _celebration_achievement_highlights(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, str]]:
+    taskmaster = _taskmaster_snapshot()
+    summary = taskmaster.get("summary") if isinstance(taskmaster.get("summary"), Mapping) else {}
+    status_counts = summary.get("status_counts") if isinstance(summary.get("status_counts"), Mapping) else {}
+    done_tasks = status_counts.get("done", "unknown")
+    pending_tasks = status_counts.get("pending", "unknown")
+    invalid_refs = summary.get("invalid_refs", 0)
+    return [
+        {
+            "id": "delivery-progress",
+            "title": "Foundation delivery progress",
+            "message": f"Taskmaster reports {done_tasks} completed parent tasks, {pending_tasks} pending tasks, and {invalid_refs} invalid dependency refs.",
+            "evidence_domain": "taskmaster-delivery-health",
+        },
+        {
+            "id": "success-scorecard",
+            "title": "Success metrics are reportable",
+            "message": "The static success metrics packet provides a reusable scorecard for the foundation state.",
+            "evidence_domain": "success-metrics",
+        },
+        {
+            "id": "stakeholder-ready",
+            "title": "Stakeholder narrative is available",
+            "message": "The stakeholder packet gives review-ready delivery, workflow, risk, and communication framing.",
+            "evidence_domain": "stakeholder-reporting",
+        },
+        {
+            "id": "roadmap-grounded",
+            "title": "Next roadmap is grounded",
+            "message": "The Phase 5 enhancement packet separates ready next actions from planned future work.",
+            "evidence_domain": "phase5-roadmap",
+        },
+    ]
+
+
+def _build_celebration_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "celebration-planning"
+    domains = _build_celebration_domains()
+    summary = _summarise_celebration_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-celebration-planning-packet",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "achievement_highlights": _celebration_achievement_highlights(domains),
+        "announcement_draft": {
+            "headline": "Portable foundation milestone ready for celebration",
+            "opening": "The repository now has a portable, evidence-backed foundation with static reporting, workflow enforcement, and planning packets that can be reviewed and extended across future projects.",
+            "proof_points": [
+                "Taskmaster health is clean with zero invalid dependency refs.",
+                "Success metrics, stakeholder reporting, and Phase 5 planning packets are available as file-backed evidence.",
+                "Work-tracking archives preserve the implementation trail for review.",
+            ],
+            "review_note": "Human review is required before sending, posting, or publishing this draft.",
+        },
+        "event_agenda": [
+            {"title": "Milestone recap", "duration_minutes": 10, "evidence_domain": "taskmaster-delivery-health"},
+            {"title": "Success metrics walkthrough", "duration_minutes": 10, "evidence_domain": "success-metrics"},
+            {"title": "Stakeholder-ready narrative", "duration_minutes": 10, "evidence_domain": "stakeholder-reporting"},
+            {"title": "Roadmap and next candidates", "duration_minutes": 10, "evidence_domain": "phase5-roadmap"},
+            {"title": "Retrospective prompts and next commitments", "duration_minutes": 15, "evidence_domain": "work-tracking-archive"},
+        ],
+        "demo_candidates": [
+            {
+                "title": "Generate success metrics packet",
+                "command": "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+                "evidence_domain": "success-metrics",
+            },
+            {
+                "title": "Generate stakeholder report packet",
+                "command": "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+                "evidence_domain": "stakeholder-reporting",
+            },
+            {
+                "title": "Generate Phase 5 enhancement plan",
+                "command": "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+                "evidence_domain": "phase5-roadmap",
+            },
+        ],
+        "recognition_prompts": [
+            "Recognize maintainers for preserving session, plan, work-tracking, and guard discipline across the migration.",
+            "Recognize implementation work through evidence-backed task outcomes rather than personal claims inferred by automation.",
+            "Recognize review discipline that caught scope drift and kept broad PRD wording grounded in current-state gaps.",
+        ],
+        "retrospective_prompts": [
+            "Which workflow gates most improved reliability?",
+            "Which task patterns should become reusable foundation defaults?",
+            "Where did historical PRD wording diverge most from current project needs?",
+            "Which remaining planned candidates need new Taskmaster tasks before implementation?",
+        ],
+        "roadmap_talking_points": [
+            "Use Task 69's ready candidates as the next review queue, not automatic implementation authority.",
+            "Keep planned AI-generation and optional MCP work behind dedicated scope reconciliation tasks.",
+            "Continue static packet and guard-first improvements before adding live services.",
+        ],
+        "manual_next_steps": [
+            "Review this packet with the project owner before sharing.",
+            "Refresh referenced reports immediately before any celebration/readout.",
+            "Choose which announcement, agenda, demo, and retrospective sections to use manually.",
+            "Record any follow-up implementation ideas as separate Taskmaster tasks.",
+        ],
+        "recommended_refresh_commands": _celebration_refresh_commands(domains),
+        "planning_guidance": list(CELEBRATION_PLANNING_GUIDANCE),
+        "non_goals": list(CELEBRATION_PLANNING_NON_GOALS),
+    }
+
+
+def _render_celebration_plan(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Celebration Planning Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Ready: {summary.get('ready')}",
+        f"- Needs evidence: {summary.get('needs_evidence')}",
+        f"- Blocked: {summary.get('blocked')}",
+        "",
+        "## Evidence Domains",
+        "",
+        "| Domain | Purpose | Status | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        missing = "<br>".join(domain.get("missing_evidence_paths", [])) or "None"
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(domain.get('purpose'))} | "
+            f"`{_md_cell(domain.get('status'))}` | {_md_cell(missing)} |"
+        )
+
+    lines.extend(["", "## Achievement Highlights", ""])
+    for highlight in report.get("achievement_highlights", []):
+        if isinstance(highlight, Mapping):
+            lines.append(f"- **{highlight.get('title')}**: {highlight.get('message')} (`{highlight.get('evidence_domain')}`)")
+
+    announcement = report.get("announcement_draft", {}) if isinstance(report.get("announcement_draft"), Mapping) else {}
+    lines.extend(
+        [
+            "",
+            "## Announcement Draft",
+            "",
+            f"### {announcement.get('headline')}",
+            "",
+            str(announcement.get("opening")),
+            "",
+            "Proof points:",
+        ]
+    )
+    for point in announcement.get("proof_points", []):
+        lines.append(f"- {point}")
+    lines.extend(["", f"Review note: {announcement.get('review_note')}", ""])
+
+    lines.extend(["## Event / Readout Agenda", ""])
+    for item in report.get("event_agenda", []):
+        if isinstance(item, Mapping):
+            lines.append(f"- {item.get('title')} ({item.get('duration_minutes')} min, `{item.get('evidence_domain')}`)")
+
+    lines.extend(["", "## Demo Candidates", ""])
+    for demo in report.get("demo_candidates", []):
+        if isinstance(demo, Mapping):
+            lines.append(f"- **{demo.get('title')}** (`{demo.get('evidence_domain')}`): `{demo.get('command')}`")
+
+    lines.extend(["", "## Recognition Prompts", ""])
+    for prompt in report.get("recognition_prompts", []):
+        lines.append(f"- {prompt}")
+
+    lines.extend(["", "## Retrospective Prompts", ""])
+    for prompt in report.get("retrospective_prompts", []):
+        lines.append(f"- {prompt}")
+
+    lines.extend(["", "## Roadmap Talking Points", ""])
+    for point in report.get("roadmap_talking_points", []):
+        lines.append(f"- {point}")
+
+    lines.extend(["", "## Manual Next Steps", ""])
+    for step in report.get("manual_next_steps", []):
+        lines.append(f"- {step}")
+
+    lines.extend(["", "## Planning Guidance", ""])
+    for item in report.get("planning_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static celebration planning artifact. It composes existing evidence and requested output files only; it does not schedule events, send announcements, publish posts, create awards, generate decks, collect feedback, or contact external systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_celebration_plan(args: argparse.Namespace) -> None:
+    report = _build_celebration_plan(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_celebration_plan(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] != "ready":
+            raise TaskError("Celebration plan aggregate status is not ready")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote celebration plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote celebration runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] != "ready":
+        raise TaskError("Celebration plan aggregate status is not ready")
+
+
 DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
     "No runtime log instrumentation or warning injection is added.",
     "No automatic template archival, file movement, deletion, or migration is executed.",
@@ -12089,6 +12499,19 @@ def build_parser() -> argparse.ArgumentParser:
     enhancement_phase5.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate enhancement planning status is blocked")
     enhancement_phase5.add_argument("--dry-run", action="store_true", help="Print the enhancement planning JSON without writing files")
     enhancement_phase5.set_defaults(func=handle_enhancement_phase5_plan)
+
+    celebration_parser = subparsers.add_parser("celebration", help="Celebration planning operations")
+    celebration_sub = celebration_parser.add_subparsers(dest="subcommand", required=True)
+    celebration_plan = celebration_sub.add_parser(
+        "plan",
+        help="Render a static celebration planning packet",
+    )
+    celebration_plan.add_argument("--label", default="celebration-planning", help="Human-readable planning label")
+    celebration_plan.add_argument("--report-file", help="Optional path to write the celebration planning JSON")
+    celebration_plan.add_argument("--runbook-file", help="Optional path to write the celebration planning Markdown")
+    celebration_plan.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate celebration planning status is not ready")
+    celebration_plan.add_argument("--dry-run", action="store_true", help="Print the celebration planning JSON without writing files")
+    celebration_plan.set_defaults(func=handle_celebration_plan)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)

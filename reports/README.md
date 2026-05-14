@@ -150,6 +150,16 @@ python3 scripts/codex-task enhancement phase5-plan \
 
 This command renders a static JSON/Markdown planning packet with candidate readiness, evidence paths, refresh commands, next actions, and explicit non-goals. It does not install triggers, enable optional MCPs, generate templates with AI, apply optimizations, mutate Taskmaster, or contact external systems.
 
+Celebration planning packets can be generated when an operator needs one static readout artifact over success metrics, stakeholder reporting, roadmap evidence, work-tracking archives, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps:
+
+```bash
+python3 scripts/codex-task celebration plan \
+  --report-file reports/celebration-planning/latest.json \
+  --runbook-file reports/celebration-planning/latest.md
+```
+
+This command renders a static JSON/Markdown planning packet for human review. It does not schedule events, send announcements, publish posts, create awards, generate slide decks, collect feedback, or contact external systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -170,6 +180,7 @@ This command renders a static JSON/Markdown planning packet with candidate readi
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
 - `stakeholder-reporting/` - optional static stakeholder-facing status packets over delivery health, workflow compliance, success metrics, knowledge transfer, deprecation governance, risk/compliance, and communication guidance.
 - `enhancement-planning/` - optional static Phase 5 planning packets over enhancement candidates, readiness evidence, refresh commands, next actions, and non-goal boundaries.
+- `celebration-planning/` - optional static celebration/readout planning packets over success evidence, stakeholder narrative, roadmap talking points, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps.
 
 ## Task Evidence
 
