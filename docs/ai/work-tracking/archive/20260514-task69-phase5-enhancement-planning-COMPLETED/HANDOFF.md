@@ -10,3 +10,4 @@
 
 ## Next Steps
 - Commit, push, open PR, merge when green, then archive this active work-tracking folder in a separate post-merge archive commit.
+- Archived on 2026-05-14 14:18 CEST — Folder moved to archive and tracker marked COMPLETED.
