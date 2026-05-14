@@ -1,0 +1,322 @@
+{
+  "created_at": "2026-05-14T11:38:49+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-67-success-metrics-dashboard",
+      "head": "e43ce0871ccc59623cb7549896d842b6d0c9d04e",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_067.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task67-success-metrics-dashboard.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/success-metrics/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-002-task67-success-metrics-dashboard.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 152,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task56_phase3_automation_integration_kickoff.md",
+        ".serena/memories/2026-05-13_task72_post_mortem_process_completion.md",
+        ".serena/memories/2026-05-13_task72_post_mortem_process_kickoff.md",
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_completion.md",
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_kickoff.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_completion.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_kickoff.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_completion.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_kickoff.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "71ed913a8f6588c8746520d0a24f5fd71f95e44667ee7dc5b731ef005b172700",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 94,
+          "pending": 14
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task67-success-metrics-dashboard-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task67-success-metrics-dashboard.md",
+        "sha256": "3adb03baba40e4390c7a783260579b8bb89c7816caec16ebd681255023a77112",
+        "target": "2026-05-14-task67-success-metrics-dashboard.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-002-task67-success-metrics-dashboard.md",
+        "sha256": "d4a167cde3cc435193c6878f774a2357eda6a4ad2f7e04e8f4f0319b39b31428",
+        "target": "2026/05/2026-05-14-002-task67-success-metrics-dashboard.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "9534f25a26224c883be0a0e3998bc8a8f0940080374348394a68cde8c613af41"
+      }
+    }
+  },
+  "domains": [
+    {
+      "details": {
+        "invalid_refs": [],
+        "summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 94,
+            "pending": 14
+          },
+          "subtasks": 304,
+          "tasks": 108
+        },
+        "tag": "master"
+      },
+      "evidence": ".taskmaster/tasks/tasks.json",
+      "id": "taskmaster-health",
+      "message": "Taskmaster dependency graph is healthy.",
+      "refresh_command": "python3 scripts/codex-task taskmaster health",
+      "severity": "info",
+      "status": "pass",
+      "target": "0 invalid dependency refs",
+      "title": "Taskmaster health",
+      "unit": "percent done",
+      "value": 87.04
+    },
+    {
+      "details": {
+        "active_work_tracking": [
+          "docs/ai/work-tracking/active/20260514-task67-success-metrics-dashboard-ACTIVE"
+        ],
+        "current_plan": {
+          "exists": true,
+          "is_symlink": true,
+          "path": "plans/current",
+          "resolved": "plans/2026-05-14-task67-success-metrics-dashboard.md",
+          "sha256": "3adb03baba40e4390c7a783260579b8bb89c7816caec16ebd681255023a77112",
+          "target": "2026-05-14-task67-success-metrics-dashboard.md"
+        },
+        "current_session": {
+          "exists": true,
+          "is_symlink": true,
+          "path": "sessions/current",
+          "resolved": "sessions/2026/05/2026-05-14-002-task67-success-metrics-dashboard.md",
+          "sha256": "d4a167cde3cc435193c6878f774a2357eda6a4ad2f7e04e8f4f0319b39b31428",
+          "target": "2026/05/2026-05-14-002-task67-success-metrics-dashboard.md"
+        },
+        "session_state": {
+          "exists": true,
+          "path": "sessions/state.json",
+          "sha256": "9534f25a26224c883be0a0e3998bc8a8f0940080374348394a68cde8c613af41"
+        }
+      },
+      "evidence": "sessions/2026/05/2026-05-14-002-task67-success-metrics-dashboard.md",
+      "id": "workflow-state",
+      "message": "Workflow pointers are aligned for the active task.",
+      "refresh_command": "python3 scripts/codex-task work-tracking audit",
+      "severity": "info",
+      "status": "pass",
+      "target": "1 active task folder with current session and plan",
+      "title": "Workflow state",
+      "unit": "active folders",
+      "value": 1
+    },
+    {
+      "details": {
+        "drift": {
+          "categories": [],
+          "finding_count": 0,
+          "generated_at": "2026-04-24T14:22:09.488310+02:00",
+          "latest_report": "reports/template-drift/summary-20260424-142209.json"
+        },
+        "template_metadata": {
+          "compliant_file_count": 78,
+          "coverage_pct": 100.0,
+          "drifted_file_count": 0,
+          "governed_file_count": 78
+        }
+      },
+      "evidence": "reports/template-metrics/latest.json",
+      "id": "template-metrics",
+      "message": "Template metadata and drift metrics are clean.",
+      "refresh_command": "python3 scripts/codex-task report generate --kind metrics",
+      "severity": "info",
+      "status": "pass",
+      "target": "100% metadata coverage and 0 drift findings",
+      "title": "Template metrics",
+      "unit": "coverage percent",
+      "value": 100.0
+    },
+    {
+      "details": {
+        "exists": false,
+        "message": "Source report is missing.",
+        "path": "reports/migration-health/latest.json",
+        "payload": null,
+        "status": "missing"
+      },
+      "evidence": "reports/migration-health/latest.json",
+      "id": "migration-health",
+      "message": "Migration health source report is missing.",
+      "refresh_command": "python3 scripts/codex-task report generate --kind migration-health",
+      "severity": "warning",
+      "status": "missing",
+      "target": "migration health status pass",
+      "title": "Migration health",
+      "unit": "status",
+      "value": null
+    },
+    {
+      "details": {
+        "generated_at": "2026-05-10T12:24:10.229844+02:00",
+        "source_aggregate_status": null,
+        "source_status": "pass"
+      },
+      "evidence": "reports/template-performance/latest.json",
+      "id": "template-performance",
+      "message": "Template performance source status is `pass`.",
+      "refresh_command": "python3 scripts/template-performance-harness --strict",
+      "severity": "info",
+      "status": "pass",
+      "target": "performance status pass",
+      "title": "Template performance",
+      "unit": "status",
+      "value": "pass"
+    },
+    {
+      "details": {
+        "pattern": "*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*final-validation-suite.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+          "status": "loaded"
+        }
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+      "id": "final-validation",
+      "message": "Final validation evidence found at `docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json`.",
+      "refresh_command": "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+      "severity": "info",
+      "status": "pass",
+      "target": "latest final validation packet exists",
+      "title": "Final validation",
+      "unit": "artifact",
+      "value": "present"
+    },
+    {
+      "details": {
+        "pattern": "*-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-*.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json",
+          "status": "loaded"
+        }
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json",
+      "id": "knowledge-transfer",
+      "message": "Knowledge transfer evidence found at `docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json`.",
+      "refresh_command": "python3 scripts/codex-task knowledge transfer-review --report-file reports/knowledge-transfer-process/latest.json --runbook-file reports/knowledge-transfer-process/latest.md",
+      "severity": "info",
+      "status": "pass",
+      "target": "knowledge transfer review ready",
+      "title": "Knowledge transfer",
+      "unit": "artifact",
+      "value": "present"
+    }
+  ],
+  "executes_actions": false,
+  "label": "task67-final",
+  "mode": "static-success-metrics-dashboard",
+  "non_goals": [
+    "No React/Vue UI, hosted dashboard, WebSocket, database, time-series storage, Prometheus/Grafana integration, analytics backend, or external service is created or contacted.",
+    "No predictive model, machine-learning service, alert delivery, notification, scheduler, ticket, or communication system is created or contacted.",
+    "No source report, Taskmaster, session, plan, work-tracking, Git, template, scanner, or external state is mutated beyond requested success metrics artifacts."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task report generate --kind metrics",
+    "python3 scripts/codex-task report generate --kind migration-health",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "python3 scripts/codex-task knowledge transfer-review --report-file reports/knowledge-transfer-process/latest.json --runbook-file reports/knowledge-transfer-process/latest.md",
+    "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "summary": {
+    "aggregate_status": "warn",
+    "failures": 0,
+    "missing": 1,
+    "passed": 6,
+    "success_score_pct": 92.86,
+    "total_domains": 7,
+    "warnings": 1
+  },
+  "version": 1
+}
