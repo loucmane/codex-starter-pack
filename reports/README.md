@@ -190,6 +190,16 @@ python3 scripts/codex-task template quality-score \
 
 This command renders a static JSON/Markdown scorecard for human review. It does not install dashboards, mutate templates, enforce CI gates, run benchmarks, send notifications, train predictive models, or contact external services.
 
+Long-term maintenance packets can be generated when an operator needs one static control artifact over workflow health, operational cadence, monitoring, performance baselines, template quality, cleanup readiness, security maintenance, and dependency-review guidance:
+
+```bash
+python3 scripts/codex-task maintenance plan \
+  --report-file reports/maintenance/latest.json \
+  --runbook-file reports/maintenance/latest.md
+```
+
+This command renders a static JSON/Markdown maintenance packet for human review. It does not install schedulers, send alerts, apply patches, update dependencies, create tickets, mutate templates, or contact external services.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -214,6 +224,7 @@ This command renders a static JSON/Markdown scorecard for human review. It does 
 - `feedback-collection/` - optional static feedback collection planning packets over intake schema, categories, manual severity/sentiment labels, routing, metrics, response states, archive guidance, and follow-up-task criteria.
 - `cleanup-automation/` - optional static cleanup planning packets over scanner evidence, reference-fix safety, deprecation lifecycle, rollback policy, cleanup candidates, dry-run checks, approval gates, and non-destructive cleanup boundaries.
 - `template-quality/` - optional static template quality scorecards over metadata/drift, registry health, scanner complexity, performance, usage analytics, security audit, workflow continuity, quality gates, and improvement suggestions.
+- `maintenance/` - optional static long-term maintenance packets over workflow health, operational cadence, monitoring, performance baselines, template quality, cleanup readiness, security maintenance, dependency-review guidance, and manual action queues.
 
 ## Task Evidence
 

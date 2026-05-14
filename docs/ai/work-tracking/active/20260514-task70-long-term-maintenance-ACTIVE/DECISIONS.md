@@ -1,0 +1,3 @@
+# Decisions
+
+- 2026-05-14 19:22 CEST — [S:20260514|W:task70-long-term-maintenance|H:scope-reconciliation|E:docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE/designs/wizard-flow.md] Decision: implement `python3 scripts/codex-task maintenance plan` as a deterministic, non-destructive long-term maintenance packet. The command will read current evidence, summarize maintenance domains, expose refresh commands and manual review queues, and write JSON/Markdown artifacts. It will not install schedulers, send alerts, apply patches, create tickets, mutate dependency files, or contact external services.

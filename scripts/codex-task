@@ -10582,6 +10582,607 @@ def handle_template_quality_score(args: argparse.Namespace) -> None:
         raise TaskError("Template quality scorecard aggregate status is not pass")
 
 
+MAINTENANCE_NON_GOALS: Tuple[str, ...] = (
+    "No cron job, scheduler, daemon, background worker, long-running maintenance service, or hosted monitor is installed.",
+    "No Slack, email, PagerDuty, webhook, issue, PR, ticket, or notification is created or sent.",
+    "No security patch, dependency update, cleanup action, rollback, remediation, formatting rewrite, or template mutation is applied.",
+    "No live dashboard, time-series database, BI report, external observability service, vulnerability database, or package registry API is contacted.",
+    "No Taskmaster, Git, session, plan, work-tracking, scanner, report, dependency manifest, or external state is mutated beyond requested maintenance packet artifacts.",
+)
+
+MAINTENANCE_REFRESH_COMMANDS: Tuple[str, ...] = (
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/<label>.json --runbook-file reports/operational-runbook/<label>.md",
+    "python3 scripts/codex-task migration monitoring --metrics-report <migration-metrics.json> --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md",
+    "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+    "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+)
+
+MAINTENANCE_STATUS_POINTS: Dict[str, int] = {
+    "ready": 100,
+    "review": 70,
+    "missing": 40,
+    "blocked": 0,
+}
+
+
+def _maintenance_path_state(path_value: Path | str) -> Dict[str, Any]:
+    path = _success_metrics_path(path_value)
+    if path.is_dir():
+        kind = "directory"
+    elif path.is_file():
+        kind = "file"
+    else:
+        kind = "missing"
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": path.exists(),
+        "kind": kind,
+    }
+
+
+def _maintenance_source_status(payload: Mapping[str, Any]) -> str:
+    candidates: List[object] = [
+        payload.get("aggregate_status"),
+        payload.get("status"),
+        payload.get("overall_status"),
+    ]
+    summary = payload.get("summary")
+    if isinstance(summary, Mapping):
+        candidates.extend(
+            [
+                summary.get("aggregate_status"),
+                summary.get("status"),
+                summary.get("overall_status"),
+            ]
+        )
+    for candidate in candidates:
+        if candidate not in (None, ""):
+            return _success_metrics_status(candidate)
+    return "pass"
+
+
+def _maintenance_status_from_source(status: str) -> str:
+    if status in {"pass", "ready"}:
+        return "ready"
+    if status == "missing":
+        return "missing"
+    if status == "invalid":
+        return "blocked"
+    return "review"
+
+
+def _maintenance_domain(
+    *,
+    domain_id: str,
+    title: str,
+    cadence: str,
+    purpose: str,
+    status: str,
+    evidence: Sequence[Mapping[str, Any]],
+    refresh_commands: Sequence[str],
+    message: str,
+    details: Optional[Mapping[str, Any]] = None,
+    manual_actions: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    return {
+        "id": domain_id,
+        "title": title,
+        "cadence": cadence,
+        "purpose": purpose,
+        "status": status,
+        "score": MAINTENANCE_STATUS_POINTS.get(status, 0),
+        "evidence": [dict(item) for item in evidence],
+        "refresh_commands": list(refresh_commands),
+        "message": message,
+        "details": dict(details or {}),
+        "manual_actions": list(manual_actions or []),
+    }
+
+
+def _maintenance_source_domain(
+    *,
+    domain_id: str,
+    title: str,
+    cadence: str,
+    purpose: str,
+    evidence_path: Path | str,
+    refresh_commands: Sequence[str],
+    missing_message: str,
+    manual_actions: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    source = _success_metrics_load_json(evidence_path)
+    evidence = [_maintenance_path_state(source["path"])]
+    if source["status"] == "missing":
+        return _maintenance_domain(
+            domain_id=domain_id,
+            title=title,
+            cadence=cadence,
+            purpose=purpose,
+            status="missing",
+            evidence=evidence,
+            refresh_commands=refresh_commands,
+            message=missing_message,
+            details={"source_status": "missing"},
+            manual_actions=[f"Regenerate evidence with `{refresh_commands[0]}`."] if refresh_commands else [],
+        )
+    if source["status"] == "invalid":
+        return _maintenance_domain(
+            domain_id=domain_id,
+            title=title,
+            cadence=cadence,
+            purpose=purpose,
+            status="blocked",
+            evidence=evidence,
+            refresh_commands=refresh_commands,
+            message=str(source["message"]),
+            details={"source_status": "invalid"},
+            manual_actions=[f"Regenerate valid JSON with `{refresh_commands[0]}`."] if refresh_commands else [],
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    source_status = _maintenance_source_status(payload)
+    status = _maintenance_status_from_source(source_status)
+    actions = list(manual_actions or [])
+    if status == "review" and not actions:
+        actions.append("Review source report warnings/failures before claiming this maintenance domain is ready.")
+    return _maintenance_domain(
+        domain_id=domain_id,
+        title=title,
+        cadence=cadence,
+        purpose=purpose,
+        status=status,
+        evidence=evidence,
+        refresh_commands=refresh_commands,
+        message=f"Source report status is `{source_status}`.",
+        details={"source_status": source_status, "source_path": source["path"]},
+        manual_actions=actions,
+    )
+
+
+def _build_maintenance_workflow_domain() -> Dict[str, Any]:
+    workflow = _workflow_snapshot()
+    taskmaster = _taskmaster_snapshot()
+    current_session = workflow.get("current_session") if isinstance(workflow.get("current_session"), Mapping) else {}
+    current_plan = workflow.get("current_plan") if isinstance(workflow.get("current_plan"), Mapping) else {}
+    active = workflow.get("active_work_tracking") if isinstance(workflow.get("active_work_tracking"), list) else []
+    invalid_refs = taskmaster.get("invalid_refs") if isinstance(taskmaster.get("invalid_refs"), list) else []
+    review_items: List[str] = []
+    if not current_session.get("resolved"):
+        review_items.append("sessions/current is missing or unresolved.")
+    if not current_plan.get("resolved"):
+        review_items.append("plans/current is missing or unresolved.")
+    if len(active) != 1:
+        review_items.append(f"Expected exactly one ACTIVE work-tracking folder; found {len(active)}.")
+    if invalid_refs:
+        review_items.append("Taskmaster dependency graph has invalid references.")
+    status = "ready" if not review_items else "blocked" if invalid_refs else "review"
+    return _maintenance_domain(
+        domain_id="workflow-health",
+        title="Workflow health",
+        cadence="daily",
+        purpose="Confirm session, plan, work-tracking, guard, and Taskmaster state stay coherent.",
+        status=status,
+        evidence=[
+            _maintenance_path_state(current_session.get("resolved") or current_session.get("path") or "sessions/current"),
+            _maintenance_path_state(current_plan.get("resolved") or current_plan.get("path") or "plans/current"),
+            _maintenance_path_state(TASKMASTER_TASKS_JSON),
+        ],
+        refresh_commands=(
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+        message="Workflow pointers and Taskmaster graph are aligned." if not review_items else "Workflow maintenance review is needed.",
+        details={"workflow": workflow, "taskmaster_summary": taskmaster.get("summary"), "invalid_refs": invalid_refs},
+        manual_actions=review_items,
+    )
+
+
+def _build_maintenance_operational_domain() -> Dict[str, Any]:
+    readme = _maintenance_path_state("reports/operational-runbook/README.md")
+    status = "ready" if readme["exists"] else "missing"
+    return _maintenance_domain(
+        domain_id="operational-cadence",
+        title="Operational cadence",
+        cadence="daily/weekly/monthly/quarterly/yearly",
+        purpose="Keep reusable daily work, recurring maintenance, escalation, troubleshooting, and validation procedures available.",
+        status=status,
+        evidence=[readme],
+        refresh_commands=(
+            "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/<label>.json --runbook-file reports/operational-runbook/<label>.md",
+        ),
+        message="Operational runbook command is documented." if status == "ready" else "Operational runbook documentation is missing.",
+        manual_actions=[] if status == "ready" else ["Restore `reports/operational-runbook/README.md` and regenerate the operational runbook packet."],
+    )
+
+
+def _build_maintenance_post_migration_domain() -> Dict[str, Any]:
+    latest = _success_metrics_latest("*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json")
+    path: Path | str = latest or "reports/post-migration-monitoring/latest.json"
+    return _maintenance_source_domain(
+        domain_id="post-migration-monitoring",
+        title="Post-migration monitoring",
+        cadence="weekly/monthly/quarterly/yearly",
+        purpose="Track migration-health and recurring monitoring review status without live observability services.",
+        evidence_path=path,
+        refresh_commands=(
+            "python3 scripts/codex-task migration monitoring --metrics-report <migration-metrics.json> --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",
+        ),
+        missing_message="Post-migration monitoring evidence is missing.",
+    )
+
+
+def _build_maintenance_performance_domain() -> Dict[str, Any]:
+    return _maintenance_source_domain(
+        domain_id="performance-baseline",
+        title="Performance baseline",
+        cadence="quarterly",
+        purpose="Keep static performance telemetry current and review regression evidence.",
+        evidence_path="reports/template-performance/latest.json",
+        refresh_commands=("python3 scripts/template-performance-harness --strict",),
+        missing_message="Template performance baseline evidence is missing.",
+    )
+
+
+def _build_maintenance_template_quality_domain() -> Dict[str, Any]:
+    latest = _success_metrics_latest("*-task65-template-quality-scoring-COMPLETED/reports/template-quality-scoring/template-quality-score-*-final.json")
+    path: Path | str = latest or "reports/template-quality/latest.json"
+    return _maintenance_source_domain(
+        domain_id="template-quality",
+        title="Template quality",
+        cadence="monthly",
+        purpose="Keep the static quality scorecard and improvement queue current.",
+        evidence_path=path,
+        refresh_commands=(
+            "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md",
+        ),
+        missing_message="Template quality scorecard evidence is missing.",
+    )
+
+
+def _build_maintenance_cleanup_domain() -> Dict[str, Any]:
+    latest = _success_metrics_latest("*-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-*-final.json")
+    path: Path | str = latest or "reports/cleanup-automation/latest.json"
+    return _maintenance_source_domain(
+        domain_id="cleanup-readiness",
+        title="Cleanup readiness",
+        cadence="monthly",
+        purpose="Keep cleanup candidates, approval gates, and dry-run checks visible without deleting or moving files.",
+        evidence_path=path,
+        refresh_commands=(
+            "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+        ),
+        missing_message="Cleanup planning evidence is missing.",
+    )
+
+
+def _build_maintenance_security_domain() -> Dict[str, Any]:
+    latest = _success_metrics_latest("*-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-*.json")
+    path: Path | str = latest or "reports/security-audit-process/latest.json"
+    source = _success_metrics_load_json(path)
+    evidence = [_maintenance_path_state(source["path"])]
+    if source["status"] == "missing":
+        return _maintenance_domain(
+            domain_id="security-maintenance",
+            title="Security maintenance",
+            cadence="monthly",
+            purpose="Keep security validation and manual patch-review evidence current.",
+            status="missing",
+            evidence=evidence,
+            refresh_commands=(
+                "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+            ),
+            message="Security audit evidence is missing.",
+            manual_actions=["Regenerate the security audit packet before claiming security maintenance is reviewed."],
+        )
+    if source["status"] == "invalid":
+        return _maintenance_domain(
+            domain_id="security-maintenance",
+            title="Security maintenance",
+            cadence="monthly",
+            purpose="Keep security validation and manual patch-review evidence current.",
+            status="blocked",
+            evidence=evidence,
+            refresh_commands=(
+                "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+            ),
+            message=str(source["message"]),
+            manual_actions=["Regenerate a valid security audit JSON packet."],
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    controls = payload.get("controls") if isinstance(payload.get("controls"), list) else []
+    available = sum(1 for control in controls if isinstance(control, Mapping) and control.get("status") == "available")
+    non_available = [
+        str(control.get("id"))
+        for control in controls
+        if isinstance(control, Mapping) and control.get("status") != "available"
+    ]
+    status = "ready" if controls and not non_available else "review"
+    actions = [f"Review security control evidence for: {', '.join(non_available)}."] if non_available else []
+    actions.append("Perform dependency vulnerability review manually; this packet does not contact CVE databases or package registries.")
+    return _maintenance_domain(
+        domain_id="security-maintenance",
+        title="Security maintenance",
+        cadence="monthly",
+        purpose="Keep security validation and manual patch-review evidence current.",
+        status=status,
+        evidence=evidence,
+        refresh_commands=(
+            "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+        ),
+        message=f"Security audit reports {available}/{len(controls)} available control(s).",
+        details={"available_controls": available, "total_controls": len(controls), "non_available_controls": non_available},
+        manual_actions=actions,
+    )
+
+
+def _build_maintenance_dependency_domain() -> Dict[str, Any]:
+    candidates = ("pyproject.toml", "requirements.txt", "package.json", "package-lock.json", "pnpm-lock.yaml")
+    states = [_maintenance_path_state(candidate) for candidate in candidates]
+    present = [state for state in states if state["exists"]]
+    status = "ready" if present else "missing"
+    actions = [
+        "Review dependency updates manually before changing manifests.",
+        "Run the relevant test and guard suite after any future dependency change.",
+        "Do not claim vulnerability coverage unless a future task adds explicit CVE/SBOM evidence.",
+    ]
+    return _maintenance_domain(
+        domain_id="dependency-maintenance",
+        title="Dependency maintenance",
+        cadence="monthly",
+        purpose="Keep dependency inventory and update review guidance visible without applying updates.",
+        status=status,
+        evidence=states,
+        refresh_commands=(
+            "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+            "python3 -m pytest tests/meta_workflow_guard/test_codex_task.py",
+        ),
+        message=f"Found {len(present)} dependency manifest(s)." if present else "No dependency manifest evidence found.",
+        details={"present_manifests": [state["path"] for state in present]},
+        manual_actions=actions,
+    )
+
+
+def _build_maintenance_domains() -> List[Dict[str, Any]]:
+    return [
+        _build_maintenance_workflow_domain(),
+        _build_maintenance_operational_domain(),
+        _build_maintenance_post_migration_domain(),
+        _build_maintenance_performance_domain(),
+        _build_maintenance_template_quality_domain(),
+        _build_maintenance_cleanup_domain(),
+        _build_maintenance_security_domain(),
+        _build_maintenance_dependency_domain(),
+    ]
+
+
+def _summarise_maintenance_domains(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    counts = Counter(str(domain.get("status")) for domain in domains)
+    total = len(domains)
+    score = round(sum(float(domain.get("score", 0) or 0) for domain in domains) / total, 2) if total else 0.0
+    if counts.get("blocked"):
+        aggregate_status = "blocked"
+    elif counts.get("missing") or counts.get("review"):
+        aggregate_status = "needs-review"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "maintenance_score_pct": score,
+        "total_domains": total,
+        "ready": counts.get("ready", 0),
+        "review": counts.get("review", 0),
+        "missing": counts.get("missing", 0),
+        "blocked": counts.get("blocked", 0),
+    }
+
+
+def _maintenance_action_queue(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    queue: List[Dict[str, Any]] = []
+    for domain in domains:
+        if domain.get("status") == "ready" and not domain.get("manual_actions"):
+            continue
+        for action in domain.get("manual_actions", []) or []:
+            queue.append(
+                {
+                    "domain": domain.get("id"),
+                    "status": domain.get("status"),
+                    "cadence": domain.get("cadence"),
+                    "action": action,
+                }
+            )
+    return queue
+
+
+def _maintenance_gates(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    domain_by_id = {str(domain.get("id")): domain for domain in domains}
+    gate_ids = (
+        ("workflow-health", "Workflow pointers, guard, and Taskmaster health stay coherent."),
+        ("performance-baseline", "Performance telemetry remains current."),
+        ("template-quality", "Template quality scorecard is available for review."),
+        ("security-maintenance", "Security audit and patch-review evidence is current."),
+        ("dependency-maintenance", "Dependency inventory and manual update process are visible."),
+    )
+    return [
+        {
+            "gate": gate_id,
+            "status": str(domain_by_id.get(gate_id, {}).get("status", "missing")),
+            "target": target,
+        }
+        for gate_id, target in gate_ids
+    ]
+
+
+def _build_maintenance_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    domains = _build_maintenance_domains()
+    summary = _summarise_maintenance_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label or "long-term-maintenance",
+        "mode": "static-non-destructive-long-term-maintenance-plan",
+        "executes_mutations": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "maintenance_gates": _maintenance_gates(domains),
+        "manual_action_queue": _maintenance_action_queue(domains),
+        "recommended_refresh_commands": list(MAINTENANCE_REFRESH_COMMANDS),
+        "non_goals": list(MAINTENANCE_NON_GOALS),
+    }
+
+
+def _render_maintenance_plan(report: Dict[str, Any]) -> str:
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    lines = [
+        "# Long-term Maintenance Plan",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes mutations: {report.get('executes_mutations')}",
+        f"- Aggregate status: `{summary.get('aggregate_status')}`",
+        f"- Maintenance score: {summary.get('maintenance_score_pct')}%",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Maintenance Domains",
+        "",
+        "| Domain | Cadence | Status | Score | Evidence |",
+        "| --- | --- | --- | ---: | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        evidence_paths = [
+            str(item.get("path"))
+            for item in domain.get("evidence", [])
+            if isinstance(item, Mapping)
+        ]
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(domain.get('cadence'))} | "
+            f"`{_md_cell(domain.get('status'))}` | {domain.get('score')} | {_md_cell(', '.join(evidence_paths) or 'None')} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Cadence: {domain.get('cadence')}",
+                f"- Status: `{domain.get('status')}`",
+                f"- Purpose: {domain.get('purpose')}",
+                f"- Message: {domain.get('message')}",
+                "",
+                "Refresh commands:",
+            ]
+        )
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        actions = domain.get("manual_actions", [])
+        if actions:
+            lines.extend(["", "Manual actions:"])
+            for action in actions:
+                lines.append(f"- {action}")
+        lines.append("")
+
+    lines.extend(["## Maintenance Gates", ""])
+    for gate in report.get("maintenance_gates", []):
+        if isinstance(gate, Mapping):
+            lines.append(f"- `{gate.get('gate')}`: `{gate.get('status')}` - {gate.get('target')}")
+
+    lines.extend(["", "## Manual Action Queue", ""])
+    queue = report.get("manual_action_queue", [])
+    if queue:
+        for item in queue:
+            if isinstance(item, Mapping):
+                lines.append(f"- `{item.get('domain')}` ({item.get('status')}, {item.get('cadence')}): {item.get('action')}")
+    else:
+        lines.append("- No manual review actions for the current maintenance inputs.")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This maintenance plan is static and evidence-based. It composes existing repository reports and requested output files only; it does not install schedulers, send alerts, apply patches, update dependencies, create tickets, mutate templates, or contact external services.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_maintenance_plan(args: argparse.Namespace) -> None:
+    report = _build_maintenance_plan(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_maintenance_plan(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] != "ready":
+            raise TaskError("Long-term maintenance aggregate status is not ready")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote long-term maintenance plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote long-term maintenance runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] != "ready":
+        raise TaskError("Long-term maintenance aggregate status is not ready")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -14141,6 +14742,19 @@ def build_parser() -> argparse.ArgumentParser:
     cleanup_plan.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate cleanup planning status is not ready")
     cleanup_plan.add_argument("--dry-run", action="store_true", help="Print the cleanup planning JSON without writing files")
     cleanup_plan.set_defaults(func=handle_cleanup_plan)
+
+    maintenance_parser = subparsers.add_parser("maintenance", help="Long-term maintenance planning operations")
+    maintenance_sub = maintenance_parser.add_subparsers(dest="subcommand", required=True)
+    maintenance_plan = maintenance_sub.add_parser(
+        "plan",
+        help="Render a static non-destructive long-term maintenance packet",
+    )
+    maintenance_plan.add_argument("--label", default="long-term-maintenance", help="Human-readable planning label")
+    maintenance_plan.add_argument("--report-file", help="Optional path to write the maintenance planning JSON")
+    maintenance_plan.add_argument("--runbook-file", help="Optional path to write the maintenance planning Markdown")
+    maintenance_plan.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate maintenance status is not ready")
+    maintenance_plan.add_argument("--dry-run", action="store_true", help="Print the maintenance planning JSON without writing files")
+    maintenance_plan.set_defaults(func=handle_maintenance_plan)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)

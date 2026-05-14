@@ -1,0 +1,497 @@
+{
+  "created_at": "2026-05-14T19:27:48+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-70-long-term-maintenance",
+      "head": "3cfd7f99f7072284b21cc7e79f11a32092ce3006",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_070.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task70_long_term_maintenance_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task70-long-term-maintenance.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/maintenance/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-009-task70-long-term-maintenance.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 166,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_completion.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_completion.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_kickoff.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_completion.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_kickoff.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_completion.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "58c8dbc29a67b56d151143fa629b79fe75911624f471d8d2a86f19f190a26674",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 100,
+          "in-progress": 1,
+          "pending": 7
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task70-long-term-maintenance.md",
+        "sha256": "d1558f9ef312d10a54faeea738cfe630c1fdfcbd82a6d00fb75d494c8273393b",
+        "target": "2026-05-14-task70-long-term-maintenance.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-009-task70-long-term-maintenance.md",
+        "sha256": "3d31306ee69c4790b28419e30e51abc34db7427275d34285939247beebebeef9",
+        "target": "2026/05/2026-05-14-009-task70-long-term-maintenance.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "f4ba6b6d54463d5667a06cd5ecf4748ea78743b2c19a8b1d46ba96264047624d"
+      }
+    }
+  },
+  "domains": [
+    {
+      "cadence": "daily",
+      "details": {
+        "invalid_refs": [],
+        "taskmaster_summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 100,
+            "in-progress": 1,
+            "pending": 7
+          },
+          "subtasks": 304,
+          "tasks": 108
+        },
+        "workflow": {
+          "active_work_tracking": [
+            "docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE"
+          ],
+          "current_plan": {
+            "exists": true,
+            "is_symlink": true,
+            "path": "plans/current",
+            "resolved": "plans/2026-05-14-task70-long-term-maintenance.md",
+            "sha256": "d1558f9ef312d10a54faeea738cfe630c1fdfcbd82a6d00fb75d494c8273393b",
+            "target": "2026-05-14-task70-long-term-maintenance.md"
+          },
+          "current_session": {
+            "exists": true,
+            "is_symlink": true,
+            "path": "sessions/current",
+            "resolved": "sessions/2026/05/2026-05-14-009-task70-long-term-maintenance.md",
+            "sha256": "3d31306ee69c4790b28419e30e51abc34db7427275d34285939247beebebeef9",
+            "target": "2026/05/2026-05-14-009-task70-long-term-maintenance.md"
+          },
+          "session_state": {
+            "exists": true,
+            "path": "sessions/state.json",
+            "sha256": "f4ba6b6d54463d5667a06cd5ecf4748ea78743b2c19a8b1d46ba96264047624d"
+          }
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "sessions/2026/05/2026-05-14-009-task70-long-term-maintenance.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "plans/2026-05-14-task70-long-term-maintenance.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".taskmaster/tasks/tasks.json"
+        }
+      ],
+      "id": "workflow-health",
+      "manual_actions": [],
+      "message": "Workflow pointers and Taskmaster graph are aligned.",
+      "purpose": "Confirm session, plan, work-tracking, guard, and Taskmaster state stay coherent.",
+      "refresh_commands": [
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "score": 100,
+      "status": "ready",
+      "title": "Workflow health"
+    },
+    {
+      "cadence": "daily/weekly/monthly/quarterly/yearly",
+      "details": {},
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/operational-runbook/README.md"
+        }
+      ],
+      "id": "operational-cadence",
+      "manual_actions": [],
+      "message": "Operational runbook command is documented.",
+      "purpose": "Keep reusable daily work, recurring maintenance, escalation, troubleshooting, and validation procedures available.",
+      "refresh_commands": [
+        "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/<label>.json --runbook-file reports/operational-runbook/<label>.md"
+      ],
+      "score": 100,
+      "status": "ready",
+      "title": "Operational cadence"
+    },
+    {
+      "cadence": "weekly/monthly/quarterly/yearly",
+      "details": {
+        "source_path": "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json",
+        "source_status": "fail"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json"
+        }
+      ],
+      "id": "post-migration-monitoring",
+      "manual_actions": [
+        "Review source report warnings/failures before claiming this maintenance domain is ready."
+      ],
+      "message": "Source report status is `fail`.",
+      "purpose": "Track migration-health and recurring monitoring review status without live observability services.",
+      "refresh_commands": [
+        "python3 scripts/codex-task migration monitoring --metrics-report <migration-metrics.json> --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md"
+      ],
+      "score": 70,
+      "status": "review",
+      "title": "Post-migration monitoring"
+    },
+    {
+      "cadence": "quarterly",
+      "details": {
+        "source_path": "reports/template-performance/latest.json",
+        "source_status": "pass"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/template-performance/latest.json"
+        }
+      ],
+      "id": "performance-baseline",
+      "manual_actions": [],
+      "message": "Source report status is `pass`.",
+      "purpose": "Keep static performance telemetry current and review regression evidence.",
+      "refresh_commands": [
+        "python3 scripts/template-performance-harness --strict"
+      ],
+      "score": 100,
+      "status": "ready",
+      "title": "Performance baseline"
+    },
+    {
+      "cadence": "monthly",
+      "details": {
+        "source_path": "docs/ai/work-tracking/archive/20260514-task65-template-quality-scoring-COMPLETED/reports/template-quality-scoring/template-quality-score-2026-05-14-final.json",
+        "source_status": "pass"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task65-template-quality-scoring-COMPLETED/reports/template-quality-scoring/template-quality-score-2026-05-14-final.json"
+        }
+      ],
+      "id": "template-quality",
+      "manual_actions": [],
+      "message": "Source report status is `pass`.",
+      "purpose": "Keep the static quality scorecard and improvement queue current.",
+      "refresh_commands": [
+        "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md"
+      ],
+      "score": 100,
+      "status": "ready",
+      "title": "Template quality"
+    },
+    {
+      "cadence": "monthly",
+      "details": {
+        "source_path": "docs/ai/work-tracking/archive/20260514-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-2026-05-14-final.json",
+        "source_status": "pass"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-2026-05-14-final.json"
+        }
+      ],
+      "id": "cleanup-readiness",
+      "manual_actions": [],
+      "message": "Source report status is `pass`.",
+      "purpose": "Keep cleanup candidates, approval gates, and dry-run checks visible without deleting or moving files.",
+      "refresh_commands": [
+        "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md"
+      ],
+      "score": 100,
+      "status": "ready",
+      "title": "Cleanup readiness"
+    },
+    {
+      "cadence": "monthly",
+      "details": {
+        "available_controls": 4,
+        "non_available_controls": [
+          "phase0-security-gate"
+        ],
+        "total_controls": 5
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json"
+        }
+      ],
+      "id": "security-maintenance",
+      "manual_actions": [
+        "Review security control evidence for: phase0-security-gate.",
+        "Perform dependency vulnerability review manually; this packet does not contact CVE databases or package registries."
+      ],
+      "message": "Security audit reports 4/5 available control(s).",
+      "purpose": "Keep security validation and manual patch-review evidence current.",
+      "refresh_commands": [
+        "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md"
+      ],
+      "score": 70,
+      "status": "review",
+      "title": "Security maintenance"
+    },
+    {
+      "cadence": "monthly",
+      "details": {
+        "present_manifests": [
+          "pyproject.toml"
+        ]
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "pyproject.toml"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "requirements.txt"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "package.json"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "package-lock.json"
+        },
+        {
+          "exists": false,
+          "kind": "missing",
+          "path": "pnpm-lock.yaml"
+        }
+      ],
+      "id": "dependency-maintenance",
+      "manual_actions": [
+        "Review dependency updates manually before changing manifests.",
+        "Run the relevant test and guard suite after any future dependency change.",
+        "Do not claim vulnerability coverage unless a future task adds explicit CVE/SBOM evidence."
+      ],
+      "message": "Found 1 dependency manifest(s).",
+      "purpose": "Keep dependency inventory and update review guidance visible without applying updates.",
+      "refresh_commands": [
+        "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+        "python3 -m pytest tests/meta_workflow_guard/test_codex_task.py"
+      ],
+      "score": 100,
+      "status": "ready",
+      "title": "Dependency maintenance"
+    }
+  ],
+  "executes_mutations": false,
+  "label": "task70-long-term-maintenance",
+  "maintenance_gates": [
+    {
+      "gate": "workflow-health",
+      "status": "ready",
+      "target": "Workflow pointers, guard, and Taskmaster health stay coherent."
+    },
+    {
+      "gate": "performance-baseline",
+      "status": "ready",
+      "target": "Performance telemetry remains current."
+    },
+    {
+      "gate": "template-quality",
+      "status": "ready",
+      "target": "Template quality scorecard is available for review."
+    },
+    {
+      "gate": "security-maintenance",
+      "status": "review",
+      "target": "Security audit and patch-review evidence is current."
+    },
+    {
+      "gate": "dependency-maintenance",
+      "status": "ready",
+      "target": "Dependency inventory and manual update process are visible."
+    }
+  ],
+  "manual_action_queue": [
+    {
+      "action": "Review source report warnings/failures before claiming this maintenance domain is ready.",
+      "cadence": "weekly/monthly/quarterly/yearly",
+      "domain": "post-migration-monitoring",
+      "status": "review"
+    },
+    {
+      "action": "Review security control evidence for: phase0-security-gate.",
+      "cadence": "monthly",
+      "domain": "security-maintenance",
+      "status": "review"
+    },
+    {
+      "action": "Perform dependency vulnerability review manually; this packet does not contact CVE databases or package registries.",
+      "cadence": "monthly",
+      "domain": "security-maintenance",
+      "status": "review"
+    },
+    {
+      "action": "Review dependency updates manually before changing manifests.",
+      "cadence": "monthly",
+      "domain": "dependency-maintenance",
+      "status": "ready"
+    },
+    {
+      "action": "Run the relevant test and guard suite after any future dependency change.",
+      "cadence": "monthly",
+      "domain": "dependency-maintenance",
+      "status": "ready"
+    },
+    {
+      "action": "Do not claim vulnerability coverage unless a future task adds explicit CVE/SBOM evidence.",
+      "cadence": "monthly",
+      "domain": "dependency-maintenance",
+      "status": "ready"
+    }
+  ],
+  "mode": "static-non-destructive-long-term-maintenance-plan",
+  "non_goals": [
+    "No cron job, scheduler, daemon, background worker, long-running maintenance service, or hosted monitor is installed.",
+    "No Slack, email, PagerDuty, webhook, issue, PR, ticket, or notification is created or sent.",
+    "No security patch, dependency update, cleanup action, rollback, remediation, formatting rewrite, or template mutation is applied.",
+    "No live dashboard, time-series database, BI report, external observability service, vulnerability database, or package registry API is contacted.",
+    "No Taskmaster, Git, session, plan, work-tracking, scanner, report, dependency manifest, or external state is mutated beyond requested maintenance packet artifacts."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/<label>.json --runbook-file reports/operational-runbook/<label>.md",
+    "python3 scripts/codex-task migration monitoring --metrics-report <migration-metrics.json> --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md",
+    "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+    "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md"
+  ],
+  "summary": {
+    "aggregate_status": "needs-review",
+    "blocked": 0,
+    "maintenance_score_pct": 92.5,
+    "missing": 0,
+    "ready": 6,
+    "review": 2,
+    "total_domains": 8
+  },
+  "version": 1
+}
