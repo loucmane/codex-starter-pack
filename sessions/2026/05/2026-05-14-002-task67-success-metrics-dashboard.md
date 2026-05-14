@@ -21,8 +21,8 @@ title: Task 67 - Create Success Metrics Dashboard
 - [x] Scaffold Task 67 work tracking.
 - [x] Repoint `sessions/current` and `plans/current` to Task 67.
 - [x] Mark Taskmaster Task 67 in progress and update its generated task file.
-- [ ] Review the design baseline and implementation boundary for Create Success Metrics Dashboard.
-- [ ] Capture implementation and verification evidence.
+- [x] Review the design baseline and implementation boundary for Create Success Metrics Dashboard.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 67 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -39,3 +39,5 @@ Task 67 was kicked off via `python3 scripts/codex-task wizard kickoff`, which cr
 - **[11:46]** — [S:20260514|W:task67-success-metrics-dashboard|H:task-master:set-status|E:.taskmaster/tasks/task_067.txt] Marked Taskmaster Task 67, 67.1, and 67.2 done; parent details remain historically worded because the AI-backed `update-task` path failed in the sandbox/home-cache environment
 - **[11:46]** — [S:20260514|W:task67-success-metrics-dashboard|H:verification/final|E:docs/ai/work-tracking/active/20260514-task67-success-metrics-dashboard-ACTIVE/reports/success-metrics-dashboard/guard-2026-05-14-final.txt] Prepared final verification evidence set for plan sync, audit, Taskmaster health, guard, diff-check, and focused pytest
 - **[11:48]** — [S:20260514|W:task67-success-metrics-dashboard|H:serena/memory|E:.serena/memories/2026-05-14_task67_success_metrics_dashboard_completion.md] Captured Serena completion memory with implemented surface, evidence, and Taskmaster update-task limitation
+- **[12:14]** — [S:20260514|W:task67.archive|H:github:pr-94|E:https://github.com/loucmane/codex-starter-pack/pull/94] Merged Task 67 PR #94 after guard and Python matrix checks passed.
+- **[12:14]** — [S:20260514|W:task67.post-archive|H:archive-verification|E:docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/post-archive-guard-2026-05-14.txt] Archived Task 67 work tracking, cleared session/plan pointers, and prepared post-archive verification evidence.

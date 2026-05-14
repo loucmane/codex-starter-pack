@@ -13,3 +13,4 @@
 - Review final verification evidence under `reports/success-metrics-dashboard/`.
 - Open the PR for Task 67 from `feat/task-67-success-metrics-dashboard`.
 - After PR merge, archive this work-tracking folder and clear active session/plan pointers.
+- Archived on 2026-05-14 12:13 CEST — Folder moved to archive and tracker marked COMPLETED.
