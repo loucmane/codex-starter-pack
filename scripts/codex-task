@@ -6138,6 +6138,568 @@ def handle_knowledge_transfer_review(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+SUCCESS_METRICS_NON_GOALS: Tuple[str, ...] = (
+    "No React/Vue UI, hosted dashboard, WebSocket, database, time-series storage, Prometheus/Grafana integration, analytics backend, or external service is created or contacted.",
+    "No predictive model, machine-learning service, alert delivery, notification, scheduler, ticket, or communication system is created or contacted.",
+    "No source report, Taskmaster, session, plan, work-tracking, Git, template, scanner, or external state is mutated beyond requested success metrics artifacts.",
+)
+
+SUCCESS_METRICS_STATUS_POINTS: Dict[str, int] = {
+    "pass": 100,
+    "warn": 50,
+    "missing": 50,
+    "fail": 0,
+}
+
+
+def _success_metrics_path(path_value: Path | str) -> Path:
+    path = Path(path_value)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    return path
+
+
+def _success_metrics_latest(pattern: str) -> Optional[Path]:
+    candidates = sorted(REPO_STRUCTURE.work_tracking_archive_root.glob(pattern))
+    return candidates[-1] if candidates else None
+
+
+def _success_metrics_load_json(path_value: Path | str) -> Dict[str, Any]:
+    path = _success_metrics_path(path_value)
+    payload: Optional[Mapping[str, Any]] = None
+    message = "Loaded successfully."
+    status = "loaded"
+    if not path.exists():
+        return {
+            "path": _relative_to_root(path, REPO_ROOT),
+            "exists": False,
+            "status": "missing",
+            "payload": None,
+            "message": "Source report is missing.",
+        }
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {
+            "path": _relative_to_root(path, REPO_ROOT),
+            "exists": True,
+            "status": "invalid",
+            "payload": None,
+            "message": f"Source report is not valid JSON: {exc}",
+        }
+    if not isinstance(loaded, Mapping):
+        status = "invalid"
+        message = "Source report payload must be a JSON object."
+    else:
+        payload = loaded
+    return {
+        "path": _relative_to_root(path, REPO_ROOT),
+        "exists": True,
+        "status": status,
+        "payload": payload,
+        "message": message,
+    }
+
+
+def _success_metrics_status(value: object) -> str:
+    text = str(value or "missing").strip().lower()
+    aliases = {
+        "ok": "pass",
+        "passed": "pass",
+        "success": "pass",
+        "ready": "pass",
+        "warning": "warn",
+        "warnings": "warn",
+        "needs-evidence": "warn",
+        "needs_evidence": "warn",
+        "missing": "missing",
+        "error": "fail",
+        "failed": "fail",
+        "failure": "fail",
+        "needs-implementation": "fail",
+        "needs_implementation": "fail",
+    }
+    text = aliases.get(text, text)
+    if text in SUCCESS_METRICS_STATUS_POINTS:
+        return text
+    return "warn"
+
+
+def _success_metrics_severity(status: str) -> str:
+    if status == "fail":
+        return "error"
+    if status in {"warn", "missing"}:
+        return "warning"
+    return "info"
+
+
+def _success_metrics_domain(
+    *,
+    domain_id: str,
+    title: str,
+    value: object,
+    unit: str,
+    target: str,
+    status: str,
+    evidence: str,
+    message: str,
+    refresh_command: str,
+    details: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    normalised = _success_metrics_status(status)
+    return {
+        "id": domain_id,
+        "title": title,
+        "value": value,
+        "unit": unit,
+        "target": target,
+        "status": normalised,
+        "severity": _success_metrics_severity(normalised),
+        "evidence": evidence,
+        "message": message,
+        "refresh_command": refresh_command,
+        "details": dict(details or {}),
+    }
+
+
+def _build_success_taskmaster_domain() -> Dict[str, Any]:
+    snapshot = _taskmaster_snapshot()
+    summary = snapshot.get("summary") if isinstance(snapshot.get("summary"), Mapping) else {}
+    status_counts = summary.get("status_counts") if isinstance(summary.get("status_counts"), Mapping) else {}
+    total_tasks = int(summary.get("tasks") or 0)
+    done_tasks = int(status_counts.get("done", 0) or 0)
+    invalid_refs = int(summary.get("invalid_refs") or 0)
+    completion_pct = round((done_tasks / total_tasks) * 100, 2) if total_tasks else None
+    if not snapshot.get("exists"):
+        status = "missing"
+        message = "Taskmaster task database is missing."
+    elif invalid_refs:
+        status = "fail"
+        message = f"{invalid_refs} invalid Taskmaster dependency reference(s) block success claims."
+    else:
+        status = "pass"
+        message = "Taskmaster dependency graph is healthy."
+    return _success_metrics_domain(
+        domain_id="taskmaster-health",
+        title="Taskmaster health",
+        value=completion_pct,
+        unit="percent done",
+        target="0 invalid dependency refs",
+        status=status,
+        evidence=str(snapshot.get("path")),
+        message=message,
+        refresh_command="python3 scripts/codex-task taskmaster health",
+        details={
+            "tag": snapshot.get("tag"),
+            "summary": summary,
+            "invalid_refs": snapshot.get("invalid_refs") or [],
+        },
+    )
+
+
+def _build_success_workflow_domain() -> Dict[str, Any]:
+    workflow = _workflow_snapshot()
+    current_session = workflow.get("current_session") if isinstance(workflow.get("current_session"), Mapping) else {}
+    current_plan = workflow.get("current_plan") if isinstance(workflow.get("current_plan"), Mapping) else {}
+    active = workflow.get("active_work_tracking") if isinstance(workflow.get("active_work_tracking"), list) else []
+    blockers = []
+    if not current_session.get("resolved"):
+        blockers.append("sessions/current missing")
+    if not current_plan.get("resolved"):
+        blockers.append("plans/current missing")
+    if len(active) != 1:
+        blockers.append(f"expected 1 active work-tracking folder, found {len(active)}")
+    status = "pass" if not blockers else "warn"
+    message = "Workflow pointers are aligned for the active task." if not blockers else "; ".join(blockers)
+    return _success_metrics_domain(
+        domain_id="workflow-state",
+        title="Workflow state",
+        value=len(active),
+        unit="active folders",
+        target="1 active task folder with current session and plan",
+        status=status,
+        evidence=str(current_session.get("resolved") or current_session.get("path")),
+        message=message,
+        refresh_command="python3 scripts/codex-task work-tracking audit",
+        details=workflow,
+    )
+
+
+def _build_success_template_metrics_domain() -> Dict[str, Any]:
+    path = REPO_STRUCTURE.metrics_report_dir / "latest.json"
+    source = _success_metrics_load_json(path)
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    if source["status"] == "missing":
+        return _success_metrics_domain(
+            domain_id="template-metrics",
+            title="Template metrics",
+            value=None,
+            unit="coverage percent",
+            target="100% metadata coverage and 0 drift findings",
+            status="missing",
+            evidence=str(source["path"]),
+            message="Template metrics report is missing.",
+            refresh_command="python3 scripts/template-metrics-dashboard",
+            details=source,
+        )
+    if source["status"] == "invalid":
+        return _success_metrics_domain(
+            domain_id="template-metrics",
+            title="Template metrics",
+            value=None,
+            unit="coverage percent",
+            target="100% metadata coverage and 0 drift findings",
+            status="fail",
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command="python3 scripts/template-metrics-dashboard",
+            details=source,
+        )
+    metadata = payload.get("template_metadata") if isinstance(payload.get("template_metadata"), Mapping) else {}
+    drift = payload.get("drift") if isinstance(payload.get("drift"), Mapping) else {}
+    coverage = metadata.get("coverage_pct")
+    drifted = int(metadata.get("drifted_file_count", 0) or 0)
+    finding_count = drift.get("finding_count")
+    finding_value = int(finding_count or 0) if finding_count is not None else 0
+    status = "pass" if drifted == 0 and finding_value == 0 else "warn"
+    message = "Template metadata and drift metrics are clean." if status == "pass" else "Template metric warnings require review."
+    return _success_metrics_domain(
+        domain_id="template-metrics",
+        title="Template metrics",
+        value=coverage,
+        unit="coverage percent",
+        target="100% metadata coverage and 0 drift findings",
+        status=status,
+        evidence=str(source["path"]),
+        message=message,
+        refresh_command="python3 scripts/codex-task report generate --kind metrics",
+        details={"template_metadata": metadata, "drift": drift},
+    )
+
+
+def _build_success_json_status_domain(
+    *,
+    domain_id: str,
+    title: str,
+    path: Path,
+    target: str,
+    refresh_command: str,
+    value_field: str | None = None,
+) -> Dict[str, Any]:
+    source = _success_metrics_load_json(path)
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    if source["status"] == "missing":
+        return _success_metrics_domain(
+            domain_id=domain_id,
+            title=title,
+            value=None,
+            unit="status",
+            target=target,
+            status="missing",
+            evidence=str(source["path"]),
+            message=f"{title} source report is missing.",
+            refresh_command=refresh_command,
+            details=source,
+        )
+    if source["status"] == "invalid":
+        return _success_metrics_domain(
+            domain_id=domain_id,
+            title=title,
+            value=None,
+            unit="status",
+            target=target,
+            status="fail",
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command=refresh_command,
+            details=source,
+        )
+    status = _success_metrics_status(payload.get("status") or payload.get("aggregate_status"))
+    value = payload.get(value_field) if value_field else (payload.get("status") or payload.get("aggregate_status"))
+    message = f"{title} source status is `{value}`."
+    return _success_metrics_domain(
+        domain_id=domain_id,
+        title=title,
+        value=value,
+        unit="status",
+        target=target,
+        status=status,
+        evidence=str(source["path"]),
+        message=message,
+        refresh_command=refresh_command,
+        details={"source_status": payload.get("status"), "source_aggregate_status": payload.get("aggregate_status"), "generated_at": payload.get("generated_at") or payload.get("created_at")},
+    )
+
+
+def _build_success_latest_artifact_domain(
+    *,
+    domain_id: str,
+    title: str,
+    pattern: str,
+    target: str,
+    refresh_command: str,
+    status_field: str = "aggregate_status",
+) -> Dict[str, Any]:
+    latest = _success_metrics_latest(pattern)
+    if latest is None:
+        return _success_metrics_domain(
+            domain_id=domain_id,
+            title=title,
+            value=None,
+            unit="artifact",
+            target=target,
+            status="missing",
+            evidence=pattern,
+            message=f"{title} evidence artifact is missing.",
+            refresh_command=refresh_command,
+            details={"pattern": pattern},
+        )
+    source = _success_metrics_load_json(latest)
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    status = "pass"
+    value: object = "present"
+    if source["status"] == "invalid":
+        status = "fail"
+        value = "invalid-json"
+    elif status_field in payload:
+        value = payload.get(status_field)
+        status = _success_metrics_status(value)
+    return _success_metrics_domain(
+        domain_id=domain_id,
+        title=title,
+        value=value,
+        unit="artifact",
+        target=target,
+        status=status,
+        evidence=str(source["path"]),
+        message=f"{title} evidence found at `{source['path']}`.",
+        refresh_command=refresh_command,
+        details={"pattern": pattern, "source": {key: source[key] for key in ("path", "exists", "status", "message")}},
+    )
+
+
+def _build_success_metrics_domains() -> List[Dict[str, Any]]:
+    return [
+        _build_success_taskmaster_domain(),
+        _build_success_workflow_domain(),
+        _build_success_template_metrics_domain(),
+        _build_success_json_status_domain(
+            domain_id="migration-health",
+            title="Migration health",
+            path=REPO_STRUCTURE.migration_health_report_dir / "latest.json",
+            target="migration health status pass",
+            refresh_command="python3 scripts/codex-task report generate --kind migration-health",
+        ),
+        _build_success_json_status_domain(
+            domain_id="template-performance",
+            title="Template performance",
+            path=REPO_STRUCTURE.performance_report_dir / "latest.json",
+            target="performance status pass",
+            refresh_command="python3 scripts/template-performance-harness --strict",
+        ),
+        _build_success_latest_artifact_domain(
+            domain_id="final-validation",
+            title="Final validation",
+            pattern="*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*final-validation-suite.json",
+            target="latest final validation packet exists",
+            refresh_command="python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+        ),
+        _build_success_latest_artifact_domain(
+            domain_id="knowledge-transfer",
+            title="Knowledge transfer",
+            pattern="*-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-*.json",
+            target="knowledge transfer review ready",
+            refresh_command="python3 scripts/codex-task knowledge transfer-review --report-file reports/knowledge-transfer-process/latest.json --runbook-file reports/knowledge-transfer-process/latest.md",
+        ),
+    ]
+
+
+def _summarise_success_metrics(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    total = len(domains)
+    passed = sum(1 for domain in domains if domain.get("status") == "pass")
+    warnings = sum(1 for domain in domains if domain.get("status") in {"warn", "missing"})
+    failures = sum(1 for domain in domains if domain.get("status") == "fail")
+    missing = sum(1 for domain in domains if domain.get("status") == "missing")
+    points = sum(SUCCESS_METRICS_STATUS_POINTS.get(str(domain.get("status")), 0) for domain in domains)
+    score = round(points / total, 2) if total else 0.0
+    if failures:
+        aggregate_status = "fail"
+    elif warnings:
+        aggregate_status = "warn"
+    else:
+        aggregate_status = "pass"
+    return {
+        "aggregate_status": aggregate_status,
+        "success_score_pct": score,
+        "total_domains": total,
+        "passed": passed,
+        "warnings": warnings,
+        "failures": failures,
+        "missing": missing,
+    }
+
+
+def _success_metrics_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+    for domain in domains:
+        command = domain.get("refresh_command")
+        if isinstance(command, str) and command and command not in commands:
+            commands.append(command)
+    commands.extend(
+        [
+            "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ]
+    )
+    return commands
+
+
+def _build_success_metrics_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "success-metrics"
+    domains = _build_success_metrics_domains()
+    summary = _summarise_success_metrics(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-success-metrics-dashboard",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "recommended_refresh_commands": _success_metrics_refresh_commands(domains),
+        "non_goals": list(SUCCESS_METRICS_NON_GOALS),
+    }
+
+
+def _render_success_metrics_report(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Success Metrics Dashboard",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        f"- Success score: {summary.get('success_score_pct')}%",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Passed: {summary.get('passed')}",
+        f"- Warnings: {summary.get('warnings')}",
+        f"- Failures: {summary.get('failures')}",
+        f"- Missing: {summary.get('missing')}",
+        "",
+        "## Success Domains",
+        "",
+        "| Domain | Value | Target | Status | Severity | Evidence |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        value = domain.get("value")
+        rendered_value = "n/a" if value is None else value
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(rendered_value)} {_md_cell(domain.get('unit'))} | "
+            f"{_md_cell(domain.get('target'))} | `{_md_cell(domain.get('status'))}` | "
+            f"`{_md_cell(domain.get('severity'))}` | `{_md_cell(domain.get('evidence'))}` |"
+        )
+
+    lines.extend(["", "## Domain Notes", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Message: {domain.get('message')}",
+                f"- Refresh command: `{domain.get('refresh_command')}`",
+                "",
+            ]
+        )
+
+    lines.extend(["## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static success metrics artifact. It composes existing evidence and requested output files only; it does not create a live dashboard, database, predictive service, scheduler, alert, notification, or external integration.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_success_metrics(args: argparse.Namespace) -> None:
+    report = _build_success_metrics_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_success_metrics_report(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] == "fail":
+            raise TaskError("Success metrics aggregate status is fail")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote success metrics report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote success metrics runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] == "fail":
+        raise TaskError("Success metrics aggregate status is fail")
+
+
 DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
     "No runtime log instrumentation or warning injection is added.",
     "No automatic template archival, file movement, deletion, or migration is executed.",
@@ -10594,6 +11156,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the review JSON without writing files",
     )
     knowledge_transfer.set_defaults(func=handle_knowledge_transfer_review)
+
+    success_parser = subparsers.add_parser("success", help="Success metrics review operations")
+    success_sub = success_parser.add_subparsers(dest="subcommand", required=True)
+    success_metrics = success_sub.add_parser(
+        "metrics",
+        help="Render a static success metrics dashboard packet",
+    )
+    success_metrics.add_argument("--label", default="success-metrics", help="Human-readable metrics label")
+    success_metrics.add_argument("--report-file", help="Optional path to write the success metrics JSON")
+    success_metrics.add_argument("--runbook-file", help="Optional path to write the success metrics Markdown")
+    success_metrics.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate success metrics fail")
+    success_metrics.add_argument("--dry-run", action="store_true", help="Print the success metrics JSON without writing files")
+    success_metrics.set_defaults(func=handle_success_metrics)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)

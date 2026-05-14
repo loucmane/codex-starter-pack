@@ -109,6 +109,16 @@ python3 scripts/codex-task knowledge transfer-review \
 
 This command classifies each knowledge-transfer domain as ready, needs-evidence, or needs-implementation and lists refresh commands for evidence gaps. It does not create hosted knowledge-base software, produce videos, run Q&A systems, create analytics dashboards, maintain contact databases, send notifications, mutate existing evidence sources, or contact external systems.
 
+Success metrics packets can be generated when an operator needs one static scorecard over Taskmaster health, workflow state, template metrics, migration health, performance, final validation, and knowledge-transfer evidence:
+
+```bash
+python3 scripts/codex-task success metrics \
+  --report-file reports/success-metrics/latest.json \
+  --runbook-file reports/success-metrics/latest.md
+```
+
+This command calculates a transparent success score from existing evidence domains and lists refresh commands for missing or warning inputs. It does not create a live dashboard, database, predictive service, scheduler, alert, notification, or external integration.
+
 Deprecation management review packets can be generated when an operator needs one static gate-review artifact over lifecycle policy, lifecycle audit metrics, versioning policy, communication guidance, operational runbook guidance, emergency/recovery guidance, and final validation evidence:
 
 ```bash
@@ -136,6 +146,7 @@ This command summarizes lifecycle status counts, deprecation warnings, grace-per
 - `phase3-automation-integration/` - optional static Phase 3 gate-review packets over existing automation evidence and refresh commands.
 - `phase4-documentation-delivery/` - optional static Phase 4 gate-review packets over documentation, training, communication, operations, Phase 3, and final validation evidence.
 - `knowledge-transfer-process/` - optional static knowledge-transfer review packets over documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence.
+- `success-metrics/` - optional static success scorecards over Taskmaster, workflow, telemetry, validation, and knowledge-transfer evidence.
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
 
 ## Task Evidence

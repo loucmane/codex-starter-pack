@@ -198,6 +198,28 @@ def test_build_parser_accepts_knowledge_transfer_review() -> None:
     assert args.runbook_file == "reports/knowledge.md"
 
 
+def test_build_parser_accepts_success_metrics() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "success",
+        "metrics",
+        "--label",
+        "task67",
+        "--strict",
+        "--report-file",
+        "reports/success.json",
+        "--runbook-file",
+        "reports/success.md",
+    ])
+    assert args.command == "success"
+    assert args.subcommand == "metrics"
+    assert args.label == "task67"
+    assert args.strict is True
+    assert args.report_file == "reports/success.json"
+    assert args.runbook_file == "reports/success.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -2555,6 +2577,190 @@ def test_handle_knowledge_transfer_review_writes_packet_and_runbook(monkeypatch,
     assert payload["label"] == "task54"
     assert payload["summary"]["aggregate_status"] == "ready"
     assert "# Knowledge Transfer Process Review" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_success_metrics_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-67-success-metrics-dashboard"
+        if args == ["rev-parse", "HEAD"]:
+            return "successabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-002-task67.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task67.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task67-success-metrics-dashboard-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 93, "pending": 14, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["memory.md"]})
+
+
+def _write_success_metrics_sources(repo: Path, include_migration_health: bool = True) -> None:
+    template_metrics = repo / "reports" / "template-metrics" / "latest.json"
+    template_metrics.parent.mkdir(parents=True, exist_ok=True)
+    template_metrics.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-05-14T10:00:00+02:00",
+                "template_metadata": {
+                    "coverage_pct": 100.0,
+                    "drifted_file_count": 0,
+                },
+                "drift": {"finding_count": 0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    performance = repo / "reports" / "template-performance" / "latest.json"
+    performance.parent.mkdir(parents=True, exist_ok=True)
+    performance.write_text(
+        json.dumps({"generated_at": "2026-05-14T10:00:00+02:00", "status": "pass", "summary": {"passed": 4, "total": 4}}),
+        encoding="utf-8",
+    )
+    if include_migration_health:
+        migration_health = repo / "reports" / "migration-health" / "latest.json"
+        migration_health.parent.mkdir(parents=True, exist_ok=True)
+        migration_health.write_text(
+            json.dumps({"generated_at": "2026-05-14T10:00:00+02:00", "status": "pass", "summary": {"passed": 5, "total": 5}}),
+            encoding="utf-8",
+        )
+    final_validation = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20260512-task68-final-validation-suite-COMPLETED"
+        / "reports"
+        / "final-validation-suite"
+        / "20260512-130228-final-validation-suite.json"
+    )
+    final_validation.parent.mkdir(parents=True, exist_ok=True)
+    final_validation.write_text(json.dumps({"status": "pass"}), encoding="utf-8")
+    knowledge = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20260514-task54-knowledge-transfer-process-COMPLETED"
+        / "reports"
+        / "knowledge-transfer-process"
+        / "knowledge-transfer-review-2026-05-14.json"
+    )
+    knowledge.parent.mkdir(parents=True, exist_ok=True)
+    knowledge.write_text(json.dumps({"summary": {"aggregate_status": "ready"}}), encoding="utf-8")
+
+
+def test_build_success_metrics_report_scores_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_success_metrics_state(module, monkeypatch, repo)
+    _write_success_metrics_sources(repo)
+
+    report = module._build_success_metrics_report(argparse.Namespace(label="task67"))
+
+    assert report["mode"] == "static-success-metrics-dashboard"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "pass"
+    assert report["summary"]["success_score_pct"] == 100.0
+    assert {domain["id"] for domain in report["domains"]} >= {
+        "taskmaster-health",
+        "workflow-state",
+        "template-metrics",
+        "migration-health",
+        "template-performance",
+        "final-validation",
+        "knowledge-transfer",
+    }
+
+
+def test_build_success_metrics_report_surfaces_missing_upstream(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_success_metrics_state(module, monkeypatch, repo)
+    _write_success_metrics_sources(repo, include_migration_health=False)
+
+    report = module._build_success_metrics_report(argparse.Namespace(label="task67"))
+
+    migration = next(domain for domain in report["domains"] if domain["id"] == "migration-health")
+    assert migration["status"] == "missing"
+    assert report["summary"]["aggregate_status"] == "warn"
+    assert report["summary"]["success_score_pct"] < 100
+    assert "python3 scripts/codex-task report generate --kind migration-health" in report["recommended_refresh_commands"]
+
+
+def test_render_success_metrics_report_lists_domains_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_success_metrics_state(module, monkeypatch, repo)
+    _write_success_metrics_sources(repo)
+    report = module._build_success_metrics_report(argparse.Namespace(label="task67"))
+
+    runbook = module._render_success_metrics_report(report)
+
+    assert "# Success Metrics Dashboard" in runbook
+    assert "Template metrics" in runbook
+    assert "Success score: 100.0%" in runbook
+    assert "No React/Vue UI" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_success_metrics_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_success_metrics_state(module, monkeypatch, repo)
+    _write_success_metrics_sources(repo)
+    report = repo / "reports" / "success.json"
+    runbook = repo / "reports" / "success.md"
+
+    module.handle_success_metrics(
+        argparse.Namespace(
+            label="task67",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote success metrics report to reports/success.json" in output
+    assert "Wrote success metrics runbook to reports/success.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task67"
+    assert payload["summary"]["aggregate_status"] == "pass"
+    assert "# Success Metrics Dashboard" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_canary_rollout_snapshots(module, monkeypatch) -> None:
