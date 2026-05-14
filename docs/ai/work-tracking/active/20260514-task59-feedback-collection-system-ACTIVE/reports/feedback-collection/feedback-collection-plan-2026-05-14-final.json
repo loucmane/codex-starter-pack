@@ -1,0 +1,496 @@
+{
+  "archive_guidance": [
+    "Store task-local feedback summaries in the active work-tracking FINDINGS.md, DECISIONS.md, HANDOFF.md, or reports directory.",
+    "Link accepted implementation feedback to an existing or new Taskmaster task before editing product or workflow surfaces.",
+    "Archive closed feedback with the work-tracking folder after the task PR merges.",
+    "Keep private memory and external chats out of the evidence chain unless summarized into repository artifacts."
+  ],
+  "categories": [
+    {
+      "description": "Docs, guides, examples, onboarding, or wording gaps.",
+      "id": "documentation",
+      "title": "Documentation feedback"
+    },
+    {
+      "description": "Session, plan, work-tracking, Taskmaster, or GitHub process friction.",
+      "id": "workflow",
+      "title": "Workflow feedback"
+    },
+    {
+      "description": "False positives, false negatives, bypasses, or missing tests.",
+      "id": "guard",
+      "title": "Guard and enforcement feedback"
+    },
+    {
+      "description": "Template metadata, registry, portability, or reusable content gaps.",
+      "id": "template",
+      "title": "Template feedback"
+    },
+    {
+      "description": "Codex, Claude, Serena, MCP, or cross-agent runtime behavior.",
+      "id": "agent",
+      "title": "Agent compatibility feedback"
+    },
+    {
+      "description": "Reporting, PR, announcement, milestone, or follow-up messaging.",
+      "id": "stakeholder",
+      "title": "Stakeholder and communication feedback"
+    },
+    {
+      "description": "Future improvement that needs prioritization before implementation.",
+      "id": "enhancement",
+      "title": "Enhancement idea"
+    }
+  ],
+  "created_at": "2026-05-14T16:26:51+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-59-feedback-collection-system",
+      "head": "3e36df7683b5d10b75d7468704fa8461115dba72",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_059.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task59_feedback_collection_system_completion.md",
+          "status": "??"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task59_feedback_collection_system_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task59-feedback-collection-system.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/feedback-collection/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-006-task59-feedback-collection-system.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 161,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_completion.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_completion.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_kickoff.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_completion.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_completion.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_kickoff.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_completion.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "7cd3b0d2fe28138bff6e7186c4861d9a34c577c41f6604296711080e79f23b0d",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 98,
+          "pending": 10
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task59-feedback-collection-system-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task59-feedback-collection-system.md",
+        "sha256": "c9132fa65b62a05562a81aa568a06418c2a1b903993a9d0b7d46bcc681ba9d65",
+        "target": "2026-05-14-task59-feedback-collection-system.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-006-task59-feedback-collection-system.md",
+        "sha256": "f055fee4701dd6c25a808e8103dc9216ec2485b2e447b7932897ba05005a4ff2",
+        "target": "2026/05/2026-05-14-006-task59-feedback-collection-system.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "ea3de381db122381aed37f6fcc93de015597f260aca1b3d69174e1f9e4db314f"
+      }
+    }
+  },
+  "domains": [
+    {
+      "details": {
+        "invalid_refs": [],
+        "summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 98,
+            "pending": 10
+          },
+          "subtasks": 304,
+          "tasks": 108
+        }
+      },
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".taskmaster/tasks/tasks.json"
+        }
+      ],
+      "id": "taskmaster-follow-up-health",
+      "message": "Taskmaster follow-up health evidence is ready for feedback collection planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm feedback can become scoped follow-up work without dependency corruption.",
+      "refresh_command": "python3 scripts/codex-task taskmaster health",
+      "status": "ready",
+      "title": "Taskmaster follow-up health"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/communication/foundation-communication-templates.md"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED"
+        }
+      ],
+      "id": "communication-feedback-template",
+      "message": "Communication feedback template evidence is ready for feedback collection planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Provide repository-native wording for feedback and follow-up capture.",
+      "refresh_command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py",
+      "status": "ready",
+      "title": "Communication feedback template"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/training/foundation-onboarding.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json"
+        }
+      ],
+      "id": "onboarding-feedback-guidance",
+      "message": "Onboarding feedback guidance evidence is ready for feedback collection planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm training guidance tells operators where feedback belongs.",
+      "refresh_command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_training_materials.py",
+      "status": "ready",
+      "title": "Onboarding feedback guidance"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task63-phase4-documentation-delivery-COMPLETED/reports/phase4-documentation-delivery/phase4-review-2026-05-13.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/README.md"
+        }
+      ],
+      "id": "phase4-feedback-guidance",
+      "message": "Phase 4 feedback guidance evidence is ready for feedback collection planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Reuse documentation delivery guidance that treats feedback as repo evidence and follow-up prompts.",
+      "refresh_command": "python3 scripts/codex-task documentation phase4-review --report-file reports/phase4-documentation-delivery/latest.json --runbook-file reports/phase4-documentation-delivery/latest.md",
+      "status": "ready",
+      "title": "Phase 4 feedback guidance"
+    },
+    {
+      "details": {},
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-2026-05-14-final.json"
+        }
+      ],
+      "id": "stakeholder-response-context",
+      "message": "Stakeholder response context evidence is ready for feedback collection planning.",
+      "missing_evidence_paths": [],
+      "purpose": "Ground response and routing guidance in stakeholder-safe status reporting.",
+      "refresh_command": "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+      "status": "ready",
+      "title": "Stakeholder response context"
+    }
+  ],
+  "executes_actions": false,
+  "intake_schema": [
+    {
+      "field": "source",
+      "purpose": "Who or what produced the feedback, e.g. user, PR review, smoke test, CI run, session observation.",
+      "required": "yes"
+    },
+    {
+      "field": "observation",
+      "purpose": "Specific behavior, gap, friction point, or request, quoted when possible.",
+      "required": "yes"
+    },
+    {
+      "field": "category",
+      "purpose": "Repository-native feedback category used by the routing matrix.",
+      "required": "yes"
+    },
+    {
+      "field": "severity",
+      "purpose": "Manual severity label: blocker, high, medium, low, or informational.",
+      "required": "yes"
+    },
+    {
+      "field": "sentiment",
+      "purpose": "Manual sentiment label: positive, neutral, concern, or blocker. This is human-reviewed, not machine-inferred.",
+      "required": "yes"
+    },
+    {
+      "field": "evidence_path",
+      "purpose": "Repository path containing supporting context, such as FINDINGS.md, HANDOFF.md, a report file, or a PR review link recorded in the tracker.",
+      "required": "yes"
+    },
+    {
+      "field": "desired_outcome",
+      "purpose": "What should change if the feedback is accepted.",
+      "required": "no"
+    },
+    {
+      "field": "follow_up_task",
+      "purpose": "Existing or new Taskmaster task when the feedback requires scoped implementation.",
+      "required": "no"
+    },
+    {
+      "field": "response_needed",
+      "purpose": "Whether a human response is needed before closing the feedback item.",
+      "required": "yes"
+    }
+  ],
+  "label": "feedback-collection",
+  "manual_next_steps": [
+    "Review the intake schema and routing matrix before collecting feedback.",
+    "Capture feedback as repository evidence tied to an active task.",
+    "Create or update Taskmaster tasks for accepted implementation feedback.",
+    "Use communication templates for any human-facing response draft.",
+    "Re-run this packet after major workflow, documentation, or stakeholder reporting changes."
+  ],
+  "manual_sentiment_labels": [
+    {
+      "label": "positive",
+      "meaning": "The feedback confirms a working behavior or useful outcome."
+    },
+    {
+      "label": "neutral",
+      "meaning": "The feedback is informational or requests clarification without risk."
+    },
+    {
+      "label": "concern",
+      "meaning": "The feedback identifies friction, uncertainty, or possible quality risk."
+    },
+    {
+      "label": "blocker",
+      "meaning": "The feedback identifies a workflow, safety, or correctness issue that should halt related work."
+    }
+  ],
+  "metrics_checklist": [
+    {
+      "metric": "total_feedback_items",
+      "review_question": "How many feedback items were captured in repository evidence?"
+    },
+    {
+      "metric": "open_follow_ups",
+      "review_question": "How many items still need a scoped task, response, or decision?"
+    },
+    {
+      "metric": "severity_mix",
+      "review_question": "How many blocker/high/medium/low/informational items exist?"
+    },
+    {
+      "metric": "category_mix",
+      "review_question": "Which categories are generating the most friction or value?"
+    },
+    {
+      "metric": "task_coverage",
+      "review_question": "Do accepted implementation items have Taskmaster task IDs?"
+    },
+    {
+      "metric": "response_state",
+      "review_question": "Which items need human response before closeout?"
+    },
+    {
+      "metric": "archive_completeness",
+      "review_question": "Are closed items linked from work-tracking archive or final handoff evidence?"
+    }
+  ],
+  "mode": "static-feedback-collection-planning-packet",
+  "non_goals": [
+    "No hosted form, survey platform, API endpoint, database, queue, dashboard, analytics service, or long-running feedback application is created.",
+    "No automatic sentiment analysis, NLP classification, scoring model, or external AI call is executed.",
+    "No owner assignment, notification, email, chat reply, webhook, ticket, or external response workflow is sent or created.",
+    "No Taskmaster task, documentation page, session, plan, work-tracking artifact, or Git state is mutated from feedback rows.",
+    "No external archive import/export, scraping, contact database update, PII processing, or retention policy automation is performed.",
+    "No source report, template, Taskmaster, session, plan, work-tracking, Git, or external state is mutated beyond requested feedback collection artifacts."
+  ],
+  "planning_guidance": [
+    "Treat this packet as the review contract for capturing feedback as repository evidence, not as a live collection system.",
+    "Record actual feedback in the active task's FINDINGS.md, HANDOFF.md, DECISIONS.md, report files, or a follow-up Taskmaster task.",
+    "Use manual severity, sentiment, and routing review; do not infer intent or owner automatically.",
+    "Refresh supporting communication, onboarding, documentation, stakeholder, and Taskmaster evidence before claiming feedback readiness."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_training_materials.py",
+    "python3 scripts/codex-task documentation phase4-review --report-file reports/phase4-documentation-delivery/latest.json --runbook-file reports/phase4-documentation-delivery/latest.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "python3 scripts/codex-task feedback collection-plan --report-file reports/feedback-collection/latest.json --runbook-file reports/feedback-collection/latest.md",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "response_workflow": [
+    {
+      "definition": "Feedback is recorded with source, observation, category, severity, sentiment, and evidence path.",
+      "state": "captured"
+    },
+    {
+      "definition": "A human has reviewed routing, severity, and whether a response or task is needed.",
+      "state": "triaged"
+    },
+    {
+      "definition": "The feedback will be handled in the active task or a named follow-up task.",
+      "state": "accepted"
+    },
+    {
+      "definition": "The feedback is valid but intentionally parked with rationale and revisit trigger.",
+      "state": "deferred"
+    },
+    {
+      "definition": "The feedback will not be acted on and the reason is recorded.",
+      "state": "declined"
+    },
+    {
+      "definition": "The response/action/evidence is complete and linked from final handoff or archive.",
+      "state": "closed"
+    }
+  ],
+  "routing_matrix": [
+    {
+      "category": "documentation",
+      "evidence_destination": "active work-tracking FINDINGS.md and affected docs path",
+      "response_guidance": "Confirm whether the docs can be fixed inside the active task or need a follow-up task.",
+      "route_to": "FINDINGS.md or a documentation Taskmaster follow-up"
+    },
+    {
+      "category": "workflow",
+      "evidence_destination": "session log, plan, tracker, and workflow evidence files",
+      "response_guidance": "Document the workflow decision before changing process files.",
+      "route_to": "HANDOFF.md, DECISIONS.md, or Taskmaster workflow follow-up"
+    },
+    {
+      "category": "guard",
+      "evidence_destination": "guard output, pytest evidence, and reproducer command",
+      "response_guidance": "Require a failing test or explicit non-enforceable limitation before implementation.",
+      "route_to": "guard test issue or scoped guard task"
+    },
+    {
+      "category": "template",
+      "evidence_destination": "template path, registry path, and scanner output",
+      "response_guidance": "Keep the change portable and registry-first.",
+      "route_to": "template metadata/registry follow-up"
+    },
+    {
+      "category": "agent",
+      "evidence_destination": "runtime contract, smoke-test report, MCP status, or agent-specific findings",
+      "response_guidance": "Separate Codex-owned and Claude-owned surfaces before mutating files.",
+      "route_to": "agent compatibility or runtime adapter follow-up"
+    },
+    {
+      "category": "stakeholder",
+      "evidence_destination": "communication payload, stakeholder packet, or PR comment reference",
+      "response_guidance": "Draft response text only; do not send external messages from this command.",
+      "route_to": "communication template or stakeholder report update"
+    },
+    {
+      "category": "enhancement",
+      "evidence_destination": "Taskmaster task, enhancement packet, or DECISIONS.md",
+      "response_guidance": "Prioritize before implementation and record non-goals.",
+      "route_to": "Phase 5 enhancement review or new Taskmaster task"
+    }
+  ],
+  "summary": {
+    "aggregate_status": "ready",
+    "blocked": 0,
+    "needs_evidence": 0,
+    "ready": 5,
+    "total_domains": 5
+  },
+  "version": 1
+}

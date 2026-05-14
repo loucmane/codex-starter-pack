@@ -8004,6 +8004,469 @@ def handle_celebration_plan(args: argparse.Namespace) -> None:
         raise TaskError("Celebration plan aggregate status is not ready")
 
 
+FEEDBACK_COLLECTION_NON_GOALS: Tuple[str, ...] = (
+    "No hosted form, survey platform, API endpoint, database, queue, dashboard, analytics service, or long-running feedback application is created.",
+    "No automatic sentiment analysis, NLP classification, scoring model, or external AI call is executed.",
+    "No owner assignment, notification, email, chat reply, webhook, ticket, or external response workflow is sent or created.",
+    "No Taskmaster task, documentation page, session, plan, work-tracking artifact, or Git state is mutated from feedback rows.",
+    "No external archive import/export, scraping, contact database update, PII processing, or retention policy automation is performed.",
+    "No source report, template, Taskmaster, session, plan, work-tracking, Git, or external state is mutated beyond requested feedback collection artifacts.",
+)
+
+FEEDBACK_COLLECTION_GUIDANCE: Tuple[str, ...] = (
+    "Treat this packet as the review contract for capturing feedback as repository evidence, not as a live collection system.",
+    "Record actual feedback in the active task's FINDINGS.md, HANDOFF.md, DECISIONS.md, report files, or a follow-up Taskmaster task.",
+    "Use manual severity, sentiment, and routing review; do not infer intent or owner automatically.",
+    "Refresh supporting communication, onboarding, documentation, stakeholder, and Taskmaster evidence before claiming feedback readiness.",
+)
+
+FEEDBACK_COLLECTION_INTAKE_SCHEMA: Tuple[Dict[str, str], ...] = (
+    {
+        "field": "source",
+        "required": "yes",
+        "purpose": "Who or what produced the feedback, e.g. user, PR review, smoke test, CI run, session observation.",
+    },
+    {
+        "field": "observation",
+        "required": "yes",
+        "purpose": "Specific behavior, gap, friction point, or request, quoted when possible.",
+    },
+    {
+        "field": "category",
+        "required": "yes",
+        "purpose": "Repository-native feedback category used by the routing matrix.",
+    },
+    {
+        "field": "severity",
+        "required": "yes",
+        "purpose": "Manual severity label: blocker, high, medium, low, or informational.",
+    },
+    {
+        "field": "sentiment",
+        "required": "yes",
+        "purpose": "Manual sentiment label: positive, neutral, concern, or blocker. This is human-reviewed, not machine-inferred.",
+    },
+    {
+        "field": "evidence_path",
+        "required": "yes",
+        "purpose": "Repository path containing supporting context, such as FINDINGS.md, HANDOFF.md, a report file, or a PR review link recorded in the tracker.",
+    },
+    {
+        "field": "desired_outcome",
+        "required": "no",
+        "purpose": "What should change if the feedback is accepted.",
+    },
+    {
+        "field": "follow_up_task",
+        "required": "no",
+        "purpose": "Existing or new Taskmaster task when the feedback requires scoped implementation.",
+    },
+    {
+        "field": "response_needed",
+        "required": "yes",
+        "purpose": "Whether a human response is needed before closing the feedback item.",
+    },
+)
+
+FEEDBACK_COLLECTION_CATEGORIES: Tuple[Dict[str, str], ...] = (
+    {"id": "documentation", "title": "Documentation feedback", "description": "Docs, guides, examples, onboarding, or wording gaps."},
+    {"id": "workflow", "title": "Workflow feedback", "description": "Session, plan, work-tracking, Taskmaster, or GitHub process friction."},
+    {"id": "guard", "title": "Guard and enforcement feedback", "description": "False positives, false negatives, bypasses, or missing tests."},
+    {"id": "template", "title": "Template feedback", "description": "Template metadata, registry, portability, or reusable content gaps."},
+    {"id": "agent", "title": "Agent compatibility feedback", "description": "Codex, Claude, Serena, MCP, or cross-agent runtime behavior."},
+    {"id": "stakeholder", "title": "Stakeholder and communication feedback", "description": "Reporting, PR, announcement, milestone, or follow-up messaging."},
+    {"id": "enhancement", "title": "Enhancement idea", "description": "Future improvement that needs prioritization before implementation."},
+)
+
+FEEDBACK_COLLECTION_SENTIMENT_LABELS: Tuple[Dict[str, str], ...] = (
+    {"label": "positive", "meaning": "The feedback confirms a working behavior or useful outcome."},
+    {"label": "neutral", "meaning": "The feedback is informational or requests clarification without risk."},
+    {"label": "concern", "meaning": "The feedback identifies friction, uncertainty, or possible quality risk."},
+    {"label": "blocker", "meaning": "The feedback identifies a workflow, safety, or correctness issue that should halt related work."},
+)
+
+FEEDBACK_COLLECTION_ROUTING_MATRIX: Tuple[Dict[str, str], ...] = (
+    {
+        "category": "documentation",
+        "route_to": "FINDINGS.md or a documentation Taskmaster follow-up",
+        "evidence_destination": "active work-tracking FINDINGS.md and affected docs path",
+        "response_guidance": "Confirm whether the docs can be fixed inside the active task or need a follow-up task.",
+    },
+    {
+        "category": "workflow",
+        "route_to": "HANDOFF.md, DECISIONS.md, or Taskmaster workflow follow-up",
+        "evidence_destination": "session log, plan, tracker, and workflow evidence files",
+        "response_guidance": "Document the workflow decision before changing process files.",
+    },
+    {
+        "category": "guard",
+        "route_to": "guard test issue or scoped guard task",
+        "evidence_destination": "guard output, pytest evidence, and reproducer command",
+        "response_guidance": "Require a failing test or explicit non-enforceable limitation before implementation.",
+    },
+    {
+        "category": "template",
+        "route_to": "template metadata/registry follow-up",
+        "evidence_destination": "template path, registry path, and scanner output",
+        "response_guidance": "Keep the change portable and registry-first.",
+    },
+    {
+        "category": "agent",
+        "route_to": "agent compatibility or runtime adapter follow-up",
+        "evidence_destination": "runtime contract, smoke-test report, MCP status, or agent-specific findings",
+        "response_guidance": "Separate Codex-owned and Claude-owned surfaces before mutating files.",
+    },
+    {
+        "category": "stakeholder",
+        "route_to": "communication template or stakeholder report update",
+        "evidence_destination": "communication payload, stakeholder packet, or PR comment reference",
+        "response_guidance": "Draft response text only; do not send external messages from this command.",
+    },
+    {
+        "category": "enhancement",
+        "route_to": "Phase 5 enhancement review or new Taskmaster task",
+        "evidence_destination": "Taskmaster task, enhancement packet, or DECISIONS.md",
+        "response_guidance": "Prioritize before implementation and record non-goals.",
+    },
+)
+
+FEEDBACK_COLLECTION_METRICS_CHECKLIST: Tuple[Dict[str, str], ...] = (
+    {"metric": "total_feedback_items", "review_question": "How many feedback items were captured in repository evidence?"},
+    {"metric": "open_follow_ups", "review_question": "How many items still need a scoped task, response, or decision?"},
+    {"metric": "severity_mix", "review_question": "How many blocker/high/medium/low/informational items exist?"},
+    {"metric": "category_mix", "review_question": "Which categories are generating the most friction or value?"},
+    {"metric": "task_coverage", "review_question": "Do accepted implementation items have Taskmaster task IDs?"},
+    {"metric": "response_state", "review_question": "Which items need human response before closeout?"},
+    {"metric": "archive_completeness", "review_question": "Are closed items linked from work-tracking archive or final handoff evidence?"},
+)
+
+FEEDBACK_COLLECTION_RESPONSE_WORKFLOW: Tuple[Dict[str, str], ...] = (
+    {"state": "captured", "definition": "Feedback is recorded with source, observation, category, severity, sentiment, and evidence path."},
+    {"state": "triaged", "definition": "A human has reviewed routing, severity, and whether a response or task is needed."},
+    {"state": "accepted", "definition": "The feedback will be handled in the active task or a named follow-up task."},
+    {"state": "deferred", "definition": "The feedback is valid but intentionally parked with rationale and revisit trigger."},
+    {"state": "declined", "definition": "The feedback will not be acted on and the reason is recorded."},
+    {"state": "closed", "definition": "The response/action/evidence is complete and linked from final handoff or archive."},
+)
+
+
+def _feedback_collection_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    evidence_paths: Sequence[str],
+    refresh_command: str,
+    details: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    evidence = [_enhancement_path_state(path) for path in evidence_paths]
+    missing = [item["path"] for item in evidence if not item["exists"]]
+    status = "needs-evidence" if missing else "ready"
+    message = (
+        f"{title} evidence is ready for feedback collection planning."
+        if status == "ready"
+        else f"{title} is missing evidence: {', '.join(missing)}."
+    )
+    return {
+        "id": domain_id,
+        "title": title,
+        "purpose": purpose,
+        "status": status,
+        "evidence_paths": evidence,
+        "missing_evidence_paths": missing,
+        "message": message,
+        "refresh_command": refresh_command,
+        "details": dict(details or {}),
+    }
+
+
+def _build_feedback_collection_domains() -> List[Dict[str, Any]]:
+    taskmaster = _taskmaster_snapshot()
+    taskmaster_summary = taskmaster.get("summary") if isinstance(taskmaster.get("summary"), Mapping) else {}
+    return [
+        _feedback_collection_domain(
+            domain_id="taskmaster-follow-up-health",
+            title="Taskmaster follow-up health",
+            purpose="Confirm feedback can become scoped follow-up work without dependency corruption.",
+            evidence_paths=(".taskmaster/tasks/tasks.json",),
+            refresh_command="python3 scripts/codex-task taskmaster health",
+            details={"summary": taskmaster_summary, "invalid_refs": taskmaster.get("invalid_refs") or []},
+        ),
+        _feedback_collection_domain(
+            domain_id="communication-feedback-template",
+            title="Communication feedback template",
+            purpose="Provide repository-native wording for feedback and follow-up capture.",
+            evidence_paths=(
+                "templates/guides/communication/foundation-communication-templates.md",
+                "docs/ai/work-tracking/archive/20260508-task49-communication-templates-COMPLETED/",
+            ),
+            refresh_command="PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_communication_templates.py",
+        ),
+        _feedback_collection_domain(
+            domain_id="onboarding-feedback-guidance",
+            title="Onboarding feedback guidance",
+            purpose="Confirm training guidance tells operators where feedback belongs.",
+            evidence_paths=(
+                "templates/guides/training/foundation-onboarding.md",
+                "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/reports/knowledge-transfer-process/knowledge-transfer-review-2026-05-14.json",
+            ),
+            refresh_command="PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_training_materials.py",
+        ),
+        _feedback_collection_domain(
+            domain_id="phase4-feedback-guidance",
+            title="Phase 4 feedback guidance",
+            purpose="Reuse documentation delivery guidance that treats feedback as repo evidence and follow-up prompts.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260513-task63-phase4-documentation-delivery-COMPLETED/reports/phase4-documentation-delivery/phase4-review-2026-05-13.json",
+                "reports/README.md",
+            ),
+            refresh_command="python3 scripts/codex-task documentation phase4-review --report-file reports/phase4-documentation-delivery/latest.json --runbook-file reports/phase4-documentation-delivery/latest.md",
+        ),
+        _feedback_collection_domain(
+            domain_id="stakeholder-response-context",
+            title="Stakeholder response context",
+            purpose="Ground response and routing guidance in stakeholder-safe status reporting.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+                "docs/ai/work-tracking/archive/20260514-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-2026-05-14-final.json",
+            ),
+            refresh_command="python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+        ),
+    ]
+
+
+def _summarise_feedback_collection_domains(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    total = len(domains)
+    ready = sum(1 for domain in domains if domain.get("status") == "ready")
+    needs_evidence = sum(1 for domain in domains if domain.get("status") == "needs-evidence")
+    blocked = sum(1 for domain in domains if domain.get("status") == "blocked")
+    if blocked:
+        aggregate_status = "blocked"
+    elif needs_evidence:
+        aggregate_status = "needs-evidence"
+    else:
+        aggregate_status = "ready"
+    return {
+        "aggregate_status": aggregate_status,
+        "total_domains": total,
+        "ready": ready,
+        "needs_evidence": needs_evidence,
+        "blocked": blocked,
+    }
+
+
+def _feedback_collection_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+    for domain in domains:
+        command = domain.get("refresh_command")
+        if isinstance(command, str) and command and command not in commands:
+            commands.append(command)
+    commands.extend(
+        command
+        for command in (
+            "python3 scripts/codex-task feedback collection-plan --report-file reports/feedback-collection/latest.json --runbook-file reports/feedback-collection/latest.md",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-guard validate --include-untracked",
+        )
+        if command not in commands
+    )
+    return commands
+
+
+def _build_feedback_collection_plan(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "feedback-collection"
+    domains = _build_feedback_collection_domains()
+    summary = _summarise_feedback_collection_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-feedback-collection-planning-packet",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "intake_schema": list(FEEDBACK_COLLECTION_INTAKE_SCHEMA),
+        "categories": list(FEEDBACK_COLLECTION_CATEGORIES),
+        "manual_sentiment_labels": list(FEEDBACK_COLLECTION_SENTIMENT_LABELS),
+        "routing_matrix": list(FEEDBACK_COLLECTION_ROUTING_MATRIX),
+        "metrics_checklist": list(FEEDBACK_COLLECTION_METRICS_CHECKLIST),
+        "response_workflow": list(FEEDBACK_COLLECTION_RESPONSE_WORKFLOW),
+        "archive_guidance": [
+            "Store task-local feedback summaries in the active work-tracking FINDINGS.md, DECISIONS.md, HANDOFF.md, or reports directory.",
+            "Link accepted implementation feedback to an existing or new Taskmaster task before editing product or workflow surfaces.",
+            "Archive closed feedback with the work-tracking folder after the task PR merges.",
+            "Keep private memory and external chats out of the evidence chain unless summarized into repository artifacts.",
+        ],
+        "manual_next_steps": [
+            "Review the intake schema and routing matrix before collecting feedback.",
+            "Capture feedback as repository evidence tied to an active task.",
+            "Create or update Taskmaster tasks for accepted implementation feedback.",
+            "Use communication templates for any human-facing response draft.",
+            "Re-run this packet after major workflow, documentation, or stakeholder reporting changes.",
+        ],
+        "recommended_refresh_commands": _feedback_collection_refresh_commands(domains),
+        "planning_guidance": list(FEEDBACK_COLLECTION_GUIDANCE),
+        "non_goals": list(FEEDBACK_COLLECTION_NON_GOALS),
+    }
+
+
+def _render_feedback_collection_plan(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Feedback Collection Planning Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Ready: {summary.get('ready')}",
+        f"- Needs evidence: {summary.get('needs_evidence')}",
+        f"- Blocked: {summary.get('blocked')}",
+        "",
+        "## Evidence Domains",
+        "",
+        "| Domain | Purpose | Status | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        missing = "<br>".join(domain.get("missing_evidence_paths", [])) or "None"
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(domain.get('purpose'))} | "
+            f"`{_md_cell(domain.get('status'))}` | {_md_cell(missing)} |"
+        )
+
+    lines.extend(["", "## Intake Schema", ""])
+    lines.extend(["| Field | Required | Purpose |", "| --- | --- | --- |"])
+    for field in report.get("intake_schema", []):
+        if isinstance(field, Mapping):
+            lines.append(f"| `{_md_cell(field.get('field'))}` | {_md_cell(field.get('required'))} | {_md_cell(field.get('purpose'))} |")
+
+    lines.extend(["", "## Categories", ""])
+    for category in report.get("categories", []):
+        if isinstance(category, Mapping):
+            lines.append(f"- **{category.get('title')}** (`{category.get('id')}`): {category.get('description')}")
+
+    lines.extend(["", "## Manual Sentiment Labels", ""])
+    for label in report.get("manual_sentiment_labels", []):
+        if isinstance(label, Mapping):
+            lines.append(f"- `{label.get('label')}`: {label.get('meaning')}")
+
+    lines.extend(["", "## Routing Matrix", ""])
+    lines.extend(["| Category | Route To | Evidence Destination | Response Guidance |", "| --- | --- | --- | --- |"])
+    for route in report.get("routing_matrix", []):
+        if isinstance(route, Mapping):
+            lines.append(
+                f"| `{_md_cell(route.get('category'))}` | {_md_cell(route.get('route_to'))} | "
+                f"{_md_cell(route.get('evidence_destination'))} | {_md_cell(route.get('response_guidance'))} |"
+            )
+
+    lines.extend(["", "## Metrics Checklist", ""])
+    for metric in report.get("metrics_checklist", []):
+        if isinstance(metric, Mapping):
+            lines.append(f"- `{metric.get('metric')}`: {metric.get('review_question')}")
+
+    lines.extend(["", "## Response Workflow", ""])
+    for state in report.get("response_workflow", []):
+        if isinstance(state, Mapping):
+            lines.append(f"- `{state.get('state')}`: {state.get('definition')}")
+
+    lines.extend(["", "## Archive Guidance", ""])
+    for item in report.get("archive_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Manual Next Steps", ""])
+    for step in report.get("manual_next_steps", []):
+        lines.append(f"- {step}")
+
+    lines.extend(["", "## Planning Guidance", ""])
+    for item in report.get("planning_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static feedback collection planning artifact. It composes existing repository evidence and requested output files only; it does not create hosted forms, API endpoints, dashboards, sentiment automation, notifications, tickets, external archives, or response delivery systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_feedback_collection_plan(args: argparse.Namespace) -> None:
+    report = _build_feedback_collection_plan(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_feedback_collection_plan(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] != "ready":
+            raise TaskError("Feedback collection plan aggregate status is not ready")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote feedback collection plan to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote feedback collection runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] != "ready":
+        raise TaskError("Feedback collection plan aggregate status is not ready")
+
+
 DEPRECATION_MANAGEMENT_NON_GOALS: Tuple[str, ...] = (
     "No runtime log instrumentation or warning injection is added.",
     "No automatic template archival, file movement, deletion, or migration is executed.",
@@ -12512,6 +12975,19 @@ def build_parser() -> argparse.ArgumentParser:
     celebration_plan.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate celebration planning status is not ready")
     celebration_plan.add_argument("--dry-run", action="store_true", help="Print the celebration planning JSON without writing files")
     celebration_plan.set_defaults(func=handle_celebration_plan)
+
+    feedback_parser = subparsers.add_parser("feedback", help="Feedback collection planning operations")
+    feedback_sub = feedback_parser.add_subparsers(dest="subcommand", required=True)
+    feedback_collection = feedback_sub.add_parser(
+        "collection-plan",
+        help="Render a static feedback collection planning packet",
+    )
+    feedback_collection.add_argument("--label", default="feedback-collection", help="Human-readable planning label")
+    feedback_collection.add_argument("--report-file", help="Optional path to write the feedback collection JSON")
+    feedback_collection.add_argument("--runbook-file", help="Optional path to write the feedback collection Markdown")
+    feedback_collection.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate feedback collection status is not ready")
+    feedback_collection.add_argument("--dry-run", action="store_true", help="Print the feedback collection JSON without writing files")
+    feedback_collection.set_defaults(func=handle_feedback_collection_plan)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)
