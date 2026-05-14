@@ -1,0 +1,3 @@
+Audit warnings:
+- No ACTIVE work-tracking folders present
+- sessions/current symlink missing because repository is between sessions
