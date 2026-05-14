@@ -1,0 +1,60 @@
+🏷  tag: master
+Listing tasks from: /home/loucmane/codex/.taskmaster/tasks/tasks.json
+
+╭────────────────────────────────────────────╮
+│ Task: #65 - Build Template Quality Scoring │
+╰────────────────────────────────────────────╯
+[90m┌────────────────────[39m[90m┬────────────────────────────────────────────────────────────────────────────────┐[39m
+[90m│[39m ID:                [90m│[39m 65                                                                             [90m│[39m
+[90m│[39m Title:             [90m│[39m Build Template Quality Scoring                                                 [90m│[39m
+[90m│[39m Status:            [90m│[39m ✓ done                                                                         [90m│[39m
+[90m│[39m Priority:          [90m│[39m low                                                                            [90m│[39m
+[90m│[39m Dependencies:      [90m│[39m 42, 50                                                                         [90m│[39m
+[90m│[39m Complexity:        [90m│[39m ● 6                                                                            [90m│[39m
+[90m│[39m Category:          [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Skills:            [90m│[39m N/A                                                                            [90m│[39m
+[90m│[39m Description:       [90m│[39m Create quality metrics system for templates                                    [90m│[39m
+[90m└────────────────────[39m[90m┴────────────────────────────────────────────────────────────────────────────────┘[39m
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Implementation Details:                                                                        │
+│                                                                                                  │
+│   Define quality metrics (complexity, maintainability, performance). Implement static analysis   │
+│   for templates. Add quality score calculation. Create quality dashboards. Implement quality     │
+│   gates for new templates. Add quality improvement suggestions. Create quality trends            │
+│   tracking. Implement quality benchmarks.                                                        │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Test Strategy:                                                                                 │
+│                                                                                                  │
+│   Test scoring accuracy, verify metric calculations, test improvement suggestions, validate      │
+│   benchmarks                                                                                     │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+╭──────────╮
+│ Subtasks │
+╰──────────╯
+[90m┌──────────[39m[90m┬───────────────[39m[90m┬────────────────────────────────────────────────────────────[39m[90m┬───────────────┐[39m
+[90m│[39m ID       [90m│[39m Status        [90m│[39m Title                                                      [90m│[39m Deps          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 65.1     [90m│[39m ✓ done        [90m│[39m Scope reconciliation against portable foundation           [90m│[39m None          [90m│[39m
+[90m├──────────[39m[90m┼───────────────[39m[90m┼────────────────────────────────────────────────────────────[39m[90m┼───────────────┤[39m
+[90m│[39m 65.2     [90m│[39m ✓ done        [90m│[39m Implement proven current-state gap with evidence           [90m│[39m None          [90m│[39m
+[90m└──────────[39m[90m┴───────────────[39m[90m┴────────────────────────────────────────────────────────────[39m[90m┴───────────────┘[39m
+
+
+╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│   Suggested Actions:                                                                             │
+│                                                                                                  │
+│   1. Run task-master set-status --id=65 --status=in-progress to start working                    │
+│   2. Run task-master expand --id=65 to break down into subtasks                                  │
+│   3. Run task-master update-task --id=65 --prompt="..." to update details                        │
+│                                                                                                  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯

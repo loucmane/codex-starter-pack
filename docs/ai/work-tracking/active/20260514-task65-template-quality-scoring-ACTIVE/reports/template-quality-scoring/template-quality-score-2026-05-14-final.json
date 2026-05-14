@@ -1,0 +1,570 @@
+{
+  "created_at": "2026-05-14T18:19:46+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-65-template-quality-scoring",
+      "head": "80b715dc2ab3a931a63f707522147c633f3360dc",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_065.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task65_template_quality_scoring_completion.md",
+          "status": "??"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task65-template-quality-scoring.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/template-quality/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-008-task65-template-quality-scoring.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 165,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_completion.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_completion.md",
+        ".serena/memories/2026-05-14_task76_celebration_planning_kickoff.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_completion.md",
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_kickoff.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_completion.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_kickoff.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_completion.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "203c0cc1e2b3a4df855c8b9d31adcf187b1168dbb154e467d0084c4848c01f31",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 100,
+          "pending": 8
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task65-template-quality-scoring-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task65-template-quality-scoring.md",
+        "sha256": "9f57f4e64b8a708f2a160e72e2680ee06d56a8440621c859a17c0b90f5c13629",
+        "target": "2026-05-14-task65-template-quality-scoring.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-008-task65-template-quality-scoring.md",
+        "sha256": "41f49af9c0b44c9059bc08a821735614cc00b495ccc1b00d4ef220bccab98fbf",
+        "target": "2026/05/2026-05-14-008-task65-template-quality-scoring.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "db76d9c1ab8b3063811623acca77daf830a3382d7ba63c894156ce17de75422b"
+      }
+    }
+  },
+  "domains": [
+    {
+      "details": {
+        "drift": {
+          "categories": [],
+          "finding_count": 0,
+          "generated_at": "2026-04-24T14:22:09.488310+02:00",
+          "latest_report": "reports/template-drift/summary-20260424-142209.json"
+        },
+        "template_metadata": {
+          "compliant_file_count": 78,
+          "coverage_pct": 100.0,
+          "drifted_file_count": 0,
+          "governed_file_count": 78
+        }
+      },
+      "evidence": "reports/template-metrics/latest.json",
+      "grade": "A+",
+      "id": "metadata-and-drift",
+      "improvement_suggestions": [],
+      "message": "Metadata coverage is 100.0% with 0 drifted file(s) and 0 drift finding(s).",
+      "refresh_command": "python3 scripts/codex-task report generate --kind metrics",
+      "score": 100.0,
+      "severity": "info",
+      "status": "pass",
+      "target": "100% metadata coverage and 0 drift findings",
+      "title": "Metadata and drift",
+      "weight": 20
+    },
+    {
+      "details": {
+        "duplicate_ids": 6,
+        "missing_required_count": 0,
+        "template_count": 261
+      },
+      "evidence": "scripts/template_registry.py",
+      "grade": "B-",
+      "id": "registry-health",
+      "improvement_suggestions": [
+        "Resolve duplicate template registry IDs."
+      ],
+      "message": "Registry loaded 261 template record(s) with 6 duplicate ID(s).",
+      "refresh_command": "python3 - <<'PY'\nfrom scripts.template_registry import TemplateRegistry\nprint(len(TemplateRegistry().records()))\nPY",
+      "score": 82.0,
+      "severity": "warning",
+      "status": "warn",
+      "target": "registry loads with unique IDs and non-empty paths",
+      "title": "Registry health",
+      "weight": 15
+    },
+    {
+      "details": {
+        "average_lines_per_file": 162.8,
+        "errors": 0,
+        "files_scanned": 343,
+        "issues_detected": 0,
+        "total_lines": 55840
+      },
+      "evidence": "scripts/template-ssot-scanner/output/data/template_scan_results.json",
+      "grade": "A+",
+      "id": "scanner-complexity",
+      "improvement_suggestions": [],
+      "message": "Scanner reports 343 file(s), 55840 line(s), 0 issue(s), and 0 error(s).",
+      "refresh_command": "python3 scripts/template-ssot-scanner/scanner.py --base . --out scripts/template-ssot-scanner/output/data/template_scan_results.json --no-checkpoints --profile ci",
+      "score": 100.0,
+      "severity": "info",
+      "status": "pass",
+      "target": "0 scanner errors, 0 scanner issues, average file size under review threshold",
+      "title": "Scanner complexity",
+      "weight": 15
+    },
+    {
+      "details": {
+        "policy_version": "1.0.0",
+        "status": "pass",
+        "summary": {
+          "errors": 0,
+          "passed": 4,
+          "total": 4,
+          "warnings": 0
+        }
+      },
+      "evidence": "reports/template-performance/latest.json",
+      "grade": "A+",
+      "id": "template-performance",
+      "improvement_suggestions": [],
+      "message": "Performance status is `pass` with 4/4 check(s) passing.",
+      "refresh_command": "python3 scripts/template-performance-harness --strict",
+      "score": 100.0,
+      "severity": "info",
+      "status": "pass",
+      "target": "performance report status pass with all checks passing",
+      "title": "Template performance",
+      "weight": 15
+    },
+    {
+      "details": {
+        "usage_summary": {
+          "alias_mentions": 9,
+          "category_mentions": {
+            "BEHAVIORS.md": 3,
+            "BUILDING-BETTER.md": 3,
+            "CONVENTIONS.md": 2,
+            "HANDLERS.md": 4,
+            "MATRICES.md": 2,
+            "PATTERNS.md": 2,
+            "REGISTRY.md": 10,
+            "TOOLS.md": 25,
+            "USER-GUIDE.md": 8,
+            "WORKFLOWS.md": 5,
+            "analysis": 5,
+            "architecture": 4,
+            "behaviors": 2,
+            "ci": 10,
+            "code-style": 3,
+            "core": 4,
+            "cross-system": 1,
+            "docs": 1,
+            "domain": 10,
+            "engine": 263,
+            "examples": 2,
+            "git": 20,
+            "guides": 49,
+            "handlers": 80,
+            "helpers": 10,
+            "index": 4,
+            "integration": 8,
+            "mapping": 2,
+            "memory": 1,
+            "metadata": 17,
+            "patterns": 10,
+            "planning": 6,
+            "processes": 35,
+            "registry": 18,
+            "routing": 2,
+            "search": 12,
+            "selection": 3,
+            "session": 58,
+            "task": 1,
+            "taskmaster": 12,
+            "templates": 1,
+            "timestamps": 3,
+            "tools": 4,
+            "tools/external": 2,
+            "work-tracking": 6,
+            "workflows": 2
+          },
+          "id_mentions": 276,
+          "monthly_mentions": {
+            "2025-09": 116,
+            "2025-10": 125,
+            "2025-11": 1,
+            "2026-04": 143,
+            "2026-05": 189
+          },
+          "path_mentions": 450,
+          "templates_with_observed_usage": 106,
+          "templates_without_observed_usage": 149,
+          "top_templates": [
+            {
+              "alias_mentions": 0,
+              "category": "engine",
+              "id": "portable-foundation-spec",
+              "id_mentions": 137,
+              "path": "templates/engine/core/portable-foundation-spec.md",
+              "path_mentions": 106,
+              "total_mentions": 243
+            },
+            {
+              "alias_mentions": 0,
+              "category": "handlers",
+              "id": "meta-workflow-authoring",
+              "id_mentions": 40,
+              "path": "templates/handlers/orchestrators/meta-workflow-authoring.md",
+              "path_mentions": 9,
+              "total_mentions": 49
+            },
+            {
+              "alias_mentions": 0,
+              "category": "TOOLS.md",
+              "id": "templates-TOOLS",
+              "id_mentions": 2,
+              "path": "templates/TOOLS.md",
+              "path_mentions": 23,
+              "total_mentions": 25
+            },
+            {
+              "alias_mentions": 0,
+              "category": "metadata",
+              "id": "templates-metadata-template-overview",
+              "id_mentions": 2,
+              "path": "templates/metadata/template-overview.md",
+              "path_mentions": 15,
+              "total_mentions": 17
+            },
+            {
+              "alias_mentions": 0,
+              "category": "guides",
+              "id": "guide-index",
+              "id_mentions": 2,
+              "path": "templates/guides/index.md",
+              "path_mentions": 12,
+              "total_mentions": 14
+            },
+            {
+              "alias_mentions": 0,
+              "category": "session",
+              "id": "session-continuation-workflow",
+              "id_mentions": 5,
+              "path": "templates/workflows/session/continuation.md",
+              "path_mentions": 8,
+              "total_mentions": 13
+            },
+            {
+              "alias_mentions": 0,
+              "category": "search",
+              "id": "serena-guide",
+              "id_mentions": 7,
+              "path": "templates/tools/search/serena-guide.md",
+              "path_mentions": 5,
+              "total_mentions": 12
+            },
+            {
+              "alias_mentions": 0,
+              "category": "session",
+              "id": "session-state-management",
+              "id_mentions": 2,
+              "path": "templates/workflows/session/state-management.md",
+              "path_mentions": 10,
+              "total_mentions": 12
+            },
+            {
+              "alias_mentions": 0,
+              "category": "guides",
+              "id": "foundation-communication-templates",
+              "id_mentions": 6,
+              "path": "templates/guides/communication/foundation-communication-templates.md",
+              "path_mentions": 5,
+              "total_mentions": 11
+            },
+            {
+              "alias_mentions": 0,
+              "category": "processes",
+              "id": "plan-template",
+              "id_mentions": 7,
+              "path": "templates/workflows/processes/plan-template.md",
+              "path_mentions": 4,
+              "total_mentions": 11
+            }
+          ],
+          "total_mentions": 735
+        }
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260513-task51-template-usage-analytics-COMPLETED/reports/template-usage-analytics/template-usage-analytics-2026-05-13.json",
+      "grade": "A+",
+      "id": "usage-analytics",
+      "improvement_suggestions": [
+        "Review zero-observed templates for documentation, lifecycle, or deprecation follow-up."
+      ],
+      "message": "Usage analytics reports 735 mention(s) across 106 observed template(s).",
+      "refresh_command": "python3 scripts/codex-task template usage-analytics --include-archive --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+      "score": 100.0,
+      "severity": "info",
+      "status": "pass",
+      "target": "latest usage analytics artifact exists with observed template references",
+      "title": "Usage analytics",
+      "weight": 10
+    },
+    {
+      "details": {
+        "available_controls": 4,
+        "non_available_controls": [
+          "phase0-security-gate"
+        ],
+        "total_controls": 5
+      },
+      "evidence": "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json",
+      "grade": "B-",
+      "id": "security-audit",
+      "improvement_suggestions": [
+        "Review security controls with missing evidence: phase0-security-gate."
+      ],
+      "message": "Security audit reports 4/5 available control(s).",
+      "refresh_command": "python3 scripts/codex-task security audit --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+      "score": 80.0,
+      "severity": "warning",
+      "status": "warn",
+      "target": "security audit controls available or intentionally documented",
+      "title": "Security audit",
+      "weight": 10
+    },
+    {
+      "details": {
+        "active_work_tracking": [
+          "docs/ai/work-tracking/active/20260514-task65-template-quality-scoring-ACTIVE"
+        ],
+        "current_plan": {
+          "exists": true,
+          "is_symlink": true,
+          "path": "plans/current",
+          "resolved": "plans/2026-05-14-task65-template-quality-scoring.md",
+          "sha256": "9f57f4e64b8a708f2a160e72e2680ee06d56a8440621c859a17c0b90f5c13629",
+          "target": "2026-05-14-task65-template-quality-scoring.md"
+        },
+        "current_session": {
+          "exists": true,
+          "is_symlink": true,
+          "path": "sessions/current",
+          "resolved": "sessions/2026/05/2026-05-14-008-task65-template-quality-scoring.md",
+          "sha256": "41f49af9c0b44c9059bc08a821735614cc00b495ccc1b00d4ef220bccab98fbf",
+          "target": "2026/05/2026-05-14-008-task65-template-quality-scoring.md"
+        },
+        "session_state": {
+          "exists": true,
+          "path": "sessions/state.json",
+          "sha256": "db76d9c1ab8b3063811623acca77daf830a3382d7ba63c894156ce17de75422b"
+        }
+      },
+      "evidence": "sessions/2026/05/2026-05-14-008-task65-template-quality-scoring.md",
+      "grade": "A+",
+      "id": "workflow-continuity",
+      "improvement_suggestions": [],
+      "message": "Workflow pointers are aligned.",
+      "refresh_command": "python3 scripts/codex-task work-tracking audit",
+      "score": 100.0,
+      "severity": "info",
+      "status": "pass",
+      "target": "one active task with current session and plan pointers",
+      "title": "Workflow continuity",
+      "weight": 15
+    }
+  ],
+  "executes_mutations": false,
+  "improvement_suggestions": [
+    {
+      "domain": "registry-health",
+      "severity": "warning",
+      "suggestion": "Resolve duplicate template registry IDs."
+    },
+    {
+      "domain": "usage-analytics",
+      "severity": "info",
+      "suggestion": "Review zero-observed templates for documentation, lifecycle, or deprecation follow-up."
+    },
+    {
+      "domain": "security-audit",
+      "severity": "warning",
+      "suggestion": "Review security controls with missing evidence: phase0-security-gate."
+    }
+  ],
+  "label": "task65",
+  "mode": "static-non-destructive-template-quality-scorecard",
+  "non_goals": [
+    "No live dashboard, hosted UI, WebSocket, database, trend backend, scheduler, daemon, or external analytics service is created.",
+    "No CI quality gate, pre-commit hook, policy enforcement, notification, ticket, webhook, or stakeholder message is installed or sent.",
+    "No template, registry, metadata, Taskmaster, session, plan, work-tracking, Git, scanner, report, or external state is mutated beyond requested quality scorecard artifacts.",
+    "No performance benchmark, scanner refresh, security audit, usage analytics scan, or drift check is executed by this scorecard command.",
+    "No predictive quality model, machine-learning service, automatic remediation, or template rewrite suggestion engine is trained or executed."
+  ],
+  "quality_gates": [
+    {
+      "gate": "metadata-coverage",
+      "source_domain": "metadata-and-drift",
+      "status": "pass",
+      "target": "100% metadata coverage and 0 drift findings"
+    },
+    {
+      "gate": "performance",
+      "source_domain": "template-performance",
+      "status": "pass",
+      "target": "template performance report status pass"
+    },
+    {
+      "gate": "scanner-complexity",
+      "source_domain": "scanner-complexity",
+      "status": "pass",
+      "target": "0 scanner errors and 0 scanner issues"
+    },
+    {
+      "gate": "security-review",
+      "source_domain": "security-audit",
+      "status": "warn",
+      "target": "security audit evidence present with non-available controls reviewed"
+    },
+    {
+      "gate": "workflow-continuity",
+      "source_domain": "workflow-continuity",
+      "status": "pass",
+      "target": "current session, plan, and active work-tracking state aligned"
+    }
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task report generate --kind metrics",
+    "python3 scripts/codex-guard drift-check",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/codex-task template usage-analytics --include-archive --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+    "python3 scripts/codex-task security audit --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+    "python3 scripts/template-ssot-scanner/scanner.py --base . --out scripts/template-ssot-scanner/output/data/template_scan_results.json --no-checkpoints --profile ci",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "summary": {
+    "aggregate_status": "pass",
+    "failures": 0,
+    "missing": 0,
+    "passed": 5,
+    "quality_grade": "A",
+    "quality_score_pct": 95.3,
+    "total_domains": 7,
+    "total_weight": 100.0,
+    "warnings": 2
+  },
+  "version": 1,
+  "weights": [
+    {
+      "id": "metadata-and-drift",
+      "weight": 20
+    },
+    {
+      "id": "registry-health",
+      "weight": 15
+    },
+    {
+      "id": "scanner-complexity",
+      "weight": 15
+    },
+    {
+      "id": "template-performance",
+      "weight": 15
+    },
+    {
+      "id": "usage-analytics",
+      "weight": 10
+    },
+    {
+      "id": "security-audit",
+      "weight": 10
+    },
+    {
+      "id": "workflow-continuity",
+      "weight": 15
+    }
+  ]
+}

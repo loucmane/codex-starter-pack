@@ -9875,6 +9875,713 @@ def handle_template_usage_analytics(args: argparse.Namespace) -> None:
         print(rendered_runbook, end="")
 
 
+TEMPLATE_QUALITY_NON_GOALS: Tuple[str, ...] = (
+    "No live dashboard, hosted UI, WebSocket, database, trend backend, scheduler, daemon, or external analytics service is created.",
+    "No CI quality gate, pre-commit hook, policy enforcement, notification, ticket, webhook, or stakeholder message is installed or sent.",
+    "No template, registry, metadata, Taskmaster, session, plan, work-tracking, Git, scanner, report, or external state is mutated beyond requested quality scorecard artifacts.",
+    "No performance benchmark, scanner refresh, security audit, usage analytics scan, or drift check is executed by this scorecard command.",
+    "No predictive quality model, machine-learning service, automatic remediation, or template rewrite suggestion engine is trained or executed.",
+)
+
+TEMPLATE_QUALITY_DOMAIN_WEIGHTS: Tuple[Dict[str, Any], ...] = (
+    {"id": "metadata-and-drift", "weight": 20},
+    {"id": "registry-health", "weight": 15},
+    {"id": "scanner-complexity", "weight": 15},
+    {"id": "template-performance", "weight": 15},
+    {"id": "usage-analytics", "weight": 10},
+    {"id": "security-audit", "weight": 10},
+    {"id": "workflow-continuity", "weight": 15},
+)
+
+TEMPLATE_QUALITY_REFRESH_COMMANDS: Tuple[str, ...] = (
+    "python3 scripts/codex-task report generate --kind metrics",
+    "python3 scripts/codex-guard drift-check",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/codex-task template usage-analytics --include-archive --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+    "python3 scripts/codex-task security audit --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+    "python3 scripts/template-ssot-scanner/scanner.py --base . --out scripts/template-ssot-scanner/output/data/template_scan_results.json --no-checkpoints --profile ci",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+)
+
+
+def _template_quality_bound_score(value: object) -> float:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        numeric = 0.0
+    return round(max(0.0, min(100.0, numeric)), 2)
+
+
+def _template_quality_grade(score: float) -> str:
+    if score >= 97:
+        return "A+"
+    if score >= 93:
+        return "A"
+    if score >= 90:
+        return "A-"
+    if score >= 87:
+        return "B+"
+    if score >= 83:
+        return "B"
+    if score >= 80:
+        return "B-"
+    if score >= 70:
+        return "C"
+    if score >= 60:
+        return "D"
+    return "F"
+
+
+def _template_quality_status(score: float, *, missing: bool = False, invalid: bool = False) -> str:
+    if missing:
+        return "missing"
+    if invalid or score < 60:
+        return "fail"
+    if score < 90:
+        return "warn"
+    return "pass"
+
+
+def _template_quality_severity(status: str) -> str:
+    if status == "fail":
+        return "error"
+    if status in {"warn", "missing"}:
+        return "warning"
+    return "info"
+
+
+def _template_quality_domain(
+    *,
+    domain_id: str,
+    title: str,
+    weight: int,
+    score: object,
+    target: str,
+    evidence: str,
+    message: str,
+    refresh_command: str,
+    details: Optional[Mapping[str, Any]] = None,
+    missing: bool = False,
+    invalid: bool = False,
+    suggestions: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
+    bounded = _template_quality_bound_score(score)
+    status = _template_quality_status(bounded, missing=missing, invalid=invalid)
+    return {
+        "id": domain_id,
+        "title": title,
+        "weight": weight,
+        "score": bounded,
+        "grade": _template_quality_grade(bounded),
+        "status": status,
+        "severity": _template_quality_severity(status),
+        "target": target,
+        "evidence": evidence,
+        "message": message,
+        "refresh_command": refresh_command,
+        "details": dict(details or {}),
+        "improvement_suggestions": list(suggestions or []),
+    }
+
+
+def _template_quality_missing_domain(
+    *,
+    domain_id: str,
+    title: str,
+    weight: int,
+    evidence: str,
+    refresh_command: str,
+) -> Dict[str, Any]:
+    return _template_quality_domain(
+        domain_id=domain_id,
+        title=title,
+        weight=weight,
+        score=50,
+        target="source evidence present",
+        evidence=evidence,
+        message=f"{title} source evidence is missing.",
+        refresh_command=refresh_command,
+        missing=True,
+        suggestions=[f"Run `{refresh_command}` and regenerate the quality scorecard."],
+    )
+
+
+def _template_quality_invalid_domain(
+    *,
+    domain_id: str,
+    title: str,
+    weight: int,
+    evidence: str,
+    message: str,
+    refresh_command: str,
+) -> Dict[str, Any]:
+    return _template_quality_domain(
+        domain_id=domain_id,
+        title=title,
+        weight=weight,
+        score=0,
+        target="valid source JSON",
+        evidence=evidence,
+        message=message,
+        refresh_command=refresh_command,
+        invalid=True,
+        suggestions=[f"Regenerate valid source evidence with `{refresh_command}`."],
+    )
+
+
+def _template_quality_weight(domain_id: str) -> int:
+    for entry in TEMPLATE_QUALITY_DOMAIN_WEIGHTS:
+        if entry["id"] == domain_id:
+            return int(entry["weight"])
+    return 1
+
+
+def _build_template_quality_metadata_domain() -> Dict[str, Any]:
+    path = REPO_STRUCTURE.metrics_report_dir / "latest.json"
+    source = _success_metrics_load_json(path)
+    if source["status"] == "missing":
+        return _template_quality_missing_domain(
+            domain_id="metadata-and-drift",
+            title="Metadata and drift",
+            weight=_template_quality_weight("metadata-and-drift"),
+            evidence=str(source["path"]),
+            refresh_command="python3 scripts/codex-task report generate --kind metrics",
+        )
+    if source["status"] == "invalid":
+        return _template_quality_invalid_domain(
+            domain_id="metadata-and-drift",
+            title="Metadata and drift",
+            weight=_template_quality_weight("metadata-and-drift"),
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command="python3 scripts/codex-task report generate --kind metrics",
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    metadata = payload.get("template_metadata") if isinstance(payload.get("template_metadata"), Mapping) else {}
+    drift = payload.get("drift") if isinstance(payload.get("drift"), Mapping) else {}
+    coverage = _template_quality_bound_score(metadata.get("coverage_pct"))
+    drifted = int(metadata.get("drifted_file_count", 0) or 0)
+    findings = int(drift.get("finding_count", 0) or 0)
+    score = _template_quality_bound_score(coverage - (drifted * 10) - (findings * 5))
+    suggestions = []
+    if coverage < 100:
+        suggestions.append("Close template metadata coverage gaps before claiming excellent quality.")
+    if drifted or findings:
+        suggestions.append("Resolve drift findings and regenerate the metrics report.")
+    return _template_quality_domain(
+        domain_id="metadata-and-drift",
+        title="Metadata and drift",
+        weight=_template_quality_weight("metadata-and-drift"),
+        score=score,
+        target="100% metadata coverage and 0 drift findings",
+        evidence=str(source["path"]),
+        message=f"Metadata coverage is {coverage}% with {drifted} drifted file(s) and {findings} drift finding(s).",
+        refresh_command="python3 scripts/codex-task report generate --kind metrics",
+        details={"template_metadata": metadata, "drift": drift},
+        suggestions=suggestions,
+    )
+
+
+def _build_template_quality_registry_domain() -> Dict[str, Any]:
+    try:
+        registry = TemplateRegistry(repo_root=REPO_ROOT)
+        records = tuple(registry.records())
+    except Exception as exc:  # pragma: no cover - defensive reporting for operator-facing packet
+        return _template_quality_domain(
+            domain_id="registry-health",
+            title="Registry health",
+            weight=_template_quality_weight("registry-health"),
+            score=0,
+            target="registry loads and exposes template records",
+            evidence="scripts/template_registry.py",
+            message=f"Template registry failed to load: {exc}",
+            refresh_command="python3 - <<'PY'\nfrom scripts.template_registry import TemplateRegistry\nprint(len(TemplateRegistry().records()))\nPY",
+            invalid=True,
+            suggestions=["Fix template registry loading before using quality scores."],
+        )
+    duplicate_ids = len(records) - len({record.id for record in records})
+    missing_required = [
+        record.path
+        for record in records
+        if not record.id or not record.path
+    ]
+    score = 100
+    if not records:
+        score = 0
+    score -= duplicate_ids * 3
+    score -= len(missing_required) * 10
+    suggestions = []
+    if duplicate_ids:
+        suggestions.append("Resolve duplicate template registry IDs.")
+    if missing_required:
+        suggestions.append("Ensure every registry record has an ID and path.")
+    if not records:
+        suggestions.append("Restore template registry records before scoring quality.")
+    return _template_quality_domain(
+        domain_id="registry-health",
+        title="Registry health",
+        weight=_template_quality_weight("registry-health"),
+        score=score,
+        target="registry loads with unique IDs and non-empty paths",
+        evidence="scripts/template_registry.py",
+        message=f"Registry loaded {len(records)} template record(s) with {duplicate_ids} duplicate ID(s).",
+        refresh_command="python3 - <<'PY'\nfrom scripts.template_registry import TemplateRegistry\nprint(len(TemplateRegistry().records()))\nPY",
+        details={
+            "template_count": len(records),
+            "duplicate_ids": duplicate_ids,
+            "missing_required_count": len(missing_required),
+        },
+        suggestions=suggestions,
+    )
+
+
+def _build_template_quality_scanner_domain() -> Dict[str, Any]:
+    path = "scripts/template-ssot-scanner/output/data/template_scan_results.json"
+    source = _success_metrics_load_json(path)
+    if source["status"] == "missing":
+        return _template_quality_missing_domain(
+            domain_id="scanner-complexity",
+            title="Scanner complexity",
+            weight=_template_quality_weight("scanner-complexity"),
+            evidence=str(source["path"]),
+            refresh_command="python3 scripts/template-ssot-scanner/scanner.py --base . --out scripts/template-ssot-scanner/output/data/template_scan_results.json --no-checkpoints --profile ci",
+        )
+    if source["status"] == "invalid":
+        return _template_quality_invalid_domain(
+            domain_id="scanner-complexity",
+            title="Scanner complexity",
+            weight=_template_quality_weight("scanner-complexity"),
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command="python3 scripts/template-ssot-scanner/scanner.py --base . --out scripts/template-ssot-scanner/output/data/template_scan_results.json --no-checkpoints --profile ci",
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), Mapping) else {}
+    stats = metadata.get("stats") if isinstance(metadata.get("stats"), Mapping) else {}
+    data = payload.get("data") if isinstance(payload.get("data"), Mapping) else {}
+    errors = data.get("errors") if isinstance(data.get("errors"), list) else []
+    issues = int(stats.get("issues_detected", 0) or 0)
+    files = int(stats.get("files_scanned", 0) or data.get("scan_metadata", {}).get("total_files", 0) or 0)
+    total_lines = int(stats.get("total_lines", 0) or data.get("scan_metadata", {}).get("total_lines", 0) or 0)
+    avg_lines = round(total_lines / files, 2) if files else 0.0
+    score = 100 - (len(errors) * 25) - (issues * 5)
+    if avg_lines > 250:
+        score -= 5
+    suggestions = []
+    if errors:
+        suggestions.append("Resolve scanner errors before using scanner complexity as quality evidence.")
+    if issues:
+        suggestions.append("Review scanner issues and regenerate scan output.")
+    if avg_lines > 250:
+        suggestions.append("Review high average template size for maintainability risk.")
+    return _template_quality_domain(
+        domain_id="scanner-complexity",
+        title="Scanner complexity",
+        weight=_template_quality_weight("scanner-complexity"),
+        score=score,
+        target="0 scanner errors, 0 scanner issues, average file size under review threshold",
+        evidence=str(source["path"]),
+        message=f"Scanner reports {files} file(s), {total_lines} line(s), {issues} issue(s), and {len(errors)} error(s).",
+        refresh_command="python3 scripts/template-ssot-scanner/scanner.py --base . --out scripts/template-ssot-scanner/output/data/template_scan_results.json --no-checkpoints --profile ci",
+        details={"files_scanned": files, "total_lines": total_lines, "average_lines_per_file": avg_lines, "issues_detected": issues, "errors": len(errors)},
+        suggestions=suggestions,
+    )
+
+
+def _build_template_quality_performance_domain() -> Dict[str, Any]:
+    path = REPO_STRUCTURE.performance_report_dir / "latest.json"
+    source = _success_metrics_load_json(path)
+    if source["status"] == "missing":
+        return _template_quality_missing_domain(
+            domain_id="template-performance",
+            title="Template performance",
+            weight=_template_quality_weight("template-performance"),
+            evidence=str(source["path"]),
+            refresh_command="python3 scripts/template-performance-harness --strict",
+        )
+    if source["status"] == "invalid":
+        return _template_quality_invalid_domain(
+            domain_id="template-performance",
+            title="Template performance",
+            weight=_template_quality_weight("template-performance"),
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command="python3 scripts/template-performance-harness --strict",
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    total = int(summary.get("total", 0) or 0)
+    passed = int(summary.get("passed", 0) or 0)
+    warnings = int(summary.get("warnings", 0) or 0)
+    errors = int(summary.get("errors", 0) or 0)
+    score = (passed / total) * 100 if total else 0
+    score -= warnings * 10
+    score -= errors * 25
+    suggestions = []
+    if warnings or errors:
+        suggestions.append("Review performance warnings/errors and rerun the harness.")
+    if payload.get("status") != "pass":
+        suggestions.append("Performance status must be `pass` before claiming full template quality.")
+    return _template_quality_domain(
+        domain_id="template-performance",
+        title="Template performance",
+        weight=_template_quality_weight("template-performance"),
+        score=score,
+        target="performance report status pass with all checks passing",
+        evidence=str(source["path"]),
+        message=f"Performance status is `{payload.get('status')}` with {passed}/{total} check(s) passing.",
+        refresh_command="python3 scripts/template-performance-harness --strict",
+        details={"status": payload.get("status"), "summary": summary, "policy_version": payload.get("policy_version")},
+        suggestions=suggestions,
+    )
+
+
+def _build_template_quality_usage_domain() -> Dict[str, Any]:
+    latest = _success_metrics_latest("*-task51-template-usage-analytics-COMPLETED/reports/template-usage-analytics/template-usage-analytics-*.json")
+    if latest is None:
+        return _template_quality_missing_domain(
+            domain_id="usage-analytics",
+            title="Usage analytics",
+            weight=_template_quality_weight("usage-analytics"),
+            evidence="*-task51-template-usage-analytics-COMPLETED/reports/template-usage-analytics/template-usage-analytics-*.json",
+            refresh_command="python3 scripts/codex-task template usage-analytics --include-archive --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+        )
+    source = _success_metrics_load_json(latest)
+    if source["status"] == "invalid":
+        return _template_quality_invalid_domain(
+            domain_id="usage-analytics",
+            title="Usage analytics",
+            weight=_template_quality_weight("usage-analytics"),
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command="python3 scripts/codex-task template usage-analytics --include-archive --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    usage = payload.get("usage_summary") if isinstance(payload.get("usage_summary"), Mapping) else {}
+    total_mentions = int(usage.get("total_mentions", 0) or 0)
+    observed = int(usage.get("templates_with_observed_usage", 0) or 0)
+    zero_observed = int(usage.get("templates_without_observed_usage", 0) or 0)
+    score = 100 if total_mentions > 0 else 70
+    suggestions = []
+    if zero_observed > observed:
+        suggestions.append("Review zero-observed templates for documentation, lifecycle, or deprecation follow-up.")
+    if not total_mentions:
+        suggestions.append("Regenerate usage analytics with archive inclusion to improve adoption evidence.")
+    return _template_quality_domain(
+        domain_id="usage-analytics",
+        title="Usage analytics",
+        weight=_template_quality_weight("usage-analytics"),
+        score=score,
+        target="latest usage analytics artifact exists with observed template references",
+        evidence=str(source["path"]),
+        message=f"Usage analytics reports {total_mentions} mention(s) across {observed} observed template(s).",
+        refresh_command="python3 scripts/codex-task template usage-analytics --include-archive --report-file reports/template-usage-analytics/latest.json --runbook-file reports/template-usage-analytics/latest.md",
+        details={"usage_summary": usage},
+        suggestions=suggestions,
+    )
+
+
+def _build_template_quality_security_domain() -> Dict[str, Any]:
+    latest = _success_metrics_latest("*-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-*.json")
+    if latest is None:
+        return _template_quality_missing_domain(
+            domain_id="security-audit",
+            title="Security audit",
+            weight=_template_quality_weight("security-audit"),
+            evidence="*-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-*.json",
+            refresh_command="python3 scripts/codex-task security audit --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+        )
+    source = _success_metrics_load_json(latest)
+    if source["status"] == "invalid":
+        return _template_quality_invalid_domain(
+            domain_id="security-audit",
+            title="Security audit",
+            weight=_template_quality_weight("security-audit"),
+            evidence=str(source["path"]),
+            message=str(source["message"]),
+            refresh_command="python3 scripts/codex-task security audit --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+        )
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    controls = payload.get("controls") if isinstance(payload.get("controls"), list) else []
+    available = sum(1 for control in controls if isinstance(control, Mapping) and control.get("status") == "available")
+    total = len(controls)
+    missing = [
+        control.get("id")
+        for control in controls
+        if isinstance(control, Mapping) and control.get("status") != "available"
+    ]
+    score = (available / total) * 100 if total else 0
+    suggestions = []
+    if missing:
+        suggestions.append(f"Review security controls with missing evidence: {', '.join(str(item) for item in missing)}.")
+    return _template_quality_domain(
+        domain_id="security-audit",
+        title="Security audit",
+        weight=_template_quality_weight("security-audit"),
+        score=score,
+        target="security audit controls available or intentionally documented",
+        evidence=str(source["path"]),
+        message=f"Security audit reports {available}/{total} available control(s).",
+        refresh_command="python3 scripts/codex-task security audit --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+        details={"available_controls": available, "total_controls": total, "non_available_controls": missing},
+        suggestions=suggestions,
+    )
+
+
+def _build_template_quality_workflow_domain() -> Dict[str, Any]:
+    workflow = _workflow_snapshot()
+    current_session = workflow.get("current_session") if isinstance(workflow.get("current_session"), Mapping) else {}
+    current_plan = workflow.get("current_plan") if isinstance(workflow.get("current_plan"), Mapping) else {}
+    active = workflow.get("active_work_tracking") if isinstance(workflow.get("active_work_tracking"), list) else []
+    blockers = []
+    if not current_session.get("resolved"):
+        blockers.append("sessions/current missing")
+    if not current_plan.get("resolved"):
+        blockers.append("plans/current missing")
+    if len(active) != 1:
+        blockers.append(f"expected 1 active work-tracking folder, found {len(active)}")
+    score = 100 if not blockers else max(0, 100 - (len(blockers) * 25))
+    return _template_quality_domain(
+        domain_id="workflow-continuity",
+        title="Workflow continuity",
+        weight=_template_quality_weight("workflow-continuity"),
+        score=score,
+        target="one active task with current session and plan pointers",
+        evidence=str(current_session.get("resolved") or current_session.get("path")),
+        message="Workflow pointers are aligned." if not blockers else "; ".join(blockers),
+        refresh_command="python3 scripts/codex-task work-tracking audit",
+        details=workflow,
+        suggestions=["Repair current session, plan, and active work-tracking pointers before relying on quality trend evidence."] if blockers else [],
+    )
+
+
+def _build_template_quality_domains() -> List[Dict[str, Any]]:
+    return [
+        _build_template_quality_metadata_domain(),
+        _build_template_quality_registry_domain(),
+        _build_template_quality_scanner_domain(),
+        _build_template_quality_performance_domain(),
+        _build_template_quality_usage_domain(),
+        _build_template_quality_security_domain(),
+        _build_template_quality_workflow_domain(),
+    ]
+
+
+def _summarise_template_quality(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    total_weight = sum(float(domain.get("weight", 0) or 0) for domain in domains)
+    weighted_points = sum(float(domain.get("score", 0) or 0) * float(domain.get("weight", 0) or 0) for domain in domains)
+    score = round(weighted_points / total_weight, 2) if total_weight else 0.0
+    passed = sum(1 for domain in domains if domain.get("status") == "pass")
+    warnings = sum(1 for domain in domains if domain.get("status") == "warn")
+    missing = sum(1 for domain in domains if domain.get("status") == "missing")
+    failures = sum(1 for domain in domains if domain.get("status") == "fail")
+    if failures or score < 70:
+        aggregate_status = "fail"
+    elif missing or score < 90:
+        aggregate_status = "warn"
+    else:
+        aggregate_status = "pass"
+    return {
+        "aggregate_status": aggregate_status,
+        "quality_score_pct": score,
+        "quality_grade": _template_quality_grade(score),
+        "total_domains": len(domains),
+        "passed": passed,
+        "warnings": warnings,
+        "missing": missing,
+        "failures": failures,
+        "total_weight": total_weight,
+    }
+
+
+def _template_quality_improvement_suggestions(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    suggestions: List[Dict[str, Any]] = []
+    for domain in domains:
+        for item in domain.get("improvement_suggestions", []) or []:
+            suggestions.append(
+                {
+                    "domain": domain.get("id"),
+                    "severity": domain.get("severity"),
+                    "suggestion": item,
+                }
+            )
+    return suggestions
+
+
+def _template_quality_gates(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    return [
+        {
+            "gate": "metadata-coverage",
+            "target": "100% metadata coverage and 0 drift findings",
+            "source_domain": "metadata-and-drift",
+            "status": next((domain.get("status") for domain in domains if domain.get("id") == "metadata-and-drift"), "missing"),
+        },
+        {
+            "gate": "performance",
+            "target": "template performance report status pass",
+            "source_domain": "template-performance",
+            "status": next((domain.get("status") for domain in domains if domain.get("id") == "template-performance"), "missing"),
+        },
+        {
+            "gate": "scanner-complexity",
+            "target": "0 scanner errors and 0 scanner issues",
+            "source_domain": "scanner-complexity",
+            "status": next((domain.get("status") for domain in domains if domain.get("id") == "scanner-complexity"), "missing"),
+        },
+        {
+            "gate": "security-review",
+            "target": "security audit evidence present with non-available controls reviewed",
+            "source_domain": "security-audit",
+            "status": next((domain.get("status") for domain in domains if domain.get("id") == "security-audit"), "missing"),
+        },
+        {
+            "gate": "workflow-continuity",
+            "target": "current session, plan, and active work-tracking state aligned",
+            "source_domain": "workflow-continuity",
+            "status": next((domain.get("status") for domain in domains if domain.get("id") == "workflow-continuity"), "missing"),
+        },
+    ]
+
+
+def _build_template_quality_score(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    domains = _build_template_quality_domains()
+    summary = _summarise_template_quality(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label or "template-quality-score",
+        "mode": "static-non-destructive-template-quality-scorecard",
+        "executes_mutations": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "weights": list(TEMPLATE_QUALITY_DOMAIN_WEIGHTS),
+        "domains": domains,
+        "quality_gates": _template_quality_gates(domains),
+        "improvement_suggestions": _template_quality_improvement_suggestions(domains),
+        "recommended_refresh_commands": list(TEMPLATE_QUALITY_REFRESH_COMMANDS),
+        "non_goals": list(TEMPLATE_QUALITY_NON_GOALS),
+    }
+
+
+def _render_template_quality_score(report: Dict[str, Any]) -> str:
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    lines = [
+        "# Template Quality Scorecard",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes mutations: {report.get('executes_mutations')}",
+        f"- Aggregate status: `{summary.get('aggregate_status')}`",
+        f"- Quality score: {summary.get('quality_score_pct')}%",
+        f"- Quality grade: {summary.get('quality_grade')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Domain Scores",
+        "",
+        "| Domain | Weight | Score | Grade | Status | Target | Evidence |",
+        "| --- | ---: | ---: | --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {domain.get('weight')} | {domain.get('score')} | "
+            f"`{_md_cell(domain.get('grade'))}` | `{_md_cell(domain.get('status'))}` | "
+            f"{_md_cell(domain.get('target'))} | `{_md_cell(domain.get('evidence'))}` |"
+        )
+
+    lines.extend(["", "## Quality Gates", ""])
+    for gate in report.get("quality_gates", []):
+        if isinstance(gate, Mapping):
+            lines.append(f"- `{gate.get('gate')}`: `{gate.get('status')}` - {gate.get('target')}")
+
+    lines.extend(["", "## Improvement Suggestions", ""])
+    suggestions = report.get("improvement_suggestions", [])
+    if suggestions:
+        for item in suggestions:
+            if isinstance(item, Mapping):
+                lines.append(f"- `{item.get('domain')}` ({item.get('severity')}): {item.get('suggestion')}")
+    else:
+        lines.append("- No improvement suggestions for the current scorecard inputs.")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This scorecard is static and evidence-based. It composes existing repository reports and requested output files only; it does not install dashboards, mutate templates, enforce CI gates, run benchmarks, send notifications, or contact external services.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_template_quality_score(args: argparse.Namespace) -> None:
+    report = _build_template_quality_score(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_template_quality_score(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] != "pass":
+            raise TaskError("Template quality scorecard aggregate status is not pass")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote template quality scorecard to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote template quality runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] != "pass":
+        raise TaskError("Template quality scorecard aggregate status is not pass")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -13732,6 +14439,16 @@ def build_parser() -> argparse.ArgumentParser:
     template_usage_analytics.add_argument("--runbook-file", help="Optional path to write the usage analytics Markdown")
     template_usage_analytics.add_argument("--dry-run", action="store_true", help="Print the usage analytics JSON without writing files")
     template_usage_analytics.set_defaults(func=handle_template_usage_analytics)
+    template_quality_score = template_sub.add_parser(
+        "quality-score",
+        help="Render a static non-destructive template quality scorecard",
+    )
+    template_quality_score.add_argument("--label", default="template-quality-score", help="Human-readable scorecard label")
+    template_quality_score.add_argument("--report-file", help="Optional path to write the quality scorecard JSON")
+    template_quality_score.add_argument("--runbook-file", help="Optional path to write the quality scorecard Markdown")
+    template_quality_score.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate quality status is not pass")
+    template_quality_score.add_argument("--dry-run", action="store_true", help="Print the quality scorecard JSON without writing files")
+    template_quality_score.set_defaults(func=handle_template_quality_score)
 
     sync_parser = subparsers.add_parser("sync", help="Cross-repository foundation sync planning operations")
     sync_sub = sync_parser.add_subparsers(dest="subcommand", required=True)

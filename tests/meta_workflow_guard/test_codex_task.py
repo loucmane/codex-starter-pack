@@ -451,6 +451,28 @@ def test_build_parser_accepts_template_usage_analytics() -> None:
     assert args.max_examples == 2
 
 
+def test_build_parser_accepts_template_quality_score() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "template",
+        "quality-score",
+        "--label",
+        "task65",
+        "--strict",
+        "--report-file",
+        "reports/template-quality/latest.json",
+        "--runbook-file",
+        "reports/template-quality/latest.md",
+    ])
+    assert args.command == "template"
+    assert args.subcommand == "quality-score"
+    assert args.label == "task65"
+    assert args.strict is True
+    assert args.report_file == "reports/template-quality/latest.json"
+    assert args.runbook_file == "reports/template-quality/latest.md"
+
+
 def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path
@@ -5850,6 +5872,234 @@ def test_handle_template_usage_analytics_writes_report_and_runbook(monkeypatch, 
     payload = json.loads((repo / "reports" / "template-usage-analytics" / "latest.json").read_text(encoding="utf-8"))
     assert payload["usage_summary"]["templates_with_observed_usage"] == 2
     assert "Template Usage Analytics" in (repo / "reports" / "template-usage-analytics" / "latest.md").read_text(encoding="utf-8")
+
+
+def _patch_template_quality_state(module, monkeypatch, repo: Path) -> None:
+    _write_repo_config(repo, "templates")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-65-template-quality-scoring"
+        if args == ["rev-parse", "HEAD"]:
+            return "qualityabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-14-008-task65.md"},
+            "current_plan": {"resolved": "plans/2026-05-14-task65.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task65-template-quality-scoring-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 99, "pending": 8, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task65.md"]})
+
+
+def _write_template_quality_sources(repo: Path, include_performance: bool = True) -> None:
+    _write_template_doc(
+        repo / "templates" / "engine" / "core" / "codex-readiness.md",
+        """
+id: engine-core-codex-readiness
+title: Codex Readiness
+type: critical-enforcement
+status: stable
+category: engine
+aliases:
+  - codex-readiness
+""",
+    )
+    _write_template_registry(
+        repo,
+        "templates",
+        [
+            {
+                "id": "engine-core-codex-readiness",
+                "path": "templates/engine/core/codex-readiness.md",
+                "aliases": ["codex-readiness"],
+            }
+        ],
+    )
+    _touch_enhancement_source(
+        repo,
+        "reports/template-metrics/latest.json",
+        json.dumps(
+            {
+                "template_metadata": {"coverage_pct": 100.0, "drifted_file_count": 0},
+                "drift": {"finding_count": 0},
+            }
+        )
+        + "\n",
+    )
+    if include_performance:
+        _touch_enhancement_source(
+            repo,
+            "reports/template-performance/latest.json",
+            json.dumps(
+                {
+                    "status": "pass",
+                    "policy_version": "1.0.0",
+                    "summary": {"total": 2, "passed": 2, "warnings": 0, "errors": 0},
+                }
+            )
+            + "\n",
+        )
+    _touch_enhancement_source(
+        repo,
+        "scripts/template-ssot-scanner/output/data/template_scan_results.json",
+        json.dumps(
+            {
+                "metadata": {
+                    "stats": {
+                        "files_scanned": 5,
+                        "total_lines": 250,
+                        "issues_detected": 0,
+                    }
+                },
+                "data": {"errors": []},
+            }
+        )
+        + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task51-template-usage-analytics-COMPLETED/reports/template-usage-analytics/template-usage-analytics-2026-05-13.json",
+        json.dumps(
+            {
+                "usage_summary": {
+                    "total_mentions": 4,
+                    "templates_with_observed_usage": 1,
+                    "templates_without_observed_usage": 0,
+                }
+            }
+        )
+        + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json",
+        json.dumps(
+            {
+                "controls": [
+                    {"id": "template-security-validator", "status": "available"},
+                    {"id": "ci-and-guard", "status": "available"},
+                ]
+            }
+        )
+        + "\n",
+    )
+
+
+def test_build_template_quality_score_summarizes_pass(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_template_quality_state(module, monkeypatch, repo)
+    _write_template_quality_sources(repo)
+
+    report = module._build_template_quality_score(argparse.Namespace(label="task65"))
+
+    assert report["mode"] == "static-non-destructive-template-quality-scorecard"
+    assert report["executes_mutations"] is False
+    assert report["summary"]["aggregate_status"] == "pass"
+    assert report["summary"]["quality_score_pct"] == 100.0
+    assert report["summary"]["quality_grade"] == "A+"
+    assert {domain["id"] for domain in report["domains"]} == {
+        "metadata-and-drift",
+        "registry-health",
+        "scanner-complexity",
+        "template-performance",
+        "usage-analytics",
+        "security-audit",
+        "workflow-continuity",
+    }
+    assert any(gate["gate"] == "metadata-coverage" for gate in report["quality_gates"])
+    assert "No live dashboard" in report["non_goals"][0]
+
+
+def test_build_template_quality_score_surfaces_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_template_quality_state(module, monkeypatch, repo)
+    _write_template_quality_sources(repo, include_performance=False)
+
+    report = module._build_template_quality_score(argparse.Namespace(label="task65"))
+
+    performance = next(domain for domain in report["domains"] if domain["id"] == "template-performance")
+    assert performance["status"] == "missing"
+    assert "reports/template-performance/latest.json" in performance["evidence"]
+    assert report["summary"]["aggregate_status"] == "warn"
+    assert any(item["domain"] == "template-performance" for item in report["improvement_suggestions"])
+
+
+def test_render_template_quality_score_lists_domains_gates_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_template_quality_state(module, monkeypatch, repo)
+    _write_template_quality_sources(repo)
+    report = module._build_template_quality_score(argparse.Namespace(label="task65"))
+
+    runbook = module._render_template_quality_score(report)
+
+    assert "# Template Quality Scorecard" in runbook
+    assert "Quality grade: A+" in runbook
+    assert "Domain Scores" in runbook
+    assert "Quality Gates" in runbook
+    assert "Improvement Suggestions" in runbook
+    assert "No live dashboard" in runbook
+    assert "Executes mutations: True" not in runbook
+
+
+def test_handle_template_quality_score_writes_report_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_template_quality_state(module, monkeypatch, repo)
+    _write_template_quality_sources(repo)
+
+    module.handle_template_quality_score(
+        argparse.Namespace(
+            label="task65",
+            report_file="reports/template-quality/latest.json",
+            runbook_file="reports/template-quality/latest.md",
+            strict=True,
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote template quality scorecard to reports/template-quality/latest.json" in output
+    assert "Wrote template quality runbook to reports/template-quality/latest.md" in output
+    payload = json.loads((repo / "reports" / "template-quality" / "latest.json").read_text(encoding="utf-8"))
+    assert payload["summary"]["aggregate_status"] == "pass"
+    assert "Template Quality Scorecard" in (repo / "reports" / "template-quality" / "latest.md").read_text(encoding="utf-8")
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
