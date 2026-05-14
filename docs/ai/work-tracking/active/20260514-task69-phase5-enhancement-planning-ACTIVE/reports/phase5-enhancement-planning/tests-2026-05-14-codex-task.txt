@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+collected 149 items
+
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 18%]
+........................................................................ [ 66%]
+..................................................                       [100%]
+
+============================= 149 passed in 14.67s =============================

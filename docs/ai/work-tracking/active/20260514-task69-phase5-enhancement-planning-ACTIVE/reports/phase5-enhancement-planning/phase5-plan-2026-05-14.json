@@ -1,0 +1,426 @@
+{
+  "candidates": [
+    {
+      "area": "continuity",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260508-task31-compaction-protocol-COMPLETED/reports/compaction-protocol"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/workflows/session/compaction.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/codex-task"
+        }
+      ],
+      "id": "compaction-trigger-policy-review",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not install automatic compaction triggers or background context monitors in Task 69.",
+      "priority": "high",
+      "rationale": "The checkpoint helper exists; the enhancement question is policy and review cadence, not a new runtime service.",
+      "readiness": "ready",
+      "refresh_commands": [
+        "python3 scripts/codex-task compaction checkpoint --task <id> --slug <slug> --summary <summary> --next-step <next>"
+      ],
+      "required_action": "Review whether existing compaction checkpoint evidence needs stricter trigger guidance before adding automation.",
+      "title": "Compaction trigger policy review"
+    },
+    {
+      "area": "metrics",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/success-metrics/README.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/stakeholder-reporting/README.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json"
+        }
+      ],
+      "id": "enhancement-metrics-refresh",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not create live metric dashboards or notification systems.",
+      "priority": "high",
+      "rationale": "Stakeholder and success metrics packets now exist and can support enhancement prioritization.",
+      "readiness": "ready",
+      "refresh_commands": [
+        "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+        "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md"
+      ],
+      "required_action": "Regenerate reusable metrics before selecting a Phase 5 implementation candidate.",
+      "title": "Enhancement metrics and stakeholder refresh"
+    },
+    {
+      "area": "search",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260508-task15-serena-integration-template-system-COMPLETED/designs/serena-integration-scope-reconciliation.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/designs/template-discovery-optimization-scope-reconciliation.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template_registry.py"
+        }
+      ],
+      "id": "semantic-discovery-verification",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not replace registry or exact-text search with live semantic calls.",
+      "priority": "high",
+      "rationale": "Search foundations are implemented; future enhancement should verify routing and evidence, not add a parallel discovery stack.",
+      "readiness": "ready",
+      "refresh_commands": [
+        "python3 scripts/codex-task serena status --strict",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_registry.py"
+      ],
+      "required_action": "Keep deterministic registry/rg lookup first and use Serena as capability-aware semantic support.",
+      "title": "Serena and semantic discovery verification"
+    },
+    {
+      "area": "optimization",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260512-task53-template-caching-layer-COMPLETED/reports/template-caching-layer/performance-final-2026-05-12.txt"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260511-task61-template-discovery-optimization-COMPLETED/reports/template-discovery-optimization"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/template-performance/latest.json"
+        }
+      ],
+      "id": "registry-performance-follow-up",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not implement speculative performance changes without baseline evidence.",
+      "priority": "medium",
+      "rationale": "Caching and discovery optimizations already exist; future work should be evidence-triggered.",
+      "readiness": "ready",
+      "refresh_commands": [
+        "python3 scripts/template-performance-harness --strict",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_registry.py"
+      ],
+      "required_action": "Use performance reports to decide whether a specific measured optimization task is warranted.",
+      "title": "Registry and performance optimization follow-up"
+    },
+    {
+      "area": "roadmap",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260508-task11-migration-roadmap-generator-COMPLETED/designs/migration-roadmap-scope-reconciliation.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "scripts/template-ssot-scanner/migration_roadmap.py"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "scripts/template-ssot-scanner/output/data"
+        }
+      ],
+      "id": "scanner-roadmap-backlog-refresh",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not import scanner roadmap items into Taskmaster automatically.",
+      "priority": "low",
+      "rationale": "Scanner roadmap generation exists, but source data freshness should be confirmed before driving enhancement planning.",
+      "readiness": "ready",
+      "refresh_commands": [
+        "python3 scripts/template-ssot-scanner/run_all_scanners.py",
+        "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>"
+      ],
+      "required_action": "Refresh scanner data before using roadmap counts as Phase 5 priority evidence.",
+      "title": "Scanner roadmap backlog refresh"
+    },
+    {
+      "area": "template-generation",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/metadata/template-metadata-policy.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/registry/index.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/template-metrics/latest.json"
+        }
+      ],
+      "id": "ai-template-generation-guardrails",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not call external AI models or create generated templates in Task 69.",
+      "priority": "medium",
+      "rationale": "Metadata and registry policy exist, but generation requires explicit safety gates and its own implementation scope.",
+      "readiness": "planned",
+      "refresh_commands": [
+        "python3 scripts/template-metrics-dashboard",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "required_action": "Create a dedicated task for generation guardrails before invoking any model or writing templates.",
+      "title": "AI-assisted template generation guardrail plan"
+    },
+    {
+      "area": "mcp",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".mcp.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".codex/config.toml"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260508-task15-serena-integration-template-system-COMPLETED/reports/serena-integration-template-system"
+        }
+      ],
+      "id": "optional-mcp-integration-evaluation",
+      "missing_evidence_paths": [],
+      "non_goal_boundary": "Do not enable context7, firecrawl, elevenlabs, fpl, or other optional MCPs in Task 69.",
+      "priority": "medium",
+      "rationale": "Core Serena/Taskmaster MCPs are established; optional MCPs need concrete use cases and current startup verification.",
+      "readiness": "planned",
+      "refresh_commands": [
+        "python3 scripts/codex-task serena status --strict",
+        "Review optional MCP startup logs before enabling any new server"
+      ],
+      "required_action": "Create separate MCP-specific tasks for any optional server, with startup verification and rollback notes.",
+      "title": "Optional MCP integration evaluation"
+    }
+  ],
+  "created_at": "2026-05-14T14:00:22+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-69-phase5-enhancement-planning",
+      "head": "01fe7c54c5660cb85abbd35dfeb54b08c750d4e8",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_069.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-14-task69-phase5-enhancement-planning.md",
+          "status": "??"
+        },
+        {
+          "path": "plans/current",
+          "status": "??"
+        },
+        {
+          "path": "reports/enhancement-planning/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-14-004-task69-phase5-enhancement-planning.md",
+          "status": "??"
+        },
+        {
+          "path": "sessions/current",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 156,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-13_task63_phase4_documentation_delivery_kickoff.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_completion.md",
+        ".serena/memories/2026-05-13_task66_deprecation_management_kickoff.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_completion.md",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_kickoff.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_completion.md",
+        ".serena/memories/2026-05-14_task67_success_metrics_dashboard_kickoff.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_completion.md",
+        ".serena/memories/2026-05-14_task73_stakeholder_reporting_kickoff.md",
+        ".serena/memories/2026-05-14_task69_phase5_enhancement_planning_kickoff.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "9dfd6b8e7becafa5b6db049b66729693e867d5f6933ae2108e516d2751c4ba59",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 95,
+          "in-progress": 1,
+          "pending": 12
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260514-task69-phase5-enhancement-planning-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-14-task69-phase5-enhancement-planning.md",
+        "sha256": "1d5e30c02db6b7d602862c07536b12101d45718c1d6ddc7bea1d0bb4dee03faa",
+        "target": "2026-05-14-task69-phase5-enhancement-planning.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-14-004-task69-phase5-enhancement-planning.md",
+        "sha256": "6301efde56e28dfa4983be548a74ae53f6ec38e2a18e5c2bfa2ad6dfa03da1f9",
+        "target": "2026/05/2026-05-14-004-task69-phase5-enhancement-planning.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "9a91bee21632ae7ef31b85e2b97977aafe6f79d2978b91a9ffcae2b658d3b8ad"
+      }
+    }
+  },
+  "executes_actions": false,
+  "label": "task69-phase5-enhancement-planning",
+  "mode": "static-phase5-enhancement-planning-packet",
+  "non_goals": [
+    "No automatic compaction trigger, scheduler, daemon, background monitor, or context watcher is installed.",
+    "No semantic-search service, vector database, indexer daemon, or replacement for registry/rg discovery is created.",
+    "No AI-assisted template generation calls an external model, creates new templates, or mutates template sources.",
+    "No optional MCP server is installed, enabled, or configured by this command.",
+    "No performance optimization is applied without measured bottleneck evidence.",
+    "No Taskmaster tasks, sessions, plans, work tracking, Git state, report sources, templates, or external systems are mutated beyond requested enhancement planning artifacts."
+  ],
+  "planning_guidance": [
+    "Treat ready candidates as evidence-backed next-task options, not automatic implementation authority.",
+    "Treat planned candidates as backlog concepts that require their own Taskmaster task and scope reconciliation before code changes.",
+    "Refresh source reports before sharing the plan externally or promoting a candidate to implementation.",
+    "Prefer static packet, guard, and helper improvements over live services until a measured repository gap proves the need."
+  ],
+  "recommended_next_actions": [
+    {
+      "candidate_id": "compaction-trigger-policy-review",
+      "priority": "high",
+      "readiness": "ready",
+      "required_action": "Review whether existing compaction checkpoint evidence needs stricter trigger guidance before adding automation.",
+      "title": "Compaction trigger policy review"
+    },
+    {
+      "candidate_id": "enhancement-metrics-refresh",
+      "priority": "high",
+      "readiness": "ready",
+      "required_action": "Regenerate reusable metrics before selecting a Phase 5 implementation candidate.",
+      "title": "Enhancement metrics and stakeholder refresh"
+    },
+    {
+      "candidate_id": "semantic-discovery-verification",
+      "priority": "high",
+      "readiness": "ready",
+      "required_action": "Keep deterministic registry/rg lookup first and use Serena as capability-aware semantic support.",
+      "title": "Serena and semantic discovery verification"
+    },
+    {
+      "candidate_id": "registry-performance-follow-up",
+      "priority": "medium",
+      "readiness": "ready",
+      "required_action": "Use performance reports to decide whether a specific measured optimization task is warranted.",
+      "title": "Registry and performance optimization follow-up"
+    },
+    {
+      "candidate_id": "scanner-roadmap-backlog-refresh",
+      "priority": "low",
+      "readiness": "ready",
+      "required_action": "Refresh scanner data before using roadmap counts as Phase 5 priority evidence.",
+      "title": "Scanner roadmap backlog refresh"
+    }
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task compaction checkpoint --task <id> --slug <slug> --summary <summary> --next-step <next>",
+    "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "python3 scripts/codex-task serena status --strict",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_template_registry.py",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/template-ssot-scanner/run_all_scanners.py",
+    "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+    "python3 scripts/template-metrics-dashboard",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "Review optional MCP startup logs before enabling any new server",
+    "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md"
+  ],
+  "summary": {
+    "aggregate_status": "ready-with-planned-candidates",
+    "blocked": 0,
+    "needs_evidence": 0,
+    "planned": 2,
+    "ready": 5,
+    "total_candidates": 7
+  },
+  "version": 1
+}
