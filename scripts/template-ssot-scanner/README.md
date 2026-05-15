@@ -45,6 +45,10 @@ Converts scanner outputs into a prioritized migration roadmap.
 - **Report**: `output/reports/migration_roadmap.md`
 - **Purpose**: Provides ordered roadmap items, effort/risk estimates, dependency hints, and Taskmaster-compatible draft task data without applying fixes or mutating Taskmaster
 
+## Generated Output Policy
+
+Scanner `output/` directories are runtime artifacts and are ignored by git. Do not commit generated `output/data/` JSON files or `output/scripts/` wrappers as durable evidence. Store durable scanner evidence in task-local work-tracking reports or in the stable `reports/` tree.
+
 ## Output Metadata Format (v2.0.0)
 
 As of 2025-09-03, all scanner outputs include standardized metadata for tracking and comparison:
@@ -249,6 +253,9 @@ examples = scanner_module_examples()
 `scanner_module_examples()` lists the integration entry point for each scanner module in the suite.
 
 ## Output Directory Structure
+
+Generated scanner runs may create this ignored runtime tree:
+
 ```
 output/
 ├── data/

@@ -28,6 +28,7 @@ __pycache__/
 .serena/memories/*.tmp
 
 # Scanner generated runtime artifacts
+output/
 scripts/template-ssot-scanner/output/.checkpoints/
 scripts/template-ssot-scanner/output/backups/
 scripts/template-ssot-scanner/output/data/
