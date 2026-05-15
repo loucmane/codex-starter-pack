@@ -1,7 +1,7 @@
 # Task 75 Create Knowledge Base – Handoff Summary
 
 ## Current State
-- Task 75 is active on `feat/task-75-create-knowledge-base`.
+- Task 75 is merged to `main` via PR #106 and archived under `docs/ai/work-tracking/archive/20260515-task75-create-knowledge-base-COMPLETED/`.
 - Scope reconciliation is complete: implement a static repo-native searchable knowledge-base index over existing canonical knowledge surfaces.
 - Hosted Confluence/GitBook, access controls, external search, analytics, LMS/video/Q&A systems, and copy-export documentation trees are out of scope.
 - Implementation is complete: `python3 scripts/codex-task knowledge base` generates JSON/Markdown index and query packets.
@@ -12,5 +12,6 @@
 - Final verification passed: plan sync, work-tracking audit, Taskmaster health, guard validation, and `git diff --check`.
 
 ## Next Steps
-- Commit and push the Task 75 branch, then open/refresh the PR.
-- After PR merge, archive the Task 75 work-tracking folder in the normal post-merge workflow.
+- No remaining Task 75 implementation work.
+- Start the next session from `main`, run `task-master next`, and scaffold the next task before edits.
+- Archived on 2026-05-15 17:05 CEST — Folder moved to archive and tracker marked COMPLETED.

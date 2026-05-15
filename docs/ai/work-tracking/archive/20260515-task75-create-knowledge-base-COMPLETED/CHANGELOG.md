@@ -7,3 +7,4 @@
 - 2026-05-15 16:43 CEST — Full `codex-task` regression passed (`194 passed`).
 - 2026-05-15 16:44 CEST — Marked Taskmaster Task 75 done and captured Serena completion memory.
 - 2026-05-15 16:45 CEST — Final plan sync, work-tracking audit, Taskmaster health, guard, and diff-check evidence passed.
+- 2026-05-15 17:05 CEST — Archived active work-tracking folder.
