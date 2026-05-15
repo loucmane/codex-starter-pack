@@ -1,0 +1,4 @@
+# Decisions
+
+- 2026-05-15 16:00 CEST — [S:20260515|W:task71-create-migration-archive|H:scope-reconciliation|E:docs/ai/work-tracking/active/20260515-task71-create-migration-archive-ACTIVE/designs/migration-archive-scope-reconciliation.md] Implement Task 71 as a static migration archive index/search packet over existing canonical evidence. Do not duplicate archived folders, zip artifacts, upload exports, or move historical evidence.
+- 2026-05-15 16:05 CEST — [S:20260515|W:task71-create-migration-archive|H:scripts/codex-task:migration-archive|E:docs/ai/work-tracking/active/20260515-task71-create-migration-archive-ACTIVE/reports/migration-archive/migration-archive-2026-05-15.json] Add the archive capability under the existing `migration` command group as `migration archive` so it stays with migration metrics and post-migration monitoring instead of creating a new archive subsystem.

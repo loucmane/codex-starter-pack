@@ -81,6 +81,15 @@ def test_build_parser_accepts_wizard_kickoff() -> None:
     assert args.task == "96"
 
 
+def test_build_parser_accepts_migration_archive() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args(["migration", "archive", "--query", "scanner"])
+    assert args.command == "migration"
+    assert args.subcommand == "archive"
+    assert args.query == "scanner"
+
+
 def test_build_parser_accepts_sessions_continue() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -1905,6 +1914,148 @@ def test_handle_post_migration_monitoring_strict_fails_after_writing(monkeypatch
         )
 
     assert report.exists()
+
+
+def _patch_migration_archive_state(module, monkeypatch, repo: Path) -> None:
+    _write_repo_config(repo, "templates")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "PLANS_DIR", repo / "plans")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+
+def _write_migration_archive_fixture(repo: Path) -> None:
+    archive = repo / "docs" / "ai" / "work-tracking" / "archive" / "20260510-task38-phase1-reference-remediation-COMPLETED"
+    archive.mkdir(parents=True)
+    (archive / "TRACKER.md").write_text(
+        "# Tracker\n\n- [S:20260510|W:task38-phase1-reference-remediation|H:scanner|E:reports] Scanner reference remediation completed.\n",
+        encoding="utf-8",
+    )
+    (archive / "DECISIONS.md").write_text(
+        "# Decisions\n\n- 2026-05-10 — Keep scanner reference fixes as migration evidence.\n",
+        encoding="utf-8",
+    )
+    (archive / "FINDINGS.md").write_text(
+        "# Findings\n\n- 2026-05-10 — Broken references were remediated with scanner evidence.\n",
+        encoding="utf-8",
+    )
+    (archive / "HANDOFF.md").write_text(
+        "# Handoff\n\n- Migration reference remediation is complete and archived.\n",
+        encoding="utf-8",
+    )
+    report_dir = archive / "reports" / "phase1-reference-remediation"
+    report_dir.mkdir(parents=True)
+    (report_dir / "guard.txt").write_text("Guard passed\n", encoding="utf-8")
+
+    reports = repo / "reports" / "migration-health"
+    reports.mkdir(parents=True)
+    (reports / "README.md").write_text("# Migration Health\n\nMigration health reports.\n", encoding="utf-8")
+    scanner = repo / "scripts" / "template-ssot-scanner"
+    (scanner / "output" / "data").mkdir(parents=True)
+    (scanner / "output" / "scripts").mkdir(parents=True)
+    (scanner / "migration_roadmap.py").write_text("# migration roadmap scanner tool\n", encoding="utf-8")
+    (scanner / "output" / "data" / "baseline_summary.json").write_text('{"data": {"metrics": {}}}\n', encoding="utf-8")
+    (scanner / "output" / "scripts" / "archive_duplicates.sh").write_text("#!/usr/bin/env bash\n# archive duplicate templates\n", encoding="utf-8")
+
+    plans = repo / "plans"
+    plans.mkdir(parents=True)
+    (plans / "2026-05-10-task38-phase1-reference-remediation.md").write_text(
+        "# Plan\n\nMigration reference remediation plan.\n",
+        encoding="utf-8",
+    )
+    tasks = repo / ".taskmaster" / "tasks"
+    tasks.mkdir(parents=True)
+    (tasks / "task_038.txt").write_text(
+        "# Task ID: 38\n# Title: Phase 1 Reference Remediation\nScanner migration fixes.\n",
+        encoding="utf-8",
+    )
+    memories = repo / ".serena" / "memories"
+    memories.mkdir(parents=True)
+    (memories / "2026-05-10_task38_phase1_reference_remediation.md").write_text(
+        "# Memory\n\nMigration scanner reference remediation complete.\n",
+        encoding="utf-8",
+    )
+
+
+def test_build_migration_archive_report_indexes_canonical_artifacts(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_migration_archive_state(module, monkeypatch, repo)
+    _write_migration_archive_fixture(repo)
+
+    report = module._build_migration_archive_report(
+        argparse.Namespace(label="task-71", query=None, max_items=25)
+    )
+
+    assert report["mode"] == "static-migration-archive-index"
+    assert report["executes_external_actions"] is False
+    assert report["summary"]["completed_work"] == 1
+    assert report["summary"]["decision_records"] == 1
+    assert report["summary"]["lessons_learned_candidates"] >= 1
+    assert report["timeline"][0]["task_id"] == "38"
+    assert any(entry["path"].endswith("migration_roadmap.py") for entry in report["sections"]["tools_and_outputs"])
+    assert "No files are moved" in report["non_goals"][0]
+
+
+def test_migration_archive_query_returns_matching_search_results(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_migration_archive_state(module, monkeypatch, repo)
+    _write_migration_archive_fixture(repo)
+
+    report = module._build_migration_archive_report(
+        argparse.Namespace(label="task-71", query="reference remediation", max_items=25)
+    )
+
+    assert report["query"] == "reference remediation"
+    assert report["summary"]["search_results"] >= 1
+    assert all("reference" in json.dumps(entry).lower() for entry in report["search_results"])
+    assert all("remediation" in json.dumps(entry).lower() for entry in report["search_results"])
+
+
+def test_render_migration_archive_runbook_lists_timeline_and_search(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_migration_archive_state(module, monkeypatch, repo)
+    _write_migration_archive_fixture(repo)
+    report = module._build_migration_archive_report(
+        argparse.Namespace(label="task-71", query="scanner", max_items=25)
+    )
+
+    runbook = module._render_migration_archive_runbook(report)
+
+    assert "# Migration Archive" in runbook
+    assert "Migration Timeline" in runbook
+    assert "Search Results" in runbook
+    assert "Task38 Phase1 Reference Remediation" in runbook
+    assert "static archive index" in runbook
+    assert "git reset --hard" not in runbook
+
+
+def test_handle_migration_archive_writes_report_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_migration_archive_state(module, monkeypatch, repo)
+    _write_migration_archive_fixture(repo)
+    report = repo / "reports" / "migration-archive" / "latest.json"
+    runbook = repo / "reports" / "migration-archive" / "latest.md"
+
+    module.handle_migration_archive(
+        argparse.Namespace(
+            label="task-71",
+            query=None,
+            max_items=25,
+            report_file=str(report),
+            runbook_file=str(runbook),
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote migration archive report to reports/migration-archive/latest.json" in output
+    assert "Wrote migration archive runbook to reports/migration-archive/latest.md" in output
+    assert json.loads(report.read_text(encoding="utf-8"))["summary"]["completed_work"] == 1
+    assert "Migration Archive" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_operational_runbook_snapshots(module, monkeypatch) -> None:
