@@ -1,9 +1,12 @@
 # Task 78 Create Final Documentation – Handoff Summary
 
 ## Current State
-- Task 78 is complete and ready for PR on `feat/task-78-final-documentation`.
+- Task 78 is complete, merged, and archived.
+- PR #103 merged into `main` at `3a2f975fdd05183409b49361b3aaa135097357e0`.
+- Work tracking has moved to `docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/`.
+- The repository is between sessions after archive closeout; `sessions/current` and `plans/current` are intentionally absent.
 - Scope reconciliation is complete:
-  - `docs/ai/work-tracking/active/20260515-task78-final-documentation-ACTIVE/designs/final-documentation-scope-reconciliation.md`
+  - `docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/designs/final-documentation-scope-reconciliation.md`
 - Current implementation adds:
   - `templates/guides/reference/final-documentation-map.md`
   - `templates/guides/index.md` link to the final documentation map
@@ -21,7 +24,10 @@
 - Diff check: `reports/final-documentation/diff-check-2026-05-15-final.txt`
 - Taskmaster show: `reports/final-documentation/taskmaster-show-78-2026-05-15-final.txt`
 - Serena memory: `2026-05-15_task78_final_documentation_completion`
+- Post-archive audit: `reports/final-documentation/post-archive-audit-2026-05-15.txt`
+- Post-archive guard: `reports/final-documentation/post-archive-guard-2026-05-15.txt`
+- Post-archive Taskmaster health: `reports/final-documentation/post-archive-taskmaster-health-2026-05-15.txt`
+- Post-archive diff check: `reports/final-documentation/post-archive-diff-check-2026-05-15.txt`
 
 ## Next Steps
-- Commit, push, create PR, and merge after checks pass.
-- After merge, archive `docs/ai/work-tracking/active/20260515-task78-final-documentation-ACTIVE/` to `archive/`.
+- Start the next task from `main` with a fresh session, plan, and active work-tracking folder.

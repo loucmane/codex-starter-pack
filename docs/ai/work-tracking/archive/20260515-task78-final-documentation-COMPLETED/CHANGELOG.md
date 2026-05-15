@@ -4,3 +4,4 @@
 - 2026-05-15 11:15 CEST — Added scope reconciliation for Task 78 and implemented the final documentation map plus guide-hub link.
 - 2026-05-15 11:22 CEST — Captured final evidence, wrote Serena memory, and marked Taskmaster Task 78 done.
 - 2026-05-15 11:53 CEST — Updated final-documentation map links after GitHub reference-fix gate reported upward repo-root/report links as pending fixes.
+- 2026-05-15 12:26 CEST — Archived Task 78 work tracking after PR #103 merged and cleared current session/plan pointers for between-session state.
