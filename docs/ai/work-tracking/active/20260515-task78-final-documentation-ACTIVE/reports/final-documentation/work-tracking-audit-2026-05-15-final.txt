@@ -1,0 +1,2 @@
+Audit warnings:
+- Tracker for 20260515-task78-final-documentation-ACTIVE missing Serena memory entry for 2026-05-15; capture memory and log via presets.

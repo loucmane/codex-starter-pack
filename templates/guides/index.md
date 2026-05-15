@@ -34,6 +34,7 @@ Use this page as the starting point for learning the current repository workflow
 - [Work-tracking enforcement](../workflows/taskmaster/work-tracking-enforcement.md) - Active folder, tracker, archive, and guard rules.
 - [Session lifecycle](../workflows/session/lifecycle.md) - Session start, continuation, closeout, and archival rules.
 - [Claude runtime contract](../../.claude/engine/runtime-contract.md) - Claude-side readiness and PreToolUse gate contract.
+- [Final documentation map](reference/final-documentation-map.md) - Canonical map from final-documentation categories to current foundation docs and evidence.
 
 ## Learning Paths
 
@@ -63,3 +64,4 @@ Use this page as the starting point for learning the current repository workflow
 - **2026-05-08 16:49** — [S:20260508|W:task33-training-materials|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task33-training-materials-ACTIVE/designs/training-materials-scope-reconciliation.md] Replaced stale guide hub links with current foundation, runtime, session, and work-tracking references
 - **2026-05-08 17:25** — [S:20260508|W:task49-communication-templates|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260508-task49-communication-templates-ACTIVE/designs/communication-templates-scope-reconciliation.md] Added the foundation communication templates guide to the daily workflow references
 - **2026-05-11 16:02** — [S:20260511|W:task32-documentation-suite|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260511-task32-documentation-suite-ACTIVE/designs/documentation-suite-scope-reconciliation.md] Updated the guide hub quickstart label to point at the current Codex foundation workflow rather than an older Claude-only guide.
+- **2026-05-15 11:15** — [S:20260515|W:task78-final-documentation|H:templates/guides/index.md|E:docs/ai/work-tracking/active/20260515-task78-final-documentation-ACTIVE/designs/final-documentation-scope-reconciliation.md] Added the final documentation map to the system references section.
