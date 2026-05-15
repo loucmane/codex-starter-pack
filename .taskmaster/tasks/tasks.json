@@ -5169,12 +5169,80 @@
           }
         ],
         "updatedAt": "2026-05-07T16:32:05.331Z"
+      },
+      {
+        "id": "109",
+        "title": "Build Portable Foundation Installer and MCP Distribution Contract",
+        "description": "Create the next tracked phase for turning the completed Codex starter-pack foundation into a reusable system that can be installed, verified, updated, and optionally exposed through MCP across new and existing projects.",
+        "details": "Document and implement a CLI/library-first foundation installer with an optional MCP wrapper. The design must cover inspect, plan-install, install, verify, update, rollback, project profiles, managed-file manifest, fixture-based testing, idempotence checks, rollback checks, MCP protocol resources/tools/prompts, and cross-agent smoke tests. Capture alternatives considered: MCP-only installer, template-repo copy, package-only distribution, git submodule/subtree, and CLI core plus optional MCP wrapper. Acceptance: session/plan/work-tracking are scaffolded; architecture decision is documented; Taskmaster subtasks align to implementation phases; guard, taskmaster health, work-tracking audit, and diff-check pass.",
+        "testStrategy": "",
+        "status": "in-progress",
+        "dependencies": [
+          "100",
+          "102",
+          "107"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Document installer architecture and distribution decision",
+            "description": "Capture the CLI/library core plus optional MCP wrapper architecture, alternatives considered, chosen decision, risks, and acceptance gates in tracked design documentation.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 109,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-15T17:08:31.513Z"
+          },
+          {
+            "id": 2,
+            "title": "Define foundation manifest, profiles, and install-plan schema",
+            "description": "Specify versioned foundation manifest fields, managed-file/customized-file tracking, project profile selection, install-plan structure, conflict classes, and dry-run/apply semantics.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 109,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Design CLI installer lifecycle and verification commands",
+            "description": "Define deterministic library and CLI commands for inspect, plan-install, install, verify, plan-update, update, rollback, status, and report generation, including refusal/rollback behavior.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 109,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Specify fixture, idempotence, rollback, and cross-agent tests",
+            "description": "Define fixture repo matrix, golden install-plan tests, install twice/idempotence checks, rollback failure tests, guard/readiness verification, and Codex/Claude smoke-test evidence requirements.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 109,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Define MCP wrapper contract and evidence handoff",
+            "description": "Define MCP tools, resources, prompts, schemas, read-only versus mutating behavior, apply gates, relation to CLI core, documentation locations, evidence files, and handoff criteria.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 109,
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2026-05-15T17:08:31.513Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-15T16:07:56.305Z",
-      "taskCount": 108,
+      "lastModified": "2026-05-15T17:08:31.514Z",
+      "taskCount": 109,
       "completedCount": 108,
       "tags": [
         "master"
