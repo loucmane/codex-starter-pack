@@ -8,15 +8,52 @@ The chosen architecture is a deterministic CLI/library core with an optional MCP
 
 The CLI/library owns the real behavior: project inspection, install planning, file application, verification, update, rollback, reports, and fixtures. The MCP server is an agent-facing control plane over that same core. This keeps the foundation usable by Codex, Claude, humans, CI, and future agents without depending on any single MCP client.
 
+## V1 Scope Lock
+
+Task 109 is narrowed to foundation installer contract plus CLI prototype.
+
+V1 includes:
+
+- Final architecture decision for CLI/library core plus optional MCP wrapper.
+- Foundation manifest schema.
+- Project profile schema.
+- Install-plan schema.
+- Generic-profile CLI prototype for:
+  - `inspect`
+  - `plan-install`
+  - `install`
+  - `verify`
+- Fixture tests proving install, verify, and idempotence for the generic profile.
+- MCP contract documentation covering tools, resources, prompts, schemas, and read-only versus mutating behavior.
+
+V1 excludes:
+
+- Full production MCP server implementation.
+- Full multi-profile support beyond schema and generic-profile implementation.
+- Complex update migrations.
+- Package publishing.
+- Automatic CI installation into target projects.
+- Hosted or long-running service infrastructure.
+
+Deferred follow-up tasks:
+
+- Build the production MCP server wrapper after the CLI core is stable.
+- Harden update/rollback across multiple installed foundation versions.
+- Expand project profiles beyond generic.
+- Package and distribute the installer.
+- Add optional CI installation templates and release workflow.
+
+This scope keeps Task 109 concrete: prove the installer core with one profile and document the MCP contract before building the full MCP surface.
+
 ## Goals
 
 - Install the foundation into greenfield and existing repositories without unsafe overwrites.
 - Preserve deterministic behavior through a local library and CLI that can run in shell, CI, or tests.
-- Expose the same behavior through MCP tools, resources, and prompts for agent-friendly operation.
-- Produce install/update reports that explain files created, modified, skipped, conflicted, and verified.
-- Support project profiles such as generic, web app, Python tool, docs site, game/tool, and mixed project.
-- Make update and rollback realistic by recording a versioned managed-file manifest.
-- Prove portability through fixture repositories, idempotence tests, rollback tests, and cross-agent smoke tests.
+- Document how the same behavior will be exposed through MCP tools, resources, and prompts for agent-friendly operation.
+- Produce install reports that explain files created, modified, skipped, conflicted, and verified.
+- Implement the generic profile first and define schema for future profiles.
+- Make future update and rollback realistic by recording a versioned managed-file manifest.
+- Prove portability through fixture repositories and idempotence tests for the generic profile.
 
 ## Non-Goals
 
@@ -25,6 +62,9 @@ The CLI/library owns the real behavior: project inspection, install planning, fi
 - Do not treat copied documentation as proof that a target repository is functional.
 - Do not require a specific agent to use the installed foundation.
 - Do not ship long-running hosted infrastructure for the first implementation slice.
+- Do not implement the full MCP server before the CLI core is proven.
+- Do not implement complex cross-version update migrations in V1.
+- Do not attempt full multi-profile coverage in V1.
 
 ## Architecture Layers
 
@@ -58,7 +98,7 @@ Reasons:
 | Git submodule/subtree | Clear upstream relationship; useful for vendor-style reuse | Rigid for customized project files; awkward for managed-file updates and workflow scaffolding | Rejected as primary path |
 | CLI/library core plus MCP wrapper | Deterministic core, CI-friendly, agent-friendly when MCP exists, testable across project shapes | More implementation work; requires schema discipline between CLI and MCP | Chosen |
 
-## CLI Command Surface
+## V1 CLI Command Surface
 
 The first durable command group should live under `scripts/codex-task`:
 
@@ -67,26 +107,33 @@ python3 scripts/codex-task foundation inspect
 python3 scripts/codex-task foundation plan-install
 python3 scripts/codex-task foundation install
 python3 scripts/codex-task foundation verify
-python3 scripts/codex-task foundation status
-python3 scripts/codex-task foundation plan-update
-python3 scripts/codex-task foundation update
-python3 scripts/codex-task foundation rollback
 python3 scripts/codex-task foundation list-profiles
 python3 scripts/codex-task foundation explain-profile
 ```
 
+Deferred command surface:
+
+```text
+python3 scripts/codex-task foundation status
+python3 scripts/codex-task foundation plan-update
+python3 scripts/codex-task foundation update
+python3 scripts/codex-task foundation rollback
+```
+
 Default behavior:
 
-- `inspect`, `plan-install`, `status`, `plan-update`, `list-profiles`, and `explain-profile` are read-only.
-- `install`, `update`, and `rollback` are mutating and must create evidence reports.
-- `install` and `update` default to dry-run behavior unless an explicit apply flag is provided.
+- `inspect`, `plan-install`, `list-profiles`, and `explain-profile` are read-only.
+- `install` is mutating and must create evidence reports.
+- `install` defaults to dry-run behavior unless an explicit apply flag is provided.
 - Unsafe overwrites are refused unless the install plan marks the merge as safe and the caller explicitly approves.
 
 ## MCP Tool Contract
 
 The MCP server should wrap the foundation library, not duplicate logic.
 
-Initial tool set:
+Task 109 V1 documents this MCP tool contract but does not need to ship the production MCP server.
+
+Initial documented tool set:
 
 ```text
 foundation.inspect
@@ -179,7 +226,9 @@ The manifest is required for reliable updates. Without it, update logic has to i
 
 Profiles adapt the foundation to different repository shapes while preserving the same workflow core.
 
-Initial profiles:
+V1 implementation target: `generic`.
+
+Profiles to define in schema:
 
 | Profile | Purpose |
 | --- | --- |
@@ -206,6 +255,8 @@ Each profile should define expected directories, optional templates, CI recommen
 
 ## Update Lifecycle
 
+Update is deferred from the V1 implementation but documented here so the manifest/schema is designed correctly.
+
 1. Read the installed foundation manifest.
 2. Compare installed version to current source version.
 3. Detect local customizations.
@@ -215,6 +266,8 @@ Each profile should define expected directories, optional templates, CI recommen
 7. Re-run verification and update the manifest.
 
 ## Rollback Lifecycle
+
+Rollback is deferred from the V1 implementation except where tests need local cleanup of failed V1 installs. Full cross-version rollback belongs in a follow-up task.
 
 Rollback should restore the pre-install or pre-update checkpoint and then run verification that proves the repository returned to its previous state. Rollback reports must include restored paths, skipped paths, conflicts, and any manual cleanup required.
 
@@ -228,16 +281,20 @@ Required test classes:
 - Golden install-plan tests for fixture repos.
 - Install-then-verify tests in temporary repositories.
 - Install-twice idempotence tests.
-- Forced-failure rollback tests.
-- Update tests from older manifest versions.
-- MCP protocol tests that prove MCP tools call the same core logic and preserve read-only versus mutating boundaries.
-- Cross-agent smoke tests for Codex and Claude adapters after install.
+- Forced-failure cleanup/rollback tests for V1 install operations.
+- MCP contract tests or schema checks if a minimal wrapper is introduced; full MCP protocol tests are deferred with the production MCP server.
+- Cross-agent smoke-test design notes for Codex and Claude adapters after install; full cross-agent automation is deferred unless needed to prove V1 verification.
 
 Initial fixture repo matrix:
 
 ```text
 empty-repo
 basic-python-tool
+```
+
+Deferred fixture matrix:
+
+```text
 web-app
 docs-site
 game-tool
@@ -285,17 +342,18 @@ Each real install or update should produce:
 | --- | --- |
 | 109.1 | Architecture decision and distribution contract |
 | 109.2 | Manifest, profile, and install-plan schema |
-| 109.3 | CLI installer lifecycle and verification commands |
-| 109.4 | Fixture, idempotence, rollback, and cross-agent tests |
-| 109.5 | MCP wrapper contract, resources, prompts, evidence, and handoff |
+| 109.3 | Generic-profile CLI installer lifecycle and verification commands |
+| 109.4 | Fixture, idempotence, and V1 rollback/cleanup tests |
+| 109.5 | MCP wrapper contract, deferred follow-up tasks, evidence, and handoff |
 
 ## Open Questions
 
-- Should the first implementation include a minimal MCP server, or should Task 109 only define the MCP contract and implement the CLI core first?
-- Should `.codex/foundation-manifest.json` be installed into every target repo, or should projects be able to choose another manifest path?
-- Which profiles must be supported in the first release versus documented as planned?
-- Should GitHub Actions templates be installed automatically or only suggested during the first version?
+- Should Task 109 include a tiny MCP proof-of-concept after the CLI prototype, or only the MCP contract?
+- Should `.codex/foundation-manifest.json` be the fixed V1 path, or should the schema allow an override later?
+- Which generic-profile files are mandatory for a first install?
+- Which verification checks are required for a generic empty repo versus optional when Taskmaster or Claude are disabled?
 
 ## S:W:H:E Entries
 
 - **2026-05-15 19:06 CEST** - [S:20260515|W:task109-foundation-installer-mcp|H:docs/architecture|E:docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/designs/foundation-installer-mcp-architecture.md] Documented CLI/library-core plus optional MCP-wrapper architecture, alternatives, tool contract, manifest, profiles, test strategy, and verification gates.
+- **2026-05-15 19:19 CEST** - [S:20260515|W:task109-foundation-installer-mcp|H:docs/architecture|E:docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/designs/foundation-installer-mcp-architecture.md] Locked Task 109 to Option B: foundation installer contract plus generic-profile CLI prototype, with full MCP server, multi-profile support, complex migrations, package publishing, and CI installation deferred.
