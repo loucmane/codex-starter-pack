@@ -1,7 +1,7 @@
 # Task 71 Create Migration Archive – Handoff Summary
 
 ## Current State
-- Task 71 is active on `feat/task-71-create-migration-archive`.
+- Task 71 is merged to `main` via PR #105 and archived under `docs/ai/work-tracking/archive/20260515-task71-create-migration-archive-COMPLETED/`.
 - Scope reconciliation is complete: the archive is a searchable static index over canonical evidence locations, not a duplicate artifact store.
 - Implemented command: `python3 scripts/codex-task migration archive`.
 - Generated archive evidence under `reports/migration-archive/`.
@@ -12,5 +12,6 @@
 - Final verification passed: plan sync, work-tracking audit, Taskmaster health, guard validation, and `git diff --check`.
 
 ## Next Steps
-- Commit and push the Task 71 branch, then open/refresh the PR.
-- After PR merge, archive the Task 71 work-tracking folder in the normal post-merge workflow.
+- No remaining Task 71 implementation work.
+- Start the next session from `main`, run `task-master next`, and scaffold the next task before edits.
+- Archived on 2026-05-15 16:26 CEST — Folder moved to archive and tracker marked COMPLETED.
