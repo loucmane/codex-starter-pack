@@ -1,13 +1,13 @@
 # Task 70 Setup Long-term Maintenance Tracker
 
 **Started**: 2026-05-14
-**Status**: ACTIVE
-**Last Updated**: 2026-05-14
+**Status**: COMPLETED
+**Last Updated**: 2026-05-15
 
 ## Goals
-- [ ] Reconcile historical automation/alerting/update wording against the current portable foundation
-- [ ] Implement a deterministic maintenance packet only if current evidence proves the gap
-- [ ] Capture focused tests, Taskmaster status, work-tracking evidence, and guard validation
+- [x] Reconcile historical automation/alerting/update wording against the current portable foundation
+- [x] Implement a deterministic maintenance packet only if current evidence proves the gap
+- [x] Capture focused tests, Taskmaster status, work-tracking evidence, and guard validation
 
 ## Progress Log
 - **2026-05-14 19:17** — [S:20260514|W:task70-long-term-maintenance|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-05-14 19:17 CEST`
@@ -24,6 +24,10 @@
 - **2026-05-14 19:29** — [S:20260514|W:task70-long-term-maintenance|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json] Generated the final maintenance packet after Taskmaster completion
 - **2026-05-14 19:30** — [S:20260514|W:task70-long-term-maintenance|H:pytest|E:docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE/reports/long-term-maintenance/tests-2026-05-14-codex-task.txt] Captured focused pytest evidence for `tests/meta_workflow_guard/test_codex_task.py`
 - **2026-05-14 19:31** — [S:20260514|W:task70-long-term-maintenance|H:verification|E:docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE/reports/long-term-maintenance/] Final evidence passed: pytest `176 passed`, plan sync recorded, work-tracking audit passed, Taskmaster health OK (`done=101`, `pending=7`), guard passed, and diff-check was empty
+- **2026-05-15 10:34** — [S:20260514|W:task70-long-term-maintenance|H:github-pr|E:https://github.com/loucmane/codex-starter-pack/pull/101] Merged PR #101 for Task 70 into `main`
+- **2026-05-15 10:35** — [S:20260514|W:task70-long-term-maintenance|H:scripts/codex-task:archive|E:docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/] Archived the Task 70 work-tracking folder after PR #101 merged
+- **2026-05-15 10:35** — [S:20260514|W:task70-long-term-maintenance|H:between-session-state|E:sessions/state.json] Cleared `sessions/current`, `plans/current`, and `sessions/state.json` into between-session state
+- **2026-05-15 10:35** — [S:20260514|W:task70-long-term-maintenance|H:post-archive-verification|E:docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/post-archive-guard-2026-05-15.txt] Captured post-archive audit, guard, Taskmaster health, and diff-check evidence
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -32,7 +36,8 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-14-009-task70-long-term-maintenance.md
 - Serena memory: .serena/memories/2026-05-14_task70_long_term_maintenance_kickoff.md
 - Completion Serena memory: .serena/memories/2026-05-14_task70_long_term_maintenance_completion.md
-- Final evidence: docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE/reports/long-term-maintenance/
+- Final evidence: docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/
+- Archive evidence: docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/post-archive-*.txt
