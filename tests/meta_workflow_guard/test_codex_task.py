@@ -208,6 +208,32 @@ def test_build_parser_accepts_knowledge_transfer_review() -> None:
     assert args.runbook_file == "reports/knowledge.md"
 
 
+def test_build_parser_accepts_knowledge_base() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "knowledge",
+        "base",
+        "--label",
+        "task75",
+        "--query",
+        "runtime contract",
+        "--max-items",
+        "12",
+        "--report-file",
+        "reports/knowledge-base.json",
+        "--runbook-file",
+        "reports/knowledge-base.md",
+    ])
+    assert args.command == "knowledge"
+    assert args.subcommand == "base"
+    assert args.label == "task75"
+    assert args.query == "runtime contract"
+    assert args.max_items == 12
+    assert args.report_file == "reports/knowledge-base.json"
+    assert args.runbook_file == "reports/knowledge-base.md"
+
+
 def test_build_parser_accepts_success_metrics() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -2798,6 +2824,122 @@ def _patch_knowledge_transfer_snapshots(module, monkeypatch) -> None:
     )
     monkeypatch.setattr(module, "_taskmaster_snapshot", lambda: {"available": True})
     monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"available": True, "memories": ["task54"]})
+
+
+def _patch_knowledge_base_repo(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+
+def _write_knowledge_base_fixture(repo: Path) -> None:
+    files = {
+        "templates/USER-GUIDE.md": "# User Guide\n\nOperator guide for the portable foundation.\n",
+        "templates/guides/index.md": "# Guide Hub\n\nHuman-facing quickstart, onboarding, and troubleshooting knowledge.\n",
+        "templates/engine/core/codex-readiness.md": "# Codex Readiness\n\nRuntime contract and readiness gate protocol.\n",
+        "templates/workflows/session/lifecycle.md": "# Session Lifecycle\n\nSession workflow protocol and handoff rules.\n",
+        ".claude/engine/runtime-contract.md": "# Claude Runtime Contract\n\nPreToolUse gate and runtime contract for Claude.\n",
+        "CLAUDE.md": "# Claude Execution Runtime\n\nClaude entrypoint for the gated runtime.\n",
+        "CODEX.md": "# Codex Execution Engine\n\nCodex entrypoint and ownership boundary.\n",
+        "templates/TOOLS.md": "# Tools\n\nKnowledge command reference for codex-task.\n",
+        "reports/README.md": "# Reports\n\nStatic report family reference and runbook index.\n",
+        ".taskmaster/tasks/task_075.txt": "# Task ID: 75\n# Title: Create Knowledge Base\n\nSearchable knowledge repository.\n",
+        "plans/2026-05-15-task75-create-knowledge-base.md": "# Plan - Task 75\n\nKnowledge base implementation plan.\n",
+        "sessions/2026/05/2026-05-15-005-task75-create-knowledge-base.md": "# Session\n\nTask 75 knowledge base session log.\n",
+        "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/HANDOFF.md": "# Handoff\n\nKnowledge transfer handoff and lessons learned.\n",
+        "docs/ai/work-tracking/archive/20260514-task54-knowledge-transfer-process-COMPLETED/DECISIONS.md": "# Decisions\n\n- Keep knowledge base repo-native and static.\n",
+        ".serena/memories/2026-05-14_task54_knowledge_transfer_process_completion.md": "# Memory\n\nContinuity memory for knowledge transfer.\n",
+    }
+    for relative, content in files.items():
+        path = repo / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+
+def test_build_knowledge_base_index_indexes_canonical_surfaces(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _patch_knowledge_base_repo(module, monkeypatch, tmp_path)
+    _write_knowledge_base_fixture(tmp_path)
+
+    report = module._build_knowledge_base_index(argparse.Namespace(label="task75", query="", max_items=30))
+
+    assert report["mode"] == "static-knowledge-base-index"
+    assert report["executes_actions"] is False
+    assert report["summary"]["total_entries"] >= 10
+    assert {category["id"] for category in report["categories"]} >= {
+        "operator-guides",
+        "workflow-protocols",
+        "tool-report-references",
+        "task-plan-session-evidence",
+        "work-tracking-knowledge",
+        "continuity-memories",
+    }
+    assert all(category["count"] > 0 for category in report["categories"])
+    assert any(entry["path"] == "templates/guides/index.md" for entry in report["entries"])
+    assert any(entry["path"].endswith("HANDOFF.md") for entry in report["entries"])
+    assert "No hosted knowledge-base platform" in report["non_goals"][0]
+
+
+def test_knowledge_base_query_returns_matching_results(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _patch_knowledge_base_repo(module, monkeypatch, tmp_path)
+    _write_knowledge_base_fixture(tmp_path)
+
+    report = module._build_knowledge_base_index(
+        argparse.Namespace(label="task75-query", query="runtime contract", max_items=30)
+    )
+
+    assert report["query"] == "runtime contract"
+    assert report["summary"]["search_results"] >= 2
+    assert {entry["path"] for entry in report["search_results"]} >= {
+        "templates/engine/core/codex-readiness.md",
+        ".claude/engine/runtime-contract.md",
+    }
+
+
+def test_render_knowledge_base_index_lists_categories_search_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    _patch_knowledge_base_repo(module, monkeypatch, tmp_path)
+    _write_knowledge_base_fixture(tmp_path)
+    report = module._build_knowledge_base_index(
+        argparse.Namespace(label="task75-query", query="runtime contract", max_items=30)
+    )
+
+    runbook = module._render_knowledge_base_index(report)
+
+    assert "# Knowledge Base Index" in runbook
+    assert "Operator Guides" in runbook
+    assert "Search Results" in runbook
+    assert "Codex Readiness" in runbook
+    assert "No hosted knowledge-base platform" in runbook
+    assert "canonical repository knowledge" in runbook
+
+
+def test_handle_knowledge_base_writes_index_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    _patch_knowledge_base_repo(module, monkeypatch, tmp_path)
+    _write_knowledge_base_fixture(tmp_path)
+
+    report = tmp_path / "reports" / "knowledge-base.json"
+    runbook = tmp_path / "reports" / "knowledge-base.md"
+    module.handle_knowledge_base(
+        argparse.Namespace(
+            label="task75",
+            query="knowledge",
+            max_items=30,
+            report_file=str(report.relative_to(tmp_path)),
+            runbook_file=str(runbook.relative_to(tmp_path)),
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote knowledge base index to reports/knowledge-base.json" in output
+    assert "Wrote knowledge base runbook to reports/knowledge-base.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task75"
+    assert payload["summary"]["search_results"] > 0
+    assert "# Knowledge Base Index" in runbook.read_text(encoding="utf-8")
 
 
 def _write_knowledge_transfer_paths(repo: Path, module, key: str) -> None:

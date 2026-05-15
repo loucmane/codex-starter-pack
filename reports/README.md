@@ -99,6 +99,16 @@ python3 scripts/codex-task documentation phase4-review \
 
 This command classifies each delivery domain as ready, needs-evidence, or needs-implementation and lists refresh commands for evidence gaps. It does not publish hosted documentation, deploy training, schedule office hours, send communications, collect surveys, update dashboards, mutate existing evidence sources, or contact external systems.
 
+Knowledge base index packets can be generated when an operator needs one searchable navigation artifact over repository-native guides, workflow protocols, tool/report references, Taskmaster evidence, sessions, plans, work-tracking knowledge, and Serena continuity memories:
+
+```bash
+python3 scripts/codex-task knowledge base \
+  --report-file reports/knowledge-base/latest.json \
+  --runbook-file reports/knowledge-base/latest.md
+```
+
+Pass `--query <terms>` to generate a focused search packet. This command indexes existing canonical sources and writes only requested report artifacts. It does not create hosted knowledge-base software, search services, LMS/video/Q&A systems, access-control systems, analytics backends, copy-export trees, or external integrations.
+
 Knowledge transfer review packets can be generated when an operator needs one static readiness artifact over repository-native documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence:
 
 ```bash
@@ -225,6 +235,7 @@ This command renders a static JSON/Markdown production transition packet for hum
 - `template-usage-analytics/` - optional static registry-backed usage analytics over sessions, plans, work tracking, and Taskmaster task files.
 - `phase3-automation-integration/` - optional static Phase 3 gate-review packets over existing automation evidence and refresh commands.
 - `phase4-documentation-delivery/` - optional static Phase 4 gate-review packets over documentation, training, communication, operations, Phase 3, and final validation evidence.
+- `knowledge-base/` - optional static searchable knowledge-base index packets over canonical repository guides, workflow protocols, reports, task evidence, work tracking, and Serena memories.
 - `knowledge-transfer-process/` - optional static knowledge-transfer review packets over documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence.
 - `success-metrics/` - optional static success scorecards over Taskmaster, workflow, telemetry, validation, and knowledge-transfer evidence.
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.

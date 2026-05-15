@@ -14,10 +14,10 @@ import subprocess
 import sys
 import tempfile
 import tomllib
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -6186,6 +6186,407 @@ def handle_phase4_documentation_review(args: argparse.Namespace) -> None:
         runbook_path.parent.mkdir(parents=True, exist_ok=True)
         runbook_path.write_text(rendered_runbook, encoding="utf-8")
         print(f"Wrote Phase 4 documentation runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
+KNOWLEDGE_BASE_NON_GOALS: Tuple[str, ...] = (
+    "No hosted knowledge-base platform, search service, LMS, video host, Q&A service, dashboard, analytics backend, access-control system, or external service is created or contacted.",
+    "No source documentation, report, Taskmaster task, session, plan, work-tracking artifact, Serena memory, template, Git state, or external state is mutated beyond requested knowledge-base report artifacts.",
+    "No copy-export tree, duplicate documentation store, database, full-text search index service, crawler daemon, scheduler, notification system, or webhook is created.",
+    "No reader identity, permission model, audit log, usage analytics, or contribution workflow is inferred beyond existing repo-native evidence.",
+)
+
+KNOWLEDGE_BASE_CATEGORIES: Tuple[Dict[str, str], ...] = (
+    {
+        "id": "operator-guides",
+        "title": "Operator Guides",
+        "description": "Human-facing guide hubs, quickstarts, onboarding, troubleshooting, communication, and reference documentation.",
+    },
+    {
+        "id": "workflow-protocols",
+        "title": "Workflow Protocols",
+        "description": "Engine, workflow, behavior, handler, and convention protocols that define how the foundation operates.",
+    },
+    {
+        "id": "tool-report-references",
+        "title": "Tool And Report References",
+        "description": "Tool routing, report family README files, registries, metadata policy, and generated report reference surfaces.",
+    },
+    {
+        "id": "task-plan-session-evidence",
+        "title": "Task, Plan, And Session Evidence",
+        "description": "Taskmaster task files, plans, and session logs that preserve implementation decisions and verification history.",
+    },
+    {
+        "id": "work-tracking-knowledge",
+        "title": "Work-Tracking Knowledge",
+        "description": "Active and archived work-tracking handoffs, findings, decisions, trackers, and implementation notes.",
+    },
+    {
+        "id": "continuity-memories",
+        "title": "Continuity Memories",
+        "description": "Serena memory artifacts used for compaction recovery and cross-session continuity.",
+    },
+)
+
+
+def _knowledge_base_category_map() -> Dict[str, Dict[str, str]]:
+    return {str(category["id"]): dict(category) for category in KNOWLEDGE_BASE_CATEGORIES}
+
+
+def _knowledge_base_paths_for_globs(root: Path, patterns: Sequence[str]) -> List[Path]:
+    paths: List[Path] = []
+    if not root.exists():
+        return paths
+    for pattern in patterns:
+        paths.extend(path for path in root.glob(pattern) if path.is_file())
+    return sorted(set(paths))
+
+
+def _knowledge_base_candidate_paths() -> List[Tuple[str, str, Path]]:
+    candidates: List[Tuple[str, str, Path]] = []
+
+    direct_operator_guides = (
+        REPO_ROOT / "templates" / "USER-GUIDE.md",
+        REPO_ROOT / "templates" / "guides" / "index.md",
+    )
+    for path in direct_operator_guides:
+        if path.exists():
+            candidates.append(("operator-guides", "guide", path))
+    for path in _knowledge_base_paths_for_globs(REPO_ROOT / "templates" / "guides", ("**/*.md",)):
+        candidates.append(("operator-guides", "guide", path))
+
+    for path in (REPO_ROOT / "CODEX.md", REPO_ROOT / "CLAUDE.md", REPO_ROOT / "AGENTS.md", REPO_ROOT / ".claude" / "AGENTS.md"):
+        if path.exists():
+            candidates.append(("workflow-protocols", "agent-entrypoint", path))
+    for path in _knowledge_base_paths_for_globs(REPO_ROOT / ".claude" / "engine", ("**/*.md",)):
+        candidates.append(("workflow-protocols", "agent-runtime-contract", path))
+
+    workflow_roots = (
+        (REPO_ROOT / "templates" / "engine", "engine-protocol"),
+        (REPO_ROOT / "templates" / "workflows", "workflow"),
+        (REPO_ROOT / "templates" / "behaviors", "behavior"),
+        (REPO_ROOT / "templates" / "handlers", "handler"),
+        (REPO_ROOT / "templates" / "conventions", "convention"),
+    )
+    for root, kind in workflow_roots:
+        for path in _knowledge_base_paths_for_globs(root, ("**/*.md",)):
+            candidates.append(("workflow-protocols", kind, path))
+
+    direct_references = (
+        REPO_ROOT / "templates" / "TOOLS.md",
+        REPO_ROOT / "templates" / "REGISTRY.md",
+        REPO_ROOT / "templates" / "HANDLERS.md",
+        REPO_ROOT / "templates" / "WORKFLOWS.md",
+        REPO_ROOT / "templates" / "metadata" / "template-overview.md",
+        REPO_ROOT / "reports" / "README.md",
+    )
+    for path in direct_references:
+        if path.exists():
+            candidates.append(("tool-report-references", "reference", path))
+    for root in (REPO_ROOT / "reports", REPO_ROOT / "templates" / "registry", REPO_ROOT / "templates" / "metadata"):
+        for path in _knowledge_base_paths_for_globs(root, ("**/*.md", "**/*.json")):
+            candidates.append(("tool-report-references", "reference", path))
+
+    for path in _knowledge_base_paths_for_globs(REPO_ROOT / ".taskmaster" / "tasks", ("task_*.txt", "task_*.md")):
+        candidates.append(("task-plan-session-evidence", "taskmaster-task", path))
+    for path in _knowledge_base_paths_for_globs(REPO_STRUCTURE.plans_root, ("*.md",)):
+        candidates.append(("task-plan-session-evidence", "plan", path))
+    for path in _knowledge_base_paths_for_globs(REPO_STRUCTURE.sessions_root, ("**/*.md",)):
+        candidates.append(("task-plan-session-evidence", "session", path))
+
+    work_tracking_root = REPO_STRUCTURE.work_tracking_root
+    for root in (work_tracking_root / "active", work_tracking_root / "archive"):
+        for path in _knowledge_base_paths_for_globs(root, ("**/HANDOFF.md", "**/FINDINGS.md", "**/DECISIONS.md", "**/TRACKER.md", "**/IMPLEMENTATION.md")):
+            candidates.append(("work-tracking-knowledge", path.stem.lower(), path))
+
+    for path in _knowledge_base_paths_for_globs(REPO_ROOT / ".serena" / "memories", ("*.md",)):
+        candidates.append(("continuity-memories", "serena-memory", path))
+
+    seen: Set[Path] = set()
+    unique: List[Tuple[str, str, Path]] = []
+    for category, kind, path in candidates:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append((category, kind, path))
+    return unique
+
+
+def _knowledge_base_title(path: Path, text: str) -> str:
+    frontmatter_match = re.search(r"(?m)^title:\s*(.+)$", text[:1200])
+    if frontmatter_match:
+        return frontmatter_match.group(1).strip().strip('"')
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            return stripped[2:].strip()
+    return path.stem.replace("-", " ").replace("_", " ").title()
+
+
+def _knowledge_base_summary(text: str) -> str:
+    in_frontmatter = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == "---":
+            in_frontmatter = not in_frontmatter
+            continue
+        if in_frontmatter or not stripped:
+            continue
+        if stripped.startswith("#") or stripped.startswith("|") or stripped.startswith("```"):
+            continue
+        if re.match(r"^[-*]\s+\*\*", stripped):
+            return stripped[:280]
+        if not stripped.startswith(("-", "*")) or len(stripped) > 30:
+            return stripped[:280]
+    return ""
+
+
+def _knowledge_base_date(path: Path, text: str) -> str | None:
+    path_text = str(path)
+    path_match = re.search(r"(20\d{2})[-_/](\d{2})[-_/](\d{2})", path_text)
+    if path_match:
+        return "-".join(path_match.groups())
+    compact_match = re.search(r"(20\d{2})(\d{2})(\d{2})", path_text)
+    if compact_match:
+        return "-".join(compact_match.groups())
+    text_match = re.search(r"(20\d{2}-\d{2}-\d{2})", text[:1800])
+    return text_match.group(1) if text_match else None
+
+
+def _knowledge_base_task_id(path: Path, text: str) -> str | None:
+    blob = f"{path}\n{text[:1600]}"
+    task_match = re.search(r"(?:task[_\s-]*|Task ID:\s*)(\d+)", blob, flags=re.IGNORECASE)
+    return task_match.group(1) if task_match else None
+
+
+def _knowledge_base_tags(category: str, kind: str, path: Path, text: str) -> List[str]:
+    tags = {category, kind}
+    lower = f"{path}\n{text[:2400]}".lower()
+    for keyword in (
+        "quickstart",
+        "onboarding",
+        "troubleshooting",
+        "taskmaster",
+        "session",
+        "work-tracking",
+        "guard",
+        "template",
+        "registry",
+        "report",
+        "handoff",
+        "serena",
+        "mcp",
+        "claude",
+        "codex",
+    ):
+        if keyword in lower:
+            tags.add(keyword)
+    return sorted(tags)
+
+
+def _knowledge_base_entry(category: str, kind: str, path: Path) -> Dict[str, Any]:
+    text = _safe_read_text(path, max_chars=10000)
+    suffix = path.suffix.lower()
+    return {
+        "category": category,
+        "kind": kind,
+        "path": _relative_to_root(path, REPO_ROOT),
+        "title": _knowledge_base_title(path, text),
+        "summary": _knowledge_base_summary(text),
+        "date": _knowledge_base_date(path, text),
+        "task_id": _knowledge_base_task_id(path, text),
+        "tags": _knowledge_base_tags(category, kind, path, text),
+        "signals": {
+            "suffix": suffix,
+            "size_bytes": path.stat().st_size if path.exists() else 0,
+            "line_count": text.count("\n") + 1 if text else 0,
+        },
+    }
+
+
+def _knowledge_base_entry_matches(entry: Mapping[str, Any], query: str) -> bool:
+    terms = [term for term in re.split(r"\s+", query.lower().strip()) if term]
+    if not terms:
+        return True
+    blob = json.dumps(entry, sort_keys=True, default=str).lower()
+    return all(term in blob for term in terms)
+
+
+def _build_knowledge_base_index(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "knowledge-base"
+    max_items = max(1, int(args.max_items))
+    all_entries: List[Dict[str, Any]] = []
+    for category, kind, path in _knowledge_base_candidate_paths():
+        all_entries.append(_knowledge_base_entry(category, kind, path))
+
+    entries_by_category: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for entry in all_entries:
+        entries_by_category[str(entry.get("category"))].append(entry)
+
+    entries: List[Dict[str, Any]] = []
+    category_order = [str(category["id"]) for category in KNOWLEDGE_BASE_CATEGORIES]
+    while len(entries) < max_items:
+        added = False
+        for category_id in category_order:
+            category_entries = entries_by_category.get(category_id, [])
+            if not category_entries:
+                continue
+            entries.append(category_entries.pop(0))
+            added = True
+            if len(entries) >= max_items:
+                break
+        if not added:
+            break
+
+    category_counts = Counter(str(entry.get("category")) for entry in entries)
+    categories = []
+    for category in KNOWLEDGE_BASE_CATEGORIES:
+        category_id = str(category["id"])
+        category_entry = dict(category)
+        category_entry["count"] = category_counts.get(category_id, 0)
+        categories.append(category_entry)
+
+    query = (args.query or "").strip()
+    search_results = [entry for entry in entries if _knowledge_base_entry_matches(entry, query)] if query else []
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-knowledge-base-index",
+        "executes_actions": False,
+        "query": query or None,
+        "summary": {
+            "total_entries": len(entries),
+            "categories": len(categories),
+            "search_results": len(search_results),
+            "max_items": max_items,
+        },
+        "categories": categories,
+        "entries": entries,
+        "search_results": search_results,
+        "usage_guidance": (
+            "Use the Markdown runbook for human navigation.",
+            "Use the JSON payload for automation, grep-like discovery, or future MCP installer/index work.",
+            "Run with --query to generate focused packets for a concept, task, command, or workflow.",
+            "Update source documentation at its canonical path; do not edit generated knowledge-base packets as source of truth.",
+        ),
+        "non_goals": list(KNOWLEDGE_BASE_NON_GOALS),
+    }
+
+
+def _render_knowledge_base_index(report: Dict[str, Any]) -> str:
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), dict) else {}
+    category_map = _knowledge_base_category_map()
+    lines = [
+        "# Knowledge Base Index",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Query: `{report.get('query') or ''}`",
+        f"- Total entries: {summary.get('total_entries')}",
+        f"- Search results: {summary.get('search_results')}",
+        "",
+        "## Categories",
+        "",
+        "| Category | Entries | Description |",
+        "| --- | ---: | --- |",
+    ]
+    for category in report.get("categories", []):
+        if not isinstance(category, dict):
+            continue
+        lines.append(
+            f"| {_md_cell(category.get('title'))} | {category.get('count')} | {_md_cell(category.get('description'))} |"
+        )
+
+    query = report.get("query")
+    if query:
+        lines.extend(["", "## Search Results", ""])
+        results = report.get("search_results", [])
+        if results:
+            lines.extend(["| Title | Category | Path | Summary |", "| --- | --- | --- | --- |"])
+            for entry in results:
+                if not isinstance(entry, dict):
+                    continue
+                category_title = category_map.get(str(entry.get("category")), {}).get("title", entry.get("category"))
+                lines.append(
+                    f"| {_md_cell(entry.get('title'))} | {_md_cell(category_title)} | `{entry.get('path')}` | {_md_cell(entry.get('summary'))} |"
+                )
+        else:
+            lines.append("No entries matched the query.")
+
+    lines.extend(["", "## Entries By Category", ""])
+    entries_by_category: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for entry in report.get("entries", []):
+        if isinstance(entry, dict):
+            entries_by_category[str(entry.get("category"))].append(entry)
+
+    for category in report.get("categories", []):
+        if not isinstance(category, dict):
+            continue
+        category_id = str(category.get("id"))
+        entries = entries_by_category.get(category_id, [])
+        if not entries:
+            continue
+        lines.extend([f"### {category.get('title')}", "", "| Title | Kind | Path | Tags |", "| --- | --- | --- | --- |"])
+        for entry in entries:
+            tags = ", ".join(str(tag) for tag in entry.get("tags", []))
+            lines.append(
+                f"| {_md_cell(entry.get('title'))} | `{_md_cell(entry.get('kind'))}` | `{entry.get('path')}` | {_md_cell(tags)} |"
+            )
+        lines.append("")
+
+    lines.extend(["## Usage Guidance", ""])
+    for item in report.get("usage_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for item in report.get("non_goals", []):
+        lines.append(f"- {item}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static repository knowledge-base index. It makes canonical repository knowledge easier to discover, but canonical source content remains in the referenced files.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_knowledge_base(args: argparse.Namespace) -> None:
+    report = _build_knowledge_base_index(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_knowledge_base_index(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote knowledge base index to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote knowledge base runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
         wrote = True
 
     if not wrote:
@@ -15785,8 +16186,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     documentation_phase4.set_defaults(func=handle_phase4_documentation_review)
 
-    knowledge_parser = subparsers.add_parser("knowledge", help="Knowledge transfer review operations")
+    knowledge_parser = subparsers.add_parser("knowledge", help="Knowledge base and transfer review operations")
     knowledge_sub = knowledge_parser.add_subparsers(dest="subcommand", required=True)
+    knowledge_base = knowledge_sub.add_parser(
+        "base",
+        help="Render a static searchable repository knowledge-base index",
+    )
+    knowledge_base.add_argument("--label", default="knowledge-base", help="Human-readable knowledge-base label")
+    knowledge_base.add_argument("--query", default="", help="Optional search query for a focused packet")
+    knowledge_base.add_argument("--max-items", type=int, default=240, help="Maximum number of entries to retain")
+    knowledge_base.add_argument("--report-file", help="Optional path to write the index JSON")
+    knowledge_base.add_argument("--runbook-file", help="Optional path to write the index Markdown")
+    knowledge_base.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the index JSON without writing files",
+    )
+    knowledge_base.set_defaults(func=handle_knowledge_base)
+
     knowledge_transfer = knowledge_sub.add_parser(
         "transfer-review",
         help="Render a static knowledge-transfer review packet",
