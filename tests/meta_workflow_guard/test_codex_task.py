@@ -6,6 +6,7 @@ import argparse
 import importlib.machinery
 import importlib.util
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -6497,6 +6498,32 @@ def test_build_deployment_readiness_report_summarizes_review_domains(monkeypatch
     assert domains["stakeholder-communications"]["status"] == "review"
     assert domains["runtime-migration-flags"]["status"] == "not-applicable"
     assert any(command.startswith("python3 scripts/codex-task deployment readiness") for command in report["recommended_refresh_commands"])
+
+
+def test_build_deployment_readiness_prefers_active_task80_monitoring(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo)
+    active_monitoring = (
+        "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/"
+        "reports/production-deployment/post-migration-monitoring-2026-05-15-ssot-clean.json"
+    )
+    _touch_enhancement_source(
+        repo,
+        active_monitoring,
+        json.dumps({"aggregate_status": "warn", "summary": {"available_inputs": 2, "failures": 0, "warnings": 2}}) + "\n",
+    )
+    os.utime(repo / active_monitoring, (2_000_000_000, 2_000_000_000))
+
+    report = module._build_deployment_readiness_report(argparse.Namespace(label="task80"))
+
+    monitoring = next(domain for domain in report["domains"] if domain["id"] == "post-migration-monitoring")
+    assert monitoring["status"] == "review"
+    assert monitoring["details"]["source"]["path"] == active_monitoring
+    assert monitoring["details"]["status_value"] == "warn"
+    assert report["summary"]["aggregate_status"] == "review"
 
 
 def test_build_deployment_readiness_report_surfaces_missing_final_validation(monkeypatch, tmp_path) -> None:

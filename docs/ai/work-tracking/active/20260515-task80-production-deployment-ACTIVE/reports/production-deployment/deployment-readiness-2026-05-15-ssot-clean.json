@@ -1,0 +1,1013 @@
+{
+  "bau_transition_checklist": [
+    {
+      "action": "Review this packet plus final validation, maintenance, stakeholder, celebration, cleanup, and documentation evidence.",
+      "id": "final-evidence-review",
+      "status": "review"
+    },
+    {
+      "action": "Mark Task 80 and subtasks done only after verification evidence is captured.",
+      "id": "taskmaster-closeout",
+      "status": "manual"
+    },
+    {
+      "action": "Archive the Task 80 work-tracking folder only after the Task 80 PR merges.",
+      "id": "post-merge-archive",
+      "status": "manual"
+    },
+    {
+      "action": "Clear active session/plan pointers through the normal archive workflow after merge.",
+      "id": "between-session-mode",
+      "status": "manual"
+    }
+  ],
+  "created_at": "2026-05-15T15:25:06+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-80-production-deployment",
+      "head": "df88bacc1951c1a5eb3285dca6f69d03077a5d12",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_080.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/CHANGELOG.md",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/DECISIONS.md",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/FINDINGS.md",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/HANDOFF.md",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/IMPLEMENTATION.md",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/TRACKER.md",
+          "status": " M"
+        },
+        {
+          "path": "plans/2026-05-15-task80-production-deployment.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-15-003-task80-production-deployment.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/BEHAVIORS.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/BUILDING-BETTER.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/HANDLERS.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/MATRICES.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/REGISTRY.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/WORKFLOWS.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/behaviors/file-operations/before-edit.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/behaviors/planning/plan-compliance.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/behaviors/work-tracking/update-tracker.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/conventions/docs/documentation-standards.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/conventions/docs/readme-format.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/coordination/session-swhe-integration.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/engine/README.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/engine/navigation/common-flows.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/engine/validation/foundation-adoption-guide.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/guides/quickstart/getting-started.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/guides/reference/final-documentation-map.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/guides/reference/triggers.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/handlers/index.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/handlers/tools/external/consult-gpt5.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/architecture/handler-architecture.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/architecture/template-architecture.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/best-practices/handler-design.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/best-practices/integration-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/best-practices/template-design.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/composition/handler-chaining.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/composition/pattern-composition.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/composition/workflow-composition.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/cross-system/agent-coordination.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/cross-system/tool-integration.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/guides/adding-agents.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/guides/creating-handlers.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/guides/extending-templates.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/integration/guides/system-integration.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/matrices/index.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/evidence/proof-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/evidence/validation-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/index.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/integration/cross-system.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/routing/intent-detection.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/routing/request-analysis.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/selection/agent-selection.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/selection/handler-selection.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/selection/tool-selection.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/session/session-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/session/state-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/work-tracking/documentation-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/patterns/work-tracking/progress-patterns.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/registry/MIGRATION-REPORT.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/registry/handlers/operators-registry.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/registry/handlers/orchestrators-registry.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/registry/handlers/triggers-registry.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/registry/index.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/workflows/protocols/universal-flight.md",
+          "status": " M"
+        },
+        {
+          "path": "templates/workflows/taskmaster/work-tracking-enforcement.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/deployment-readiness-2026-05-15-ssot-clean.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/deployment-readiness-2026-05-15-ssot-clean.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/diff-check-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/guard-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-metrics-2026-05-15-reference-remediation.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-metrics-2026-05-15-reference-remediation.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-metrics-2026-05-15-ssot-clean.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-metrics-2026-05-15-ssot-clean.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-ssot-clean.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-ssot-clean.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/plan-sync-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-2026-05-15-reference-remediation.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-2026-05-15-reference-remediation.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-2026-05-15-ssot-clean.json",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-2026-05-15-ssot-clean.md",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/reference-fix-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/taskmaster-health-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/taskmaster-show-80-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/tests-2026-05-15-ssot-clean-codex-task.txt",
+          "status": "??"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/work-tracking-audit-2026-05-15-ssot-clean-final.txt",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 170,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task59_feedback_collection_system_kickoff.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_completion.md",
+        ".serena/memories/2026-05-14_task64_cleanup_automation_kickoff.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_completion.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_completion.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_kickoff.md",
+        ".serena/memories/2026-05-15_task74_phase6_cleanup_completion.md",
+        ".serena/memories/2026-05-15_task78_final_documentation_completion.md",
+        ".serena/memories/2026-05-15_task80_production_deployment_readiness.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "d6825eb12e1680e7210267267f9a1381c2d90c441c3defaf03b27074e2d27aff",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 104,
+          "pending": 4
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-15-task80-production-deployment.md",
+        "sha256": "4f5d942b131c4d83c8c54aa45186536170499e1d41f807cbd592df5ebb4bab76",
+        "target": "2026-05-15-task80-production-deployment.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-15-003-task80-production-deployment.md",
+        "sha256": "2583be3461df3162a6f1a49964f215b391f7216bf52f5cc1986687e828d4acde",
+        "target": "2026/05/2026-05-15-003-task80-production-deployment.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "0f05361061a6896490e1ad3b55f8f42e112048838661d608188c1b564a2d6753"
+      }
+    }
+  },
+  "domains": [
+    {
+      "details": {
+        "taskmaster_summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 104,
+            "pending": 4
+          },
+          "subtasks": 304,
+          "tasks": 108
+        },
+        "workflow": {
+          "active_work_tracking": [
+            "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE"
+          ],
+          "current_plan": {
+            "exists": true,
+            "is_symlink": true,
+            "path": "plans/current",
+            "resolved": "plans/2026-05-15-task80-production-deployment.md",
+            "sha256": "4f5d942b131c4d83c8c54aa45186536170499e1d41f807cbd592df5ebb4bab76",
+            "target": "2026-05-15-task80-production-deployment.md"
+          },
+          "current_session": {
+            "exists": true,
+            "is_symlink": true,
+            "path": "sessions/current",
+            "resolved": "sessions/2026/05/2026-05-15-003-task80-production-deployment.md",
+            "sha256": "2583be3461df3162a6f1a49964f215b391f7216bf52f5cc1986687e828d4acde",
+            "target": "2026/05/2026-05-15-003-task80-production-deployment.md"
+          },
+          "session_state": {
+            "exists": true,
+            "path": "sessions/state.json",
+            "sha256": "0f05361061a6896490e1ad3b55f8f42e112048838661d608188c1b564a2d6753"
+          }
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".taskmaster/tasks/tasks.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "sessions/2026/05/2026-05-15-003-task80-production-deployment.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "plans/2026-05-15-task80-production-deployment.md"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE"
+        }
+      ],
+      "id": "workflow-and-taskmaster-health",
+      "manual_actions": [],
+      "message": "Workflow pointers and Taskmaster dependencies are ready.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm the production-readiness review itself is task-aligned and dependency-clean.",
+      "refresh_commands": [
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "status": "ready",
+      "title": "Workflow and Taskmaster health"
+    },
+    {
+      "details": {
+        "pattern": "*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*final-validation-suite.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+          "status": "loaded"
+        },
+        "status_value": "passed",
+        "values": {
+          "summary.failed_required": 0,
+          "summary.passed": 12,
+          "summary.total": null
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json"
+        }
+      ],
+      "id": "final-validation",
+      "manual_actions": [],
+      "message": "Final validation evidence is available and passed.",
+      "missing_evidence_paths": [],
+      "purpose": "Ground release readiness in the latest final validation sign-off packet.",
+      "refresh_commands": [
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite"
+      ],
+      "status": "ready",
+      "title": "Final validation suite"
+    },
+    {
+      "details": {
+        "source_type": "path-evidence"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/reference/final-documentation-map.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt"
+        }
+      ],
+      "id": "final-documentation",
+      "manual_actions": [],
+      "message": "Final documentation map and Task 78 evidence are available.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm release and handoff docs are discoverable from canonical repository paths.",
+      "refresh_commands": [
+        "python3 scripts/codex-task validation final-suite --dry-run",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "status": "ready",
+      "title": "Final documentation map"
+    },
+    {
+      "details": {
+        "pattern": "*-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-*-final.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json",
+          "status": "loaded"
+        },
+        "status_value": "needs-review",
+        "values": {
+          "summary.blocked": 0,
+          "summary.maintenance_score_pct": 92.5,
+          "summary.missing": 0,
+          "summary.review": 2
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json"
+        }
+      ],
+      "id": "maintenance-bau",
+      "manual_actions": [
+        "Review or refresh this source packet before treating Task 80 as release/BAU ready."
+      ],
+      "message": "Maintenance and BAU readiness source status is `needs-review`.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm long-term maintenance guidance exists before between-session/BAU transition.",
+      "refresh_commands": [
+        "python3 scripts/codex-task maintenance plan --report-file reports/maintenance/latest.json --runbook-file reports/maintenance/latest.md"
+      ],
+      "status": "review",
+      "title": "Maintenance and BAU readiness"
+    },
+    {
+      "details": {
+        "pattern": [
+          "*-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-*.json",
+          "*-task80-production-deployment-COMPLETED/reports/production-deployment/post-migration-monitoring-*.json",
+          "*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json"
+        ],
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-2026-05-15-ssot-clean.json",
+          "status": "loaded"
+        },
+        "status_value": "warn",
+        "values": {
+          "summary.available_inputs": 1,
+          "summary.failures": 0,
+          "summary.warnings": 2
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-2026-05-15-ssot-clean.json"
+        }
+      ],
+      "id": "post-migration-monitoring",
+      "manual_actions": [
+        "Review or refresh this source packet before treating Task 80 as release/BAU ready."
+      ],
+      "message": "Post-migration monitoring source status is `warn`.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm monitoring review cadence exists without live monitoring activation.",
+      "refresh_commands": [
+        "python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md"
+      ],
+      "status": "review",
+      "title": "Post-migration monitoring"
+    },
+    {
+      "details": {
+        "pattern": "*-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-*-final.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+          "status": "loaded"
+        },
+        "status_value": "warn",
+        "values": {
+          "summary.failures": 0,
+          "summary.stakeholder_signal": "needs-refresh",
+          "summary.warnings": 2
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json"
+        }
+      ],
+      "id": "stakeholder-communications",
+      "manual_actions": [
+        "Review or refresh this source packet before treating Task 80 as release/BAU ready."
+      ],
+      "message": "Stakeholder communications source status is `warn`.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm status communication material exists while keeping delivery manual.",
+      "refresh_commands": [
+        "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md"
+      ],
+      "status": "review",
+      "title": "Stakeholder communications"
+    },
+    {
+      "details": {
+        "pattern": "*-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-*-final.json",
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-2026-05-14-final.json",
+          "status": "loaded"
+        },
+        "status_value": "ready",
+        "values": {
+          "summary.blocked": 0,
+          "summary.needs_evidence": 0,
+          "summary.ready": 5
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260514-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-2026-05-14-final.json"
+        }
+      ],
+      "id": "celebration-readout",
+      "manual_actions": [],
+      "message": "Celebration/readout planning packet is ready for human review.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm success readout material exists without scheduling or publishing.",
+      "refresh_commands": [
+        "python3 scripts/codex-task celebration plan --report-file reports/celebration-planning/latest.json --runbook-file reports/celebration-planning/latest.md"
+      ],
+      "status": "ready",
+      "title": "Celebration/readout planning"
+    },
+    {
+      "details": {
+        "source_type": "path-evidence"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260515-task74-phase-6-cleanup-COMPLETED"
+        }
+      ],
+      "id": "cleanup-and-archive-posture",
+      "manual_actions": [
+        "Archive the Task 80 work-tracking folder only after its PR merges."
+      ],
+      "message": "Cleanup guidance and Phase 6 archive evidence are available.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm cleanup guidance and post-merge archival posture are visible.",
+      "refresh_commands": [
+        "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+        "python3 scripts/codex-task work-tracking audit"
+      ],
+      "status": "ready",
+      "title": "Cleanup and archive posture"
+    },
+    {
+      "details": {
+        "source_type": "path-evidence"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/engine/validation/foundation-adoption-guide.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/engine/core/portable-foundation-spec.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/quickstart/getting-started.md"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/archive/20260424-task102-foundation-migration-adoption-COMPLETED"
+        }
+      ],
+      "id": "rollout-and-adoption",
+      "manual_actions": [],
+      "message": "Portable rollout/adoption guidance is available.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm portable foundation adoption/release docs exist for downstream projects.",
+      "refresh_commands": [
+        "python3 scripts/codex-task bootstrap init --help",
+        "python3 scripts/codex-task validation final-suite --dry-run"
+      ],
+      "status": "ready",
+      "title": "Rollout and adoption readiness"
+    },
+    {
+      "details": {
+        "historical_requirement": "Remove migration flags"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/designs/production-deployment-scope-reconciliation.md"
+        }
+      ],
+      "id": "runtime-migration-flags",
+      "manual_actions": [
+        "Create a new scoped task if future project-specific runtime flags are discovered."
+      ],
+      "message": "No runtime migration flags exist in this static portable foundation.",
+      "missing_evidence_paths": [],
+      "purpose": "Address the historical request to remove migration flags.",
+      "refresh_commands": [
+        "Review the Task 80 scope reconciliation before adding any runtime flag-removal work."
+      ],
+      "status": "not-applicable",
+      "title": "Runtime migration flags"
+    }
+  ],
+  "executes_actions": false,
+  "historical_requirement_map": [
+    {
+      "current_boundary": "Use the static deployment readiness checklist and final validation evidence.",
+      "requirement": "Execute final deployment checklist",
+      "treatment": "Compose and review evidence; do not deploy an application."
+    },
+    {
+      "current_boundary": "Task 60 provides post-migration monitoring cadence evidence.",
+      "requirement": "Enable production monitoring",
+      "treatment": "Reference monitoring packet and refresh commands; do not enable monitoring services."
+    },
+    {
+      "current_boundary": "Task 70 provides long-term maintenance planning evidence.",
+      "requirement": "Activate maintenance automation",
+      "treatment": "Review maintenance cadence; do not install schedulers, daemons, alerts, or patch automation."
+    },
+    {
+      "current_boundary": "No runtime migration flags exist in this portable foundation.",
+      "requirement": "Remove migration flags",
+      "treatment": "Classify as not applicable unless a future task proves concrete flags to remove."
+    },
+    {
+      "current_boundary": "Task 73 provides static stakeholder reporting and communication guidance.",
+      "requirement": "Update status communications",
+      "treatment": "Prepare review material; do not send or publish communications."
+    },
+    {
+      "current_boundary": "Task work-tracking archives happen after each PR merge.",
+      "requirement": "Archive migration project",
+      "treatment": "Archive Task 80 after merge; do not prematurely archive active work."
+    },
+    {
+      "current_boundary": "Maintenance, operations, validation, and final docs provide BAU inputs.",
+      "requirement": "Transition to BAU",
+      "treatment": "Use this packet as the BAU transition review surface."
+    },
+    {
+      "current_boundary": "Task 76 provides static celebration/readout planning.",
+      "requirement": "Celebrate success",
+      "treatment": "Reference celebration material; do not schedule events or publish content."
+    }
+  ],
+  "label": "task80-production-deployment",
+  "manual_next_steps": [
+    {
+      "action": "Review or refresh this source packet before treating Task 80 as release/BAU ready.",
+      "domain": "maintenance-bau",
+      "status": "review"
+    },
+    {
+      "action": "Review or refresh this source packet before treating Task 80 as release/BAU ready.",
+      "domain": "post-migration-monitoring",
+      "status": "review"
+    },
+    {
+      "action": "Review or refresh this source packet before treating Task 80 as release/BAU ready.",
+      "domain": "stakeholder-communications",
+      "status": "review"
+    },
+    {
+      "action": "Archive the Task 80 work-tracking folder only after its PR merges.",
+      "domain": "cleanup-and-archive-posture",
+      "status": "ready"
+    },
+    {
+      "action": "Create a new scoped task if future project-specific runtime flags are discovered.",
+      "domain": "runtime-migration-flags",
+      "status": "not-applicable"
+    }
+  ],
+  "mode": "static-production-transition-readiness-packet",
+  "non_goals": [
+    "No production application deployment, release publication, package publish, or hosted service update is executed.",
+    "No traffic routing, feature flag rollout, automatic promotion, rollback execution, or service canary is performed.",
+    "No live monitoring service, dashboard, alert delivery, notification, scheduler, daemon, ticketing, or external observability integration is created or contacted.",
+    "No automatic guard auto-fix, cleanup mutation, maintenance automation activation, dependency update, or patch application is run.",
+    "No email, chat, publication, stakeholder notification, calendar event, celebration scheduling, or external communication is sent.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, template, or external state is mutated beyond requested production readiness packet artifacts."
+  ],
+  "production_readiness_checklist": [
+    {
+      "id": "workflow-and-taskmaster-health",
+      "message": "Workflow pointers and Taskmaster dependencies are ready.",
+      "required_for_signoff": true,
+      "status": "ready",
+      "title": "Workflow and Taskmaster health"
+    },
+    {
+      "id": "final-validation",
+      "message": "Final validation evidence is available and passed.",
+      "required_for_signoff": true,
+      "status": "ready",
+      "title": "Final validation suite"
+    },
+    {
+      "id": "final-documentation",
+      "message": "Final documentation map and Task 78 evidence are available.",
+      "required_for_signoff": true,
+      "status": "ready",
+      "title": "Final documentation map"
+    },
+    {
+      "id": "maintenance-bau",
+      "message": "Maintenance and BAU readiness source status is `needs-review`.",
+      "required_for_signoff": true,
+      "status": "review",
+      "title": "Maintenance and BAU readiness"
+    },
+    {
+      "id": "post-migration-monitoring",
+      "message": "Post-migration monitoring source status is `warn`.",
+      "required_for_signoff": true,
+      "status": "review",
+      "title": "Post-migration monitoring"
+    },
+    {
+      "id": "stakeholder-communications",
+      "message": "Stakeholder communications source status is `warn`.",
+      "required_for_signoff": true,
+      "status": "review",
+      "title": "Stakeholder communications"
+    },
+    {
+      "id": "celebration-readout",
+      "message": "Celebration/readout planning packet is ready for human review.",
+      "required_for_signoff": true,
+      "status": "ready",
+      "title": "Celebration/readout planning"
+    },
+    {
+      "id": "cleanup-and-archive-posture",
+      "message": "Cleanup guidance and Phase 6 archive evidence are available.",
+      "required_for_signoff": true,
+      "status": "ready",
+      "title": "Cleanup and archive posture"
+    },
+    {
+      "id": "rollout-and-adoption",
+      "message": "Portable rollout/adoption guidance is available.",
+      "required_for_signoff": true,
+      "status": "ready",
+      "title": "Rollout and adoption readiness"
+    }
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "python3 scripts/codex-task validation final-suite --dry-run",
+    "python3 scripts/codex-task maintenance plan --report-file reports/maintenance/latest.json --runbook-file reports/maintenance/latest.md",
+    "python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "python3 scripts/codex-task celebration plan --report-file reports/celebration-planning/latest.json --runbook-file reports/celebration-planning/latest.md",
+    "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+    "python3 scripts/codex-task bootstrap init --help",
+    "Review the Task 80 scope reconciliation before adding any runtime flag-removal work.",
+    "python3 scripts/codex-task deployment readiness --report-file reports/production-deployment/latest.json --runbook-file reports/production-deployment/latest.md",
+    "python3 scripts/codex-task plan sync",
+    "git diff --check"
+  ],
+  "summary": {
+    "aggregate_status": "review",
+    "blocked": 0,
+    "needs_evidence": 0,
+    "not_applicable": 1,
+    "readiness_score_pct": 66.67,
+    "ready": 6,
+    "review": 3,
+    "total_domains": 10,
+    "transition_signal": "ready-with-review"
+  },
+  "version": 1
+}

@@ -6,7 +6,6 @@ title: System Integration Guide
 audience: developer
 complexity: intermediate
 dependencies:
-  - creating-handlers
   - extending-templates
 prerequisites:
   - Understanding of template system
@@ -447,8 +446,12 @@ Integration Points:
 
 ## Related Resources
 
-- [Creating Handlers](creating-handlers.md)
+- Creating handlers guide
 - [Extending Templates](extending-templates.md)
 - [Adding Agents](adding-agents.md)
-- [System Architecture](../architecture/system-architecture.md)
+- System architecture overview
 - [Agent Coordination](../cross-system/agent-coordination.md)
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

@@ -5,11 +5,9 @@ category: session
 title: State Tracking Patterns
 pattern_type: operational
 complexity: moderate
-dependencies:
-  - patterns/session/templates/patterns/session/session-patterns.md
+dependencies: []
 related:
   - patterns/session/templates/patterns/session/continuation-patterns.md
-  - patterns/work-tracking/work-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -357,9 +355,9 @@ State unclear.
 ```
 
 ## Related Patterns
-- [Session Patterns](session-patterns.md) - Session management
-- [Continuation Patterns](continuation-patterns.md) - State continuation
-- [Work Patterns](../work-tracking/work-patterns.md) - Work state
+- Session patterns - Session management
+- Continuation patterns - State continuation
+- Work patterns - Work state
 
 ## Handler References
 State tracking is embedded throughout the handler system

@@ -1,0 +1,449 @@
+{
+  "aggregate_status": "fail",
+  "created_at": "2026-05-15T14:53:06+02:00",
+  "executes_external_actions": false,
+  "inputs": {
+    "baseline_summary": {
+      "generated_at": "2026-05-15T14:52:46.549513",
+      "path": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "scanner_timestamp": "2026-05-15T14:52:46.549726"
+    },
+    "roadmap": {
+      "exists": true,
+      "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+      "status": "present"
+    },
+    "security_report": {
+      "exists": true,
+      "generated_at": "2026-05-15T14:52:46.237084",
+      "path": "scripts/template-ssot-scanner/output/data/security_validation.json",
+      "status": "present"
+    }
+  },
+  "kpis": [
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "migration-completion",
+      "message": "Migration is not yet complete.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "100",
+      "title": "Migration completion",
+      "unit": "percent",
+      "value": 37.5
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "pending-migration",
+      "message": "6 item(s) remain above the zero target.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "0",
+      "title": "Pending migration files",
+      "unit": "files",
+      "value": 6
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "broken-references",
+      "message": "Target met.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Broken references",
+      "unit": "references",
+      "value": 0
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "circular-dependencies",
+      "message": "19 item(s) remain above the zero target.",
+      "severity": "error",
+      "status": "fail",
+      "target": "0",
+      "title": "Circular dependencies",
+      "unit": "cycles",
+      "value": 19
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "duplicate-files",
+      "message": "4 item(s) remain above the zero target.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "0",
+      "title": "Duplicate files",
+      "unit": "files",
+      "value": 4
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "recommended-fixes",
+      "message": "2 item(s) remain above the zero target.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "0",
+      "title": "Recommended fixes",
+      "unit": "fixes",
+      "value": 2
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/security_validation.json",
+      "id": "security-findings",
+      "message": "Target met.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Security findings",
+      "unit": "findings",
+      "value": 0
+    },
+    {
+      "evidence": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+      "id": "roadmap-critical-items",
+      "message": "No critical roadmap items remain.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Critical roadmap items",
+      "unit": "items",
+      "value": 0
+    },
+    {
+      "evidence": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+      "id": "roadmap-total-items",
+      "message": "Roadmap backlog remains.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "reviewed backlog",
+      "title": "Total roadmap items",
+      "unit": "items",
+      "value": 27
+    }
+  ],
+  "label": "task80-reference-remediation",
+  "mode": "static-file-backed-migration-metrics",
+  "non_goals": [
+    "No metric collection agent is started.",
+    "No time-series database is read or written.",
+    "No live dashboard, WebSocket, or hosted observability service is created.",
+    "No alert, notification, ticket, or external webhook is sent.",
+    "No scanner output is regenerated and no remediation mutation is applied."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci",
+    "python3 scripts/template-ssot-scanner/baseline_summary.py --data-dir scripts/template-ssot-scanner/output/data",
+    "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+    "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+    "python3 scripts/codex-task report generate --kind migration-health",
+    "python3 scripts/codex-task validation final-suite --dry-run"
+  ],
+  "roadmap": {
+    "category_counts": {
+      "dependencies": 19,
+      "duplicates": 2,
+      "migration": 5,
+      "orphaned-files": 1
+    },
+    "first_items": [
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-001",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/integration/best-practices/handler-design.md",
+          "templates/integration/guides/creating-handlers.md"
+        ],
+        "title": "Break circular dependency cycle 1"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-010",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/integration/architecture/template-architecture.md",
+          "templates/integration/best-practices/template-design.md"
+        ],
+        "title": "Break circular dependency cycle 10"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 3,
+        "id": "high-cycle-011",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/integration/best-practices/integration-patterns.md",
+          "templates/integration/guides/extending-templates.md",
+          "templates/integration/guides/system-integration.md"
+        ],
+        "title": "Break circular dependency cycle 11"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-012",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/integration/composition/handler-chaining.md",
+          "templates/integration/composition/workflow-composition.md"
+        ],
+        "title": "Break circular dependency cycle 12"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-013",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/integration/cross-system/agent-coordination.md",
+          "templates/integration/guides/adding-agents.md"
+        ],
+        "title": "Break circular dependency cycle 13"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-014",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/integration/cross-system/mcp-integration.md",
+          "templates/integration/cross-system/tool-integration.md"
+        ],
+        "title": "Break circular dependency cycle 14"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-015",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/patterns/evidence/evidence-patterns.md",
+          "templates/patterns/evidence/validation-patterns.md"
+        ],
+        "title": "Break circular dependency cycle 15"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-016",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/patterns/selection/agent-selection.md",
+          "templates/patterns/selection/handler-selection.md"
+        ],
+        "title": "Break circular dependency cycle 16"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-017",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/patterns/integration/composition.md",
+          "templates/patterns/integration/cross-system.md"
+        ],
+        "title": "Break circular dependency cycle 17"
+      },
+      {
+        "category": "dependencies",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "M",
+        "finding_count": 2,
+        "id": "high-cycle-018",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/patterns/session/session-patterns.md",
+          "templates/patterns/session/state-patterns.md"
+        ],
+        "title": "Break circular dependency cycle 18"
+      }
+    ],
+    "generated_at": "2026-05-15T14:52:57.843863",
+    "metadata": {
+      "duration_seconds": 0.0,
+      "output_format_version": "2.0.0",
+      "scan_timestamp": "2026-05-15T14:52:57.844153",
+      "scanner": "migration_roadmap",
+      "scanner_version": "1.0.0",
+      "stats": {
+        "priority_high": 24,
+        "priority_low": 1,
+        "priority_medium": 2,
+        "roadmap_items": 27,
+        "taskmaster_items": 27
+      }
+    },
+    "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+    "phases": [
+      {
+        "duration_days": 2,
+        "id": "phase-1-critical-integrity",
+        "priorities": [
+          "critical"
+        ],
+        "start_day": 0,
+        "title": "Critical integrity"
+      },
+      {
+        "duration_days": 3,
+        "id": "phase-2-foundation-correctness",
+        "priorities": [
+          "high"
+        ],
+        "start_day": 2,
+        "title": "Foundation correctness"
+      },
+      {
+        "duration_days": 2,
+        "id": "phase-3-maintenance-risk",
+        "priorities": [
+          "medium"
+        ],
+        "start_day": 5,
+        "title": "Maintenance risk"
+      },
+      {
+        "duration_days": 2,
+        "id": "phase-4-optimization-backlog",
+        "priorities": [
+          "low"
+        ],
+        "start_day": 7,
+        "title": "Optimization backlog"
+      }
+    ],
+    "priority_counts": {
+      "high": 24,
+      "low": 1,
+      "medium": 2
+    },
+    "summary_metrics": {
+      "broken_reference_fixes": 0,
+      "broken_references": 0,
+      "checkpoints_saved": 0,
+      "circular_dependencies": 19,
+      "duplicate_count": 4,
+      "duplicate_removals": 2,
+      "exact_duplicate_groups": 2,
+      "files_with_references": 104,
+      "fully_migrated": 4,
+      "migration_files_scanned": 10,
+      "migration_percentage": 37.5,
+      "modular_files": 337,
+      "monolithic_files": 8,
+      "not_migrated": 1,
+      "orphaned_files": 87,
+      "partial_duplicate_pairs": 1,
+      "partially_migrated": 5,
+      "pending_migration": 6,
+      "recommendations": 4,
+      "total_files": 345,
+      "total_fixes": 2,
+      "total_lines": 56172,
+      "total_references": 747,
+      "unique_references": 305
+    },
+    "taskmaster_export_tasks": 27,
+    "total_items": 27,
+    "version": "1.0.0"
+  },
+  "source_outputs": {
+    "duplicate_analysis": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/duplicate_analysis.json",
+      "scan_timestamp": "2026-05-15T14:52:46.476672",
+      "scanner": "duplicate_finder",
+      "scanner_version": "1.1.0",
+      "size_bytes": 77245
+    },
+    "fix_recommendations": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/fix_recommendations.json",
+      "scan_timestamp": "2026-05-15T14:52:46.536076",
+      "scanner": "fix_generator",
+      "scanner_version": "1.1.0",
+      "size_bytes": 6513
+    },
+    "migration_status": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/migration_status.json",
+      "scan_timestamp": "2026-05-15T14:52:45.184052",
+      "scanner": "migration_detector",
+      "scanner_version": "1.0.0",
+      "size_bytes": 3064
+    },
+    "reference_analysis": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/reference_analysis.json",
+      "scan_timestamp": "2026-05-15T14:52:46.332713",
+      "scanner": "reference_analyzer",
+      "scanner_version": "1.1.0",
+      "size_bytes": 153378
+    },
+    "template_scan_results": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/template_scan_results.json",
+      "scan_timestamp": "2026-05-15T14:52:45.578107",
+      "scanner": "template_scanner",
+      "scanner_version": "1.1.0",
+      "size_bytes": 926346
+    }
+  },
+  "summary": {
+    "failures": 1,
+    "passed": 3,
+    "total_kpis": 9,
+    "warnings": 5
+  },
+  "version": 1
+}

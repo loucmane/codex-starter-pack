@@ -52,7 +52,7 @@ This behavior fires whenever:
 - [Standard Plan Template](../../workflows/processes/plan-template.md)
 - [`codex-guard` Plan Validation](../../metadata/workflow-guards.json)
 - [Session Lifecycle Workflow](../../workflows/session/lifecycle.md)
-- [Meta Workflow Authoring Draft](../../designs/meta-workflow-authoring-draft.md)
+- [Meta Workflow Authoring](../../workflows/processes/meta-workflow-authoring.md)
 
 ## Progress Log
 

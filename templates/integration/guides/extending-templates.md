@@ -6,8 +6,7 @@ title: Extending the Template System
 audience: developer
 complexity: advanced
 dependencies:
-  - template-architecture
-  - creating-handlers
+  - handler-architecture
 prerequisites:
   - Deep understanding of template system
   - Knowledge of modular architecture
@@ -378,11 +377,11 @@ steps:
 
 ## Related Resources
 
-- [System Architecture](../architecture/system-architecture.md)
-- [Creating Handlers](creating-handlers.md)
+- System architecture overview
+- Creating handlers guide
 - [Handler Architecture](../architecture/handler-architecture.md)
-- [Template Architecture](../architecture/template-architecture.md)
-- [Integration Patterns](../best-practices/integration-patterns.md)
+- Template architecture overview
+- Integration patterns best practices
 
 ## Progress Log
 

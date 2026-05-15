@@ -48,6 +48,10 @@ emergency_bypass: false
 - 2026-05-15 - Implemented `deployment readiness` static packet and captured initial Task 80 evidence showing current aggregate status `blocked` because post-migration monitoring source evidence is fail-level.
 - 2026-05-15 - Kept parent Task 80 in `blocked` state after implementation because the packet's transition signal is `not-ready`; subtasks 80.1 and 80.2 are complete.
 - 2026-05-15 - Captured final implementation verification evidence: focused tests, plan sync, work-tracking audit, Taskmaster health, guard, reference-fix gate, diff-check, and Taskmaster show output.
+- 2026-05-15 - Remediated the migration metrics blockers directly gating Task 80: broken references and circular dependencies now scan clean, post-migration monitoring is `warn` with zero failures, and production readiness is `review` / `ready-with-review`.
+- 2026-05-15 - Marked parent Task 80 done after full `codex-task` regression passed and readiness no longer had blocked domains.
+- 2026-05-15 - Captured final completed-state verification: plan sync, work-tracking audit, Taskmaster health, guard, reference-fix dry-run, and diff-check all passed.
+- 2026-05-15 - Reran the full scanner after final template trace edits and refreshed Task 80 roadmap/metrics/monitoring/readiness packets from that clean scanner baseline.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
@@ -56,7 +60,7 @@ emergency_bypass: false
   2. Review Taskmaster Task 80 and its subtasks.
   3. Review the production deployment scope reconciliation before changing helper behavior.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: Task 80 parent remains blocked by fail-level post-migration monitoring source evidence. Resolve, refresh, or explicitly waive that blocker in a future scoped step before closing the parent task as done.
+- Outstanding risks/todos: Push the branch and move PR #104 out of draft when checks are green. Remaining migration cleanup warnings are future backlog rather than Task 80 blockers.
 
 ## Conflict & Scope Declaration
 - Related plans: Tasks 94-95 enforcement groundwork, Task 97 dashboard follow-on.
@@ -66,6 +70,7 @@ emergency_bypass: false
 - Production deployment scope reconciliation under `designs/`
 - Tracker/session entries for kickoff and implementation progress
 - Stored production readiness packet, focused test evidence, and guard/health/audit verification evidence
+- Stored clean scanner, migration roadmap/metrics, post-migration monitoring, and refreshed production readiness evidence after blocker remediation
 
 ## Emergency Bypass Protocol
 - No bypass authorized.

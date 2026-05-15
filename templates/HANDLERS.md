@@ -60,7 +60,7 @@ This registry provides a unified view of all handlers across the Claude Template
 **Related**: `debug`, `find-references`
 
 #### debug
-**Location**: [TOOLS.md#handler-debug](TOOLS.md#handler-debug)  
+**Location**: [templates/handlers/triggers/debug/debug-issue.md](templates/handlers/triggers/debug/debug-issue.md)
 **Triggers**: "debug X", "why is Y broken"  
 **Purpose**: Debug code issues  
 **Related**: `analyze-code`, `check-logs`
@@ -68,31 +68,31 @@ This registry provides a unified view of all handlers across the Claude Template
 ### Tool Operations {#tool-operations}
 
 #### search-code
-**Location**: [TOOLS.md#handler-search-code](TOOLS.md#handler-search-code)  
+**Location**: [templates/handlers/orchestrators/tool-selection.md](templates/handlers/orchestrators/tool-selection.md#tool-selection)
 **Triggers**: "find X", "search for Y", "look for Z"  
 **Purpose**: Search codebase (Serena-first)  
 **Related**: `find-symbol`, `find-references`, `grep-pattern`
 
 #### find-symbol
-**Location**: [TOOLS.md#handler-find-symbol](TOOLS.md#handler-find-symbol)  
+**Location**: [templates/handlers/orchestrators/tool-selection.md](templates/handlers/orchestrators/tool-selection.md#tool-selection)
 **Triggers**: "where is class X", "find function Y"  
 **Purpose**: Find specific code symbols  
 **Related**: `find-references`, `search-code`
 
 #### read-file
-**Location**: [TOOLS.md#handler-read-file](TOOLS.md#handler-read-file)  
+**Location**: [TOOLS.md](TOOLS.md)
 **Triggers**: "show me X", "what's in Y"  
 **Purpose**: Read file contents  
 **Related**: `edit-file`, `analyze-code`
 
 #### edit-file
-**Location**: [TOOLS.md#handler-edit-file](TOOLS.md#handler-edit-file)  
+**Location**: [templates/handlers/operators/development/edit-file.md](templates/handlers/operators/development/edit-file.md)
 **Triggers**: "change X to Y", "update Z"  
 **Purpose**: Modify file contents  
 **Related**: `read-file`, `check-style`
 
 #### commit-changes
-**Location**: [TOOLS.md#handler-commit-changes](TOOLS.md#handler-commit-changes)  
+**Location**: [templates/handlers/operators/git/create-commit-message.md](templates/handlers/operators/git/create-commit-message.md#create-commit-message)
 **Triggers**: "commit", "save changes"  
 **Purpose**: Execute git commit  
 **Related**: `check-commit-msg`, `check-status`, `create-commit-message`
@@ -106,31 +106,31 @@ This registry provides a unified view of all handlers across the Claude Template
 ### Conventions & Standards {#conventions-standards}
 
 #### verify-claim
-**Location**: [CONVENTIONS.md#handler-verify-claim](CONVENTIONS.md#handler-verify-claim)  
+**Location**: [templates/handlers/operators/analysis/verify-claim.md](templates/handlers/operators/analysis/verify-claim.md#verify-claim)
 **Triggers**: Making assertions about code  
 **Purpose**: Require evidence for claims  
 **Related**: `gather-evidence`, `cite-source`
 
 #### check-naming
-**Location**: [CONVENTIONS.md#handler-check-naming](CONVENTIONS.md#handler-check-naming)  
+**Location**: [templates/handlers/operators/development/check-naming.md](templates/handlers/operators/development/check-naming.md#check-naming)
 **Triggers**: Naming files/components  
 **Purpose**: Validate naming conventions  
 **Related**: `suggest-name`, `create-file`
 
 #### check-commit-msg
-**Location**: [CONVENTIONS.md#handler-check-commit-msg](CONVENTIONS.md#handler-check-commit-msg)  
+**Location**: [templates/handlers/operators/git/check-commit-msg.md](templates/handlers/operators/git/check-commit-msg.md#check-commit-msg)
 **Triggers**: Before git commit  
 **Purpose**: Validate commit format  
 **Related**: `commit-changes`, `suggest-commit-type`
 
 #### check-conventions-first
-**Location**: [CONVENTIONS.md#handler-check-conventions-first](CONVENTIONS.md#handler-check-conventions-first)  
+**Location**: [templates/handlers/orchestrators/check-conventions-first.md](templates/handlers/orchestrators/check-conventions-first.md#check-conventions-first)
 **Triggers**: Internal before any convention-based action  
 **Purpose**: Enforce pre-action convention checks  
 **Related**: `enforce-pre-flight`, `check-commit-msg`
 
 #### enforce-pre-flight
-**Location**: [CONVENTIONS.md#handler-enforce-pre-flight](CONVENTIONS.md#handler-enforce-pre-flight)  
+**Location**: [templates/handlers/orchestrators/enforce-pre-flight.md](templates/handlers/orchestrators/enforce-pre-flight.md#enforce-pre-flight)
 **Triggers**: "enforce conventions", "make sure I check"  
 **Purpose**: System-wide enforcement of pre-checks  
 **Related**: `check-conventions-first`
@@ -144,19 +144,19 @@ This registry provides a unified view of all handlers across the Claude Template
 **Related**: `im-lost`, `unknown-intent`
 
 #### unknown-intent
-**Location**: [CLAUDE.md → Protocol Exceptions](CLAUDE.md#protocol-exceptions)  
+**Location**: root `CLAUDE.md`
 **Triggers**: Unclear requests  
 **Purpose**: Clarify ambiguous intent  
 **Related**: `ambiguous-request`, `help-needed`
 
 #### im-lost
-**Location**: [CLAUDE.md → Protocol Exceptions](CLAUDE.md#protocol-exceptions)  
+**Location**: root `CLAUDE.md`
 **Triggers**: "I'm lost", "help"  
 **Purpose**: Reorient confused users  
 **Related**: `check-progress`, `show-process`
 
 #### wrong-path
-**Location**: [CLAUDE.md → Protocol Exceptions](CLAUDE.md#protocol-exceptions)  
+**Location**: root `CLAUDE.md`
 **Triggers**: "not what I meant", "wrong"  
 **Purpose**: Correct mistaken routes  
 **Related**: `restart-flow`, `unknown-intent`
@@ -251,3 +251,7 @@ This registry provides a unified view of all handlers across the Claude Template
 ---
 
 Remember: This is a registry, not the source. Full handler details live in their domain files.
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

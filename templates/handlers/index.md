@@ -38,7 +38,7 @@ Canonical index for modular handler templates. Legacy top-level handler-library 
 ## Discovery Contract
 
 - The top-level `templates/HANDLERS.md` file remains a legacy entrypoint.
-- `templates/handlers/index.md` is the modular handler-family landing page.
+- This index is the modular handler-family landing page.
 - `TemplateRegistry.resolve("templates/HANDLERS.md")` must redirect to this file and return a concrete registry record.
 - `TemplateRegistry.resolve("<handler-id>")` must load critical handlers through frontmatter IDs or explicit compatibility aliases.
 - Handler template metadata is governed by `templates/metadata/template-metadata-policy.json`.

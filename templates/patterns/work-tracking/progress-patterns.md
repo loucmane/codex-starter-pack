@@ -6,7 +6,7 @@ title: Progress Measurement Patterns
 pattern_type: operational
 complexity: simple
 dependencies:
-  - patterns/work-tracking/templates/patterns/work-tracking/work-patterns.md
+  - documentation-patterns
 related:
   - patterns/work-tracking/templates/patterns/work-tracking/documentation-patterns.md
 version: 1.0.0
@@ -327,7 +327,7 @@ Will continue tomorrow.
 ```
 
 ## Related Patterns
-- [Work Patterns](work-patterns.md) - Work organization
+- Work patterns - Work organization
 - [Documentation Patterns](documentation-patterns.md) - Progress documentation
 - [Session Patterns](../session/session-patterns.md) - Session progress
 

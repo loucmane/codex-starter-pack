@@ -16,10 +16,10 @@ Complete index of all handlers, templates, patterns, and conventions across the 
 
 ## 📚 Essential Documentation
 
-- **New to Claude?** → Start with [USER-GUIDE.md](USER-GUIDE.md)
+- **New to Claude?** → Start with the user guide
 - **Common workflows?** → See [templates/workflows/examples/common-workflows.md](templates/workflows/examples/common-workflows.md)
 - **Creating handlers?** → See [Creating and Managing Handlers](templates/integration/guides/creating-handlers.md#creating-and-managing-handlers)
-- **Having issues?** → Check [USER-GUIDE.md#troubleshooting-guide](USER-GUIDE.md#troubleshooting-guide)
+- **Having issues?** → Check the user guide troubleshooting section
 
 ## 🎯 Quick Navigation
 

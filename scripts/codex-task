@@ -11297,12 +11297,22 @@ def _deployment_evidence_domain(
     )
 
 
+def _deployment_latest_packet_path(pattern: str | Sequence[str]) -> Optional[Path]:
+    patterns = [pattern] if isinstance(pattern, str) else list(pattern)
+    candidates: List[Path] = []
+    for item in patterns:
+        candidates.extend(REPO_STRUCTURE.work_tracking_active_root.glob(item))
+        candidates.extend(REPO_STRUCTURE.work_tracking_archive_root.glob(item))
+    unique = set(candidates)
+    return max(unique, key=lambda item: (item.stat().st_mtime_ns, str(item))) if unique else None
+
+
 def _deployment_latest_packet_domain(
     *,
     domain_id: str,
     title: str,
     purpose: str,
-    pattern: str,
+    pattern: str | Sequence[str],
     refresh_commands: Sequence[str],
     status_fields: Sequence[str],
     value_fields: Sequence[str] = (),
@@ -11310,9 +11320,11 @@ def _deployment_latest_packet_domain(
     missing_message: str,
     manual_actions: Sequence[str] = (),
 ) -> Dict[str, Any]:
-    latest = _success_metrics_latest(pattern)
+    patterns = [pattern] if isinstance(pattern, str) else list(pattern)
+    pattern_detail: str | List[str] = patterns[0] if len(patterns) == 1 else patterns
+    latest = _deployment_latest_packet_path(patterns)
     if latest is None:
-        evidence = [_enhancement_path_state(pattern)]
+        evidence = [_enhancement_path_state(item) for item in patterns]
         return _deployment_domain(
             domain_id=domain_id,
             title=title,
@@ -11322,7 +11334,7 @@ def _deployment_latest_packet_domain(
             refresh_commands=refresh_commands,
             message=missing_message,
             manual_actions=manual_actions,
-            details={"pattern": pattern, "source_type": "latest-packet"},
+            details={"pattern": pattern_detail, "source_type": "latest-packet"},
         )
 
     source = _success_metrics_load_json(latest)
@@ -11371,7 +11383,7 @@ def _deployment_latest_packet_domain(
         message=message,
         manual_actions=actions,
         details={
-            "pattern": pattern,
+            "pattern": pattern_detail,
             "source": {key: source[key] for key in ("path", "exists", "status", "message")},
             "status_value": status_value,
             "values": values,
@@ -11509,7 +11521,11 @@ def _build_deployment_readiness_domains() -> List[Dict[str, Any]]:
             domain_id="post-migration-monitoring",
             title="Post-migration monitoring",
             purpose="Confirm monitoring review cadence exists without live monitoring activation.",
-            pattern="*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json",
+            pattern=(
+                "*-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-*.json",
+                "*-task80-production-deployment-COMPLETED/reports/production-deployment/post-migration-monitoring-*.json",
+                "*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json",
+            ),
             refresh_commands=("python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",),
             status_fields=("aggregate_status", "summary.aggregate_status", "status"),
             value_fields=("summary.available_inputs", "summary.failures", "summary.warnings"),

@@ -240,7 +240,7 @@ pnpm build
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md)
+See the repository contributing guide when one is present.
 
 ## License
 
@@ -324,3 +324,7 @@ Use the login function to login.
 - **Faster Development**: Good examples speed implementation
 - **Knowledge Preservation**: Decisions and context captured
 - **Professional Image**: Quality docs show quality code
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

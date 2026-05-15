@@ -6,7 +6,7 @@ title: Validation Patterns
 pattern_type: operational
 complexity: moderate
 dependencies:
-  - patterns/evidence/templates/patterns/evidence/evidence-patterns.md
+  - proof-patterns
 related:
   - patterns/evidence/templates/patterns/evidence/proof-patterns.md
 version: 1.0.0
@@ -303,9 +303,9 @@ Result: Production authentication broken
 ```
 
 ## Related Patterns
-- [Evidence Patterns](evidence-patterns.md) - Collecting evidence
+- Evidence patterns - Collecting evidence
 - [Proof Patterns](proof-patterns.md) - Proof standards
-- [Testing Patterns](../work-tracking/work-patterns.md) - Test approaches
+- Work-tracking testing patterns - Test approaches
 
 ## Handler References
 Validation logic is embedded in various handlers rather than standalone

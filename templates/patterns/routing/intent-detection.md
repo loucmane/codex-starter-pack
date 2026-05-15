@@ -5,10 +5,8 @@ category: routing
 title: Intent Detection Patterns
 pattern_type: behavioral
 complexity: moderate
-dependencies:
-  - patterns/routing/templates/patterns/routing/request-analysis.md
+dependencies: []
 related:
-  - patterns/routing/templates/patterns/routing/meta-routing.md
   - patterns/selection/handler-selection.md
 version: 1.0.0
 status: stable
@@ -152,8 +150,8 @@ For complex requests, perform full contextual analysis
 Track successful intent resolutions for pattern improvement
 
 ## Related Patterns
-- [Request Analysis](request-analysis.md) - Breaking down requests
-- [Meta-Routing](meta-routing.md) - High-level routing
+- Request analysis patterns - Breaking down requests
+- Meta-routing patterns - High-level routing
 - [Handler Selection](../selection/handler-selection.md) - Choosing handlers
 
 ## Handler References

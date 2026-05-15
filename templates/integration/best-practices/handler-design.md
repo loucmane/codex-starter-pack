@@ -6,7 +6,6 @@ title: Handler Design Best Practices
 audience: developer
 complexity: intermediate
 dependencies:
-  - creating-handlers
   - handler-chaining
 prerequisites:
   - Understanding of handler system
@@ -562,8 +561,12 @@ version: 1.0.0
 
 ## Related Resources
 
-- [Creating Handlers](../guides/creating-handlers.md)
+- Creating handlers guide for implementation steps
 - [Handler Chaining](../composition/handler-chaining.md)
 - [Template Design](template-design.md)
 - [Integration Patterns](integration-patterns.md)
 - [Handler Architecture](../architecture/handler-architecture.md)
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

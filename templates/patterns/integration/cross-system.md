@@ -9,7 +9,7 @@ dependencies:
   - patterns/selection/tool-selection.md
   - patterns/selection/agent-selection.md
 related:
-  - patterns/integration/templates/patterns/integration/composition.md
+  - patterns/selection/agent-selection.md
 version: 1.0.0
 status: stable
 ---
@@ -445,7 +445,7 @@ Hardcode the endpoints.
 ```
 
 ## Related Patterns
-- [Composition](composition.md) - Pattern composition
+- Composition patterns - Pattern composition
 - [Tool Selection](../selection/tool-selection.md) - Tool choice
 - [Agent Selection](../selection/agent-selection.md) - Agent coordination
 

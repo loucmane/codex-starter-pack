@@ -5,9 +5,7 @@ category: architecture
 title: Handler System Design
 audience: architect
 complexity: advanced
-dependencies:
-  - system-architecture
-  - creating-handlers
+dependencies: []
 prerequisites:
   - Understanding of handler concepts
   - Knowledge of system architecture
@@ -627,8 +625,12 @@ extension:
 
 ## Related Resources
 
-- [System Architecture](system-architecture.md)
-- [Template Architecture](template-architecture.md)
-- [Creating Handlers](../guides/creating-handlers.md)
-- [Handler Design](../best-practices/handler-design.md)
+- System architecture overview
+- Template architecture overview
+- Creating handlers guide
+- Handler design best practices
 - Handler implementations in `templates/handlers/`
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

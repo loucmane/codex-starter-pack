@@ -6,7 +6,7 @@ title: Request Analysis Patterns
 pattern_type: behavioral
 complexity: moderate
 dependencies:
-  - patterns/routing/templates/patterns/routing/meta-routing.md
+  - intent-detection
 related:
   - patterns/routing/templates/patterns/routing/intent-detection.md
   - patterns/selection/handler-selection.md
@@ -122,7 +122,7 @@ When automated resolution fails:
 3. Remember choice for session
 
 ## Related Patterns
-- [Meta-Routing](meta-routing.md) - High-level routing decisions
+- Meta-routing patterns - High-level routing decisions
 - [Intent Detection](intent-detection.md) - Understanding user goals
 - [Session Patterns](../session/session-patterns.md) - Maintaining context
 
