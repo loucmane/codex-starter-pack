@@ -10,3 +10,4 @@
 - 2026-05-15 15:12 CEST — Full `codex-task` regression passed and Taskmaster parent Task 80 was marked done.
 - 2026-05-15 15:22 CEST — Captured final completed-state verification: plan sync, work-tracking audit, Taskmaster health, guard, reference-fix dry-run, and diff-check all passed.
 - 2026-05-15 15:25 CEST — Reran the full scanner after final trace edits and refreshed Task 80 roadmap/metrics/monitoring/readiness packets from the clean scanner baseline.
+- 2026-05-15 15:48 CEST — Archived active work-tracking folder.

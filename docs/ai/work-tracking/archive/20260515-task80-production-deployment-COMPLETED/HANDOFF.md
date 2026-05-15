@@ -20,3 +20,4 @@
   - 37.5% monolith migration completion / 6 pending migration items
   - Maintenance/BAU and stakeholder communication review-level source packets
 - Keep the Task 80 work-tracking folder active until the branch is merged or a deliberate follow-up decides the blocker disposition.
+- Archived on 2026-05-15 15:48 CEST — Folder moved to archive and tracker marked COMPLETED.
