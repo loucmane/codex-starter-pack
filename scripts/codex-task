@@ -4366,6 +4366,437 @@ def handle_post_migration_monitoring(args: argparse.Namespace) -> None:
         raise TaskError("Post-migration monitoring aggregate status is fail")
 
 
+MIGRATION_ARCHIVE_KEYWORDS: Tuple[str, ...] = (
+    "migration",
+    "scanner",
+    "roadmap",
+    "reference",
+    "template",
+    "phase",
+    "foundation",
+    "deployment",
+    "cleanup",
+    "monitoring",
+    "archive",
+    "validation",
+    "metrics",
+    "report",
+    "task",
+)
+
+MIGRATION_ARCHIVE_NON_GOALS: Tuple[str, ...] = (
+    "No files are moved, copied, deleted, zipped, uploaded, or published by this command.",
+    "No external archive storage, hosted search index, issue tracker, dashboard, or notification system is contacted.",
+    "No retention policy, legal hold, or compliance classification is inferred.",
+    "Existing work-tracking archives remain the canonical artifact store.",
+)
+
+
+def _safe_read_text(path: Path, max_chars: int = 6000) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")[:max_chars]
+    except OSError:
+        return ""
+
+
+def _migration_archive_relevant(value: str) -> bool:
+    lower = value.lower()
+    return any(keyword in lower for keyword in MIGRATION_ARCHIVE_KEYWORDS)
+
+
+def _migration_archive_entry(
+    *,
+    kind: str,
+    path: Path,
+    title: str,
+    summary: str = "",
+    date_value: str | None = None,
+    task_id: str | None = None,
+    signals: Mapping[str, Any] | None = None,
+) -> Dict[str, Any]:
+    return {
+        "kind": kind,
+        "path": _relative_to_root(path, REPO_ROOT),
+        "title": title,
+        "summary": summary,
+        "date": date_value,
+        "task_id": task_id,
+        "signals": dict(signals or {}),
+    }
+
+
+def _migration_archive_folder_metadata(folder: Path) -> Dict[str, Any]:
+    match = re.match(r"(?P<date>\d{8})-(?P<slug>.+)-COMPLETED$", folder.name)
+    date_value = None
+    title = folder.name
+    task_id = None
+    if match:
+        raw_date = match.group("date")
+        date_value = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
+        slug = match.group("slug")
+        task_match = re.search(r"task(?P<task>\d+)", slug)
+        task_id = task_match.group("task") if task_match else None
+        title = slug.replace("-", " ").title()
+    return {"date": date_value, "title": title, "task_id": task_id}
+
+
+def _migration_archive_summary_from(folder: Path) -> str:
+    for name in ("HANDOFF.md", "IMPLEMENTATION.md", "TRACKER.md"):
+        text = _safe_read_text(folder / name, max_chars=1800)
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and not stripped.startswith("---"):
+                return stripped[:260]
+    return "Completed work-tracking archive folder."
+
+
+def _collect_migration_archive_work_tracking(max_items: int) -> List[Dict[str, Any]]:
+    archive_root = REPO_STRUCTURE.work_tracking_archive_root
+    entries: List[Dict[str, Any]] = []
+    if not archive_root.exists():
+        return entries
+    for folder in sorted(path for path in archive_root.glob("*-COMPLETED") if path.is_dir()):
+        metadata = _migration_archive_folder_metadata(folder)
+        reports_dir = folder / "reports"
+        signals = {
+            "has_tracker": (folder / "TRACKER.md").exists(),
+            "has_findings": (folder / "FINDINGS.md").exists(),
+            "has_decisions": (folder / "DECISIONS.md").exists(),
+            "has_handoff": (folder / "HANDOFF.md").exists(),
+            "report_files": sum(1 for item in reports_dir.rglob("*") if item.is_file()) if reports_dir.exists() else 0,
+        }
+        searchable = folder.name + "\n" + _safe_read_text(folder / "HANDOFF.md") + "\n" + _safe_read_text(folder / "TRACKER.md")
+        if not _migration_archive_relevant(searchable):
+            continue
+        entries.append(
+            _migration_archive_entry(
+                kind="work_tracking_archive",
+                path=folder,
+                title=str(metadata["title"]),
+                summary=_migration_archive_summary_from(folder),
+                date_value=metadata.get("date"),
+                task_id=metadata.get("task_id"),
+                signals=signals,
+            )
+        )
+        if len(entries) >= max_items:
+            break
+    return entries
+
+
+def _collect_migration_archive_report_families(max_items: int) -> List[Dict[str, Any]]:
+    reports_root = REPO_STRUCTURE.reports_root
+    entries: List[Dict[str, Any]] = []
+    if not reports_root.exists():
+        return entries
+    if (reports_root / "README.md").exists():
+        entries.append(
+            _migration_archive_entry(
+                kind="report_index",
+                path=reports_root / "README.md",
+                title="Reports Index",
+                summary="Repository-level report index.",
+            )
+        )
+    for folder in sorted(path for path in reports_root.iterdir() if path.is_dir()):
+        file_count = sum(1 for item in folder.rglob("*") if item.is_file())
+        readme = folder / "README.md"
+        text = folder.name + "\n" + _safe_read_text(readme, max_chars=1400)
+        if not _migration_archive_relevant(text):
+            continue
+        entries.append(
+            _migration_archive_entry(
+                kind="report_family",
+                path=folder,
+                title=folder.name.replace("-", " ").title(),
+                summary=next((line.strip() for line in _safe_read_text(readme).splitlines() if line.strip() and not line.startswith("#")), "Repository report family."),
+                signals={"file_count": file_count, "has_readme": readme.exists()},
+            )
+        )
+        if len(entries) >= max_items:
+            break
+    return entries
+
+
+def _collect_migration_archive_tools(max_items: int) -> List[Dict[str, Any]]:
+    candidates: List[Path] = []
+    scanner_root = REPO_ROOT / "scripts" / "template-ssot-scanner"
+    if scanner_root.exists():
+        candidates.extend(sorted(scanner_root.glob("*.py")))
+        candidates.extend(sorted(scanner_root.glob("README.md")))
+        candidates.extend(sorted((scanner_root / "output" / "scripts").glob("*")) if (scanner_root / "output" / "scripts").exists() else [])
+        candidates.extend(sorted((scanner_root / "output" / "data").glob("*.json")) if (scanner_root / "output" / "data").exists() else [])
+    codex_task = REPO_ROOT / "scripts" / "codex-task"
+    if codex_task.exists():
+        candidates.append(codex_task)
+
+    entries: List[Dict[str, Any]] = []
+    for path in candidates:
+        if not path.is_file():
+            continue
+        text = path.name + "\n" + _safe_read_text(path, max_chars=1800)
+        if not _migration_archive_relevant(text):
+            continue
+        entries.append(
+            _migration_archive_entry(
+                kind="tool_or_output",
+                path=path,
+                title=path.name,
+                summary="Migration archive tooling or generated scanner output.",
+                signals={"suffix": path.suffix, "size_bytes": path.stat().st_size},
+            )
+        )
+        if len(entries) >= max_items:
+            break
+    return entries
+
+
+def _collect_migration_archive_text_files(root: Path, pattern: str, kind: str, max_items: int) -> List[Dict[str, Any]]:
+    entries: List[Dict[str, Any]] = []
+    if not root.exists():
+        return entries
+    for path in sorted(root.glob(pattern)):
+        if not path.is_file():
+            continue
+        text = path.name + "\n" + _safe_read_text(path, max_chars=2400)
+        if not _migration_archive_relevant(text):
+            continue
+        entries.append(
+            _migration_archive_entry(
+                kind=kind,
+                path=path,
+                title=path.stem.replace("-", " ").replace("_", " ").title(),
+                summary=next((line.strip() for line in text.splitlines() if line.strip() and not line.startswith("#") and not line.startswith("---")), ""),
+                signals={"size_bytes": path.stat().st_size},
+            )
+        )
+        if len(entries) >= max_items:
+            break
+    return entries
+
+
+def _collect_migration_archive_records(folders: Sequence[Mapping[str, Any]], max_items: int) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    decisions: List[Dict[str, Any]] = []
+    lessons: List[Dict[str, Any]] = []
+    for entry in folders:
+        folder = REPO_ROOT / str(entry.get("path", ""))
+        for file_name, target in (("DECISIONS.md", decisions), ("FINDINGS.md", lessons), ("HANDOFF.md", lessons)):
+            source = folder / file_name
+            text = _safe_read_text(source, max_chars=8000)
+            if not text:
+                continue
+            for line in text.splitlines():
+                stripped = line.strip()
+                if not stripped.startswith("- "):
+                    continue
+                if file_name == "HANDOFF.md" and not _migration_archive_relevant(stripped):
+                    continue
+                target.append(
+                    _migration_archive_entry(
+                        kind="decision_record" if file_name == "DECISIONS.md" else "lesson_candidate",
+                        path=source,
+                        title=stripped[2:120],
+                        summary=stripped[2:360],
+                        date_value=entry.get("date") if isinstance(entry.get("date"), str) else None,
+                        task_id=entry.get("task_id") if isinstance(entry.get("task_id"), str) else None,
+                    )
+                )
+                if len(target) >= max_items:
+                    break
+            if len(target) >= max_items:
+                break
+    return decisions[:max_items], lessons[:max_items]
+
+
+def _migration_archive_entry_matches(entry: Mapping[str, Any], query: str) -> bool:
+    terms = [term for term in re.split(r"\s+", query.lower().strip()) if term]
+    if not terms:
+        return True
+    blob = json.dumps(entry, sort_keys=True, default=str).lower()
+    return all(term in blob for term in terms)
+
+
+def _build_migration_archive_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    max_items = max(1, int(args.max_items))
+    completed_work = _collect_migration_archive_work_tracking(max_items)
+    report_families = _collect_migration_archive_report_families(max_items)
+    tools = _collect_migration_archive_tools(max_items)
+    plans = _collect_migration_archive_text_files(PLANS_DIR, "*.md", "plan", max_items)
+    task_files = _collect_migration_archive_text_files(REPO_STRUCTURE.taskmaster_root / "tasks", "task_*.txt", "taskmaster_task", max_items)
+    memories = _collect_migration_archive_text_files(REPO_ROOT / ".serena" / "memories", "*.md", "serena_memory", max_items)
+    decisions, lessons = _collect_migration_archive_records(completed_work, max_items)
+    sections = {
+        "completed_work": completed_work,
+        "report_families": report_families,
+        "tools_and_outputs": tools,
+        "plans": plans,
+        "taskmaster_tasks": task_files,
+        "serena_memories": memories,
+        "decision_records": decisions,
+        "lessons_learned_candidates": lessons,
+    }
+    all_entries = [item for values in sections.values() for item in values]
+    timeline = sorted(
+        (
+            {
+                "date": entry.get("date"),
+                "task_id": entry.get("task_id"),
+                "title": entry.get("title"),
+                "path": entry.get("path"),
+            }
+            for entry in completed_work
+            if entry.get("date")
+        ),
+        key=lambda item: (str(item.get("date")), str(item.get("path"))),
+    )
+    query = (args.query or "").strip()
+    search_results = [entry for entry in all_entries if _migration_archive_entry_matches(entry, query)] if query else []
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": args.label,
+        "mode": "static-migration-archive-index",
+        "executes_external_actions": False,
+        "query": query or None,
+        "summary": {
+            "completed_work": len(completed_work),
+            "report_families": len(report_families),
+            "tools_and_outputs": len(tools),
+            "plans": len(plans),
+            "taskmaster_tasks": len(task_files),
+            "serena_memories": len(memories),
+            "decision_records": len(decisions),
+            "lessons_learned_candidates": len(lessons),
+            "timeline_items": len(timeline),
+            "search_results": len(search_results),
+        },
+        "sections": sections,
+        "timeline": timeline,
+        "search_results": search_results[:max_items],
+        "recommended_refresh_commands": [
+            "python3 scripts/codex-task migration archive --report-file reports/migration-archive/latest.json --runbook-file reports/migration-archive/latest.md",
+            "python3 scripts/template-ssot-scanner/run_all_scanners.py",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-task taskmaster health",
+        ],
+        "non_goals": list(MIGRATION_ARCHIVE_NON_GOALS),
+    }
+
+
+def _render_migration_archive_table(entries: Sequence[Mapping[str, Any]]) -> List[str]:
+    lines = ["| Kind | Title | Path | Date | Task |", "| --- | --- | --- | --- | --- |"]
+    for entry in entries:
+        lines.append(
+            f"| {_md_cell(entry.get('kind'))} | {_md_cell(entry.get('title'))} | "
+            f"{_md_cell(entry.get('path'))} | {_md_cell(entry.get('date'))} | {_md_cell(entry.get('task_id'))} |"
+        )
+    return lines
+
+
+def _render_migration_archive_runbook(report: Dict[str, Any]) -> str:
+    lines = [
+        "# Migration Archive",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Query: {report.get('query') or 'None'}",
+        f"- Executes external actions: {report.get('executes_external_actions')}",
+        "",
+        "## Summary",
+        "",
+    ]
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    for key, value in summary.items():
+        lines.append(f"- {key.replace('_', ' ').title()}: {value}")
+
+    sections = report.get("sections") if isinstance(report.get("sections"), dict) else {}
+    for section_name in (
+        "completed_work",
+        "report_families",
+        "tools_and_outputs",
+        "plans",
+        "taskmaster_tasks",
+        "serena_memories",
+        "decision_records",
+        "lessons_learned_candidates",
+    ):
+        entries = sections.get(section_name)
+        if not isinstance(entries, list) or not entries:
+            continue
+        lines.extend(["", f"## {section_name.replace('_', ' ').title()}", ""])
+        lines.extend(_render_migration_archive_table(entries))
+
+    timeline = report.get("timeline") if isinstance(report.get("timeline"), list) else []
+    if timeline:
+        lines.extend(["", "## Migration Timeline", "", "| Date | Task | Title | Path |", "| --- | --- | --- | --- |"])
+        for item in timeline:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"| {_md_cell(item.get('date'))} | {_md_cell(item.get('task_id'))} | "
+                f"{_md_cell(item.get('title'))} | {_md_cell(item.get('path'))} |"
+            )
+
+    search_results = report.get("search_results") if isinstance(report.get("search_results"), list) else []
+    if report.get("query") is not None:
+        lines.extend(["", "## Search Results", ""])
+        if search_results:
+            lines.extend(_render_migration_archive_table(search_results))
+        else:
+            lines.append("- No matching archive entries.")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static archive index over canonical repository evidence. It improves discoverability without duplicating or moving historical artifacts.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_migration_archive(args: argparse.Namespace) -> None:
+    report = _build_migration_archive_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_migration_archive_runbook(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote migration archive report to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote migration archive runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+
 def _build_operational_runbook(args: argparse.Namespace) -> Dict[str, Any]:
     now = datetime.now().astimezone()
     label = args.label or "operational-runbook"
@@ -15601,6 +16032,14 @@ def build_parser() -> argparse.ArgumentParser:
     migration_monitoring.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate post-migration monitoring status fails")
     migration_monitoring.add_argument("--dry-run", action="store_true", help="Print the monitoring JSON without writing files")
     migration_monitoring.set_defaults(func=handle_post_migration_monitoring)
+    migration_archive = migration_sub.add_parser("archive", help="Render a static migration archive index/search packet")
+    migration_archive.add_argument("--label", default="migration-archive", help="Human-readable archive label")
+    migration_archive.add_argument("--query", help="Optional search query to filter archive entries")
+    migration_archive.add_argument("--report-file", help="Optional path to write the archive JSON packet")
+    migration_archive.add_argument("--runbook-file", help="Optional path to write the archive Markdown runbook")
+    migration_archive.add_argument("--max-items", type=int, default=200, help="Maximum items per archive section")
+    migration_archive.add_argument("--dry-run", action="store_true", help="Print the archive JSON without writing files")
+    migration_archive.set_defaults(func=handle_migration_archive)
 
     compaction_parser = subparsers.add_parser("compaction", help="Context compaction checkpoint operations")
     compaction_sub = compaction_parser.add_subparsers(dest="subcommand", required=True)
