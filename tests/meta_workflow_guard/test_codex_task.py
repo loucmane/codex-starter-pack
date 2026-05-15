@@ -330,6 +330,28 @@ def test_build_parser_accepts_cleanup_plan() -> None:
     assert args.runbook_file == "reports/cleanup.md"
 
 
+def test_build_parser_accepts_maintenance_plan() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "maintenance",
+        "plan",
+        "--label",
+        "task70",
+        "--strict",
+        "--report-file",
+        "reports/maintenance.json",
+        "--runbook-file",
+        "reports/maintenance.md",
+    ])
+    assert args.command == "maintenance"
+    assert args.subcommand == "plan"
+    assert args.label == "task70"
+    assert args.strict is True
+    assert args.report_file == "reports/maintenance.json"
+    assert args.runbook_file == "reports/maintenance.md"
+
+
 def test_build_parser_accepts_deprecation_review() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -6100,6 +6122,229 @@ def test_handle_template_quality_score_writes_report_and_runbook(monkeypatch, tm
     payload = json.loads((repo / "reports" / "template-quality" / "latest.json").read_text(encoding="utf-8"))
     assert payload["summary"]["aggregate_status"] == "pass"
     assert "Template Quality Scorecard" in (repo / "reports" / "template-quality" / "latest.md").read_text(encoding="utf-8")
+
+
+def _patch_maintenance_plan_state(module, monkeypatch, repo: Path) -> None:
+    _write_repo_config(repo, "templates")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON", repo / ".taskmaster" / "tasks" / "tasks.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-70-long-term-maintenance"
+        if args == ["rev-parse", "HEAD"]:
+            return "maintenanceabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"path": "sessions/current", "resolved": "sessions/2026/05/2026-05-14-009-task70.md"},
+            "current_plan": {"path": "plans/current", "resolved": "plans/2026-05-14-task70.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260514-task70-long-term-maintenance-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 100, "pending": 7, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task70.md"]})
+
+
+def _write_maintenance_plan_sources(
+    repo: Path,
+    *,
+    include_performance: bool = True,
+    monitoring_status: str = "pass",
+    security_control_status: str = "available",
+) -> None:
+    _touch_enhancement_source(repo, "reports/operational-runbook/README.md", "# Operational Runbook\n")
+    _touch_enhancement_source(repo, "pyproject.toml", "[project]\nname = \"codex\"\n")
+    _touch_enhancement_source(repo, ".taskmaster/tasks/tasks.json", json.dumps({"master": {"tasks": []}}) + "\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json",
+        json.dumps({"aggregate_status": monitoring_status, "summary": {"warnings": 0, "failures": 0}}) + "\n",
+    )
+    if include_performance:
+        _touch_enhancement_source(
+            repo,
+            "reports/template-performance/latest.json",
+            json.dumps({"status": "pass", "summary": {"total": 2, "passed": 2, "warnings": 0, "errors": 0}}) + "\n",
+        )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task65-template-quality-scoring-COMPLETED/reports/template-quality-scoring/template-quality-score-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": "pass", "quality_score_pct": 97.0, "quality_grade": "A+"}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": "ready", "ready": 6}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json",
+        json.dumps(
+            {
+                "controls": [
+                    {"id": "template-security-validator", "status": "available"},
+                    {"id": "phase0-security-gate", "status": security_control_status},
+                ],
+                "dependency_inventory": {
+                    "exists": True,
+                    "path": "pyproject.toml",
+                    "vulnerability_lookup": {"performed": False},
+                },
+            }
+        )
+        + "\n",
+    )
+
+
+def test_build_maintenance_plan_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_maintenance_plan_state(module, monkeypatch, repo)
+    _write_maintenance_plan_sources(repo)
+
+    report = module._build_maintenance_plan(argparse.Namespace(label="task70"))
+
+    assert report["mode"] == "static-non-destructive-long-term-maintenance-plan"
+    assert report["executes_mutations"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["maintenance_score_pct"] == 100.0
+    assert {domain["id"] for domain in report["domains"]} == {
+        "workflow-health",
+        "operational-cadence",
+        "post-migration-monitoring",
+        "performance-baseline",
+        "template-quality",
+        "cleanup-readiness",
+        "security-maintenance",
+        "dependency-maintenance",
+    }
+    assert any(gate["gate"] == "security-maintenance" for gate in report["maintenance_gates"])
+    assert "No cron job" in report["non_goals"][0]
+
+
+def test_build_maintenance_plan_surfaces_review_and_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_maintenance_plan_state(module, monkeypatch, repo)
+    _write_maintenance_plan_sources(repo, include_performance=False, monitoring_status="fail")
+
+    report = module._build_maintenance_plan(argparse.Namespace(label="task70"))
+
+    monitoring = next(domain for domain in report["domains"] if domain["id"] == "post-migration-monitoring")
+    performance = next(domain for domain in report["domains"] if domain["id"] == "performance-baseline")
+    assert monitoring["status"] == "review"
+    assert performance["status"] == "missing"
+    assert report["summary"]["aggregate_status"] == "needs-review"
+    assert any(item["domain"] == "performance-baseline" for item in report["manual_action_queue"])
+
+
+def test_render_maintenance_plan_lists_domains_gates_actions_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_maintenance_plan_state(module, monkeypatch, repo)
+    _write_maintenance_plan_sources(repo, security_control_status="missing-evidence")
+    report = module._build_maintenance_plan(argparse.Namespace(label="task70"))
+
+    runbook = module._render_maintenance_plan(report)
+
+    assert "# Long-term Maintenance Plan" in runbook
+    assert "Maintenance Domains" in runbook
+    assert "Maintenance Gates" in runbook
+    assert "Manual Action Queue" in runbook
+    assert "No cron job" in runbook
+    assert "Executes mutations: True" not in runbook
+
+
+def test_handle_maintenance_plan_writes_report_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_maintenance_plan_state(module, monkeypatch, repo)
+    _write_maintenance_plan_sources(repo)
+
+    module.handle_maintenance_plan(
+        argparse.Namespace(
+            label="task70",
+            report_file="reports/maintenance/latest.json",
+            runbook_file="reports/maintenance/latest.md",
+            strict=True,
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote long-term maintenance plan to reports/maintenance/latest.json" in output
+    assert "Wrote long-term maintenance runbook to reports/maintenance/latest.md" in output
+    payload = json.loads((repo / "reports" / "maintenance" / "latest.json").read_text(encoding="utf-8"))
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "Long-term Maintenance Plan" in (repo / "reports" / "maintenance" / "latest.md").read_text(encoding="utf-8")
+
+
+def test_handle_maintenance_plan_dry_run_outputs_json(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_maintenance_plan_state(module, monkeypatch, repo)
+    _write_maintenance_plan_sources(repo)
+
+    module.handle_maintenance_plan(
+        argparse.Namespace(label="task70", report_file=None, runbook_file=None, strict=False, dry_run=True)
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["label"] == "task70"
+    assert payload["summary"]["aggregate_status"] == "ready"
+
+
+def test_handle_maintenance_plan_strict_fails_after_writing(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_maintenance_plan_state(module, monkeypatch, repo)
+    _write_maintenance_plan_sources(repo, include_performance=False)
+
+    with pytest.raises(module.TaskError, match="Long-term maintenance aggregate status is not ready"):
+        module.handle_maintenance_plan(
+            argparse.Namespace(
+                label="task70",
+                report_file="reports/maintenance/latest.json",
+                runbook_file="reports/maintenance/latest.md",
+                strict=True,
+                dry_run=False,
+            )
+        )
+
+    assert (repo / "reports" / "maintenance" / "latest.json").exists()
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:

@@ -82,6 +82,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `knowledge transfer-review --label <label>` – render a static knowledge-transfer review packet over documentation, onboarding, troubleshooting, communication, continuity, handoff, and validation evidence.
 - `deprecation review --label <label>` – render a static deprecation-management review packet over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and final validation evidence.
 - `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
+- `maintenance plan --label <label>` – render a static long-term maintenance packet over workflow health, operational cadence, monitoring, performance baselines, template quality, cleanup readiness, security maintenance, dependency-review guidance, and manual action queues.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:
