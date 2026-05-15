@@ -160,6 +160,16 @@ python3 scripts/codex-task enhancement phase5-plan \
 
 This command renders a static JSON/Markdown planning packet with candidate readiness, evidence paths, refresh commands, next actions, and explicit non-goals. It does not install triggers, enable optional MCPs, generate templates with AI, apply optimizations, mutate Taskmaster, or contact external systems.
 
+Continuous improvement review packets can be generated when an operator needs one static operating-loop artifact over feedback intake, enhancement roadmap candidates, success metrics, A/B experiment planning, change advisory review, final validation, post-mortems, stakeholder reporting, knowledge reuse, and maintenance cadence:
+
+```bash
+python3 scripts/codex-task enhancement continuous-improvement \
+  --report-file reports/continuous-improvement/latest.json \
+  --runbook-file reports/continuous-improvement/latest.md
+```
+
+This command renders a static JSON/Markdown review packet with loop stages, domain evidence, refresh commands, review queue items, and explicit non-goals. It does not create live suggestion systems, experimentation backends, dashboards, schedulers, tickets, notifications, approvals, or external integrations.
+
 Celebration planning packets can be generated when an operator needs one static readout artifact over success metrics, stakeholder reporting, roadmap evidence, work-tracking archives, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps:
 
 ```bash
@@ -241,6 +251,7 @@ This command renders a static JSON/Markdown production transition packet for hum
 - `deprecation-management/` - optional static deprecation-management review packets over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and validation evidence.
 - `stakeholder-reporting/` - optional static stakeholder-facing status packets over delivery health, workflow compliance, success metrics, knowledge transfer, deprecation governance, risk/compliance, and communication guidance.
 - `enhancement-planning/` - optional static Phase 5 planning packets over enhancement candidates, readiness evidence, refresh commands, next actions, and non-goal boundaries.
+- `continuous-improvement/` - optional static continuous-improvement review packets over feedback intake, enhancement roadmap candidates, success metrics, experiment planning, change validation, lessons learned, knowledge reuse, maintenance cadence, and refresh commands.
 - `celebration-planning/` - optional static celebration/readout planning packets over success evidence, stakeholder narrative, roadmap talking points, announcement drafts, demo candidates, recognition prompts, retrospective prompts, and manual next steps.
 - `feedback-collection/` - optional static feedback collection planning packets over intake schema, categories, manual severity/sentiment labels, routing, metrics, response states, archive guidance, and follow-up-task criteria.
 - `cleanup-automation/` - optional static cleanup planning packets over scanner evidence, reference-fix safety, deprecation lifecycle, rollback policy, cleanup candidates, dry-run checks, approval gates, and non-destructive cleanup boundaries.

@@ -8426,6 +8426,419 @@ def handle_enhancement_phase5_plan(args: argparse.Namespace) -> None:
         raise TaskError("Phase 5 enhancement plan aggregate status is blocked")
 
 
+CONTINUOUS_IMPROVEMENT_NON_GOALS: Tuple[str, ...] = (
+    "No hosted suggestion portal, feedback application, analytics database, live dashboard, scheduler, notification workflow, or external innovation platform is created.",
+    "No A/B test runtime, feature flag service, rollout engine, telemetry collector, or experimentation backend is installed or contacted.",
+    "No automatic Taskmaster task creation, owner assignment, prioritization decision, model-based scoring, ticket creation, PR creation, or external response workflow is performed.",
+    "No change advisory decision, validation approval, deployment gate, release decision, or governance outcome is inferred by this packet.",
+    "No Taskmaster, session, plan, work-tracking, Git, report-source, template, or external state is mutated beyond requested continuous-improvement packet artifacts.",
+)
+
+CONTINUOUS_IMPROVEMENT_GUIDANCE: Tuple[str, ...] = (
+    "Treat this packet as the operating review for the improvement loop: capture, prioritize, validate, govern, learn, and publish.",
+    "Refresh source packets before using this review to choose implementation work; stale or missing evidence must remain visible.",
+    "Promote accepted improvement work through explicit Taskmaster tasks with scope reconciliation, not automatic task creation from review rows.",
+    "Use the A/B and CAB evidence as planning and governance inputs; they do not authorize live experiments or change approvals by themselves.",
+    "Record lessons and follow-up decisions in the active task's FINDINGS.md, DECISIONS.md, HANDOFF.md, or a scoped follow-up task.",
+)
+
+
+def _continuous_improvement_domain(definition: Mapping[str, Any]) -> Dict[str, Any]:
+    evidence_paths = [_enhancement_path_state(str(path)) for path in definition.get("evidence_paths", ())]
+    missing = [item["path"] for item in evidence_paths if not item["exists"]]
+    status = "needs-evidence" if missing else "ready"
+    if missing:
+        required_action = f"Refresh or restore missing evidence before relying on {definition['title']}."
+    else:
+        required_action = str(definition.get("ready_action") or "Ready for continuous-improvement review.")
+    return {
+        "id": definition["id"],
+        "title": definition["title"],
+        "stage": definition["stage"],
+        "cadence": definition["cadence"],
+        "purpose": definition["purpose"],
+        "status": status,
+        "evidence_paths": evidence_paths,
+        "missing_evidence_paths": missing,
+        "refresh_commands": list(definition.get("refresh_commands", ())),
+        "required_action": required_action,
+        "improvement_use": definition["improvement_use"],
+        "handoff_destination": definition["handoff_destination"],
+    }
+
+
+def _continuous_improvement_domain_definitions() -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": "feedback-intake-and-triage",
+            "title": "Feedback intake and triage",
+            "stage": "capture",
+            "cadence": "per-session / weekly review",
+            "purpose": "Convert user, PR, smoke-test, CI, and session observations into repository evidence with routing and response state.",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260514-task59-feedback-collection-system-COMPLETED/reports/feedback-collection/feedback-collection-plan-2026-05-14-final.json",
+                "reports/feedback-collection/README.md",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task feedback collection-plan --report-file reports/feedback-collection/latest.json --runbook-file reports/feedback-collection/latest.md",
+            ),
+            "ready_action": "Use feedback rows as reviewed inputs for Taskmaster follow-ups or active-task findings.",
+            "improvement_use": "Suggestion intake system, manual triage labels, response states, and follow-up-task criteria.",
+            "handoff_destination": "FINDINGS.md, DECISIONS.md, HANDOFF.md, or scoped Taskmaster follow-up.",
+        },
+        {
+            "id": "enhancement-roadmap-and-innovation-pipeline",
+            "title": "Enhancement roadmap and innovation pipeline",
+            "stage": "prioritize",
+            "cadence": "weekly / milestone review",
+            "purpose": "Separate ready enhancement candidates from speculative roadmap concepts before implementation.",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/reports/phase5-enhancement-planning/phase5-plan-2026-05-14-final.json",
+                "reports/enhancement-planning/README.md",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+            ),
+            "ready_action": "Review ready candidates and create dedicated tasks only for accepted implementation work.",
+            "improvement_use": "Innovation pipeline, candidate readiness, priority, refresh commands, and non-goal boundaries.",
+            "handoff_destination": "Taskmaster backlog, DECISIONS.md, and stakeholder roadmap notes.",
+        },
+        {
+            "id": "metric-driven-selection",
+            "title": "Metric-driven improvement selection",
+            "stage": "prioritize",
+            "cadence": "weekly / before roadmap selection",
+            "purpose": "Ground improvement choices in success scorecards, quality gates, and visible warning domains.",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json",
+                "reports/success-metrics/README.md",
+                "reports/template-quality/README.md",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+                "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md",
+            ),
+            "ready_action": "Use warning and quality domains to justify the next scoped improvement candidate.",
+            "improvement_use": "Metric-driven improvements, quality gates, improvement suggestions, and refresh evidence.",
+            "handoff_destination": "Enhancement plan, Taskmaster task rationale, and stakeholder report.",
+        },
+        {
+            "id": "experiment-and-change-validation",
+            "title": "Experiment and change validation",
+            "stage": "validate",
+            "cadence": "per proposed change",
+            "purpose": "Review static A/B experiment plans, change advisory evidence, and final validation evidence before change adoption.",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260512-task34-ab-testing-framework-COMPLETED/reports/ab-testing-framework/experiment-plan-2026-05-12.json",
+                "docs/ai/work-tracking/archive/20260512-task44-change-advisory-board-process-COMPLETED/reports/change-advisory-board-process/change-advisory-2026-05-12.json",
+                "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task rollout experiment-plan --label <label> --report-file reports/ab-testing/latest.json --runbook-file reports/ab-testing/latest.md",
+                "python3 scripts/codex-task change advisory --summary <summary> --label <label> --report-file reports/change-advisory/latest.json --runbook-file reports/change-advisory/latest.md",
+                "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+            ),
+            "ready_action": "Require experiment/CAB/final-validation evidence for improvements that affect shared workflow behavior.",
+            "improvement_use": "A/B planning, change validation, CAB review, and final validation traceability.",
+            "handoff_destination": "DECISIONS.md, validation reports, and Taskmaster verification evidence.",
+        },
+        {
+            "id": "learning-and-communication-loop",
+            "title": "Learning and communication loop",
+            "stage": "learn",
+            "cadence": "after incident / after milestone",
+            "purpose": "Close the loop through post-mortems, stakeholder reporting, and searchable knowledge-base evidence.",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260513-task72-post-mortem-process-COMPLETED/reports/post-mortem-process/post-mortem-2026-05-13.json",
+                "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+                "docs/ai/work-tracking/archive/20260515-task75-create-knowledge-base-COMPLETED/reports/knowledge-base/knowledge-base-2026-05-15.json",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task incident post-mortem --summary <summary> --report-file reports/post-mortem-process/latest.json --runbook-file reports/post-mortem-process/latest.md",
+                "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+                "python3 scripts/codex-task knowledge base --report-file reports/knowledge-base/latest.json --runbook-file reports/knowledge-base/latest.md",
+            ),
+            "ready_action": "Turn lessons, stakeholder risks, and knowledge gaps into reviewed feedback or enhancement candidates.",
+            "improvement_use": "Feedback loop closure, lessons learned, stakeholder communication, and knowledge reuse.",
+            "handoff_destination": "HANDOFF.md, knowledge-base search index, stakeholder packet, and follow-up tasks.",
+        },
+        {
+            "id": "maintenance-and-operating-cadence",
+            "title": "Maintenance and operating cadence",
+            "stage": "publish",
+            "cadence": "daily / weekly / monthly / quarterly / yearly",
+            "purpose": "Keep continuous improvement attached to recurring maintenance, workflow health, and manual action queues.",
+            "evidence_paths": (
+                "docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json",
+                "reports/maintenance/README.md",
+                "reports/operational-runbook/README.md",
+            ),
+            "refresh_commands": (
+                "python3 scripts/codex-task maintenance plan --report-file reports/maintenance/latest.json --runbook-file reports/maintenance/latest.md",
+                "python3 scripts/codex-task operations runbook --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+                "python3 scripts/codex-task work-tracking audit",
+            ),
+            "ready_action": "Review the maintenance packet to keep improvement work aligned with recurring operating cadence.",
+            "improvement_use": "Improvement tracking, operating cadence, manual review queues, and recurring refresh commands.",
+            "handoff_destination": "Maintenance packet, operational runbook, work-tracking archive, and next-session agenda.",
+        },
+    ]
+
+
+def _summarise_continuous_improvement_domains(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    total = len(domains)
+    ready = sum(1 for domain in domains if domain.get("status") == "ready")
+    needs_evidence = sum(1 for domain in domains if domain.get("status") == "needs-evidence")
+    blocked = sum(1 for domain in domains if domain.get("status") == "blocked")
+    if blocked:
+        aggregate_status = "blocked"
+        improvement_signal = "blocked"
+    elif needs_evidence:
+        aggregate_status = "needs-evidence"
+        improvement_signal = "needs-refresh"
+    else:
+        aggregate_status = "ready"
+        improvement_signal = "ready-for-review"
+    return {
+        "aggregate_status": aggregate_status,
+        "improvement_signal": improvement_signal,
+        "total_domains": total,
+        "ready": ready,
+        "needs_evidence": needs_evidence,
+        "blocked": blocked,
+    }
+
+
+def _continuous_improvement_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+    for domain in domains:
+        for command in domain.get("refresh_commands", []):
+            if isinstance(command, str) and command and command not in commands:
+                commands.append(command)
+    commands.extend(
+        command
+        for command in (
+            "python3 scripts/codex-task enhancement continuous-improvement --report-file reports/continuous-improvement/latest.json --runbook-file reports/continuous-improvement/latest.md",
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-guard validate --include-untracked",
+        )
+        if command not in commands
+    )
+    return commands
+
+
+def _continuous_improvement_review_queue(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    queue: List[Dict[str, Any]] = []
+    for domain in domains:
+        if not isinstance(domain, Mapping):
+            continue
+        if domain.get("status") == "ready":
+            queue.append(
+                {
+                    "domain_id": domain.get("id"),
+                    "title": domain.get("title"),
+                    "stage": domain.get("stage"),
+                    "action": domain.get("required_action"),
+                    "handoff_destination": domain.get("handoff_destination"),
+                }
+            )
+        else:
+            queue.append(
+                {
+                    "domain_id": domain.get("id"),
+                    "title": domain.get("title"),
+                    "stage": domain.get("stage"),
+                    "action": domain.get("required_action"),
+                    "missing_evidence_paths": list(domain.get("missing_evidence_paths", [])),
+                }
+            )
+    return queue
+
+
+def _build_continuous_improvement_review(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "continuous-improvement"
+    domains = [_continuous_improvement_domain(definition) for definition in _continuous_improvement_domain_definitions()]
+    summary = _summarise_continuous_improvement_domains(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-continuous-improvement-review-packet",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "loop_stages": [
+            {"stage": "capture", "purpose": "Collect observations and suggestions as repository evidence."},
+            {"stage": "prioritize", "purpose": "Select candidates using metrics, roadmap evidence, and explicit scope boundaries."},
+            {"stage": "validate", "purpose": "Use experiment planning, CAB review, and final validation evidence before adoption."},
+            {"stage": "learn", "purpose": "Convert incidents, stakeholder risks, and knowledge gaps into reviewed follow-ups."},
+            {"stage": "publish", "purpose": "Expose the operating cadence, refresh commands, handoff, and archive evidence."},
+        ],
+        "domains": domains,
+        "review_queue": _continuous_improvement_review_queue(domains),
+        "recommended_refresh_commands": _continuous_improvement_refresh_commands(domains),
+        "planning_guidance": list(CONTINUOUS_IMPROVEMENT_GUIDANCE),
+        "non_goals": list(CONTINUOUS_IMPROVEMENT_NON_GOALS),
+    }
+
+
+def _render_continuous_improvement_review(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Continuous Improvement Review Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: {summary.get('aggregate_status')}",
+        f"- Improvement signal: {summary.get('improvement_signal')}",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Ready: {summary.get('ready')}",
+        f"- Needs evidence: {summary.get('needs_evidence')}",
+        f"- Blocked: {summary.get('blocked')}",
+        "",
+        "## Improvement Loop Stages",
+        "",
+    ]
+    for stage in report.get("loop_stages", []):
+        if isinstance(stage, Mapping):
+            lines.append(f"- `{stage.get('stage')}`: {stage.get('purpose')}")
+
+    lines.extend(
+        [
+            "",
+            "## Continuous Improvement Domains",
+            "",
+            "| Domain | Stage | Cadence | Status | Missing Evidence |",
+            "| --- | --- | --- | --- | --- |",
+        ]
+    )
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        missing = "<br>".join(domain.get("missing_evidence_paths", [])) or "None"
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | `{_md_cell(domain.get('stage'))}` | "
+            f"{_md_cell(domain.get('cadence'))} | `{_md_cell(domain.get('status'))}` | {_md_cell(missing)} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Stage: `{domain.get('stage')}`",
+                f"- Cadence: {domain.get('cadence')}",
+                f"- Purpose: {domain.get('purpose')}",
+                f"- Improvement use: {domain.get('improvement_use')}",
+                f"- Required action: {domain.get('required_action')}",
+                f"- Handoff destination: {domain.get('handoff_destination')}",
+                "",
+                "Evidence paths:",
+            ]
+        )
+        for item in domain.get("evidence_paths", []):
+            if isinstance(item, Mapping):
+                lines.append(f"- `{item.get('path')}` ({item.get('kind')})")
+        lines.extend(["", "Refresh commands:"])
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        lines.append("")
+
+    lines.extend(["## Review Queue", ""])
+    for item in report.get("review_queue", []):
+        if isinstance(item, Mapping):
+            lines.append(f"- `{item.get('domain_id')}` ({item.get('stage')}): {item.get('action')}")
+
+    lines.extend(["", "## Planning Guidance", ""])
+    for item in report.get("planning_guidance", []):
+        lines.append(f"- {item}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is a static continuous-improvement review artifact. It composes existing repository evidence and requested output files only; it does not create live suggestion systems, experimentation backends, dashboards, schedulers, tickets, notifications, approvals, or external integrations.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_continuous_improvement_review(args: argparse.Namespace) -> None:
+    report = _build_continuous_improvement_review(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_continuous_improvement_review(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] != "ready":
+            raise TaskError("Continuous improvement review aggregate status is not ready")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote continuous improvement review to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote continuous improvement runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] != "ready":
+        raise TaskError("Continuous improvement review aggregate status is not ready")
+
+
 CELEBRATION_PLANNING_NON_GOALS: Tuple[str, ...] = (
     "No calendar event, meeting invitation, reminder, scheduling workflow, or event logistics automation is created.",
     "No email, chat, social post, blog post, website, external publication, notification, or webhook is sent or published.",
@@ -16260,6 +16673,16 @@ def build_parser() -> argparse.ArgumentParser:
     enhancement_phase5.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate enhancement planning status is blocked")
     enhancement_phase5.add_argument("--dry-run", action="store_true", help="Print the enhancement planning JSON without writing files")
     enhancement_phase5.set_defaults(func=handle_enhancement_phase5_plan)
+    enhancement_continuous = enhancement_sub.add_parser(
+        "continuous-improvement",
+        help="Render a static continuous-improvement review packet",
+    )
+    enhancement_continuous.add_argument("--label", default="continuous-improvement", help="Human-readable review label")
+    enhancement_continuous.add_argument("--report-file", help="Optional path to write the continuous improvement JSON")
+    enhancement_continuous.add_argument("--runbook-file", help="Optional path to write the continuous improvement Markdown")
+    enhancement_continuous.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate continuous improvement status is not ready")
+    enhancement_continuous.add_argument("--dry-run", action="store_true", help="Print the continuous improvement JSON without writing files")
+    enhancement_continuous.set_defaults(func=handle_continuous_improvement_review)
 
     celebration_parser = subparsers.add_parser("celebration", help="Celebration planning operations")
     celebration_sub = celebration_parser.add_subparsers(dest="subcommand", required=True)

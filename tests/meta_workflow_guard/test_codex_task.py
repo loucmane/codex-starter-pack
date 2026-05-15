@@ -300,6 +300,28 @@ def test_build_parser_accepts_enhancement_phase5_plan() -> None:
     assert args.runbook_file == "reports/enhancement.md"
 
 
+def test_build_parser_accepts_enhancement_continuous_improvement() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "enhancement",
+        "continuous-improvement",
+        "--label",
+        "task77",
+        "--strict",
+        "--report-file",
+        "reports/continuous.json",
+        "--runbook-file",
+        "reports/continuous.md",
+    ])
+    assert args.command == "enhancement"
+    assert args.subcommand == "continuous-improvement"
+    assert args.label == "task77"
+    assert args.strict is True
+    assert args.report_file == "reports/continuous.json"
+    assert args.runbook_file == "reports/continuous.md"
+
+
 def test_build_parser_accepts_celebration_plan() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -3605,6 +3627,194 @@ def test_handle_enhancement_phase5_plan_writes_packet_and_runbook(monkeypatch, t
     assert payload["label"] == "task69"
     assert payload["summary"]["aggregate_status"] == "ready-with-planned-candidates"
     assert "# Phase 5 Enhancement Planning Packet" in runbook.read_text(encoding="utf-8")
+
+
+def _patch_continuous_improvement_state(module, monkeypatch, repo: Path) -> None:
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-77-continuous-improvement"
+        if args == ["rev-parse", "HEAD"]:
+            return "continuousabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"resolved": "sessions/2026/05/2026-05-15-006-task77.md"},
+            "current_plan": {"resolved": "plans/2026-05-15-task77.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 106, "pending": 1, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task77.md"]})
+
+
+def _write_continuous_improvement_sources(repo: Path, include_feedback: bool = True) -> None:
+    if include_feedback:
+        _touch_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260514-task59-feedback-collection-system-COMPLETED/reports/feedback-collection/feedback-collection-plan-2026-05-14-final.json",
+            "{}\n",
+        )
+    _touch_enhancement_source(repo, "reports/feedback-collection/README.md", "# Feedback Collection\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/reports/phase5-enhancement-planning/phase5-plan-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "reports/enhancement-planning/README.md", "# Enhancement Planning\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "reports/success-metrics/README.md", "# Success Metrics\n")
+    _touch_enhancement_source(repo, "reports/template-quality/README.md", "# Template Quality\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260512-task34-ab-testing-framework-COMPLETED/reports/ab-testing-framework/experiment-plan-2026-05-12.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260512-task44-change-advisory-board-process-COMPLETED/reports/change-advisory-board-process/change-advisory-2026-05-12.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task72-post-mortem-process-COMPLETED/reports/post-mortem-process/post-mortem-2026-05-13.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260515-task75-create-knowledge-base-COMPLETED/reports/knowledge-base/knowledge-base-2026-05-15.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json",
+        "{}\n",
+    )
+    _touch_enhancement_source(repo, "reports/maintenance/README.md", "# Maintenance\n")
+    _touch_enhancement_source(repo, "reports/operational-runbook/README.md", "# Operational Runbook\n")
+
+
+def test_build_continuous_improvement_review_summarizes_ready_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_continuous_improvement_state(module, monkeypatch, repo)
+    _write_continuous_improvement_sources(repo)
+
+    report = module._build_continuous_improvement_review(argparse.Namespace(label="task77"))
+
+    assert report["mode"] == "static-continuous-improvement-review-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "ready"
+    assert report["summary"]["total_domains"] == 6
+    assert {domain["id"] for domain in report["domains"]} == {
+        "feedback-intake-and-triage",
+        "enhancement-roadmap-and-innovation-pipeline",
+        "metric-driven-selection",
+        "experiment-and-change-validation",
+        "learning-and-communication-loop",
+        "maintenance-and-operating-cadence",
+    }
+    assert any(stage["stage"] == "validate" for stage in report["loop_stages"])
+    assert "No hosted suggestion portal" in report["non_goals"][0]
+
+
+def test_build_continuous_improvement_review_surfaces_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_continuous_improvement_state(module, monkeypatch, repo)
+    _write_continuous_improvement_sources(repo, include_feedback=False)
+
+    report = module._build_continuous_improvement_review(argparse.Namespace(label="task77"))
+
+    feedback = next(domain for domain in report["domains"] if domain["id"] == "feedback-intake-and-triage")
+    assert feedback["status"] == "needs-evidence"
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(item["domain_id"] == "feedback-intake-and-triage" for item in report["review_queue"])
+
+
+def test_render_continuous_improvement_review_lists_domains_loop_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_continuous_improvement_state(module, monkeypatch, repo)
+    _write_continuous_improvement_sources(repo)
+    report = module._build_continuous_improvement_review(argparse.Namespace(label="task77"))
+
+    runbook = module._render_continuous_improvement_review(report)
+
+    assert "# Continuous Improvement Review Packet" in runbook
+    assert "Feedback intake and triage" in runbook
+    assert "Experiment and change validation" in runbook
+    assert "Improvement Loop Stages" in runbook
+    assert "No hosted suggestion portal" in runbook
+    assert "Executes actions: True" not in runbook
+
+
+def test_handle_continuous_improvement_review_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    _patch_continuous_improvement_state(module, monkeypatch, repo)
+    _write_continuous_improvement_sources(repo)
+    report = repo / "reports" / "continuous.json"
+    runbook = repo / "reports" / "continuous.md"
+
+    module.handle_continuous_improvement_review(
+        argparse.Namespace(
+            label="task77",
+            report_file=str(report.relative_to(repo)),
+            runbook_file=str(runbook.relative_to(repo)),
+            dry_run=False,
+            strict=True,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote continuous improvement review to reports/continuous.json" in output
+    assert "Wrote continuous improvement runbook to reports/continuous.md" in output
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert payload["label"] == "task77"
+    assert payload["summary"]["aggregate_status"] == "ready"
+    assert "# Continuous Improvement Review Packet" in runbook.read_text(encoding="utf-8")
 
 
 def _patch_celebration_plan_state(module, monkeypatch, repo: Path) -> None:

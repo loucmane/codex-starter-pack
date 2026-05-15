@@ -1,0 +1,425 @@
+{
+  "created_at": "2026-05-15T17:18:38+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-77-continuous-improvement",
+      "head": "b0a00c376566ce396d1c7e67f3a7a64aebc3fce0",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_077.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "plans/current",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/current",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-15-task77-continuous-improvement.md",
+          "status": "??"
+        },
+        {
+          "path": "reports/continuous-improvement/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-15-006-task77-continuous-improvement.md",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 172,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task64_cleanup_automation_kickoff.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_completion.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_completion.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_kickoff.md",
+        ".serena/memories/2026-05-15_task74_phase6_cleanup_completion.md",
+        ".serena/memories/2026-05-15_task78_final_documentation_completion.md",
+        ".serena/memories/2026-05-15_task80_production_deployment_readiness.md",
+        ".serena/memories/2026-05-15_task71_migration_archive_completion.md",
+        ".serena/memories/2026-05-15_task75_knowledge_base_completion.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "a79708de3cee1e5fa2020df44d03a1fa230af91cf7ece567fc7e1cb4e4ca871d",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 106,
+          "in-progress": 1,
+          "pending": 1
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-15-task77-continuous-improvement.md",
+        "sha256": "b9b736a4e8c59e24dc72140d54c003340c6d7fd51ea756e9be7d3c09f7d289b3",
+        "target": "2026-05-15-task77-continuous-improvement.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-15-006-task77-continuous-improvement.md",
+        "sha256": "ec83fef2fbafbac1d12973b56b7ad30a348f31ddbd7307dc5f063b2d5b3f6030",
+        "target": "2026/05/2026-05-15-006-task77-continuous-improvement.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "59bff09aa0fcb86a1e44188978e75b789e2b6beb24c3dc5be8649ddb809f1d6f"
+      }
+    }
+  },
+  "domains": [
+    {
+      "cadence": "per-session / weekly review",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task59-feedback-collection-system-COMPLETED/reports/feedback-collection/feedback-collection-plan-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/feedback-collection/README.md"
+        }
+      ],
+      "handoff_destination": "FINDINGS.md, DECISIONS.md, HANDOFF.md, or scoped Taskmaster follow-up.",
+      "id": "feedback-intake-and-triage",
+      "improvement_use": "Suggestion intake system, manual triage labels, response states, and follow-up-task criteria.",
+      "missing_evidence_paths": [],
+      "purpose": "Convert user, PR, smoke-test, CI, and session observations into repository evidence with routing and response state.",
+      "refresh_commands": [
+        "python3 scripts/codex-task feedback collection-plan --report-file reports/feedback-collection/latest.json --runbook-file reports/feedback-collection/latest.md"
+      ],
+      "required_action": "Use feedback rows as reviewed inputs for Taskmaster follow-ups or active-task findings.",
+      "stage": "capture",
+      "status": "ready",
+      "title": "Feedback intake and triage"
+    },
+    {
+      "cadence": "weekly / milestone review",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task69-phase5-enhancement-planning-COMPLETED/reports/phase5-enhancement-planning/phase5-plan-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/enhancement-planning/README.md"
+        }
+      ],
+      "handoff_destination": "Taskmaster backlog, DECISIONS.md, and stakeholder roadmap notes.",
+      "id": "enhancement-roadmap-and-innovation-pipeline",
+      "improvement_use": "Innovation pipeline, candidate readiness, priority, refresh commands, and non-goal boundaries.",
+      "missing_evidence_paths": [],
+      "purpose": "Separate ready enhancement candidates from speculative roadmap concepts before implementation.",
+      "refresh_commands": [
+        "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md"
+      ],
+      "required_action": "Review ready candidates and create dedicated tasks only for accepted implementation work.",
+      "stage": "prioritize",
+      "status": "ready",
+      "title": "Enhancement roadmap and innovation pipeline"
+    },
+    {
+      "cadence": "weekly / before roadmap selection",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task67-success-metrics-dashboard-COMPLETED/reports/success-metrics-dashboard/success-metrics-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/success-metrics/README.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/template-quality/README.md"
+        }
+      ],
+      "handoff_destination": "Enhancement plan, Taskmaster task rationale, and stakeholder report.",
+      "id": "metric-driven-selection",
+      "improvement_use": "Metric-driven improvements, quality gates, improvement suggestions, and refresh evidence.",
+      "missing_evidence_paths": [],
+      "purpose": "Ground improvement choices in success scorecards, quality gates, and visible warning domains.",
+      "refresh_commands": [
+        "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+        "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md"
+      ],
+      "required_action": "Use warning and quality domains to justify the next scoped improvement candidate.",
+      "stage": "prioritize",
+      "status": "ready",
+      "title": "Metric-driven improvement selection"
+    },
+    {
+      "cadence": "per proposed change",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260512-task34-ab-testing-framework-COMPLETED/reports/ab-testing-framework/experiment-plan-2026-05-12.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260512-task44-change-advisory-board-process-COMPLETED/reports/change-advisory-board-process/change-advisory-2026-05-12.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json"
+        }
+      ],
+      "handoff_destination": "DECISIONS.md, validation reports, and Taskmaster verification evidence.",
+      "id": "experiment-and-change-validation",
+      "improvement_use": "A/B planning, change validation, CAB review, and final validation traceability.",
+      "missing_evidence_paths": [],
+      "purpose": "Review static A/B experiment plans, change advisory evidence, and final validation evidence before change adoption.",
+      "refresh_commands": [
+        "python3 scripts/codex-task rollout experiment-plan --label <label> --report-file reports/ab-testing/latest.json --runbook-file reports/ab-testing/latest.md",
+        "python3 scripts/codex-task change advisory --summary <summary> --label <label> --report-file reports/change-advisory/latest.json --runbook-file reports/change-advisory/latest.md",
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite"
+      ],
+      "required_action": "Require experiment/CAB/final-validation evidence for improvements that affect shared workflow behavior.",
+      "stage": "validate",
+      "status": "ready",
+      "title": "Experiment and change validation"
+    },
+    {
+      "cadence": "after incident / after milestone",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task72-post-mortem-process-COMPLETED/reports/post-mortem-process/post-mortem-2026-05-13.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260515-task75-create-knowledge-base-COMPLETED/reports/knowledge-base/knowledge-base-2026-05-15.json"
+        }
+      ],
+      "handoff_destination": "HANDOFF.md, knowledge-base search index, stakeholder packet, and follow-up tasks.",
+      "id": "learning-and-communication-loop",
+      "improvement_use": "Feedback loop closure, lessons learned, stakeholder communication, and knowledge reuse.",
+      "missing_evidence_paths": [],
+      "purpose": "Close the loop through post-mortems, stakeholder reporting, and searchable knowledge-base evidence.",
+      "refresh_commands": [
+        "python3 scripts/codex-task incident post-mortem --summary <summary> --report-file reports/post-mortem-process/latest.json --runbook-file reports/post-mortem-process/latest.md",
+        "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+        "python3 scripts/codex-task knowledge base --report-file reports/knowledge-base/latest.json --runbook-file reports/knowledge-base/latest.md"
+      ],
+      "required_action": "Turn lessons, stakeholder risks, and knowledge gaps into reviewed feedback or enhancement candidates.",
+      "stage": "learn",
+      "status": "ready",
+      "title": "Learning and communication loop"
+    },
+    {
+      "cadence": "daily / weekly / monthly / quarterly / yearly",
+      "evidence_paths": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/maintenance/README.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "reports/operational-runbook/README.md"
+        }
+      ],
+      "handoff_destination": "Maintenance packet, operational runbook, work-tracking archive, and next-session agenda.",
+      "id": "maintenance-and-operating-cadence",
+      "improvement_use": "Improvement tracking, operating cadence, manual review queues, and recurring refresh commands.",
+      "missing_evidence_paths": [],
+      "purpose": "Keep continuous improvement attached to recurring maintenance, workflow health, and manual action queues.",
+      "refresh_commands": [
+        "python3 scripts/codex-task maintenance plan --report-file reports/maintenance/latest.json --runbook-file reports/maintenance/latest.md",
+        "python3 scripts/codex-task operations runbook --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+        "python3 scripts/codex-task work-tracking audit"
+      ],
+      "required_action": "Review the maintenance packet to keep improvement work aligned with recurring operating cadence.",
+      "stage": "publish",
+      "status": "ready",
+      "title": "Maintenance and operating cadence"
+    }
+  ],
+  "executes_actions": false,
+  "label": "task77-continuous-improvement",
+  "loop_stages": [
+    {
+      "purpose": "Collect observations and suggestions as repository evidence.",
+      "stage": "capture"
+    },
+    {
+      "purpose": "Select candidates using metrics, roadmap evidence, and explicit scope boundaries.",
+      "stage": "prioritize"
+    },
+    {
+      "purpose": "Use experiment planning, CAB review, and final validation evidence before adoption.",
+      "stage": "validate"
+    },
+    {
+      "purpose": "Convert incidents, stakeholder risks, and knowledge gaps into reviewed follow-ups.",
+      "stage": "learn"
+    },
+    {
+      "purpose": "Expose the operating cadence, refresh commands, handoff, and archive evidence.",
+      "stage": "publish"
+    }
+  ],
+  "mode": "static-continuous-improvement-review-packet",
+  "non_goals": [
+    "No hosted suggestion portal, feedback application, analytics database, live dashboard, scheduler, notification workflow, or external innovation platform is created.",
+    "No A/B test runtime, feature flag service, rollout engine, telemetry collector, or experimentation backend is installed or contacted.",
+    "No automatic Taskmaster task creation, owner assignment, prioritization decision, model-based scoring, ticket creation, PR creation, or external response workflow is performed.",
+    "No change advisory decision, validation approval, deployment gate, release decision, or governance outcome is inferred by this packet.",
+    "No Taskmaster, session, plan, work-tracking, Git, report-source, template, or external state is mutated beyond requested continuous-improvement packet artifacts."
+  ],
+  "planning_guidance": [
+    "Treat this packet as the operating review for the improvement loop: capture, prioritize, validate, govern, learn, and publish.",
+    "Refresh source packets before using this review to choose implementation work; stale or missing evidence must remain visible.",
+    "Promote accepted improvement work through explicit Taskmaster tasks with scope reconciliation, not automatic task creation from review rows.",
+    "Use the A/B and CAB evidence as planning and governance inputs; they do not authorize live experiments or change approvals by themselves.",
+    "Record lessons and follow-up decisions in the active task's FINDINGS.md, DECISIONS.md, HANDOFF.md, or a scoped follow-up task."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task feedback collection-plan --report-file reports/feedback-collection/latest.json --runbook-file reports/feedback-collection/latest.md",
+    "python3 scripts/codex-task enhancement phase5-plan --report-file reports/enhancement-planning/latest.json --runbook-file reports/enhancement-planning/latest.md",
+    "python3 scripts/codex-task success metrics --report-file reports/success-metrics/latest.json --runbook-file reports/success-metrics/latest.md",
+    "python3 scripts/codex-task template quality-score --report-file reports/template-quality/latest.json --runbook-file reports/template-quality/latest.md",
+    "python3 scripts/codex-task rollout experiment-plan --label <label> --report-file reports/ab-testing/latest.json --runbook-file reports/ab-testing/latest.md",
+    "python3 scripts/codex-task change advisory --summary <summary> --label <label> --report-file reports/change-advisory/latest.json --runbook-file reports/change-advisory/latest.md",
+    "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "python3 scripts/codex-task incident post-mortem --summary <summary> --report-file reports/post-mortem-process/latest.json --runbook-file reports/post-mortem-process/latest.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "python3 scripts/codex-task knowledge base --report-file reports/knowledge-base/latest.json --runbook-file reports/knowledge-base/latest.md",
+    "python3 scripts/codex-task maintenance plan --report-file reports/maintenance/latest.json --runbook-file reports/maintenance/latest.md",
+    "python3 scripts/codex-task operations runbook --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-task enhancement continuous-improvement --report-file reports/continuous-improvement/latest.json --runbook-file reports/continuous-improvement/latest.md",
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "review_queue": [
+    {
+      "action": "Use feedback rows as reviewed inputs for Taskmaster follow-ups or active-task findings.",
+      "domain_id": "feedback-intake-and-triage",
+      "handoff_destination": "FINDINGS.md, DECISIONS.md, HANDOFF.md, or scoped Taskmaster follow-up.",
+      "stage": "capture",
+      "title": "Feedback intake and triage"
+    },
+    {
+      "action": "Review ready candidates and create dedicated tasks only for accepted implementation work.",
+      "domain_id": "enhancement-roadmap-and-innovation-pipeline",
+      "handoff_destination": "Taskmaster backlog, DECISIONS.md, and stakeholder roadmap notes.",
+      "stage": "prioritize",
+      "title": "Enhancement roadmap and innovation pipeline"
+    },
+    {
+      "action": "Use warning and quality domains to justify the next scoped improvement candidate.",
+      "domain_id": "metric-driven-selection",
+      "handoff_destination": "Enhancement plan, Taskmaster task rationale, and stakeholder report.",
+      "stage": "prioritize",
+      "title": "Metric-driven improvement selection"
+    },
+    {
+      "action": "Require experiment/CAB/final-validation evidence for improvements that affect shared workflow behavior.",
+      "domain_id": "experiment-and-change-validation",
+      "handoff_destination": "DECISIONS.md, validation reports, and Taskmaster verification evidence.",
+      "stage": "validate",
+      "title": "Experiment and change validation"
+    },
+    {
+      "action": "Turn lessons, stakeholder risks, and knowledge gaps into reviewed feedback or enhancement candidates.",
+      "domain_id": "learning-and-communication-loop",
+      "handoff_destination": "HANDOFF.md, knowledge-base search index, stakeholder packet, and follow-up tasks.",
+      "stage": "learn",
+      "title": "Learning and communication loop"
+    },
+    {
+      "action": "Review the maintenance packet to keep improvement work aligned with recurring operating cadence.",
+      "domain_id": "maintenance-and-operating-cadence",
+      "handoff_destination": "Maintenance packet, operational runbook, work-tracking archive, and next-session agenda.",
+      "stage": "publish",
+      "title": "Maintenance and operating cadence"
+    }
+  ],
+  "summary": {
+    "aggregate_status": "ready",
+    "blocked": 0,
+    "improvement_signal": "ready-for-review",
+    "needs_evidence": 0,
+    "ready": 6,
+    "total_domains": 6
+  },
+  "version": 1
+}
