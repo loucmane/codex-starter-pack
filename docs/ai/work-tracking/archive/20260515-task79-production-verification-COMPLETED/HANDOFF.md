@@ -19,3 +19,4 @@
 
 ## Next Steps
 - Commit, push, open PR, wait for green checks, merge, then archive the Task 79 work-tracking folder in the normal post-merge archive commit.
+- Archived on 2026-05-15 18:30 CEST — Folder moved to archive and tracker marked COMPLETED.
