@@ -1,0 +1,718 @@
+{
+  "created_at": "2026-05-15T18:05:00+02:00",
+  "current_state": {
+    "git": {
+      "branch": "feat/task-79-production-verification",
+      "head": "0e4eb69b15691ee5cc40cc08ef4403effe384976",
+      "status": [
+        {
+          "path": ".taskmaster/tasks/task_079.txt",
+          "status": " M"
+        },
+        {
+          "path": ".taskmaster/tasks/tasks.json",
+          "status": " M"
+        },
+        {
+          "path": "plans/current",
+          "status": " M"
+        },
+        {
+          "path": "reports/README.md",
+          "status": " M"
+        },
+        {
+          "path": "scripts/codex-task",
+          "status": " M"
+        },
+        {
+          "path": "sessions/current",
+          "status": " M"
+        },
+        {
+          "path": "sessions/state.json",
+          "status": " M"
+        },
+        {
+          "path": "templates/TOOLS.md",
+          "status": " M"
+        },
+        {
+          "path": "tests/meta_workflow_guard/test_codex_task.py",
+          "status": " M"
+        },
+        {
+          "path": "docs/ai/work-tracking/active/",
+          "status": "??"
+        },
+        {
+          "path": "plans/2026-05-15-task79-production-verification.md",
+          "status": "??"
+        },
+        {
+          "path": "reports/production-verification/",
+          "status": "??"
+        },
+        {
+          "path": "sessions/2026/05/2026-05-15-007-task79-production-verification.md",
+          "status": "??"
+        }
+      ]
+    },
+    "serena": {
+      "count": 173,
+      "exists": true,
+      "latest": [
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_completion.md",
+        ".serena/memories/2026-05-14_task65_template_quality_scoring_kickoff.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_completion.md",
+        ".serena/memories/2026-05-14_task70_long_term_maintenance_kickoff.md",
+        ".serena/memories/2026-05-15_task74_phase6_cleanup_completion.md",
+        ".serena/memories/2026-05-15_task78_final_documentation_completion.md",
+        ".serena/memories/2026-05-15_task80_production_deployment_readiness.md",
+        ".serena/memories/2026-05-15_task71_migration_archive_completion.md",
+        ".serena/memories/2026-05-15_task75_knowledge_base_completion.md",
+        ".serena/memories/2026-05-15_task77_continuous_improvement_completion.md"
+      ],
+      "path": ".serena/memories"
+    },
+    "taskmaster": {
+      "exists": true,
+      "invalid_refs": [],
+      "path": ".taskmaster/tasks/tasks.json",
+      "sha256": "0cc524615a8d804516c0d253e388412de5be9806ba5e4f3649e8e26abaee30d0",
+      "summary": {
+        "dependency_refs": 229,
+        "invalid_refs": 0,
+        "status_counts": {
+          "done": 107,
+          "in-progress": 1
+        },
+        "subtasks": 304,
+        "tasks": 108
+      },
+      "tag": "master"
+    },
+    "workflow": {
+      "active_work_tracking": [
+        "docs/ai/work-tracking/active/20260515-task79-production-verification-ACTIVE"
+      ],
+      "current_plan": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "plans/current",
+        "resolved": "plans/2026-05-15-task79-production-verification.md",
+        "sha256": "3bec6cdce8a15408504b39627391043fab0570f89e2424d40a0ce7173a3e2129",
+        "target": "2026-05-15-task79-production-verification.md"
+      },
+      "current_session": {
+        "exists": true,
+        "is_symlink": true,
+        "path": "sessions/current",
+        "resolved": "sessions/2026/05/2026-05-15-007-task79-production-verification.md",
+        "sha256": "72f8cf2123357420f0841f30412cb1ab63b0fc1570073ddbe1e0e5d583fc552d",
+        "target": "2026/05/2026-05-15-007-task79-production-verification.md"
+      },
+      "session_state": {
+        "exists": true,
+        "path": "sessions/state.json",
+        "sha256": "f53e18aee0e57297a003a52b35342075d11a9c69371213d328cb2f38d5ea9202"
+      }
+    }
+  },
+  "domains": [
+    {
+      "details": {
+        "invalid_refs": [],
+        "taskmaster_summary": {
+          "dependency_refs": 229,
+          "invalid_refs": 0,
+          "status_counts": {
+            "done": 107,
+            "in-progress": 1
+          },
+          "subtasks": 304,
+          "tasks": 108
+        },
+        "workflow": {
+          "active_work_tracking": [
+            "docs/ai/work-tracking/active/20260515-task79-production-verification-ACTIVE"
+          ],
+          "current_plan": {
+            "exists": true,
+            "is_symlink": true,
+            "path": "plans/current",
+            "resolved": "plans/2026-05-15-task79-production-verification.md",
+            "sha256": "3bec6cdce8a15408504b39627391043fab0570f89e2424d40a0ce7173a3e2129",
+            "target": "2026-05-15-task79-production-verification.md"
+          },
+          "current_session": {
+            "exists": true,
+            "is_symlink": true,
+            "path": "sessions/current",
+            "resolved": "sessions/2026/05/2026-05-15-007-task79-production-verification.md",
+            "sha256": "72f8cf2123357420f0841f30412cb1ab63b0fc1570073ddbe1e0e5d583fc552d",
+            "target": "2026/05/2026-05-15-007-task79-production-verification.md"
+          },
+          "session_state": {
+            "exists": true,
+            "path": "sessions/state.json",
+            "sha256": "f53e18aee0e57297a003a52b35342075d11a9c69371213d328cb2f38d5ea9202"
+          }
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": ".taskmaster/tasks/tasks.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "sessions/2026/05/2026-05-15-007-task79-production-verification.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "plans/2026-05-15-task79-production-verification.md"
+        },
+        {
+          "exists": true,
+          "kind": "directory",
+          "path": "docs/ai/work-tracking/active/20260515-task79-production-verification-ACTIVE"
+        }
+      ],
+      "id": "workflow-and-taskmaster-health",
+      "manual_actions": [],
+      "message": "Workflow pointers and Taskmaster dependencies are ready.",
+      "missing_evidence_paths": [],
+      "purpose": "Confirm the production verification review is task-aligned and dependency-clean.",
+      "refresh_commands": [
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "status": "ready",
+      "title": "Workflow and Taskmaster health"
+    },
+    {
+      "details": {
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+          "status": "loaded"
+        },
+        "status_value": "passed",
+        "values": {
+          "summary.failed_required": 0,
+          "summary.passed": 12,
+          "summary.total": null
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json"
+        }
+      ],
+      "id": "final-validation",
+      "manual_actions": [],
+      "message": "Final validation evidence is available and passed.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify the final validation sign-off packet exists and passed.",
+      "refresh_commands": [
+        "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite"
+      ],
+      "status": "ready",
+      "title": "Final validation suite"
+    },
+    {
+      "details": {
+        "available_controls": 4,
+        "compliance_notes": [
+          "This repository is a portable workflow foundation, not a deployed application processing production personal data.",
+          "GDPR/SOC2/ISO compliance certification is not performed by this helper.",
+          "Runtime projects adopting the foundation must add project-specific data-flow, retention, threat-model, and compliance evidence.",
+          "This audit packet is evidence for repository controls and follow-up planning only."
+        ],
+        "non_available_controls": [
+          "phase0-security-gate"
+        ],
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json",
+          "status": "loaded"
+        },
+        "total_controls": 5
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json"
+        }
+      ],
+      "id": "security-audit-and-compliance",
+      "manual_actions": [
+        "Review security controls with missing/non-available evidence: phase0-security-gate.",
+        "Compliance certification remains project-specific and manual; do not claim GDPR/SOC2/ISO certification from this packet."
+      ],
+      "message": "Security audit reports 4/5 available control(s); compliance notes require manual review.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify repository security controls and compliance limitations before final sign-off.",
+      "refresh_commands": [
+        "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md"
+      ],
+      "status": "review",
+      "title": "Security audit and compliance"
+    },
+    {
+      "details": {
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "reports/template-performance/latest.json",
+          "status": "loaded"
+        },
+        "status_value": "pass",
+        "values": {
+          "summary.errors": 0,
+          "summary.passed": 4,
+          "summary.total": 4,
+          "summary.warnings": 0
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "reports/template-performance/latest.json"
+        }
+      ],
+      "id": "performance-benchmarks",
+      "manual_actions": [],
+      "message": "Performance benchmark evidence reports pass.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify static performance benchmark evidence for portable foundation operations.",
+      "refresh_commands": [
+        "python3 scripts/template-performance-harness --strict"
+      ],
+      "status": "ready",
+      "title": "Performance benchmarks"
+    },
+    {
+      "details": {
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking/latest.json",
+          "status": "loaded"
+        },
+        "status_value": "warn",
+        "values": {
+          "summary.errors": 0,
+          "summary.passed": 0,
+          "summary.total": 4,
+          "summary.warnings": 0
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking/latest.json"
+        }
+      ],
+      "id": "cost-projections",
+      "manual_actions": [
+        "Review project-specific usage inputs manually; this packet does not query billing accounts.",
+        "Review source warnings before final production verification sign-off."
+      ],
+      "message": "Cost projections source status is `warn`.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify static cost-governance telemetry exists without contacting billing systems.",
+      "refresh_commands": [
+        "python3 scripts/template-cost-report --report-dir reports/cost-tracking"
+      ],
+      "status": "review",
+      "title": "Cost projections"
+    },
+    {
+      "details": {
+        "source_type": "path-evidence"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260510-task35-emergency-response-system-COMPLETED/reports/emergency-response-system/emergency-plan-2026-05-10.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task47-error-recovery-system-COMPLETED/reports/error-recovery-system/recovery-plan-2026-05-13.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260507-task19-rollback-mechanism-COMPLETED/reports/rollback-mechanism/checkpoint-2026-05-07.json"
+        }
+      ],
+      "id": "recovery-and-disaster-posture",
+      "manual_actions": [
+        "Run any project-specific DR/failover exercise manually before claiming live disaster recovery readiness."
+      ],
+      "message": "Recovery/disaster planning evidence is available.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify emergency, recovery, rollback, and operational runbook evidence without executing DR actions.",
+      "refresh_commands": [
+        "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+        "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file reports/emergency-response/latest.json --runbook-file reports/emergency-response/latest.md",
+        "python3 scripts/codex-task recovery plan --error-class workflow --summary <summary> --report-file reports/error-recovery/latest.json --runbook-file reports/error-recovery/latest.md",
+        "python3 scripts/codex-task rollback checkpoint --label <label> --report-file reports/rollback/checkpoints/<checkpoint>.json"
+      ],
+      "status": "ready",
+      "title": "Recovery and disaster posture"
+    },
+    {
+      "details": {
+        "source_type": "path-evidence"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring/latest.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/source-migration-health/latest.json"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json"
+        }
+      ],
+      "id": "monitoring-coverage",
+      "manual_actions": [
+        "Live monitoring service activation is out of scope and must be implemented by a runtime-specific project if needed."
+      ],
+      "message": "Static monitoring coverage evidence is available.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify static monitoring, migration-health, and post-migration review evidence.",
+      "refresh_commands": [
+        "python3 scripts/codex-task report generate --kind telemetry --strict-monitoring --strict-migration-health",
+        "python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md"
+      ],
+      "status": "ready",
+      "title": "Monitoring coverage"
+    },
+    {
+      "details": {
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+          "status": "loaded"
+        },
+        "status_value": "warn",
+        "values": {
+          "summary.failures": 0,
+          "summary.stakeholder_signal": "needs-refresh",
+          "summary.warnings": 2
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json"
+        }
+      ],
+      "id": "stakeholder-signoff",
+      "manual_actions": [
+        "Obtain actual stakeholder approval manually; this command does not send requests or record external approvals.",
+        "Review source warnings before final production verification sign-off."
+      ],
+      "message": "Stakeholder sign-off readiness source status is `warn`.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify stakeholder-facing reporting evidence exists while keeping approval manual.",
+      "refresh_commands": [
+        "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md"
+      ],
+      "status": "review",
+      "title": "Stakeholder sign-off readiness"
+    },
+    {
+      "details": {
+        "source_type": "path-evidence"
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "templates/guides/reference/final-documentation-map.md"
+        },
+        {
+          "exists": true,
+          "kind": "file",
+          "path": "docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt"
+        }
+      ],
+      "id": "documentation-readiness",
+      "manual_actions": [
+        "Review documentation manually before final production verification sign-off."
+      ],
+      "message": "Final documentation map and Task 78 evidence are available.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify final documentation map and Task 78 closeout evidence are present.",
+      "refresh_commands": [
+        "Review templates/guides/reference/final-documentation-map.md",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "status": "ready",
+      "title": "Documentation readiness"
+    },
+    {
+      "details": {
+        "source": {
+          "exists": true,
+          "message": "Loaded successfully.",
+          "path": "docs/ai/work-tracking/archive/20260515-task80-production-deployment-COMPLETED/reports/production-deployment/deployment-readiness-2026-05-15-ssot-clean.json",
+          "status": "loaded"
+        },
+        "status_value": "review",
+        "values": {
+          "summary.readiness_score_pct": 66.67,
+          "summary.ready": 6,
+          "summary.review": 3,
+          "summary.transition_signal": "ready-with-review"
+        }
+      },
+      "evidence": [
+        {
+          "exists": true,
+          "kind": "file",
+          "load_status": "loaded",
+          "path": "docs/ai/work-tracking/archive/20260515-task80-production-deployment-COMPLETED/reports/production-deployment/deployment-readiness-2026-05-15-ssot-clean.json"
+        }
+      ],
+      "id": "production-transition-readiness",
+      "manual_actions": [
+        "Review source warnings before final production verification sign-off."
+      ],
+      "message": "Production transition readiness source status is `review`.",
+      "missing_evidence_paths": [],
+      "purpose": "Verify Task 80 release/BAU transition evidence is available as an input to final verification.",
+      "refresh_commands": [
+        "python3 scripts/codex-task deployment readiness --report-file reports/production-deployment/latest.json --runbook-file reports/production-deployment/latest.md"
+      ],
+      "status": "review",
+      "title": "Production transition readiness"
+    }
+  ],
+  "executes_actions": false,
+  "final_signoff_checklist": [
+    {
+      "blocks_final_signoff": false,
+      "id": "workflow-and-taskmaster-health",
+      "message": "Workflow pointers and Taskmaster dependencies are ready.",
+      "requires_manual_review": false,
+      "status": "ready",
+      "title": "Workflow and Taskmaster health"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "final-validation",
+      "message": "Final validation evidence is available and passed.",
+      "requires_manual_review": false,
+      "status": "ready",
+      "title": "Final validation suite"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "security-audit-and-compliance",
+      "message": "Security audit reports 4/5 available control(s); compliance notes require manual review.",
+      "requires_manual_review": true,
+      "status": "review",
+      "title": "Security audit and compliance"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "performance-benchmarks",
+      "message": "Performance benchmark evidence reports pass.",
+      "requires_manual_review": false,
+      "status": "ready",
+      "title": "Performance benchmarks"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "cost-projections",
+      "message": "Cost projections source status is `warn`.",
+      "requires_manual_review": true,
+      "status": "review",
+      "title": "Cost projections"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "recovery-and-disaster-posture",
+      "message": "Recovery/disaster planning evidence is available.",
+      "requires_manual_review": true,
+      "status": "ready",
+      "title": "Recovery and disaster posture"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "monitoring-coverage",
+      "message": "Static monitoring coverage evidence is available.",
+      "requires_manual_review": true,
+      "status": "ready",
+      "title": "Monitoring coverage"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "stakeholder-signoff",
+      "message": "Stakeholder sign-off readiness source status is `warn`.",
+      "requires_manual_review": true,
+      "status": "review",
+      "title": "Stakeholder sign-off readiness"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "documentation-readiness",
+      "message": "Final documentation map and Task 78 evidence are available.",
+      "requires_manual_review": true,
+      "status": "ready",
+      "title": "Documentation readiness"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "production-transition-readiness",
+      "message": "Production transition readiness source status is `review`.",
+      "requires_manual_review": true,
+      "status": "review",
+      "title": "Production transition readiness"
+    },
+    {
+      "blocks_final_signoff": false,
+      "id": "human-production-signoff",
+      "message": "A human reviewer must approve final production readiness; this command does not create or infer approval.",
+      "requires_manual_review": true,
+      "status": "manual",
+      "title": "Human production sign-off"
+    }
+  ],
+  "label": "task79-production-verification",
+  "manual_next_steps": [
+    {
+      "action": "Review security controls with missing/non-available evidence: phase0-security-gate.",
+      "domain": "security-audit-and-compliance",
+      "status": "review"
+    },
+    {
+      "action": "Compliance certification remains project-specific and manual; do not claim GDPR/SOC2/ISO certification from this packet.",
+      "domain": "security-audit-and-compliance",
+      "status": "review"
+    },
+    {
+      "action": "Review project-specific usage inputs manually; this packet does not query billing accounts.",
+      "domain": "cost-projections",
+      "status": "review"
+    },
+    {
+      "action": "Review source warnings before final production verification sign-off.",
+      "domain": "cost-projections",
+      "status": "review"
+    },
+    {
+      "action": "Run any project-specific DR/failover exercise manually before claiming live disaster recovery readiness.",
+      "domain": "recovery-and-disaster-posture",
+      "status": "ready"
+    },
+    {
+      "action": "Live monitoring service activation is out of scope and must be implemented by a runtime-specific project if needed.",
+      "domain": "monitoring-coverage",
+      "status": "ready"
+    },
+    {
+      "action": "Obtain actual stakeholder approval manually; this command does not send requests or record external approvals.",
+      "domain": "stakeholder-signoff",
+      "status": "review"
+    },
+    {
+      "action": "Review source warnings before final production verification sign-off.",
+      "domain": "stakeholder-signoff",
+      "status": "review"
+    },
+    {
+      "action": "Review documentation manually before final production verification sign-off.",
+      "domain": "documentation-readiness",
+      "status": "ready"
+    },
+    {
+      "action": "Review source warnings before final production verification sign-off.",
+      "domain": "production-transition-readiness",
+      "status": "review"
+    }
+  ],
+  "mode": "static-production-verification-packet",
+  "non_goals": [
+    "No production application deployment, release publication, package publish, or hosted service update is executed.",
+    "No live security scan, CVE lookup, pentest, dependency update, patch application, or compliance certification is performed.",
+    "No live performance benchmark against production traffic, hosted infrastructure, or external systems is executed.",
+    "No live billing lookup, charge creation, cost forecast from external systems, or budget mutation is performed.",
+    "No disaster recovery execution, rollback execution, restore, reset, failover, traffic switching, or service canary is performed.",
+    "No monitoring service activation, dashboard creation, alert delivery, scheduler, daemon, or external observability integration is created or contacted.",
+    "No stakeholder email, chat, approval request, meeting scheduling, publication, or notification delivery is sent.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, template, or external state is mutated beyond requested production verification packet artifacts."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/codex-task taskmaster health",
+    "python3 scripts/codex-task work-tracking audit",
+    "python3 scripts/codex-guard validate --include-untracked",
+    "python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",
+    "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+    "python3 scripts/template-performance-harness --strict",
+    "python3 scripts/template-cost-report --report-dir reports/cost-tracking",
+    "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+    "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file reports/emergency-response/latest.json --runbook-file reports/emergency-response/latest.md",
+    "python3 scripts/codex-task recovery plan --error-class workflow --summary <summary> --report-file reports/error-recovery/latest.json --runbook-file reports/error-recovery/latest.md",
+    "python3 scripts/codex-task rollback checkpoint --label <label> --report-file reports/rollback/checkpoints/<checkpoint>.json",
+    "python3 scripts/codex-task report generate --kind telemetry --strict-monitoring --strict-migration-health",
+    "python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",
+    "python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",
+    "Review templates/guides/reference/final-documentation-map.md",
+    "python3 scripts/codex-task deployment readiness --report-file reports/production-deployment/latest.json --runbook-file reports/production-deployment/latest.md",
+    "python3 scripts/codex-task deployment verification --report-file reports/production-verification/latest.json --runbook-file reports/production-verification/latest.md",
+    "python3 scripts/codex-task plan sync",
+    "git diff --check"
+  ],
+  "summary": {
+    "aggregate_status": "review",
+    "blocked": 0,
+    "needs_evidence": 0,
+    "not_applicable": 0,
+    "ready": 6,
+    "review": 4,
+    "total_domains": 10,
+    "verification_score_pct": 60.0,
+    "verification_signal": "ready-with-manual-review"
+  },
+  "version": 1
+}

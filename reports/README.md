@@ -230,6 +230,16 @@ python3 scripts/codex-task deployment readiness \
 
 This command renders a static JSON/Markdown production transition packet for human review. It does not deploy code, enable services, start monitoring, install schedulers, run auto-fix, mutate cleanup targets, send communications, schedule events, split traffic, publish releases, or contact external systems.
 
+Production verification packets can be generated when an operator needs one final evidence gate over security, performance, cost, compliance limitations, recovery/disaster posture, monitoring coverage, documentation readiness, stakeholder sign-off readiness, final validation, and production transition evidence:
+
+```bash
+python3 scripts/codex-task deployment verification \
+  --report-file reports/production-verification/latest.json \
+  --runbook-file reports/production-verification/latest.md
+```
+
+This command renders a static JSON/Markdown production verification packet for human review. It does not deploy code, run live security scans, certify compliance, benchmark production traffic, query billing systems, execute disaster recovery, activate monitoring, send stakeholder communications, publish releases, switch traffic, perform rollback, or contact external systems.
+
 ## Report Directories
 
 - `template-drift/` - drift checks for guard guidance, metadata policy coverage, and command-surface availability.
@@ -258,6 +268,7 @@ This command renders a static JSON/Markdown production transition packet for hum
 - `template-quality/` - optional static template quality scorecards over metadata/drift, registry health, scanner complexity, performance, usage analytics, security audit, workflow continuity, quality gates, and improvement suggestions.
 - `maintenance/` - optional static long-term maintenance packets over workflow health, operational cadence, monitoring, performance baselines, template quality, cleanup readiness, security maintenance, dependency-review guidance, and manual action queues.
 - `production-deployment/` - optional static production transition readiness packets over workflow health, final validation, final docs, maintenance/BAU, monitoring, stakeholder communication, celebration/readout, cleanup/archive, rollout/adoption, and historical production-deployment requirement mapping.
+- `production-verification/` - optional static final verification packets over security, performance, cost, compliance limitations, recovery/disaster posture, monitoring, documentation, stakeholder sign-off, final validation, and production transition evidence.
 
 ## Task Evidence
 

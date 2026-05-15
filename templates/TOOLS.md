@@ -86,6 +86,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `enhancement continuous-improvement --label <label>` – render a static continuous-improvement review packet over feedback intake, enhancement candidates, success metrics, experiment planning, change validation, lessons learned, knowledge reuse, maintenance cadence, and refresh commands.
 - `maintenance plan --label <label>` – render a static long-term maintenance packet over workflow health, operational cadence, monitoring, performance baselines, template quality, cleanup readiness, security maintenance, dependency-review guidance, and manual action queues.
 - `deployment readiness --label <label>` – render a static production transition readiness packet over workflow health, final validation, final docs, maintenance/BAU, monitoring, stakeholder communication, celebration/readout, cleanup/archive, and rollout/adoption evidence.
+- `deployment verification --label <label>` – render a static final production verification packet over security, performance, cost, compliance limitations, recovery/disaster posture, monitoring, documentation, stakeholder sign-off, final validation, and production transition evidence.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:
@@ -259,6 +260,20 @@ python3 scripts/codex-task deployment readiness \
 ```
 
 The command reports ready, review, needs-evidence, not-applicable, or blocked status per domain and lists refresh commands for missing or review-level evidence. It does not deploy code, enable production services, start monitoring, install schedulers, run auto-fix, mutate cleanup targets, send communications, schedule events, split traffic, publish releases, or contact external systems.
+
+### `scripts/codex-task deployment verification`
+Static production verification reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering final validation, security audit/compliance limitations, static performance benchmarks, cost-governance evidence, emergency/recovery/rollback posture, monitoring coverage, final documentation, stakeholder sign-off readiness, and Task 80 production transition readiness.
+
+Use it when preparing or reviewing the final evidence gate before a human production-readiness sign-off:
+
+```bash
+python3 scripts/codex-task deployment verification \
+  --label <label> \
+  --report-file <production-verification.json> \
+  --runbook-file <production-verification.md>
+```
+
+It does not deploy code, run live security scans, certify compliance, benchmark production traffic, query billing systems, execute disaster recovery, activate monitoring, send stakeholder communications, switch traffic, publish releases, perform rollback, or contact external systems.
 
 ### `scripts/codex-task documentation phase4-review`
 Static Phase 4 documentation delivery reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering repository-native documentation, training, communication, operations, Phase 3 automation review, and final validation evidence.
