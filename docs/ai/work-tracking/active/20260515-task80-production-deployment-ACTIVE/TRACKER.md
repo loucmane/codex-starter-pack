@@ -21,6 +21,7 @@
 - **2026-05-15 13:09** — [S:20260515|W:task80-production-deployment|H:task-master:set-status|E:.taskmaster/tasks/task_080.txt] Corrected Taskmaster parent Task 80 from auto-completed to `blocked` because the generated readiness packet reports `not-ready`
 - **2026-05-15 13:12** — [S:20260515|W:task80-production-deployment|H:serena/memory:write_memory|E:.serena/memories/2026-05-15_task80_production_deployment_readiness.md] Captured Serena memory `2026-05-15_task80_production_deployment_readiness` for compaction/session continuity
 - **2026-05-15 13:14** — [S:20260515|W:task80-production-deployment|H:verification|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/guard-2026-05-15-final.txt] Final implementation verification passed: focused tests, plan sync, work-tracking audit, Taskmaster health, guard, reference-fix gate, and diff-check are captured
+- **2026-05-15 14:31** — [S:20260515|W:task80-production-deployment|H:scanner/tmp-freshness-check|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-blocker-review-2026-05-15.md] Confirmed the post-migration monitoring blocker is real and current: a fresh `/tmp` scan reproduced 43 broken references, 19 circular dependency cycles, and 24 critical roadmap items
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -31,3 +32,4 @@
 ## Dependencies & Notes
 - Session log: sessions/current
 - Taskmaster parent Task 80 is intentionally `blocked` while the implementation evidence is complete; the blocker is the readiness packet's post-migration monitoring source status.
+- PR #104 should stay draft until the upstream migration metrics blocker is remediated or explicitly waived.
