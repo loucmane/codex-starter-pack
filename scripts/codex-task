@@ -13137,6 +13137,715 @@ def handle_deployment_readiness(args: argparse.Namespace) -> None:
         raise TaskError("Production transition readiness has blocking or missing evidence")
 
 
+PRODUCTION_VERIFICATION_NON_GOALS: Tuple[str, ...] = (
+    "No production application deployment, release publication, package publish, or hosted service update is executed.",
+    "No live security scan, CVE lookup, pentest, dependency update, patch application, or compliance certification is performed.",
+    "No live performance benchmark against production traffic, hosted infrastructure, or external systems is executed.",
+    "No live billing lookup, charge creation, cost forecast from external systems, or budget mutation is performed.",
+    "No disaster recovery execution, rollback execution, restore, reset, failover, traffic switching, or service canary is performed.",
+    "No monitoring service activation, dashboard creation, alert delivery, scheduler, daemon, or external observability integration is created or contacted.",
+    "No stakeholder email, chat, approval request, meeting scheduling, publication, or notification delivery is sent.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, template, or external state is mutated beyond requested production verification packet artifacts.",
+)
+
+
+def _production_verification_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    status: str,
+    evidence: Sequence[Mapping[str, Any]],
+    refresh_commands: Sequence[str],
+    message: str,
+    manual_actions: Sequence[str] = (),
+    details: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    missing = [str(item.get("path")) for item in evidence if not item.get("exists")]
+    return {
+        "id": domain_id,
+        "title": title,
+        "purpose": purpose,
+        "status": status,
+        "evidence": [dict(item) for item in evidence],
+        "missing_evidence_paths": missing,
+        "refresh_commands": list(refresh_commands),
+        "message": message,
+        "manual_actions": list(manual_actions),
+        "details": dict(details or {}),
+    }
+
+
+def _production_verification_json_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    evidence_path: Path | str,
+    refresh_commands: Sequence[str],
+    status_fields: Sequence[str],
+    value_fields: Sequence[str] = (),
+    ready_message: str,
+    missing_message: str,
+    manual_actions: Sequence[str] = (),
+) -> Dict[str, Any]:
+    source = _success_metrics_load_json(evidence_path)
+    evidence = [
+        {
+            "path": str(source.get("path")),
+            "exists": bool(source.get("exists")),
+            "kind": "file" if source.get("exists") else "missing",
+            "load_status": source.get("status"),
+        }
+    ]
+    if source["status"] == "missing":
+        return _production_verification_domain(
+            domain_id=domain_id,
+            title=title,
+            purpose=purpose,
+            status="needs-evidence",
+            evidence=evidence,
+            refresh_commands=refresh_commands,
+            message=missing_message,
+            manual_actions=manual_actions,
+            details={"source": source},
+        )
+    if source["status"] == "invalid":
+        return _production_verification_domain(
+            domain_id=domain_id,
+            title=title,
+            purpose=purpose,
+            status="blocked",
+            evidence=evidence,
+            refresh_commands=refresh_commands,
+            message=str(source["message"]),
+            manual_actions=("Regenerate a valid source packet before production verification.",),
+            details={"source": source},
+        )
+
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    status_value: object = None
+    for field in status_fields:
+        status_value = _deployment_get_nested(payload, field)
+        if status_value is not None:
+            break
+    status = _deployment_status(status_value)
+    values = {field: _deployment_get_nested(payload, field) for field in value_fields}
+    actions = list(manual_actions)
+    if status == "review":
+        actions.append("Review source warnings before final production verification sign-off.")
+    if status in {"needs-evidence", "blocked"}:
+        actions.append("Refresh or remediate this source packet before final production verification sign-off.")
+    return _production_verification_domain(
+        domain_id=domain_id,
+        title=title,
+        purpose=purpose,
+        status=status,
+        evidence=evidence,
+        refresh_commands=refresh_commands,
+        message=ready_message if status == "ready" else f"{title} source status is `{status_value}`.",
+        manual_actions=actions,
+        details={
+            "source": {key: source[key] for key in ("path", "exists", "status", "message")},
+            "status_value": status_value,
+            "values": values,
+        },
+    )
+
+
+def _production_verification_latest_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    pattern: str | Sequence[str],
+    refresh_commands: Sequence[str],
+    status_fields: Sequence[str],
+    value_fields: Sequence[str] = (),
+    ready_message: str,
+    missing_message: str,
+    manual_actions: Sequence[str] = (),
+) -> Dict[str, Any]:
+    patterns = [pattern] if isinstance(pattern, str) else list(pattern)
+    latest = _deployment_latest_packet_path(patterns)
+    if latest is None:
+        return _production_verification_domain(
+            domain_id=domain_id,
+            title=title,
+            purpose=purpose,
+            status="needs-evidence",
+            evidence=[_enhancement_path_state(item) for item in patterns],
+            refresh_commands=refresh_commands,
+            message=missing_message,
+            manual_actions=manual_actions,
+            details={"pattern": patterns[0] if len(patterns) == 1 else patterns, "source_type": "latest-packet"},
+        )
+    return _production_verification_json_domain(
+        domain_id=domain_id,
+        title=title,
+        purpose=purpose,
+        evidence_path=latest,
+        refresh_commands=refresh_commands,
+        status_fields=status_fields,
+        value_fields=value_fields,
+        ready_message=ready_message,
+        missing_message=missing_message,
+        manual_actions=manual_actions,
+    )
+
+
+def _build_production_verification_workflow_domain() -> Dict[str, Any]:
+    workflow = _workflow_snapshot()
+    taskmaster = _taskmaster_snapshot()
+    current_session = workflow.get("current_session") if isinstance(workflow.get("current_session"), Mapping) else {}
+    current_plan = workflow.get("current_plan") if isinstance(workflow.get("current_plan"), Mapping) else {}
+    active = workflow.get("active_work_tracking") if isinstance(workflow.get("active_work_tracking"), list) else []
+    invalid_refs = taskmaster.get("invalid_refs") if isinstance(taskmaster.get("invalid_refs"), list) else []
+    blockers: List[str] = []
+    if invalid_refs:
+        blockers.append(f"{len(invalid_refs)} invalid Taskmaster dependency reference(s)")
+    if not current_session.get("resolved"):
+        blockers.append("sessions/current missing")
+    if not current_plan.get("resolved"):
+        blockers.append("plans/current missing")
+    if len(active) != 1:
+        blockers.append(f"expected 1 active work-tracking folder, found {len(active)}")
+    status = "ready" if not blockers else "blocked"
+    evidence = [
+        _enhancement_path_state(TASKMASTER_TASKS_JSON_REL),
+        _enhancement_path_state(str(current_session.get("resolved") or SESSIONS_CURRENT_REL)),
+        _enhancement_path_state(str(current_plan.get("resolved") or PLANS_CURRENT_REL)),
+    ]
+    evidence.extend(_enhancement_path_state(str(path)) for path in active)
+    return _production_verification_domain(
+        domain_id="workflow-and-taskmaster-health",
+        title="Workflow and Taskmaster health",
+        purpose="Confirm the production verification review is task-aligned and dependency-clean.",
+        status=status,
+        evidence=evidence,
+        refresh_commands=(
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+        message="Workflow pointers and Taskmaster dependencies are ready." if not blockers else "; ".join(blockers),
+        manual_actions=("Fix workflow or Taskmaster blockers before closing Task 79.",) if blockers else (),
+        details={"workflow": workflow, "taskmaster_summary": taskmaster.get("summary"), "invalid_refs": invalid_refs},
+    )
+
+
+def _build_production_verification_security_domain() -> Dict[str, Any]:
+    latest = _deployment_latest_packet_path("*-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-*.json")
+    path: Path | str = latest or "reports/security-audit-process/latest.json"
+    source = _success_metrics_load_json(path)
+    evidence = [
+        {
+            "path": str(source.get("path")),
+            "exists": bool(source.get("exists")),
+            "kind": "file" if source.get("exists") else "missing",
+            "load_status": source.get("status"),
+        }
+    ]
+    refresh = (
+        "python3 scripts/codex-task security audit --summary <summary> --report-file reports/security-audit-process/latest.json --runbook-file reports/security-audit-process/latest.md",
+    )
+    if source["status"] == "missing":
+        return _production_verification_domain(
+            domain_id="security-audit-and-compliance",
+            title="Security audit and compliance",
+            purpose="Verify repository security controls and compliance limitations before final sign-off.",
+            status="needs-evidence",
+            evidence=evidence,
+            refresh_commands=refresh,
+            message="Security audit evidence is missing.",
+            manual_actions=("Regenerate the security audit packet before final production verification.",),
+            details={"source": source},
+        )
+    if source["status"] == "invalid":
+        return _production_verification_domain(
+            domain_id="security-audit-and-compliance",
+            title="Security audit and compliance",
+            purpose="Verify repository security controls and compliance limitations before final sign-off.",
+            status="blocked",
+            evidence=evidence,
+            refresh_commands=refresh,
+            message=str(source["message"]),
+            manual_actions=("Regenerate a valid security audit packet.",),
+            details={"source": source},
+        )
+
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    controls = payload.get("controls") if isinstance(payload.get("controls"), list) else []
+    available = sum(1 for control in controls if isinstance(control, Mapping) and control.get("status") == "available")
+    non_available = [
+        str(control.get("id"))
+        for control in controls
+        if isinstance(control, Mapping) and control.get("status") != "available"
+    ]
+    compliance_notes = payload.get("compliance_notes") if isinstance(payload.get("compliance_notes"), list) else []
+    status = "ready" if controls and not non_available and not compliance_notes else "review"
+    actions: List[str] = []
+    if non_available:
+        actions.append(f"Review security controls with missing/non-available evidence: {', '.join(non_available)}.")
+    if compliance_notes:
+        actions.append("Compliance certification remains project-specific and manual; do not claim GDPR/SOC2/ISO certification from this packet.")
+    return _production_verification_domain(
+        domain_id="security-audit-and-compliance",
+        title="Security audit and compliance",
+        purpose="Verify repository security controls and compliance limitations before final sign-off.",
+        status=status,
+        evidence=evidence,
+        refresh_commands=refresh,
+        message=f"Security audit reports {available}/{len(controls)} available control(s); compliance notes require manual review.",
+        manual_actions=actions,
+        details={
+            "available_controls": available,
+            "total_controls": len(controls),
+            "non_available_controls": non_available,
+            "compliance_notes": compliance_notes,
+            "source": {key: source[key] for key in ("path", "exists", "status", "message")},
+        },
+    )
+
+
+def _build_production_verification_recovery_domain() -> Dict[str, Any]:
+    evidence_paths = (
+        "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json",
+        "docs/ai/work-tracking/archive/20260510-task35-emergency-response-system-COMPLETED/reports/emergency-response-system/emergency-plan-2026-05-10.json",
+        "docs/ai/work-tracking/archive/20260513-task47-error-recovery-system-COMPLETED/reports/error-recovery-system/recovery-plan-2026-05-13.json",
+        "docs/ai/work-tracking/archive/20260507-task19-rollback-mechanism-COMPLETED/reports/rollback-mechanism/checkpoint-2026-05-07.json",
+    )
+    evidence = [_enhancement_path_state(path) for path in evidence_paths]
+    missing = [item["path"] for item in evidence if not item["exists"]]
+    status = "needs-evidence" if missing else "ready"
+    return _production_verification_domain(
+        domain_id="recovery-and-disaster-posture",
+        title="Recovery and disaster posture",
+        purpose="Verify emergency, recovery, rollback, and operational runbook evidence without executing DR actions.",
+        status=status,
+        evidence=evidence,
+        refresh_commands=(
+            "python3 scripts/codex-task operations runbook --label <label> --report-file reports/operational-runbook/latest.json --runbook-file reports/operational-runbook/latest.md",
+            "python3 scripts/codex-task emergency plan --severity <P0-P3> --summary <summary> --report-file reports/emergency-response/latest.json --runbook-file reports/emergency-response/latest.md",
+            "python3 scripts/codex-task recovery plan --error-class workflow --summary <summary> --report-file reports/error-recovery/latest.json --runbook-file reports/error-recovery/latest.md",
+            "python3 scripts/codex-task rollback checkpoint --label <label> --report-file reports/rollback/checkpoints/<checkpoint>.json",
+        ),
+        message="Recovery/disaster planning evidence is available." if status == "ready" else f"Recovery/disaster evidence is missing: {', '.join(missing)}.",
+        manual_actions=("Run any project-specific DR/failover exercise manually before claiming live disaster recovery readiness.",),
+        details={"source_type": "path-evidence"},
+    )
+
+
+def _build_production_verification_monitoring_domain() -> Dict[str, Any]:
+    latest_template_monitoring = _deployment_latest_packet_path(
+        (
+            "*-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/final-template-monitoring/latest.json",
+            "*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*-final-validation-suite-evidence/template-monitoring/latest.json",
+        )
+    )
+    latest_migration_health = _deployment_latest_packet_path(
+        (
+            "*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/source-migration-health/latest.json",
+            "*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*-final-validation-suite-evidence/migration-health/latest.json",
+        )
+    )
+    latest_monitoring = _deployment_latest_packet_path("*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json")
+    evidence_paths: List[str] = []
+    evidence_paths.append(
+        _relative_to_root(latest_template_monitoring, REPO_ROOT)
+        if latest_template_monitoring is not None
+        else "*-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/final-template-monitoring/latest.json"
+    )
+    evidence_paths.append(
+        _relative_to_root(latest_migration_health, REPO_ROOT)
+        if latest_migration_health is not None
+        else "*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/source-migration-health/latest.json"
+    )
+    if latest_monitoring is not None:
+        evidence_paths.append(_relative_to_root(latest_monitoring, REPO_ROOT))
+    else:
+        evidence_paths.append("*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json")
+    evidence = [_enhancement_path_state(path) for path in evidence_paths]
+    missing = [item["path"] for item in evidence if not item["exists"]]
+    status = "needs-evidence" if missing else "ready"
+    return _production_verification_domain(
+        domain_id="monitoring-coverage",
+        title="Monitoring coverage",
+        purpose="Verify static monitoring, migration-health, and post-migration review evidence.",
+        status=status,
+        evidence=evidence,
+        refresh_commands=(
+            "python3 scripts/codex-task report generate --kind telemetry --strict-monitoring --strict-migration-health",
+            "python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",
+        ),
+        message="Static monitoring coverage evidence is available." if status == "ready" else f"Monitoring evidence is missing: {', '.join(missing)}.",
+        manual_actions=("Live monitoring service activation is out of scope and must be implemented by a runtime-specific project if needed.",),
+        details={"source_type": "path-evidence"},
+    )
+
+
+def _build_production_verification_domains() -> List[Dict[str, Any]]:
+    return [
+        _build_production_verification_workflow_domain(),
+        _production_verification_latest_domain(
+            domain_id="final-validation",
+            title="Final validation suite",
+            purpose="Verify the final validation sign-off packet exists and passed.",
+            pattern="*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*final-validation-suite.json",
+            refresh_commands=("python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",),
+            status_fields=("summary.status", "summary.aggregate_status", "status"),
+            value_fields=("summary.passed", "summary.failed_required", "summary.total"),
+            ready_message="Final validation evidence is available and passed.",
+            missing_message="Final validation packet evidence is missing.",
+        ),
+        _build_production_verification_security_domain(),
+        _production_verification_json_domain(
+            domain_id="performance-benchmarks",
+            title="Performance benchmarks",
+            purpose="Verify static performance benchmark evidence for portable foundation operations.",
+            evidence_path=REPO_STRUCTURE.performance_report_dir / "latest.json",
+            refresh_commands=("python3 scripts/template-performance-harness --strict",),
+            status_fields=("status", "summary.status", "aggregate_status", "summary.aggregate_status"),
+            value_fields=("summary.total", "summary.passed", "summary.warnings", "summary.errors"),
+            ready_message="Performance benchmark evidence reports pass.",
+            missing_message="Performance benchmark evidence is missing.",
+        ),
+        _production_verification_latest_domain(
+            domain_id="cost-projections",
+            title="Cost projections",
+            purpose="Verify static cost-governance telemetry exists without contacting billing systems.",
+            pattern=(
+                "*-task24-cost-tracking-system-COMPLETED/reports/cost-tracking-system/latest.json",
+                "*-task37-telemetry-pipeline-COMPLETED/reports/telemetry-pipeline/final-cost-tracking/latest.json",
+                "*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*-final-validation-suite-evidence/cost-tracking/latest.json",
+            ),
+            refresh_commands=("python3 scripts/template-cost-report --report-dir reports/cost-tracking",),
+            status_fields=("status", "summary.status", "aggregate_status", "summary.aggregate_status"),
+            value_fields=("summary.total", "summary.passed", "summary.warnings", "summary.errors"),
+            ready_message="Cost-governance evidence is available.",
+            missing_message="Cost projection/governance evidence is missing.",
+            manual_actions=("Review project-specific usage inputs manually; this packet does not query billing accounts.",),
+        ),
+        _build_production_verification_recovery_domain(),
+        _build_production_verification_monitoring_domain(),
+        _production_verification_latest_domain(
+            domain_id="stakeholder-signoff",
+            title="Stakeholder sign-off readiness",
+            purpose="Verify stakeholder-facing reporting evidence exists while keeping approval manual.",
+            pattern="*-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-*-final.json",
+            refresh_commands=("python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",),
+            status_fields=("summary.aggregate_status", "aggregate_status", "status"),
+            value_fields=("summary.stakeholder_signal", "summary.warnings", "summary.failures"),
+            ready_message="Stakeholder reporting packet is ready for human sign-off.",
+            missing_message="Stakeholder reporting/sign-off evidence is missing.",
+            manual_actions=("Obtain actual stakeholder approval manually; this command does not send requests or record external approvals.",),
+        ),
+        _production_verification_domain(
+            domain_id="documentation-readiness",
+            title="Documentation readiness",
+            purpose="Verify final documentation map and Task 78 closeout evidence are present.",
+            status="ready"
+            if all(
+                _enhancement_path_state(path)["exists"]
+                for path in (
+                    "templates/guides/reference/final-documentation-map.md",
+                    "docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt",
+                )
+            )
+            else "needs-evidence",
+            evidence=[
+                _enhancement_path_state("templates/guides/reference/final-documentation-map.md"),
+                _enhancement_path_state("docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt"),
+            ],
+            refresh_commands=(
+                "Review templates/guides/reference/final-documentation-map.md",
+                "python3 scripts/codex-guard validate --include-untracked",
+            ),
+            message="Final documentation map and Task 78 evidence are available.",
+            manual_actions=("Review documentation manually before final production verification sign-off.",),
+            details={"source_type": "path-evidence"},
+        ),
+        _production_verification_latest_domain(
+            domain_id="production-transition-readiness",
+            title="Production transition readiness",
+            purpose="Verify Task 80 release/BAU transition evidence is available as an input to final verification.",
+            pattern="*-task80-production-deployment-COMPLETED/reports/production-deployment/deployment-readiness-*.json",
+            refresh_commands=("python3 scripts/codex-task deployment readiness --report-file reports/production-deployment/latest.json --runbook-file reports/production-deployment/latest.md",),
+            status_fields=("summary.aggregate_status", "aggregate_status", "status"),
+            value_fields=("summary.transition_signal", "summary.readiness_score_pct", "summary.ready", "summary.review"),
+            ready_message="Production transition readiness evidence is available.",
+            missing_message="Task 80 production transition readiness evidence is missing.",
+        ),
+    ]
+
+
+def _summarise_production_verification(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    counts = Counter(str(domain.get("status")) for domain in domains)
+    if counts.get("blocked"):
+        aggregate_status = "blocked"
+        verification_signal = "not-ready"
+    elif counts.get("needs-evidence"):
+        aggregate_status = "needs-evidence"
+        verification_signal = "needs-evidence"
+    elif counts.get("review"):
+        aggregate_status = "review"
+        verification_signal = "ready-with-manual-review"
+    else:
+        aggregate_status = "ready"
+        verification_signal = "ready-for-final-signoff"
+    total = len(domains)
+    actionable = total - counts.get("not-applicable", 0)
+    ready_like = counts.get("ready", 0)
+    score = round((ready_like / actionable) * 100, 2) if actionable else 100.0
+    return {
+        "aggregate_status": aggregate_status,
+        "verification_signal": verification_signal,
+        "verification_score_pct": score,
+        "total_domains": total,
+        "ready": counts.get("ready", 0),
+        "review": counts.get("review", 0),
+        "needs_evidence": counts.get("needs-evidence", 0),
+        "blocked": counts.get("blocked", 0),
+        "not_applicable": counts.get("not-applicable", 0),
+    }
+
+
+def _production_verification_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+    for domain in domains:
+        for command in domain.get("refresh_commands", []) or []:
+            if isinstance(command, str) and command and command not in commands:
+                commands.append(command)
+    for command in (
+        "python3 scripts/codex-task deployment verification --report-file reports/production-verification/latest.json --runbook-file reports/production-verification/latest.md",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+    ):
+        if command not in commands:
+            commands.append(command)
+    return commands
+
+
+def _production_verification_signoff_checklist(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    checklist: List[Dict[str, Any]] = []
+    for domain in domains:
+        status = str(domain.get("status"))
+        checklist.append(
+            {
+                "id": domain.get("id"),
+                "title": domain.get("title"),
+                "status": status,
+                "blocks_final_signoff": status in {"blocked", "needs-evidence"},
+                "requires_manual_review": status == "review" or bool(domain.get("manual_actions")),
+                "message": domain.get("message"),
+            }
+        )
+    checklist.append(
+        {
+            "id": "human-production-signoff",
+            "title": "Human production sign-off",
+            "status": "manual",
+            "blocks_final_signoff": False,
+            "requires_manual_review": True,
+            "message": "A human reviewer must approve final production readiness; this command does not create or infer approval.",
+        }
+    )
+    return checklist
+
+
+def _production_verification_manual_next_steps(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    steps: List[Dict[str, Any]] = []
+    for domain in domains:
+        for action in domain.get("manual_actions", []) or []:
+            steps.append({"domain": domain.get("id"), "status": domain.get("status"), "action": action})
+    if not steps:
+        steps.append(
+            {
+                "domain": "production-verification",
+                "status": "ready",
+                "action": "Review the generated packet with a human owner before final sign-off.",
+            }
+        )
+    return steps
+
+
+def _build_production_verification_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "production-verification"
+    domains = _build_production_verification_domains()
+    summary = _summarise_production_verification(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-production-verification-packet",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "final_signoff_checklist": _production_verification_signoff_checklist(domains),
+        "manual_next_steps": _production_verification_manual_next_steps(domains),
+        "recommended_refresh_commands": _production_verification_refresh_commands(domains),
+        "non_goals": list(PRODUCTION_VERIFICATION_NON_GOALS),
+    }
+
+
+def _render_production_verification_report(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Production Verification Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: `{summary.get('aggregate_status')}`",
+        f"- Verification signal: `{summary.get('verification_signal')}`",
+        f"- Verification score: {summary.get('verification_score_pct')}%",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Ready: {summary.get('ready')}",
+        f"- Review: {summary.get('review')}",
+        f"- Needs evidence: {summary.get('needs_evidence')}",
+        f"- Blocked: {summary.get('blocked')}",
+        f"- Not applicable: {summary.get('not_applicable')}",
+        "",
+        "## Verification Domains",
+        "",
+        "| Domain | Purpose | Status | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        missing = "<br>".join(domain.get("missing_evidence_paths", [])) or "None"
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(domain.get('purpose'))} | "
+            f"`{_md_cell(domain.get('status'))}` | {_md_cell(missing)} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Status: `{domain.get('status')}`",
+                f"- Message: {domain.get('message')}",
+                "",
+                "Evidence:",
+            ]
+        )
+        for evidence in domain.get("evidence", []):
+            if isinstance(evidence, Mapping):
+                lines.append(f"- `{evidence.get('path')}` ({evidence.get('kind')}, exists={evidence.get('exists')})")
+        lines.extend(["", "Refresh commands:"])
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        actions = domain.get("manual_actions", [])
+        if actions:
+            lines.extend(["", "Manual actions:"])
+            for action in actions:
+                lines.append(f"- {action}")
+        lines.append("")
+
+    lines.extend(["## Final Sign-Off Checklist", ""])
+    for item in report.get("final_signoff_checklist", []):
+        if isinstance(item, Mapping):
+            lines.append(
+                f"- `{item.get('id')}`: `{item.get('status')}` "
+                f"(blocks={item.get('blocks_final_signoff')}, manual_review={item.get('requires_manual_review')}) - {item.get('message')}"
+            )
+
+    lines.extend(["", "## Manual Next Steps", ""])
+    for item in report.get("manual_next_steps", []):
+        if isinstance(item, Mapping):
+            lines.append(f"- `{item.get('domain')}` ({item.get('status')}): {item.get('action')}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is static and evidence-based. It composes repository-local validation, security, performance, cost, recovery, monitoring, documentation, stakeholder, and transition evidence; it does not deploy, certify compliance, run live DR, contact external services, or infer human approval.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_deployment_verification(args: argparse.Namespace) -> None:
+    report = _build_production_verification_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_production_verification_report(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] in {"blocked", "needs-evidence"}:
+            raise TaskError("Production verification has blocking or missing evidence")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote production verification packet to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote production verification runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] in {"blocked", "needs-evidence"}:
+        raise TaskError("Production verification has blocking or missing evidence")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -16748,6 +17457,16 @@ def build_parser() -> argparse.ArgumentParser:
     deployment_readiness.add_argument("--strict", action="store_true", help="Exit nonzero when readiness has blocking or missing evidence")
     deployment_readiness.add_argument("--dry-run", action="store_true", help="Print the readiness JSON without writing files")
     deployment_readiness.set_defaults(func=handle_deployment_readiness)
+    deployment_verification = deployment_sub.add_parser(
+        "verification",
+        help="Render a static production verification packet",
+    )
+    deployment_verification.add_argument("--label", default="production-verification", help="Human-readable verification label")
+    deployment_verification.add_argument("--report-file", help="Optional path to write the verification JSON")
+    deployment_verification.add_argument("--runbook-file", help="Optional path to write the verification Markdown")
+    deployment_verification.add_argument("--strict", action="store_true", help="Exit nonzero when verification has blocking or missing evidence")
+    deployment_verification.add_argument("--dry-run", action="store_true", help="Print the verification JSON without writing files")
+    deployment_verification.set_defaults(func=handle_deployment_verification)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)

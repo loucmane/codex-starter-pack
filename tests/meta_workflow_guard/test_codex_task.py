@@ -119,6 +119,26 @@ def test_build_parser_accepts_serena_status() -> None:
     assert args.report_file == "reports/serena/status.txt"
 
 
+def test_build_parser_accepts_deployment_verification() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "deployment",
+        "verification",
+        "--label",
+        "task79",
+        "--report-file",
+        "reports/production-verification/latest.json",
+        "--runbook-file",
+        "reports/production-verification/latest.md",
+        "--strict",
+    ])
+    assert args.command == "deployment"
+    assert args.subcommand == "verification"
+    assert args.label == "task79"
+    assert args.strict is True
+
+
 def test_build_parser_accepts_telemetry_report_kind() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -7122,6 +7142,260 @@ def test_handle_deployment_readiness_dry_run_outputs_json(monkeypatch, tmp_path,
     payload = json.loads(capsys.readouterr().out)
     assert payload["label"] == "task80"
     assert payload["mode"] == "static-production-transition-readiness-packet"
+
+
+def _patch_production_verification_state(module, monkeypatch, repo: Path) -> None:
+    _write_repo_config(repo, "templates")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON", repo / ".taskmaster" / "tasks" / "tasks.json")
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON_REL", ".taskmaster/tasks/tasks.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-79-production-verification"
+        if args == ["rev-parse", "HEAD"]:
+            return "verificationabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"path": "sessions/current", "resolved": "sessions/2026/05/2026-05-15-task79.md"},
+            "current_plan": {"path": "plans/current", "resolved": "plans/2026-05-15-task79.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260515-task79-production-verification-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 107, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task79.md"]})
+
+
+def _write_production_verification_sources(repo: Path, *, include_monitoring: bool = True) -> None:
+    _touch_enhancement_source(repo, ".taskmaster/tasks/tasks.json", json.dumps({"master": {"tasks": []}}) + "\n")
+    _touch_enhancement_source(repo, "sessions/2026/05/2026-05-15-task79.md", "# Session\n")
+    _touch_enhancement_source(repo, "plans/2026-05-15-task79.md", "# Plan\n")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/active/20260515-task79-production-verification-ACTIVE")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+        json.dumps({"summary": {"status": "passed", "passed": 12, "failed_required": 0, "total": 12}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task50-security-audit-process-COMPLETED/reports/security-audit-process/security-audit-2026-05-13.json",
+        json.dumps(
+            {
+                "controls": [
+                    {"id": "template-security-validator", "status": "available"},
+                    {"id": "phase0-security-gate", "status": "missing-evidence"},
+                ],
+                "compliance_notes": ["Runtime projects must add project-specific compliance evidence."],
+            }
+        )
+        + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "reports/template-performance/latest.json",
+        json.dumps({"status": "pass", "summary": {"total": 4, "passed": 4, "warnings": 0, "errors": 0}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/cost-tracking/latest.json",
+        json.dumps({"status": "warn", "summary": {"total": 4, "passed": 0, "warnings": 0, "errors": 0}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task57-operational-runbook-COMPLETED/reports/operational-runbook/operational-runbook-2026-05-13.json",
+        json.dumps({"mode": "operational-runbook"}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260510-task35-emergency-response-system-COMPLETED/reports/emergency-response-system/emergency-plan-2026-05-10.json",
+        json.dumps({"mode": "emergency-plan"}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task47-error-recovery-system-COMPLETED/reports/error-recovery-system/recovery-plan-2026-05-13.json",
+        json.dumps({"mode": "recovery-plan"}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260507-task19-rollback-mechanism-COMPLETED/reports/rollback-mechanism/checkpoint-2026-05-07.json",
+        json.dumps({"mode": "rollback-checkpoint"}) + "\n",
+    )
+    if include_monitoring:
+        _touch_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite-evidence/template-monitoring/latest.json",
+            json.dumps({"status": "pass"}) + "\n",
+        )
+        _touch_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/source-migration-health/latest.json",
+            json.dumps({"status": "pass"}) + "\n",
+        )
+        _touch_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json",
+            json.dumps({"aggregate_status": "pass"}) + "\n",
+        )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": "warn", "stakeholder_signal": "needs-refresh", "warnings": 2, "failures": 0}}) + "\n",
+    )
+    _touch_enhancement_source(repo, "templates/guides/reference/final-documentation-map.md", "# Final Docs\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt",
+        "Taskmaster health: OK\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260515-task80-production-deployment-COMPLETED/reports/production-deployment/deployment-readiness-2026-05-15-ssot-clean.json",
+        json.dumps({"summary": {"aggregate_status": "review", "transition_signal": "ready-with-review", "readiness_score_pct": 66.67, "ready": 6, "review": 3}}) + "\n",
+    )
+
+
+def test_build_production_verification_report_summarizes_final_gate(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_production_verification_state(module, monkeypatch, repo)
+    _write_production_verification_sources(repo)
+
+    report = module._build_production_verification_report(argparse.Namespace(label="task79"))
+
+    assert report["mode"] == "static-production-verification-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "review"
+    assert report["summary"]["verification_signal"] == "ready-with-manual-review"
+    domains = {domain["id"]: domain for domain in report["domains"]}
+    assert domains["final-validation"]["status"] == "ready"
+    assert domains["security-audit-and-compliance"]["status"] == "review"
+    assert domains["performance-benchmarks"]["status"] == "ready"
+    assert domains["cost-projections"]["status"] == "review"
+    assert domains["monitoring-coverage"]["status"] == "ready"
+    assert domains["production-transition-readiness"]["status"] == "review"
+    assert any(item["id"] == "human-production-signoff" for item in report["final_signoff_checklist"])
+
+
+def test_build_production_verification_report_surfaces_missing_monitoring(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_production_verification_state(module, monkeypatch, repo)
+    _write_production_verification_sources(repo, include_monitoring=False)
+
+    report = module._build_production_verification_report(argparse.Namespace(label="task79"))
+
+    domains = {domain["id"]: domain for domain in report["domains"]}
+    assert domains["monitoring-coverage"]["status"] == "needs-evidence"
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(item["blocks_final_signoff"] for item in report["final_signoff_checklist"])
+
+
+def test_render_production_verification_report_lists_signoff_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_production_verification_state(module, monkeypatch, repo)
+    _write_production_verification_sources(repo)
+    report = module._build_production_verification_report(argparse.Namespace(label="task79"))
+
+    runbook = module._render_production_verification_report(report)
+
+    assert "# Production Verification Packet" in runbook
+    assert "Final Sign-Off Checklist" in runbook
+    assert "Security audit and compliance" in runbook
+    assert "No live security scan" in runbook
+    assert "Executes actions: True" not in runbook
+
+
+def test_handle_deployment_verification_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_production_verification_state(module, monkeypatch, repo)
+    _write_production_verification_sources(repo)
+
+    module.handle_deployment_verification(
+        argparse.Namespace(
+            label="task79",
+            report_file="reports/production-verification/latest.json",
+            runbook_file="reports/production-verification/latest.md",
+            strict=True,
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote production verification packet to reports/production-verification/latest.json" in output
+    assert "Wrote production verification runbook to reports/production-verification/latest.md" in output
+    payload = json.loads((repo / "reports" / "production-verification" / "latest.json").read_text(encoding="utf-8"))
+    assert payload["summary"]["aggregate_status"] == "review"
+    assert "Production Verification Packet" in (repo / "reports" / "production-verification" / "latest.md").read_text(encoding="utf-8")
+
+
+def test_handle_deployment_verification_strict_fails_on_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_production_verification_state(module, monkeypatch, repo)
+    _write_production_verification_sources(repo, include_monitoring=False)
+
+    with pytest.raises(module.TaskError, match="Production verification has blocking or missing evidence"):
+        module.handle_deployment_verification(
+            argparse.Namespace(
+                label="task79",
+                report_file="reports/production-verification/latest.json",
+                runbook_file="reports/production-verification/latest.md",
+                strict=True,
+                dry_run=False,
+            )
+        )
+
+    assert (repo / "reports" / "production-verification" / "latest.json").exists()
+
+
+def test_handle_deployment_verification_dry_run_outputs_json(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_production_verification_state(module, monkeypatch, repo)
+    _write_production_verification_sources(repo)
+
+    module.handle_deployment_verification(
+        argparse.Namespace(label="task79", report_file=None, runbook_file=None, strict=False, dry_run=True)
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["label"] == "task79"
+    assert payload["mode"] == "static-production-verification-packet"
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:
