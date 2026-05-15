@@ -1,0 +1,18 @@
+## main...origin/main
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/CHANGELOG.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/DECISIONS.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/FINDINGS.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/HANDOFF.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/IMPLEMENTATION.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/TRACKER.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/designs/continuous-improvement-scope-reconciliation.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/continuous-improvement-2026-05-15.json
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/continuous-improvement-2026-05-15.md
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/diff-check-2026-05-15-final.txt
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/guard-2026-05-15-final.txt
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/plan-sync-2026-05-15-final.txt
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/taskmaster-health-2026-05-15-final.txt
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/taskmaster-show-77-2026-05-15-final.txt
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/tests-2026-05-15-codex-task.txt
+ D docs/ai/work-tracking/active/20260515-task77-continuous-improvement-ACTIVE/reports/continuous-improvement/work-tracking-audit-2026-05-15-final.txt
+?? docs/ai/work-tracking/archive/20260515-task77-continuous-improvement-COMPLETED/
