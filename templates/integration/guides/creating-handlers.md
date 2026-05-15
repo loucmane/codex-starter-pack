@@ -129,9 +129,9 @@ Follow the standard format exactly:
 ### 4. Create the Handler File
 
 Location based on role and domain:
-- Triggers: `templates/handlers/triggers/[domain]/[handler-id].md`
-- Orchestrators: `templates/handlers/orchestrators/[handler-id].md`
-- Operators: `templates/handlers/operators/[domain]/[handler-id].md`
+- Triggers: place files under `templates/handlers/triggers/` by domain and handler ID.
+- Orchestrators: place files under `templates/handlers/orchestrators/` by handler ID.
+- Operators: place files under `templates/handlers/operators/` by domain and handler ID.
 
 ### 5. Test the Handler
 
@@ -289,7 +289,7 @@ Remember: Handlers are only useful if users can find them!
 
 ### Real Handler from System
 
-Here's an actual handler from `templates/handlers/triggers/development/implement-feature.md`:
+Here's an example based on the current development trigger handler pattern:
 
 ```markdown
 ---
@@ -367,3 +367,7 @@ version: 1.0.0
 - [Handler Architecture](../architecture/handler-architecture.md)
 - [System Integration Guide](system-integration.md)
 - Existing handlers in `templates/handlers/` for examples
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

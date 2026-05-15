@@ -57,7 +57,7 @@ Canonical index for modular pattern templates. Legacy top-level pattern-library 
 ## Discovery Contract
 
 - The top-level pattern-library document remains a legacy entrypoint.
-- `templates/patterns/index.md` is the modular pattern-family landing page.
+- This index is the modular pattern-family landing page.
 - Template registry compatibility lookup must redirect legacy pattern-library queries to this file and return a concrete registry record, not a bare directory.
 - Pattern template metadata is governed by `templates/metadata/template-metadata-policy.json`.
 

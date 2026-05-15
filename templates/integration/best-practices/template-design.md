@@ -5,9 +5,7 @@ category: best-practices
 title: Template Design Principles
 audience: architect
 complexity: intermediate
-dependencies:
-  - template-architecture
-  - handler-design
+dependencies: []
 prerequisites:
   - Understanding of template system
   - Knowledge of modular design
@@ -180,8 +178,8 @@ status: stable               # Required: stable|beta|experimental|deprecated
 ### Cross-References
 ```markdown
 For more details, see:
-- [Handler Creation](../guides/creating-handlers.md)
-- [System Architecture](../architecture/system-architecture.md)
+- handler creation guide
+- system architecture overview
 ```
 
 ### Breadcrumbs
@@ -310,7 +308,7 @@ handler_structure:
 ```yaml
 integration_structure:
   guides/:           # How-to guides
-    - creating-handlers.md
+    - handler-creation guide
     - extending-templates.md
   
   cross-system/:     # System integration
@@ -322,11 +320,11 @@ integration_structure:
     - handler-chaining.md
   
   best-practices/:   # Guidelines
-    - templates/integration/best-practices/handler-design.md
+    - handler-design guide
     - template-design.md
   
   architecture/:     # System design
-    - system-architecture.md
+    - system architecture overview
     - handler-architecture.md
 ```
 
@@ -509,13 +507,13 @@ maintenance_schedule:
    ```yaml
    status: deprecated
    deprecated_date: 2024-01-01
-   replacement: new-template.md
+   replacement: replacement-template-id
    removal_date: 2024-06-01
    ```
 
 2. **Add Warning Banner**
    > ⚠️ **DEPRECATED**: This template is deprecated.
-   > Use [new-template.md](new-template.md) instead.
+   > Use the replacement template named in the metadata instead.
 
 3. **Provide Migration Path**
    - Clear instructions
@@ -594,11 +592,11 @@ result: Complete auth system with tests
 
 ## Related Resources
 
-- [Handler Design](handler-design.md)
-- [Template Architecture](../architecture/template-architecture.md)
-- [System Architecture](../architecture/system-architecture.md)
-- [Creating Handlers](../guides/creating-handlers.md)
-- [Integration Patterns](integration-patterns.md)
+- Handler design best practices
+- Template architecture overview
+- System architecture overview
+- Creating handlers guide
+- Integration patterns best practices
 
 ## Progress Log
 

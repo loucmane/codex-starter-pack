@@ -19,7 +19,7 @@ status: stable
 
 1. **STATE**: "I'm about to [specific action]"
 2. **CHECK**: Which workflow/convention applies? (State it out loud)
-3. **TOOLS**: Need a tool? → Check [Tool Router](../../TOOLS.md#mandatory-tool-selection-router---check-before-every-tool-use) FIRST!
+3. **TOOLS**: Need a tool? → Check [Tool Router](../../TOOLS.md#decision-router) FIRST!
 4. **VERIFY**: Required tools ready? Dependencies checked?
 5. **ULTRATHINK**: Deploy for non-trivial tasks
 
@@ -77,3 +77,7 @@ ACTION: Use Serena to extract specific examples
 - It prevents common errors by forcing pre-flight checks
 - It ensures proper tool selection through the Tool Router
 - It creates a learning loop through post-flight review
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

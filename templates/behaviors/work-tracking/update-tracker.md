@@ -235,10 +235,10 @@ Document in FINDINGS.md:
 ```
 
 ## Cross-References
-- [Plan/Tracker Setup](../../templates/workflows/handlers/intent-handlers.md#create-todos)
-- [timestamps/before-adding.md](../timestamps/before-adding.md)
+- [Plan/Tracker Setup](../../handlers/triggers/workflow/create-todos.md#create-todos)
+- Timestamp-before-adding behavior
 - [session/session-end.md](../session/session-end.md)
-- [CONVENTIONS.md#work-tracking](../../templates/conventions/)
+- [Work Tracking Conventions](../../conventions/)
 
 ## Error Cases
 - **No work folder**: Create immediately before continuing

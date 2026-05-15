@@ -9,7 +9,6 @@ dependencies:
   - templates/shared/tools/tool-selection-matrix.md
 related:
   - patterns/selection/templates/patterns/selection/handler-selection.md
-  - patterns/selection/templates/patterns/selection/agent-selection.md
 version: 1.0.0
 status: stable
 ---
@@ -155,8 +154,8 @@ When correctness is critical, use semantic tools even if slower
 When unsure, present tool options to user
 
 ## Related Patterns
-- [Handler Selection](handler-selection.md) - Choosing handlers
-- [Agent Selection](agent-selection.md) - Selecting specialist agents
+- Handler selection patterns - Choosing handlers
+- Agent selection patterns - Selecting specialist agents
 - [Code Creation](../../handlers/orchestrators/code-creation.md) - Creating new code
 
 ## Handler References

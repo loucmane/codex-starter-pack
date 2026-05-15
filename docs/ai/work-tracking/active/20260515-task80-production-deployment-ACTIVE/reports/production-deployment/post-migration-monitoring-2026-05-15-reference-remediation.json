@@ -1,0 +1,284 @@
+{
+  "aggregate_status": "fail",
+  "automation_guidance": {
+    "default_review_packet": "Store the generated JSON and Markdown packet as task-local evidence before acting on findings.",
+    "report_refresh": "Run static report commands manually, in CI, or in a reviewed scheduler owned by the downstream project.",
+    "strict_gate": "Use --strict only when fail-level post-migration status should fail the caller."
+  },
+  "cadence_plan": [
+    {
+      "cadence": "weekly",
+      "commands": [
+        "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci",
+        "python3 scripts/template-ssot-scanner/baseline_summary.py --data-dir scripts/template-ssot-scanner/output/data",
+        "python3 scripts/codex-task report generate --kind telemetry",
+        "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+        "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>"
+      ],
+      "evidence": [
+        "scanner baseline summary",
+        "migration metrics packet",
+        "migration health report",
+        "post-migration monitoring packet"
+      ],
+      "id": "weekly-scanner-health",
+      "purpose": "Keep scanner-derived migration KPIs and aggregate static telemetry current.",
+      "title": "Weekly scanner and migration-health refresh"
+    },
+    {
+      "cadence": "monthly",
+      "commands": [
+        "python3 scripts/codex-task report generate --kind cost",
+        "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>"
+      ],
+      "evidence": [
+        "cost tracking report",
+        "post-migration monitoring packet"
+      ],
+      "id": "monthly-usage-review",
+      "purpose": "Review static cost telemetry and open migration actions before scope drift accumulates.",
+      "title": "Monthly usage and cost review"
+    },
+    {
+      "cadence": "quarterly",
+      "commands": [
+        "python3 scripts/template-performance-harness --report-dir reports/template-performance",
+        "python3 scripts/codex-task report generate --kind migration-health",
+        "python3 scripts/codex-task migration monitoring --metrics-report <metrics.json> --migration-health-report reports/migration-health/latest.json --report-file <monitoring.json> --runbook-file <monitoring.md>"
+      ],
+      "evidence": [
+        "template performance report",
+        "migration health report",
+        "post-migration monitoring packet"
+      ],
+      "id": "quarterly-benchmark-update",
+      "purpose": "Refresh performance baselines and review migration-health trend inputs.",
+      "title": "Quarterly benchmark and regression review"
+    },
+    {
+      "cadence": "yearly",
+      "commands": [
+        "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+        "python3 scripts/codex-task taskmaster health --report-file <taskmaster-health.txt>",
+        "python3 scripts/codex-task validation final-suite --dry-run"
+      ],
+      "evidence": [
+        "migration roadmap",
+        "Taskmaster health report",
+        "final validation dry-run"
+      ],
+      "id": "yearly-planning-review",
+      "purpose": "Regenerate the migration roadmap and compare remaining work against Taskmaster health.",
+      "title": "Yearly roadmap and planning review"
+    }
+  ],
+  "created_at": "2026-05-15T14:53:12+02:00",
+  "executes_external_actions": false,
+  "inputs": {
+    "migration_health": {
+      "exists": true,
+      "generated_at": "2026-05-13T14:29:41.298280+02:00",
+      "items": [
+        {
+          "evidence": "reports/template-metrics/latest.json",
+          "id": "metrics",
+          "message": "Telemetry component loaded successfully.",
+          "severity": "info",
+          "status": "pass",
+          "target": null,
+          "title": "Template metrics dashboard",
+          "value": null
+        },
+        {
+          "evidence": "reports/template-monitoring/latest.json",
+          "id": "monitoring",
+          "message": "Telemetry component is missing; run the review command before claiming full migration health.",
+          "severity": "warning",
+          "status": "missing",
+          "target": null,
+          "title": "Template monitoring report",
+          "value": null
+        },
+        {
+          "evidence": "reports/phase0-scanner-validation/latest.json",
+          "id": "phase0",
+          "message": "Telemetry component is missing; run the review command before claiming full migration health.",
+          "severity": "warning",
+          "status": "missing",
+          "target": null,
+          "title": "Phase 0 scanner validation report",
+          "value": null
+        },
+        {
+          "evidence": "reports/template-performance/latest.json",
+          "id": "performance",
+          "message": "Telemetry component reports pass.",
+          "severity": "info",
+          "status": "pass",
+          "target": null,
+          "title": "Template performance report",
+          "value": null
+        },
+        {
+          "evidence": "reports/cost-tracking/latest.json",
+          "id": "cost",
+          "message": "Telemetry component is missing; run the review command before claiming full migration health.",
+          "severity": "warning",
+          "status": "missing",
+          "target": null,
+          "title": "Cost tracking report",
+          "value": null
+        }
+      ],
+      "message": "Migration health report loaded successfully.",
+      "path": "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/source-migration-health/latest.json",
+      "severity": "warning",
+      "status": "warn",
+      "summary": {
+        "errors": 0,
+        "missing": 3,
+        "passed": 2,
+        "total": 5,
+        "warnings": 3
+      }
+    },
+    "migration_metrics": {
+      "exists": true,
+      "generated_at": "2026-05-15T14:53:06+02:00",
+      "items": [
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+          "id": "migration-completion",
+          "message": "Migration is not yet complete.",
+          "severity": "warning",
+          "status": "warn",
+          "target": "100",
+          "title": "Migration completion",
+          "value": 37.5
+        },
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+          "id": "pending-migration",
+          "message": "6 item(s) remain above the zero target.",
+          "severity": "warning",
+          "status": "warn",
+          "target": "0",
+          "title": "Pending migration files",
+          "value": 6
+        },
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+          "id": "broken-references",
+          "message": "Target met.",
+          "severity": "info",
+          "status": "pass",
+          "target": "0",
+          "title": "Broken references",
+          "value": 0
+        },
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+          "id": "circular-dependencies",
+          "message": "19 item(s) remain above the zero target.",
+          "severity": "error",
+          "status": "fail",
+          "target": "0",
+          "title": "Circular dependencies",
+          "value": 19
+        },
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+          "id": "duplicate-files",
+          "message": "4 item(s) remain above the zero target.",
+          "severity": "warning",
+          "status": "warn",
+          "target": "0",
+          "title": "Duplicate files",
+          "value": 4
+        },
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+          "id": "recommended-fixes",
+          "message": "2 item(s) remain above the zero target.",
+          "severity": "warning",
+          "status": "warn",
+          "target": "0",
+          "title": "Recommended fixes",
+          "value": 2
+        },
+        {
+          "evidence": "scripts/template-ssot-scanner/output/data/security_validation.json",
+          "id": "security-findings",
+          "message": "Target met.",
+          "severity": "info",
+          "status": "pass",
+          "target": "0",
+          "title": "Security findings",
+          "value": 0
+        },
+        {
+          "evidence": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+          "id": "roadmap-critical-items",
+          "message": "No critical roadmap items remain.",
+          "severity": "info",
+          "status": "pass",
+          "target": "0",
+          "title": "Critical roadmap items",
+          "value": 0
+        },
+        {
+          "evidence": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-reference-remediation.json",
+          "id": "roadmap-total-items",
+          "message": "Roadmap backlog remains.",
+          "severity": "warning",
+          "status": "warn",
+          "target": "reviewed backlog",
+          "title": "Total roadmap items",
+          "value": 27
+        }
+      ],
+      "message": "Migration metrics report loaded successfully.",
+      "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-metrics-2026-05-15-reference-remediation.json",
+      "severity": "error",
+      "status": "fail",
+      "summary": {
+        "failures": 1,
+        "passed": 3,
+        "total_kpis": 9,
+        "warnings": 5
+      }
+    }
+  },
+  "label": "task80-reference-remediation",
+  "mode": "static-file-backed-post-migration-monitoring",
+  "non_goals": [
+    "No scheduler, daemon, cron job, or background worker is installed.",
+    "No Prometheus, Grafana, OpenTelemetry, Elasticsearch, StatsD, or database service is configured.",
+    "No Slack, email, PagerDuty, ticket, issue, or webhook alert is sent.",
+    "No scanner output, telemetry artifact, Taskmaster state, or remediation file is mutated by this report.",
+    "No live production endpoint, secret, billing account, or hosted observability backend is contacted."
+  ],
+  "required_actions": [
+    {
+      "command": "Review the migration metrics runbook and update the roadmap before closing monitoring.",
+      "id": "resolve-failing-migration-kpis",
+      "severity": "error",
+      "title": "Resolve or explicitly waive failing migration KPIs."
+    },
+    {
+      "command": "python3 scripts/codex-task report generate --kind telemetry",
+      "id": "review-warning-migration-health",
+      "severity": "warning",
+      "title": "Review warning or missing migration-health components."
+    }
+  ],
+  "summary": {
+    "available_inputs": 2,
+    "cadence_checks": 4,
+    "failures": 1,
+    "inputs": 2,
+    "required_actions": 2,
+    "warnings": 1
+  },
+  "version": 1
+}

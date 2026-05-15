@@ -7,7 +7,6 @@ audience: architect
 complexity: advanced
 dependencies:
   - adding-agents
-  - system-integration
 prerequisites:
   - Deep understanding of agent system
   - Knowledge of coordination patterns
@@ -494,7 +493,11 @@ Coordination:
 ## Related Resources
 
 - [Adding Agents](../guides/adding-agents.md)
-- [System Integration](../guides/system-integration.md)
-- [System Architecture](../architecture/system-architecture.md)
+- System integration guide
+- System architecture overview
 - [Handler Architecture](../architecture/handler-architecture.md)
 - Agent Coordinator implementation in `.claude/agents/`
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

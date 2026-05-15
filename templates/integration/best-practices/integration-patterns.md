@@ -680,6 +680,10 @@ process:
 
 - [System Integration](../guides/system-integration.md)
 - [Pattern Composition](../composition/pattern-composition.md)
-- [System Architecture](../architecture/system-architecture.md)
-- [Handler Design](handler-design.md)
+- System architecture overview
+- Handler design best practices
 - [Template Design](template-design.md)
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

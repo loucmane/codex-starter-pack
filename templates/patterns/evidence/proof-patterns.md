@@ -5,9 +5,7 @@ category: evidence
 title: Proof Requirement Patterns
 pattern_type: operational
 complexity: simple
-dependencies:
-  - patterns/evidence/templates/patterns/evidence/evidence-patterns.md
-  - patterns/evidence/templates/patterns/evidence/validation-patterns.md
+dependencies: []
 related:
   - patterns/selection/tool-selection.md
 version: 1.0.0
@@ -305,8 +303,8 @@ Right: "Scalability indicators found: load balancing config, clustering support,
 ```
 
 ## Related Patterns
-- [Evidence Patterns](evidence-patterns.md) - Collecting evidence
-- [Validation Patterns](validation-patterns.md) - Validating evidence
+- Evidence patterns - Collecting evidence
+- Validation patterns - Validating evidence
 - [Tool Selection](../selection/tool-selection.md) - Tools for evidence gathering
 
 ## Handler References

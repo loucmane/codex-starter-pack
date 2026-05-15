@@ -11183,6 +11183,715 @@ def handle_maintenance_plan(args: argparse.Namespace) -> None:
         raise TaskError("Long-term maintenance aggregate status is not ready")
 
 
+DEPLOYMENT_READINESS_NON_GOALS: Tuple[str, ...] = (
+    "No production application deployment, release publication, package publish, or hosted service update is executed.",
+    "No traffic routing, feature flag rollout, automatic promotion, rollback execution, or service canary is performed.",
+    "No live monitoring service, dashboard, alert delivery, notification, scheduler, daemon, ticketing, or external observability integration is created or contacted.",
+    "No automatic guard auto-fix, cleanup mutation, maintenance automation activation, dependency update, or patch application is run.",
+    "No email, chat, publication, stakeholder notification, calendar event, celebration scheduling, or external communication is sent.",
+    "No Taskmaster, session, plan, work-tracking, Git, report source, template, or external state is mutated beyond requested production readiness packet artifacts.",
+)
+
+DEPLOYMENT_READINESS_STATUS_ORDER: Dict[str, int] = {
+    "ready": 0,
+    "not-applicable": 1,
+    "review": 2,
+    "needs-evidence": 3,
+    "blocked": 4,
+}
+
+
+def _deployment_status(value: object, *, exists: bool = True) -> str:
+    if not exists:
+        return "needs-evidence"
+    text = str(value or "missing").strip().lower().replace("_", "-")
+    aliases = {
+        "ok": "ready",
+        "pass": "ready",
+        "passed": "ready",
+        "success": "ready",
+        "complete": "ready",
+        "completed": "ready",
+        "available": "ready",
+        "needs-review": "review",
+        "needs-refresh": "review",
+        "warn": "review",
+        "warning": "review",
+        "warnings": "review",
+        "missing": "needs-evidence",
+        "needs-evidence": "needs-evidence",
+        "needs-implementation": "blocked",
+        "fail": "blocked",
+        "failed": "blocked",
+        "failure": "blocked",
+        "error": "blocked",
+        "invalid": "blocked",
+        "n/a": "not-applicable",
+        "na": "not-applicable",
+        "not-applicable": "not-applicable",
+    }
+    return aliases.get(text, text if text in DEPLOYMENT_READINESS_STATUS_ORDER else "review")
+
+
+def _deployment_get_nested(mapping: Mapping[str, Any], dotted: str) -> object:
+    current: object = mapping
+    for part in dotted.split("."):
+        if not isinstance(current, Mapping):
+            return None
+        current = current.get(part)
+    return current
+
+
+def _deployment_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    status: str,
+    evidence: Sequence[Mapping[str, Any]],
+    refresh_commands: Sequence[str],
+    message: str,
+    manual_actions: Sequence[str] = (),
+    details: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    missing = [str(item.get("path")) for item in evidence if not item.get("exists")]
+    return {
+        "id": domain_id,
+        "title": title,
+        "purpose": purpose,
+        "status": status,
+        "evidence": [dict(item) for item in evidence],
+        "missing_evidence_paths": missing,
+        "refresh_commands": list(refresh_commands),
+        "message": message,
+        "manual_actions": list(manual_actions),
+        "details": dict(details or {}),
+    }
+
+
+def _deployment_evidence_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    evidence_paths: Sequence[str],
+    refresh_commands: Sequence[str],
+    ready_message: str,
+    missing_message: str,
+    manual_actions: Sequence[str] = (),
+) -> Dict[str, Any]:
+    evidence = [_enhancement_path_state(path) for path in evidence_paths]
+    missing = [item["path"] for item in evidence if not item["exists"]]
+    status = "needs-evidence" if missing else "ready"
+    message = ready_message if status == "ready" else f"{missing_message}: {', '.join(missing)}."
+    return _deployment_domain(
+        domain_id=domain_id,
+        title=title,
+        purpose=purpose,
+        status=status,
+        evidence=evidence,
+        refresh_commands=refresh_commands,
+        message=message,
+        manual_actions=manual_actions,
+        details={"source_type": "path-evidence"},
+    )
+
+
+def _deployment_latest_packet_path(pattern: str | Sequence[str]) -> Optional[Path]:
+    patterns = [pattern] if isinstance(pattern, str) else list(pattern)
+    candidates: List[Path] = []
+    for item in patterns:
+        candidates.extend(REPO_STRUCTURE.work_tracking_active_root.glob(item))
+        candidates.extend(REPO_STRUCTURE.work_tracking_archive_root.glob(item))
+    unique = set(candidates)
+    return max(unique, key=lambda item: (item.stat().st_mtime_ns, str(item))) if unique else None
+
+
+def _deployment_latest_packet_domain(
+    *,
+    domain_id: str,
+    title: str,
+    purpose: str,
+    pattern: str | Sequence[str],
+    refresh_commands: Sequence[str],
+    status_fields: Sequence[str],
+    value_fields: Sequence[str] = (),
+    ready_message: str,
+    missing_message: str,
+    manual_actions: Sequence[str] = (),
+) -> Dict[str, Any]:
+    patterns = [pattern] if isinstance(pattern, str) else list(pattern)
+    pattern_detail: str | List[str] = patterns[0] if len(patterns) == 1 else patterns
+    latest = _deployment_latest_packet_path(patterns)
+    if latest is None:
+        evidence = [_enhancement_path_state(item) for item in patterns]
+        return _deployment_domain(
+            domain_id=domain_id,
+            title=title,
+            purpose=purpose,
+            status="needs-evidence",
+            evidence=evidence,
+            refresh_commands=refresh_commands,
+            message=missing_message,
+            manual_actions=manual_actions,
+            details={"pattern": pattern_detail, "source_type": "latest-packet"},
+        )
+
+    source = _success_metrics_load_json(latest)
+    evidence = [
+        {
+            "path": str(source.get("path")),
+            "exists": bool(source.get("exists")),
+            "kind": "file" if source.get("exists") else "missing",
+            "load_status": source.get("status"),
+        }
+    ]
+    payload = source.get("payload") if isinstance(source.get("payload"), Mapping) else {}
+    if source.get("status") == "invalid":
+        return _deployment_domain(
+            domain_id=domain_id,
+            title=title,
+            purpose=purpose,
+            status="blocked",
+            evidence=evidence,
+            refresh_commands=refresh_commands,
+            message=str(source.get("message")),
+            manual_actions=("Regenerate a valid source packet before production readiness review.",),
+            details={"pattern": pattern, "source": source},
+        )
+
+    status_value: object = None
+    for field in status_fields:
+        status_value = _deployment_get_nested(payload, field)
+        if status_value is not None:
+            break
+    status = _deployment_status(status_value)
+    values = {field: _deployment_get_nested(payload, field) for field in value_fields}
+    message = ready_message if status == "ready" else f"{title} source status is `{status_value}`."
+    actions = list(manual_actions)
+    if status in {"review", "needs-evidence"}:
+        actions.append("Review or refresh this source packet before treating Task 80 as release/BAU ready.")
+    if status == "blocked":
+        actions.append("Resolve the source packet blocker before Task 80 sign-off.")
+    return _deployment_domain(
+        domain_id=domain_id,
+        title=title,
+        purpose=purpose,
+        status=status,
+        evidence=evidence,
+        refresh_commands=refresh_commands,
+        message=message,
+        manual_actions=actions,
+        details={
+            "pattern": pattern_detail,
+            "source": {key: source[key] for key in ("path", "exists", "status", "message")},
+            "status_value": status_value,
+            "values": values,
+        },
+    )
+
+
+def _build_deployment_workflow_domain() -> Dict[str, Any]:
+    workflow = _workflow_snapshot()
+    taskmaster = _taskmaster_snapshot()
+    summary = taskmaster.get("summary") if isinstance(taskmaster.get("summary"), Mapping) else {}
+    invalid_refs = int(summary.get("invalid_refs") or 0)
+    current_session = workflow.get("current_session") if isinstance(workflow.get("current_session"), Mapping) else {}
+    current_plan = workflow.get("current_plan") if isinstance(workflow.get("current_plan"), Mapping) else {}
+    active = workflow.get("active_work_tracking") if isinstance(workflow.get("active_work_tracking"), list) else []
+    blockers: List[str] = []
+    if invalid_refs:
+        blockers.append(f"{invalid_refs} invalid Taskmaster dependency reference(s)")
+    if not current_session.get("resolved"):
+        blockers.append("sessions/current missing")
+    if not current_plan.get("resolved"):
+        blockers.append("plans/current missing")
+    if len(active) != 1:
+        blockers.append(f"expected 1 active work-tracking folder, found {len(active)}")
+    status = "ready" if not blockers else "blocked"
+    evidence = [
+        _enhancement_path_state(TASKMASTER_TASKS_JSON_REL),
+        _enhancement_path_state(str(current_session.get("resolved") or SESSIONS_CURRENT_REL)),
+        _enhancement_path_state(str(current_plan.get("resolved") or PLANS_CURRENT_REL)),
+    ]
+    evidence.extend(_enhancement_path_state(str(path)) for path in active)
+    return _deployment_domain(
+        domain_id="workflow-and-taskmaster-health",
+        title="Workflow and Taskmaster health",
+        purpose="Confirm the production-readiness review itself is task-aligned and dependency-clean.",
+        status=status,
+        evidence=evidence,
+        refresh_commands=(
+            "python3 scripts/codex-task taskmaster health",
+            "python3 scripts/codex-task work-tracking audit",
+            "python3 scripts/codex-guard validate --include-untracked",
+        ),
+        message="Workflow pointers and Taskmaster dependencies are ready." if not blockers else "; ".join(blockers),
+        manual_actions=("Fix workflow or Taskmaster blockers before closing Task 80.",) if blockers else (),
+        details={"workflow": workflow, "taskmaster_summary": summary},
+    )
+
+
+def _build_deployment_historical_requirements() -> List[Dict[str, str]]:
+    return [
+        {
+            "requirement": "Execute final deployment checklist",
+            "current_boundary": "Use the static deployment readiness checklist and final validation evidence.",
+            "treatment": "Compose and review evidence; do not deploy an application.",
+        },
+        {
+            "requirement": "Enable production monitoring",
+            "current_boundary": "Task 60 provides post-migration monitoring cadence evidence.",
+            "treatment": "Reference monitoring packet and refresh commands; do not enable monitoring services.",
+        },
+        {
+            "requirement": "Activate maintenance automation",
+            "current_boundary": "Task 70 provides long-term maintenance planning evidence.",
+            "treatment": "Review maintenance cadence; do not install schedulers, daemons, alerts, or patch automation.",
+        },
+        {
+            "requirement": "Remove migration flags",
+            "current_boundary": "No runtime migration flags exist in this portable foundation.",
+            "treatment": "Classify as not applicable unless a future task proves concrete flags to remove.",
+        },
+        {
+            "requirement": "Update status communications",
+            "current_boundary": "Task 73 provides static stakeholder reporting and communication guidance.",
+            "treatment": "Prepare review material; do not send or publish communications.",
+        },
+        {
+            "requirement": "Archive migration project",
+            "current_boundary": "Task work-tracking archives happen after each PR merge.",
+            "treatment": "Archive Task 80 after merge; do not prematurely archive active work.",
+        },
+        {
+            "requirement": "Transition to BAU",
+            "current_boundary": "Maintenance, operations, validation, and final docs provide BAU inputs.",
+            "treatment": "Use this packet as the BAU transition review surface.",
+        },
+        {
+            "requirement": "Celebrate success",
+            "current_boundary": "Task 76 provides static celebration/readout planning.",
+            "treatment": "Reference celebration material; do not schedule events or publish content.",
+        },
+    ]
+
+
+def _build_deployment_readiness_domains() -> List[Dict[str, Any]]:
+    return [
+        _build_deployment_workflow_domain(),
+        _deployment_latest_packet_domain(
+            domain_id="final-validation",
+            title="Final validation suite",
+            purpose="Ground release readiness in the latest final validation sign-off packet.",
+            pattern="*-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/*final-validation-suite.json",
+            refresh_commands=("python3 scripts/codex-task validation final-suite --execute --report-dir reports/final-validation-suite",),
+            status_fields=("summary.status", "summary.aggregate_status", "status"),
+            value_fields=("summary.passed", "summary.failed_required", "summary.total"),
+            ready_message="Final validation evidence is available and passed.",
+            missing_message="Final validation packet evidence is missing.",
+        ),
+        _deployment_evidence_domain(
+            domain_id="final-documentation",
+            title="Final documentation map",
+            purpose="Confirm release and handoff docs are discoverable from canonical repository paths.",
+            evidence_paths=(
+                "templates/guides/reference/final-documentation-map.md",
+                "docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt",
+            ),
+            refresh_commands=(
+                "python3 scripts/codex-task validation final-suite --dry-run",
+                "python3 scripts/codex-guard validate --include-untracked",
+            ),
+            ready_message="Final documentation map and Task 78 evidence are available.",
+            missing_message="Final documentation release evidence is missing",
+        ),
+        _deployment_latest_packet_domain(
+            domain_id="maintenance-bau",
+            title="Maintenance and BAU readiness",
+            purpose="Confirm long-term maintenance guidance exists before between-session/BAU transition.",
+            pattern="*-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-*-final.json",
+            refresh_commands=("python3 scripts/codex-task maintenance plan --report-file reports/maintenance/latest.json --runbook-file reports/maintenance/latest.md",),
+            status_fields=("summary.aggregate_status", "aggregate_status", "status"),
+            value_fields=("summary.maintenance_score_pct", "summary.review", "summary.missing", "summary.blocked"),
+            ready_message="Maintenance packet reports ready BAU evidence.",
+            missing_message="Maintenance/BAU source packet is missing.",
+        ),
+        _deployment_latest_packet_domain(
+            domain_id="post-migration-monitoring",
+            title="Post-migration monitoring",
+            purpose="Confirm monitoring review cadence exists without live monitoring activation.",
+            pattern=(
+                "*-task80-production-deployment-ACTIVE/reports/production-deployment/post-migration-monitoring-*.json",
+                "*-task80-production-deployment-COMPLETED/reports/production-deployment/post-migration-monitoring-*.json",
+                "*-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-*.json",
+            ),
+            refresh_commands=("python3 scripts/codex-task migration monitoring --metrics-report reports/migration-metrics/latest.json --migration-health-report reports/migration-health/latest.json --report-file reports/post-migration-monitoring/latest.json --runbook-file reports/post-migration-monitoring/latest.md",),
+            status_fields=("aggregate_status", "summary.aggregate_status", "status"),
+            value_fields=("summary.available_inputs", "summary.failures", "summary.warnings"),
+            ready_message="Post-migration monitoring cadence evidence is available.",
+            missing_message="Post-migration monitoring packet is missing.",
+        ),
+        _deployment_latest_packet_domain(
+            domain_id="stakeholder-communications",
+            title="Stakeholder communications",
+            purpose="Confirm status communication material exists while keeping delivery manual.",
+            pattern="*-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-*-final.json",
+            refresh_commands=("python3 scripts/codex-task stakeholder report --report-file reports/stakeholder-reporting/latest.json --runbook-file reports/stakeholder-reporting/latest.md",),
+            status_fields=("summary.aggregate_status", "aggregate_status", "status"),
+            value_fields=("summary.stakeholder_signal", "summary.warnings", "summary.failures"),
+            ready_message="Stakeholder reporting packet is ready to share after human review.",
+            missing_message="Stakeholder reporting source packet is missing.",
+        ),
+        _deployment_latest_packet_domain(
+            domain_id="celebration-readout",
+            title="Celebration/readout planning",
+            purpose="Confirm success readout material exists without scheduling or publishing.",
+            pattern="*-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-*-final.json",
+            refresh_commands=("python3 scripts/codex-task celebration plan --report-file reports/celebration-planning/latest.json --runbook-file reports/celebration-planning/latest.md",),
+            status_fields=("summary.aggregate_status", "aggregate_status", "status"),
+            value_fields=("summary.ready", "summary.needs_evidence", "summary.blocked"),
+            ready_message="Celebration/readout planning packet is ready for human review.",
+            missing_message="Celebration/readout source packet is missing.",
+        ),
+        _deployment_evidence_domain(
+            domain_id="cleanup-and-archive-posture",
+            title="Cleanup and archive posture",
+            purpose="Confirm cleanup guidance and post-merge archival posture are visible.",
+            evidence_paths=(
+                "docs/ai/work-tracking/archive/20260514-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-2026-05-14-final.json",
+                "docs/ai/work-tracking/archive/20260515-task74-phase-6-cleanup-COMPLETED/",
+            ),
+            refresh_commands=(
+                "python3 scripts/codex-task cleanup plan --report-file reports/cleanup-automation/latest.json --runbook-file reports/cleanup-automation/latest.md",
+                "python3 scripts/codex-task work-tracking audit",
+            ),
+            ready_message="Cleanup guidance and Phase 6 archive evidence are available.",
+            missing_message="Cleanup or archive posture evidence is missing",
+            manual_actions=("Archive the Task 80 work-tracking folder only after its PR merges.",),
+        ),
+        _deployment_evidence_domain(
+            domain_id="rollout-and-adoption",
+            title="Rollout and adoption readiness",
+            purpose="Confirm portable foundation adoption/release docs exist for downstream projects.",
+            evidence_paths=(
+                "templates/engine/validation/foundation-adoption-guide.md",
+                "templates/engine/core/portable-foundation-spec.md",
+                "templates/guides/quickstart/getting-started.md",
+                "docs/ai/work-tracking/archive/20260424-task102-foundation-migration-adoption-COMPLETED/",
+            ),
+            refresh_commands=(
+                "python3 scripts/codex-task bootstrap init --help",
+                "python3 scripts/codex-task validation final-suite --dry-run",
+            ),
+            ready_message="Portable rollout/adoption guidance is available.",
+            missing_message="Rollout/adoption evidence is missing",
+        ),
+        _deployment_domain(
+            domain_id="runtime-migration-flags",
+            title="Runtime migration flags",
+            purpose="Address the historical request to remove migration flags.",
+            status="not-applicable",
+            evidence=(
+                _enhancement_path_state("docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/designs/production-deployment-scope-reconciliation.md"),
+            ),
+            refresh_commands=("Review the Task 80 scope reconciliation before adding any runtime flag-removal work.",),
+            message="No runtime migration flags exist in this static portable foundation.",
+            manual_actions=("Create a new scoped task if future project-specific runtime flags are discovered.",),
+            details={"historical_requirement": "Remove migration flags"},
+        ),
+    ]
+
+
+def _summarise_deployment_readiness(domains: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    counts = Counter(str(domain.get("status")) for domain in domains)
+    if counts.get("blocked"):
+        aggregate_status = "blocked"
+        transition_signal = "not-ready"
+    elif counts.get("needs-evidence"):
+        aggregate_status = "needs-evidence"
+        transition_signal = "needs-evidence"
+    elif counts.get("review"):
+        aggregate_status = "review"
+        transition_signal = "ready-with-review"
+    else:
+        aggregate_status = "ready"
+        transition_signal = "ready-for-bau"
+    total = len(domains)
+    actionable = total - counts.get("not-applicable", 0)
+    ready_like = counts.get("ready", 0)
+    score = round((ready_like / actionable) * 100, 2) if actionable else 100.0
+    return {
+        "aggregate_status": aggregate_status,
+        "transition_signal": transition_signal,
+        "readiness_score_pct": score,
+        "total_domains": total,
+        "ready": counts.get("ready", 0),
+        "review": counts.get("review", 0),
+        "needs_evidence": counts.get("needs-evidence", 0),
+        "blocked": counts.get("blocked", 0),
+        "not_applicable": counts.get("not-applicable", 0),
+    }
+
+
+def _deployment_readiness_refresh_commands(domains: Sequence[Mapping[str, Any]]) -> List[str]:
+    commands: List[str] = []
+    for domain in domains:
+        for command in domain.get("refresh_commands", []) or []:
+            if isinstance(command, str) and command and command not in commands:
+                commands.append(command)
+    for command in (
+        "python3 scripts/codex-task deployment readiness --report-file reports/production-deployment/latest.json --runbook-file reports/production-deployment/latest.md",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check",
+    ):
+        if command not in commands:
+            commands.append(command)
+    return commands
+
+
+def _deployment_checklist(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    checks = []
+    for domain in domains:
+        if domain.get("status") == "not-applicable":
+            continue
+        checks.append(
+            {
+                "id": domain.get("id"),
+                "title": domain.get("title"),
+                "status": domain.get("status"),
+                "required_for_signoff": domain.get("status") in {"ready", "review"},
+                "message": domain.get("message"),
+            }
+        )
+    return checks
+
+
+def _deployment_manual_next_steps(domains: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    steps: List[Dict[str, Any]] = []
+    for domain in domains:
+        for action in domain.get("manual_actions", []) or []:
+            steps.append({"domain": domain.get("id"), "status": domain.get("status"), "action": action})
+    if not steps:
+        steps.append(
+            {
+                "domain": "production-readiness",
+                "status": "ready",
+                "action": "Review the generated packet and archive Task 80 work tracking after PR merge.",
+            }
+        )
+    return steps
+
+
+def _build_deployment_readiness_report(args: argparse.Namespace) -> Dict[str, Any]:
+    now = datetime.now().astimezone()
+    label = args.label or "production-deployment-readiness"
+    domains = _build_deployment_readiness_domains()
+    summary = _summarise_deployment_readiness(domains)
+    return {
+        "version": 1,
+        "created_at": now.isoformat(timespec="seconds"),
+        "label": label,
+        "mode": "static-production-transition-readiness-packet",
+        "executes_actions": False,
+        "summary": summary,
+        "current_state": {
+            "git": {
+                "branch": _git_output(["branch", "--show-current"]),
+                "head": _git_output(["rev-parse", "HEAD"]),
+                "status": _git_status_snapshot(),
+            },
+            "workflow": _workflow_snapshot(),
+            "taskmaster": _taskmaster_snapshot(),
+            "serena": _serena_memory_snapshot(),
+        },
+        "domains": domains,
+        "production_readiness_checklist": _deployment_checklist(domains),
+        "bau_transition_checklist": [
+            {
+                "id": "final-evidence-review",
+                "status": summary["aggregate_status"],
+                "action": "Review this packet plus final validation, maintenance, stakeholder, celebration, cleanup, and documentation evidence.",
+            },
+            {
+                "id": "taskmaster-closeout",
+                "status": "manual",
+                "action": "Mark Task 80 and subtasks done only after verification evidence is captured.",
+            },
+            {
+                "id": "post-merge-archive",
+                "status": "manual",
+                "action": "Archive the Task 80 work-tracking folder only after the Task 80 PR merges.",
+            },
+            {
+                "id": "between-session-mode",
+                "status": "manual",
+                "action": "Clear active session/plan pointers through the normal archive workflow after merge.",
+            },
+        ],
+        "historical_requirement_map": _build_deployment_historical_requirements(),
+        "manual_next_steps": _deployment_manual_next_steps(domains),
+        "recommended_refresh_commands": _deployment_readiness_refresh_commands(domains),
+        "non_goals": list(DEPLOYMENT_READINESS_NON_GOALS),
+    }
+
+
+def _render_deployment_readiness_report(report: Dict[str, Any]) -> str:
+    current = report.get("current_state", {}) if isinstance(report.get("current_state"), Mapping) else {}
+    git_info = current.get("git", {}) if isinstance(current.get("git"), Mapping) else {}
+    workflow = current.get("workflow", {}) if isinstance(current.get("workflow"), Mapping) else {}
+    summary = report.get("summary", {}) if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        "# Production Transition Readiness Packet",
+        "",
+        f"- Label: {report.get('label')}",
+        f"- Created at: {report.get('created_at')}",
+        f"- Mode: {report.get('mode')}",
+        f"- Executes actions: {report.get('executes_actions')}",
+        f"- Aggregate status: `{summary.get('aggregate_status')}`",
+        f"- Transition signal: `{summary.get('transition_signal')}`",
+        f"- Readiness score: {summary.get('readiness_score_pct')}%",
+        "",
+        "## Current State Snapshot",
+        "",
+        f"- Branch: `{git_info.get('branch')}`",
+        f"- HEAD: `{git_info.get('head')}`",
+        f"- Dirty status entries: {len(git_info.get('status') or [])}",
+        f"- Current session: `{workflow.get('current_session', {}).get('resolved') if isinstance(workflow.get('current_session'), Mapping) else None}`",
+        f"- Current plan: `{workflow.get('current_plan', {}).get('resolved') if isinstance(workflow.get('current_plan'), Mapping) else None}`",
+        f"- Active work-tracking folders: {workflow.get('active_work_tracking')}",
+        "",
+        "## Summary",
+        "",
+        f"- Total domains: {summary.get('total_domains')}",
+        f"- Ready: {summary.get('ready')}",
+        f"- Review: {summary.get('review')}",
+        f"- Needs evidence: {summary.get('needs_evidence')}",
+        f"- Blocked: {summary.get('blocked')}",
+        f"- Not applicable: {summary.get('not_applicable')}",
+        "",
+        "## Readiness Domains",
+        "",
+        "| Domain | Purpose | Status | Missing Evidence |",
+        "| --- | --- | --- | --- |",
+    ]
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        missing = "<br>".join(domain.get("missing_evidence_paths", [])) or "None"
+        lines.append(
+            f"| {_md_cell(domain.get('title'))} | {_md_cell(domain.get('purpose'))} | "
+            f"`{_md_cell(domain.get('status'))}` | {_md_cell(missing)} |"
+        )
+
+    lines.extend(["", "## Domain Details", ""])
+    for domain in report.get("domains", []):
+        if not isinstance(domain, Mapping):
+            continue
+        lines.extend(
+            [
+                f"### {domain.get('title')}",
+                "",
+                f"- ID: `{domain.get('id')}`",
+                f"- Status: `{domain.get('status')}`",
+                f"- Message: {domain.get('message')}",
+                "",
+                "Evidence:",
+            ]
+        )
+        for evidence in domain.get("evidence", []):
+            if isinstance(evidence, Mapping):
+                lines.append(f"- `{evidence.get('path')}` ({evidence.get('kind')}, exists={evidence.get('exists')})")
+        lines.extend(["", "Refresh commands:"])
+        for command in domain.get("refresh_commands", []):
+            lines.append(f"- `{command}`")
+        actions = domain.get("manual_actions", [])
+        if actions:
+            lines.extend(["", "Manual actions:"])
+            for action in actions:
+                lines.append(f"- {action}")
+        lines.append("")
+
+    lines.extend(["## Production Readiness Checklist", ""])
+    for item in report.get("production_readiness_checklist", []):
+        if isinstance(item, Mapping):
+            lines.append(f"- `{item.get('id')}`: `{item.get('status')}` - {item.get('message')}")
+
+    lines.extend(["", "## BAU Transition Checklist", ""])
+    for item in report.get("bau_transition_checklist", []):
+        if isinstance(item, Mapping):
+            lines.append(f"- `{item.get('id')}` ({item.get('status')}): {item.get('action')}")
+
+    lines.extend(["", "## Historical Requirement Map", "", "| Historical Requirement | Current Boundary | Treatment |", "| --- | --- | --- |"])
+    for item in report.get("historical_requirement_map", []):
+        if isinstance(item, Mapping):
+            lines.append(
+                f"| {_md_cell(item.get('requirement'))} | {_md_cell(item.get('current_boundary'))} | {_md_cell(item.get('treatment'))} |"
+            )
+
+    lines.extend(["", "## Manual Next Steps", ""])
+    for item in report.get("manual_next_steps", []):
+        if isinstance(item, Mapping):
+            lines.append(f"- `{item.get('domain')}` ({item.get('status')}): {item.get('action')}")
+
+    lines.extend(["", "## Recommended Refresh Commands", ""])
+    for command in report.get("recommended_refresh_commands", []):
+        lines.append(f"- `{command}`")
+
+    lines.extend(["", "## Non-Goals", ""])
+    for non_goal in report.get("non_goals", []):
+        lines.append(f"- {non_goal}")
+
+    lines.extend(
+        [
+            "",
+            "This packet is static and evidence-based. It composes repository-local validation, documentation, monitoring, maintenance, stakeholder, celebration, cleanup, and adoption evidence; it does not deploy, enable production services, send communications, schedule events, or contact external systems.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def handle_deployment_readiness(args: argparse.Namespace) -> None:
+    report = _build_deployment_readiness_report(args)
+    rendered_json = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    rendered_runbook = _render_deployment_readiness_report(report)
+
+    if args.dry_run:
+        print(rendered_json, end="")
+        if args.strict and report["summary"]["aggregate_status"] in {"blocked", "needs-evidence"}:
+            raise TaskError("Production transition readiness has blocking or missing evidence")
+        return
+
+    wrote = False
+    if args.report_file:
+        report_path = Path(args.report_file)
+        if not report_path.is_absolute():
+            report_path = REPO_ROOT / report_path
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered_json, encoding="utf-8")
+        print(f"Wrote production readiness packet to {_relative_to_root(report_path, REPO_ROOT)}")
+        wrote = True
+
+    if args.runbook_file:
+        runbook_path = Path(args.runbook_file)
+        if not runbook_path.is_absolute():
+            runbook_path = REPO_ROOT / runbook_path
+        runbook_path.parent.mkdir(parents=True, exist_ok=True)
+        runbook_path.write_text(rendered_runbook, encoding="utf-8")
+        print(f"Wrote production readiness runbook to {_relative_to_root(runbook_path, REPO_ROOT)}")
+        wrote = True
+
+    if not wrote:
+        print(rendered_runbook, end="")
+
+    if args.strict and report["summary"]["aggregate_status"] in {"blocked", "needs-evidence"}:
+        raise TaskError("Production transition readiness has blocking or missing evidence")
+
+
 def _resolve_current_plan_path() -> Path:
     if not PLAN_CURRENT.exists() or not PLAN_CURRENT.is_symlink():
         raise TaskError(f"{PLANS_CURRENT_REL} symlink missing; compaction checkpoints require an active plan")
@@ -14755,6 +15464,19 @@ def build_parser() -> argparse.ArgumentParser:
     maintenance_plan.add_argument("--strict", action="store_true", help="Exit nonzero when aggregate maintenance status is not ready")
     maintenance_plan.add_argument("--dry-run", action="store_true", help="Print the maintenance planning JSON without writing files")
     maintenance_plan.set_defaults(func=handle_maintenance_plan)
+
+    deployment_parser = subparsers.add_parser("deployment", help="Production transition readiness operations")
+    deployment_sub = deployment_parser.add_subparsers(dest="subcommand", required=True)
+    deployment_readiness = deployment_sub.add_parser(
+        "readiness",
+        help="Render a static production transition readiness packet",
+    )
+    deployment_readiness.add_argument("--label", default="production-deployment-readiness", help="Human-readable readiness label")
+    deployment_readiness.add_argument("--report-file", help="Optional path to write the readiness JSON")
+    deployment_readiness.add_argument("--runbook-file", help="Optional path to write the readiness Markdown")
+    deployment_readiness.add_argument("--strict", action="store_true", help="Exit nonzero when readiness has blocking or missing evidence")
+    deployment_readiness.add_argument("--dry-run", action="store_true", help="Print the readiness JSON without writing files")
+    deployment_readiness.set_defaults(func=handle_deployment_readiness)
 
     deprecation_parser = subparsers.add_parser("deprecation", help="Deprecation management review operations")
     deprecation_sub = deprecation_parser.add_subparsers(dest="subcommand", required=True)

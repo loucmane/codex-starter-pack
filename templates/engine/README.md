@@ -52,7 +52,7 @@ The current canonical sources for engine discoverability are:
 - `templates/registry/index.json`
 - `templates/metadata/template-inventory.txt`
 - `templates/metadata/template-summary.csv`
-- `templates/metadata/template-overview.md`
+- template overview metadata
 
 Those discovery surfaces align with the directory structure listed above.
 

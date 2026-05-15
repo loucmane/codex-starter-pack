@@ -7,7 +7,6 @@ skill-level: intermediate
 title: Final Documentation Map
 description: Canonical map from historical final-documentation categories to current portable foundation docs and evidence
 dependencies:
-  - templates/guides/index.md
   - templates/engine/core/portable-foundation-spec.md
   - templates/engine/validation/foundation-adoption-guide.md
   - reports/README.md
@@ -23,7 +22,7 @@ The foundation is repository-native and file-backed. It does not claim hosted do
 
 | Need | Canonical entry point |
 | --- | --- |
-| Understand the whole foundation | [Guide hub](../index.md) |
+| Understand the whole foundation | Guide hub |
 | Understand the portable workflow contract | [Portable foundation specification](../../engine/core/portable-foundation-spec.md) |
 | Adopt the foundation in another repository | [Foundation adoption guide](../../engine/validation/foundation-adoption-guide.md) |
 | Find command and tool routing | [Tools guide](../../TOOLS.md) |
@@ -35,7 +34,7 @@ The foundation is repository-native and file-backed. It does not claim hosted do
 | Historical final-doc category | Canonical current docs | Evidence refresh / verification | Boundary |
 | --- | --- | --- | --- |
 | Architecture documentation | [Engine README](../../engine/README.md), [portable foundation specification](../../engine/core/portable-foundation-spec.md), [system architecture](../../integration/architecture/system-architecture.md), [template architecture](../../integration/architecture/template-architecture.md) | `templates/engine/verify-phase1.sh`; `python3 scripts/codex-guard validate --include-untracked` | Do not create a second architecture tree unless the current engine or integration architecture changes. |
-| Operation manual | [Guide hub](../index.md), [common workflows](../workflows/common.md), [session lifecycle](../../workflows/session/lifecycle.md), [work-tracking enforcement](../../workflows/taskmaster/work-tracking-enforcement.md), `reports/operational-runbook/README.md` | `python3 scripts/codex-task operations runbook --label <label> --report-file <runbook.json> --runbook-file <runbook.md>` | Operational guidance is static and file-backed; it does not install schedulers, send notifications, deploy code, or execute rollback. |
+| Operation manual | Guide hub, [common workflows](../workflows/common.md), [session lifecycle](../../workflows/session/lifecycle.md), [work-tracking enforcement](../../workflows/taskmaster/work-tracking-enforcement.md), `reports/operational-runbook/README.md` | `python3 scripts/codex-task operations runbook --label <label> --report-file <runbook.json> --runbook-file <runbook.md>` | Operational guidance is static and file-backed; it does not install schedulers, send notifications, deploy code, or execute rollback. |
 | API and command documentation | [Tools guide](../../TOOLS.md), `AGENTS.md`, `.claude/TM_COMMANDS_GUIDE.md`, `reports/README.md` | `python3 scripts/codex-task taskmaster health`; `task-master --help`; command-specific `--help` where available | This repository exposes CLI/helper contracts and adapter commands, not an application API requiring generated OpenAPI output. |
 | Troubleshooting guide | [Troubleshooting issues](../troubleshooting/issues.md), [system debug](../../engine/debugging/system-debug.md), [error-to-recovery matrix](../../matrices/recovery/error-to-recovery.md), [guard remediation](../../engine/enforcement/meta-workflow-guard-remediation.md) | `python3 scripts/codex-task work-tracking audit`; `python3 scripts/codex-guard validate --include-untracked`; `git diff --check` | Troubleshooting should repair workflow state and evidence; do not bypass guard or rewrite history. |
 | Disaster recovery and rollback | `reports/operational-runbook/README.md`, `reports/cleanup-automation/README.md`, [error-to-recovery matrix](../../matrices/recovery/error-to-recovery.md), [error handling fallback](../../engine/fallbacks/error-handling.md), [emergency response policy](../../metadata/emergency-response-policy.json) | `python3 scripts/codex-task operations runbook --label <label> --report-file <runbook.json> --runbook-file <runbook.md>`; `python3 scripts/codex-task cleanup plan --label <label> --dry-run` | Recovery planning is explicit and non-destructive by default; no external incident platform is implied. |

@@ -7,10 +7,9 @@ pattern_type: behavioral
 complexity: moderate
 dependencies:
   - templates/sessions/
-  - patterns/work-tracking/work-patterns.md
+  - patterns/session/templates/patterns/session/state-patterns.md
 related:
   - patterns/session/templates/patterns/session/state-patterns.md
-  - patterns/session/templates/patterns/session/continuation-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -367,8 +366,8 @@ Will continue tomorrow.
 
 ## Related Patterns
 - [State Patterns](state-patterns.md) - State management
-- [Continuation Patterns](continuation-patterns.md) - Work continuation
-- [Work Patterns](../work-tracking/work-patterns.md) - Work organization
+- Continuation patterns - Work continuation
+- Work patterns - Work organization
 
 ## Handler References
 [Handler: lost-context migrated to handlers/orchestrators/context-recovery.md]

@@ -6,7 +6,7 @@ title: Agent Selection Patterns
 pattern_type: behavioral
 complexity: moderate
 dependencies:
-  - patterns/selection/templates/patterns/selection/handler-selection.md
+  - tool-selection
 related:
   - patterns/selection/templates/handlers/orchestrators/tool-selection.md
   - .claude/agents/
@@ -234,7 +234,7 @@ Let user choose from top agent candidates
 Track successful agent uses for future optimization
 
 ## Related Patterns
-- [Handler Selection](handler-selection.md) - Choosing handlers
+- Handler selection patterns - Choosing handlers
 - [Tool Selection](../../handlers/orchestrators/tool-selection.md) - Selecting tools
 - [Work Patterns](../work-tracking/work-patterns.md) - Work organization
 

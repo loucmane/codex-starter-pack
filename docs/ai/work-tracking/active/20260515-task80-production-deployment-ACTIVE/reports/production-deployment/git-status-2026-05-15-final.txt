@@ -1,0 +1,15 @@
+## feat/task-80-production-deployment
+ M .taskmaster/tasks/task_080.txt
+ M .taskmaster/tasks/tasks.json
+ M reports/README.md
+ M scripts/codex-task
+ M sessions/state.json
+ M templates/TOOLS.md
+ M tests/meta_workflow_guard/test_codex_task.py
+?? .serena/memories/2026-05-15_task80_production_deployment_readiness.md
+?? docs/ai/work-tracking/active/
+?? plans/2026-05-15-task80-production-deployment.md
+?? plans/current
+?? reports/production-deployment/
+?? sessions/2026/05/2026-05-15-003-task80-production-deployment.md
+?? sessions/current

@@ -62,7 +62,7 @@ ACTION:
 
 ## Cross-References
 - [CONVENTIONS.md](../../conventions) - File-specific rules
-- [templates/behaviors/file-operations/before-create.md](before-create.md) - New file creation
+- Before-create behavior - New file creation
 - [timestamps/before-adding.md](../timestamps/before-adding.md) - For timestamp accuracy
 
 ## Error Cases

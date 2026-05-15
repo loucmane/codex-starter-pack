@@ -6,6 +6,7 @@ import argparse
 import importlib.machinery
 import importlib.util
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -350,6 +351,28 @@ def test_build_parser_accepts_maintenance_plan() -> None:
     assert args.strict is True
     assert args.report_file == "reports/maintenance.json"
     assert args.runbook_file == "reports/maintenance.md"
+
+
+def test_build_parser_accepts_deployment_readiness() -> None:
+    module = load_task_module()
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "deployment",
+        "readiness",
+        "--label",
+        "task80",
+        "--strict",
+        "--report-file",
+        "reports/deployment.json",
+        "--runbook-file",
+        "reports/deployment.md",
+    ])
+    assert args.command == "deployment"
+    assert args.subcommand == "readiness"
+    assert args.label == "task80"
+    assert args.strict is True
+    assert args.report_file == "reports/deployment.json"
+    assert args.runbook_file == "reports/deployment.md"
 
 
 def test_build_parser_accepts_deprecation_review() -> None:
@@ -6345,6 +6368,257 @@ def test_handle_maintenance_plan_strict_fails_after_writing(monkeypatch, tmp_pat
         )
 
     assert (repo / "reports" / "maintenance" / "latest.json").exists()
+
+
+def _patch_deployment_readiness_state(module, monkeypatch, repo: Path) -> None:
+    _write_repo_config(repo, "templates")
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "REPO_STRUCTURE", module.load_repo_structure(repo))
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON", repo / ".taskmaster" / "tasks" / "tasks.json")
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_JSON_REL", ".taskmaster/tasks/tasks.json")
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+
+    def fake_git_output(args):
+        if args == ["branch", "--show-current"]:
+            return "feat/task-80-production-deployment"
+        if args == ["rev-parse", "HEAD"]:
+            return "deploymentabc"
+        if args == ["status", "--short"]:
+            return ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_git_output", fake_git_output)
+    monkeypatch.setattr(module, "_git_status_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_workflow_snapshot",
+        lambda: {
+            "current_session": {"path": "sessions/current", "resolved": "sessions/2026/05/2026-05-15-task80.md"},
+            "current_plan": {"path": "plans/current", "resolved": "plans/2026-05-15-task80.md"},
+            "active_work_tracking": ["docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE"],
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_taskmaster_snapshot",
+        lambda: {
+            "path": ".taskmaster/tasks/tasks.json",
+            "exists": True,
+            "sha256": "abc",
+            "tag": "master",
+            "summary": {
+                "tasks": 108,
+                "subtasks": 304,
+                "status_counts": {"done": 103, "pending": 4, "in-progress": 1},
+                "dependency_refs": 229,
+                "invalid_refs": 0,
+            },
+            "invalid_refs": [],
+        },
+    )
+    monkeypatch.setattr(module, "_serena_memory_snapshot", lambda: {"exists": True, "count": 1, "latest": ["task80.md"]})
+
+
+def _write_deployment_readiness_sources(
+    repo: Path,
+    *,
+    include_final_validation: bool = True,
+    maintenance_status: str = "needs-review",
+    stakeholder_status: str = "warn",
+) -> None:
+    _touch_enhancement_source(repo, ".taskmaster/tasks/tasks.json", json.dumps({"master": {"tasks": []}}) + "\n")
+    _touch_enhancement_source(repo, "sessions/2026/05/2026-05-15-task80.md", "# Session\n")
+    _touch_enhancement_source(repo, "plans/2026-05-15-task80.md", "# Plan\n")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE")
+    if include_final_validation:
+        _touch_enhancement_source(
+            repo,
+            "docs/ai/work-tracking/archive/20260512-task68-final-validation-suite-COMPLETED/reports/final-validation-suite/20260512-132639-final-validation-suite.json",
+            json.dumps({"summary": {"status": "passed", "passed": 12, "failed_required": 0, "total": 12}}) + "\n",
+        )
+    _touch_enhancement_source(repo, "templates/guides/reference/final-documentation-map.md", "# Final Docs\n")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260515-task78-final-documentation-COMPLETED/reports/final-documentation/taskmaster-health-2026-05-15-final.txt",
+        "Taskmaster health: OK\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task70-long-term-maintenance-COMPLETED/reports/long-term-maintenance/maintenance-plan-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": maintenance_status, "maintenance_score_pct": 87.5}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260513-task60-post-migration-monitoring-COMPLETED/reports/post-migration-monitoring/post-migration-monitoring-2026-05-13.json",
+        json.dumps({"aggregate_status": "pass", "summary": {"available_inputs": 2, "failures": 0, "warnings": 0}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task73-stakeholder-reporting-COMPLETED/reports/stakeholder-reporting/stakeholder-report-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": stakeholder_status, "stakeholder_signal": "needs-refresh", "warnings": 1, "failures": 0}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task76-celebration-planning-COMPLETED/reports/celebration-planning/celebration-plan-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": "ready", "ready": 5, "needs_evidence": 0, "blocked": 0}}) + "\n",
+    )
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/archive/20260514-task64-cleanup-automation-COMPLETED/reports/cleanup-automation/cleanup-plan-2026-05-14-final.json",
+        json.dumps({"summary": {"aggregate_status": "ready"}}) + "\n",
+    )
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260515-task74-phase-6-cleanup-COMPLETED")
+    _touch_enhancement_source(repo, "templates/engine/validation/foundation-adoption-guide.md", "# Adoption\n")
+    _touch_enhancement_source(repo, "templates/engine/core/portable-foundation-spec.md", "# Spec\n")
+    _touch_enhancement_source(repo, "templates/guides/quickstart/getting-started.md", "# Quickstart\n")
+    _mkdir_enhancement_source(repo, "docs/ai/work-tracking/archive/20260424-task102-foundation-migration-adoption-COMPLETED")
+    _touch_enhancement_source(
+        repo,
+        "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/designs/production-deployment-scope-reconciliation.md",
+        "# Scope\n",
+    )
+
+
+def test_build_deployment_readiness_report_summarizes_review_domains(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo)
+
+    report = module._build_deployment_readiness_report(argparse.Namespace(label="task80"))
+
+    assert report["mode"] == "static-production-transition-readiness-packet"
+    assert report["executes_actions"] is False
+    assert report["summary"]["aggregate_status"] == "review"
+    assert report["summary"]["transition_signal"] == "ready-with-review"
+    domains = {domain["id"]: domain for domain in report["domains"]}
+    assert domains["final-validation"]["status"] == "ready"
+    assert domains["maintenance-bau"]["status"] == "review"
+    assert domains["stakeholder-communications"]["status"] == "review"
+    assert domains["runtime-migration-flags"]["status"] == "not-applicable"
+    assert any(command.startswith("python3 scripts/codex-task deployment readiness") for command in report["recommended_refresh_commands"])
+
+
+def test_build_deployment_readiness_prefers_active_task80_monitoring(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo)
+    active_monitoring = (
+        "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/"
+        "reports/production-deployment/post-migration-monitoring-2026-05-15-ssot-clean.json"
+    )
+    _touch_enhancement_source(
+        repo,
+        active_monitoring,
+        json.dumps({"aggregate_status": "warn", "summary": {"available_inputs": 2, "failures": 0, "warnings": 2}}) + "\n",
+    )
+    os.utime(repo / active_monitoring, (2_000_000_000, 2_000_000_000))
+
+    report = module._build_deployment_readiness_report(argparse.Namespace(label="task80"))
+
+    monitoring = next(domain for domain in report["domains"] if domain["id"] == "post-migration-monitoring")
+    assert monitoring["status"] == "review"
+    assert monitoring["details"]["source"]["path"] == active_monitoring
+    assert monitoring["details"]["status_value"] == "warn"
+    assert report["summary"]["aggregate_status"] == "review"
+
+
+def test_build_deployment_readiness_report_surfaces_missing_final_validation(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo, include_final_validation=False)
+
+    report = module._build_deployment_readiness_report(argparse.Namespace(label="task80"))
+
+    domains = {domain["id"]: domain for domain in report["domains"]}
+    assert domains["final-validation"]["status"] == "needs-evidence"
+    assert report["summary"]["aggregate_status"] == "needs-evidence"
+    assert any(item["status"] == "needs-evidence" for item in report["production_readiness_checklist"])
+
+
+def test_render_deployment_readiness_report_lists_maps_and_non_goals(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo)
+    report = module._build_deployment_readiness_report(argparse.Namespace(label="task80"))
+
+    runbook = module._render_deployment_readiness_report(report)
+
+    assert "# Production Transition Readiness Packet" in runbook
+    assert "Production Readiness Checklist" in runbook
+    assert "BAU Transition Checklist" in runbook
+    assert "Historical Requirement Map" in runbook
+    assert "No production application deployment" in runbook
+    assert "Executes actions: True" not in runbook
+
+
+def test_handle_deployment_readiness_writes_packet_and_runbook(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo)
+
+    module.handle_deployment_readiness(
+        argparse.Namespace(
+            label="task80",
+            report_file="reports/production-deployment/latest.json",
+            runbook_file="reports/production-deployment/latest.md",
+            strict=True,
+            dry_run=False,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "Wrote production readiness packet to reports/production-deployment/latest.json" in output
+    assert "Wrote production readiness runbook to reports/production-deployment/latest.md" in output
+    payload = json.loads((repo / "reports" / "production-deployment" / "latest.json").read_text(encoding="utf-8"))
+    assert payload["summary"]["aggregate_status"] == "review"
+    assert "Production Transition Readiness Packet" in (repo / "reports" / "production-deployment" / "latest.md").read_text(encoding="utf-8")
+
+
+def test_handle_deployment_readiness_strict_fails_on_missing_evidence(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo, include_final_validation=False)
+
+    with pytest.raises(module.TaskError, match="Production transition readiness has blocking or missing evidence"):
+        module.handle_deployment_readiness(
+            argparse.Namespace(
+                label="task80",
+                report_file="reports/production-deployment/latest.json",
+                runbook_file="reports/production-deployment/latest.md",
+                strict=True,
+                dry_run=False,
+            )
+        )
+
+    assert (repo / "reports" / "production-deployment" / "latest.json").exists()
+
+
+def test_handle_deployment_readiness_dry_run_outputs_json(monkeypatch, tmp_path, capsys) -> None:
+    module = load_task_module()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _patch_deployment_readiness_state(module, monkeypatch, repo)
+    _write_deployment_readiness_sources(repo)
+
+    module.handle_deployment_readiness(
+        argparse.Namespace(label="task80", report_file=None, runbook_file=None, strict=False, dry_run=True)
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["label"] == "task80"
+    assert payload["mode"] == "static-production-transition-readiness-packet"
 
 
 def test_handle_bootstrap_init_preserves_existing_config_and_policy(tmp_path) -> None:

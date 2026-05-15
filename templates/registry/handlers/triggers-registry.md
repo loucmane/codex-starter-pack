@@ -192,7 +192,7 @@ User-activated handlers that respond to natural language triggers.
 5. `create-test-checkpoint` - Ensure code quality
 
 **Discovery Methods**:
-- Direct Read: `templates/handlers/triggers/[domain]/[handler].md`
+- Direct Read: use the concrete trigger file under `templates/handlers/triggers/`.
 - Serena Search: `--substring_pattern "id: [handler-name]" --relative_path "templates/handlers/triggers/"`
 
 ## Progress Log

@@ -1,0 +1,421 @@
+{
+  "aggregate_status": "warn",
+  "created_at": "2026-05-15T15:24:52+02:00",
+  "executes_external_actions": false,
+  "inputs": {
+    "baseline_summary": {
+      "generated_at": "2026-05-15T15:24:12.091429",
+      "path": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "scanner_timestamp": "2026-05-15T15:24:12.091667"
+    },
+    "roadmap": {
+      "exists": true,
+      "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-ssot-clean.json",
+      "status": "present"
+    },
+    "security_report": {
+      "exists": true,
+      "generated_at": "2026-05-15T15:24:11.694491",
+      "path": "scripts/template-ssot-scanner/output/data/security_validation.json",
+      "status": "present"
+    }
+  },
+  "kpis": [
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "migration-completion",
+      "message": "Migration is not yet complete.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "100",
+      "title": "Migration completion",
+      "unit": "percent",
+      "value": 37.5
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "pending-migration",
+      "message": "6 item(s) remain above the zero target.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "0",
+      "title": "Pending migration files",
+      "unit": "files",
+      "value": 6
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "broken-references",
+      "message": "Target met.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Broken references",
+      "unit": "references",
+      "value": 0
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "circular-dependencies",
+      "message": "Target met.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Circular dependencies",
+      "unit": "cycles",
+      "value": 0
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "duplicate-files",
+      "message": "4 item(s) remain above the zero target.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "0",
+      "title": "Duplicate files",
+      "unit": "files",
+      "value": 4
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/baseline_summary.json",
+      "id": "recommended-fixes",
+      "message": "2 item(s) remain above the zero target.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "0",
+      "title": "Recommended fixes",
+      "unit": "fixes",
+      "value": 2
+    },
+    {
+      "evidence": "scripts/template-ssot-scanner/output/data/security_validation.json",
+      "id": "security-findings",
+      "message": "Target met.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Security findings",
+      "unit": "findings",
+      "value": 0
+    },
+    {
+      "evidence": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-ssot-clean.json",
+      "id": "roadmap-critical-items",
+      "message": "No critical roadmap items remain.",
+      "severity": "info",
+      "status": "pass",
+      "target": "0",
+      "title": "Critical roadmap items",
+      "unit": "items",
+      "value": 0
+    },
+    {
+      "evidence": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-ssot-clean.json",
+      "id": "roadmap-total-items",
+      "message": "Roadmap backlog remains.",
+      "severity": "warning",
+      "status": "warn",
+      "target": "reviewed backlog",
+      "title": "Total roadmap items",
+      "unit": "items",
+      "value": 8
+    }
+  ],
+  "label": "migration-metrics",
+  "mode": "static-file-backed-migration-metrics",
+  "non_goals": [
+    "No metric collection agent is started.",
+    "No time-series database is read or written.",
+    "No live dashboard, WebSocket, or hosted observability service is created.",
+    "No alert, notification, ticket, or external webhook is sent.",
+    "No scanner output is regenerated and no remediation mutation is applied."
+  ],
+  "recommended_refresh_commands": [
+    "python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci",
+    "python3 scripts/template-ssot-scanner/baseline_summary.py --data-dir scripts/template-ssot-scanner/output/data",
+    "python3 scripts/template-ssot-scanner/migration_roadmap.py --data-dir scripts/template-ssot-scanner/output/data --json-out <roadmap.json> --markdown-out <roadmap.md>",
+    "python3 scripts/codex-task migration metrics --baseline-summary <baseline_summary.json> --roadmap <roadmap.json> --security-report <security_validation.json> --report-file <metrics.json> --runbook-file <metrics.md>",
+    "python3 scripts/codex-task report generate --kind migration-health",
+    "python3 scripts/codex-task validation final-suite --dry-run"
+  ],
+  "roadmap": {
+    "category_counts": {
+      "duplicates": 2,
+      "migration": 5,
+      "orphaned-files": 1
+    },
+    "first_items": [
+      {
+        "category": "migration",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "L",
+        "finding_count": 10,
+        "id": "high-migration-003",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/BEHAVIORS.md"
+        ],
+        "title": "Complete migration work for templates/BEHAVIORS.md"
+      },
+      {
+        "category": "migration",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "L",
+        "finding_count": 9,
+        "id": "high-migration-002",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/HANDLERS.md"
+        ],
+        "title": "Complete migration work for templates/HANDLERS.md"
+      },
+      {
+        "category": "migration",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "L",
+        "finding_count": 10,
+        "id": "high-migration-004",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/MATRICES.md"
+        ],
+        "title": "Complete migration work for templates/MATRICES.md"
+      },
+      {
+        "category": "migration",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "L",
+        "finding_count": 10,
+        "id": "high-migration-001",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/REGISTRY.md"
+        ],
+        "title": "Complete migration work for templates/REGISTRY.md"
+      },
+      {
+        "category": "migration",
+        "dependencies": [
+          "critical-references"
+        ],
+        "effort": "L",
+        "finding_count": 7,
+        "id": "high-migration-005",
+        "priority": "high",
+        "risk": "medium",
+        "source_files": [
+          "templates/TOOLS.md"
+        ],
+        "title": "Complete migration work for templates/TOOLS.md"
+      },
+      {
+        "category": "duplicates",
+        "dependencies": [
+          "critical-references",
+          "high-migration"
+        ],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "medium-duplicates-001",
+        "priority": "medium",
+        "risk": "low",
+        "source_files": [
+          ".claude/commands/tm/clear-subtasks/clear-all-subtasks.md",
+          ".claude/commands/tm/remove-subtasks/remove-all-subtasks.md"
+        ],
+        "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-all-subtasks.md"
+      },
+      {
+        "category": "duplicates",
+        "dependencies": [
+          "critical-references",
+          "high-migration"
+        ],
+        "effort": "S",
+        "finding_count": 1,
+        "id": "medium-duplicates-002",
+        "priority": "medium",
+        "risk": "low",
+        "source_files": [
+          ".claude/commands/tm/clear-subtasks/clear-subtasks.md",
+          ".claude/commands/tm/remove-subtasks/remove-subtasks.md"
+        ],
+        "title": "Review duplicate command/template files kept by .claude/commands/tm/clear-subtasks/clear-subtasks.md"
+      },
+      {
+        "category": "orphaned-files",
+        "dependencies": [
+          "critical-references",
+          "high-migration",
+          "medium-duplicates"
+        ],
+        "effort": "XL",
+        "finding_count": 88,
+        "id": "low-orphaned-files-001",
+        "priority": "low",
+        "risk": "high",
+        "source_files": [
+          "{'file': '.claude/AGENTS.md', 'type': 'agent', 'line_count': 57}",
+          "{'file': '.claude/agents/task-checker.md', 'type': 'agent', 'line_count': 58}",
+          "{'file': '.claude/agents/task-executor.md', 'type': 'agent', 'line_count': 52}",
+          "{'file': '.claude/agents/task-orchestrator.md', 'type': 'agent', 'line_count': 43}",
+          "{'file': '.claude/commands/guard.md', 'type': 'command', 'line_count': 13}"
+        ],
+        "title": "Review 88 orphaned scanner files"
+      }
+    ],
+    "generated_at": "2026-05-15T15:24:44.489591",
+    "metadata": {
+      "changes_from_previous": {
+        "no_changes": true
+      },
+      "duration_seconds": 0.0,
+      "output_format_version": "2.0.0",
+      "previous_scan": "2026-05-15T15:08:43.268639",
+      "scan_timestamp": "2026-05-15T15:24:44.489862",
+      "scanner": "migration_roadmap",
+      "scanner_version": "1.0.0",
+      "stats": {
+        "priority_high": 5,
+        "priority_low": 1,
+        "priority_medium": 2,
+        "roadmap_items": 8,
+        "taskmaster_items": 8
+      }
+    },
+    "path": "docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/migration-roadmap-2026-05-15-ssot-clean.json",
+    "phases": [
+      {
+        "duration_days": 2,
+        "id": "phase-1-critical-integrity",
+        "priorities": [
+          "critical"
+        ],
+        "start_day": 0,
+        "title": "Critical integrity"
+      },
+      {
+        "duration_days": 3,
+        "id": "phase-2-foundation-correctness",
+        "priorities": [
+          "high"
+        ],
+        "start_day": 2,
+        "title": "Foundation correctness"
+      },
+      {
+        "duration_days": 2,
+        "id": "phase-3-maintenance-risk",
+        "priorities": [
+          "medium"
+        ],
+        "start_day": 5,
+        "title": "Maintenance risk"
+      },
+      {
+        "duration_days": 2,
+        "id": "phase-4-optimization-backlog",
+        "priorities": [
+          "low"
+        ],
+        "start_day": 7,
+        "title": "Optimization backlog"
+      }
+    ],
+    "priority_counts": {
+      "high": 5,
+      "low": 1,
+      "medium": 2
+    },
+    "summary_metrics": {
+      "broken_reference_fixes": 0,
+      "broken_references": 0,
+      "checkpoints_saved": 0,
+      "circular_dependencies": 0,
+      "duplicate_count": 4,
+      "duplicate_removals": 2,
+      "exact_duplicate_groups": 2,
+      "files_with_references": 98,
+      "fully_migrated": 4,
+      "migration_files_scanned": 10,
+      "migration_percentage": 37.5,
+      "modular_files": 337,
+      "monolithic_files": 8,
+      "not_migrated": 1,
+      "orphaned_files": 88,
+      "partial_duplicate_pairs": 1,
+      "partially_migrated": 5,
+      "pending_migration": 6,
+      "recommendations": 3,
+      "total_files": 345,
+      "total_fixes": 2,
+      "total_lines": 56216,
+      "total_references": 678,
+      "unique_references": 303
+    },
+    "taskmaster_export_tasks": 8,
+    "total_items": 8,
+    "version": "1.0.0"
+  },
+  "source_outputs": {
+    "duplicate_analysis": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/duplicate_analysis.json",
+      "scan_timestamp": "2026-05-15T15:24:12.000457",
+      "scanner": "duplicate_finder",
+      "scanner_version": "1.1.0",
+      "size_bytes": 77299
+    },
+    "fix_recommendations": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/fix_recommendations.json",
+      "scan_timestamp": "2026-05-15T15:24:12.075168",
+      "scanner": "fix_generator",
+      "scanner_version": "1.1.0",
+      "size_bytes": 6095
+    },
+    "migration_status": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/migration_status.json",
+      "scan_timestamp": "2026-05-15T15:24:10.070087",
+      "scanner": "migration_detector",
+      "scanner_version": "1.0.0",
+      "size_bytes": 3064
+    },
+    "reference_analysis": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/reference_analysis.json",
+      "scan_timestamp": "2026-05-15T15:24:11.811683",
+      "scanner": "reference_analyzer",
+      "scanner_version": "1.1.0",
+      "size_bytes": 139827
+    },
+    "template_scan_results": {
+      "output_format_version": "2.0.0",
+      "path": "/home/loucmane/codex/scripts/template-ssot-scanner/output/data/template_scan_results.json",
+      "scan_timestamp": "2026-05-15T15:24:10.850658",
+      "scanner": "template_scanner",
+      "scanner_version": "1.1.0",
+      "size_bytes": 896691
+    }
+  },
+  "summary": {
+    "failures": 0,
+    "passed": 4,
+    "total_kpis": 9,
+    "warnings": 5
+  },
+  "version": 1
+}

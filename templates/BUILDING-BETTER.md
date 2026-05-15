@@ -71,7 +71,7 @@ All handlers previously in this file have been migrated to:
 - `templates/handlers/orchestrators/` - Coordination handlers  
 - `templates/handlers/operators/` - Technical operation handlers
 
-See the [migration mapping](../../agent-outputs/template-migrator/migration-mapping.md) for details.
+See archived migration work-tracking records for historical mapping details.
 
 ## 📖 Key Concepts
 
@@ -108,9 +108,9 @@ Each phase improved maintainability, discoverability, and extensibility.
 This file participates in the ULTRATHINK system:
 
 ### VOID Resolution
-- **S = VOID** → See [resolve-session-void](CONVENTIONS.md#resolve-session-void)
-- **W = VOID** → See [resolve-work-void](templates/handlers/operators/workflow/resolve-work-void.md#resolve-work-void)
-- **H = VOID** → See [resolve-handler-void](REGISTRY.md#resolve-handler-void)
+- **S = VOID** → See [resolve-session-void](handlers/orchestrators/resolve-session-void.md#resolve-session-void)
+- **W = VOID** → See [resolve-work-void](handlers/operators/workflow/resolve-work-void.md#resolve-work-void)
+- **H = VOID** → See [resolve-handler-void](handlers/operators/workflow/resolve-handler-void.md#resolve-handler-void)
 
 ### Integration Handler Requirements
 Cross-system integration handlers in this file manage transitions between different parts of the template system, ensuring valid [S:W:H] context is maintained.
@@ -652,3 +652,7 @@ Remember: Handlers are only useful if users can find them!
 ---
 
 Remember: The best system is one that improves itself through use. This document is the DNA for that evolution.
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

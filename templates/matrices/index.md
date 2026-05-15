@@ -29,7 +29,7 @@ This file participates in the ULTRATHINK system:
 ### VOID Resolution
 - **S = VOID** → See [resolve-session-void](../conventions#resolve-session-void)
 - **W = VOID** → See [resolve-work-void](../workflows#resolve-work-void)
-- **H = VOID** → See [resolve-handler-void](../registry/index.md#resolve-handler-void)
+- **H = VOID** → See [resolve-handler-void](../handlers/operators/workflow/resolve-handler-void.md#resolve-handler-void)
 
 ### Matrix Usage
 These matrices provide quick lookups for handler selection. When H = VOID, use the Request → Handler Matrix to find the appropriate handler based on the user's request pattern.

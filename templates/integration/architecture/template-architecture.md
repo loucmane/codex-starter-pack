@@ -5,9 +5,7 @@ category: architecture
 title: Template System Design
 audience: architect
 complexity: advanced
-dependencies:
-  - system-architecture
-  - handler-architecture
+dependencies: []
 prerequisites:
   - Understanding of template systems
   - Knowledge of modular architecture
@@ -224,8 +222,8 @@ integration_templates:
   architecture:
     purpose: System design docs
     templates:
-      - templates/integration/architecture/system-architecture.md
-      - templates/integration/architecture/handler-architecture.md
+      - system-architecture guide
+      - handler-architecture guide
       - template-architecture.md
 ```
 
@@ -580,8 +578,8 @@ future:
 
 ## Related Resources
 
-- [System Architecture](system-architecture.md)
-- [Handler Architecture](handler-architecture.md)
+- System architecture overview
+- Handler architecture overview
 - [Template Design](../best-practices/template-design.md)
 - [Extending Templates](../guides/extending-templates.md)
 - Current templates in `templates/`

@@ -83,6 +83,7 @@ Local CLI for S:W:H:E scaffolding. Subcommands:
 - `deprecation review --label <label>` – render a static deprecation-management review packet over lifecycle audit metrics, versioning, communication, operations, emergency/recovery, and final validation evidence.
 - `template usage-analytics --label <label>` – render static registry-backed usage analytics by scanning sessions, plans, active work tracking, and Taskmaster task files for template ID/path/alias references; pass `--include-archive` only when historical archived work-tracking evidence is intentionally in scope.
 - `maintenance plan --label <label>` – render a static long-term maintenance packet over workflow health, operational cadence, monitoring, performance baselines, template quality, cleanup readiness, security maintenance, dependency-review guidance, and manual action queues.
+- `deployment readiness --label <label>` – render a static production transition readiness packet over workflow health, final validation, final docs, maintenance/BAU, monitoring, stakeholder communication, celebration/readout, cleanup/archive, and rollout/adoption evidence.
 Always pass `--work`, `--handler`, and `--evidence`; use single quotes to preserve backticks.
 
 Repo-structure note:
@@ -242,6 +243,20 @@ python3 scripts/codex-task automation phase3-review \
 ```
 
 The command reports ready, needs-evidence, or needs-implementation status per domain and lists refresh commands for missing evidence. It does not deploy code, wait for five days, run production auto-fix, split traffic, start monitoring services, create dashboards, send notifications, install schedulers, mutate existing evidence sources, or contact external systems.
+
+### `scripts/codex-task deployment readiness`
+Static production transition readiness reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering workflow health, final validation, final documentation, maintenance/BAU readiness, post-migration monitoring, stakeholder communication readiness, celebration/readout planning, cleanup/archive posture, rollout/adoption guidance, and historical production-deployment requirement mapping.
+
+Use it when preparing or reviewing a repository-native release/BAU handoff:
+
+```bash
+python3 scripts/codex-task deployment readiness \
+  --label <label> \
+  --report-file <production-readiness.json> \
+  --runbook-file <production-readiness.md>
+```
+
+The command reports ready, review, needs-evidence, not-applicable, or blocked status per domain and lists refresh commands for missing or review-level evidence. It does not deploy code, enable production services, start monitoring, install schedulers, run auto-fix, mutate cleanup targets, send communications, schedule events, split traffic, publish releases, or contact external systems.
 
 ### `scripts/codex-task documentation phase4-review`
 Static Phase 4 documentation delivery reviewer. It snapshots current Git/workflow/Taskmaster/Serena state and renders one JSON/Markdown packet covering repository-native documentation, training, communication, operations, Phase 3 automation review, and final validation evidence.

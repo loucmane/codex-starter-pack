@@ -358,7 +358,7 @@ Best: "Refactor the user service to separate auth logic"
 
 ---
 
-*Back to hub: [Guide Index](../index.md) | Learn workflows: [Common Workflows](../workflows/common.md)*
+*Back to hub: guide index | Learn workflows through the common workflows guide*
 
 ## Progress Log
 

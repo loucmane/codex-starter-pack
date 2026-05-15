@@ -58,7 +58,7 @@
 ## 🔍 Finding Specific Workflows
 
 ### By Task Type
-- **Starting work**: See [Intent Handlers](workflows/handlers/intent-handlers.md#start-new-work)
+- **Starting work**: See [start-new-work](handlers/triggers/development/start-new-work.md)
 - **Managing tasks**: See [Task Management](workflows/patterns/task-management.md)
 - **Ending session**: See [Session Lifecycle](workflows/session/lifecycle.md#end-of-session)
 
@@ -71,10 +71,14 @@
 
 - **[CONVENTIONS.md](CONVENTIONS.md)** - Git aliases and code standards
 - **[TOOLS.md](TOOLS.md)** - MCP tool configurations
-- **[CLAUDE-NEW.md](CLAUDE-NEW.md)** - Quick navigation hub
+- **`CLAUDE.md`** - Agent entry point and workflow hub
 - **[Registry](registry/index.md)** - Modular handler registry
 - **[Extending the Template System](integration/guides/extending-templates.md#extending-the-template-system)** - How to evolve this system
 
 ---
 
 *Original 2,943-line workflow document has been modularized for better maintainability and navigation.*
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

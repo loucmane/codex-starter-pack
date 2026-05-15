@@ -7,7 +7,7 @@ pattern_type: behavioral
 complexity: moderate
 dependencies:
   - templates/REGISTRY.md
-  - patterns/routing/intent-detection.md
+  - patterns/selection/templates/handlers/orchestrators/tool-selection.md
 related:
   - patterns/selection/templates/handlers/orchestrators/tool-selection.md
   - patterns/selection/templates/patterns/selection/agent-selection.md
@@ -170,7 +170,7 @@ Present top candidates to user for manual selection
 ## Related Patterns
 - [Tool Selection](../../handlers/orchestrators/tool-selection.md) - Choosing appropriate tools
 - [Agent Selection](agent-selection.md) - Selecting specialist agents
-- [Intent Detection](../routing/intent-detection.md) - Understanding request intent
+- Intent detection patterns - Understanding request intent
 
 ## Handler References
 [Handler: Multiple handlers implement selection logic internally]

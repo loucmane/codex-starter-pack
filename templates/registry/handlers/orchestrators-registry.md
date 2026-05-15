@@ -93,7 +93,7 @@ Coordination handlers that manage complex workflows and multi-handler operations
 4. **Iterative**: Repeat until condition met
 
 **Discovery Methods**:
-- Direct Read: `templates/handlers/orchestrators/[handler].md`
+- Direct Read: use the concrete orchestrator file under `templates/handlers/orchestrators/`.
 - Serena Search: `--substring_pattern "id: [handler-name]" --relative_path "templates/handlers/orchestrators/"`
 
 ## Progress Log

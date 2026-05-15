@@ -6,7 +6,6 @@ title: Chaining Handlers Together
 audience: developer
 complexity: intermediate
 dependencies:
-  - creating-handlers
   - workflow-composition
 prerequisites:
   - Understanding of handler system
@@ -618,8 +617,12 @@ verify:
 
 ## Related Resources
 
-- [Creating Handlers](../guides/creating-handlers.md)
+- Creating handlers guide
 - [Workflow Composition](workflow-composition.md)
 - [Pattern Composition](pattern-composition.md)
 - [Handler Architecture](../architecture/handler-architecture.md)
-- [Best Practices](../best-practices/handler-design.md)
+- Handler design best practices
+
+## Work Tracking
+
+- **2026-05-15 15:18 CEST** - [S:20260515|W:task80-production-deployment|H:reference-remediation|E:docs/ai/work-tracking/active/20260515-task80-production-deployment-ACTIVE/reports/production-deployment/scanner-2026-05-15-reference-circular-remediation.txt] Converted stale modularization references to valid navigation/prose during Task 80 production-readiness remediation.

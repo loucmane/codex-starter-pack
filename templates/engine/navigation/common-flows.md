@@ -48,10 +48,10 @@ exports:
 ## "Commit changes" → Git Flow
 ```
 1. Search REGISTRY: "commit-changes"
-2. Find: Handler link [commit-changes](handlers/operators/git/commit-changes.md)
+2. Find: Handler link [create-commit-message](handlers/operators/git/create-commit-message.md#create-commit-message)
 3. Load using one of:
-   - Direct: Read --file_path "templates/handlers/operators/git/commit-changes.md"
-   - Search: mcp__serena__search_for_pattern --substring_pattern "id: commit-changes" --relative_path "templates/handlers/"
+   - Direct: Read --file_path "templates/handlers/operators/git/create-commit-message.md"
+   - Search: mcp__serena__search_for_pattern --substring_pattern "id: create-commit-message" --relative_path "templates/handlers/"
 4. Execute: Check conventions → create message → commit
 ```
 

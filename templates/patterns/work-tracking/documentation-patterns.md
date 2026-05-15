@@ -6,10 +6,9 @@ title: Documentation Creation Patterns
 pattern_type: operational
 complexity: simple
 dependencies:
-  - patterns/work-tracking/templates/patterns/work-tracking/work-patterns.md
   - templates/conventions/
 related:
-  - patterns/work-tracking/templates/patterns/work-tracking/progress-patterns.md
+  - patterns/evidence/evidence-patterns.md
 version: 1.0.0
 status: stable
 ---
@@ -402,8 +401,8 @@ See code for details.
 ```
 
 ## Related Patterns
-- [Work Patterns](work-patterns.md) - Work documentation
-- [Progress Patterns](progress-patterns.md) - Progress reporting
+- Work patterns - Work documentation
+- Progress patterns - Progress reporting
 - [Evidence Patterns](../evidence/evidence-patterns.md) - Documentation as evidence
 
 ## Handler References

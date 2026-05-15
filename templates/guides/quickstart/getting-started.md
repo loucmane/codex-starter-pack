@@ -125,8 +125,8 @@ The agent should run regular Git commands directly after checks pass when SSH/GP
 
 ## More References
 
-- Guide hub: [../index.md](../index.md)
-- Full user guide: [../../USER-GUIDE.md](../../USER-GUIDE.md)
+- Guide hub
+- Full user guide
 - Tool router: [../../TOOLS.md](../../TOOLS.md)
 - Portable foundation spec: [../../engine/core/portable-foundation-spec.md](../../engine/core/portable-foundation-spec.md)
 - Taskmaster alignment: [../../workflows/taskmaster/alignment.md](../../workflows/taskmaster/alignment.md)

@@ -5,9 +5,7 @@ category: guides
 title: Adding New Agents to the System
 audience: developer
 complexity: advanced
-dependencies:
-  - system-integration
-  - agent-coordination
+dependencies: []
 prerequisites:
   - Understanding of agent architecture
   - Knowledge of YAML frontmatter
@@ -202,7 +200,7 @@ Automatically generate comprehensive API documentation from source code, includi
 
 ### 5. Create Agent File
 
-**Location**: `.claude/agents/api-doc-generator.md`
+**Location**: the downstream project's `.claude/agents/` directory, using `api-doc-generator` as the agent filename stem.
 
 **Complete Example:**
 
@@ -455,8 +453,8 @@ Migrates handlers from monolithic template files to modular structure while pres
 
 ## Related Resources
 
-- [System Integration](system-integration.md)
-- [Agent Coordination](../cross-system/agent-coordination.md)
-- [Creating Handlers](creating-handlers.md)
-- [Template Architecture](../architecture/template-architecture.md)
+- System integration guide
+- Agent coordination cross-system guide
+- Creating handlers guide
+- Template architecture overview
 - Existing agents in `.claude/agents/` for examples

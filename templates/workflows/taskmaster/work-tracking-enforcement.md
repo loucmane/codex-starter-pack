@@ -6,7 +6,6 @@ title: Work-Tracking Enforcement Workflow
 dependencies:
   - scripts/codex-task
   - scripts/codex-guard
-  - templates/workflows/taskmaster/alignment.md
 status: draft
 ---
 
@@ -87,7 +86,7 @@ Bootstrap note:
 - `scripts/codex-task taskmaster generate-one --id <id>`
 - `scripts/codex-task serena status --strict`
 - `scripts/codex-guard`
-- `templates/workflows/taskmaster/alignment.md`
+- Taskmaster alignment workflow for broader task/session/plan coordination
 
 ## S:W:H:E Examples
 - [S:20251027|W:task89-work-tracking|H:scripts/codex-task|E:cmd`python3 scripts/codex-task work-tracking scaffold --task 89 --slug work-tracking-enforcement`] Seven-file scaffold created

@@ -74,7 +74,7 @@ By default this creates:
 - Taskmaster root scaffold
 - work-tracking root with `active/` and `archive/`
 - reports root plus drift/metrics/session-continuation subdirectories
-- `.codex/bootstrap/FOUNDATION-SETUP.md`
+- a foundation setup guide under the target repository bootstrap directory
 
 Important behavior:
 

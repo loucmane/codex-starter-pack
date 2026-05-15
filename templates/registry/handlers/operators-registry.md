@@ -80,7 +80,7 @@ Technical operation handlers that perform specific tasks.
 - **Triggers**: "commit with message X", "save changes", "commit Y"
 - **Keywords**: [commit, save, gac, checkin]
 - **Process**: Commits with proper format
-- **Location**: handlers/operators/git/commit-changes.md
+- **Location**: handlers/operators/git/create-commit-message.md
 
 ### `create-branch` {#create-branch}
 - **Triggers**: "new branch for X", "create branch Y", "branch off"
@@ -230,7 +230,7 @@ Technical operation handlers that perform specific tasks.
 
 ## Discovery Methods
 
-- Direct Read: `templates/handlers/operators/[domain]/[handler].md`
+- Direct Read: use the concrete operator file under `templates/handlers/operators/`.
 - Serena Search: `--substring_pattern "id: [handler-name]" --relative_path "templates/handlers/operators/"`
 
 ## Progress Log
