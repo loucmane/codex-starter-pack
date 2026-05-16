@@ -18,6 +18,10 @@
 - **2026-05-16 16:07** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:expand|E:.taskmaster/tasks/task_110.md] Expanded Task 110 into five implementation subtasks: server scaffold, tool registration, handler wiring, resources/prompts, and docs/config/smoke coverage
 - **2026-05-16 16:07** — [S:20260516|W:task110-aegis-mcp-installer-server|H:designs/aegis-mcp-server-scope|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/designs/aegis-mcp-server-scope.md] Corrected the generated plan scope from generic wizard wording to the actual Aegis MCP server boundary
 - **2026-05-16 16:07** — [S:20260516|W:task110-aegis-mcp-installer-server|H:serena/memory|E:.serena/memories/2026-05-16_task110_aegis_mcp_server_kickoff.md] Captured Task 110 kickoff context in Serena memory `2026-05-16_task110_aegis_mcp_server_kickoff`
+- **2026-05-16 16:27** — [S:20260516|W:task110-aegis-mcp-installer-server|H:pyproject.toml|E:pyproject.toml;uv.lock] Added the official Python MCP SDK dependency `mcp>=1.0,<2.0` through `uv add`
+- **2026-05-16 16:27** — [S:20260516|W:task110-aegis-mcp-installer-server|H:aegis_mcp/server.py|E:aegis_mcp/server.py;scripts/aegis-mcp-server] Implemented the 110.1 scaffold: importable `aegis_mcp` package, `AegisMCPConfig`, `create_server`, CLI parser, and stdio entrypoint
+- **2026-05-16 16:27** — [S:20260516|W:task110-aegis-mcp-installer-server|H:pytest|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-scaffold.txt] Added scaffold tests for config normalization, FastMCP server factory context, no premature production tools, and entrypoint `--describe-config`; focused MCP/schema/installer suite passed with `28 passed`
+- **2026-05-16 16:27** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:set-status|E:.taskmaster/tasks/task_110.md] Marked Taskmaster subtask 110.1 done and regenerated only Task 110
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -27,3 +31,4 @@
 
 ## Dependencies & Notes
 - Session log: sessions/current
+- Completed subtasks: 110.1

@@ -76,8 +76,8 @@ Suggested command coverage: run the new MCP server tests plus the existing Aegis
 
 ### 110.1. Scaffold the Aegis MCP package, server factory, and stdio entrypoint
 
-**Status:** pending  
-**Dependencies:** None  
+**Status:** done
+**Dependencies:** None
 
 Create the importable MCP server module and executable path that Task 110 will build on.
 
@@ -87,8 +87,8 @@ Add an `aegis_mcp/` package, likely `aegis_mcp/server.py`, with a testable serve
 
 ### 110.2. Register V1-backed Aegis tools with formal input schemas
 
-**Status:** pending  
-**Dependencies:** 110.1  
+**Status:** pending
+**Dependencies:** 110.1
 
 Expose only the production-supported `aegis.*` tools and validate their inputs before calling the core.
 
@@ -98,8 +98,8 @@ Register exactly `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.
 
 ### 110.3. Wire tool handlers to installer core with schema checks and structured errors
 
-**Status:** pending  
-**Dependencies:** 110.2  
+**Status:** pending
+**Dependencies:** 110.2
 
 Map each MCP tool directly to the existing installer functions while preserving `.aegis/` safety behavior.
 
@@ -109,8 +109,8 @@ Call `inspect_project`, `plan_install`, `install`, `verify`, `list_profiles`, an
 
 ### 110.4. Expose read-only Aegis resources and workflow prompts
 
-**Status:** pending  
-**Dependencies:** 110.3  
+**Status:** pending
+**Dependencies:** 110.3
 
 Implement the `aegis://` resource layer and agent prompts backed by target state, schemas, profiles, cache, and compatibility guidance.
 
@@ -120,8 +120,8 @@ Add resources for `aegis://manifest/current`, `aegis://contract/current`, `aegis
 
 ### 110.5. Update Task 110 docs, MCP config guidance, and smoke coverage
 
-**Status:** pending  
-**Dependencies:** 110.4  
+**Status:** pending
+**Dependencies:** 110.4
 
 Document the implemented server path and add focused tests, local stdio smoke coverage, and workflow evidence.
 
