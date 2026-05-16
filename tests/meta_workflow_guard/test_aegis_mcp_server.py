@@ -12,7 +12,14 @@ import pytest
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
-from aegis_mcp.server import AegisMCPConfig, SERVER_NAME, V1_TOOL_NAMES, create_server
+from aegis_mcp.server import (
+    AegisMCPConfig,
+    PROMPT_NAMES,
+    RESOURCE_URIS,
+    SERVER_NAME,
+    V1_TOOL_NAMES,
+    create_server,
+)
 from scripts._aegis_installer import AEGIS_MANIFEST_REL
 
 
@@ -34,6 +41,18 @@ def call_tool_payload(server: FastMCP, name: str, arguments: dict | None = None)
     payload = json.loads(content[0].text)
     assert structured_payload == payload
     return payload
+
+
+def read_resource_payload(server: FastMCP, uri: str) -> dict:
+    contents = asyncio.run(server.read_resource(uri))
+    assert len(contents) == 1
+    return json.loads(contents[0].content)
+
+
+def get_prompt_text(server: FastMCP, name: str, arguments: dict | None = None) -> str:
+    prompt = asyncio.run(server.get_prompt(name, arguments or {}))
+    assert len(prompt.messages) == 1
+    return prompt.messages[0].content.text
 
 
 def test_config_defaults_to_repo_root() -> None:
@@ -90,6 +109,19 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.update",
         "aegis.rollback",
     }.isdisjoint({tool.name for tool in tools})
+
+
+def test_server_registers_expected_resources_and_prompts(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    resources = asyncio.run(server.list_resources())
+    templates = asyncio.run(server.list_resource_templates())
+    prompts = asyncio.run(server.list_prompts())
+
+    assert {str(resource.uri) for resource in resources} == set(RESOURCE_URIS)
+    assert {template.uriTemplate for template in templates} == {"aegis://profiles/{name}"}
+    assert {prompt.name for prompt in prompts} == set(PROMPT_NAMES)
 
 
 def test_plan_install_schema_requires_explicit_agent_selection(tmp_path: Path) -> None:
@@ -466,6 +498,162 @@ def test_failed_install_report_preserves_cleanup_payload(
     assert payload["error"]["code"] == "install_failed"
     assert payload["error"]["status"] == "failed"
     assert payload["error"]["details"]["report"]["cleanup"]["removed_paths"] == ["CLAUDE.md"]
+
+
+def test_not_installed_resources_return_structured_payloads(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    manifest = read_resource_payload(server, "aegis://manifest/current")
+    contract = read_resource_payload(server, "aegis://contract/current")
+    managed_files = read_resource_payload(server, "aegis://managed-files")
+    latest_plan = read_resource_payload(server, "aegis://install-plan/latest")
+
+    assert manifest["ok"] is False
+    assert manifest["error"]["code"] == "not_installed"
+    assert contract["ok"] is False
+    assert contract["error"]["code"] == "not_installed"
+    assert managed_files["ok"] is False
+    assert managed_files["error"]["code"] == "not_installed"
+    assert latest_plan["ok"] is False
+    assert latest_plan["error"]["code"] == "not_available"
+
+
+def test_schema_and_profile_resources_are_read_only_source_payloads(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    foundation_schema = read_resource_payload(server, "aegis://schemas/foundation-manifest")
+    profile_schema = read_resource_payload(server, "aegis://schemas/profile")
+    install_plan_schema = read_resource_payload(server, "aegis://schemas/install-plan")
+    profiles = read_resource_payload(server, "aegis://profiles")
+    profile = read_resource_payload(server, "aegis://profiles/generic")
+
+    assert foundation_schema["ok"] is True
+    assert foundation_schema["source"] == "source"
+    assert foundation_schema["result"]["title"] == "Aegis Foundation Manifest"
+    assert profile_schema["result"]["title"] == "Aegis Project Profile"
+    assert install_plan_schema["result"]["title"] == "Aegis Install Plan"
+    assert profiles["result"]["profiles"][0]["name"] == "generic"
+    assert profile["result"]["name"] == "generic"
+
+
+def test_install_plan_resource_prefers_session_cache_then_report(tmp_path: Path) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=target)
+    server = create_server(config)
+
+    call_tool_payload(
+        server,
+        "aegis.plan_install",
+        {
+            "target_dir": target.as_posix(),
+            "primary_agent": "claude",
+            "agents": ["claude"],
+        },
+    )
+    cached = read_resource_payload(server, "aegis://install-plan/latest")
+    assert cached["ok"] is True
+    assert cached["source"] == "session_cache"
+    assert cached["result"]["mode"] == "dry_run"
+
+    second_server = create_server(config)
+    call_tool_payload(
+        second_server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    report_backed = read_resource_payload(second_server, "aegis://install-plan/latest")
+    assert report_backed["ok"] is True
+    assert report_backed["source"] == "target_report"
+    assert report_backed["result"]["mode"] == "apply"
+
+
+def test_installed_target_resources_and_latest_verification(tmp_path: Path) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=target)
+    server = create_server(config)
+
+    install_payload = call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    assert install_payload["ok"] is True
+    verify_payload = call_tool_payload(
+        server,
+        "aegis.verify",
+        {
+            "target_dir": target.as_posix(),
+            "acknowledge_report_write": True,
+        },
+    )
+    assert verify_payload["ok"] is True
+
+    manifest = read_resource_payload(server, "aegis://manifest/current")
+    contract = read_resource_payload(server, "aegis://contract/current")
+    managed_files = read_resource_payload(server, "aegis://managed-files")
+    verification = read_resource_payload(server, "aegis://verification/latest")
+
+    assert manifest["ok"] is True
+    assert manifest["result"]["payload"]["primary_agent"] == "claude"
+    assert contract["ok"] is True
+    assert "Aegis Foundation Contract" in contract["result"]["content"]
+    assert managed_files["ok"] is True
+    assert any(item["path"] == "CLAUDE.md" for item in managed_files["result"]["managed_files"])
+    assert verification["ok"] is True
+    assert verification["result"]["payload"]["status"] == "passed"
+
+
+def test_limitations_resource_includes_policy_and_deferred_tool_notes(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    payload = read_resource_payload(server, "aegis://limitations")
+
+    assert payload["ok"] is True
+    assert any(
+        gate["id"] == "mcp.memory_write"
+        for gate in payload["result"]["policy_only_gates"]
+    )
+    assert "aegis.update" in payload["result"]["deferred_tools"]
+    assert any("Prompts are guidance only" in note for note in payload["result"]["prompt_limitations"])
+
+
+def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    for prompt_name in PROMPT_NAMES:
+        text = get_prompt_text(server, prompt_name)
+
+        assert "Do not write `.aegis/` directly" in text
+        assert "Aegis prompts are advisory" in text
+        assert "prompt text" in text
+        assert "aegis://limitations" in text or prompt_name == "aegis.close_agent_session"
+        assert "policy-only" in text or "policy" in text
+
+    bootstrap = get_prompt_text(server, "aegis.bootstrap_new_project")
+    assert "aegis.inspect" in bootstrap
+    assert "aegis.plan_install" in bootstrap
+    assert "user" in bootstrap and "approval" in bootstrap
+    assert "aegis.install" in bootstrap
+    assert "aegis.verify" in bootstrap
+    assert "mechanical gates" in bootstrap
 
 
 def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> None:

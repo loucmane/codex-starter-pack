@@ -4,7 +4,7 @@
 - `110.1` — Scaffold importable MCP package, server factory, and stdio entrypoint. **Done**: added `aegis_mcp/server.py`, `aegis_mcp/__init__.py`, `scripts/aegis-mcp-server`, `mcp>=1.0,<2.0`, and initial scaffold tests.
 - `110.2` — Register V1-backed `aegis.*` tools and formal input schemas. **Done**: registered the six V1 tool contracts and validation tests without wiring core handlers yet.
 - `110.3` — Wire handlers to the installer core with schema checks and structured MCP errors. **Done**: tool handlers call the core installer module, validate core payloads, and map predictable failures to structured MCP payloads.
-- `110.4` — Expose read-only `aegis://` resources and safe workflow prompts.
+- `110.4` — Expose read-only `aegis://` resources and safe workflow prompts. **Done**: added target/source-backed resources, latest plan/report reads, limitations, managed-file views, and advisory workflow prompts.
 - `110.5` — Update implementation docs, MCP config guidance, and local smoke coverage.
 
 ## 110.1 Scaffold Notes
@@ -29,3 +29,11 @@
 - Predictable failures return `{ "ok": false, "tool": "...", "error": { "code": "...", "message": "...", "status": "...", "details": ... } }` instead of leaking Python tracebacks through FastMCP.
 - `aegis.install` refuses `apply=false` without calling the core and maps core `status=refused` and `status=failed` reports into structured errors while preserving report and cleanup payloads.
 - `aegis.verify` refuses `acknowledge_report_write=false` without calling the core and maps failed verification reports into structured errors while preserving the verifier report details.
+
+## 110.4 Resource and Prompt Notes
+- Static resources: `aegis://manifest/current`, `aegis://contract/current`, `aegis://schemas/foundation-manifest`, `aegis://schemas/profile`, `aegis://schemas/install-plan`, `aegis://profiles`, `aegis://install-plan/latest`, `aegis://verification/latest`, `aegis://limitations`, and `aegis://managed-files`.
+- Template resource: `aegis://profiles/{name}`.
+- Resource payloads use JSON envelopes with `ok`, `schema_version`, `resource`, `source`, and either `result` or structured `error`; missing target state returns `not_installed` or `not_available` without creating or updating `.aegis/`.
+- `aegis://install-plan/latest` first uses the in-process plan cache populated by `aegis.plan_install`, then falls back to `.aegis/reports/install-plan.json`.
+- Prompts: `aegis.bootstrap_new_project`, `aegis.migrate_existing_project`, `aegis.verify_runtime`, `aegis.prepare_agent_session`, and `aegis.close_agent_session`.
+- Prompt text is explicitly advisory, cites `aegis://contract/current`, `aegis://limitations`, and `aegis://verification/latest`, preserves the inspect -> plan_install -> user approval -> install -> verify flow, and forbids treating prompt output as success evidence.

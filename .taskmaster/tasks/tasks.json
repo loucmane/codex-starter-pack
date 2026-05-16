@@ -5300,9 +5300,10 @@
               3
             ],
             "details": "Add resources for `aegis://manifest/current`, `aegis://contract/current`, `aegis://schemas/foundation-manifest`, `aegis://schemas/profile`, `aegis://schemas/install-plan`, `aegis://profiles`, `aegis://profiles/{name}`, `aegis://install-plan/latest`, `aegis://verification/latest`, `aegis://limitations`, and `aegis://managed-files`. Back them with `.aegis/foundation-manifest.json`, `.aegis/contract.md`, `schemas/aegis/*.schema.json`, `list_profiles`, `explain_profile`, report files, and the latest in-process plan cache. Missing files must return structured `not_installed` or `not_available` payloads and resources must never create or update `.aegis/`. Implement prompts `aegis.bootstrap_new_project`, `aegis.migrate_existing_project`, `aegis.verify_runtime`, `aegis.prepare_agent_session`, and `aegis.close_agent_session` that guide `inspect -> plan_install -> user approval -> install -> verify`, cite resources such as `aegis://contract/current`, `aegis://limitations`, and `aegis://verification/latest`, use `templates/registry/agent-compatibility-matrix.json` for supported-agent and fallback guidance, distinguish mechanical gates from policy-only limitations, and avoid claims of success without tool evidence.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test installed and not-installed resource reads, schema resources, profile resources, latest plan fallback from session cache, latest report reads from `.aegis/reports`, limitations derived from unsupported or policy gates plus deferred-tool notes, managed-files payloads, and prompt invariants that forbid direct `.aegis/` writes or unsupported success claims.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-16T15:51:47.222Z"
           },
           {
             "id": 5,
@@ -5317,12 +5318,12 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T15:36:26.925Z"
+        "updatedAt": "2026-05-16T15:51:47.222Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T15:36:26.926Z",
+      "lastModified": "2026-05-16T15:51:47.222Z",
       "taskCount": 110,
       "completedCount": 109,
       "tags": [

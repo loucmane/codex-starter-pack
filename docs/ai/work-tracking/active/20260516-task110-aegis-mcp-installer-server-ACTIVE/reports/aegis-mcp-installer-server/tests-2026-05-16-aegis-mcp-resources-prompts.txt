@@ -1,0 +1,19 @@
+Command:
+PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_server.py tests/meta_workflow_guard/test_aegis_schemas.py tests/meta_workflow_guard/test_aegis_installer.py
+
+Result:
+50 passed in 1.76s
+
+Scope:
+- Verified the Aegis MCP server exposes read-only resources for current
+  manifest, contract, schemas, profiles, latest install plan, latest
+  verification report, limitations, and managed files.
+- Verified missing target state returns structured not_installed or
+  not_available resource payloads without creating or updating `.aegis/`.
+- Verified `aegis://install-plan/latest` prefers the in-process plan cache and
+  falls back to `.aegis/reports/install-plan.json`.
+- Verified installed-target resources read manifest, contract, managed files,
+  and verification reports from temporary test targets.
+- Verified workflow prompts are advisory, cite Aegis resources, preserve the
+  inspect -> plan_install -> user approval -> install -> verify flow, and do
+  not claim success without tool/report evidence.

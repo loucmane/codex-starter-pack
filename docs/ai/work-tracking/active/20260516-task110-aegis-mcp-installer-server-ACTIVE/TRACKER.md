@@ -28,6 +28,9 @@
 - **2026-05-16 17:37** — [S:20260516|W:task110-aegis-mcp-installer-server|H:aegis_mcp/server.py|E:aegis_mcp/server.py;tests/meta_workflow_guard/test_aegis_mcp_server.py] Completed 110.3 handler wiring: the six tools now call `scripts/_aegis_installer.py`, validate plan/profile schemas, preserve read-only vs mutating semantics, and return structured `{ok:false,error:{...}}` responses for predictable failures
 - **2026-05-16 17:37** — [S:20260516|W:task110-aegis-mcp-installer-server|H:pytest|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-handlers.txt] Captured 110.3 evidence; focused MCP/schema/installer suite passed with `43 passed`
 - **2026-05-16 17:37** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:set-status|E:.taskmaster/tasks/task_110.md] Marked Taskmaster subtask 110.3 done and regenerated only Task 110
+- **2026-05-16 17:52** — [S:20260516|W:task110-aegis-mcp-installer-server|H:aegis_mcp/server.py|E:aegis_mcp/server.py;tests/meta_workflow_guard/test_aegis_mcp_server.py] Completed 110.4 resources and prompts: read-only `aegis://` resources expose manifests, contracts, schemas, profiles, latest reports, limitations, managed files, and advisory prompts preserve the evidence-first workflow
+- **2026-05-16 17:52** — [S:20260516|W:task110-aegis-mcp-installer-server|H:pytest|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-resources-prompts.txt] Captured 110.4 evidence; focused MCP/schema/installer suite passed with `50 passed`
+- **2026-05-16 17:52** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:set-status|E:.taskmaster/tasks/task_110.md] Marked Taskmaster subtask 110.4 done and regenerated only Task 110
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -37,4 +40,4 @@
 
 ## Dependencies & Notes
 - Session log: sessions/current
-- Completed subtasks: 110.1, 110.2, 110.3
+- Completed subtasks: 110.1, 110.2, 110.3, 110.4

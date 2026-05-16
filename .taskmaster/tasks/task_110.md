@@ -109,7 +109,7 @@ Call `inspect_project`, `plan_install`, `install`, `verify`, `list_profiles`, an
 
 ### 110.4. Expose read-only Aegis resources and workflow prompts
 
-**Status:** pending
+**Status:** done
 **Dependencies:** 110.3
 
 Implement the `aegis://` resource layer and agent prompts backed by target state, schemas, profiles, cache, and compatibility guidance.
