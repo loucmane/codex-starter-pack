@@ -1,0 +1,18 @@
+Command:
+PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_server.py tests/meta_workflow_guard/test_aegis_schemas.py tests/meta_workflow_guard/test_aegis_installer.py
+
+Result:
+35 passed in 1.49s
+
+Scope:
+- Verified the Aegis MCP server registers exactly the six V1-backed tools:
+  aegis.inspect, aegis.plan_install, aegis.install, aegis.verify,
+  aegis.list_profiles, and aegis.explain_profile.
+- Verified future/deferred production tools are not registered:
+  aegis.status, aegis.plan_update, aegis.update, and aegis.rollback.
+- Verified FastMCP input schemas require explicit primary_agent and agents for
+  aegis.plan_install, explicit profile/primary_agent/agents/apply for
+  aegis.install, and explicit acknowledge_report_write for aegis.verify.
+- Verified invalid or omitted primary_agent, agents, apply, and
+  acknowledge_report_write inputs are rejected before Task 110.3 core handler
+  wiring can perform installer mutations.

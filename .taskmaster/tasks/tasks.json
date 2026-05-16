@@ -5274,9 +5274,10 @@
               1
             ],
             "details": "Register exactly `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.list_profiles`, and `aegis.explain_profile`. Mirror core constraints discovered in `scripts/_aegis_installer.py`: profile defaults only to `generic`, `primary_agent` is one of `claude`, `codex`, `gemini`, `multi`, or `none`, and `agents` is a unique list drawn from `claude`, `codex`, and `gemini`. Require explicit `primary_agent` and `agents` for planning, require `target_dir`, `profile`, `primary_agent`, `agents`, and `apply` for install, and require `target_dir` plus `acknowledge_report_write: true` for verify. Do not register production `aegis.status`, `aegis.plan_update`, `aegis.update`, or `aegis.rollback` because the core has no deterministic support for them yet.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test tool discovery and input schemas, asserting the discovered tool set is exactly the six V1-backed names and that invalid or omitted `primary_agent`, `agents`, `apply`, and verify acknowledgement fields are rejected before core mutation can occur.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-16T15:12:49.536Z"
           },
           {
             "id": 3,
@@ -5315,12 +5316,12 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T14:26:44.475Z"
+        "updatedAt": "2026-05-16T15:12:49.536Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T14:26:44.476Z",
+      "lastModified": "2026-05-16T15:12:49.537Z",
       "taskCount": 110,
       "completedCount": 109,
       "tags": [

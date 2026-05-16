@@ -87,7 +87,7 @@ Add an `aegis_mcp/` package, likely `aegis_mcp/server.py`, with a testable serve
 
 ### 110.2. Register V1-backed Aegis tools with formal input schemas
 
-**Status:** pending
+**Status:** done
 **Dependencies:** 110.1
 
 Expose only the production-supported `aegis.*` tools and validate their inputs before calling the core.

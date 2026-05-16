@@ -12,15 +12,32 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Annotated, Any, Literal, Sequence
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
 
 from scripts import _aegis_installer
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SERVER_NAME = "Aegis Foundation"
+ProfileName = Literal["generic"]
+PrimaryAgentName = Literal["claude", "codex", "gemini", "multi", "none"]
+AgentName = Literal["claude", "codex", "gemini"]
+AgentList = Annotated[list[AgentName], Field(json_schema_extra={"uniqueItems": True})]
+V1_TOOL_NAMES = (
+    "aegis.inspect",
+    "aegis.plan_install",
+    "aegis.install",
+    "aegis.verify",
+    "aegis.list_profiles",
+    "aegis.explain_profile",
+)
+
+
+class AegisMCPInputError(ValueError):
+    """Raised when MCP inputs fail Aegis V1 safety constraints."""
 
 
 @dataclass(frozen=True)
@@ -65,6 +82,163 @@ def create_server(config: AegisMCPConfig | None = None) -> FastMCP:
     server = FastMCP(SERVER_NAME, json_response=True)
     server.aegis_config = resolved_config  # type: ignore[attr-defined]
     server.aegis_installer = _aegis_installer  # type: ignore[attr-defined]
+    return register_v1_tools(server)
+
+
+def _validate_profile(profile: str) -> str:
+    if profile != _aegis_installer.PROFILE_GENERIC:
+        raise AegisMCPInputError(f"Unsupported Aegis profile in V1: {profile}")
+    return profile
+
+
+def _validate_unique_agents(agents: Sequence[str]) -> tuple[str, ...]:
+    unknown = sorted(set(agents) - _aegis_installer.AGENT_CHOICES)
+    if unknown:
+        raise AegisMCPInputError(f"Unsupported enabled agent(s): {', '.join(unknown)}")
+    deduped = tuple(dict.fromkeys(agents))
+    if len(deduped) != len(tuple(agents)):
+        raise AegisMCPInputError("agents must be unique")
+    return deduped
+
+
+def _validate_agent_selection(
+    *,
+    primary_agent: str,
+    agents: Sequence[str],
+) -> tuple[str, ...]:
+    if primary_agent not in _aegis_installer.PRIMARY_AGENT_CHOICES:
+        raise AegisMCPInputError(f"Unsupported primary agent: {primary_agent}")
+    selected = _validate_unique_agents(agents)
+    if primary_agent == "none":
+        if selected:
+            raise AegisMCPInputError("primary_agent=none cannot be combined with enabled agents")
+        return ()
+    if not selected:
+        raise AegisMCPInputError("Aegis install requires at least one explicit agent")
+    if primary_agent == "multi" and len(selected) < 2:
+        raise AegisMCPInputError("primary_agent=multi requires at least two enabled agents")
+    if primary_agent in _aegis_installer.AGENT_CHOICES and primary_agent not in selected:
+        raise AegisMCPInputError(
+            f"primary_agent={primary_agent} must also be listed in agents"
+        )
+    return selected
+
+
+def _require_true(value: bool, field: str) -> None:
+    if value is not True:
+        raise AegisMCPInputError(f"{field} must be true for this Aegis MCP operation")
+
+
+def _deferred_tool_response(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": _aegis_installer.SCHEMA_VERSION,
+        "tool": tool_name,
+        "status": "handler_deferred",
+        "message": "Input schema and safety validation passed; core handler wiring is owned by Task 110.3.",
+        "validated_arguments": arguments,
+    }
+
+
+def register_v1_tools(server: FastMCP) -> FastMCP:
+    """Register the V1-backed Aegis tool contracts on a FastMCP server."""
+
+    @server.tool(name="aegis.inspect")
+    def aegis_inspect(
+        target_dir: str,
+        profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
+    ) -> dict[str, Any]:
+        """Inspect a target project for Aegis installation state."""
+
+        profile_value = _validate_profile(profile)
+        return _deferred_tool_response(
+            "aegis.inspect",
+            {
+                "target_dir": target_dir,
+                "profile": profile_value,
+            },
+        )
+
+    @server.tool(name="aegis.plan_install")
+    def aegis_plan_install(
+        target_dir: str,
+        primary_agent: PrimaryAgentName,
+        agents: AgentList,
+        profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
+    ) -> dict[str, Any]:
+        """Plan a deterministic Aegis installation without mutating the target."""
+
+        profile_value = _validate_profile(profile)
+        selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
+        return _deferred_tool_response(
+            "aegis.plan_install",
+            {
+                "target_dir": target_dir,
+                "profile": profile_value,
+                "primary_agent": primary_agent,
+                "agents": list(selected),
+            },
+        )
+
+    @server.tool(name="aegis.install")
+    def aegis_install(
+        target_dir: str,
+        profile: ProfileName,
+        primary_agent: PrimaryAgentName,
+        agents: AgentList,
+        apply: bool,
+    ) -> dict[str, Any]:
+        """Apply an Aegis installation after explicit apply confirmation."""
+
+        profile_value = _validate_profile(profile)
+        selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
+        _require_true(apply, "apply")
+        return _deferred_tool_response(
+            "aegis.install",
+            {
+                "target_dir": target_dir,
+                "profile": profile_value,
+                "primary_agent": primary_agent,
+                "agents": list(selected),
+                "apply": apply,
+            },
+        )
+
+    @server.tool(name="aegis.verify")
+    def aegis_verify(
+        target_dir: str,
+        acknowledge_report_write: bool,
+    ) -> dict[str, Any]:
+        """Verify an Aegis installation after acknowledging report writes."""
+
+        _require_true(acknowledge_report_write, "acknowledge_report_write")
+        return _deferred_tool_response(
+            "aegis.verify",
+            {
+                "target_dir": target_dir,
+                "acknowledge_report_write": acknowledge_report_write,
+            },
+        )
+
+    @server.tool(name="aegis.list_profiles")
+    def aegis_list_profiles() -> dict[str, Any]:
+        """List Aegis install profiles supported by the V1 installer."""
+
+        return _deferred_tool_response("aegis.list_profiles", {})
+
+    @server.tool(name="aegis.explain_profile")
+    def aegis_explain_profile(
+        profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
+    ) -> dict[str, Any]:
+        """Explain the built-in Aegis install profile."""
+
+        profile_value = _validate_profile(profile)
+        return _deferred_tool_response(
+            "aegis.explain_profile",
+            {
+                "profile": profile_value,
+            },
+        )
+
     return server
 
 
