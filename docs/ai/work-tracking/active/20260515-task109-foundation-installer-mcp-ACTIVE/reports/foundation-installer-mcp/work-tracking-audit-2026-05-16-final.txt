@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260515-task109-foundation-installer-mcp-ACTIVE has prefix 20260515; today's prefix is 20260516 (ensure multi-day reuse is intentional)
