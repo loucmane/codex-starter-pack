@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Analyze Current Codebase Structure",
         "description": "Perform comprehensive analysis of the existing Codex repository to understand current template system, monolithic files, and migration readiness",
         "details": "Use Glob to explore project structure ('**/*.md', '**/*.py', '**/templates/**'), Grep to search for template references and patterns, Read key files (CLAUDE.md, CODEX.md, package.json). Document existing monolithic files (WORKFLOWS.md, PATTERNS.md), current template locations, reference patterns, and integration points. Create baseline inventory of all template-related files and their dependencies.",
@@ -119,7 +119,7 @@
         "expansionPrompt": "Break down the codebase analysis into systematic discovery of existing template infrastructure, monolithic files inventory, reference pattern mapping, and baseline documentation creation. Focus on understanding the current state before migration."
       },
       {
-        "id": "81",
+        "id": 81,
         "title": "Implement Plan Compliance Enforcement",
         "description": "Implement guard and behavior to enforce plan-first workflow execution before any edits occur.",
         "details": "Completes the plan compliance enforcement loop (behavior, guard validation, plan/tracker sync, evidence logging).",
@@ -213,7 +213,7 @@
         ]
       },
       {
-        "id": "82",
+        "id": 82,
         "title": "Integrate Meta Workflow Authoring Enforcement",
         "description": "Wire the meta workflow orchestrator and gap-detection pattern into guard automation, Taskmaster alignment, and helper tooling.",
         "details": "Ensures meta workflow authoring process runs before any workflow/handler changes.",
@@ -297,7 +297,7 @@
         ]
       },
       {
-        "id": "83",
+        "id": 83,
         "title": "Build Meta Workflow Regression Test Suite",
         "description": "Add automated coverage to ensure meta workflow orchestrator/pattern registration and guard behavior remain intact.",
         "details": "Creates unit and integration tests plus documentation for ongoing enforcement.",
@@ -361,7 +361,7 @@
         ]
       },
       {
-        "id": "84",
+        "id": 84,
         "title": "Implement Timestamp Guard",
         "description": "Enforce real timestamp commands before logging session/work-tracking entries and add regression coverage.",
         "details": "Extends timestamp behavior, guard checks, templates, helper messaging, and testing.",
@@ -437,7 +437,7 @@
         ]
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Setup Python Environment and Dependencies",
         "description": "Configure Python 3.11+ environment with required dependencies for scanner suite and automation tools",
         "details": "Install Python 3.11+ via pyenv or system package manager. Create virtual environment using 'python -m venv .venv'. Install dependencies: pip install pytest>=7.4.0 pytest-benchmark>=4.0.0 pytest-cov>=4.1.0 pyyaml>=6.0 click>=8.1.0 rich>=13.5.0. Create pyproject.toml with pinned versions. Setup uv for faster dependency management: pip install uv, then uv pip compile pyproject.toml -o requirements.lock",
@@ -534,7 +534,7 @@
         "expansionPrompt": "Create tasks for Python environment setup (already have 3.12.3), dependency installation with requirements file creation, and verification testing. Include virtual environment setup and package management configuration."
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Port SSOT Scanner Suite to Codex",
         "description": "Migrate the Python scanner suite from FPL MCP repository to Codex environment",
         "details": "Copy scanner modules from ~/dev/mcp-development/fpl-mcp-repo/scripts/template-ssot-scanner/ to scripts/template-ssot-scanner/. Port main scanner.py, reference_validator.py, duplicate_detector.py, migration_tracker.py. Update import paths and configuration for Codex structure. Implement versioned metadata output format 2.0.0 with compatibility field. Add JSON schema validation using jsonschema library.",
@@ -650,7 +650,7 @@
         "expansionPrompt": "Organize porting of scanner modules including core scanner.py, validation modules, metadata handling, JSON schema implementation, and compatibility testing. Scanner already exists but needs enhancement and versioning."
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Create Scanner Configuration System",
         "description": "Implement YAML-based configuration for scanner rules, severities, and allowlists",
         "details": "Create scanner_config.yaml with rule definitions: reference_validation (severity: error, auto_fix: true), duplicate_detection (severity: warning, threshold: 0.8), migration_tracking (severity: info). Implement ConfigLoader class using PyYAML. Add allowlist support for paths like templates/legacy/, docs/examples/. Create rule severity taxonomy (error, warning, info). Implement configuration validation and defaults.",
@@ -781,7 +781,7 @@
         "expansionPrompt": "Design and implement YAML configuration loader, rule definition system with severities, allowlist pattern matching, configuration validation, default handling, and integration with existing scanner infrastructure."
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Implement Codex-Task CLI Tool",
         "description": "Create command-line utility for task management and work-tracking integration",
         "details": "Create scripts/codex-task using Click framework. Implement commands: 'sessions update' for work-tracking, 'scanner run' with --log-note flag, 'report generate' for outputs. Add S:W:H:E structured logging support. Integrate with git for automatic session detection. Add --dry-run flag for all destructive operations. Implement progress bars using Rich library for long-running operations.",
@@ -818,7 +818,7 @@
         "expansionPrompt": "Build CLI framework with Click, implement core commands (sessions, scanner, report), add S:W:H:E logging integration, git integration for session detection, dry-run capabilities, progress visualization with Rich, and comprehensive testing."
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Implement Codex-Guard Validation Tool",
         "description": "Create enforcement helper for template compliance and S:W:H:E format validation",
         "details": "Create scripts/codex-guard with validation engine. Implement S:W:H:E format checker using regex patterns. Add frontmatter schema validation (id, type, category, dependencies, triggers, exports, version, status). Create auto-fix mode for common issues. Implement allowlist configuration for exceptions. Add git hook integration support. Use colorized output for validation results.",
@@ -855,7 +855,7 @@
         "expansionPrompt": "Create validation engine architecture, S:W:H:E format validator with regex, frontmatter schema validation system, auto-fix mode implementation, allowlist configuration, git hook integration, colorized output formatting, and comprehensive error handling."
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Generate Baseline Scanner Outputs",
         "description": "Run scanner suite on current codebase to establish migration baseline",
         "details": "Execute full scanner suite on existing templates. Generate output/data/migration_status.json with current state. Create duplicate_analysis.json for duplicate detection results. Generate fix_recommendations.json with prioritized fixes. Include versioned metadata (scanner_version: 2.0.0, generated_at timestamp). Calculate metrics: total references, broken references, duplicate count, migration percentage.",
@@ -893,7 +893,7 @@
         "expansionPrompt": "Execute scanner suite, generate migration_status.json, create duplicate_analysis.json, compile fix_recommendations.json with versioned metadata, and calculate comprehensive metrics report."
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Create Template Registry System",
         "description": "Build centralized registry for template discovery and management",
         "details": "Create TemplateRegistry class with in-memory index. Implement template discovery using glob patterns. Add caching layer with TTL for performance (<50ms target). Create fallback chain: modular → compatibility map → legacy → Serena → error. Implement template metadata parsing from frontmatter. Add search capabilities (by id, type, category, tags). Use functools.lru_cache for frequently accessed templates.",
@@ -930,7 +930,7 @@
         "expansionPrompt": "Design TemplateRegistry class architecture, implement discovery mechanism with glob patterns, build caching layer with TTL management, create fallback chain logic, implement metadata parsing, add search capabilities, optimize with functools.lru_cache, ensure thread-safety, and benchmark performance."
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Setup Git Hooks Infrastructure",
         "description": "Configure pre-commit hooks for automated validation",
         "details": "Install pre-commit framework: pip install pre-commit. Create .pre-commit-config.yaml with hooks for codex-guard, scanner incremental mode, secret scanning (detect-secrets), Python linting (ruff). Add custom hook scripts in .git/hooks/. Implement bypass mechanism with SKIP_HOOKS=1 environment variable. Configure hook output formatting for CI compatibility.",
@@ -967,7 +967,7 @@
         "expansionPrompt": "Install pre-commit framework, create .pre-commit-config.yaml configuration, implement codex-guard hook, add scanner incremental mode, integrate secret scanning, configure Python linting, implement bypass mechanism, and test CI compatibility."
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Implement Reference Fix Scripts",
         "description": "Create automated scripts for fixing template references",
         "details": "Port apply_reference_fixes.py from FPL repo. Implement safe mode with backup creation. Add dry-run capability with detailed preview. Create apply_all_fixes.sh wrapper for batch operations. Implement rollback mechanism using git. Add progress tracking and logging. Handle special cases: symlinks, circular references, external references.",
@@ -1007,7 +1007,7 @@
         "updatedAt": "2026-05-07T12:42:36.222Z"
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Create Migration Roadmap Generator",
         "description": "Build tool to generate prioritized migration plan from scanner outputs",
         "details": "Create RoadmapGenerator class reading scanner JSON outputs. Implement priority algorithm: critical (broken refs) → high (monolith refs) → medium (duplicates) → low (optimizations). Generate markdown report with task list, effort estimates, dependency graph. Add Gantt chart visualization using matplotlib. Export to Taskmaster-compatible format. Include risk assessment for each migration item.",
@@ -1047,7 +1047,7 @@
         "updatedAt": "2026-05-08T09:49:36.770Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Setup Taskmaster Integration",
         "description": "Configure Taskmaster-AI for migration task management",
         "details": "Run 'taskmaster-ai init' in project root. Configure .taskmaster/config.json with API keys. Parse PRD using 'taskmaster-ai parse-prd .taskmaster/docs/prd.txt'. Set up MCP configuration in .mcp.json. Configure models with 'taskmaster-ai models --setup'. Create custom task templates for migration workflow. Set up task dependencies and milestones.",
@@ -1087,7 +1087,7 @@
         "updatedAt": "2026-05-07T13:23:17.376Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement Compatibility Mapping Table",
         "description": "Create mapping system for backward compatibility during migration",
         "details": "Create CompatibilityMap class with bidirectional mapping. Store mappings in JSON format: {monolith_anchor: modular_path}. Implement lookup methods with O(1) performance. Add version tracking for mapping changes. Create update mechanism for incremental migrations. Implement conflict resolution for duplicate mappings. Add validation to ensure all mappings resolve.",
@@ -1127,7 +1127,7 @@
         "updatedAt": "2026-05-07T13:48:50.098Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Create Work-Tracking Template Structure",
         "description": "Establish standardized work-tracking directory and file structure",
         "details": "Create docs/ai/work-tracking/active/ directory structure. Set up 7 canonical files: TRACKER.md, HANDOFF.md, FINDINGS.md, IMPLEMENTATION.md, MEMORY-REFS.md, CHANGELOG.md, plans/. Create templates for each file type with S:W:H:E format. Implement auto-generation script for new work items. Add validation for required sections. Create archival process for completed work.",
@@ -1244,7 +1244,7 @@
         "expansionPrompt": "Create directory structure (partially exists), design canonical file templates, implement S:W:H:E format validation, create auto-generation scripts, and establish archival process."
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Enforce Serena Integration for Template System",
         "description": "Guarantee that template discovery, analysis, and evidence gathering are always routed through Serena MCP, with enforcement across docs, guard, and workflows.",
         "details": "Update documentation, guard rules, and work-tracking flows so Serena is the mandatory entry point for template discovery and evidence gathering. Provide reference queries, ensure memories (scanner baselines, compaction checkpoints) are maintained, and remove manual workarounds.",
@@ -1285,7 +1285,7 @@
         "updatedAt": "2026-05-08T12:34:25.377Z"
       },
       {
-        "id": "16",
+        "id": 16,
         "title": "Create Performance Testing Harness",
         "description": "Build comprehensive performance testing suite for migration validation",
         "details": "Create performance_tests.py with pytest-benchmark. Implement tests: test_template_discovery_time (<50ms target), test_context_token_usage (30% reduction target), test_scanner_incremental (<10s), test_guard_validation (<5s). Add profiling for top 20 templates. Create baseline capture mechanism. Implement regression detection (warning +20%, critical +50%). Add CI integration with performance gates.",
@@ -1328,7 +1328,7 @@
         "updatedAt": "2026-05-10T10:27:06.912Z"
       },
       {
-        "id": "17",
+        "id": 17,
         "title": "Setup Monitoring Infrastructure",
         "description": "Establish metrics collection and monitoring dashboards",
         "details": "Set up Prometheus exporters for metrics. Create Grafana dashboards for migration health, template usage, performance metrics. Implement StatsD client for application metrics. Add log aggregation with Elasticsearch. Configure alerts: discovery >100ms, guard failures >5/hr, cost >80% budget. Create migration progress tracker. Add telemetry decorators for template loads.",
@@ -1370,7 +1370,7 @@
         "updatedAt": "2026-05-09T09:31:21.570Z"
       },
       {
-        "id": "18",
+        "id": 18,
         "title": "Implement Security Validation Framework",
         "description": "Create security scanning and validation tools for templates",
         "details": "Implement path traversal detection using pathlib. Add template injection scanner with regex patterns. Create secret detection using detect-secrets library. Implement input sanitization functions. Add security audit checklist automation. Create vulnerability reporting format. Implement allowlist for false positives. Add SAST integration for template code.",
@@ -1412,7 +1412,7 @@
         "updatedAt": "2026-05-07T15:56:28.353Z"
       },
       {
-        "id": "19",
+        "id": 19,
         "title": "Create Rollback Mechanism",
         "description": "Build comprehensive rollback system for migration safety",
         "details": "Implement git-based checkpoint system with tags. Create rollback script with state restoration. Add Taskmaster milestone snapshots. Implement Serena memory backups. Create compatibility map versioning. Add rollback decision matrix. Implement emergency toggle for legacy mode. Create rollback validation tests.",
@@ -1454,7 +1454,7 @@
         "updatedAt": "2026-05-07T17:03:34.767Z"
       },
       {
-        "id": "20",
+        "id": 20,
         "title": "Setup CI/CD Pipeline",
         "description": "Configure continuous integration for automated validation",
         "details": "Create .github/workflows/migration.yml for GitHub Actions (or equivalent for your CI). Add jobs: scanner validation, guard enforcement, performance tests, security scans. Implement matrix testing for multiple Python versions. Add artifact storage for reports. Configure branch protection rules. Set up deployment gates for each phase. Add cost monitoring for CI minutes.",
@@ -1497,7 +1497,7 @@
         "updatedAt": "2026-05-08T13:52:20.744Z"
       },
       {
-        "id": "21",
+        "id": 21,
         "title": "Implement Template Frontmatter Schema",
         "description": "Create and enforce standardized frontmatter for all templates",
         "details": "Define YAML schema with required fields: id, type (trigger|operator|orchestrator|guide), category, dependencies[], triggers[], exports[], version (semver), status (stable|beta|deprecated), tags[]. Create JSON Schema validator. Implement frontmatter parser using python-frontmatter. Add migration tool for existing templates. Create frontmatter generator CLI command.",
@@ -1537,7 +1537,7 @@
         "updatedAt": "2026-05-07T14:27:23.303Z"
       },
       {
-        "id": "22",
+        "id": 22,
         "title": "Build Template Discovery API",
         "description": "Create programmatic interface for template discovery and access",
         "details": "Create TemplateAPI class with REST-like interface. Implement methods: get_template(id), search_templates(query), list_by_category(category), get_dependencies(id). Add response caching with Redis or in-memory LRU. Implement pagination for large results. Add filtering by status, version, tags. Create GraphQL schema for complex queries.",
@@ -1578,7 +1578,7 @@
         "updatedAt": "2026-05-08T16:16:27.630Z"
       },
       {
-        "id": "23",
+        "id": 23,
         "title": "Create Migration Rehearsal Environment",
         "description": "Set up isolated environment for migration testing",
         "details": "Create migration-rehearsal branches with git worktree. Set up Docker containers for isolated testing. Configure test API keys with rate limits. Create data seeding scripts for templates. Implement agent simulators for Claude/Codex. Add load testing harness with k6 or locust. Create rehearsal runbook with checkpoints.",
@@ -1618,7 +1618,7 @@
         "updatedAt": "2026-05-08T10:15:53.146Z"
       },
       {
-        "id": "24",
+        "id": 24,
         "title": "Implement Cost Tracking System",
         "description": "Build system to monitor and control API and resource costs",
         "details": "Create CostTracker class for API usage monitoring. Implement Anthropic API usage tracking with rate limits. Add CI minutes monitoring. Create budget alerts at 80% threshold. Implement caching strategy to reduce API calls. Add cost projection based on current usage. Create monthly cost reports. Implement auto-throttling when approaching limits.",
@@ -1658,7 +1658,7 @@
         "updatedAt": "2026-05-10T11:58:33.781Z"
       },
       {
-        "id": "25",
+        "id": 25,
         "title": "Execute Phase 0 Scanner Validation",
         "description": "Complete Phase 0 validation gate for scanner suite",
         "details": "Run comprehensive scanner unit tests with pytest. Execute security validation checks. Generate baseline performance metrics. Document scanner accuracy metrics. Create compatibility baseline report. Set up monitoring infrastructure verification. Prepare Phase 0 gate review documentation. Schedule stakeholder review meeting.",
@@ -1701,7 +1701,7 @@
         "updatedAt": "2026-05-09T10:40:14.703Z"
       },
       {
-        "id": "26",
+        "id": 26,
         "title": "Migrate Critical Handler Templates",
         "description": "Phase 2.1 - Migrate core handler templates to modular structure",
         "details": "Identify critical handlers: start-new-work, fix-problem, test-implementation. Extract from monolithic files. Create modular files with proper frontmatter. Update all references using fix scripts. Validate with guard tool. Update compatibility mapping. Run performance tests on migrated handlers. Document migration decisions.",
@@ -1742,7 +1742,7 @@
         "updatedAt": "2026-05-10T12:43:26.633Z"
       },
       {
-        "id": "27",
+        "id": 27,
         "title": "Migrate Pattern Templates",
         "description": "Phase 2.2 - Migrate pattern templates including work-tracking and session",
         "details": "Extract patterns from PATTERNS.md monolith. Create pattern-workflow-variant.md naming structure. Migrate work-tracking patterns with S:W:H:E format. Update session management patterns. Create pattern index file. Update discovery fallback chain. Validate pattern dependencies. Run regression tests.",
@@ -1782,7 +1782,7 @@
         "updatedAt": "2026-05-09T13:49:16.474Z"
       },
       {
-        "id": "28",
+        "id": 28,
         "title": "Implement Dual-Path Discovery",
         "description": "Create fallback system for template discovery during migration",
         "details": "Implement discovery chain: modular check → compatibility map lookup → legacy monolith search → Serena semantic search → error with suggestions. Add logging for fallback usage. Create metrics for each path usage. Implement circuit breaker for failing paths. Add cache warming for common lookups. Create discovery hints system.",
@@ -1823,7 +1823,7 @@
         "updatedAt": "2026-05-07T15:12:15.518Z"
       },
       {
-        "id": "29",
+        "id": 29,
         "title": "Create Template Lifecycle Management",
         "description": "Implement system for template creation, versioning, and deprecation",
         "details": "Create lifecycle states: draft → review → stable → deprecated → archived. Implement version bumping with semver. Add deprecation warnings in logs. Create 30-day grace period system. Implement auto-archival after 90 days. Add migration notices for deprecated templates. Create lifecycle audit trail.",
@@ -1863,7 +1863,7 @@
         "updatedAt": "2026-05-08T14:24:59.047Z"
       },
       {
-        "id": "30",
+        "id": 30,
         "title": "Build Cross-Repository Sync System",
         "description": "Create automated synchronization between legacy and Codex repos",
         "details": "Implement daily diff detection using git. Create drift scanner for template divergence. Generate auto PRs for required fixes. Implement conflict resolution with manual review queue. Add sync status dashboard. Create bidirectional sync for transition period. Implement sync audit logging.",
@@ -1903,7 +1903,7 @@
         "updatedAt": "2026-05-08T11:16:15.373Z"
       },
       {
-        "id": "31",
+        "id": 31,
         "title": "Implement Compaction Protocol",
         "description": "Create system for preserving migration state during context resets",
         "details": "Create CompactionManager class. Implement checkpoint creation before compaction. Store state in: sessions/current, Serena memories, Taskmaster tasks. Create restoration protocol for post-compaction. Add compaction detection triggers. Implement incremental checkpoint updates. Create compaction history tracking.",
@@ -1944,7 +1944,7 @@
         "updatedAt": "2026-05-08T13:07:57.631Z"
       },
       {
-        "id": "32",
+        "id": 32,
         "title": "Create Documentation Suite",
         "description": "Phase 4 - Generate comprehensive documentation for migration",
         "details": "Update CODEX.md with new template system. Create AGENTS.md for agent-specific guidance. Write templates/TOOLS.md for tooling docs. Generate user guides with examples. Create migration guide for developers. Write FAQ and troubleshooting guide. Add API documentation. Create video walkthrough scripts.",
@@ -1984,7 +1984,7 @@
         "updatedAt": "2026-05-11T14:00:36.243Z"
       },
       {
-        "id": "33",
+        "id": 33,
         "title": "Setup Training Materials",
         "description": "Create training resources for template system users",
         "details": "Create interactive tutorial templates. Record video walkthroughs using OBS or similar. Write quickstart guide for new developers. Create office hours schedule. Build knowledge base articles. Design hands-on exercises. Create certification checklist. Prepare training feedback surveys.",
@@ -2024,7 +2024,7 @@
         "updatedAt": "2026-05-08T14:56:31.042Z"
       },
       {
-        "id": "34",
+        "id": 34,
         "title": "Implement A/B Testing Framework",
         "description": "Create system for gradual template rollout and testing",
         "details": "Implement feature flag system using LaunchDarkly SDK or custom solution. Create canary deployment for 10% users initially. Add metrics collection for A/B groups. Implement automatic rollback on error threshold (>5%). Create comparison dashboards. Add user segment targeting. Implement gradual rollout (10% → 50% → 100%).",
@@ -2065,7 +2065,7 @@
         "updatedAt": "2026-05-12T20:33:26.819Z"
       },
       {
-        "id": "35",
+        "id": 35,
         "title": "Create Emergency Response System",
         "description": "Build incident response infrastructure for migration issues",
         "details": "Create incident classification (P0-P3) with response SLAs. Implement PagerDuty integration for P0/P1 alerts. Add Slack webhooks for P2/P3 notifications. Create emergency halt mechanism. Write incident response runbook. Set up war room procedures. Create post-mortem template. Add incident tracking dashboard.",
@@ -2106,7 +2106,7 @@
         "updatedAt": "2026-05-10T11:09:21.132Z"
       },
       {
-        "id": "36",
+        "id": 36,
         "title": "Implement Template Governance Board",
         "description": "Establish governance structure for template management",
         "details": "Define board composition and roles. Create charter document with responsibilities. Set up weekly meeting schedule during migration. Implement change review process. Create voting mechanism for breaking changes. Add decision tracking system. Create escalation procedures. Implement stakeholder notification system.",
@@ -2146,7 +2146,7 @@
         "updatedAt": "2026-05-12T14:01:31.588Z"
       },
       {
-        "id": "37",
+        "id": 37,
         "title": "Build Telemetry Pipeline",
         "description": "Create comprehensive telemetry collection and analysis system",
         "details": "Implement OpenTelemetry SDK integration. Add trace context propagation. Create custom metrics for template usage. Set up Elasticsearch for log aggregation. Implement Grafana dashboards for visualization. Add anomaly detection with statistical analysis. Create data retention policies (90 days). Implement GDPR compliance for telemetry.",
@@ -2186,7 +2186,7 @@
         "updatedAt": "2026-05-11T15:21:20.410Z"
       },
       {
-        "id": "38",
+        "id": 38,
         "title": "Execute Phase 1 Reference Remediation",
         "description": "Complete Phase 1 reference fixes and validation",
         "details": "Run dry-run of reference fixes. Review and approve changes. Execute fixes in order: engine → patterns → remaining. Validate with scanner and guard. Update compatibility mapping. Capture rollback checkpoint. Run regression tests. Document fixes applied. Update Phase 1 gate documentation.",
@@ -2227,7 +2227,7 @@
         "updatedAt": "2026-05-10T15:08:48.869Z"
       },
       {
-        "id": "39",
+        "id": 39,
         "title": "Implement Auto-Fix Mode for Guard",
         "description": "Add automatic correction capabilities to guard tool",
         "details": "Identify common fixable issues (formatting, frontmatter, references). Implement fix strategies for each issue type. Add --auto-fix flag to guard CLI. Create fix preview mode. Implement fix validation post-application. Add fix history tracking. Create fix configuration options. Implement selective auto-fix.",
@@ -2268,7 +2268,7 @@
         "updatedAt": "2026-05-11T16:27:36.570Z"
       },
       {
-        "id": "40",
+        "id": 40,
         "title": "Create Canary Deployment System",
         "description": "Build infrastructure for gradual migration rollout",
         "details": "Implement canary stages: Codex (24h) → Claude (48h) → Others (72h). Create health check metrics for each stage. Add automatic promotion logic. Implement rollback triggers. Create canary status dashboard. Add stakeholder notifications. Implement traffic splitting. Create canary analysis reports.",
@@ -2309,7 +2309,7 @@
         "updatedAt": "2026-05-08T17:02:07.870Z"
       },
       {
-        "id": "41",
+        "id": 41,
         "title": "Build Migration Health Dashboard",
         "description": "Create real-time dashboard for migration monitoring",
         "details": "Create React/Vue dashboard with real-time updates. Add migration progress bar with phase indicators. Display scanner/guard status. Show performance metrics graphs. Add cost usage gauge. Implement alert status panel. Create error rate trending. Add team blockers section. Use WebSocket for live updates.",
@@ -2350,7 +2350,7 @@
         "updatedAt": "2026-05-12T16:03:58.915Z"
       },
       {
-        "id": "42",
+        "id": 42,
         "title": "Implement Session Management System",
         "description": "Create robust session tracking for work continuity",
         "details": "Create SessionManager class with state persistence. Implement session creation/restoration. Add session metadata tracking. Create session archival process. Implement session search capabilities. Add session handoff mechanism. Create session analytics. Implement session recovery after crashes.",
@@ -2391,7 +2391,7 @@
         "updatedAt": "2026-05-08T11:50:48.622Z"
       },
       {
-        "id": "43",
+        "id": 43,
         "title": "Create Template Testing Framework",
         "description": "Build comprehensive testing system for templates",
         "details": "Create TemplateTestCase base class. Implement template execution mocking. Add assertion methods for template behavior. Create fixture system for test data. Implement coverage tracking for templates. Add mutation testing for template logic. Create template benchmark suite. Implement visual regression testing for UI templates.",
@@ -2432,7 +2432,7 @@
         "updatedAt": "2026-05-08T17:24:27.976Z"
       },
       {
-        "id": "44",
+        "id": 44,
         "title": "Setup Change Advisory Board Process",
         "description": "Implement formal change management for migration",
         "details": "Create CAB meeting structure and cadence. Define change request template. Implement change tracking system. Create risk assessment framework. Add stakeholder approval workflow. Implement change communication plan. Create change metrics tracking. Add post-implementation reviews.",
@@ -2472,7 +2472,7 @@
         "updatedAt": "2026-05-12T16:59:48.179Z"
       },
       {
-        "id": "45",
+        "id": 45,
         "title": "Implement Scanner Optimization",
         "description": "Optimize scanner performance for large-scale operations",
         "details": "Add parallel processing using multiprocessing.Pool. Implement incremental scanning with file change detection. Add caching layer with invalidation. Optimize regex patterns for performance. Implement streaming JSON output. Add memory profiling and optimization. Create scanner profiling mode. Implement lazy loading for large files.",
@@ -2513,7 +2513,7 @@
         "updatedAt": "2026-05-08T18:00:50.763Z"
       },
       {
-        "id": "46",
+        "id": 46,
         "title": "Create Template Import/Export System",
         "description": "Build system for template portability and sharing",
         "details": "Create template bundle format (ZIP with manifest). Implement export with dependency resolution. Add import with conflict detection. Create template marketplace integration. Implement template signing for authenticity. Add version compatibility checking. Create template preview system. Implement bulk import/export.",
@@ -2554,7 +2554,7 @@
         "updatedAt": "2026-05-13T13:05:47.707Z"
       },
       {
-        "id": "47",
+        "id": 47,
         "title": "Build Error Recovery System",
         "description": "Create comprehensive error handling and recovery",
         "details": "Create error classification taxonomy. Implement recovery strategies for each error type. Add exponential backoff for transient errors. Create error context capture. Implement error reporting to monitoring. Add user-friendly error messages. Create error recovery flowchart. Implement automatic error resolution where possible.",
@@ -2594,7 +2594,7 @@
         "updatedAt": "2026-05-13T09:43:39.551Z"
       },
       {
-        "id": "48",
+        "id": 48,
         "title": "Execute Phase 2.3 Remaining Templates",
         "description": "Complete migration of all remaining templates",
         "details": "Identify remaining unmigrated templates. Apply modular structure to each. Update all references and dependencies. Validate with guard and scanner. Update compatibility map completely. Run comprehensive regression tests. Document edge cases found. Prepare Phase 2 gate documentation.",
@@ -2634,7 +2634,7 @@
         "updatedAt": "2026-05-10T14:22:21.792Z"
       },
       {
-        "id": "49",
+        "id": 49,
         "title": "Implement Communication Templates",
         "description": "Create standardized communication for migration updates",
         "details": "Create weekly status template with metrics placeholders. Design breaking change notification template. Build incident communication template. Create milestone announcement format. Implement automated template filling. Add distribution list management. Create communication archive. Implement feedback collection.",
@@ -2674,7 +2674,7 @@
         "updatedAt": "2026-05-08T15:39:01.894Z"
       },
       {
-        "id": "50",
+        "id": 50,
         "title": "Setup Security Audit Process",
         "description": "Create comprehensive security validation framework",
         "details": "Define security audit checklist. Implement automated SAST scanning. Add dependency vulnerability checking. Create penetration test scenarios. Implement security metrics collection. Add compliance validation (GDPR, etc.). Create security report generation. Implement remediation tracking.",
@@ -2715,7 +2715,7 @@
         "updatedAt": "2026-05-13T10:44:14.721Z"
       },
       {
-        "id": "51",
+        "id": 51,
         "title": "Build Template Usage Analytics",
         "description": "Create analytics system for template usage patterns",
         "details": "Implement usage tracking decorators. Create analytics data model. Add usage aggregation pipeline. Build usage dashboards. Implement trend analysis. Add anomaly detection for usage patterns. Create usage reports. Implement predictive analytics for capacity planning.",
@@ -2756,7 +2756,7 @@
         "updatedAt": "2026-05-13T14:13:16.628Z"
       },
       {
-        "id": "52",
+        "id": 52,
         "title": "Implement CI/CD Gates",
         "description": "Phase 3 - Create automated quality gates for CI/CD",
         "details": "Add scanner gate with zero tolerance for errors. Implement guard gate with auto-fix. Add performance gate with regression detection. Create security gate with vulnerability scanning. Implement cost gate with budget checks. Add approval gate for production. Create gate override mechanism. Implement gate metrics collection.",
@@ -2797,7 +2797,7 @@
         "updatedAt": "2026-05-10T17:25:25.442Z"
       },
       {
-        "id": "53",
+        "id": 53,
         "title": "Create Template Caching Layer",
         "description": "Implement high-performance caching for template access",
         "details": "Implement Redis cache for template storage. Add in-memory LRU cache as L1. Create cache warming on startup. Implement cache invalidation on changes. Add cache hit/miss metrics. Create distributed cache for multi-instance. Implement cache persistence. Add cache debugging tools.",
@@ -2838,7 +2838,7 @@
         "updatedAt": "2026-05-12T20:01:40.856Z"
       },
       {
-        "id": "54",
+        "id": 54,
         "title": "Setup Knowledge Transfer Process",
         "description": "Create knowledge transfer infrastructure for post-migration",
         "details": "Create knowledge base with searchable articles. Record video tutorials for common tasks. Write troubleshooting guides. Create expert contact list. Implement Q&A system. Add knowledge tracking metrics. Create knowledge retention plan. Implement succession planning.",
@@ -2879,7 +2879,7 @@
         "updatedAt": "2026-05-14T08:49:25.308Z"
       },
       {
-        "id": "55",
+        "id": 55,
         "title": "Implement Migration Metrics Collection",
         "description": "Create comprehensive metrics system for migration tracking",
         "details": "Define KPI metrics for migration success. Implement metric collection agents. Create metric aggregation pipeline. Build metric storage with time-series DB. Add metric visualization dashboards. Implement metric alerting. Create metric reports. Add metric export capabilities.",
@@ -2920,7 +2920,7 @@
         "updatedAt": "2026-05-13T11:57:40.029Z"
       },
       {
-        "id": "56",
+        "id": 56,
         "title": "Execute Phase 3 Automation Integration",
         "description": "Complete automation and tooling integration phase",
         "details": "Deploy CI/CD gates to production. Monitor gate performance for 5 days. Implement auto-fix in production. Validate cost tracking accuracy. Execute canary deployment. Monitor canary metrics. Update automation documentation. Prepare Phase 3 gate review.",
@@ -2961,7 +2961,7 @@
         "updatedAt": "2026-05-13T14:52:22.422Z"
       },
       {
-        "id": "57",
+        "id": 57,
         "title": "Create Operational Runbook",
         "description": "Build comprehensive operational procedures documentation",
         "details": "Document daily operational tasks. Create weekly maintenance procedures. Write monthly review process. Define incident response procedures. Create troubleshooting flowcharts. Add contact escalation tree. Document emergency procedures. Create runbook validation checklist.",
@@ -3002,7 +3002,7 @@
         "updatedAt": "2026-05-13T13:40:18.075Z"
       },
       {
-        "id": "58",
+        "id": 58,
         "title": "Implement Template Versioning System",
         "description": "Create robust versioning for template changes",
         "details": "Implement semantic versioning for templates. Create version comparison logic. Add backward compatibility checking. Implement version migration tools. Create version history tracking. Add version conflict resolution. Implement version rollback capability. Create version documentation.",
@@ -3043,7 +3043,7 @@
         "updatedAt": "2026-05-08T18:43:18.724Z"
       },
       {
-        "id": "59",
+        "id": 59,
         "title": "Build Feedback Collection System",
         "description": "Create infrastructure for user feedback during migration",
         "details": "Create feedback form with categorization. Implement feedback API endpoints. Add sentiment analysis for feedback. Create feedback dashboard. Implement feedback routing to owners. Add feedback metrics tracking. Create feedback response system. Implement feedback archive.",
@@ -3084,7 +3084,7 @@
         "updatedAt": "2026-05-14T14:26:13.517Z"
       },
       {
-        "id": "60",
+        "id": 60,
         "title": "Setup Post-Migration Monitoring",
         "description": "Phase 6 - Establish ongoing monitoring post-migration",
         "details": "Configure production monitoring dashboards. Set up weekly scanner health checks. Implement monthly usage reviews. Create quarterly benchmark updates. Add yearly planning reviews. Set up automated reports. Create monitoring playbooks. Implement monitoring automation.",
@@ -3124,7 +3124,7 @@
         "updatedAt": "2026-05-13T12:33:53.410Z"
       },
       {
-        "id": "61",
+        "id": 61,
         "title": "Implement Template Discovery Optimization",
         "description": "Optimize template discovery for <50ms performance",
         "details": "Profile current discovery bottlenecks. Implement bloom filters for quick existence checks. Add predictive prefetching based on usage patterns. Create discovery result caching. Optimize file I/O operations. Implement async discovery API. Add discovery performance metrics. Create discovery debugging mode.",
@@ -3165,7 +3165,7 @@
         "updatedAt": "2026-05-11T11:29:15.453Z"
       },
       {
-        "id": "62",
+        "id": 62,
         "title": "Create Agent Compatibility Layer",
         "description": "Build compatibility system for different agent requirements",
         "details": "Create agent capability detection. Implement version negotiation protocol. Add feature flag per agent. Create compatibility matrix validation. Implement fallback strategies per agent. Add agent-specific transformations. Create compatibility testing suite. Implement compatibility metrics.",
@@ -3206,7 +3206,7 @@
         "updatedAt": "2026-05-11T17:13:54.082Z"
       },
       {
-        "id": "63",
+        "id": 63,
         "title": "Execute Phase 4 Documentation Delivery",
         "description": "Complete documentation and training phase",
         "details": "Publish all documentation to production. Deploy training materials. Schedule office hours. Execute communication plan. Deliver training sessions. Collect training feedback. Update documentation based on feedback. Prepare Phase 4 gate documentation.",
@@ -3248,7 +3248,7 @@
         "updatedAt": "2026-05-13T16:12:14.098Z"
       },
       {
-        "id": "64",
+        "id": 64,
         "title": "Implement Cleanup Automation",
         "description": "Create automated cleanup for legacy artifacts",
         "details": "Create cleanup scheduler with cron. Implement legacy file detection. Add safe deletion with backups. Create cleanup audit trail. Implement cleanup dry-run mode. Add cleanup metrics collection. Create cleanup rollback capability. Implement cleanup notifications.",
@@ -3288,7 +3288,7 @@
         "updatedAt": "2026-05-14T15:07:20.526Z"
       },
       {
-        "id": "65",
+        "id": 65,
         "title": "Build Template Quality Scoring",
         "description": "Create quality metrics system for templates",
         "details": "Define quality metrics (complexity, maintainability, performance). Implement static analysis for templates. Add quality score calculation. Create quality dashboards. Implement quality gates for new templates. Add quality improvement suggestions. Create quality trends tracking. Implement quality benchmarks.",
@@ -3329,7 +3329,7 @@
         "updatedAt": "2026-05-14T16:19:07.180Z"
       },
       {
-        "id": "66",
+        "id": 66,
         "title": "Setup Deprecation Management",
         "description": "Implement systematic deprecation process",
         "details": "Create deprecation timeline tracker. Implement deprecation warnings in logs. Add grace period enforcement. Create migration path documentation. Implement automatic archival. Add deprecation metrics. Create deprecation notifications. Implement deprecation override for emergencies.",
@@ -3370,7 +3370,7 @@
         "updatedAt": "2026-05-13T16:46:31.680Z"
       },
       {
-        "id": "67",
+        "id": 67,
         "title": "Create Success Metrics Dashboard",
         "description": "Build comprehensive success tracking dashboard",
         "details": "Implement KPI tracking widgets. Add trend analysis graphs. Create comparative analysis views. Implement success score calculation. Add predictive success metrics. Create executive summary view. Implement metric drill-down capability. Add metric export functionality.",
@@ -3411,7 +3411,7 @@
         "updatedAt": "2026-05-14T09:46:14.357Z"
       },
       {
-        "id": "68",
+        "id": 68,
         "title": "Implement Final Validation Suite",
         "description": "Create comprehensive validation for migration completion",
         "details": "Create validation checklist automation. Implement reference integrity checks. Add performance validation suite. Create security validation tests. Implement compatibility validation. Add cost validation checks. Create validation report generation. Implement validation sign-off workflow.",
@@ -3452,7 +3452,7 @@
         "updatedAt": "2026-05-12T11:19:24.768Z"
       },
       {
-        "id": "69",
+        "id": 69,
         "title": "Execute Phase 5 Enhancement Planning",
         "description": "Plan and initiate post-MVP enhancements",
         "details": "Identify enhancement opportunities. Create enhancement roadmap. Implement auto-compaction triggers. Add semantic search enhancements. Create AI-assisted template generation. Implement advanced optimizations. Plan additional MCP integrations. Create enhancement metrics.",
@@ -3492,7 +3492,7 @@
         "updatedAt": "2026-05-14T12:02:32.940Z"
       },
       {
-        "id": "70",
+        "id": 70,
         "title": "Setup Long-term Maintenance",
         "description": "Establish sustainable maintenance processes",
         "details": "Create maintenance schedule automation. Implement health check routines. Add performance baseline updates. Create security patch process. Implement dependency updates. Add maintenance metrics tracking. Create maintenance documentation. Implement maintenance alerts.",
@@ -3533,7 +3533,7 @@
         "updatedAt": "2026-05-14T17:28:54.897Z"
       },
       {
-        "id": "71",
+        "id": 71,
         "title": "Create Migration Archive",
         "description": "Build comprehensive archive of migration artifacts",
         "details": "Collect all migration documents. Archive scanner outputs and reports. Store fix scripts and tools. Create migration timeline. Archive decision records. Store performance baselines. Create lessons learned document. Implement archive search capability.",
@@ -3574,7 +3574,7 @@
         "updatedAt": "2026-05-15T14:08:30.657Z"
       },
       {
-        "id": "72",
+        "id": 72,
         "title": "Implement Post-Mortem Process",
         "description": "Create systematic post-mortem for incidents",
         "details": "Create post-mortem template. Implement incident timeline reconstruction. Add root cause analysis tools. Create action item tracking. Implement follow-up automation. Add post-mortem metrics. Create knowledge extraction. Implement prevention measures tracking.",
@@ -3615,7 +3615,7 @@
         "updatedAt": "2026-05-13T15:31:45.418Z"
       },
       {
-        "id": "73",
+        "id": 73,
         "title": "Build Stakeholder Reporting",
         "description": "Create executive-level reporting system",
         "details": "Create executive dashboard. Implement automated report generation. Add cost-benefit analysis. Create ROI calculations. Implement risk reporting. Add compliance reporting. Create stakeholder notifications. Implement report scheduling.",
@@ -3656,7 +3656,7 @@
         "updatedAt": "2026-05-14T10:51:41.500Z"
       },
       {
-        "id": "74",
+        "id": 74,
         "title": "Execute Phase 6 Cleanup",
         "description": "Complete final cleanup and maintenance setup",
         "details": "Remove all monolithic files. Archive legacy artifacts. Clean temporary files. Update all documentation. Verify zero legacy references. Establish maintenance cadence. Create final report. Schedule celebration event.",
@@ -3697,7 +3697,7 @@
         "updatedAt": "2026-05-15T08:52:20.887Z"
       },
       {
-        "id": "75",
+        "id": 75,
         "title": "Create Knowledge Base",
         "description": "Build searchable knowledge repository",
         "details": "Set up knowledge base platform (Confluence/GitBook). Import all documentation. Create search indexing. Add categorization system. Implement access controls. Create contribution guidelines. Add version control. Implement analytics.",
@@ -3738,7 +3738,7 @@
         "updatedAt": "2026-05-15T14:42:17.273Z"
       },
       {
-        "id": "76",
+        "id": 76,
         "title": "Implement Celebration Planning",
         "description": "Organize migration success celebration",
         "details": "Plan celebration event. Create success announcement. Prepare team recognition. Document achievements. Create success blog post. Prepare demos. Organize retrospective. Plan future roadmap presentation.",
@@ -3778,7 +3778,7 @@
         "updatedAt": "2026-05-14T12:39:18.292Z"
       },
       {
-        "id": "77",
+        "id": 77,
         "title": "Setup Continuous Improvement",
         "description": "Establish ongoing improvement processes",
         "details": "Create improvement suggestion system. Implement metric-driven improvements. Add A/B testing for changes. Create improvement tracking. Implement feedback loops. Add innovation pipeline. Create improvement metrics. Implement change validation.",
@@ -3819,7 +3819,7 @@
         "updatedAt": "2026-05-15T15:21:53.056Z"
       },
       {
-        "id": "78",
+        "id": 78,
         "title": "Create Final Documentation",
         "description": "Generate comprehensive final documentation set",
         "details": "Create architecture documentation. Write operation manual. Generate API documentation. Create troubleshooting guide. Write disaster recovery plan. Create capacity planning guide. Generate compliance documentation. Create handover documentation.",
@@ -3860,7 +3860,7 @@
         "updatedAt": "2026-05-15T09:22:31.853Z"
       },
       {
-        "id": "79",
+        "id": 79,
         "title": "Implement Production Verification",
         "description": "Final production readiness verification",
         "details": "Run final security audit. Execute performance benchmarks. Verify cost projections. Test disaster recovery. Validate compliance. Check monitoring coverage. Verify documentation. Obtain stakeholder sign-off.",
@@ -3902,7 +3902,7 @@
         "updatedAt": "2026-05-15T16:07:56.304Z"
       },
       {
-        "id": "80",
+        "id": 80,
         "title": "Execute Production Deployment",
         "description": "Final production deployment and migration completion",
         "details": "Execute final deployment checklist. Enable production monitoring. Activate maintenance automation. Remove migration flags. Update status communications. Archive migration project. Transition to BAU. Celebrate success.",
@@ -3942,7 +3942,7 @@
         "updatedAt": "2026-05-15T13:15:54.445Z"
       },
       {
-        "id": "85",
+        "id": 85,
         "title": "Author Session Continuation & State Workflows",
         "description": "Create dedicated workflows for session continuation and state management with guard integration.",
         "details": "Formalize continuation/state workflows to replace ad-hoc handlers and ensure guard coverage.",
@@ -4026,7 +4026,7 @@
         ]
       },
       {
-        "id": "86",
+        "id": 86,
         "title": "Author Domain Workflow Modules",
         "description": "Create modular workflows for key domains and wire them into enforcement.",
         "details": "Ensures each domain has a workflow with guard and helper support.",
@@ -4110,7 +4110,7 @@
         ]
       },
       {
-        "id": "87",
+        "id": 87,
         "title": "Replace Legacy Monolithic References",
         "description": "Remove references to monolithic template files and enforce modular paths via guard.",
         "details": "Completes migration away from WORKFLOWS.md/PATTERNS.md references.",
@@ -4184,7 +4184,7 @@
         ]
       },
       {
-        "id": "88",
+        "id": 88,
         "title": "Implement Taskmaster Alignment Workflow",
         "description": "Create workflow/guard ensuring task edits follow alignment checklist.",
         "details": "Prevents task.json edits without plan compliance and registry checks.",
@@ -4248,7 +4248,7 @@
         ]
       },
       {
-        "id": "89",
+        "id": 89,
         "title": "Expand Work-Tracking Workflow Enforcement",
         "description": "Formalize work-tracking orchestration with guard and helper support.",
         "details": "Ensures documentation workflow is enforced alongside plan compliance.",
@@ -4312,7 +4312,7 @@
         ]
       },
       {
-        "id": "90",
+        "id": 90,
         "title": "Complete Engine Migration (Phase 2/3)",
         "description": "Finish outstanding engine modules and ensure discoverability.",
         "details": "Completes migration roadmap for engine templates.",
@@ -4382,7 +4382,7 @@
         "updatedAt": "2026-04-21T12:59:29.851Z"
       },
       {
-        "id": "91",
+        "id": 91,
         "title": "Standardize Template Metadata",
         "description": "Ensure all templates carry consistent metadata and guard enforces presence.",
         "details": "Prevents templates from missing status/type information.",
@@ -4446,7 +4446,7 @@
         ]
       },
       {
-        "id": "92",
+        "id": 92,
         "title": "Expand Workflow Guard Coverage",
         "description": "Close behavioural guard gaps identified during audit.",
         "details": "Improves guard breadth across workflows and commits.",
@@ -4510,7 +4510,7 @@
         ]
       },
       {
-        "id": "93",
+        "id": 93,
         "title": "Remediate Compaction Detection Behavior",
         "description": "Rewrite or retire compaction behavior to align with new enforcement pipeline.",
         "details": "Prevents stale compaction hooks from causing confusion.",
@@ -4574,7 +4574,7 @@
         ]
       },
       {
-        "id": "94",
+        "id": 94,
         "title": "Expand Enforcement Framework",
         "description": "Coordinate enforcement enhancements (drift detection, wizard, metrics dashboard) following guard expansion.",
         "details": "Keeps enforcement roadmap aligned with new guard chain.",
@@ -4638,7 +4638,7 @@
         ]
       },
       {
-        "id": "95",
+        "id": 95,
         "title": "Implement Template Drift Detection",
         "description": "Add drift detection tooling and integrate with guard/automation.",
         "details": "Helps monitor template divergence over time.",
@@ -4702,7 +4702,7 @@
         ]
       },
       {
-        "id": "96",
+        "id": 96,
         "title": "Build Interactive Template Wizard",
         "description": "Create a wizard CLI to guide template execution while honoring enforcement rules.",
         "details": "Improves developer experience with template workflows.",
@@ -4766,7 +4766,7 @@
         ]
       },
       {
-        "id": "97",
+        "id": 97,
         "title": "Create Template Metrics Dashboard",
         "description": "Summarize template usage/compliance metrics via dashboard/report.",
         "details": "Provides visibility into template enforcement health.",
@@ -4832,7 +4832,7 @@
         ]
       },
       {
-        "id": "98",
+        "id": 98,
         "title": "Externalize Repo Structure Configuration",
         "description": "Move hardcoded repo-structure assumptions into repo-local configuration so the enforcement foundation can adapt to different project layouts.",
         "details": "Extract assumptions from scripts/codex-guard and related helpers into config-driven settings, including template roots, session roots, plan roots, work-tracking roots, archive naming rules, and any path-based enforcement toggles. Update consuming helpers to read configuration instead of hardcoded repository paths, and capture the expected config contract in supporting docs.",
@@ -4845,7 +4845,7 @@
         "subtasks": []
       },
       {
-        "id": "99",
+        "id": 99,
         "title": "Define Portable Foundation Specification",
         "description": "Write the reusable contract for the metadata, guard, session, and work-tracking foundation so core behavior is clearly separated from repo-local configuration.",
         "details": "Document the portable foundation specification, covering required metadata keys, policy-file schema, enforcement semantics, session/work-tracking lifecycle expectations, and the boundary between generic core logic and repo adapter configuration. Ensure the specification references the existing Task 91 policy model and can guide implementation in non-identical repositories.",
@@ -4858,7 +4858,7 @@
         "subtasks": []
       },
       {
-        "id": "100",
+        "id": 100,
         "title": "Build Foundation Bootstrap Layer",
         "description": "Provide a starter adoption layer so a new repository can initialize the shared foundation without hand-editing every file and path.",
         "details": "Create bootstrap support for new repositories, including starter policy/config files, setup instructions, and migration-safe scaffolding for repos that already contain templates and workflow documents. Make the bootstrap layer rely on the portable specification and repo-structure configuration instead of this repository's hardcoded defaults.",
@@ -4871,7 +4871,7 @@
         "subtasks": []
       },
       {
-        "id": "101",
+        "id": 101,
         "title": "Add Cross-Project Compatibility Fixtures",
         "description": "Verify that the foundation works across multiple repository shapes instead of only this repo's structure.",
         "details": "Add cross-project verification fixtures or tests that simulate different repository layouts, such as product-web, game, docs-heavy, and lightweight utility repos. Validate that the portable configuration, guard behavior, and workflow assumptions still work when paths and file families differ.",
@@ -4884,7 +4884,7 @@
         "subtasks": []
       },
       {
-        "id": "102",
+        "id": 102,
         "title": "Document Foundation Migration and Adoption",
         "description": "Write the migration and adoption guidance for applying the shared foundation to both existing repositories and brand-new projects.",
         "details": "Document how to adopt the portable foundation in a new repository, how to migrate an existing repository onto the new config/policy model, what the minimal required setup is, and which optional layers can be adopted later. Ensure the guidance reflects the portable specification, bootstrap layer, and cross-project fixture findings.",
@@ -4897,7 +4897,7 @@
         "subtasks": []
       },
       {
-        "id": "103",
+        "id": 103,
         "title": "Claude Runtime Adapter and Multimodal Workflow Enforcement",
         "description": "Build the Claude Code adapter for the portable Codex foundation as a gated runtime, not a manual or memory-only guide. This task is intentionally prioritized ahead of Task 10 because the foundation must support multimodal and multi-agent workflows across Codex, Claude, shell, MCP, memory, GitHub, and future agent/tool surfaces.",
         "details": "Create a Claude-owned runtime contract and implementation that makes Claude follow task/session/plan/work-tracking discipline mechanically. Required outputs include CLAUDE.md entry guidance, .claude/engine runtime contract/readiness/tool-mapping docs, .claude/scripts readiness and PreToolUse gate scripts, .claude/commands slash-command wrappers, .claude/agents executor/orchestrator/checker agents, .claude/AGENTS.md catalog, .claude/settings.json hook/allowlist configuration, and tests/evidence proving cold-session zero-mutation behavior where hookable. Ownership boundary: do not modify CODEX.md, templates/**, scripts/codex-*, scripts/template-*, or .codex/** unless explicitly scoped as a Codex-led follow-up. Reference branch feat/claude-port-bootstrap is raw material only; every useful file must be ported or rejected during scope reconciliation with S:W:H:E provenance. Acceptance: a fresh Claude session without matching Taskmaster task, task branch, sessions/current, plans/current, and ACTIVE work tracking cannot perform hookable persistent mutations; readiness exits READY only when branch/task/session/plan/tracker align; protected Codex-owned paths are blocked; Bash write-surface bypasses are blocked where hookable; every enforcement claim is backed by tests or documented as policy-only; plan sync, work-tracking audit, codex-guard, pre-commit, git diff --check, and focused Claude adapter pytest evidence pass.",
@@ -4963,7 +4963,7 @@
         "updatedAt": "2026-05-06T17:12:05.030Z"
       },
       {
-        "id": "104",
+        "id": 104,
         "title": "Add Targeted Taskmaster Task-File Generation Helper",
         "description": "Add a shared workflow helper that updates only the current Taskmaster task file after Taskmaster state changes, avoiding broad in-place task-master generate drift and repeated cleanup of unrelated .taskmaster/tasks/task_*.txt files.",
         "details": "Implement a Codex-led/shared helper such as python3 scripts/codex-task taskmaster generate-one --id <task-id>. The helper should run task-master generate into a temporary output directory, copy only the requested .taskmaster/tasks/task_<id>.txt into the repo, fail if unrelated task files are modified, and document the workflow in the relevant templates/docs. Add tests proving unrelated generated task files are not dirtied and update the standard Taskmaster workflow instructions to use the helper instead of broad in-place task-master generate for status-only task updates.",
@@ -4977,7 +4977,7 @@
         "updatedAt": "2026-05-07T08:29:11.105Z"
       },
       {
-        "id": "105",
+        "id": 105,
         "title": "Validate and Harden Claude Runtime Adapter",
         "description": "Live validation and hardening follow-up for completed Task 103. Prioritize Claude adapter system behavior ahead of Task 10 by explicit user direction because multimodal agent enforcement is foundational for all later work.",
         "details": "Audit Task 103 outputs in the current repository state. Verify that CLAUDE.md, .claude runtime contract, readiness gate, PreToolUse dispatcher, path guard, Bash command guard, handoff nudge, commands, agents, settings, and tests still match the intended gated-runtime behavior after Task 104 and archive closeout. Fix stale permanent metadata such as runtime-contract references to draft or active Task 103 paths. Add or adjust focused tests only for real behavior gaps, especially cold-session zero-mutation, memory or MCP hookability labels, Bash mutation classification, and between-session behavior. Record every gap and decision in normal work tracking. Do not duplicate Task 103 implementation and do not edit Codex-owned surfaces unless explicitly scoped.",
@@ -5037,7 +5037,7 @@
         "updatedAt": "2026-05-07T09:33:38.449Z"
       },
       {
-        "id": "106",
+        "id": 106,
         "title": "Smoke Test Claude Runtime Adapter In Harness",
         "description": "Real-world Claude Code smoke test for the Task 103/105 runtime adapter. Intentionally prioritize this validation ahead of Task 10 to confirm Claude is mechanically gated in the actual harness before continuing normal implementation work.",
         "details": "Create a dedicated branch and run a two-phase smoke test. Phase 1 starts with Taskmaster task/branch state but no sessions/current, plans/current, or ACTIVE work-tracking folder; a fresh Claude session should be able to inspect but should be blocked by PreToolUse/readiness from hookable persistent mutations. Phase 2 scaffolds the normal workflow state and verifies that Claude can perform allowed mutations only after readiness is READY while still blocking protected Codex-owned paths, Bash bypasses, and mutating MCP tools when appropriate. Capture findings, decisions, exact prompts, results, and evidence in normal work tracking after scaffold.",
@@ -5086,7 +5086,7 @@
         "updatedAt": "2026-05-07T11:27:43.825Z"
       },
       {
-        "id": "107",
+        "id": 107,
         "title": "Enforce Direct Git Execution Mode",
         "description": "Make regular Git/GitHub command execution the default Codex commit/push/PR workflow when the user delegates Git work and SSH/GPG auth is available. Treat gac only as a legacy/user convenience alias that is emitted when explicitly requested or when auth failure requires manual fallback.",
         "details": "Update commit-format conventions, git operator handlers, session/handoff workflow wording, templates/TOOLS references, and guard coverage so stale 'developer manually runs gac' default guidance fails validation. Add a clear commit-mode model: direct-git-execution, full-gac-command-on-explicit-request, message-payload-only, and auth-refresh-required. Document the queue-jump rationale ahead of Task 10 because stale GAC-default behavior caused a live workflow regression immediately after Task 106. Verify with plan sync, work-tracking audit, guard, diff-check, and targeted meta workflow guard tests.",
@@ -5134,7 +5134,7 @@
         "updatedAt": "2026-05-07T12:09:15.514Z"
       },
       {
-        "id": "108",
+        "id": 108,
         "title": "Clean Legacy PROJECT-BLOG Security Finding",
         "description": "Clean up the legacy PROJECT-BLOG.md path traversal baseline finding surfaced by Task 18 security validation.",
         "details": "Inspect templates/PROJECT-BLOG.md and determine whether the stale blog-era content should be removed, archived, or rewritten. Update only the smallest necessary template content so the security validator baseline is clean without weakening scanner rules or allowlisting stale content. Capture session, plan, work-tracking, scanner report, tests, guard, audit, Taskmaster health, and Serena evidence. Include scope reconciliation before implementation and do not proceed with broad unrelated template cleanup.",
@@ -5171,7 +5171,7 @@
         "updatedAt": "2026-05-07T16:32:05.331Z"
       },
       {
-        "id": "109",
+        "id": 109,
         "title": "Build Portable Foundation Installer and MCP Distribution Contract",
         "description": "Deliver the agreed Option B V1 Aegis Foundation installer slice: keep the deterministic CLI/library core as the source of truth, prove the generic-profile installer path for inspect, plan-install, install, and verify under the `python3 scripts/codex-task aegis ...` namespace, and document MCP as a wrapper contract rather than shipping a production MCP server in this task.",
         "status": "done",
@@ -5241,16 +5241,87 @@
           }
         ],
         "updatedAt": "2026-05-16T11:58:19.899Z"
+      },
+      {
+        "id": 110,
+        "title": "Build Aegis MCP Installer Server",
+        "description": "Create the production Aegis MCP server that wraps the deterministic Task 109 Aegis installer core and exposes install, verify, profile, resource, and prompt surfaces to agents through the `aegis` namespace. The server must reuse `scripts/_aegis_installer.py`, preserve the `.aegis/` safety contract, and provide a local MCP smoke path that does not shell through `scripts/codex-task`.",
+        "details": "Implement this as the follow-up production server explicitly deferred by Task 109. Use the Task 109 artifacts as the source of truth: `scripts/_aegis_installer.py`, `schemas/aegis/foundation-manifest.schema.json`, `schemas/aegis/profile.schema.json`, `schemas/aegis/install-plan.schema.json`, and `docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED/designs/aegis-mcp-wrapper-contract.md`. Also consume the Task 62 agent compatibility matrix at `templates/registry/agent-compatibility-matrix.json` where prompts or guidance need to explain supported agents, fallback behavior, or compatibility limits.\n\nRecommended implementation shape:\n- Add an importable MCP module such as `aegis_mcp/server.py` plus a thin executable entrypoint such as `scripts/aegis-mcp-server`. Keep protocol registration, resource handling, prompt templates, and structured error mapping in the MCP module; keep deterministic install behavior in `scripts/_aegis_installer.py`.\n- Use a stdio MCP server transport suitable for project-local `.mcp.json` configuration. If the Python MCP SDK is introduced, add it deliberately to `pyproject.toml` with the narrowest dependency needed and keep the server factory testable without launching a long-running process.\n- Provide startup configuration for `source_root` and a default `target_dir`, both defaulting to the current repository when omitted. Tools must still require explicit `target_dir` for install/apply flows so agents cannot mutate an implicit repository by accident.\n- Add or document a project-local `.mcp.json` entry for `aegis` that runs the new entrypoint, while preserving existing `task-master-ai` and `serena` entries.\n\nRegister these V1-backed MCP tools and map each directly to the core functions already present in `scripts/_aegis_installer.py`:\n- `aegis.inspect` -> `inspect_project(target_dir, profile=...)`; read-only; returns the inspect payload without writing `.aegis/`.\n- `aegis.plan_install` -> `plan_install(target_dir, source_root=..., profile=..., primary_agent=..., agents=...)`; read-only; validates output against `schemas/aegis/install-plan.schema.json`; must require explicit `primary_agent` and `agents` and must not silently choose the default.\n- `aegis.install` -> `install(target_dir, source_root=..., profile=..., primary_agent=..., agents=..., apply=...)`; mutating only when `apply` is true; reject missing or false `apply` as a structured dry-run/refusal response rather than silently applying; preserve core refusal behavior for `manual-review` and `conflict` operations.\n- `aegis.verify` -> `verify(target_dir, source_root=...)`; treat as mutating because V1 writes `.aegis/reports/verification-report.json` and updates manifest verification state; require an explicit target and an acknowledgement field such as `acknowledge_report_write: true`.\n- `aegis.list_profiles` -> `list_profiles(source_root=...)`; read-only; must expose `generic` in V1.\n- `aegis.explain_profile` -> `explain_profile(profile, source_root=...)`; read-only; validates output against `schemas/aegis/profile.schema.json`.\n\nDo not implement `aegis.status`, `aegis.plan_update`, `aegis.update`, or `aegis.rollback` as production tools unless deterministic core support is added first. If they remain visible in docs, mark them as future/deferred and do not register mutating stubs that can be mistaken for working operations.\n\nDefine formal MCP input schemas that mirror the Aegis core constraints from `scripts/_aegis_installer.py`: `profile` defaults only to `generic`; `primary_agent` is constrained to `claude`, `codex`, `gemini`, `multi`, or `none`; `agents` is a unique list of `claude`, `codex`, and `gemini`; `install` requires `target_dir`, `profile`, `primary_agent`, `agents`, and `apply`; `verify` requires `target_dir` and the explicit report-write acknowledgement. Output payloads should be the core JSON reports plus MCP wrapper metadata, not a second schema invented by the server.\n\nExpose read-only `aegis://` resources backed by target `.aegis/` state, current schemas, and the server session cache:\n- `aegis://manifest/current` backed by `.aegis/foundation-manifest.json`.\n- `aegis://contract/current` backed by `.aegis/contract.md`.\n- `aegis://schemas/foundation-manifest`, `aegis://schemas/profile`, and `aegis://schemas/install-plan` backed by `schemas/aegis/*.schema.json`.\n- `aegis://profiles` backed by `list_profiles`.\n- `aegis://profiles/{name}` backed by `explain_profile`.\n- `aegis://install-plan/latest` backed by `.aegis/reports/install-plan.json` when present or the most recent in-process plan generated by `aegis.plan_install`.\n- `aegis://verification/latest` backed by `.aegis/reports/verification-report.json`.\n- `aegis://limitations` backed by manifest gates with `unsupported` or `policy` enforcement plus deferred-tool notes from the Task 109 contract.\n- `aegis://managed-files` backed by manifest `managed_files`.\nMissing target files must return structured `not_installed` or `not_available` payloads, not stack traces, and resources must never create or update `.aegis/` files.\n\nExpose prompts that guide agents without acting as gates or evidence. At minimum implement `aegis.bootstrap_new_project`, `aegis.migrate_existing_project`, `aegis.verify_runtime`, `aegis.prepare_agent_session`, and `aegis.close_agent_session`. The prompt text should steer agents through `inspect -> plan_install -> user approval -> install -> verify`, explain explicit primary/additional agent selection, call out required gates from the manifest/profile, distinguish mechanical gates from policy-only limitations, and instruct agents to read resources such as `aegis://contract/current`, `aegis://limitations`, and `aegis://verification/latest`. Prompts must not claim success without tool evidence and must not tell agents to write `.aegis/` directly.\n\nMap errors consistently. Wrap `AegisError`, schema validation failures, missing resources, refused installs, failed applies, and failed verifies into structured MCP responses such as `{ok: false, error: {code, message, status, details}}`, preserving the core report payload under `details` whenever possible. Do not expose Python tracebacks to MCP clients for predictable invalid input or unsafe-install cases. Preserve Task 109 cleanup semantics: failed apply attempts should surface the `cleanup` object returned by `install`.\n\nUpdate documentation from the Task 109 wrapper design into implementation-facing docs for Task 110. Create active work-tracking/session/plan artifacts for Task 110, update the MCP contract documentation to describe the actual server entrypoint and test path, and fix any stale doc tests such as `tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py` so they reference the archived Task 109 contract or the new Task 110 implementation docs rather than the removed active Task 109 directory. Capture Taskmaster status changes and final evidence with the existing workflow commands, including a targeted generated task refresh rather than a broad `task-master generate` unless explicitly needed.",
+        "testStrategy": "Add focused pytest coverage for both the in-process server registration layer and a local stdio MCP smoke path.\n\nRequired test coverage:\n- Tool discovery lists exactly the V1-backed tools `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.list_profiles`, and `aegis.explain_profile`, and does not expose future mutating tools as active production tools.\n- Resource discovery lists the required `aegis://` resources and resource templates, including manifest, contract, schemas, profiles, latest install plan, latest verification report, limitations, and managed files.\n- Prompt discovery returns the safe workflow prompts and their content includes the required inspect/plan/approval/install/verify flow, explicit agent-selection guidance, gate/limitation language, and no direct `.aegis/` write instructions.\n- `aegis.inspect` on an isolated temp repo reports `installed: false` and performs no writes.\n- `aegis.plan_install` returns a schema-valid install plan, requires explicit `primary_agent` and `agents`, classifies create/skip/conflict/manual-review operations correctly, and leaves the target unchanged.\n- `aegis.install` refuses missing or false `apply`, applies successfully when `apply: true` and inputs are explicit, writes `.aegis/foundation-manifest.json`, `.aegis/contract.md`, `.aegis/reports/install-plan.json`, and `.aegis/reports/install-report.json`, and does not write `.codex/foundation-manifest.json`.\n- `aegis.verify` requires explicit acknowledgement of report writes, returns a structured verification report, writes `.aegis/reports/verification-report.json`, and fails structurally when required gate files are missing or non-executable.\n- `aegis.list_profiles` and `aegis.explain_profile` expose and validate the V1 `generic` profile against `schemas/aegis/profile.schema.json`.\n- Invalid profile names, unsupported agents, inconsistent `primary_agent`/`agents` combinations, missing target dirs where forbidden, and malformed inputs return structured MCP errors without Python tracebacks.\n- Existing-file conflicts and conflicting `.aegis/foundation-manifest.json` are refused without overwriting user files, matching existing tests in `tests/meta_workflow_guard/test_aegis_installer.py` and `tests/meta_workflow_guard/test_aegis_installer_fixtures.py`.\n- Install/apply idempotence is preserved: install, verify, second plan, second install, second verify should produce skip-only/no-unsafe behavior for empty-repo and basic-python-tool fixtures.\n- Failed-apply cleanup is surfaced through the MCP layer by monkeypatching the core write path or equivalent injection and asserting created files/reports are removed as in the Task 109 fixture test.\n- Resource reads before install return `not_installed` or `not_available`; after plan/install/verify they return the expected schema/report content and never mutate the target.\n- A local smoke test starts the MCP server entrypoint over stdio, uses an MCP client to `list_tools`, call `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, and read at least one `aegis://` resource, proving an agent can use the contract without shelling directly into `scripts/codex-task`.\n\nSuggested command coverage: run the new MCP server tests plus the existing Aegis tests, for example `python -m pytest tests/meta_workflow_guard/test_aegis_installer.py tests/meta_workflow_guard/test_aegis_installer_fixtures.py tests/meta_workflow_guard/test_aegis_schemas.py tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py tests/meta_workflow_guard/test_aegis_mcp_server.py`. Final evidence should also include `python3 scripts/codex-task plan sync`, `python3 scripts/codex-task work-tracking audit`, `python3 scripts/codex-task taskmaster health`, `python3 scripts/codex-guard validate --include-untracked`, and `git diff --check`, with evidence stored under the Task 110 work-tracking reports directory.",
+        "status": "in-progress",
+        "dependencies": [
+          "62",
+          "109"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold the Aegis MCP package, server factory, and stdio entrypoint",
+            "description": "Create the importable MCP server module and executable path that Task 110 will build on.",
+            "dependencies": [],
+            "details": "Add an `aegis_mcp/` package, likely `aegis_mcp/server.py`, with a testable server factory and a thin `scripts/aegis-mcp-server` stdio entrypoint. Reuse `scripts/_aegis_installer.py` as the deterministic core boundary, load `source_root` and `default_target_dir` startup configuration with repository defaults, and add the narrowest Python MCP SDK dependency to `pyproject.toml` because the current project dependencies only include click, jsonschema, pyyaml, and rich. Keep long-running stdio startup separate from in-process registration so pytest can inspect the server without launching a daemon.",
+            "status": "pending",
+            "testStrategy": "Add an initial in-process pytest that imports the server factory, constructs it with temporary source/target roots, and confirms the package and entrypoint are importable without invoking `scripts/codex-task`."
+          },
+          {
+            "id": 2,
+            "title": "Register V1-backed Aegis tools with formal input schemas",
+            "description": "Expose only the production-supported `aegis.*` tools and validate their inputs before calling the core.",
+            "dependencies": [
+              1
+            ],
+            "details": "Register exactly `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.list_profiles`, and `aegis.explain_profile`. Mirror core constraints discovered in `scripts/_aegis_installer.py`: profile defaults only to `generic`, `primary_agent` is one of `claude`, `codex`, `gemini`, `multi`, or `none`, and `agents` is a unique list drawn from `claude`, `codex`, and `gemini`. Require explicit `primary_agent` and `agents` for planning, require `target_dir`, `profile`, `primary_agent`, `agents`, and `apply` for install, and require `target_dir` plus `acknowledge_report_write: true` for verify. Do not register production `aegis.status`, `aegis.plan_update`, `aegis.update`, or `aegis.rollback` because the core has no deterministic support for them yet.",
+            "status": "pending",
+            "testStrategy": "Test tool discovery and input schemas, asserting the discovered tool set is exactly the six V1-backed names and that invalid or omitted `primary_agent`, `agents`, `apply`, and verify acknowledgement fields are rejected before core mutation can occur."
+          },
+          {
+            "id": 3,
+            "title": "Wire tool handlers to installer core with schema checks and structured errors",
+            "description": "Map each MCP tool directly to the existing installer functions while preserving `.aegis/` safety behavior.",
+            "dependencies": [
+              2
+            ],
+            "details": "Call `inspect_project`, `plan_install`, `install`, `verify`, `list_profiles`, and `explain_profile` from `scripts/_aegis_installer.py` rather than reimplementing planning or writes. Validate `aegis.plan_install` output against `schemas/aegis/install-plan.schema.json` and `aegis.explain_profile` output against `schemas/aegis/profile.schema.json`. Treat `inspect`, `plan_install`, `list_profiles`, and `explain_profile` as read-only. Treat `install` as mutating only when `apply` is true, returning a structured dry-run/refusal response for missing or false `apply` instead of silently applying. Treat `verify` as mutating because the core writes `.aegis/reports/verification-report.json` and may update manifest verification state. Wrap `AegisError`, jsonschema failures, refused installs, failed applies, and failed verifies as `{ok: false, error: {code, message, status, details}}`, preserving report and cleanup payloads where the core returns them and avoiding Python tracebacks for predictable user errors.",
+            "status": "pending",
+            "testStrategy": "Add pytest coverage for successful inspect/plan/install/verify/profile calls against temporary targets, plan/profile schema validation, install `apply=false` refusal, verify acknowledgement refusal, core `AegisError` mapping, `status=refused` unsafe operations, `status=failed` cleanup propagation, and failed verification response details."
+          },
+          {
+            "id": 4,
+            "title": "Expose read-only Aegis resources and workflow prompts",
+            "description": "Implement the `aegis://` resource layer and agent prompts backed by target state, schemas, profiles, cache, and compatibility guidance.",
+            "dependencies": [
+              3
+            ],
+            "details": "Add resources for `aegis://manifest/current`, `aegis://contract/current`, `aegis://schemas/foundation-manifest`, `aegis://schemas/profile`, `aegis://schemas/install-plan`, `aegis://profiles`, `aegis://profiles/{name}`, `aegis://install-plan/latest`, `aegis://verification/latest`, `aegis://limitations`, and `aegis://managed-files`. Back them with `.aegis/foundation-manifest.json`, `.aegis/contract.md`, `schemas/aegis/*.schema.json`, `list_profiles`, `explain_profile`, report files, and the latest in-process plan cache. Missing files must return structured `not_installed` or `not_available` payloads and resources must never create or update `.aegis/`. Implement prompts `aegis.bootstrap_new_project`, `aegis.migrate_existing_project`, `aegis.verify_runtime`, `aegis.prepare_agent_session`, and `aegis.close_agent_session` that guide `inspect -> plan_install -> user approval -> install -> verify`, cite resources such as `aegis://contract/current`, `aegis://limitations`, and `aegis://verification/latest`, use `templates/registry/agent-compatibility-matrix.json` for supported-agent and fallback guidance, distinguish mechanical gates from policy-only limitations, and avoid claims of success without tool evidence.",
+            "status": "pending",
+            "testStrategy": "Test installed and not-installed resource reads, schema resources, profile resources, latest plan fallback from session cache, latest report reads from `.aegis/reports`, limitations derived from unsupported or policy gates plus deferred-tool notes, managed-files payloads, and prompt invariants that forbid direct `.aegis/` writes or unsupported success claims."
+          },
+          {
+            "id": 5,
+            "title": "Update Task 110 docs, MCP config guidance, and smoke coverage",
+            "description": "Document the implemented server path and add focused tests, local stdio smoke coverage, and workflow evidence.",
+            "dependencies": [
+              4
+            ],
+            "details": "Promote the archived Task 109 wrapper contract at `docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED/designs/aegis-mcp-wrapper-contract.md` into active Task 110 implementation-facing documentation that names the actual `scripts/aegis-mcp-server` entrypoint, local stdio test path, supported tools, deferred tools, resources, prompts, structured error format, and `.aegis/` safety contract. Add or document a project-local `.mcp.json` `aegis` entry while preserving the existing `task-master-ai` and `serena` entries. Fix stale doc tests such as `tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py`, which currently points at the removed active Task 109 directory and still expects deferred resources/prompts like `aegis://project/status` and adapter-install prompts. Capture Taskmaster progress and final evidence in the active Task 110 work-tracking folder and refresh only the targeted generated task file with the existing `generate-one` workflow.",
+            "status": "pending",
+            "testStrategy": "Run focused pytest coverage for the MCP server registration layer, tool/resource/prompt behavior, existing Aegis installer and schema fixtures, updated contract-doc assertions, and a direct stdio MCP smoke test that launches `scripts/aegis-mcp-server` without shelling through `scripts/codex-task`."
+          }
+        ],
+        "updatedAt": "2026-05-16T13:57:38.081Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T11:58:19.900Z",
-      "taskCount": 109,
+      "lastModified": "2026-05-16T13:57:38.081Z",
+      "taskCount": 110,
       "completedCount": 109,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2026-05-16T14:03:54.509Z",
+      "description": "Tasks for master context"
     }
   }
 }

@@ -1,0 +1,29 @@
+# Task 110 Build Aegis MCP Installer Server Tracker
+
+**Started**: 2026-05-16
+**Status**: ACTIVE
+**Last Updated**: 2026-05-16
+
+## Goals
+- [ ] Implement V1-backed aegis.* MCP tools over scripts/_aegis_installer.py
+- [ ] Expose read-only aegis:// resources and safe workflow prompts
+- [ ] Preserve install safety with explicit apply and verify acknowledgement gates
+- [ ] Add MCP server tests, local smoke coverage, and final workflow evidence
+
+## Progress Log
+- **2026-05-16 15:58** — [S:20260516|W:task110-aegis-mcp-installer-server|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-05-16 15:58 CEST`
+- **2026-05-16 15:58** — [S:20260516|W:task110-aegis-mcp-installer-server|H:scripts/codex-task|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/TRACKER.md] Scaffolded the Task 110 ACTIVE work-tracking folder through the guided kickoff flow
+- **2026-05-16 15:58** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 110 in progress and updated only its generated task file
+- **2026-05-16 15:58** — [S:20260516|W:task110-aegis-mcp-installer-server|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 110 kickoff
+- **2026-05-16 16:07** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:expand|E:.taskmaster/tasks/task_110.md] Expanded Task 110 into five implementation subtasks: server scaffold, tool registration, handler wiring, resources/prompts, and docs/config/smoke coverage
+- **2026-05-16 16:07** — [S:20260516|W:task110-aegis-mcp-installer-server|H:designs/aegis-mcp-server-scope|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/designs/aegis-mcp-server-scope.md] Corrected the generated plan scope from generic wizard wording to the actual Aegis MCP server boundary
+- **2026-05-16 16:07** — [S:20260516|W:task110-aegis-mcp-installer-server|H:serena/memory|E:.serena/memories/2026-05-16_task110_aegis_mcp_server_kickoff.md] Captured Task 110 kickoff context in Serena memory `2026-05-16_task110_aegis_mcp_server_kickoff`
+
+## Plan Compliance Checklist
+- [x] plan-step-scope — Define alignment prerequisites and scope
+- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
+- [ ] plan-step-verify — Evidence stored, documentation updated
+- [ ] plan-step-emergency (if applicable)
+
+## Dependencies & Notes
+- Session log: sessions/current
