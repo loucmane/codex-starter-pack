@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 import pytest
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
@@ -53,6 +55,30 @@ def get_prompt_text(server: FastMCP, name: str, arguments: dict | None = None) -
     prompt = asyncio.run(server.get_prompt(name, arguments or {}))
     assert len(prompt.messages) == 1
     return prompt.messages[0].content.text
+
+
+async def run_stdio_smoke(target: Path) -> tuple[set[str], set[str], set[str]]:
+    params = StdioServerParameters(
+        command=sys.executable,
+        args=[
+            "scripts/aegis-mcp-server",
+            "--source-root",
+            REPO_ROOT.as_posix(),
+            "--default-target-dir",
+            target.as_posix(),
+        ],
+    )
+    async with stdio_client(params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            tools = await session.list_tools()
+            resources = await session.list_resources()
+            prompts = await session.list_prompts()
+    return (
+        {tool.name for tool in tools.tools},
+        {str(resource.uri) for resource in resources.resources},
+        {prompt.name for prompt in prompts.prompts},
+    )
 
 
 def test_config_defaults_to_repo_root() -> None:
@@ -683,3 +709,11 @@ def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> Non
         "source_root": REPO_ROOT.as_posix(),
         "default_target_dir": target.resolve().as_posix(),
     }
+
+
+def test_direct_stdio_mcp_smoke_lists_aegis_surfaces(tmp_path: Path) -> None:
+    tools, resources, prompts = asyncio.run(run_stdio_smoke(tmp_path))
+
+    assert tools == set(V1_TOOL_NAMES)
+    assert resources == set(RESOURCE_URIS)
+    assert prompts == set(PROMPT_NAMES)

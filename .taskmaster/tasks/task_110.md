@@ -2,7 +2,7 @@
 
 **Title:** Build Aegis MCP Installer Server
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 62 ✓, 109 ✓
 
@@ -120,7 +120,7 @@ Add resources for `aegis://manifest/current`, `aegis://contract/current`, `aegis
 
 ### 110.5. Update Task 110 docs, MCP config guidance, and smoke coverage
 
-**Status:** pending
+**Status:** done
 **Dependencies:** 110.4
 
 Document the implemented server path and add focused tests, local stdio smoke coverage, and workflow evidence.

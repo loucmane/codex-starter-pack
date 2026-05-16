@@ -30,8 +30,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Define the Aegis MCP server boundary, tool/resource/prompt inventory, implementation sequence, and verification gates | docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/designs/aegis-mcp-server-scope.md | completed |
-| plan-step-implement | Implement the MCP server module, stdio entrypoint, V1-backed tool handlers, read-only resources, workflow prompts, and tests | docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the MCP server module, stdio entrypoint, V1-backed tool handlers, read-only resources, workflow prompts, and tests | docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/TRACKER.md; docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-final.txt | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -50,6 +50,7 @@ emergency_bypass: false
 ## Amendments & Versioning
 - 2026-05-16 - Task 110 kickoff created via the guided wizard flow.
 - 2026-05-16 - Scope corrected from generic wizard wording to Aegis MCP server implementation boundaries.
+- 2026-05-16 - Completed all five Task 110 subtasks and verified the Aegis MCP server with direct stdio smoke coverage.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

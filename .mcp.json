@@ -30,6 +30,13 @@
 				"start-mcp-server",
 				"--project-from-cwd"
 			]
+		},
+		"aegis": {
+			"type": "stdio",
+			"command": "python3",
+			"args": [
+				"scripts/aegis-mcp-server"
+			]
 		}
 	}
 }

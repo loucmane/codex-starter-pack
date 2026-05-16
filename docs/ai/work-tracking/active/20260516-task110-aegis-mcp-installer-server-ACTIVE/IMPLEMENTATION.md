@@ -5,7 +5,7 @@
 - `110.2` — Register V1-backed `aegis.*` tools and formal input schemas. **Done**: registered the six V1 tool contracts and validation tests without wiring core handlers yet.
 - `110.3` — Wire handlers to the installer core with schema checks and structured MCP errors. **Done**: tool handlers call the core installer module, validate core payloads, and map predictable failures to structured MCP payloads.
 - `110.4` — Expose read-only `aegis://` resources and safe workflow prompts. **Done**: added target/source-backed resources, latest plan/report reads, limitations, managed-file views, and advisory workflow prompts.
-- `110.5` — Update implementation docs, MCP config guidance, and local smoke coverage.
+- `110.5` — Update implementation docs, MCP config guidance, and local smoke coverage. **Done**: added active implementation docs, project-local MCP config, direct stdio smoke coverage, and final evidence.
 
 ## 110.1 Scaffold Notes
 - The server factory uses `mcp.server.fastmcp.FastMCP` from the official Python MCP SDK.
@@ -37,3 +37,9 @@
 - `aegis://install-plan/latest` first uses the in-process plan cache populated by `aegis.plan_install`, then falls back to `.aegis/reports/install-plan.json`.
 - Prompts: `aegis.bootstrap_new_project`, `aegis.migrate_existing_project`, `aegis.verify_runtime`, `aegis.prepare_agent_session`, and `aegis.close_agent_session`.
 - Prompt text is explicitly advisory, cites `aegis://contract/current`, `aegis://limitations`, and `aegis://verification/latest`, preserves the inspect -> plan_install -> user approval -> install -> verify flow, and forbids treating prompt output as success evidence.
+
+## 110.5 Docs, Config, and Smoke Notes
+- Added `designs/aegis-mcp-implementation-guide.md` as the active implementation-facing contract for the shipped server.
+- Updated `.mcp.json` with an `aegis` stdio server entry while preserving the existing `task-master-ai` and `serena` entries.
+- Updated `tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py` away from the archived Task 109 contract and onto the active Task 110 implementation guide.
+- Added direct stdio MCP smoke coverage that launches `scripts/aegis-mcp-server`, initializes an MCP `ClientSession`, and lists tools, resources, and prompts without shelling through `scripts/codex-task`.

@@ -1,0 +1,16 @@
+Command:
+PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_server.py tests/meta_workflow_guard/test_aegis_schemas.py tests/meta_workflow_guard/test_aegis_installer.py tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py
+
+Result:
+54 passed in 2.01s
+
+Scope:
+- Verified the implemented Aegis MCP server tools, resources, prompts, and
+  direct stdio smoke path.
+- Verified Aegis schemas and installer core fixtures still pass.
+- Verified the active Task 110 implementation guide documents the actual
+  `scripts/aegis-mcp-server` entrypoint, supported and deferred tools,
+  resources, prompts, schema alignment, structured error format, `.aegis/`
+  safety contract, and direct stdio smoke coverage.
+- Verified `.mcp.json` now includes the project-local `aegis` server while
+  preserving existing `task-master-ai` and `serena` server entries.

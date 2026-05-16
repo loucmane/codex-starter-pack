@@ -7,3 +7,5 @@
 - 2026-05-16 17:12 CEST — Completed subtask 110.2 with six V1-backed `aegis.*` tool schemas, input validation guards, deferred handler payloads, and focused evidence (`35 passed`).
 - 2026-05-16 17:37 CEST — Completed subtask 110.3 with core installer handler wiring, plan/profile schema validation, structured refusal/failure responses, and focused evidence (`43 passed`).
 - 2026-05-16 17:52 CEST — Completed subtask 110.4 with read-only `aegis://` resources, latest plan/report views, limitations/managed-file resources, advisory workflow prompts, and focused evidence (`50 passed`).
+- 2026-05-16 18:14 CEST — Completed subtask 110.5 with active implementation docs, project-local `.mcp.json` config, direct stdio smoke coverage, updated contract-doc tests, and final MCP evidence (`54 passed`).
+- 2026-05-16 18:21 CEST — Completed final Task 110 verification and confirmed Taskmaster Task 110 status `done`.
