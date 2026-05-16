@@ -26,10 +26,14 @@
 - Taskmaster subtask 109.5 is done and parent Task 109 is done.
 - Final gate evidence is stored under `reports/foundation-installer-mcp/`: `plan-sync-2026-05-16-final.txt`, `taskmaster-health-2026-05-16-final.txt`, `work-tracking-audit-2026-05-16-final.txt`, and `guard-2026-05-16-final.txt`. The audit warning about `20260515` versus `20260516` is intentional multi-day ACTIVE-folder reuse.
 
+## Post-Merge Archive
+- PR #109 merged on 2026-05-16 after Python 3.11, Python 3.12, and guard checks passed.
+- Local `main` was fast-forwarded to the merge commit.
+- Feature branch `feat/task-109-foundation-installer-mcp` was deleted locally and remotely.
+- Work-tracking folder was archived on 2026-05-16 15:20 CEST and tracker status is `COMPLETED`.
+- Post-archive evidence is captured in `reports/foundation-installer-mcp/`: `work-tracking-audit-2026-05-16-post-archive.txt`, `guard-2026-05-16-post-archive.txt`, and `diff-check-2026-05-16-post-archive.txt`.
+
 ## Next Steps
-- Prepare the Task 109 commit and PR after final gate evidence is confirmed.
-- Keep the ACTIVE work-tracking folder open until the branch is merged; archive it in a separate cleanup step after merge.
-- Follow-up work should be created or selected for the production Aegis MCP server, expanded profiles, update/rollback hardening, packaging/distribution, optional CI install templates, and cross-agent smoke automation.
-- For Taskmaster notes, use targeted `task-master update-subtask` sparingly and parent `update-task` only for narrow parent scope updates; in both cases, run `python3 scripts/codex-task taskmaster generate-one --id 109`, inspect the diff, and verify health because AI updates can still trigger drift warnings.
-- Run `python3 scripts/codex-task plan sync` after tracker updates and capture guard/audit evidence before the next commit.
-- When starting tomorrow, use the normal continuation flow for Task 109 rather than archiving or creating a new work-tracking folder.
+- Create the next explicit Taskmaster task for the production Aegis MCP server; Taskmaster currently has no remaining pending tasks.
+- Follow-up work should cover the production Aegis MCP server, standalone/distributable CLI packaging, expanded profiles, update/rollback hardening, optional CI install templates, and cross-agent smoke automation.
+- Do not reopen or recreate Task 109 work tracking; this archive is the final Task 109 record.

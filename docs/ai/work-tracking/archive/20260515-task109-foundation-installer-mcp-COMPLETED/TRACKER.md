@@ -1,7 +1,7 @@
 # Task 109 Portable Foundation Installer and MCP Distribution Contract Tracker
 
 **Started**: 2026-05-15
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-16
 
 ## Goals
@@ -52,6 +52,10 @@
 - **2026-05-16 13:59** — [S:20260516|W:task109-foundation-installer-mcp|H:tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py|E:docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/reports/foundation-installer-mcp/tests-2026-05-16-aegis-mcp-contract.txt] Added MCP contract documentation checks that require `aegis.*` tools, `aegis://...` resources, schema references under `schemas/aegis/`, and explicit production MCP deferral; combined Aegis suite passed with `29 passed`
 - **2026-05-16 13:59** — [S:20260516|W:task109-foundation-installer-mcp|H:task-master:set-status|E:.taskmaster/tasks/task_109.md] Marked Taskmaster subtask 109.5 done and confirmed parent Task 109 is done; regenerated only Task 109 and fixed generated trailing whitespace in `task_109.md`
 - **2026-05-16 14:00** — [S:20260516|W:task109-foundation-installer-mcp|H:verification|E:docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/reports/foundation-installer-mcp/plan-sync-2026-05-16-final.txt;docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/reports/foundation-installer-mcp/taskmaster-health-2026-05-16-final.txt;docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/reports/foundation-installer-mcp/work-tracking-audit-2026-05-16-final.txt;docs/ai/work-tracking/active/20260515-task109-foundation-installer-mcp-ACTIVE/reports/foundation-installer-mcp/guard-2026-05-16-final.txt;cmd`git diff --check`] Captured final Task 109 verification evidence: plan sync, Taskmaster health, work-tracking audit, guard validation, and diff-check
+- **2026-05-16 15:21** — [S:20260516|W:task109-foundation-installer-mcp|H:github:merge|E:https://github.com/loucmane/codex-starter-pack/pull/109] Merged PR #109 after GitHub reported all Python and guard checks passing
+- **2026-05-16 15:21** — [S:20260516|W:task109-foundation-installer-mcp|H:git:branch-cleanup|E:cmd`git push origin --delete feat/task-109-foundation-installer-mcp`;cmd`git branch -d feat/task-109-foundation-installer-mcp`;cmd`git fetch --prune origin`] Deleted the merged Task 109 feature branch locally and remotely, then pruned stale remote-tracking refs
+- **2026-05-16 15:21** — [S:20260516|W:task109-foundation-installer-mcp|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED] Archived the Task 109 work-tracking folder after merge
+- **2026-05-16 15:25** — [S:20260516|W:task109-foundation-installer-mcp|H:verification:post-archive|E:docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED/reports/foundation-installer-mcp/work-tracking-audit-2026-05-16-post-archive.txt;docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED/reports/foundation-installer-mcp/guard-2026-05-16-post-archive.txt;docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED/reports/foundation-installer-mcp/diff-check-2026-05-16-post-archive.txt] Captured post-archive audit, guard, and diff-check evidence after clearing current pointers for between-session state
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -67,4 +71,5 @@
 - Completed scope: Aegis architecture decision, schema contracts, generic CLI/library prototype, fixture/idempotence/failure-cleanup tests, MCP wrapper contract, and final handoff updates.
 - Final test evidence: `reports/foundation-installer-mcp/tests-2026-05-16-aegis-mcp-contract.txt` (`29 passed`).
 - Final gate evidence: `reports/foundation-installer-mcp/plan-sync-2026-05-16-final.txt`, `taskmaster-health-2026-05-16-final.txt`, `work-tracking-audit-2026-05-16-final.txt`, and `guard-2026-05-16-final.txt`.
-- Workflow state: ACTIVE folder remains open until commit/PR merge cleanup; archive it only after the Task 109 branch is merged.
+- Workflow state: PR #109 merged, feature branch deleted, and work-tracking folder archived to `docs/ai/work-tracking/archive/20260515-task109-foundation-installer-mcp-COMPLETED/`.
+- Post-archive evidence: `reports/foundation-installer-mcp/work-tracking-audit-2026-05-16-post-archive.txt`, `guard-2026-05-16-post-archive.txt`, and `diff-check-2026-05-16-post-archive.txt`.

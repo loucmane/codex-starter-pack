@@ -16,3 +16,6 @@
 - 2026-05-16 12:53 CEST — Implemented the generic-profile Aegis CLI/library prototype, added installer tests and subprocess smoke coverage, captured combined schema/installer pytest evidence, and marked Taskmaster subtask 109.3 done.
 - 2026-05-16 13:08 CEST — Added generic-profile fixture/idempotence/failure-cleanup tests, implemented V1 failed-apply cleanup, captured combined 27-test Aegis evidence, and marked Taskmaster subtask 109.4 done.
 - 2026-05-16 13:24 CEST — Added the detailed Aegis MCP wrapper contract, doc checks for namespace/schema alignment, and marked Taskmaster subtask 109.5 ready for completion.
+- 2026-05-16 15:20 CEST — Archived active work-tracking folder.
+- 2026-05-16 15:21 CEST — Recorded PR #109 merge, branch cleanup, and post-archive audit/guard/diff-check evidence.
+- 2026-05-16 15:25 CEST — Cleared `sessions/current` and `plans/current` for between-session state, then reran post-archive audit, guard, and diff-check.
