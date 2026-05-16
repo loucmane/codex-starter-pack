@@ -7,3 +7,12 @@
 - 2026-05-15 20:51 CEST — Added `gpt-5.5` as the active Taskmaster `codex-cli` model and configured Taskmaster to use the PATH-resolved global Codex CLI 0.130.0 executable so the model works through the Taskmaster wrapper.
 - 2026-05-15 21:08 CEST — Retested parent `task-master update-task` with `gpt-5.5`; it completed successfully, narrowed Task 109 parent scope to Option B, and was regenerated through `generate-one --id 109`.
 - 2026-05-15 21:13 CEST — Prepared end-of-day checkpoint with Task 109 still active and all checkpoint gates passing.
+- 2026-05-16 10:21 CEST — Started the May 16 continuation session using the existing Task 109 ACTIVE folder and recorded the intentional multi-day reuse.
+- 2026-05-16 11:05 CEST — Adopted Aegis Foundation naming for the portable runtime, `.aegis/` for shared installed state, and `aegis` for CLI/MCP namespaces.
+- 2026-05-16 11:42 CEST — Updated the Aegis agent-selection design: installer asks for primary/additional agents, Claude is the default recommended primary agent, and selected adapters determine required gates.
+- 2026-05-16 11:46 CEST — Added the Aegis access and gate contract: `.aegis/` is readable but not directly writable by agents, required gates fail verification when missing, and Claude-enabled installs require hook runtime verification.
+- 2026-05-16 11:52 CEST — Updated Taskmaster subtask 109.2 with the Claude-default agent-selection and Aegis gate-contract schema requirements, regenerated Task 109, and reran plan sync, Taskmaster health, diff-check, guard, and audit.
+- 2026-05-16 12:14 CEST — Implemented the Aegis manifest, profile, and install-plan schemas under `schemas/aegis/`, added schema validation tests, captured test evidence, and marked Taskmaster subtask 109.2 done.
+- 2026-05-16 12:53 CEST — Implemented the generic-profile Aegis CLI/library prototype, added installer tests and subprocess smoke coverage, captured combined schema/installer pytest evidence, and marked Taskmaster subtask 109.3 done.
+- 2026-05-16 13:08 CEST — Added generic-profile fixture/idempotence/failure-cleanup tests, implemented V1 failed-apply cleanup, captured combined 27-test Aegis evidence, and marked Taskmaster subtask 109.4 done.
+- 2026-05-16 13:24 CEST — Added the detailed Aegis MCP wrapper contract, doc checks for namespace/schema alignment, and marked Taskmaster subtask 109.5 ready for completion.

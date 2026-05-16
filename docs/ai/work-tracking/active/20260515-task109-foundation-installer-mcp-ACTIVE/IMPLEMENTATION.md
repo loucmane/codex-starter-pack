@@ -2,16 +2,30 @@
 
 ## Planned Workstreams
 - 109.1 - Architecture decision and distribution contract: completed in `designs/foundation-installer-mcp-architecture.md`.
-- 109.2 - Manifest, profile, and install-plan schema: pending.
-- 109.3 - Generic-profile CLI installer lifecycle and verification commands: pending.
-- 109.4 - Fixture, idempotence, and V1 rollback/cleanup tests: pending.
-- 109.5 - MCP wrapper contract, deferred follow-up tasks, evidence, and handoff: pending.
+- 109.2 - Manifest, profile, and install-plan schema: completed in `schemas/aegis/` with tests in `tests/meta_workflow_guard/test_aegis_schemas.py`.
+- 109.3 - Generic-profile CLI installer lifecycle and verification commands: completed in `scripts/_aegis_installer.py`, `scripts/codex-task`, and `tests/meta_workflow_guard/test_aegis_installer.py`.
+- 109.4 - Fixture, idempotence, and V1 rollback/cleanup tests: completed in `tests/meta_workflow_guard/test_aegis_installer_fixtures.py` with V1 apply-failure cleanup support in `scripts/_aegis_installer.py`.
+- 109.5 - MCP wrapper contract, deferred follow-up tasks, evidence, and handoff: completed in `designs/aegis-mcp-wrapper-contract.md` with namespace/schema checks in `tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py`.
 
 ## Current Implementation Boundary
 - The deterministic CLI/library core is the source of truth.
 - The MCP server is an optional wrapper over the same library.
+- The portable installed runtime is named Aegis Foundation. Shared installed state belongs under `.aegis/`, starting with `.aegis/foundation-manifest.json`.
+- The V1 command namespace should be `python3 scripts/codex-task aegis ...`; Codex-specific helper names such as `scripts/codex-task` and `scripts/codex-guard` remain unchanged.
 - The first implementation should avoid duplicating installer logic between CLI and MCP.
 - Mutating installer/update/rollback operations must produce rollback checkpoints and verification evidence.
 - V1 is limited to contract/schema plus a generic-profile CLI prototype. Full MCP server, full multi-profile support, complex update migrations, package publishing, and automatic CI installation are deferred.
+- Generic Aegis installs should recommend Claude as the default primary agent while still asking the user which primary/additional agents they use. Enabled adapters contribute required gates.
+- `.aegis/` is the readable shared contract surface. Agents must not write `.aegis/` directly; foundation mutations go through the Aegis CLI or future MCP wrapper.
+- Required gates must be represented in the manifest and make `aegis verify` fail when missing or broken. Gate enforcement types are `mechanical`, `verification`, and `policy`.
+- Claude-enabled installs must include and verify the Claude hook runtime: `CLAUDE.md`, `.claude/settings.json`, `.claude/scripts/readiness.sh`, `.claude/scripts/pretooluse-gate.sh`, `.claude/scripts/bash-command-guard.sh`, and `.claude/scripts/codex-path-guard.sh`.
+- The Aegis schema layer now consists of `schemas/aegis/foundation-manifest.schema.json`, `schemas/aegis/profile.schema.json`, and `schemas/aegis/install-plan.schema.json`. Tests assert valid Claude-default payloads and reject direct `.aegis` writes, missing Claude gates, warning-only required gates, required policy-only gates, generic profiles that do not default to Claude, and non-interactive installs without explicit agent flags.
+- The Aegis installer core now lives in `scripts/_aegis_installer.py`, with `scripts/codex-task aegis` exposing `inspect`, `plan-install`, `install`, `verify`, `list-profiles`, and `explain-profile`. The core produces schema-shaped install plans and manifests, requires explicit primary/additional agent selection, defaults install to dry-run unless `--apply` is supplied, refuses unsafe conflicting files, and preserves verification state across idempotent re-plans after a successful verify.
+- Claude-enabled installs include the support file `.claude/scripts/gate_lib.py` in addition to the named hook scripts because `readiness.sh`, `pretooluse-gate.sh`, `bash-command-guard.sh`, and `codex-path-guard.sh` depend on that shared shell/Python support layer. Verification treats missing required hook files or settings registration as failure.
+- Codex-enabled install planning is present for first-pass portability and preserves adapter-specific names (`CODEX.md`, `scripts/codex-task`, `scripts/codex-guard`, and supporting Python modules) without moving them under `.aegis/`.
+- Installer regression tests now cover parser wiring, read-only dry-run planning, explicit agent selection, install/verify/idempotence, conflict refusal, missing required Claude gate failure, `inspect` output, and subprocess CLI behavior against a temporary target repo. Evidence: `reports/foundation-installer-mcp/tests-2026-05-16-aegis-installer.txt`.
+- Fixture regression tests now cover empty-repo and basic-python-tool shapes, including a multi-agent `claude` + `codex` install, preservation of pre-existing project files, no `.codex/foundation-manifest.json`, second-plan and second-install idempotence, verification unsupported-count behavior for optional policy gates, partial Aegis manifest refusal without partial writes, and simulated apply failure cleanup. Evidence: `reports/foundation-installer-mcp/tests-2026-05-16-aegis-fixtures.txt`.
+- V1 cleanup is intentionally scoped to failed local install attempts: when apply fails after planning, Aegis removes planned newly-created files and reports cleanup status. Full cross-version rollback, update rollback, and historical checkpoint restoration remain deferred follow-up work.
+- The Aegis MCP wrapper contract is documentation/contract-only for Task 109. It defines V1-backed tools (`aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.list_profiles`, `aegis.explain_profile`), deferred tools (`aegis.status`, `aegis.plan_update`, `aegis.update`, `aegis.rollback`), resources, prompts, apply gates, evidence outputs, schema alignment, error semantics, and follow-up tasks. Full production MCP server implementation remains deferred.
 - Taskmaster AI-backed parent updates are viable with `codex-cli`/`gpt-5.5` and PATH `codex`, but they remain slow/heavy and can emit drift warnings. Use them only for narrow parent scope updates, then run targeted `generate-one`, inspect diffs, and verify Taskmaster health.
 - Taskmaster is currently configured for `codex-cli`/`gpt-5.5` with `codexCli.reasoningEffort=medium` and `codexCli.codexPath` pointing to the PATH-resolved global Codex CLI 0.130.0 executable. The explicit codexPath override is required because Taskmaster's bundled `@openai/codex` 0.60.1 is too old for `gpt-5.5`.

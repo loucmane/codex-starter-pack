@@ -24,6 +24,15 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
+from _aegis_installer import (
+    AegisError,
+    explain_profile as aegis_explain_profile,
+    inspect_project as aegis_inspect_project,
+    install as aegis_install,
+    list_profiles as aegis_list_profiles,
+    plan_install as aegis_plan_install,
+    verify as aegis_verify,
+)
 from template_registry import TemplateDiscoveryAPI, TemplateRecord, TemplateRegistry
 from template_governance import assessment_to_dict, assess_governance, load_governance_policy
 
@@ -669,6 +678,81 @@ def handle_bootstrap_init(args: argparse.Namespace) -> None:
         print(f"{status}:")
         for kind, rel in matching:
             print(f"  - {kind}: {rel}")
+
+
+def _print_json(payload: Mapping[str, Any]) -> None:
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def _aegis_agents_from_args(args: argparse.Namespace) -> List[str]:
+    return list(getattr(args, "agent", None) or [])
+
+
+def handle_aegis_inspect(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_inspect_project(args.target_dir, profile=args.profile)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+
+
+def handle_aegis_plan_install(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_plan_install(
+            args.target_dir,
+            source_root=REPO_ROOT,
+            profile=args.profile,
+            primary_agent=args.primary_agent,
+            agents=_aegis_agents_from_args(args),
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+
+
+def handle_aegis_install(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_install(
+            args.target_dir,
+            source_root=REPO_ROOT,
+            profile=args.profile,
+            primary_agent=args.primary_agent,
+            agents=_aegis_agents_from_args(args),
+            apply=args.apply,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") == "refused":
+        raise TaskError("Aegis install refused unsafe overwrite or manual-review operations")
+    if payload.get("status") == "failed":
+        raise TaskError("Aegis install failed during apply and attempted cleanup")
+
+
+def handle_aegis_verify(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_verify(args.target_dir, source_root=REPO_ROOT)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") == "failed":
+        raise TaskError("Aegis verification failed")
+
+
+def handle_aegis_list_profiles(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_list_profiles(source_root=REPO_ROOT)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+
+
+def handle_aegis_explain_profile(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_explain_profile(args.profile, source_root=REPO_ROOT)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
 
 
 def _validate_branch_for_task(branch: str, task_id: str) -> None:
@@ -17807,6 +17891,59 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap_init.add_argument("--work-tracking-root", help="Repo-local work-tracking root override")
     bootstrap_init.add_argument("--reports-root", help="Repo-local reports root override")
     bootstrap_init.set_defaults(func=handle_bootstrap_init)
+
+    aegis_parser = subparsers.add_parser("aegis", help="Aegis Foundation install, verify, and profile operations")
+    aegis_sub = aegis_parser.add_subparsers(dest="subcommand", required=True)
+    aegis_inspect = aegis_sub.add_parser("inspect", help="Inspect Aegis state and adapter signals in a target repository")
+    aegis_inspect.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_inspect.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
+    aegis_inspect.set_defaults(func=handle_aegis_inspect)
+
+    aegis_plan_install = aegis_sub.add_parser("plan-install", help="Print a dry-run Aegis install plan for a target repository")
+    aegis_plan_install.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_plan_install.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
+    aegis_plan_install.add_argument(
+        "--primary-agent",
+        required=True,
+        choices=("claude", "codex", "gemini", "multi", "none"),
+        help="Primary agent selected by the installer user",
+    )
+    aegis_plan_install.add_argument(
+        "--agent",
+        action="append",
+        choices=("claude", "codex", "gemini"),
+        help="Enabled agent adapter (repeatable)",
+    )
+    aegis_plan_install.set_defaults(func=handle_aegis_plan_install)
+
+    aegis_install_parser = aegis_sub.add_parser("install", help="Apply or dry-run an Aegis install plan")
+    aegis_install_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_install_parser.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
+    aegis_install_parser.add_argument(
+        "--primary-agent",
+        required=True,
+        choices=("claude", "codex", "gemini", "multi", "none"),
+        help="Primary agent selected by the installer user",
+    )
+    aegis_install_parser.add_argument(
+        "--agent",
+        action="append",
+        choices=("claude", "codex", "gemini"),
+        help="Enabled agent adapter (repeatable)",
+    )
+    aegis_install_parser.add_argument("--apply", action="store_true", help="Apply the install plan; omitted means dry-run JSON only")
+    aegis_install_parser.set_defaults(func=handle_aegis_install)
+
+    aegis_verify_parser = aegis_sub.add_parser("verify", help="Verify an installed Aegis Foundation target repository")
+    aegis_verify_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_verify_parser.set_defaults(func=handle_aegis_verify)
+
+    aegis_list_profiles = aegis_sub.add_parser("list-profiles", help="List built-in Aegis profiles")
+    aegis_list_profiles.set_defaults(func=handle_aegis_list_profiles)
+
+    aegis_explain_profile = aegis_sub.add_parser("explain-profile", help="Print the built-in Aegis profile contract")
+    aegis_explain_profile.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
+    aegis_explain_profile.set_defaults(func=handle_aegis_explain_profile)
 
     wizard_parser = subparsers.add_parser("wizard", help="Guided workflow operations")
     wizard_sub = wizard_parser.add_subparsers(dest="subcommand", required=True)

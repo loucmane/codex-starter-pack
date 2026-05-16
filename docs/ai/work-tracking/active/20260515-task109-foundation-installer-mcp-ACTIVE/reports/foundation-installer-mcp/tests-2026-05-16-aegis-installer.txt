@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.4.0
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+collected 23 items
+
+tests/meta_workflow_guard/test_aegis_schemas.py ...............          [ 65%]
+tests/meta_workflow_guard/test_aegis_installer.py ........               [100%]
+
+============================== 23 passed in 1.05s ==============================
