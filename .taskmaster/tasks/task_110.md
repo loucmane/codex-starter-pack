@@ -98,7 +98,7 @@ Register exactly `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.
 
 ### 110.3. Wire tool handlers to installer core with schema checks and structured errors
 
-**Status:** pending
+**Status:** done
 **Dependencies:** 110.2
 
 Map each MCP tool directly to the existing installer functions while preserving `.aegis/` safety behavior.

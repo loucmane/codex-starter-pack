@@ -25,6 +25,9 @@
 - **2026-05-16 17:12** — [S:20260516|W:task110-aegis-mcp-installer-server|H:aegis_mcp/server.py|E:aegis_mcp/server.py;tests/meta_workflow_guard/test_aegis_mcp_server.py] Completed 110.2 tool registration: `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.list_profiles`, and `aegis.explain_profile` now expose formal FastMCP schemas and reject unsafe inputs before core wiring
 - **2026-05-16 17:12** — [S:20260516|W:task110-aegis-mcp-installer-server|H:pytest|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-tools.txt] Captured 110.2 evidence; focused MCP/schema/installer suite passed with `35 passed`
 - **2026-05-16 17:12** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:set-status|E:.taskmaster/tasks/task_110.md] Marked Taskmaster subtask 110.2 done and regenerated only Task 110
+- **2026-05-16 17:37** — [S:20260516|W:task110-aegis-mcp-installer-server|H:aegis_mcp/server.py|E:aegis_mcp/server.py;tests/meta_workflow_guard/test_aegis_mcp_server.py] Completed 110.3 handler wiring: the six tools now call `scripts/_aegis_installer.py`, validate plan/profile schemas, preserve read-only vs mutating semantics, and return structured `{ok:false,error:{...}}` responses for predictable failures
+- **2026-05-16 17:37** — [S:20260516|W:task110-aegis-mcp-installer-server|H:pytest|E:docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-handlers.txt] Captured 110.3 evidence; focused MCP/schema/installer suite passed with `43 passed`
+- **2026-05-16 17:37** — [S:20260516|W:task110-aegis-mcp-installer-server|H:task-master:set-status|E:.taskmaster/tasks/task_110.md] Marked Taskmaster subtask 110.3 done and regenerated only Task 110
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -34,4 +37,4 @@
 
 ## Dependencies & Notes
 - Session log: sessions/current
-- Completed subtasks: 110.1, 110.2
+- Completed subtasks: 110.1, 110.2, 110.3

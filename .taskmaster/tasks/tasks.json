@@ -5287,9 +5287,10 @@
               2
             ],
             "details": "Call `inspect_project`, `plan_install`, `install`, `verify`, `list_profiles`, and `explain_profile` from `scripts/_aegis_installer.py` rather than reimplementing planning or writes. Validate `aegis.plan_install` output against `schemas/aegis/install-plan.schema.json` and `aegis.explain_profile` output against `schemas/aegis/profile.schema.json`. Treat `inspect`, `plan_install`, `list_profiles`, and `explain_profile` as read-only. Treat `install` as mutating only when `apply` is true, returning a structured dry-run/refusal response for missing or false `apply` instead of silently applying. Treat `verify` as mutating because the core writes `.aegis/reports/verification-report.json` and may update manifest verification state. Wrap `AegisError`, jsonschema failures, refused installs, failed applies, and failed verifies as `{ok: false, error: {code, message, status, details}}`, preserving report and cleanup payloads where the core returns them and avoiding Python tracebacks for predictable user errors.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Add pytest coverage for successful inspect/plan/install/verify/profile calls against temporary targets, plan/profile schema validation, install `apply=false` refusal, verify acknowledgement refusal, core `AegisError` mapping, `status=refused` unsafe operations, `status=failed` cleanup propagation, and failed verification response details.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-05-16T15:36:26.925Z"
           },
           {
             "id": 4,
@@ -5316,12 +5317,12 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-16T15:12:49.536Z"
+        "updatedAt": "2026-05-16T15:36:26.925Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-16T15:12:49.537Z",
+      "lastModified": "2026-05-16T15:36:26.926Z",
       "taskCount": 110,
       "completedCount": 109,
       "tags": [

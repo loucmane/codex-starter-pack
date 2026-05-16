@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, Literal, Sequence
 
+from jsonschema import ValidationError
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
@@ -124,23 +125,87 @@ def _validate_agent_selection(
     return selected
 
 
-def _require_true(value: bool, field: str) -> None:
-    if value is not True:
-        raise AegisMCPInputError(f"{field} must be true for this Aegis MCP operation")
-
-
-def _deferred_tool_response(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+def _ok_tool_response(
+    tool_name: str,
+    *,
+    result: dict[str, Any],
+    read_only: bool,
+) -> dict[str, Any]:
     return {
+        "ok": True,
         "schema_version": _aegis_installer.SCHEMA_VERSION,
         "tool": tool_name,
-        "status": "handler_deferred",
-        "message": "Input schema and safety validation passed; core handler wiring is owned by Task 110.3.",
-        "validated_arguments": arguments,
+        "read_only": read_only,
+        "result": result,
+    }
+
+
+def _error_tool_response(
+    tool_name: str,
+    *,
+    code: str,
+    message: str,
+    status: str,
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "schema_version": _aegis_installer.SCHEMA_VERSION,
+        "tool": tool_name,
+        "error": {
+            "code": code,
+            "message": message,
+            "status": status,
+            "details": details or {},
+        },
     }
 
 
 def register_v1_tools(server: FastMCP) -> FastMCP:
     """Register the V1-backed Aegis tool contracts on a FastMCP server."""
+
+    config: AegisMCPConfig = server.aegis_config  # type: ignore[attr-defined]
+    installer = server.aegis_installer  # type: ignore[attr-defined]
+
+    def validate_core_payload(schema_name: str, payload: dict[str, Any]) -> None:
+        installer._validate_with_schema(config.source_root, schema_name, payload)
+
+    def run_tool(
+        tool_name: str,
+        *,
+        read_only: bool,
+        callback,
+    ) -> dict[str, Any]:
+        try:
+            result = callback()
+        except AegisMCPInputError as exc:
+            return _error_tool_response(
+                tool_name,
+                code="invalid_input",
+                message=str(exc),
+                status="invalid_request",
+            )
+        except installer.AegisError as exc:
+            return _error_tool_response(
+                tool_name,
+                code="aegis_error",
+                message=str(exc),
+                status="invalid_request",
+            )
+        except ValidationError as exc:
+            return _error_tool_response(
+                tool_name,
+                code="schema_validation_failed",
+                message=exc.message,
+                status="invalid_response",
+                details={
+                    "path": list(exc.path),
+                    "schema_path": list(exc.schema_path),
+                },
+            )
+        if isinstance(result, dict) and result.get("ok") is False and "error" in result:
+            return result
+        return _ok_tool_response(tool_name, result=result, read_only=read_only)
 
     @server.tool(name="aegis.inspect")
     def aegis_inspect(
@@ -149,13 +214,14 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     ) -> dict[str, Any]:
         """Inspect a target project for Aegis installation state."""
 
-        profile_value = _validate_profile(profile)
-        return _deferred_tool_response(
+        def call_core() -> dict[str, Any]:
+            profile_value = _validate_profile(profile)
+            return installer.inspect_project(target_dir, profile=profile_value)
+
+        return run_tool(
             "aegis.inspect",
-            {
-                "target_dir": target_dir,
-                "profile": profile_value,
-            },
+            read_only=True,
+            callback=call_core,
         )
 
     @server.tool(name="aegis.plan_install")
@@ -167,16 +233,23 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     ) -> dict[str, Any]:
         """Plan a deterministic Aegis installation without mutating the target."""
 
-        profile_value = _validate_profile(profile)
-        selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
-        return _deferred_tool_response(
+        def call_core() -> dict[str, Any]:
+            profile_value = _validate_profile(profile)
+            selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
+            payload = installer.plan_install(
+                target_dir,
+                source_root=config.source_root,
+                profile=profile_value,
+                primary_agent=primary_agent,
+                agents=selected,
+            )
+            validate_core_payload("install-plan.schema.json", payload)
+            return payload
+
+        return run_tool(
             "aegis.plan_install",
-            {
-                "target_dir": target_dir,
-                "profile": profile_value,
-                "primary_agent": primary_agent,
-                "agents": list(selected),
-            },
+            read_only=True,
+            callback=call_core,
         )
 
     @server.tool(name="aegis.install")
@@ -189,18 +262,48 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     ) -> dict[str, Any]:
         """Apply an Aegis installation after explicit apply confirmation."""
 
-        profile_value = _validate_profile(profile)
-        selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
-        _require_true(apply, "apply")
-        return _deferred_tool_response(
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.install",
+                code="apply_required",
+                message="aegis.install requires apply=true; use aegis.plan_install for dry runs.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            profile_value = _validate_profile(profile)
+            selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
+            report = installer.install(
+                target_dir,
+                source_root=config.source_root,
+                profile=profile_value,
+                primary_agent=primary_agent,
+                agents=selected,
+                apply=apply,
+            )
+            if report.get("status") == "refused":
+                return _error_tool_response(
+                    "aegis.install",
+                    code="install_refused",
+                    message=str(report.get("reason") or "Aegis install refused."),
+                    status="refused",
+                    details={"report": report},
+                )
+            if report.get("status") == "failed":
+                return _error_tool_response(
+                    "aegis.install",
+                    code="install_failed",
+                    message=str(report.get("reason") or "Aegis install failed."),
+                    status="failed",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
             "aegis.install",
-            {
-                "target_dir": target_dir,
-                "profile": profile_value,
-                "primary_agent": primary_agent,
-                "agents": list(selected),
-                "apply": apply,
-            },
+            read_only=False,
+            callback=call_core,
         )
 
     @server.tool(name="aegis.verify")
@@ -210,20 +313,42 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     ) -> dict[str, Any]:
         """Verify an Aegis installation after acknowledging report writes."""
 
-        _require_true(acknowledge_report_write, "acknowledge_report_write")
-        return _deferred_tool_response(
+        if acknowledge_report_write is not True:
+            return _error_tool_response(
+                "aegis.verify",
+                code="acknowledgement_required",
+                message="aegis.verify writes verification reports and requires acknowledge_report_write=true.",
+                status="refused",
+                details={"acknowledge_report_write": acknowledge_report_write},
+            )
+
+        def call_core() -> dict[str, Any]:
+            report = installer.verify(target_dir, source_root=config.source_root)
+            if report.get("status") == "failed":
+                return _error_tool_response(
+                    "aegis.verify",
+                    code="verification_failed",
+                    message="Aegis verification failed.",
+                    status="failed",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
             "aegis.verify",
-            {
-                "target_dir": target_dir,
-                "acknowledge_report_write": acknowledge_report_write,
-            },
+            read_only=False,
+            callback=call_core,
         )
 
     @server.tool(name="aegis.list_profiles")
     def aegis_list_profiles() -> dict[str, Any]:
         """List Aegis install profiles supported by the V1 installer."""
 
-        return _deferred_tool_response("aegis.list_profiles", {})
+        return run_tool(
+            "aegis.list_profiles",
+            read_only=True,
+            callback=lambda: installer.list_profiles(source_root=config.source_root),
+        )
 
     @server.tool(name="aegis.explain_profile")
     def aegis_explain_profile(
@@ -231,12 +356,16 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     ) -> dict[str, Any]:
         """Explain the built-in Aegis install profile."""
 
-        profile_value = _validate_profile(profile)
-        return _deferred_tool_response(
+        def call_core() -> dict[str, Any]:
+            profile_value = _validate_profile(profile)
+            payload = installer.explain_profile(profile_value, source_root=config.source_root)
+            validate_core_payload("profile.schema.json", payload)
+            return payload
+
+        return run_tool(
             "aegis.explain_profile",
-            {
-                "profile": profile_value,
-            },
+            read_only=True,
+            callback=call_core,
         )
 
     return server

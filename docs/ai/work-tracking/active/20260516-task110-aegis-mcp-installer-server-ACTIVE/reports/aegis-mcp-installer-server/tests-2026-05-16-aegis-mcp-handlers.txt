@@ -1,0 +1,20 @@
+Command:
+PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_server.py tests/meta_workflow_guard/test_aegis_schemas.py tests/meta_workflow_guard/test_aegis_installer.py
+
+Result:
+43 passed in 1.63s
+
+Scope:
+- Verified the six V1-backed Aegis MCP tools now call the existing
+  scripts/_aegis_installer.py core rather than returning deferred handler
+  placeholders.
+- Verified read-only tools return successful structured payloads for inspect,
+  plan_install, list_profiles, and explain_profile.
+- Verified install apply=false and verify acknowledge_report_write=false return
+  structured refusals without mutating the target.
+- Verified install apply=true writes Aegis files only to temporary test targets,
+  refused installs preserve unsafe-operation reports, failed install responses
+  preserve cleanup payloads, and failed verify responses preserve the verifier
+  report details.
+- Verified predictable AegisError and jsonschema.ValidationError paths map to
+  {ok: false, error: {code, message, status, details}} responses.
