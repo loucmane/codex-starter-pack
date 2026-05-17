@@ -9,3 +9,5 @@
 - 2026-05-16 17:52 CEST — Completed subtask 110.4 with read-only `aegis://` resources, latest plan/report views, limitations/managed-file resources, advisory workflow prompts, and focused evidence (`50 passed`).
 - 2026-05-16 18:14 CEST — Completed subtask 110.5 with active implementation docs, project-local `.mcp.json` config, direct stdio smoke coverage, updated contract-doc tests, and final MCP evidence (`54 passed`).
 - 2026-05-16 18:21 CEST — Completed final Task 110 verification and confirmed Taskmaster Task 110 status `done`.
+- 2026-05-17 12:30 CEST — Started a fresh daily Task 110 continuation session for PR follow-up while reusing the existing task-scoped ACTIVE folder.
+- 2026-05-17 12:32 CEST — Recorded the intentional multi-day ACTIVE folder reuse in tracker, findings, decisions, changelog, and Serena memory before opening the Task 110 PR.
