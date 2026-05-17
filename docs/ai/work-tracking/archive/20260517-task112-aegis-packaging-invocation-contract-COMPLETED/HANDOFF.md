@@ -1,7 +1,7 @@
 # Task 112 Aegis Packaging and Invocation Contract – Handoff Summary
 
 ## Current State
-- Task 112 is in progress on `feat/task-112-aegis-packaging-invocation-contract`.
+- Task 112 is complete and merged through PR #112.
 - Session, plan, and active work-tracking have been scaffolded for `2026-05-17-003`.
 - The generic kickoff plan has been corrected to the Aegis invocation-contract scope.
 - `designs/aegis-invocation-contract.md` records the option matrix, selected V1 contract, boundaries, test shape, and follow-up release-hardening recommendation.
@@ -17,8 +17,9 @@
 - Final Aegis regression evidence is stored at `reports/aegis-packaging-invocation-contract/tests-2026-05-17-aegis-regression.txt` (`76 passed`).
 - Final workflow evidence files are stored at `reports/aegis-packaging-invocation-contract/plan-sync-2026-05-17.txt`, `taskmaster-health-2026-05-17.txt`, `work-tracking-audit-2026-05-17.txt`, `guard-2026-05-17.txt`, and `diff-check-2026-05-17.txt`.
 - Taskmaster Task 112 and all subtasks are done.
+- Work tracking was archived to `docs/ai/work-tracking/archive/20260517-task112-aegis-packaging-invocation-contract-COMPLETED/` after merge commit `c216d722b5084c40498456676fb0ba386701450f`.
+- Post-archive audit, guard, and diff-check evidence is stored under `reports/aegis-packaging-invocation-contract/`.
 
 ## Next Steps
-- Open a PR for Task 112.
-- After PR merge, archive the Task 112 work-tracking folder in a separate post-merge archive commit.
 - Recommended follow-up: release-hardening task for public package naming, wheel/package-data bundling, `uvx`/`pipx` snippets, signing, update migrations, rollback, hosted services, and CI install templates.
+- Archived on 2026-05-17 16:45 CEST — Folder moved to archive and tracker marked COMPLETED.

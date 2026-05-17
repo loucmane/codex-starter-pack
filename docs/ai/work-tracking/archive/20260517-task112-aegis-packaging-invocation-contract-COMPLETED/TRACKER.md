@@ -1,7 +1,7 @@
 # Task 112 Aegis Packaging and Invocation Contract Tracker
 
 **Started**: 2026-05-17
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-17
 
 ## Goals
@@ -27,6 +27,8 @@
 - **2026-05-17 15:49** — [S:20260517|W:task112-aegis-packaging-invocation-contract|H:pytest|E:docs/ai/work-tracking/active/20260517-task112-aegis-packaging-invocation-contract-ACTIVE/reports/aegis-packaging-invocation-contract/tests-2026-05-17-aegis-regression.txt] Captured final Aegis regression evidence (`76 passed`)
 - **2026-05-17 15:49** — [S:20260517|W:task112-aegis-packaging-invocation-contract|H:task-master:set-status|E:.taskmaster/tasks/task_112.md] Marked Taskmaster subtask 112.5 and parent Task 112 done, then refreshed only `.taskmaster/tasks/task_112.md`
 - **2026-05-17 15:50** — [S:20260517|W:task112-aegis-packaging-invocation-contract|H:verification-stack|E:docs/ai/work-tracking/active/20260517-task112-aegis-packaging-invocation-contract-ACTIVE/reports/aegis-packaging-invocation-contract/] Captured final plan-sync, Taskmaster health, work-tracking audit, guard, and diff-check evidence for closeout
+- **2026-05-17 16:46** — [S:20260517|W:task112-aegis-packaging-invocation-contract|H:scripts/codex-task work-tracking archive|E:docs/ai/work-tracking/archive/20260517-task112-aegis-packaging-invocation-contract-COMPLETED/] Archived Task 112 work tracking after PR #112 merged into `main`
+- **2026-05-17 16:46** — [S:20260517|W:task112-aegis-packaging-invocation-contract|H:post-archive-verification|E:docs/ai/work-tracking/archive/20260517-task112-aegis-packaging-invocation-contract-COMPLETED/reports/aegis-packaging-invocation-contract/] Captured post-archive audit, guard, and diff-check evidence for the between-session state
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Select the V1 external invocation contract and document boundaries
@@ -35,4 +37,6 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-17-003-task112-aegis-packaging-invocation-contract.md
+- PR: https://github.com/loucmane/codex-starter-pack/pull/112
+- Merge commit: c216d722b5084c40498456676fb0ba386701450f

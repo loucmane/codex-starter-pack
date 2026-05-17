@@ -8,3 +8,5 @@
 - 2026-05-17 15:40 CEST — Added editable package-style `aegis` entrypoint coverage, captured passing evidence, and marked Taskmaster subtask 112.3 done.
 - 2026-05-17 15:45 CEST — Added external MCP invocation coverage, captured passing evidence, and marked Taskmaster subtask 112.4 done.
 - 2026-05-17 15:50 CEST — Captured final verification evidence and marked Taskmaster Task 112 done.
+- 2026-05-17 16:46 CEST — Archived Task 112 work tracking after PR #112 merged into `main`.
+- 2026-05-17 16:45 CEST — Archived active work-tracking folder.
