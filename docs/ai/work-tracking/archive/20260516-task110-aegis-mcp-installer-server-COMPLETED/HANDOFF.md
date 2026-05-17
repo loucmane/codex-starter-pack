@@ -24,9 +24,16 @@
 - Final MCP evidence: `reports/aegis-mcp-installer-server/tests-2026-05-16-aegis-mcp-final.txt` (`54 passed`).
 - Final verification evidence: `reports/aegis-mcp-installer-server/verification-2026-05-16-final.txt`.
 - Taskmaster Task 110 status: `done`.
+- PR #110 status: merged into `main`.
+- Work-tracking status: archived as `docs/ai/work-tracking/archive/20260516-task110-aegis-mcp-installer-server-COMPLETED/`.
+- Post-archive evidence:
+  - `reports/aegis-mcp-installer-server/work-tracking-audit-2026-05-17-post-archive.txt`
+  - `reports/aegis-mcp-installer-server/guard-2026-05-17-post-archive.txt`
+  - `reports/aegis-mcp-installer-server/diff-check-2026-05-17-post-archive.txt`
 
 ## Next Steps
-- Review and merge the Task 110 PR.
+- Commit and push the post-merge archive cleanup.
 - Keep the server as a thin wrapper over `scripts/_aegis_installer.py`; do not duplicate installer logic.
 - Preserve Task 109 safety semantics: explicit apply for install, explicit report-write acknowledgement for verify, structured refusals for unsafe inputs.
-- After PR merge, archive the active work-tracking folder in a separate cleanup commit.
+- Start the next task from between-session state.
+- Archived on 2026-05-17 12:50 CEST — Folder moved to archive and tracker marked COMPLETED.

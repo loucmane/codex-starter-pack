@@ -12,3 +12,7 @@
 - 2026-05-17 12:30 CEST — Started a fresh daily Task 110 continuation session for PR follow-up while reusing the existing task-scoped ACTIVE folder.
 - 2026-05-17 12:32 CEST — Recorded the intentional multi-day ACTIVE folder reuse in tracker, findings, decisions, changelog, and Serena memory before opening the Task 110 PR.
 - 2026-05-17 12:37 CEST — Opened draft PR #110 for Task 110: https://github.com/loucmane/codex-starter-pack/pull/110.
+- 2026-05-17 12:48 CEST — Marked PR #110 ready and merged it into `main`.
+- 2026-05-17 12:51 CEST — Archived the Task 110 work-tracking folder and cleared current session/plan pointers for between-session state.
+- 2026-05-17 12:52 CEST — Captured post-archive audit, guard, and diff-check evidence.
+- 2026-05-17 12:50 CEST — Archived active work-tracking folder.
