@@ -14,6 +14,7 @@ from mcp.client.stdio import stdio_client
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
+from aegis_foundation import DISTRIBUTION_NAME, FOUNDATION_VERSION, INSTALLER_VERSION, SCHEMA_VERSION
 from aegis_mcp.server import (
     AegisMCPConfig,
     PROMPT_NAMES,
@@ -81,11 +82,20 @@ async def run_stdio_smoke(target: Path) -> tuple[set[str], set[str], set[str]]:
     )
 
 
-def test_config_defaults_to_repo_root() -> None:
+def test_config_defaults_to_packaged_assets_and_cwd(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "external-project"
+    target.mkdir()
+    monkeypatch.chdir(target)
+
     config = AegisMCPConfig.from_paths()
 
-    assert config.source_root == REPO_ROOT
-    assert config.default_target_dir == REPO_ROOT
+    assert config.source_root == (REPO_ROOT / "aegis_foundation" / "assets").resolve()
+    assert config.default_target_dir == target.resolve()
+    assert config.asset_origin == "package"
+    assert (config.source_root / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
 
 
 def test_config_accepts_explicit_paths(tmp_path: Path) -> None:
@@ -98,7 +108,13 @@ def test_config_accepts_explicit_paths(tmp_path: Path) -> None:
 
     assert config.source_root == source.resolve()
     assert config.default_target_dir == target.resolve()
+    assert config.asset_origin == "source"
     assert config.to_dict() == {
+        "distribution_name": DISTRIBUTION_NAME,
+        "asset_origin": "source",
+        "foundation_version": FOUNDATION_VERSION,
+        "installer_version": INSTALLER_VERSION,
+        "schema_version": SCHEMA_VERSION,
         "source_root": source.resolve().as_posix(),
         "default_target_dir": target.resolve().as_posix(),
     }
@@ -123,6 +139,7 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
     assert [tool.name for tool in tools] == list(V1_TOOL_NAMES)
     assert {tool.name for tool in tools} == {
         "aegis.inspect",
+        "aegis.status",
         "aegis.plan_install",
         "aegis.install",
         "aegis.verify",
@@ -130,7 +147,6 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.explain_profile",
     }
     assert {
-        "aegis.status",
         "aegis.plan_update",
         "aegis.update",
         "aegis.rollback",
@@ -433,6 +449,45 @@ def test_verify_success_and_failure_details_are_structured(tmp_path: Path) -> No
     assert failed_payload["error"]["details"]["report"]["status"] == "failed"
 
 
+def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    install_payload = call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    assert install_payload["ok"] is True
+    before = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+
+    payload = call_tool_payload(server, "aegis.status", {"target_dir": target.as_posix()})
+
+    after = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+    assert payload["ok"] is True
+    assert payload["tool"] == "aegis.status"
+    assert payload["read_only"] is True
+    assert payload["result"]["status"] == "current"
+    assert payload["result"]["migration_required"] is False
+
+
 def test_profile_tools_call_core_and_validate_payloads(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
@@ -656,6 +711,7 @@ def test_limitations_resource_includes_policy_and_deferred_tool_notes(tmp_path: 
         gate["id"] == "mcp.memory_write"
         for gate in payload["result"]["policy_only_gates"]
     )
+    assert "aegis.status" not in payload["result"]["deferred_tools"]
     assert "aegis.update" in payload["result"]["deferred_tools"]
     assert any("Prompts are guidance only" in note for note in payload["result"]["prompt_limitations"])
 
@@ -706,6 +762,11 @@ def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> Non
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload == {
+        "distribution_name": DISTRIBUTION_NAME,
+        "asset_origin": "source",
+        "foundation_version": FOUNDATION_VERSION,
+        "installer_version": INSTALLER_VERSION,
+        "schema_version": SCHEMA_VERSION,
         "source_root": REPO_ROOT.as_posix(),
         "default_target_dir": target.resolve().as_posix(),
     }

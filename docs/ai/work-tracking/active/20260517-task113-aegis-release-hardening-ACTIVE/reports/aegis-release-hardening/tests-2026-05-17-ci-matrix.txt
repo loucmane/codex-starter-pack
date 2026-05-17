@@ -1,0 +1,18 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+plugins: cov-4.1.0, benchmark-4.0.0, anyio-4.13.0
+collected 51 items
+
+tests/meta_workflow_guard/test_aegis_release_distribution.py ........... [ 21%]
+.ss                                                                      [ 27%]
+tests/meta_workflow_guard/test_aegis_mcp_server.py ..................... [ 68%]
+........                                                                 [ 84%]
+tests/meta_workflow_guard/test_aegis_invocation_contract.py ........     [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_release_distribution.py:393: Set AEGIS_RUN_WHEEL_SMOKE=1 to run the local wheel CLI smoke.
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_release_distribution.py:484: Set AEGIS_RUN_WHEEL_MCP_SMOKE=1 to run the local wheel MCP smoke.
+======================== 49 passed, 2 skipped in 16.50s ========================

@@ -18,6 +18,7 @@ from jsonschema import ValidationError
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
+from aegis_foundation.resources import packaged_asset_root_path
 from scripts import _aegis_installer
 
 
@@ -30,6 +31,7 @@ AgentName = Literal["claude", "codex", "gemini"]
 AgentList = Annotated[list[AgentName], Field(json_schema_extra={"uniqueItems": True})]
 V1_TOOL_NAMES = (
     "aegis.inspect",
+    "aegis.status",
     "aegis.plan_install",
     "aegis.install",
     "aegis.verify",
@@ -67,6 +69,7 @@ class AegisMCPConfig:
 
     source_root: Path
     default_target_dir: Path
+    asset_origin: str = "source"
 
     @classmethod
     def from_paths(
@@ -77,20 +80,34 @@ class AegisMCPConfig:
     ) -> "AegisMCPConfig":
         """Create normalized server configuration from optional path inputs."""
 
-        resolved_source = Path(
-            source_root or os.environ.get("AEGIS_SOURCE_ROOT") or REPO_ROOT
-        ).expanduser().resolve()
+        env_source_root = os.environ.get("AEGIS_SOURCE_ROOT")
+        configured_source = source_root or env_source_root
+        resolved_source = (
+            Path(configured_source).expanduser().resolve()
+            if configured_source
+            else packaged_asset_root_path()
+        )
+        asset_origin = "source" if configured_source else "package"
         resolved_target = Path(
             default_target_dir
             or os.environ.get("AEGIS_DEFAULT_TARGET_DIR")
-            or resolved_source
+            or "."
         ).expanduser().resolve()
-        return cls(source_root=resolved_source, default_target_dir=resolved_target)
+        return cls(
+            source_root=resolved_source,
+            default_target_dir=resolved_target,
+            asset_origin=asset_origin,
+        )
 
     def to_dict(self) -> dict[str, str]:
         """Return a JSON-friendly representation for diagnostics and tests."""
 
         return {
+            "distribution_name": "aegis-foundation",
+            "asset_origin": self.asset_origin,
+            "foundation_version": _aegis_installer.FOUNDATION_VERSION,
+            "installer_version": _aegis_installer.INSTALLER_VERSION,
+            "schema_version": _aegis_installer.SCHEMA_VERSION,
             "source_root": self.source_root.as_posix(),
             "default_target_dir": self.default_target_dir.as_posix(),
         }
@@ -297,6 +314,19 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         return run_tool(
             "aegis.inspect",
+            read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.status")
+    def aegis_status(target_dir: str) -> dict[str, Any]:
+        """Report installed Aegis release state without mutating the target."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.status(target_dir, source_root=config.source_root)
+
+        return run_tool(
+            "aegis.status",
             read_only=True,
             callback=call_core,
         )
@@ -598,7 +628,6 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
             result={
                 "policy_only_gates": policy_gates,
                 "deferred_tools": [
-                    "aegis.status",
                     "aegis.plan_update",
                     "aegis.update",
                     "aegis.rollback",
