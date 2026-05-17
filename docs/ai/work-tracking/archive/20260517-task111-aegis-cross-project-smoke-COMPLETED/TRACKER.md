@@ -1,7 +1,7 @@
 # Task 111 Aegis Cross-Project Install Smoke Harness and Distribution Readiness Tracker
 
 **Started**: 2026-05-17
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-17
 
 ## Goals
@@ -36,6 +36,9 @@
 - **2026-05-17 14:39** — [S:20260517|W:task111-aegis-cross-project-smoke|H:ci-fix|E:tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py] Fixed the Task 110 MCP contract documentation test to resolve archived work-tracking evidence after Task 110 closeout
 - **2026-05-17 14:39** — [S:20260517|W:task111-aegis-cross-project-smoke|H:pytest|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-ci-contract-docs.txt] Captured targeted CI-fix evidence with `3 passed`
 - **2026-05-17 14:39** — [S:20260517|W:task111-aegis-cross-project-smoke|H:pytest|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-final.txt] Refreshed final focused Aegis evidence including MCP contract documentation checks with `68 passed`
+- **2026-05-17 14:54** — [S:20260517|W:task111-aegis-cross-project-smoke|H:github:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/111] Marked PR #111 ready and merged it into `main`
+- **2026-05-17 14:54** — [S:20260517|W:task111-aegis-cross-project-smoke|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260517-task111-aegis-cross-project-smoke-COMPLETED/TRACKER.md] Archived Task 111 work tracking after PR merge and moved the repository to between-session state
+- **2026-05-17 14:54** — [S:20260517|W:task111-aegis-cross-project-smoke|H:post-archive-verification|E:docs/ai/work-tracking/archive/20260517-task111-aegis-cross-project-smoke-COMPLETED/reports/aegis-cross-project-smoke/work-tracking-audit-2026-05-17-post-archive.txt;docs/ai/work-tracking/archive/20260517-task111-aegis-cross-project-smoke-COMPLETED/reports/aegis-cross-project-smoke/guard-2026-05-17-post-archive.txt;docs/ai/work-tracking/archive/20260517-task111-aegis-cross-project-smoke-COMPLETED/reports/aegis-cross-project-smoke/diff-check-2026-05-17-post-archive.txt] Captured post-archive audit, guard, and diff-check evidence; repository is cleanly between sessions
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
@@ -44,5 +47,5 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: sessions/2026/05/2026-05-17-002-task111-aegis-cross-project-smoke.md
 - Completed subtasks: 111.1, 111.2, 111.3, 111.4, 111.5

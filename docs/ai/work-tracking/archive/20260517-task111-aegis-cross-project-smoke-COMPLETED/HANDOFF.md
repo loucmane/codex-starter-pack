@@ -2,8 +2,9 @@
 
 ## Current State
 - Task 111 is complete on branch `feat/task-111-aegis-cross-project-smoke`.
-- Active plan: `plans/2026-05-17-task111-aegis-cross-project-smoke.md`.
-- Active tracker: `docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/TRACKER.md`.
+- PR #111 status: merged into `main`.
+- Plan: `plans/2026-05-17-task111-aegis-cross-project-smoke.md`.
+- Work-tracking status: archived as `docs/ai/work-tracking/archive/20260517-task111-aegis-cross-project-smoke-COMPLETED/`.
 - Scope matrix: `designs/aegis-cross-project-smoke-matrix.md`.
 - `plan-step-scope` is complete.
 - Taskmaster subtask 111.1 is done.
@@ -24,7 +25,12 @@
 - Final work-tracking audit evidence: `reports/aegis-cross-project-smoke/work-tracking-audit-2026-05-17-final.txt`.
 - Final guard evidence: `reports/aegis-cross-project-smoke/guard-2026-05-17-final.txt`.
 - Final diff-check evidence: `reports/aegis-cross-project-smoke/diff-check-2026-05-17-final.txt`.
+- Post-archive evidence:
+  - `reports/aegis-cross-project-smoke/work-tracking-audit-2026-05-17-post-archive.txt`
+  - `reports/aegis-cross-project-smoke/guard-2026-05-17-post-archive.txt`
+  - `reports/aegis-cross-project-smoke/diff-check-2026-05-17-post-archive.txt`
 
 ## Next Steps
-- PR #111 is open for Task 111; wait for GitHub checks to finish after the CI-fix commit is pushed.
+- Commit and push the post-merge archive cleanup.
 - Next recommended task after merge: Task 112, Aegis Packaging and Invocation Contract.
+- Archived on 2026-05-17 14:53 CEST — Folder moved to archive and tracker marked COMPLETED.

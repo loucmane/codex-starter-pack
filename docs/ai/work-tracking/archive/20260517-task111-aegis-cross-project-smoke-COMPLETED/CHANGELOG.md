@@ -9,3 +9,5 @@
 - 2026-05-17 14:08 CEST — Added distribution-readiness recommendation, captured final focused evidence with `65 passed`, and marked Task 111 done.
 - 2026-05-17 14:09 CEST — Captured final plan sync, Taskmaster health, work-tracking audit, guard, and diff-check evidence for PR readiness.
 - 2026-05-17 14:39 CEST — Fixed PR CI by resolving the Task 110 MCP contract documentation from archive after Task 110 closeout; refreshed targeted evidence with `3 passed` and final focused Aegis evidence with `68 passed`.
+- 2026-05-17 14:54 CEST — Merged PR #111, archived Task 111 work tracking, cleared current session/plan pointers, and captured post-archive evidence.
+- 2026-05-17 14:53 CEST — Archived active work-tracking folder.
