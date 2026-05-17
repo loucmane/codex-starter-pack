@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -12,9 +13,9 @@ CONTRACT = (
     / "ai"
     / "work-tracking"
     / "active"
-    / "20260515-task109-foundation-installer-mcp-ACTIVE"
+    / "20260516-task110-aegis-mcp-installer-server-ACTIVE"
     / "designs"
-    / "aegis-mcp-wrapper-contract.md"
+    / "aegis-mcp-implementation-guide.md"
 )
 
 
@@ -26,24 +27,31 @@ def test_aegis_mcp_contract_uses_aegis_namespace_and_expected_surfaces() -> None
         "aegis.plan_install",
         "aegis.install",
         "aegis.verify",
-        "aegis.status",
-        "aegis.plan_update",
-        "aegis.update",
-        "aegis.rollback",
         "aegis.list_profiles",
         "aegis.explain_profile",
     ):
         assert name in text
 
+    for deferred_name in (
+        "aegis.status",
+        "aegis.plan_update",
+        "aegis.update",
+        "aegis.rollback",
+    ):
+        assert deferred_name in text
+
     for uri in (
+        "aegis://manifest/current",
         "aegis://contract/current",
+        "aegis://schemas/foundation-manifest",
+        "aegis://schemas/profile",
+        "aegis://schemas/install-plan",
         "aegis://profiles",
         "aegis://profiles/{name}",
         "aegis://install-plan/latest",
         "aegis://verification/latest",
         "aegis://limitations",
         "aegis://managed-files",
-        "aegis://project/status",
     ):
         assert uri in text
 
@@ -53,8 +61,6 @@ def test_aegis_mcp_contract_uses_aegis_namespace_and_expected_surfaces() -> None
         "aegis.verify_runtime",
         "aegis.prepare_agent_session",
         "aegis.close_agent_session",
-        "aegis.install_claude_adapter",
-        "aegis.install_codex_adapter",
     ):
         assert prompt in text
 
@@ -66,11 +72,15 @@ def test_aegis_mcp_contract_documents_wrapper_boundary_and_schema_alignment() ->
     text = CONTRACT.read_text(encoding="utf-8")
 
     assert "scripts/_aegis_installer.py" in text
-    assert "not ship a production MCP server" in text
+    assert "scripts/aegis-mcp-server" in text
+    assert "Task 110 ships the first production Aegis MCP server" in text
     assert "must not duplicate installer logic" in text
-    assert "explicit apply semantics" in text
-    assert "V1-backed" in text
-    assert "future/deferred" in text
+    assert "apply=true" in text
+    assert "acknowledge_report_write=true" in text
+    assert "V1-backed tools" in text
+    assert "Deferred tools" in text
+    assert '"ok": false' in text
+    assert '"error": {' in text
 
     for schema_path in (
         "schemas/aegis/foundation-manifest.schema.json",
@@ -79,11 +89,17 @@ def test_aegis_mcp_contract_documents_wrapper_boundary_and_schema_alignment() ->
     ):
         assert schema_path in text
 
-    for follow_up in (
-        "Production Aegis MCP server wrapper",
-        "Expanded profile implementation",
-        "Full rollback checkpoint",
-        "Packaging and distribution",
-        "Cross-agent smoke automation",
-    ):
-        assert follow_up in text
+    assert "Direct stdio MCP smoke test" in text
+    assert "Prompts and memories are continuity aids, not evidence" in text
+
+
+def test_project_mcp_config_includes_aegis_without_removing_existing_servers() -> None:
+    payload = json.loads((REPO_ROOT / ".mcp.json").read_text(encoding="utf-8"))
+    servers = payload["mcpServers"]
+
+    assert {"task-master-ai", "serena", "aegis"} <= set(servers)
+    assert servers["aegis"] == {
+        "type": "stdio",
+        "command": "python3",
+        "args": ["scripts/aegis-mcp-server"],
+    }
