@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+plugins: cov-4.1.0, benchmark-4.0.0, anyio-4.13.0
+collected 60 items
+
+tests/meta_workflow_guard/test_aegis_cross_project_smoke.py .....        [  8%]
+tests/meta_workflow_guard/test_aegis_installer.py ........               [ 21%]
+tests/meta_workflow_guard/test_aegis_installer_fixtures.py ....          [ 28%]
+tests/meta_workflow_guard/test_aegis_mcp_server.py ..................... [ 63%]
+.......                                                                  [ 75%]
+tests/meta_workflow_guard/test_aegis_schemas.py ...............          [100%]
+
+============================== 60 passed in 6.98s ==============================
