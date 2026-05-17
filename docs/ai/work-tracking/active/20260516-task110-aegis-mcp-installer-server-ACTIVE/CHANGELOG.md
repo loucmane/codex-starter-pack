@@ -11,3 +11,4 @@
 - 2026-05-16 18:21 CEST — Completed final Task 110 verification and confirmed Taskmaster Task 110 status `done`.
 - 2026-05-17 12:30 CEST — Started a fresh daily Task 110 continuation session for PR follow-up while reusing the existing task-scoped ACTIVE folder.
 - 2026-05-17 12:32 CEST — Recorded the intentional multi-day ACTIVE folder reuse in tracker, findings, decisions, changelog, and Serena memory before opening the Task 110 PR.
+- 2026-05-17 12:37 CEST — Opened draft PR #110 for Task 110: https://github.com/loucmane/codex-starter-pack/pull/110.

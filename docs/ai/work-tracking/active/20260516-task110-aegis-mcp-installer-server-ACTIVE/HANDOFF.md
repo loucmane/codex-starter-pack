@@ -4,6 +4,7 @@
 - Task 110 has been created, set to `in-progress`, expanded into five subtasks, and scaffolded with session, plan, and active work tracking.
 - Branch: `feat/task-110-aegis-mcp-installer-server`.
 - Current continuation session: `sessions/2026/05/2026-05-17-001-task110-task110-pr.md`.
+- Draft PR: https://github.com/loucmane/codex-starter-pack/pull/110.
 - Active plan: `plans/2026-05-16-task110-aegis-mcp-installer-server.md`.
 - Active tracker: `docs/ai/work-tracking/active/20260516-task110-aegis-mcp-installer-server-ACTIVE/TRACKER.md`.
 - Scope baseline: `designs/aegis-mcp-server-scope.md`.
@@ -25,7 +26,7 @@
 - Taskmaster Task 110 status: `done`.
 
 ## Next Steps
-- Open and merge the Task 110 PR after review.
+- Review and merge the Task 110 PR.
 - Keep the server as a thin wrapper over `scripts/_aegis_installer.py`; do not duplicate installer logic.
 - Preserve Task 109 safety semantics: explicit apply for install, explicit report-write acknowledgement for verify, structured refusals for unsafe inputs.
 - After PR merge, archive the active work-tracking folder in a separate cleanup commit.
