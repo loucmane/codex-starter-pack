@@ -30,8 +30,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Reconcile Task 111 against Tasks 48, 101, 109, and 110, then define the cross-project smoke matrix and safety contract | docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/designs/aegis-cross-project-smoke-matrix.md | completed |
-| plan-step-implement | Add isolated temp-repo CLI and MCP smoke coverage without forking installer semantics | tests/meta_workflow_guard/test_aegis_cross_project_smoke.py; docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store test/guard/audit evidence, update Taskmaster statuses, and recommend the next distribution task | docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Add isolated temp-repo CLI and MCP smoke coverage without forking installer semantics | tests/meta_workflow_guard/test_aegis_cross_project_smoke.py; docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store test/guard/audit evidence, update Taskmaster statuses, and recommend the next distribution task | docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope

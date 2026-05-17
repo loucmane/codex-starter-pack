@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import subprocess
+import asyncio
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
+from aegis_mcp.server import AegisMCPConfig, create_server
 from scripts import _aegis_installer as aegis
 
 
@@ -106,6 +108,26 @@ def _json_cli(args: list[str]) -> dict:
     result = _run_cli(args)
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)
+
+
+def _json_cli_result(args: list[str]) -> tuple[subprocess.CompletedProcess[str], dict]:
+    result = _run_cli(args)
+    assert result.stdout, result.stderr
+    return result, json.loads(result.stdout)
+
+
+def _call_tool_payload(server, name: str, arguments: dict | None = None) -> dict:
+    content, structured_payload = asyncio.run(server.call_tool(name, arguments or {}))
+    assert len(content) == 1
+    payload = json.loads(content[0].text)
+    assert structured_payload == payload
+    return payload
+
+
+def _read_resource_payload(server, uri: str) -> dict:
+    contents = asyncio.run(server.read_resource(uri))
+    assert len(contents) == 1
+    return json.loads(contents[0].content)
 
 
 def _assert_user_files_preserved(target: Path, expected: dict[str, str]) -> None:
@@ -234,3 +256,253 @@ def test_aegis_cli_dry_run_install_does_not_mutate_target(tmp_path: Path) -> Non
     assert not (target / ".aegis").exists()
     assert _snapshot_files(target) == target_before
     _assert_user_files_preserved(target, seeded_files)
+
+
+def test_aegis_mcp_tools_preserve_core_install_and_verify_contract(tmp_path: Path) -> None:
+    target = tmp_path / "mcp-python-library"
+    seeded_files = _seed_python_library_repo(target)
+    source_before = _source_fingerprint()
+    target_before = _snapshot_files(target)
+    server = create_server(AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=target))
+
+    inspect_payload = _call_tool_payload(server, "aegis.inspect", {"target_dir": target.as_posix()})
+    assert inspect_payload["ok"] is True
+    assert inspect_payload["read_only"] is True
+    assert inspect_payload["result"]["aegis"]["installed"] is False
+    assert _snapshot_files(target) == target_before
+
+    plan_payload = _call_tool_payload(
+        server,
+        "aegis.plan_install",
+        {
+            "target_dir": target.as_posix(),
+            "primary_agent": "claude",
+            "agents": ["claude"],
+        },
+    )
+    assert plan_payload["ok"] is True
+    assert plan_payload["read_only"] is True
+    assert plan_payload["result"]["mode"] == "dry_run"
+    assert plan_payload["result"]["apply_confirmed"] is False
+    assert not (target / ".aegis").exists()
+    assert _snapshot_files(target) == target_before
+
+    dry_run_install_payload = _call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": False,
+        },
+    )
+    assert dry_run_install_payload["ok"] is False
+    assert dry_run_install_payload["error"]["code"] == "apply_required"
+    assert dry_run_install_payload["error"]["status"] == "refused"
+    assert not (target / ".aegis").exists()
+
+    install_payload = _call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    assert install_payload["ok"] is True
+    assert install_payload["read_only"] is False
+    assert install_payload["result"]["status"] == "applied"
+
+    verify_without_ack = _call_tool_payload(
+        server,
+        "aegis.verify",
+        {
+            "target_dir": target.as_posix(),
+            "acknowledge_report_write": False,
+        },
+    )
+    assert verify_without_ack["ok"] is False
+    assert verify_without_ack["error"]["code"] == "acknowledgement_required"
+    assert not (target / ".aegis" / "reports" / "verification-report.json").exists()
+
+    verify_payload = _call_tool_payload(
+        server,
+        "aegis.verify",
+        {
+            "target_dir": target.as_posix(),
+            "acknowledge_report_write": True,
+        },
+    )
+    assert verify_payload["ok"] is True
+    assert verify_payload["result"]["status"] == "passed"
+
+    _assert_user_files_preserved(target, seeded_files)
+    _assert_installed_target(target, primary_agent="claude", agents=["claude"])
+
+    manifest_resource = _read_resource_payload(server, "aegis://manifest/current")
+    managed_resource = _read_resource_payload(server, "aegis://managed-files")
+    plan_resource = _read_resource_payload(server, "aegis://install-plan/latest")
+    verification_resource = _read_resource_payload(server, "aegis://verification/latest")
+
+    assert manifest_resource["ok"] is True
+    assert manifest_resource["result"]["payload"]["primary_agent"] == "claude"
+    assert managed_resource["ok"] is True
+    assert any(item["path"] == "CLAUDE.md" for item in managed_resource["result"]["managed_files"])
+    assert plan_resource["ok"] is True
+    assert plan_resource["result"]["mode"] == "dry_run"
+    assert verification_resource["ok"] is True
+    assert verification_resource["result"]["payload"]["status"] == "passed"
+    assert _source_fingerprint() == source_before
+
+
+def test_aegis_mcp_conflict_refusal_preserves_core_report_shape(tmp_path: Path) -> None:
+    mcp_target = tmp_path / "mcp-conflict"
+    core_target = tmp_path / "core-conflict"
+    for target in (mcp_target, core_target):
+        _write_files(target, {"CLAUDE.md": "# Existing Claude instructions\n"})
+
+    server = create_server(AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=mcp_target))
+    mcp_payload = _call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": mcp_target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    core_report = aegis.install(
+        core_target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    assert mcp_payload["ok"] is False
+    assert mcp_payload["error"]["code"] == "install_refused"
+    assert mcp_payload["error"]["status"] == "refused"
+    mcp_report = mcp_payload["error"]["details"]["report"]
+    assert mcp_report["status"] == core_report["status"] == "refused"
+    assert mcp_report["reason"] == core_report["reason"]
+    assert [operation["path"] for operation in mcp_report["unsafe_operations"]] == [
+        operation["path"] for operation in core_report["unsafe_operations"]
+    ]
+    assert "CLAUDE.md" in [operation["path"] for operation in mcp_report["unsafe_operations"]]
+    assert (mcp_target / "CLAUDE.md").read_text(encoding="utf-8") == "# Existing Claude instructions\n"
+    assert (core_target / "CLAUDE.md").read_text(encoding="utf-8") == "# Existing Claude instructions\n"
+    assert not (mcp_target / aegis.AEGIS_MANIFEST_REL).exists()
+    assert not (core_target / aegis.AEGIS_MANIFEST_REL).exists()
+
+
+def test_aegis_cli_refuses_partial_existing_manifest_without_partial_writes(tmp_path: Path) -> None:
+    target = tmp_path / "partial-existing-aegis"
+    _write_files(
+        target,
+        {
+            ".aegis/foundation-manifest.json": '{"foundation_name": "Other Foundation"}\n',
+            "README.md": "# Existing project\n",
+        },
+    )
+    before = _snapshot_files(target)
+
+    result, payload = _json_cli_result(
+        [
+            "aegis",
+            "install",
+            "--target-dir",
+            target.as_posix(),
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+            "--apply",
+        ]
+    )
+
+    assert result.returncode != 0
+    assert "refused unsafe overwrite" in result.stderr
+    assert payload["status"] == "refused"
+    assert any(operation["path"] == aegis.AEGIS_MANIFEST_REL for operation in payload["unsafe_operations"])
+    assert _snapshot_files(target) == before
+    assert not (target / "AGENTS.md").exists()
+    assert not (target / "CLAUDE.md").exists()
+
+
+def test_aegis_cli_verify_missing_required_gate_is_structured_failure(tmp_path: Path) -> None:
+    target = tmp_path / "missing-required-gate"
+    _seed_empty_repo(target)
+    _json_cli(
+        [
+            "aegis",
+            "install",
+            "--target-dir",
+            target.as_posix(),
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+            "--apply",
+        ]
+    )
+    (target / ".claude" / "scripts" / "readiness.sh").unlink()
+
+    result, payload = _json_cli_result(["aegis", "verify", "--target-dir", target.as_posix()])
+
+    assert result.returncode != 0
+    assert "Aegis verification failed" in result.stderr
+    assert payload["status"] == "failed"
+    assert any(
+        check["gate_id"] == "claude.readiness" and check["status"] == "fail"
+        for check in payload["checks"]
+    )
+    assert (target / ".aegis" / "reports" / "verification-report.json").exists()
+
+
+def test_aegis_mcp_failed_apply_uses_core_cleanup_without_deleting_user_files(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "mcp-failed-apply"
+    _write_files(target, {"README.md": "# Keep me\n"})
+    server = create_server(AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=target))
+    original_write_asset = server.aegis_installer._write_asset
+
+    def fail_on_claude_entrypoint(target_root: Path, asset: aegis.Asset) -> None:
+        if asset.path == "CLAUDE.md":
+            raise aegis.AegisError("simulated MCP write failure")
+        original_write_asset(target_root, asset)
+
+    monkeypatch.setattr(server.aegis_installer, "_write_asset", fail_on_claude_entrypoint)
+
+    payload = _call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "install_failed"
+    assert payload["error"]["status"] == "failed"
+    report = payload["error"]["details"]["report"]
+    assert report["status"] == "failed"
+    assert report["cleanup"]["status"] == "completed"
+    assert report["cleanup"]["removed_paths"]
+    assert "simulated MCP write failure" in report["reason"]
+    assert (target / "README.md").read_text(encoding="utf-8") == "# Keep me\n"
+    assert not (target / "AGENTS.md").exists()
+    assert not (target / ".aegis" / "contract.md").exists()
+    assert not (target / aegis.AEGIS_MANIFEST_REL).exists()

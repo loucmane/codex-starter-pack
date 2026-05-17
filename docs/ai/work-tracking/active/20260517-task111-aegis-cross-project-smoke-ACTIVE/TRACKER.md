@@ -7,8 +7,9 @@
 ## Goals
 - [x] Design the Aegis cross-project smoke matrix from Tasks 48, 109, 110, and 101 evidence
 - [x] Add isolated temp-repo CLI smoke coverage for realistic project shapes
-- [ ] Add MCP wrapper equivalence smoke coverage without forking installer semantics
-- [ ] Capture safety, negative-case, final evidence, and distribution-readiness recommendation
+- [x] Add MCP wrapper equivalence smoke coverage without forking installer semantics
+- [x] Capture safety and negative-case smoke evidence
+- [x] Capture final evidence and distribution-readiness recommendation
 
 ## Progress Log
 - **2026-05-17 13:33** — [S:20260517|W:task111-aegis-cross-project-smoke|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-05-17 13:33 CEST`
@@ -20,12 +21,25 @@
 - **2026-05-17 13:44** — [S:20260517|W:task111-aegis-cross-project-smoke|H:task-master:set-status|E:.taskmaster/tasks/task_111.md] Marked subtask 111.1 done after completing scope reconciliation and the cross-project smoke matrix
 - **2026-05-17 13:52** — [S:20260517|W:task111-aegis-cross-project-smoke|H:tests/meta_workflow_guard/test_aegis_cross_project_smoke.py|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-cli-smoke.txt] Added CLI cross-project smoke coverage for empty, Python/library, web/app, and docs-heavy temp target repos; focused Aegis suite passed with `60 passed`
 - **2026-05-17 13:52** — [S:20260517|W:task111-aegis-cross-project-smoke|H:task-master:set-status|E:.taskmaster/tasks/task_111.md] Marked subtask 111.2 done after CLI smoke evidence was captured
+- **2026-05-17 13:57** — [S:20260517|W:task111-aegis-cross-project-smoke|H:tests/meta_workflow_guard/test_aegis_cross_project_smoke.py|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-mcp-equivalence.txt] Added MCP wrapper equivalence smoke coverage for inspect, plan, apply gate, install, verify acknowledgement, resources, and core conflict refusal shape; focused Aegis suite passed with `62 passed`
+- **2026-05-17 13:57** — [S:20260517|W:task111-aegis-cross-project-smoke|H:task-master:set-status|E:.taskmaster/tasks/task_111.md] Marked subtask 111.3 done after MCP equivalence evidence was captured
+- **2026-05-17 14:04** — [S:20260517|W:task111-aegis-cross-project-smoke|H:tests/meta_workflow_guard/test_aegis_cross_project_smoke.py|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-safety-smoke.txt] Added cross-project safety coverage for partial existing manifest refusal, missing required gate verification failure, and MCP failed-apply cleanup; focused Aegis suite passed with `65 passed`
+- **2026-05-17 14:04** — [S:20260517|W:task111-aegis-cross-project-smoke|H:task-master:set-status|E:.taskmaster/tasks/task_111.md] Marked subtask 111.4 done after safety smoke evidence was captured
+- **2026-05-17 14:08** — [S:20260517|W:task111-aegis-cross-project-smoke|H:distribution-readiness|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/designs/distribution-readiness-recommendation.md] Documented the Task 111 distribution-readiness conclusion and recommended Task 112 as the Aegis packaging and invocation contract
+- **2026-05-17 14:08** — [S:20260517|W:task111-aegis-cross-project-smoke|H:pytest|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-final.txt] Captured final focused Aegis smoke evidence with `65 passed`
+- **2026-05-17 14:08** — [S:20260517|W:task111-aegis-cross-project-smoke|H:task-master:set-status|E:.taskmaster/tasks/task_111.md] Marked Taskmaster subtask 111.5 and parent Task 111 done
+- **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/plan-sync-2026-05-17-final.txt] Captured final `codex-task plan sync` evidence
+- **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/taskmaster-health-2026-05-17-final.txt] Captured final Taskmaster full-graph health evidence
+- **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/work-tracking-audit-2026-05-17-final.txt] Captured final work-tracking audit evidence
+- **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/guard-2026-05-17-final.txt] Captured final codex-guard evidence
+- **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/diff-check-2026-05-17-final.txt] Captured final `git diff --check` evidence
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
-- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-implement — Update workflow/guard/docs and capture tests
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
 - Session log: sessions/current
+- Completed subtasks: 111.1, 111.2, 111.3, 111.4, 111.5

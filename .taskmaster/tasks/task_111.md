@@ -2,7 +2,7 @@
 
 **Title:** Aegis Cross-Project Install Smoke Harness and Distribution Readiness
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 101 ✓, 110 ✓
 
@@ -48,8 +48,8 @@ Final acceptance gates: capture evidence under the Task 111 work-tracking report
 
 ### 111.1. Reconcile Task 111 scope and design the Aegis cross-project smoke matrix
 
-**Status:** done  
-**Dependencies:** None  
+**Status:** done
+**Dependencies:** None
 
 Create the Task 111 planning baseline and convert the requested portability scope into an explicit smoke matrix grounded in the current Aegis implementation.
 
@@ -59,8 +59,8 @@ Review and document the existing source-of-truth boundaries: installer semantics
 
 ### 111.2. Implement CLI smoke coverage for isolated target repositories
 
-**Status:** done  
-**Dependencies:** 111.1  
+**Status:** done
+**Dependencies:** 111.1
 
 Add the focused pytest harness that exercises the Aegis CLI against realistic tmp_path repositories outside the source repo.
 
@@ -70,8 +70,8 @@ Create `tests/meta_workflow_guard/test_aegis_cross_project_smoke.py` with local 
 
 ### 111.3. Add MCP wrapper equivalence smoke coverage for the same target shapes
 
-**Status:** pending  
-**Dependencies:** 111.2  
+**Status:** done
+**Dependencies:** 111.2
 
 Exercise the MCP in-process server and a practical stdio smoke path to prove wrapper behavior preserves installer-core results.
 
@@ -81,8 +81,8 @@ Extend the new smoke module with MCP helpers modeled on `call_tool_payload`, `re
 
 ### 111.4. Harden safety and negative-case smoke assertions
 
-**Status:** pending  
-**Dependencies:** 111.3  
+**Status:** done
+**Dependencies:** 111.3
 
 Add explicit dry-run, conflict, acknowledgement, malformed-state, invalid-agent, and failed-apply cleanup cases to the smoke harness.
 
@@ -92,8 +92,8 @@ Expand `test_aegis_cross_project_smoke.py` with safety-focused cases that prove 
 
 ### 111.5. Record evidence, update Taskmaster state, and recommend the next distribution task
 
-**Status:** pending  
-**Dependencies:** 111.4  
+**Status:** done
+**Dependencies:** 111.4
 
 Capture durable Task 111 evidence and close out the work with documentation that supports packaging or broader distribution decisions.
 
