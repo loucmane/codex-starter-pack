@@ -2,21 +2,41 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CONTRACT = (
-    REPO_ROOT
-    / "docs"
-    / "ai"
-    / "work-tracking"
-    / "active"
-    / "20260516-task110-aegis-mcp-installer-server-ACTIVE"
-    / "designs"
-    / "aegis-mcp-implementation-guide.md"
-)
+
+
+def _task110_contract_path() -> Path:
+    candidates = (
+        REPO_ROOT
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20260516-task110-aegis-mcp-installer-server-COMPLETED"
+        / "designs"
+        / "aegis-mcp-implementation-guide.md",
+        REPO_ROOT
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260516-task110-aegis-mcp-installer-server-ACTIVE"
+        / "designs"
+        / "aegis-mcp-implementation-guide.md",
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise AssertionError(
+        "Task 110 Aegis MCP contract doc was not found in archive or active work tracking"
+    )
+
+
+CONTRACT = _task110_contract_path()
 
 
 def test_aegis_mcp_contract_uses_aegis_namespace_and_expected_surfaces() -> None:

@@ -4,13 +4,14 @@ benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=
 rootdir: /home/loucmane/codex
 configfile: pyproject.toml
 plugins: cov-4.1.0, benchmark-4.0.0, anyio-4.13.0
-collected 65 items
+collected 68 items
 
-tests/meta_workflow_guard/test_aegis_cross_project_smoke.py ..........   [ 15%]
-tests/meta_workflow_guard/test_aegis_installer.py ........               [ 27%]
-tests/meta_workflow_guard/test_aegis_installer_fixtures.py ....          [ 33%]
-tests/meta_workflow_guard/test_aegis_mcp_server.py ..................... [ 66%]
-.......                                                                  [ 76%]
+tests/meta_workflow_guard/test_aegis_cross_project_smoke.py ..........   [ 14%]
+tests/meta_workflow_guard/test_aegis_installer.py ........               [ 26%]
+tests/meta_workflow_guard/test_aegis_installer_fixtures.py ....          [ 32%]
+tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py ...            [ 36%]
+tests/meta_workflow_guard/test_aegis_mcp_server.py ..................... [ 67%]
+.......                                                                  [ 77%]
 tests/meta_workflow_guard/test_aegis_schemas.py ...............          [100%]
 
-============================== 65 passed in 5.50s ==============================
+============================== 68 passed in 5.42s ==============================

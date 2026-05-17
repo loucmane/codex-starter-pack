@@ -16,7 +16,8 @@
 - CLI smoke evidence: `reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-cli-smoke.txt` (`60 passed`).
 - MCP equivalence evidence: `reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-mcp-equivalence.txt` (`62 passed`).
 - Safety smoke evidence: `reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-safety-smoke.txt` (`65 passed`).
-- Final smoke evidence: `reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-final.txt` (`65 passed`).
+- Final smoke evidence: `reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-final.txt` (`68 passed`, including MCP contract documentation checks).
+- CI-fix evidence: `reports/aegis-cross-project-smoke/tests-2026-05-17-ci-contract-docs.txt` (`3 passed`).
 - Distribution recommendation: `designs/distribution-readiness-recommendation.md`.
 - Final plan sync evidence: `reports/aegis-cross-project-smoke/plan-sync-2026-05-17-final.txt`.
 - Final Taskmaster health evidence: `reports/aegis-cross-project-smoke/taskmaster-health-2026-05-17-final.txt`.
@@ -25,5 +26,5 @@
 - Final diff-check evidence: `reports/aegis-cross-project-smoke/diff-check-2026-05-17-final.txt`.
 
 ## Next Steps
-- Open a PR for Task 111 after final evidence is committed and pushed.
+- PR #111 is open for Task 111; wait for GitHub checks to finish after the CI-fix commit is pushed.
 - Next recommended task after merge: Task 112, Aegis Packaging and Invocation Contract.

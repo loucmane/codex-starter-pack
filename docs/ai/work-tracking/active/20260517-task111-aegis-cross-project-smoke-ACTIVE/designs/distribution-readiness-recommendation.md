@@ -19,6 +19,7 @@ The new smoke harness verifies the current architecture:
 | `tests-2026-05-17-aegis-cli-smoke.txt` | `60 passed` after adding CLI target-shape smoke coverage. |
 | `tests-2026-05-17-aegis-mcp-equivalence.txt` | `62 passed` after adding MCP equivalence coverage. |
 | `tests-2026-05-17-aegis-safety-smoke.txt` | `65 passed` after adding safety/negative smoke coverage. |
+| `tests-2026-05-17-aegis-final.txt` | `68 passed` after adding the MCP contract documentation check to final focused evidence. |
 
 ## What Is Ready
 

@@ -33,6 +33,9 @@
 - **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/work-tracking-audit-2026-05-17-final.txt] Captured final work-tracking audit evidence
 - **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/guard-2026-05-17-final.txt] Captured final codex-guard evidence
 - **2026-05-17 14:09** — [S:20260517|W:task111-aegis-cross-project-smoke|H:final-verification|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/diff-check-2026-05-17-final.txt] Captured final `git diff --check` evidence
+- **2026-05-17 14:39** — [S:20260517|W:task111-aegis-cross-project-smoke|H:ci-fix|E:tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py] Fixed the Task 110 MCP contract documentation test to resolve archived work-tracking evidence after Task 110 closeout
+- **2026-05-17 14:39** — [S:20260517|W:task111-aegis-cross-project-smoke|H:pytest|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-ci-contract-docs.txt] Captured targeted CI-fix evidence with `3 passed`
+- **2026-05-17 14:39** — [S:20260517|W:task111-aegis-cross-project-smoke|H:pytest|E:docs/ai/work-tracking/active/20260517-task111-aegis-cross-project-smoke-ACTIVE/reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-final.txt] Refreshed final focused Aegis evidence including MCP contract documentation checks with `68 passed`
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

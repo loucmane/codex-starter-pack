@@ -46,3 +46,10 @@
   - `reports/aegis-cross-project-smoke/work-tracking-audit-2026-05-17-final.txt`
   - `reports/aegis-cross-project-smoke/guard-2026-05-17-final.txt`
   - `reports/aegis-cross-project-smoke/diff-check-2026-05-17-final.txt`
+
+## 2026-05-17 CI Contract Documentation Fix
+
+- PR CI caught `tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py` reading the old Task 110 ACTIVE work-tracking path after Task 110 had been archived.
+- Updated the test to resolve `aegis-mcp-implementation-guide.md` from the Task 110 archive first and fall back to ACTIVE only for in-progress contexts.
+- Captured targeted evidence at `reports/aegis-cross-project-smoke/tests-2026-05-17-ci-contract-docs.txt` with `3 passed`.
+- Refreshed final focused Aegis evidence at `reports/aegis-cross-project-smoke/tests-2026-05-17-aegis-final.txt` with `68 passed`.
