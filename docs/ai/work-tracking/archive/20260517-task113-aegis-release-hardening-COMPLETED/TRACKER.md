@@ -1,7 +1,7 @@
 # Task 113 Aegis Release Hardening and Distribution Readiness Tracker
 
 **Started**: 2026-05-17
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-18
 
 ## Goals
@@ -52,6 +52,8 @@
 - **2026-05-18 11:24** — [S:20260518|W:task113-aegis-release-hardening|H:sessions/state.json|E:sessions/state.json] Repointed session state to the Task 113 continuation session
 - **2026-05-18 11:25** — [S:20260518|W:task113-aegis-release-hardening|H:github-pr|E:https://github.com/loucmane/codex-starter-pack/pull/113] PR #113 check set verified green on 2026-05-18 before daily closeout: Python 3.11, Python 3.12, Codex Guard, and Meta Workflow Guard passed.
 - **2026-05-18 11:30** — [S:20260518|W:task113-aegis-release-hardening|H:serena/memory|E:.serena/memories/2026-05-18_task113_pr_closeout.md] Captured Serena closeout memory `2026-05-18_task113_pr_closeout` for the Task 113 PR handoff.
+- **2026-05-18 11:38** — [S:20260518|W:task113-aegis-release-hardening|H:gh/pr|E:https://github.com/loucmane/codex-starter-pack/pull/113] Marked PR #113 ready, merged it into `main`, fast-forwarded local `main`, and deleted local/remote branch `feat/task-113-aegis-release-hardening`.
+- **2026-05-18 11:39** — [S:20260518|W:task113-aegis-release-hardening|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260517-task113-aegis-release-hardening-COMPLETED/] Archived Task 113 work tracking after PR #113 merged.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define release/distribution contract prerequisites and scope
@@ -60,6 +62,6 @@
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
-- Session log: sessions/current
+- Session log: `sessions/2026/05/2026-05-18-001-task113-task113-pr-closeout.md`
 - Completed subtasks: `113.1`, `113.2`, `113.3`, `113.4`, `113.5`, `113.6`, `113.7`, `113.8`.
-- Current status: Taskmaster Task `113` done; active work-tracking remains open until PR merge.
+- Current status: Taskmaster Task `113` done, PR #113 merged, and work-tracking archived.

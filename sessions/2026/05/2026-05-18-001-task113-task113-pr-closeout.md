@@ -35,16 +35,19 @@ Task 113 continuation was created via `python3 scripts/codex-task sessions conti
 - **[11:24]** — [S:20260518|W:task113-aegis-release-hardening|H:github-pr|E:https://github.com/loucmane/codex-starter-pack/pull/113] Verified PR #113 check set is green before closeout: Python 3.11, Python 3.12, Codex Guard, and Meta Workflow Guard passed.
 - **[11:25]** — [S:20260518|W:task113-aegis-release-hardening|H:github-pr|E:https://github.com/loucmane/codex-starter-pack/pull/113] Verified PR #113 check set is green before closeout: Python 3.11, Python 3.12, Codex Guard, and Meta Workflow Guard passed.
 - **[11:30]** — [S:20260518|W:task113-aegis-release-hardening|H:serena/memory|E:.serena/memories/2026-05-18_task113_pr_closeout.md] Captured Serena closeout memory `2026-05-18_task113_pr_closeout` for tomorrow's PR handoff.
+- **[11:38]** — [S:20260518|W:task113-aegis-release-hardening|H:gh/pr|E:https://github.com/loucmane/codex-starter-pack/pull/113] Marked PR #113 ready, merged it into `main`, fast-forwarded local `main`, and deleted the local/remote Task 113 branch.
+- **[11:39]** — [S:20260518|W:task113-aegis-release-hardening|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260517-task113-aegis-release-hardening-COMPLETED/] Archived Task 113 work tracking after PR #113 merged and prepared the repository for between-session state.
 
 ### 🚦 Session End Status
-**SESSION CHECKPOINTED** - Task 113 is complete, PR handoff pending:
+**SESSION COMPLETE** - Task 113 merged and archived:
 - Taskmaster Task 113 and all subtasks are `done`.
-- Branch `feat/task-113-aegis-release-hardening` is pushed.
-- PR #113 is open as a draft: https://github.com/loucmane/codex-starter-pack/pull/113
-- PR #113 checks were verified green before this closeout commit.
-- The active work-tracking folder is intentionally not archived because PR #113 has not merged.
+- PR #113 merged into `main`: https://github.com/loucmane/codex-starter-pack/pull/113
+- Local `main` was fast-forwarded after merge.
+- Local and remote branch `feat/task-113-aegis-release-hardening` were deleted.
+- Work tracking was archived to `docs/ai/work-tracking/archive/20260517-task113-aegis-release-hardening-COMPLETED/`.
+- `sessions/current` and `plans/current` are cleared for between-session state.
 
 ### 📋 Next Session Should
-1. Verify the latest PR #113 checks after this closeout commit.
-2. If checks are green, mark the draft PR ready and merge when appropriate.
-3. After merge, switch to `main`, pull, delete the Task 113 branch, and archive the Task 113 work-tracking folder in a separate follow-up commit.
+1. Start the next task from `main`.
+2. Use the normal kickoff flow to create a fresh session, plan, and ACTIVE work-tracking folder.
+3. Treat Task 113 as complete unless release publication work is explicitly added as a new task.

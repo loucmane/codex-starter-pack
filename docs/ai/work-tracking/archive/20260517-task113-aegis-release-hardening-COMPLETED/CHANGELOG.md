@@ -12,3 +12,4 @@
 - 2026-05-17 20:07 CEST — Added CI install templates, release verification matrix, package evidence, and started final 113.8 regression/handoff work.
 - 2026-05-17 22:18 CEST — Captured final Aegis regression and workflow-gate evidence, marked Taskmaster Task 113 done, and prepared branch for PR.
 - 2026-05-18 11:30 CEST — Started a May 18 continuation session for Task 113 PR closeout, recorded PR #113 green-check handoff, and kept the ACTIVE folder open until merge.
+- 2026-05-18 11:38 CEST — Archived active work-tracking folder.
