@@ -2,7 +2,7 @@
 
 This document describes release-oriented install and invocation paths for Aegis Foundation. The development checkout and editable package modes in `docs/aegis/invocation-contract.md` remain supported.
 
-Release lifecycle policy lives in `docs/aegis/release-policy.md`; operational upgrade, downgrade, and rollback flow lives in `docs/aegis/update-rollback.md`; reusable CI snippets and release matrix live in `docs/aegis/ci-install-templates.md` and `docs/aegis/release-verification-matrix.md`.
+Release lifecycle policy lives in `docs/aegis/release-policy.md`; operational upgrade, downgrade, and rollback flow lives in `docs/aegis/update-rollback.md`; reusable CI snippets and release matrix live in `docs/aegis/ci-install-templates.md` and `docs/aegis/release-verification-matrix.md`; MCP client setup for Codex, Claude, and generic stdio clients lives in `docs/aegis/mcp-client-setup.md`.
 
 ## Package Identity
 
