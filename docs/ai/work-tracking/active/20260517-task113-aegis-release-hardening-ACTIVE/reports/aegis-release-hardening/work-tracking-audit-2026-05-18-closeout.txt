@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260517-task113-aegis-release-hardening-ACTIVE has prefix 20260517; today's prefix is 20260518 (ensure multi-day reuse is intentional)
