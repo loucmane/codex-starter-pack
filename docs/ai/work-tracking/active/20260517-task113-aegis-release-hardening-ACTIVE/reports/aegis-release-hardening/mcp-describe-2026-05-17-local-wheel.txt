@@ -1,0 +1,10 @@
+Installed 35 packages in 50ms
+{
+  "asset_origin": "package",
+  "default_target_dir": "/tmp/aegis-release-hardening-mcp-target",
+  "distribution_name": "aegis-foundation",
+  "foundation_version": "0.1.0",
+  "installer_version": "0.1.0",
+  "schema_version": "1.0.0",
+  "source_root": "/home/loucmane/.cache/uv/archive-v0/zf059E2bsmDED2VGNMFqu/lib/python3.12/site-packages/aegis_foundation/assets"
+}

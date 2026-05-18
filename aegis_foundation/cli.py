@@ -8,12 +8,15 @@ share the same deterministic installer behavior.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
 import os
 import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from aegis_foundation.resources import packaged_asset_root
+from aegis_foundation.version import __version__
 from scripts import _aegis_installer
 
 
@@ -41,15 +44,18 @@ def _looks_like_source_root(path: Path) -> bool:
     )
 
 
-def _resolve_source_root(explicit_source_root: str | None) -> Path:
+@contextmanager
+def _resolve_source_root(explicit_source_root: str | None):
     for candidate in _candidate_source_roots(explicit_source_root):
         source_root = candidate.expanduser().resolve()
         if _looks_like_source_root(source_root):
-            return source_root
-    raise _aegis_installer.AegisError(
-        "Unable to resolve Aegis source assets. Use --source-root or AEGIS_SOURCE_ROOT "
-        "with a local Aegis checkout; bundled wheel assets are deferred to release hardening."
-    )
+            yield source_root
+            return
+    with packaged_asset_root() as source_root:
+        if _looks_like_source_root(source_root):
+            yield source_root
+            return
+    raise _aegis_installer.AegisError("Unable to resolve Aegis source or packaged assets.")
 
 
 def _agents_from_args(args: argparse.Namespace) -> list[str]:
@@ -63,26 +69,38 @@ def handle_inspect(args: argparse.Namespace) -> int:
 
 
 def handle_plan_install(args: argparse.Namespace) -> int:
-    payload = _aegis_installer.plan_install(
-        args.target_dir,
-        source_root=_resolve_source_root(args.source_root),
-        profile=args.profile,
-        primary_agent=args.primary_agent,
-        agents=_agents_from_args(args),
-    )
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.plan_install(
+            args.target_dir,
+            source_root=source_root,
+            profile=args.profile,
+            primary_agent=args.primary_agent,
+            agents=_agents_from_args(args),
+        )
+    _dump_json(payload)
+    return 0
+
+
+def handle_status(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.status(
+            args.target_dir,
+            source_root=source_root,
+        )
     _dump_json(payload)
     return 0
 
 
 def handle_install(args: argparse.Namespace) -> int:
-    payload = _aegis_installer.install(
-        args.target_dir,
-        source_root=_resolve_source_root(args.source_root),
-        profile=args.profile,
-        primary_agent=args.primary_agent,
-        agents=_agents_from_args(args),
-        apply=args.apply,
-    )
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.install(
+            args.target_dir,
+            source_root=source_root,
+            profile=args.profile,
+            primary_agent=args.primary_agent,
+            agents=_agents_from_args(args),
+            apply=args.apply,
+        )
     _dump_json(payload)
     if payload.get("status") == "refused":
         print("Aegis install refused unsafe overwrite or manual-review operations", file=sys.stderr)
@@ -94,10 +112,11 @@ def handle_install(args: argparse.Namespace) -> int:
 
 
 def handle_verify(args: argparse.Namespace) -> int:
-    payload = _aegis_installer.verify(
-        args.target_dir,
-        source_root=_resolve_source_root(args.source_root),
-    )
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.verify(
+            args.target_dir,
+            source_root=source_root,
+        )
     _dump_json(payload)
     if payload.get("status") == "failed":
         print("Aegis verification failed", file=sys.stderr)
@@ -106,27 +125,37 @@ def handle_verify(args: argparse.Namespace) -> int:
 
 
 def handle_list_profiles(args: argparse.Namespace) -> int:
-    payload = _aegis_installer.list_profiles(source_root=_resolve_source_root(args.source_root))
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.list_profiles(source_root=source_root)
     _dump_json(payload)
     return 0
 
 
 def handle_explain_profile(args: argparse.Namespace) -> int:
-    payload = _aegis_installer.explain_profile(
-        args.profile,
-        source_root=_resolve_source_root(args.source_root),
-    )
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.explain_profile(
+            args.profile,
+            source_root=source_root,
+        )
     _dump_json(payload)
     return 0
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run Aegis Foundation CLI operations.")
+    parser = argparse.ArgumentParser(
+        prog="aegis",
+        description="Run Aegis Foundation CLI operations.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
     parser.add_argument(
         "--source-root",
         help=(
             "Path to the local Aegis source checkout. Defaults to AEGIS_SOURCE_ROOT or "
-            "the editable-install source root."
+            "the editable-install source root, then packaged Aegis assets."
         ),
     )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
@@ -159,6 +188,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Enable an agent adapter; repeat for multi-agent installs.",
     )
     plan_install_parser.set_defaults(func=handle_plan_install)
+
+    status_parser = subparsers.add_parser(
+        "status",
+        help="Report installed Aegis release state without mutating the target.",
+    )
+    status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    status_parser.set_defaults(func=handle_status)
 
     install_parser = subparsers.add_parser(
         "install",

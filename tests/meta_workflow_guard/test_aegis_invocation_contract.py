@@ -13,6 +13,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 from aegis_mcp.server import PROMPT_NAMES, RESOURCE_URIS, V1_TOOL_NAMES
+from aegis_foundation import DISTRIBUTION_NAME, FOUNDATION_VERSION, INSTALLER_VERSION, SCHEMA_VERSION
 from scripts import _aegis_installer as aegis
 
 
@@ -240,6 +241,7 @@ def test_invocation_contract_documents_local_checkout_adoption_commands() -> Non
     required_snippets = [
         "python3 /path/to/codex/scripts/codex-task aegis inspect --target-dir .",
         "python3 /path/to/codex/scripts/codex-task aegis plan-install --target-dir . --primary-agent claude --agent claude",
+        "python3 /path/to/codex/scripts/codex-task aegis status --target-dir .",
         "python3 /path/to/codex/scripts/codex-task aegis install --target-dir . --primary-agent claude --agent claude --apply",
         "python3 /path/to/codex/scripts/codex-task aegis verify --target-dir .",
         "python3 /path/to/codex/scripts/aegis-mcp-server",
@@ -324,6 +326,7 @@ def test_invocation_contract_documents_editable_package_style_commands() -> None
         "python3 -m venv .venv-aegis",
         ".venv-aegis/bin/python -m pip install -e /path/to/codex",
         "aegis inspect --target-dir .",
+        "aegis status --target-dir .",
         "aegis plan-install --target-dir . --primary-agent claude --agent claude",
         "aegis install --target-dir . --primary-agent claude --agent claude --apply",
         "aegis verify --target-dir .",
@@ -350,10 +353,17 @@ def test_local_checkout_mcp_describe_config_works_from_external_cwd(tmp_path: Pa
     )
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "distribution_name": DISTRIBUTION_NAME,
+        "asset_origin": "source",
+        "foundation_version": FOUNDATION_VERSION,
+        "installer_version": INSTALLER_VERSION,
+        "schema_version": SCHEMA_VERSION,
         "source_root": REPO_ROOT.as_posix(),
         "default_target_dir": target.resolve().as_posix(),
     }
+    assert (Path(payload["source_root"]) / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
 
 
 def test_editable_package_mcp_describe_config_works_from_external_cwd(tmp_path: Path) -> None:
@@ -373,10 +383,17 @@ def test_editable_package_mcp_describe_config_works_from_external_cwd(tmp_path: 
     )
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {
-        "source_root": REPO_ROOT.as_posix(),
+    payload = json.loads(result.stdout)
+    assert payload == {
+        "distribution_name": DISTRIBUTION_NAME,
+        "asset_origin": "package",
+        "foundation_version": FOUNDATION_VERSION,
+        "installer_version": INSTALLER_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "source_root": (REPO_ROOT / "aegis_foundation" / "assets").as_posix(),
         "default_target_dir": target.resolve().as_posix(),
     }
+    assert (Path(payload["source_root"]) / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
 
 
 def test_local_checkout_stdio_mcp_lists_aegis_surfaces_from_external_cwd(tmp_path: Path) -> None:
@@ -401,6 +418,7 @@ def test_invocation_contract_documents_external_mcp_startup_commands() -> None:
         "aegis-mcp-server --default-target-dir .",
         "aegis.install",
         "apply=true",
+        "aegis.status",
         "aegis.verify",
         "acknowledge_report_write=true",
     ]

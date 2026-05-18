@@ -1,0 +1,268 @@
+{
+  "schema": "agent-compatibility-matrix.v1",
+  "version": "1.0.0",
+  "updated": "2026-05-11",
+  "description": "Canonical compatibility matrix for agents and profiles consuming the portable Codex foundation.",
+  "contract": {
+    "id": "portable-agent-runtime",
+    "current_version": "portable-agent-runtime.v1",
+    "minimum_version": "portable-agent-runtime.v1",
+    "negotiation": "Agents declare supported contract_versions. The current version is required for supported and canary agents; planned agents must declare their target version before rollout."
+  },
+  "support_levels": [
+    "native",
+    "gated",
+    "documented",
+    "planned",
+    "policy-only",
+    "unsupported",
+    "not-applicable"
+  ],
+  "features": [
+    {
+      "id": "task_scoped_workflow",
+      "title": "Task-scoped workflow lifecycle",
+      "description": "Taskmaster task, feature branch, current session, current plan, and one active work-tracking folder are aligned before persistent work."
+    },
+    {
+      "id": "guard_validation",
+      "title": "Guard and audit validation",
+      "description": "Agent can run or is governed by codex-guard, plan sync, work-tracking audit, Taskmaster health, and diff-check evidence."
+    },
+    {
+      "id": "pre_mutation_gate",
+      "title": "Pre-mutation gate",
+      "description": "Hookable persistent mutations are refused before workflow state is ready."
+    },
+    {
+      "id": "protected_path_boundaries",
+      "title": "Protected path ownership boundaries",
+      "description": "Agent-specific ownership boundaries are enforced or documented so agents do not mutate paths owned by another runtime."
+    },
+    {
+      "id": "bash_write_surface_control",
+      "title": "Bash write-surface control",
+      "description": "Known Bash write bypasses are blocked mechanically or explicitly treated as policy-only limitations."
+    },
+    {
+      "id": "mcp_tool_routing",
+      "title": "MCP tool routing and mutation classification",
+      "description": "MCP tools are classified as read-only, mutating, or unknown and routed through the correct workflow gate."
+    },
+    {
+      "id": "git_github_execution",
+      "title": "Git and GitHub execution",
+      "description": "Agent can commit, push, and operate GitHub only inside the task workflow and with current authentication/cache assumptions."
+    },
+    {
+      "id": "memory_continuity",
+      "title": "Memory as continuity, not evidence",
+      "description": "Serena or agent-private memory is used only after workflow scaffolding and never replaces tracked evidence."
+    },
+    {
+      "id": "portable_project_adoption",
+      "title": "Portable project adoption",
+      "description": "Agent can be adopted in another project through configured roots, documented entrypoints, and compatibility validation."
+    },
+    {
+      "id": "compatibility_metrics",
+      "title": "Compatibility metrics",
+      "description": "Compatibility coverage can be summarized from tracked matrix data."
+    }
+  ],
+  "agents": [
+    {
+      "id": "codex",
+      "title": "Codex Deep Work Agent",
+      "status": "supported",
+      "entrypoint": "CODEX.md",
+      "contract_versions": [
+        "portable-agent-runtime.v1"
+      ],
+      "owned_paths": [
+        "CODEX.md",
+        "templates/**",
+        "scripts/codex-*",
+        "scripts/template-*",
+        ".codex/**"
+      ],
+      "config_paths": [
+        "AGENTS.md",
+        "CODEX.md",
+        ".codex/config.toml"
+      ],
+      "capabilities": {
+        "task_scoped_workflow": "native",
+        "guard_validation": "native",
+        "pre_mutation_gate": "documented",
+        "protected_path_boundaries": "documented",
+        "bash_write_surface_control": "documented",
+        "mcp_tool_routing": "native",
+        "git_github_execution": "native",
+        "memory_continuity": "native",
+        "portable_project_adoption": "native",
+        "compatibility_metrics": "native"
+      },
+      "required_gates": [
+        "python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking audit",
+        "python3 scripts/codex-task taskmaster health",
+        "python3 scripts/codex-guard validate --include-untracked",
+        "git diff --check"
+      ],
+      "fallbacks": [
+        {
+          "when": "Git SSH/GPG cache is unavailable",
+          "strategy": "Run the configured cache reload flow, then retry Git/GitHub operation; only fall back to user-run commands when authentication remains unavailable."
+        },
+        {
+          "when": "Scope overlaps another agent runtime",
+          "strategy": "Record the boundary in DECISIONS.md and prefer a Codex-led shared change over ad hoc cross-agent mutation."
+        }
+      ],
+      "transformations": [
+        {
+          "id": "taskmaster-generated-file-refresh",
+          "description": "Use `python3 scripts/codex-task taskmaster generate-one --id <id>` for targeted Taskmaster generated-file updates."
+        }
+      ],
+      "evidence_paths": [
+        "CODEX.md",
+        "AGENTS.md",
+        "templates/engine/core/portable-foundation-spec.md"
+      ]
+    },
+    {
+      "id": "claude",
+      "title": "Claude Runtime Adapter",
+      "status": "supported",
+      "entrypoint": "CLAUDE.md",
+      "contract_versions": [
+        "portable-agent-runtime.v1"
+      ],
+      "owned_paths": [
+        "CLAUDE.md",
+        ".claude/**",
+        "tests/claude_adapter/**"
+      ],
+      "config_paths": [
+        "CLAUDE.md",
+        ".claude/AGENTS.md",
+        ".claude/engine/runtime-contract.md",
+        ".claude/settings.json"
+      ],
+      "capabilities": {
+        "task_scoped_workflow": "gated",
+        "guard_validation": "gated",
+        "pre_mutation_gate": "gated",
+        "protected_path_boundaries": "gated",
+        "bash_write_surface_control": "gated",
+        "mcp_tool_routing": "gated",
+        "git_github_execution": "gated",
+        "memory_continuity": "gated",
+        "portable_project_adoption": "documented",
+        "compatibility_metrics": "native"
+      },
+      "required_gates": [
+        "bash .claude/scripts/readiness.sh --quick",
+        ".claude/scripts/pretooluse-gate.sh",
+        ".claude/scripts/codex-path-guard.sh",
+        ".claude/scripts/bash-command-guard.sh",
+        ".claude/scripts/handoff-nudge.sh",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/claude_adapter"
+      ],
+      "fallbacks": [
+        {
+          "when": "Readiness is BLOCKED",
+          "strategy": "Stop all hookable persistent mutation and run the kickoff or repair workflow before continuing."
+        },
+        {
+          "when": "A needed change touches Codex-owned paths",
+          "strategy": "Defer to a Codex-led shared change and record the boundary in DECISIONS.md."
+        },
+        {
+          "when": "A tool surface is not hookable",
+          "strategy": "Label it policy-only in the active task evidence and never count it as enforcement evidence."
+        }
+      ],
+      "transformations": [
+        {
+          "id": "slash-command-wrapper",
+          "description": "Claude slash commands wrap `codex-task` and `codex-guard` helper commands instead of inventing parallel workflow commands."
+        },
+        {
+          "id": "pretooluse-payload-classification",
+          "description": "Claude hook payloads are classified as read-only, mutating, protected-path, or unknown before allowing the tool call."
+        }
+      ],
+      "evidence_paths": [
+        "CLAUDE.md",
+        ".claude/AGENTS.md",
+        ".claude/engine/runtime-contract.md",
+        "tests/claude_adapter"
+      ]
+    },
+    {
+      "id": "generic-agent",
+      "title": "Future Agent/Profile Adapter",
+      "status": "planned",
+      "entrypoint": "templates/integration/guides/adding-agents.md",
+      "contract_versions": [
+        "portable-agent-runtime.v1"
+      ],
+      "owned_paths": [],
+      "config_paths": [
+        "templates/integration/guides/adding-agents.md",
+        "templates/registry/agent-compatibility-matrix.json"
+      ],
+      "capabilities": {
+        "task_scoped_workflow": "planned",
+        "guard_validation": "planned",
+        "pre_mutation_gate": "planned",
+        "protected_path_boundaries": "planned",
+        "bash_write_surface_control": "planned",
+        "mcp_tool_routing": "planned",
+        "git_github_execution": "planned",
+        "memory_continuity": "planned",
+        "portable_project_adoption": "planned",
+        "compatibility_metrics": "native"
+      },
+      "required_gates": [
+        "python3 scripts/codex-task agent compatibility-report --strict",
+        "python3 scripts/codex-task rollout canary-plan",
+        "python3 scripts/codex-guard validate --include-untracked"
+      ],
+      "fallbacks": [
+        {
+          "when": "Agent has no adapter contract",
+          "strategy": "Treat the agent as read-only until it has an entrypoint, owned paths, mutation taxonomy, and compatibility matrix entry."
+        },
+        {
+          "when": "Hookability is unknown",
+          "strategy": "Run an isolated smoke test before any real project mutation and label unhookable surfaces policy-only."
+        }
+      ],
+      "transformations": [
+        {
+          "id": "entrypoint-contract",
+          "description": "Map the agent's native instructions, tools, and memory model into the portable task/session/plan/work-tracking lifecycle before enabling writes."
+        }
+      ],
+      "evidence_paths": [
+        "templates/integration/guides/adding-agents.md",
+        "templates/engine/core/portable-foundation-spec.md"
+      ]
+    }
+  ],
+  "validation_commands": [
+    "python3 scripts/codex-task agent compatibility-report --strict",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_codex_task.py",
+    "python3 scripts/codex-guard validate --include-untracked"
+  ],
+  "non_goals": [
+    "No MCP installer is implemented by the matrix.",
+    "No live negotiation service is started.",
+    "No agent-specific file transformation is executed by validation.",
+    "No template path compatibility mapping is duplicated."
+  ]
+}

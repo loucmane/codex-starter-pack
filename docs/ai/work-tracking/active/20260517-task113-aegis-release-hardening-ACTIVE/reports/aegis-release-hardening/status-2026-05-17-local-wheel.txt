@@ -1,0 +1,20 @@
+Installed 35 packages in 40ms
+{
+  "checks": [],
+  "current": {
+    "foundation_version": "0.1.0",
+    "installer_version": "0.1.0",
+    "schema_version": "1.0.0"
+  },
+  "installed": false,
+  "installed_versions": null,
+  "manifest_path": ".aegis/foundation-manifest.json",
+  "migration_required": false,
+  "read_only": true,
+  "recommended_actions": [
+    "Run aegis plan-install before applying Aegis to this target."
+  ],
+  "schema_version": "1.0.0",
+  "status": "not_installed",
+  "target_root": "/tmp/aegis-release-hardening-status-target"
+}

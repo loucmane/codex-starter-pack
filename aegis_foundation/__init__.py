@@ -1,5 +1,21 @@
-"""Package-style entrypoints for Aegis Foundation."""
+"""Package-style entrypoints and metadata for Aegis Foundation."""
 
-__all__ = ["__version__"]
+from .version import (
+    DISTRIBUTION_NAME,
+    FOUNDATION_NAME,
+    FOUNDATION_VERSION,
+    INSTALLER_VERSION,
+    PACKAGE_VERSION,
+    SCHEMA_VERSION,
+    __version__,
+)
 
-__version__ = "0.1.0"
+__all__ = [
+    "DISTRIBUTION_NAME",
+    "FOUNDATION_NAME",
+    "FOUNDATION_VERSION",
+    "INSTALLER_VERSION",
+    "PACKAGE_VERSION",
+    "SCHEMA_VERSION",
+    "__version__",
+]

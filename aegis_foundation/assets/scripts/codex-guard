@@ -1,0 +1,2291 @@
+#!/usr/bin/env python3
+"""Codex diff-aware guard for S:W:H:E validation and workflow enforcement."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from datetime import datetime
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Set
+
+import yaml
+from jsonschema import Draft202012Validator, SchemaError
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+from _repo_structure import load_repo_structure
+
+REPO_STRUCTURE = load_repo_structure(REPO_ROOT)
+SESSIONS_PREFIX = REPO_STRUCTURE.sessions_root.relative_to(REPO_ROOT)
+WORK_TRACKING_PREFIX = REPO_STRUCTURE.work_tracking_active_root
+WORK_TRACKING_RELATIVE = WORK_TRACKING_PREFIX.relative_to(REPO_ROOT)
+WORK_TRACKING_ARCHIVE_RELATIVE = REPO_STRUCTURE.work_tracking_archive_root.relative_to(REPO_ROOT)
+GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
+SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
+PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
+PLACEHOLDER_HANDLERS_LOWER = {value.lower() for value in PLACEHOLDER_HANDLERS}
+LEGACY_MONOLITH_TOKENS = {
+    "workflows.md": "Replace legacy WORKFLOWS.md references with modular templates/workflows/* documents",
+    "patterns.md": "Use templates/patterns/* modules instead of PATTERNS.md",
+    "building-better.md": "Point to templates/integration/guides/* instead of BUILDING-BETTER.md",
+}
+LEGACY_MONOLITH_PATTERNS = {
+    token: re.compile(rf"(?<![a-z0-9_-]){re.escape(token)}(?![a-z0-9_-])", re.IGNORECASE)
+    for token in LEGACY_MONOLITH_TOKENS
+}
+META_WORKFLOW_FILES = {
+    "templates/workflows/processes/meta-workflow-authoring.md",
+    "templates/handlers/orchestrators/meta-workflow-authoring.md",
+    "templates/patterns/integration/workflow-gap-detection.md",
+}
+SESSION_TIMESTAMP_PATTERN = re.compile(r"\*\*\[(\d{2}):(\d{2})\]\*\*")
+TRACKER_TIMESTAMP_PATTERN = re.compile(r"- \*\*(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})\*\*")
+DATE_COMMAND_PATTERN = re.compile(r"E:cmd`[^`]*date[^`]*`")
+CHANGELOG_ROW_PATTERN = re.compile(r"^\|\s*(\d{4}-\d{2}-\d{2})\s*\|", re.MULTILINE)
+TODAY_ISO = datetime.now().date().isoformat()
+IGNORE_PATH_PREFIXES = tuple(
+    prefix for prefix in os.environ.get("CODEX_GUARD_IGNORE_PATHS", "").split(":") if prefix
+)
+
+LAST_UPDATED_PATTERN = re.compile(r"\*\*Last Updated\*\*: (\d{4}-\d{2}-\d{2})")
+
+SERENA_MEMORY_PATTERN = re.compile(r"serena/memory|memories/\d{4}-\d{2}-\d{2}_", re.IGNORECASE)
+TASKMASTER_TASKS_REL = REPO_STRUCTURE.taskmaster_tasks_dir.relative_to(REPO_ROOT).as_posix()
+TASKMASTER_TASKS_JSON_REL = REPO_STRUCTURE.taskmaster_tasks_json.relative_to(REPO_ROOT).as_posix()
+TASKMASTER_ACTIVITY_PATTERN = re.compile(
+    rf"task-master(?::|`|\b)|{re.escape(TASKMASTER_TASKS_REL)}/(tasks\.json|task_\d+\.txt)",
+    re.IGNORECASE,
+)
+MULTILINE_GAC_PATTERN = re.compile(r'gac "[^\n"]*\n.*?Work tracking: .*?"', re.DOTALL)
+WORK_TRACKING_REQUIRED_DOCS = (
+    "FINDINGS.md",
+    "DECISIONS.md",
+    "CHANGELOG.md",
+)
+WORK_TRACKING_ARCHIVE_BASE = REPO_STRUCTURE.work_tracking_archive_root
+SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
+SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
+PLAN_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
+CONTINUATION_GUARD_REL = REPO_STRUCTURE.continuation_guard_dir.relative_to(REPO_ROOT).as_posix()
+GAC_RESPONSE_MODE_DOCS = {
+    Path("templates/BEHAVIORS.md"),
+    Path("templates/CONVENTIONS.md"),
+    Path("templates/MATRICES.md"),
+    Path("templates/REGISTRY.md"),
+    Path("templates/TOOLS.md"),
+    Path("templates/behaviors/index.md"),
+    Path("templates/conventions/git/commit-format.md"),
+    Path("templates/behaviors/git/before-commit.md"),
+    Path("templates/behaviors/session/session-end.md"),
+    Path("templates/engine/enforcement/behavioral-hooks.md"),
+    Path("templates/engine/enforcement/cannot-proceed.md"),
+    Path("templates/handlers/operators/git/create-commit-message.md"),
+    Path("templates/matrices/mapping/trigger-to-action.md"),
+    Path("templates/shared/tools/tool-selection-matrix.md"),
+    Path("templates/tools/git/commands.md"),
+    Path("templates/workflows/session/lifecycle.md"),
+}
+GAC_SUMMARY_DOCS = {
+    Path("templates/conventions/git/commit-format.md"),
+    Path("templates/behaviors/git/before-commit.md"),
+    Path("templates/behaviors/session/session-end.md"),
+    Path("templates/BEHAVIORS.md"),
+}
+GAC_REQUIRED_RESPONSE_MARKERS = (
+    "direct-git-execution",
+    "full-gac-command",
+    "message-payload-only",
+    "auth-refresh-required",
+)
+GAC_STALE_DEFAULT_PATTERNS = (
+    re.compile(r"all commits must use the `?gac`? alias", re.IGNORECASE),
+    re.compile(r"use `?gac`? for commits", re.IGNORECASE),
+    re.compile(r"`?gac`? is executed manually by the developer", re.IGNORECASE),
+    re.compile(r"manual git commands instead of `?gac`?", re.IGNORECASE),
+    re.compile(r"git operations\s*\(`?gac`?\)", re.IGNORECASE),
+    re.compile(r"`?gac`? format enforcement", re.IGNORECASE),
+    re.compile(r"using `?gac`? alias\s*\(git add -A && commit\)", re.IGNORECASE),
+    re.compile(r"quick commit\s*\|\s*`?gac", re.IGNORECASE),
+    re.compile(r"commit\s*\|\s*changes\s*\|\s*`?gac", re.IGNORECASE),
+    re.compile(r"`?gac`?\s*-\s*git add all and commit", re.IGNORECASE),
+)
+DRIFT_REQUIRED_GUARD_COMMANDS = {"validate", "drift-check"}
+SUPPORTED_FIX_KINDS = {"tracker-last-updated"}
+DEFAULT_FIX_HISTORY = "reports/guard-fixes/history.jsonl"
+
+
+def should_ignore_relative(relative: Path) -> bool:
+    if not IGNORE_PATH_PREFIXES:
+        return False
+    rel = relative.as_posix()
+    return any(rel.startswith(prefix) for prefix in IGNORE_PATH_PREFIXES)
+
+DATE_PREFIX_EXPECTED = TODAY_ISO.replace('-', '')
+
+
+CURRENT_SESSION_SYMLINK = REPO_STRUCTURE.current_session_link
+try:
+    CURRENT_SESSION_PATH = CURRENT_SESSION_SYMLINK.resolve()
+except FileNotFoundError:
+    CURRENT_SESSION_PATH = None
+except RuntimeError:
+    CURRENT_SESSION_PATH = None
+SESSION_STATE_PATH = REPO_STRUCTURE.session_state_path
+
+
+
+PLAN_CURRENT = REPO_STRUCTURE.current_plan_link
+PLAN_REQUIRED_STEPS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
+EMERGENCY_PATTERN = re.compile(r"\*\*Emergency Bypass\*\*:\s*(true|false)", re.IGNORECASE)
+PLAN_STATE_DIR = REPO_STRUCTURE.plan_state_dir
+PLAN_SYNC_LOG = REPO_STRUCTURE.plan_sync_log
+CONTINUATION_GUARD_DIR = REPO_STRUCTURE.continuation_guard_dir
+SESSIONS_DIR = REPO_STRUCTURE.sessions_root
+PLAN_STATUS_COMPLETE = {"completed", "done"}
+PLAN_STATUS_INCOMPLETE = {"pending", "in_progress", "todo"}
+PLAN_STATUS_PASSIVE = {"not-needed", "n/a", "optional"}
+TASK_IDS_PATTERN = re.compile(r"\*\*Task IDs\*\*:\s*(.+)")
+BRANCH_POLICY_PATTERN = re.compile(r"\*\*Branch Policy\*\*:\s*(.+)")
+TEMPLATE_METADATA_POLICY_PATH = Path(
+    os.environ.get(
+        "CODEX_TEMPLATE_METADATA_POLICY_PATH",
+        REPO_STRUCTURE.template_metadata_policy_path,
+    )
+)
+
+
+def _session_state_current_value() -> object:
+    try:
+        state = json.loads(SESSION_STATE_PATH.read_text(encoding='utf-8'))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return object()
+    return state.get('current')
+
+
+def _has_active_work_tracking_folder() -> bool:
+    try:
+        return any(
+            path.is_dir() and path.name.endswith('-ACTIVE')
+            for path in WORK_TRACKING_PREFIX.iterdir()
+        )
+    except FileNotFoundError:
+        return False
+
+
+def is_between_sessions_state() -> bool:
+    """Return true when session-end cleanup has intentionally cleared active pointers."""
+    current_value = _session_state_current_value()
+    if current_value not in {None, ''}:
+        return False
+    if CURRENT_SESSION_SYMLINK.exists():
+        return False
+    if _has_active_work_tracking_folder():
+        return False
+    return True
+
+
+@dataclass
+class PlanDetails:
+    steps: Dict[str, Dict[str, str]]
+    scope: List[str]
+    emergency_bypass: bool
+    task_ids: List[str]
+    branch_policy: Optional[str]
+    text: str
+
+
+@dataclass
+class TemplateMetadataRule:
+    name: str
+    include: List[str]
+    exclude: List[str]
+    required_keys: List[str]
+    frontmatter: str
+    enforce: bool
+    schema_path: Optional[str]
+
+@dataclass
+class ValidationIssue:
+    path: Path
+    message: str
+    entry: Optional[str] = None
+
+    def render(self) -> str:
+        prefix = f"{self.path.as_posix()}: {self.message}"
+        if self.entry:
+            return f"{prefix} | entry: {self.entry}"
+        return prefix
+
+
+@dataclass
+class GuardFix:
+    kind: str
+    path: Path
+    description: str
+    before: str
+    after: str
+    new_text: str
+
+    def render_preview(self) -> str:
+        return (
+            f"{self.path.as_posix()}: {self.kind} - {self.description} "
+            f"({self.before!r} -> {self.after!r})"
+        )
+
+
+class FrontmatterParseError(ValueError):
+    """Raised when a frontmatter block cannot be parsed as YAML metadata."""
+
+
+@dataclass
+class DriftFinding:
+    category: str
+    path: Path
+    message: str
+    blocking: bool = True
+    detail: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, object]:
+        payload: Dict[str, object] = {
+            "category": self.category,
+            "path": self.path.as_posix(),
+            "message": self.message,
+            "blocking": self.blocking,
+        }
+        if self.detail:
+            payload["detail"] = self.detail
+        return payload
+
+
+def collect_git_status_entries(include_untracked: bool) -> List[tuple[str, str]]:
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(REPO_ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"git status failed: {exc}")
+
+    entries: List[tuple[str, str]] = []
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        status = line[:2]
+        path_fragment = line[3:] if len(line) > 3 else ""
+        entries.append((status, path_fragment.strip()))
+    return entries
+
+
+def compute_changed_files(entries: List[tuple[str, str]], include_untracked: bool) -> List[Path]:
+    changed: List[Path] = []
+    for status, path_fragment in entries:
+        if not path_fragment:
+            continue
+        cleaned = path_fragment
+        if "->" in cleaned:
+            cleaned = cleaned.split("->", 1)[1].strip()
+        if status == "??" and not include_untracked:
+            continue
+        if len(status) > 1 and status[1] == "D":
+            continue
+        if status.strip() == "D":
+            continue
+        absolute = (REPO_ROOT / cleaned).resolve()
+        if absolute.is_dir():
+            for candidate in absolute.rglob('*'):
+                if candidate.is_file():
+                    changed.append(candidate)
+            continue
+        changed.append(absolute)
+    return sorted(set(changed))
+
+
+def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path]:
+    """Identify newly added ACTIVE work-tracking folders in the current diff."""
+    base_parts = WORK_TRACKING_RELATIVE.parts
+    detected: set[Path] = set()
+    for status, path_fragment in entries:
+        if status != "??":
+            continue
+        relative = Path(path_fragment)
+        if relative.parts[: len(base_parts)] != base_parts:
+            continue
+        try:
+            active_segment = relative.parts[len(base_parts)]
+        except IndexError:
+            continue
+        if not active_segment.endswith("-ACTIVE"):
+            continue
+        folder_relative = Path(*relative.parts[: len(base_parts) + 1])
+        if _folder_tracked(folder_relative):
+            continue
+        detected.add(WORK_TRACKING_PREFIX / active_segment)
+    return sorted(detected)
+
+
+def _folder_tracked(relative: Path) -> bool:
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files', relative.as_posix()],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    if result.returncode == 0 and result.stdout.strip() != '':
+        return True
+    prefix = relative.as_posix().rstrip('/') + '/'
+    try:
+        fallback = subprocess.run(
+            ['git', 'ls-files'],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    if fallback.returncode != 0:
+        return False
+    return any(line.startswith(prefix) for line in fallback.stdout.splitlines())
+
+
+
+def _path_tracked(relative: Path) -> bool:
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files', relative.as_posix()],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception:
+        return False
+    return result.returncode == 0 and result.stdout.strip() != ''
+
+
+def _active_folder_started_with_prefix(relative: Path, prefix: str) -> bool:
+    tracker_path = REPO_ROOT / relative / 'TRACKER.md'
+    try:
+        text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    match = re.search(r'^\*\*Started\*\*:\s*(\d{4}-\d{2}-\d{2})\s*$', text, re.MULTILINE)
+    if not match:
+        return False
+    started_iso = match.group(1)
+    return started_iso.replace('-', '') == prefix
+
+
+
+def validate_active_folder_edits(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    """Ensure edits within docs/ai/work-tracking/active/ use today's YYYYMMDD prefix."""
+    issues: List[ValidationIssue] = []
+    seen: set[str] = set()
+    for absolute in changed_paths:
+        try:
+            relative = absolute.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative):
+            continue
+        parts = relative.parts
+        if len(parts) <= len(WORK_TRACKING_RELATIVE.parts):
+            continue
+        if parts[: len(WORK_TRACKING_RELATIVE.parts)] != WORK_TRACKING_RELATIVE.parts:
+            continue
+        folder_name = parts[len(WORK_TRACKING_RELATIVE.parts)]
+        if folder_name in seen:
+            continue
+        seen.add(folder_name)
+        prefix = folder_name.split('-', 1)[0]
+        folder_relative = Path(*parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
+        if len(prefix) != 8 or not prefix.isdigit():
+            issues.append(
+                ValidationIssue(
+                    folder_relative,
+                    f"Active work-tracking folder '{folder_name}' has invalid date prefix '{prefix}' (expected YYYYMMDD)",
+                )
+            )
+            continue
+        if prefix != DATE_PREFIX_EXPECTED:
+            if _folder_tracked(folder_relative):
+                continue
+            if _active_folder_started_with_prefix(folder_relative, prefix):
+                continue
+            issues.append(
+                ValidationIssue(
+                    folder_relative,
+                    f"Active work-tracking folder '{folder_name}' edited with date prefix {prefix}, expected {DATE_PREFIX_EXPECTED}",
+                )
+            )
+    return issues
+
+
+
+def detect_tracked_active_deletions(entries: List[tuple[str, str]]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    base_parts = WORK_TRACKING_RELATIVE.parts
+    seen: set[str] = set()
+    for status, path_fragment in entries:
+        if 'D' not in status:
+            continue
+        if not path_fragment:
+            continue
+        cleaned = path_fragment.split('->', 1)[0].strip()
+        relative = Path(cleaned)
+        if relative.parts[: len(base_parts)] != base_parts:
+            continue
+        if not _path_tracked(relative):
+            continue
+        try:
+            folder_name = relative.parts[len(base_parts)]
+        except IndexError:
+            continue
+        if not folder_name.endswith('-ACTIVE'):
+            continue
+        if folder_name in seen:
+            continue
+        seen.add(folder_name)
+        folder_relative = Path(*relative.parts[: len(base_parts) + 1])
+        archive_candidate = WORK_TRACKING_ARCHIVE_BASE / folder_name.replace('-ACTIVE', '-COMPLETED')
+        tracker_completed = archive_candidate / 'TRACKER.md'
+        tracker_completed_exists = tracker_completed.exists()
+        tracker_marks_completed = False
+        if tracker_completed_exists:
+            try:
+                tracker_text = tracker_completed.read_text(encoding='utf-8')
+            except FileNotFoundError:
+                tracker_completed_exists = False
+            else:
+                tracker_marks_completed = '**Status**: COMPLETED' in tracker_text
+        if not (archive_candidate.exists() and tracker_marks_completed):
+            issues.append(
+                ValidationIssue(
+                    folder_relative,
+                    f"Tracked ACTIVE folder '{folder_name}' removed in this diff; archive via codex-task work-tracking archive after completion.",
+                )
+            )
+    return issues
+
+
+
+def _collect_session_files() -> List[Path]:
+    sessions_root = REPO_ROOT / 'sessions'
+    if not sessions_root.exists():
+        return []
+    return sorted(sessions_root.rglob('*.md'))
+
+
+
+def _find_latest_prior_session() -> Optional[Path]:
+    candidates = []
+    cutoff = TODAY_ISO
+    for session_file in _collect_session_files():
+        relative = session_file.relative_to(REPO_ROOT)
+        if should_ignore_relative(relative):
+            continue
+        name = relative.name
+        if not name.endswith('.md'):
+            continue
+        date_prefix = name[:10]
+        if len(date_prefix) != 10:
+            continue
+        if date_prefix < cutoff:
+            candidates.append(session_file)
+    if not candidates:
+        return None
+    return max(candidates)
+
+
+
+def _session_marked_complete(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    return 'SESSION COMPLETE' in text.upper()
+
+
+
+def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    """Require that edited session markdown files belong to today's date."""
+    issues: List[ValidationIssue] = []
+    latest_prior = _find_latest_prior_session()
+    latest_prior_date = latest_prior.name[:10] if latest_prior else None
+    for absolute in changed_paths:
+        try:
+            relative = absolute.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative):
+            continue
+        parts = relative.parts
+        if not parts or parts[0] != 'sessions':
+            continue
+        if relative.name == 'current':
+            continue
+        if relative.suffix != '.md':
+            continue
+        filename = relative.name
+        date_prefix = filename[:10]
+        if date_prefix == TODAY_ISO:
+            continue
+        if latest_prior_date and date_prefix == latest_prior_date and _session_marked_complete(absolute):
+            continue
+        issues.append(
+            ValidationIssue(
+                relative,
+                f"Session file '{relative.as_posix()}' edited with date {date_prefix}, expected {TODAY_ISO}",
+            )
+        )
+    return issues
+
+
+def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path]:
+    """Identify newly added ACTIVE work-tracking folders in the current diff."""
+    base_parts = WORK_TRACKING_RELATIVE.parts
+    detected: set[Path] = set()
+    for status, path_fragment in entries:
+        if status != "??":
+            continue
+        relative = Path(path_fragment)
+        if relative.parts[: len(base_parts)] != base_parts:
+            continue
+        try:
+            active_segment = relative.parts[len(base_parts)]
+        except IndexError:
+            continue
+        if not active_segment.endswith("-ACTIVE"):
+            continue
+        detected.add(WORK_TRACKING_PREFIX / active_segment)
+    return sorted(detected)
+
+
+def validate_work_tracking_folder_names(entries: List[tuple[str, str]]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    for folder in detect_untracked_active_folders(entries):
+        relative_path = folder.relative_to(REPO_ROOT)
+        if _path_tracked(relative_path):
+            # Existing tracked folders (e.g., reused ACTIVE folders for multi-day work)
+            # will show up here whenever a new evidence file is added. Skip enforcing
+            # the date prefix because these folders were scaffolded previously.
+            continue
+        name = folder.name
+        if not name.endswith("-ACTIVE"):
+            issues.append(ValidationIssue(relative_path, "Active work-tracking folders must end with -ACTIVE"))
+            continue
+        prefix = name.split("-", 1)[0]
+        if _active_folder_started_with_prefix(relative_path, prefix):
+            continue
+        if prefix != DATE_PREFIX_EXPECTED:
+            issues.append(
+                ValidationIssue(
+                    relative_path,
+                    f"Active work-tracking folder '{name}' must start with {DATE_PREFIX_EXPECTED} for today's date {TODAY_ISO}",
+                )
+            )
+    return issues
+
+
+def _document_has_today_entry(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        return False
+    today_token = TODAY_ISO
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith('-'):
+            continue
+        if today_token in stripped:
+            return True
+    return False
+
+
+def _tracker_has_today_entry(text: str) -> bool:
+    today_token = TODAY_ISO
+    for line in text.splitlines():
+        stripped = line.strip()
+        if today_token in stripped and stripped.startswith('-'):
+            return True
+    return False
+
+
+def _tracker_has_serena_reference(text: str) -> bool:
+    for line in text.splitlines():
+        if TODAY_ISO in line and SERENA_MEMORY_PATTERN.search(line):
+            return True
+    return False
+
+
+def validate_work_tracking_documents(active_folder: Path) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not active_folder.exists():
+        return issues
+
+    tracker_path = active_folder / 'TRACKER.md'
+    if not tracker_path.exists():
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing'))
+        return issues
+
+    tracker_text = tracker_path.read_text(encoding='utf-8')
+    if not _tracker_has_today_entry(tracker_text):
+        issues.append(
+            ValidationIssue(
+                tracker_path.relative_to(REPO_ROOT),
+                f"Tracker missing entry for {TODAY_ISO}; log work-tracking progress before proceeding",
+            )
+        )
+        return issues
+
+    if not _tracker_has_serena_reference(tracker_text):
+        issues.append(
+            ValidationIssue(
+                tracker_path.relative_to(REPO_ROOT),
+                'Serena memory reference missing for today in tracker progress log',
+            )
+        )
+
+    for doc_name in WORK_TRACKING_REQUIRED_DOCS:
+        doc_path = active_folder / doc_name
+        if not doc_path.exists():
+            issues.append(ValidationIssue(doc_path.relative_to(REPO_ROOT), f"Required document {doc_name} missing"))
+            continue
+        if not _document_has_today_entry(doc_path):
+            issues.append(
+                ValidationIssue(
+                    doc_path.relative_to(REPO_ROOT),
+                    f"{doc_name} missing entry for {TODAY_ISO}",
+                )
+            )
+
+    return issues
+
+
+_FRONTMATTER_SCHEMA_CACHE: Dict[Path, Draft202012Validator] = {}
+
+
+def parse_front_matter_text(text: str) -> Dict[str, object]:
+    if not text.startswith("---"):
+        return {}
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    front_matter = parts[1].strip()
+    if not front_matter:
+        return {}
+    try:
+        parsed = yaml.load(front_matter, Loader=yaml.BaseLoader)
+    except yaml.YAMLError as exc:
+        raise FrontmatterParseError(str(exc)) from exc
+    if parsed is None:
+        return {}
+    if not isinstance(parsed, dict):
+        raise FrontmatterParseError("frontmatter root must be a mapping")
+    return {str(key): value for key, value in parsed.items()}
+
+
+def _resolve_repo_relative_path(value: str) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return REPO_ROOT / path
+
+
+def _frontmatter_schema_validator(schema_path: str) -> Draft202012Validator:
+    resolved = _resolve_repo_relative_path(schema_path).resolve()
+    cached = _FRONTMATTER_SCHEMA_CACHE.get(resolved)
+    if cached is not None:
+        return cached
+    payload = json.loads(resolved.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(payload)
+    validator = Draft202012Validator(payload)
+    _FRONTMATTER_SCHEMA_CACHE[resolved] = validator
+    return validator
+
+
+def _schema_entry(schema_path: str) -> str:
+    resolved = _resolve_repo_relative_path(schema_path)
+    try:
+        return resolved.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def validate_template_frontmatter_schema(
+    relative_path: Path,
+    metadata: Dict[str, object],
+    schema_path: Optional[str],
+) -> List[ValidationIssue]:
+    if not schema_path:
+        return []
+    try:
+        validator = _frontmatter_schema_validator(schema_path)
+    except (OSError, json.JSONDecodeError, SchemaError) as exc:
+        return [
+            ValidationIssue(
+                relative_path,
+                f"Template frontmatter schema cannot be loaded: {exc}",
+                _schema_entry(schema_path),
+            )
+        ]
+
+    issues: List[ValidationIssue] = []
+    for error in sorted(validator.iter_errors(metadata), key=lambda item: list(item.path)):
+        location = ".".join(str(part) for part in error.path) or "<frontmatter>"
+        issues.append(
+            ValidationIssue(
+                relative_path,
+                f"Template frontmatter schema violation at {location}: {error.message}",
+                _schema_entry(schema_path),
+            )
+        )
+    return issues
+
+
+def load_template_metadata_policy() -> tuple[List[TemplateMetadataRule], List[str]]:
+    path = TEMPLATE_METADATA_POLICY_PATH
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return [], []
+
+    defaults = data.get("defaults", {}) if isinstance(data, dict) else {}
+    default_required = defaults.get("required_keys", ["title", "type", "status"])
+    default_frontmatter = defaults.get("frontmatter", "required")
+    default_schema = defaults.get("schema")
+    rules: List[TemplateMetadataRule] = []
+    raw_rules = data.get("rules", []) if isinstance(data, dict) else []
+    for raw in raw_rules:
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("name", "unnamed-rule"))
+        include = [str(item) for item in raw.get("include", [])]
+        exclude = [str(item) for item in raw.get("exclude", [])]
+        required = [str(item) for item in raw.get("required_keys", default_required)]
+        frontmatter = str(raw.get("frontmatter", default_frontmatter))
+        enforce = bool(raw.get("enforce", True))
+        schema_raw = raw.get("schema", default_schema)
+        schema_path = None if schema_raw in (None, False, "") else str(schema_raw)
+        rules.append(
+            TemplateMetadataRule(
+                name=name,
+                include=include,
+                exclude=exclude,
+                required_keys=required,
+                frontmatter=frontmatter,
+                enforce=enforce,
+                schema_path=schema_path,
+            )
+        )
+    exemptions = [str(item) for item in data.get("exemptions", [])] if isinstance(data, dict) else []
+    return rules, exemptions
+
+
+def _metadata_policy_match(relative_path: str, pattern: str) -> bool:
+    path_obj = PurePosixPath(relative_path)
+    return path_obj.match(pattern)
+
+
+def select_template_metadata_rule(relative_path: Path) -> Optional[TemplateMetadataRule]:
+    rel = relative_path.as_posix()
+    rules, exemptions = load_template_metadata_policy()
+    for pattern in exemptions:
+        if _metadata_policy_match(rel, pattern):
+            return None
+    for rule in rules:
+        if not rule.enforce:
+            continue
+        if rule.include and not any(_metadata_policy_match(rel, pattern) for pattern in rule.include):
+            continue
+        if rule.exclude and any(_metadata_policy_match(rel, pattern) for pattern in rule.exclude):
+            continue
+        return rule
+    return None
+
+
+def validate_template_metadata(relative_path: Path, text: str) -> List[ValidationIssue]:
+    rule = select_template_metadata_rule(relative_path)
+    if rule is None:
+        return []
+
+    issues: List[ValidationIssue] = []
+    try:
+        metadata = parse_front_matter_text(text)
+    except FrontmatterParseError as exc:
+        issues.append(
+            ValidationIssue(
+                relative_path,
+                f"Template metadata frontmatter is invalid: {exc}",
+                str(TEMPLATE_METADATA_POLICY_PATH.relative_to(REPO_ROOT))
+                if TEMPLATE_METADATA_POLICY_PATH.is_absolute() and str(TEMPLATE_METADATA_POLICY_PATH).startswith(str(REPO_ROOT))
+                else str(TEMPLATE_METADATA_POLICY_PATH),
+            )
+        )
+        return issues
+
+    if rule.frontmatter == "required" and not metadata:
+        issues.append(
+            ValidationIssue(
+                relative_path,
+                f"Template metadata policy '{rule.name}' requires frontmatter",
+                str(TEMPLATE_METADATA_POLICY_PATH.relative_to(REPO_ROOT))
+                if TEMPLATE_METADATA_POLICY_PATH.is_absolute() and str(TEMPLATE_METADATA_POLICY_PATH).startswith(str(REPO_ROOT))
+                else str(TEMPLATE_METADATA_POLICY_PATH),
+            )
+        )
+        return issues
+
+    issues.extend(validate_template_frontmatter_schema(relative_path, metadata, rule.schema_path))
+
+    for key in rule.required_keys:
+        value = metadata.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            issues.append(
+                ValidationIssue(
+                    relative_path,
+                    f"Template metadata policy '{rule.name}' missing required key '{key}'",
+                    str(TEMPLATE_METADATA_POLICY_PATH.relative_to(REPO_ROOT))
+                    if TEMPLATE_METADATA_POLICY_PATH.is_absolute() and str(TEMPLATE_METADATA_POLICY_PATH).startswith(str(REPO_ROOT))
+                    else str(TEMPLATE_METADATA_POLICY_PATH),
+                )
+            )
+    return issues
+
+
+def validate_gac_guidance(relative_path: Path, text: str) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+
+    if relative_path in GAC_RESPONSE_MODE_DOCS:
+        missing_markers = [marker for marker in GAC_REQUIRED_RESPONSE_MARKERS if marker not in text]
+        if missing_markers:
+            issues.append(
+                ValidationIssue(
+                    relative_path,
+                    "Canonical commit guidance is missing required response-mode markers",
+                    entry=(
+                        "Document `direct-git-execution`, `full-gac-command`, `message-payload-only`, "
+                        "and `auth-refresh-required` so commit-prep flows distinguish execution, explicit "
+                        "GAC output, message-only output, and auth-refresh fallback."
+                    ),
+                )
+            )
+        for pattern in GAC_STALE_DEFAULT_PATTERNS:
+            if pattern.search(text):
+                issues.append(
+                    ValidationIssue(
+                        relative_path,
+                        "Canonical commit guidance contains stale GAC-default language",
+                        entry=(
+                            "Regular Git/GitHub execution must be the default when delegated and auth is "
+                            "available; GAC output is explicit-request or auth-fallback only."
+                        ),
+                    )
+                )
+                break
+
+    if relative_path in GAC_SUMMARY_DOCS:
+        for match in MULTILINE_GAC_PATTERN.finditer(text):
+            block = match.group(0)
+            if "Summary:" not in block:
+                issues.append(
+                    ValidationIssue(
+                        relative_path,
+                        "Multi-line GAC example missing canonical Summary block",
+                        entry="Use the canonical multi-line format with `  Summary:` before bullets and `  Work tracking:` in the same block.",
+                    )
+                )
+                break
+
+    return issues
+
+
+def derive_expected_session(meta: Dict[str, object]) -> Optional[str]:
+    if "session_id" in meta:
+        session_id = str(meta["session_id"])
+        parts = session_id.split("-")
+        if len(parts) >= 3:
+            return "".join(parts[:3])
+        return session_id.replace("-", "")
+    if "date" in meta:
+        return str(meta["date"]).replace("-", "")
+    return None
+
+
+def handler_path_exists(handler_value: str) -> bool:
+    handler_value = handler_value.strip()
+    if handler_value.startswith("templates/"):
+        relative = Path(handler_value)
+        candidates = [REPO_ROOT / relative, REPO_ROOT / (relative.with_suffix(".md"))]
+        for candidate in candidates:
+            if candidate.exists():
+                return True
+        return False
+    # Non-template handlers (e.g., H:searching) handled separately
+    return True
+
+
+def strip_fenced_code_blocks(text: str) -> str:
+    return re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+
+
+def validate_swhe_entries(path: Path, text: str, expected_session: Optional[str]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    matches = list(SWHE_PATTERN.finditer(strip_fenced_code_blocks(text)))
+    if not matches:
+        issues.append(ValidationIssue(path, "No S:W:H:E entries detected"))
+        return issues
+
+    for match in matches:
+        entry_text = match.group(0)
+        s_val = match.group("S").strip()
+        w_val = match.group("W").strip()
+        h_val = match.group("H").strip()
+        e_val = match.group("E").strip()
+
+        if not s_val:
+            issues.append(ValidationIssue(path, "Empty S field", entry_text))
+        if not w_val:
+            issues.append(ValidationIssue(path, "Empty W field", entry_text))
+        if not h_val:
+            issues.append(ValidationIssue(path, "Empty H field", entry_text))
+        if not e_val:
+            issues.append(ValidationIssue(path, "Empty E field", entry_text))
+
+        if expected_session and s_val not in {expected_session, "current"} and not s_val.startswith("VOID"):
+            issues.append(ValidationIssue(path, f"S field '{s_val}' does not match session '{expected_session}'", entry_text))
+
+        handler_key = h_val.lower()
+        if handler_key in PLACEHOLDER_HANDLERS_LOWER:
+            issues.append(ValidationIssue(path, "Handler still in placeholder state", entry_text))
+        elif h_val.startswith("templates/") and not handler_path_exists(h_val):
+            issues.append(ValidationIssue(path, "Referenced handler path not found", entry_text))
+
+        if e_val.lower() in {"pending", "searching"}:
+            issues.append(ValidationIssue(path, "Evidence still marked as pending/searching", entry_text))
+
+    return issues
+
+
+def find_legacy_monolith_references(text: str) -> List[Tuple[str, str]]:
+    matches: List[Tuple[str, str]] = []
+    for token, hint in LEGACY_MONOLITH_TOKENS.items():
+        pattern = LEGACY_MONOLITH_PATTERNS[token]
+        if pattern.search(text):
+            matches.append((token, hint))
+    return matches
+
+
+def resolve_plan_path() -> Optional[Path]:
+    if not PLAN_CURRENT.exists():
+        return None
+    try:
+        target = PLAN_CURRENT.resolve()
+    except FileNotFoundError:
+        return None
+    return target if target.exists() else None
+
+
+def parse_plan_table(text: str) -> Dict[str, Dict[str, str]]:
+    steps: Dict[str, Dict[str, str]] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith('|'):
+            continue
+        inner = stripped.lstrip('|').lstrip()
+        if not inner.startswith('plan-step-'):
+            continue
+        cells = [cell.strip() for cell in stripped.strip('|').split('|')]
+        if len(cells) < 4:
+            continue
+        step_id = cells[0]
+        description = cells[1] if len(cells) > 1 else ''
+        evidence = cells[-2] if len(cells) >= 3 else ''
+        status = cells[-1].lower()
+        steps[step_id] = {
+            'description': description,
+            'evidence': evidence,
+            'status': status,
+        }
+    return steps
+
+
+def extract_scope(text: str) -> List[str]:
+    scope: List[str] = []
+    scope_index = text.find('## Scope')
+    if scope_index == -1:
+        return scope
+    subsection = text[scope_index:].split('\n## ', 1)[0]
+    for line in subsection.splitlines()[1:]:
+        stripped = line.strip()
+        if not stripped:
+            break
+        if stripped.startswith('- '):
+            scope.append(stripped[2:].strip())
+    return scope
+
+
+def extract_task_id_slug(slug: str) -> Optional[str]:
+    token = slug
+    lower = token.lower()
+    if lower.startswith('task-') or lower.startswith('task_'):
+        token = token[5:]
+    elif lower.startswith('task'):
+        token = token[4:]
+    token = token.lstrip('-_')
+    for separator in ('-', '_'):
+        if separator in token:
+            token = token.split(separator, 1)[0]
+            break
+    match = re.match(r"(\d+)", token)
+    if match:
+        return match.group(1)
+    return None
+
+
+def parse_task_ids(text: str) -> List[str]:
+    match = TASK_IDS_PATTERN.search(text)
+    if not match:
+        return []
+    raw = match.group(1)
+    ids: List[str] = []
+    for token in raw.split(','):
+        cleaned = token.strip()
+        if cleaned:
+            ids.append(cleaned)
+    return ids
+
+
+def parse_branch_policy(text: str) -> Optional[str]:
+    match = BRANCH_POLICY_PATTERN.search(text)
+    if not match:
+        return None
+    value = match.group(1).strip()
+    return value if value else None
+
+
+def evidence_tokens(raw: str) -> List[str]:
+    tokens: List[str] = []
+    for chunk in re.split(r"[;,]\s*", raw):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        tokens.append(chunk)
+    return tokens
+
+
+def is_path_token(token: str) -> bool:
+    if '/' in token or token.endswith(('.md', '.py', '.sh', '.txt', '.json', '.yaml', '.yml')):
+        return True
+    return False
+
+
+def token_path_exists(token: str) -> bool:
+    candidate = (REPO_ROOT / token).resolve()
+    return candidate.exists()
+
+
+def compute_sha256(path: Path) -> str:
+    data = path.read_bytes()
+    return hashlib.sha256(data).hexdigest()
+
+
+def extract_path_candidates(token: str) -> List[str]:
+    cleaned = token.replace('`', ' ').strip()
+    parts = re.split(r"\s+", cleaned)
+    candidates: List[str] = []
+    for part in parts:
+        if not part:
+            continue
+        if is_path_token(part):
+            candidates.append(part)
+    if not candidates and is_path_token(cleaned):
+        candidates.append(cleaned)
+    return candidates
+
+
+def validate_plan(plan_path: Path) -> Tuple[List[ValidationIssue], Optional[PlanDetails]]:
+    issues: List[ValidationIssue] = []
+    try:
+        plan_text = plan_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan file missing'))
+        return issues, None
+
+    steps = parse_plan_table(plan_text)
+    for required in PLAN_REQUIRED_STEPS:
+        if required not in steps:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f"Missing row for {required}"))
+
+    scope_step = steps.get('plan-step-scope')
+    if scope_step:
+        if 'completed' not in scope_step['status']:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-scope must be completed before work'))
+    else:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-scope row not found'))
+
+    emergency_match = EMERGENCY_PATTERN.search(plan_text)
+    emergency_required = bool(emergency_match and emergency_match.group(1).lower() == 'true')
+    if emergency_required and 'plan-step-emergency' not in steps:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Emergency bypass declared but plan-step-emergency row missing'))
+
+    implement = steps.get('plan-step-implement')
+    if implement and not implement['description']:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-implement description is empty'))
+
+    verify = steps.get('plan-step-verify')
+    if verify and not verify['description']:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'plan-step-verify description is empty'))
+
+    placeholders = {'pending', 'tbd', 'todo', 'n/a', 'not-needed', 'none'}
+    for step_id, data in steps.items():
+        raw_evidence = data.get('evidence', '').strip()
+        if not raw_evidence:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence is empty'))
+            continue
+        if raw_evidence.lower() in placeholders:
+            issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence still placeholder'))
+            continue
+        for token in evidence_tokens(raw_evidence):
+            lower = token.lower()
+            if lower in placeholders:
+                issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence token still placeholder', token))
+                continue
+            for candidate in extract_path_candidates(token):
+                if not token_path_exists(candidate):
+                    issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), f'{step_id} evidence path not found', candidate))
+
+    if 'Plan Version' not in plan_text:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Plan Version entry'))
+
+    scope_entries = extract_scope(plan_text)
+    if not scope_entries:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Scope section missing bullet list of files/components'))
+
+    if '## Continuation' not in plan_text:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan missing ## Continuation section'))
+
+    if not EMERGENCY_PATTERN.search(plan_text):
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Emergency Bypass field'))
+
+    task_ids = parse_task_ids(plan_text)
+    if not task_ids:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Task IDs entry'))
+
+    branch_policy = parse_branch_policy(plan_text)
+    if not branch_policy:
+        issues.append(ValidationIssue(plan_path.relative_to(REPO_ROOT), 'Plan header missing Branch Policy entry'))
+
+    details = PlanDetails(
+        steps=steps,
+        scope=scope_entries,
+        emergency_bypass=emergency_required,
+        task_ids=task_ids,
+        branch_policy=branch_policy,
+        text=plan_text,
+    )
+    return issues, details
+
+
+def validate_tracker_alignment(plan_steps: Dict[str, Dict[str, str]]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    tracker_path = get_active_tracker_path()
+    try:
+        tracker_text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing'))
+        return issues
+
+    for step_id, data in plan_steps.items():
+        unchecked = f'- [ ] {step_id}'
+        checked = f'- [x] {step_id}'
+        has_unchecked = unchecked in tracker_text
+        has_checked = checked in tracker_text
+        if not (has_unchecked or has_checked):
+            issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker missing checkbox for {step_id}'))
+            continue
+
+        status = data.get('status', '').strip().lower()
+        if status in PLAN_STATUS_COMPLETE:
+            if not has_checked:
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should be checked'))
+        elif status in PLAN_STATUS_INCOMPLETE:
+            if not has_unchecked:
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
+        elif status in PLAN_STATUS_PASSIVE:
+            if not has_unchecked:
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} should remain unchecked for status {status}'))
+        else:
+            if has_checked and status not in PLAN_STATUS_COMPLETE:
+                issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), f'Tracker checkbox for {step_id} marked complete but plan status is "{status}"'))
+
+    return issues
+
+
+def validate_plan_sync(plan_path: Path, details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not PLAN_SYNC_LOG.exists():
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan sync log missing'))
+        return issues
+
+    try:
+        data = json.loads(PLAN_SYNC_LOG.read_text(encoding='utf-8'))
+    except json.JSONDecodeError:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan sync log is not valid JSON'))
+        return issues
+
+    if not isinstance(data, list) or not data:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan sync log has no entries'))
+        return issues
+
+    plan_rel = plan_path.relative_to(REPO_ROOT).as_posix()
+    matching = [entry for entry in data if entry.get('plan') == plan_rel]
+    if not matching:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), f'No sync entry recorded for {plan_rel}'))
+        return issues
+
+    latest = matching[-1]
+    expected_plan_hash = compute_sha256(plan_path)
+    tracker_path = get_active_tracker_path()
+    expected_tracker_hash = compute_sha256(tracker_path)
+
+    if latest.get('plan_hash') != expected_plan_hash:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Plan hash mismatch; run plan sync'))
+    if latest.get('tracker_hash') != expected_tracker_hash:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Tracker hash mismatch; run plan sync'))
+    if 'synced_at' not in latest:
+        issues.append(ValidationIssue(PLAN_SYNC_LOG.relative_to(REPO_ROOT), 'Sync entry missing synced_at timestamp'))
+
+    return issues
+
+
+def validate_plan_conflicts(plan_path: Path, details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    plans_dir = plan_path.parent
+    scope_set = set(details.scope)
+    if not scope_set:
+        return issues
+
+    for candidate in plans_dir.glob('*.md'):
+        if candidate.resolve() == plan_path.resolve():
+            continue
+        try:
+            candidate_text = candidate.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            continue
+        candidate_scope = set(extract_scope(candidate_text))
+        if not candidate_scope:
+            continue
+        candidate_steps = parse_plan_table(candidate_text)
+        statuses = {entry.get('status', '').strip().lower() for entry in candidate_steps.values()}
+        if statuses and statuses.issubset(PLAN_STATUS_COMPLETE.union(PLAN_STATUS_PASSIVE)):
+            continue
+        overlap = scope_set & candidate_scope
+        if overlap:
+            overlap_item = sorted(overlap)[0]
+            issues.append(ValidationIssue(candidate.relative_to(REPO_ROOT), f'Active plan overlaps scope with current plan ({overlap_item})'))
+    return issues
+
+
+def resolve_current_session_path() -> Optional[Path]:
+    link = SESSIONS_DIR / "current"
+    if not link.exists():
+        return None
+    try:
+        target = link.resolve(strict=True)
+    except FileNotFoundError:
+        return None
+    if target.suffix != ".md":
+        return None
+    return target
+
+
+def validate_continuation_requirements(plan_details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    # Only enforce when continuation scope is part of the active plan
+    scope_lower = {item.lower() for item in plan_details.scope}
+    relevant_tokens = {
+        "templates/behaviors/session/continuation-validation.md",
+        "templates/workflows/session/continuation.md",
+        "templates/workflows/session/state-management.md",
+    }
+    if not scope_lower.intersection(relevant_tokens):
+        return issues
+
+    guard_dir = CONTINUATION_GUARD_DIR
+    if not guard_dir.exists():
+        issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), f'Continuation guard directory missing {CONTINUATION_GUARD_REL}/', entry=f'Create {CONTINUATION_GUARD_REL}/ and store guard logs (e.g. guard-<timestamp>.txt).'))
+    else:
+        logs = sorted(p for p in guard_dir.glob('guard-*.txt') if p.is_file())
+        if not logs:
+            issues.append(ValidationIssue(guard_dir.relative_to(REPO_ROOT), 'No continuation guard logs found (expected guard-<timestamp>.txt)', entry=f'Run `python3 scripts/codex-guard validate --include-untracked` and keep the resulting log under {CONTINUATION_GUARD_REL}/'))
+
+    tracker_path = get_active_tracker_path()
+    try:
+        tracker_text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing for continuation validation', entry=f'Ensure {WORK_TRACKING_RELATIVE.as_posix()}/.../TRACKER.md exists before resuming.'))
+    else:
+        if 'continuation-validation' not in tracker_text:
+            issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker missing continuation validation entry', entry='Log validation in the tracker (S:... |H:continuation-validation|E:guard log).'))
+
+    session_path = resolve_current_session_path()
+    if session_path:
+        try:
+            session_text = session_path.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), f'Session file referenced by {SESSIONS_CURRENT_REL} missing', entry=f'Recreate {SESSIONS_CURRENT_REL} symlink to an existing session log.'))
+        else:
+            if 'continuation-validation' not in session_text and f'{CONTINUATION_GUARD_REL}/guard-' not in session_text:
+                issues.append(ValidationIssue(session_path.relative_to(REPO_ROOT), 'Session log missing continuation validation or guard evidence entry', entry='Add S:W:H:E entry referencing continuation validation and guard log.'))
+    else:
+        issues.append(ValidationIssue(Path(SESSIONS_CURRENT_REL), f'{SESSIONS_CURRENT_REL} link missing for continuation validation', entry=f'Link {SESSIONS_CURRENT_REL} to the active session (e.g. ln -sf YYYY/MM/session-id.md {SESSIONS_CURRENT_REL}).'))
+
+    return issues
+
+
+def get_current_branch() -> Optional[str]:
+    github_head_ref = os.environ.get("GITHUB_HEAD_REF")
+    if github_head_ref:
+        return github_head_ref
+    github_ref_name = os.environ.get("GITHUB_REF_NAME")
+    if github_ref_name:
+        return github_ref_name
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(REPO_ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError:
+        return None
+    branch = result.stdout.strip()
+    return branch or None
+
+
+def get_active_tracker_path() -> Path:
+    candidates = [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
+    if not candidates:
+        raise SystemExit(f'No ACTIVE work-tracking folder found under {WORK_TRACKING_RELATIVE.as_posix()}/')
+    if len(candidates) > 1:
+        names = ", ".join(p.name for p in candidates)
+        raise SystemExit(f"Multiple ACTIVE work-tracking folders found ({names}); specify via override or clean up")
+    tracker = candidates[0] / 'TRACKER.md'
+    if not tracker.exists():
+        raise SystemExit(f'Tracker file missing at {tracker}')
+    return tracker
+
+
+def _display_path(path: Path) -> Path:
+    try:
+        return path.relative_to(REPO_ROOT)
+    except ValueError:
+        return path
+
+
+def _session_state_relevant(entries: List[tuple[str, str]], changed_paths: Iterable[Path]) -> bool:
+    for status, path_fragment in entries:
+        cleaned = path_fragment.split('->', 1)[1].strip() if '->' in path_fragment else path_fragment.strip()
+        if cleaned in {SESSIONS_CURRENT_REL, SESSION_STATE_REL}:
+            return True
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if relative.parts and relative.parts[0] == 'sessions':
+            return True
+    return False
+
+
+def _find_session_entry(name: str) -> Optional[Path]:
+    matches = list(SESSIONS_DIR.glob(f'**/{name}'))
+    if not matches:
+        return None
+    return matches[0]
+
+
+def validate_session_state(entries: List[tuple[str, str]], changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not _session_state_relevant(entries, changed_paths):
+        return issues
+
+    state_exists = SESSION_STATE_PATH.exists()
+    current_exists = CURRENT_SESSION_SYMLINK.exists() and CURRENT_SESSION_SYMLINK.is_symlink()
+
+    if not state_exists:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                'Session state helper missing',
+                entry='Create sessions/state.json and keep its current/paused fields aligned with sessions/current.',
+            )
+        )
+        return issues
+
+    try:
+        state = json.loads(SESSION_STATE_PATH.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as exc:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                f'Session state helper is not valid JSON: {exc.msg}',
+                entry='Repair sessions/state.json so it contains valid JSON with current, paused, and updated_at fields.',
+            )
+        )
+        return issues
+
+    current_value = state.get('current')
+    paused_value = state.get('paused')
+    updated_at = state.get('updated_at')
+
+    if current_value is not None and not isinstance(current_value, str):
+        issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json current field must be a string or null'))
+    if not isinstance(paused_value, list):
+        issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json paused field must be a list'))
+        paused_entries: List[str] = []
+    else:
+        paused_entries = paused_value
+    if updated_at is None:
+        issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json missing updated_at field'))
+    else:
+        try:
+            datetime.fromisoformat(updated_at)
+        except ValueError:
+            issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json updated_at must be ISO-8601'))
+
+    if current_exists:
+        try:
+            current_target = CURRENT_SESSION_SYMLINK.resolve()
+        except FileNotFoundError:
+            current_target = None
+        except RuntimeError:
+            current_target = None
+        if current_target is None or not current_target.exists():
+            issues.append(
+                ValidationIssue(
+                    Path('sessions/current'),
+                    'sessions/current points to a missing session file',
+                    entry='Repoint sessions/current to an existing session markdown file.',
+                )
+            )
+        else:
+            expected_name = current_target.name
+            if current_value != expected_name:
+                issues.append(
+                    ValidationIssue(
+                        _display_path(SESSION_STATE_PATH),
+                        f"sessions/state.json current '{current_value}' does not match sessions/current target '{expected_name}'",
+                        entry='Update sessions/state.json current to the basename referenced by sessions/current.',
+                    )
+                )
+    elif current_value not in {None, ''}:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                f"sessions/state.json current is '{current_value}' but sessions/current is missing",
+                entry='Clear the current field or recreate sessions/current so both point to the active session.',
+            )
+        )
+
+    if isinstance(current_value, str) and current_value in paused_entries:
+        issues.append(
+            ValidationIssue(
+                _display_path(SESSION_STATE_PATH),
+                'sessions/state.json current entry must not also appear in paused',
+                entry='Remove the active session basename from the paused list.',
+            )
+        )
+
+    for paused_entry in paused_entries:
+        if not isinstance(paused_entry, str):
+            issues.append(ValidationIssue(_display_path(SESSION_STATE_PATH), 'sessions/state.json paused entries must be strings'))
+            continue
+        if _find_session_entry(paused_entry) is None:
+            issues.append(
+                ValidationIssue(
+                    _display_path(SESSION_STATE_PATH),
+                    f"Paused session '{paused_entry}' does not exist under sessions/",
+                    entry='Remove stale paused entries or restore the missing session file.',
+                )
+            )
+
+    return issues
+
+
+def validate_runtime_artifacts(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+
+        if '__pycache__' in relative.parts or relative.suffix in {'.pyc', '.pyo'}:
+            issues.append(
+                ValidationIssue(
+                    relative,
+                    'Runtime artifact should not be committed',
+                    entry='Restore/remove generated __pycache__/ or .pyc/.pyo files before proceeding.',
+                )
+            )
+            continue
+
+        if relative.parts and relative.parts[0] == '.codex':
+            name = relative.name
+            if (
+                name.endswith('.sqlite')
+                or name.endswith('.sqlite-shm')
+                or name.endswith('.sqlite-wal')
+            ):
+                issues.append(
+                    ValidationIssue(
+                        relative,
+                        'Codex runtime database artifact should not be committed',
+                        entry='Keep .codex sqlite runtime artifacts unstaged or add them to ignore rules before proceeding.',
+                    )
+                )
+    return issues
+
+
+def validate_taskmaster_activity(changed_paths: Iterable[Path]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    taskmaster_changed = False
+    for path in changed_paths:
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if relative == Path(TASKMASTER_TASKS_JSON_REL):
+            taskmaster_changed = True
+            break
+        if len(relative.parts) >= len(Path(TASKMASTER_TASKS_REL).parts) and tuple(relative.parts[: len(Path(TASKMASTER_TASKS_REL).parts)]) == Path(TASKMASTER_TASKS_REL).parts:
+            if re.fullmatch(r'task_\d+\.txt', relative.name):
+                taskmaster_changed = True
+                break
+
+    if not taskmaster_changed:
+        return issues
+
+    if CURRENT_SESSION_PATH is None:
+        issues.append(
+            ValidationIssue(
+                Path(SESSIONS_CURRENT_REL),
+                f'Taskmaster files changed but {SESSIONS_CURRENT_REL} is missing or invalid',
+                entry=f'Point {SESSIONS_CURRENT_REL} at the active session and log the Taskmaster change there.',
+            )
+        )
+    else:
+        try:
+            session_text = CURRENT_SESSION_PATH.read_text(encoding='utf-8')
+        except FileNotFoundError:
+            issues.append(
+                ValidationIssue(
+                    _display_path(CURRENT_SESSION_PATH),
+                    'Taskmaster files changed but the current session log is missing',
+                    entry='Recreate the current session file and log the Taskmaster change there.',
+                )
+            )
+        else:
+            if not TASKMASTER_ACTIVITY_PATTERN.search(session_text):
+                issues.append(
+                    ValidationIssue(
+                        _display_path(CURRENT_SESSION_PATH),
+                        'Taskmaster files changed but the current session lacks a Taskmaster activity entry',
+                        entry=f'Add an S:W:H:E entry with H:task-master:* or evidence pointing to {TASKMASTER_TASKS_REL}/*.json/*.txt.',
+                    )
+                )
+
+    try:
+        tracker_path = get_active_tracker_path()
+    except SystemExit as exc:
+        issues.append(
+            ValidationIssue(
+                WORK_TRACKING_RELATIVE,
+                f'Taskmaster files changed but active tracker lookup failed: {exc}',
+                entry='Ensure exactly one ACTIVE work-tracking folder exists and log the Taskmaster change in its tracker.',
+            )
+        )
+        return issues
+
+    try:
+        tracker_text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(
+            ValidationIssue(
+                _display_path(tracker_path),
+                'Taskmaster files changed but tracker file is missing',
+                entry='Restore the tracker and log the Taskmaster change there.',
+            )
+        )
+        return issues
+
+    if TODAY_ISO not in tracker_text or not TASKMASTER_ACTIVITY_PATTERN.search(tracker_text):
+        issues.append(
+            ValidationIssue(
+                _display_path(tracker_path),
+                'Taskmaster files changed but tracker lacks a same-day Taskmaster activity entry',
+                entry=f'Log the Taskmaster update in TRACKER.md using H:task-master:* and evidence under {TASKMASTER_TASKS_REL}/...',
+            )
+        )
+
+    return issues
+
+
+def validate_branch_policy(plan_details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    branch = get_current_branch()
+    if branch is None:
+        issues.append(ValidationIssue(Path('.'), 'Unable to determine current git branch'))
+        return issues
+
+    policy_raw = plan_details.branch_policy.strip().lower() if plan_details.branch_policy else ''
+    if not policy_raw:
+        return issues
+
+    if policy_raw == 'main-only':
+        if branch != 'main':
+            issues.append(ValidationIssue(Path('git'), f'Branch policy is main-only but current branch is {branch}'))
+        return issues
+
+    allowed_ids = {task_id.strip() for task_id in plan_details.task_ids if task_id.strip()}
+    prefixes = ('feat', 'feature', 'task', 'fix')
+    branch_ok = False
+    for prefix in prefixes:
+        if branch.startswith(f'{prefix}/'):
+            remainder = branch.split('/', 1)[1]
+            candidate_id = extract_task_id_slug(remainder)
+            if candidate_id and candidate_id in allowed_ids:
+                branch_ok = True
+                break
+
+    if not branch_ok:
+        # allow explicit branch names by matching policy string exactly
+        if policy_raw != 'feature-required' and branch == plan_details.branch_policy:
+            branch_ok = True
+
+    if not branch_ok:
+        if allowed_ids:
+            expected = ', '.join(sorted(allowed_ids))
+            message = f'Branch {branch} does not match expected Task IDs ({expected}) for policy {plan_details.branch_policy}'
+        else:
+            message = f'Branch {branch} does not satisfy branch policy {plan_details.branch_policy}'
+        issues.append(ValidationIssue(Path('git'), message))
+
+    return issues
+
+
+def validate_emergency_bypass(plan_details: PlanDetails) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    if not plan_details.emergency_bypass:
+        return issues
+
+    tracker_path = get_active_tracker_path()
+    try:
+        tracker_text = tracker_path.read_text(encoding='utf-8')
+    except FileNotFoundError:
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Tracker file missing for emergency bypass validation'))
+        return issues
+
+    markers = ('plan compliance waived', 'emergency bypass', 'plan-step-emergency')
+    lower = tracker_text.lower()
+    if not any(marker in lower for marker in markers):
+        issues.append(ValidationIssue(tracker_path.relative_to(REPO_ROOT), 'Emergency bypass declared but tracker lacks waiver/remediation note'))
+    return issues
+
+
+def has_date_command(text: str) -> bool:
+    return bool(DATE_COMMAND_PATTERN.search(text))
+
+
+def validate_session_timestamps(relative_path: Path, text: str, metadata: Dict[str, object]) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    raw_expected_date = metadata.get('date')
+    expected_date = str(raw_expected_date) if raw_expected_date is not None else None
+    try:
+        absolute_path = (REPO_ROOT / relative_path).resolve()
+    except FileNotFoundError:
+        absolute_path = None
+    is_current_session = CURRENT_SESSION_PATH is not None and absolute_path == CURRENT_SESSION_PATH
+
+    if expected_date is None:
+        issues.append(ValidationIssue(relative_path, 'Session front matter missing date field'))
+    else:
+        raw_session_id = metadata.get('session_id')
+        session_id = str(raw_session_id) if raw_session_id is not None else None
+        if session_id and not session_id.startswith(expected_date):
+            issues.append(ValidationIssue(relative_path, f"Session date {expected_date} mismatches session_id {session_id}"))
+        if is_current_session and expected_date != TODAY_ISO:
+            issues.append(ValidationIssue(relative_path, f"Current session date {expected_date} does not match today's date {TODAY_ISO}"))
+
+    matches = list(SESSION_TIMESTAMP_PATTERN.finditer(text))
+    if not matches:
+        return issues
+
+    minutes: List[int] = []
+    for match in matches:
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        if hour >= 24 or minute >= 60:
+            issues.append(ValidationIssue(relative_path, 'Session timestamp uses invalid time component', match.group(0)))
+            continue
+        minutes.append(hour * 60 + minute)
+
+    for prev, curr, entry in zip(minutes, minutes[1:], matches[1:]):
+        if curr < prev:
+            issues.append(ValidationIssue(relative_path, 'Session timestamps must be non-decreasing', entry.group(0)))
+            break
+
+    if not has_date_command(text):
+        issues.append(ValidationIssue(relative_path, 'Session missing date command entry (expected E:cmd`date ...` before timestamp edits)'))
+
+    return issues
+
+
+def validate_tracker_timestamps(relative_path: Path, text: str) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    last_updated_match = LAST_UPDATED_PATTERN.search(text)
+    if last_updated_match is None:
+        issues.append(ValidationIssue(relative_path, 'Tracker missing **Last Updated** field'))
+    elif last_updated_match.group(1) != TODAY_ISO:
+        issues.append(ValidationIssue(relative_path, f"Tracker Last Updated {last_updated_match.group(1)} does not match today's date {TODAY_ISO}"))
+
+    matches = list(TRACKER_TIMESTAMP_PATTERN.finditer(text))
+    if not matches:
+        return issues
+
+    previous: Optional[datetime] = None
+    for match in matches:
+        ts = datetime.strptime(f"{match.group(1)} {match.group(2)}:{match.group(3)}", "%Y-%m-%d %H:%M")
+        if previous and ts < previous:
+            issues.append(ValidationIssue(relative_path, 'Tracker progress log must be chronological (new entries at end)', match.group(0)))
+            break
+        previous = ts
+
+    if not has_date_command(text):
+        issues.append(ValidationIssue(relative_path, 'Tracker missing recorded `date` command entry for timestamp updates'))
+
+    return issues
+
+
+def validate_changelog(relative_path: Path, text: str) -> List[ValidationIssue]:
+    issues: List[ValidationIssue] = []
+    date_strings = CHANGELOG_ROW_PATTERN.findall(text)
+    if not date_strings:
+        return issues
+
+    dates = [datetime.strptime(value, "%Y-%m-%d").date() for value in date_strings]
+    if dates != sorted(dates, reverse=True):
+        issues.append(ValidationIssue(relative_path, 'Changelog entries must be in reverse chronological order (newest first)'))
+    return issues
+
+
+def validate_timestamp_policy(relative_path: Path, text: str, metadata: Dict[str, object]) -> List[ValidationIssue]:
+    parts = relative_path.parts
+    if parts[0] == 'sessions':
+        return validate_session_timestamps(relative_path, text, metadata)
+    if (
+        len(parts) >= 6
+        and parts[0] == 'docs'
+        and parts[1] == 'ai'
+        and parts[2] == 'work-tracking'
+        and parts[3] == 'active'
+        and parts[-1] == 'TRACKER.md'
+    ):
+        return validate_tracker_timestamps(relative_path, text)
+    if (
+        len(parts) >= 6
+        and parts[0] == 'docs'
+        and parts[1] == 'ai'
+        and parts[2] == 'work-tracking'
+        and parts[3] == 'active'
+        and parts[-1] == 'CHANGELOG.md'
+    ):
+        return validate_changelog(relative_path, text)
+    return []
+
+
+def is_active_tracker_path(relative_path: Path) -> bool:
+    parts = relative_path.parts
+    return (
+        len(parts) >= len(WORK_TRACKING_RELATIVE.parts) + 2
+        and tuple(parts[: len(WORK_TRACKING_RELATIVE.parts)]) == WORK_TRACKING_RELATIVE.parts
+        and parts[-1] == "TRACKER.md"
+        and parts[len(WORK_TRACKING_RELATIVE.parts)].endswith("-ACTIVE")
+    )
+
+
+def build_tracker_last_updated_fix(relative_path: Path, text: str) -> Optional[GuardFix]:
+    if not is_active_tracker_path(relative_path):
+        return None
+
+    target = f"**Last Updated**: {TODAY_ISO}"
+    match = LAST_UPDATED_PATTERN.search(text)
+    if match:
+        current = match.group(0)
+        if current == target:
+            return None
+        new_text = f"{text[:match.start()]}{target}{text[match.end():]}"
+        return GuardFix(
+            kind="tracker-last-updated",
+            path=relative_path,
+            description="Update active tracker Last Updated metadata to today's date",
+            before=current,
+            after=target,
+            new_text=new_text,
+        )
+
+    lines = text.splitlines(keepends=True)
+    insert_at: Optional[int] = None
+    for index, line in enumerate(lines[:12]):
+        if line.startswith("**Status**:"):
+            insert_at = index + 1
+            break
+    if insert_at is None:
+        for index, line in enumerate(lines[:12]):
+            if line.startswith("**Started**:"):
+                insert_at = index + 1
+                break
+    if insert_at is None:
+        return None
+
+    lines.insert(insert_at, f"{target}\n")
+    return GuardFix(
+        kind="tracker-last-updated",
+        path=relative_path,
+        description="Insert active tracker Last Updated metadata with today's date",
+        before="",
+        after=target,
+        new_text="".join(lines),
+    )
+
+
+def collect_auto_fixes(changed_files: Iterable[Path], selected_kinds: Optional[Set[str]] = None) -> List[GuardFix]:
+    fixes: List[GuardFix] = []
+    selected = selected_kinds or SUPPORTED_FIX_KINDS
+    if "tracker-last-updated" not in selected:
+        return fixes
+
+    for file_path in changed_files:
+        try:
+            relative_path = file_path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative_path) or not is_active_tracker_path(relative_path):
+            continue
+        try:
+            text = file_path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue
+        fix = build_tracker_last_updated_fix(relative_path, text)
+        if fix is not None:
+            fixes.append(fix)
+    return fixes
+
+
+def render_fix_preview(fixes: Sequence[GuardFix]) -> None:
+    if not fixes:
+        print("Guard auto-fix preview: no supported fixes available.")
+        return
+    print("Guard auto-fix preview:")
+    for fix in fixes:
+        print(f"  - {fix.render_preview()}")
+
+
+def apply_auto_fixes(fixes: Sequence[GuardFix], history_path: Optional[Path]) -> None:
+    applied_at = datetime.now().astimezone().isoformat()
+    for fix in fixes:
+        target = REPO_ROOT / fix.path
+        target.write_text(fix.new_text, encoding="utf-8")
+
+    if history_path is None or not fixes:
+        return
+
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    with history_path.open("a", encoding="utf-8") as handle:
+        for fix in fixes:
+            payload = {
+                "applied_at": applied_at,
+                "kind": fix.kind,
+                "path": fix.path.as_posix(),
+                "description": fix.description,
+                "before": fix.before,
+                "after": fix.after,
+            }
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
+def evaluate_file(path: Path) -> List[ValidationIssue]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return []
+
+    metadata: Dict[str, object] = {}
+    relative_path = path.relative_to(REPO_ROOT)
+    issues: List[ValidationIssue] = []
+    if relative_path.parts[0] == "sessions":
+        try:
+            metadata = parse_front_matter_text(text)
+        except FrontmatterParseError as exc:
+            issues.append(ValidationIssue(relative_path, f"Session front matter is invalid: {exc}"))
+    expected_session = derive_expected_session(metadata)
+
+    if relative_path.parts and relative_path.parts[0] == "templates":
+        for token, hint in find_legacy_monolith_references(text):
+            issues.append(ValidationIssue(relative_path, f"Legacy monolith reference '{token}' detected", hint))
+        issues.extend(validate_template_metadata(relative_path, text))
+        issues.extend(validate_gac_guidance(relative_path, text))
+
+    issues.extend(validate_swhe_entries(relative_path, text, expected_session))
+    issues.extend(validate_timestamp_policy(relative_path, text, metadata))
+    return issues
+
+
+def iter_repo_markdown_files() -> List[Path]:
+    skipped_roots = {".git", ".venv", "venv", "node_modules", "__pycache__"}
+    files: List[Path] = []
+    for path in REPO_ROOT.rglob("*.md"):
+        if not path.is_file():
+            continue
+        try:
+            relative = path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if any(part in skipped_roots for part in relative.parts):
+            continue
+        files.append(path)
+    return sorted(files)
+
+
+def collect_template_metadata_drift() -> List[DriftFinding]:
+    findings: List[DriftFinding] = []
+    for path in iter_repo_markdown_files():
+        relative = path.relative_to(REPO_ROOT)
+        if should_ignore_relative(relative):
+            continue
+        if select_template_metadata_rule(relative) is None:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            continue
+        for issue in validate_template_metadata(relative, text):
+            findings.append(
+                DriftFinding(
+                    category="template-metadata",
+                    path=issue.path,
+                    message=issue.message,
+                    blocking=True,
+                    detail=issue.entry,
+                )
+            )
+    return findings
+
+
+def collect_canonical_doc_drift() -> List[DriftFinding]:
+    findings: List[DriftFinding] = []
+    canonical_docs = sorted(GAC_RESPONSE_MODE_DOCS | GAC_SUMMARY_DOCS)
+    for relative in canonical_docs:
+        absolute = REPO_ROOT / relative
+        if not absolute.exists():
+            findings.append(
+                DriftFinding(
+                    category="canonical-doc",
+                    path=relative,
+                    message="Canonical guidance document is missing",
+                    blocking=True,
+                )
+            )
+            continue
+        try:
+            text = absolute.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            findings.append(
+                DriftFinding(
+                    category="canonical-doc",
+                    path=relative,
+                    message="Canonical guidance document could not be read",
+                    blocking=True,
+                )
+            )
+            continue
+        for issue in validate_gac_guidance(relative, text):
+            findings.append(
+                DriftFinding(
+                    category="canonical-doc",
+                    path=issue.path,
+                    message=issue.message,
+                    blocking=True,
+                    detail=issue.entry,
+                )
+            )
+    return findings
+
+
+def get_guard_subcommand_names(parser: argparse.ArgumentParser) -> Set[str]:
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return set(action.choices.keys())
+    return set()
+
+
+def collect_command_surface_drift() -> List[DriftFinding]:
+    parser = build_parser()
+    commands = get_guard_subcommand_names(parser)
+    findings: List[DriftFinding] = []
+    for command in sorted(DRIFT_REQUIRED_GUARD_COMMANDS - commands):
+        findings.append(
+            DriftFinding(
+                category="command-surface",
+                path=Path("scripts/codex-guard"),
+                message=f"Required guard subcommand '{command}' is missing from the live command surface",
+                blocking=True,
+            )
+        )
+    return findings
+
+
+def collect_drift_findings() -> List[DriftFinding]:
+    findings = []
+    findings.extend(collect_canonical_doc_drift())
+    findings.extend(collect_template_metadata_drift())
+    findings.extend(collect_command_surface_drift())
+    return sorted(findings, key=lambda item: (item.category, item.path.as_posix(), item.message))
+
+
+def render_drift_report(findings: List[DriftFinding], generated_at: str) -> str:
+    lines = [
+        "Template drift report",
+        "",
+        f"Generated: {generated_at}",
+        f"Findings: {len(findings)}",
+        "",
+    ]
+    if not findings:
+        lines.append("No drift findings detected.")
+        return "\n".join(lines) + "\n"
+
+    counts: Dict[str, int] = {}
+    for finding in findings:
+        counts[finding.category] = counts.get(finding.category, 0) + 1
+
+    lines.append("Counts by category:")
+    for category in sorted(counts):
+        lines.append(f"- {category}: {counts[category]}")
+    lines.append("")
+    lines.append("Findings:")
+    for finding in findings:
+        level = "blocking" if finding.blocking else "warning"
+        line = f"- [{finding.category}] [{level}] {finding.path.as_posix()} — {finding.message}"
+        lines.append(line)
+        if finding.detail:
+            lines.append(f"  detail: {finding.detail}")
+    return "\n".join(lines) + "\n"
+
+
+def _resolve_output_path(raw: Optional[str]) -> Optional[Path]:
+    if not raw:
+        return None
+    path = Path(raw)
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def determine_drift_output_paths(args: argparse.Namespace, timestamp: str) -> Tuple[Optional[Path], Optional[Path]]:
+    report_dir = _resolve_output_path(args.report_dir)
+    if report_dir:
+        report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = _resolve_output_path(args.report)
+    json_path = _resolve_output_path(args.json_out)
+    if report_path is None and report_dir is not None:
+        report_path = report_dir / f"summary-{timestamp}.txt"
+    if json_path is None and report_dir is not None:
+        json_path = report_dir / f"summary-{timestamp}.json"
+    return report_path, json_path
+
+
+def guard_drift_check(args: argparse.Namespace) -> int:
+    now = datetime.now().astimezone()
+    generated_at = now.isoformat()
+    timestamp = now.strftime("%Y%m%d-%H%M%S")
+    findings = collect_drift_findings()
+    report_text = render_drift_report(findings, generated_at)
+    sys.stdout.write(report_text)
+
+    report_path, json_path = determine_drift_output_paths(args, timestamp)
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(report_text, encoding="utf-8")
+        print(f"Saved text report to {report_path.relative_to(REPO_ROOT)}")
+    if json_path is not None:
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "generated_at": generated_at,
+            "finding_count": len(findings),
+            "categories": sorted({finding.category for finding in findings}),
+            "findings": [finding.to_dict() for finding in findings],
+        }
+        json_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        print(f"Saved JSON report to {json_path.relative_to(REPO_ROOT)}")
+
+    if args.strict and findings:
+        return 1
+    return 0
+
+
+def collect_validation_issues(include_untracked: bool) -> Tuple[List[ValidationIssue], List[Path]]:
+    entries = collect_git_status_entries(include_untracked)
+    changed_files = compute_changed_files(entries, include_untracked)
+    baseline_issues: List[ValidationIssue] = []
+    baseline_issues.extend(validate_session_state(entries, changed_files))
+    baseline_issues.extend(validate_runtime_artifacts(changed_files))
+    baseline_issues.extend(validate_taskmaster_activity(changed_files))
+    baseline_issues.extend(validate_active_folder_edits(changed_files))
+    baseline_issues.extend(validate_session_edit_dates(changed_files))
+    baseline_issues.extend(detect_tracked_active_deletions(entries))
+    folder_name_issues = validate_work_tracking_folder_names(entries)
+
+    relevant: List[Path] = []
+    active_folders: Set[Path] = set()
+    for file_path in changed_files:
+        try:
+            relative = file_path.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        if should_ignore_relative(relative):
+            continue
+        if relative.suffix != ".md":
+            continue
+        if relative.parts[0] == "sessions":
+            relevant.append(file_path)
+        elif relative.parts[0] == "templates":
+            relevant.append(file_path)
+        elif (
+            len(relative.parts) >= len(WORK_TRACKING_RELATIVE.parts) + 1
+            and tuple(relative.parts[: len(WORK_TRACKING_RELATIVE.parts)]) == WORK_TRACKING_RELATIVE.parts
+        ):
+            active_folder = REPO_ROOT.joinpath(*relative.parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
+            active_folders.add(active_folder)
+            if relative.name in GUARDED_WORKTRACKING_FILES:
+                relevant.append(file_path)
+
+    if not relevant and not baseline_issues and not folder_name_issues and not active_folders:
+        return [], changed_files
+
+    all_issues: List[ValidationIssue] = []
+    all_issues.extend(baseline_issues)
+    all_issues.extend(folder_name_issues)
+    for folder in sorted(active_folders):
+        all_issues.extend(validate_work_tracking_documents(folder))
+    for candidate in relevant:
+        all_issues.extend(evaluate_file(candidate))
+
+    plan_path = resolve_plan_path()
+    if plan_path is None:
+        if not is_between_sessions_state():
+            all_issues.append(ValidationIssue(Path(PLAN_CURRENT_REL), 'Active plan symlink missing or invalid'))
+    else:
+        plan_issues, plan_details = validate_plan(plan_path)
+        all_issues.extend(plan_issues)
+        if plan_details:
+            all_issues.extend(validate_tracker_alignment(plan_details.steps))
+            all_issues.extend(validate_plan_sync(plan_path, plan_details))
+            all_issues.extend(validate_plan_conflicts(plan_path, plan_details))
+            all_issues.extend(validate_branch_policy(plan_details))
+            all_issues.extend(validate_emergency_bypass(plan_details))
+            all_issues.extend(validate_continuation_requirements(plan_details))
+
+    return all_issues, changed_files
+
+
+def render_validation_issues(issues: Sequence[ValidationIssue], *, heading: str = "Guard validation failed:") -> None:
+    print(heading)
+    for issue in issues:
+        print(f"  - {issue.render()}")
+    hints = sorted({issue.entry for issue in issues if issue.entry})
+    if hints:
+        print('\nHints:')
+        for hint in hints:
+            print(f"  * {hint}")
+        print(f'\nReminder: run `python3 scripts/codex-task plan sync` after addressing fixes and store guard logs under {CONTINUATION_GUARD_REL}/.')
+        print('For CI enforcement see .github/workflows/meta-workflow-guard.yml.')
+
+
+def guard_validate(args: argparse.Namespace) -> int:
+    all_issues, changed_files = collect_validation_issues(args.include_untracked)
+
+    if all_issues:
+        selected_kinds = set(args.fix_kind or [])
+        fixes = collect_auto_fixes(changed_files, selected_kinds or None)
+        if args.fix_preview or args.auto_fix:
+            render_fix_preview(fixes)
+            if args.fix_preview and not args.auto_fix:
+                render_validation_issues(all_issues)
+                return 1
+
+        if args.auto_fix and fixes:
+            history_path = _resolve_output_path(args.fix_history)
+            apply_auto_fixes(fixes, history_path)
+            print(f"Applied {len(fixes)} guard auto-fix(es).")
+            post_issues, _changed_files = collect_validation_issues(args.include_untracked)
+            if not post_issues:
+                print("Guard validation passed after auto-fix.")
+                return 0
+            render_validation_issues(post_issues, heading="Guard validation failed after auto-fix:")
+            return 1
+
+        render_validation_issues(all_issues)
+        return 1
+
+    print("Guard validation passed: all S:W:H:E entries look compliant.")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Codex diff-aware guard")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    validate_parser = subparsers.add_parser("validate", help="Validate S:W:H:E compliance in changed files")
+    validate_parser.add_argument("--include-untracked", action="store_true", help="Include untracked markdown files")
+    validate_parser.add_argument("--fix-preview", action="store_true", help="Preview supported auto-fixes without modifying files")
+    validate_parser.add_argument("--auto-fix", action="store_true", help="Apply supported auto-fixes and rerun validation")
+    validate_parser.add_argument("--fix-kind", action="append", choices=sorted(SUPPORTED_FIX_KINDS), help="Limit auto-fix to a supported fix kind; repeat for multiple kinds")
+    validate_parser.add_argument("--fix-history", default=DEFAULT_FIX_HISTORY, help="JSONL file for applied auto-fix history")
+    validate_parser.set_defaults(func=guard_validate)
+
+    drift_parser = subparsers.add_parser("drift-check", help="Scan canonical docs and templates for enforcement drift")
+    drift_parser.add_argument("--report-dir", default=REPO_STRUCTURE.drift_report_dir.relative_to(REPO_ROOT).as_posix(), help="Directory for generated drift reports")
+    drift_parser.add_argument("--report", help="Optional explicit text report output path")
+    drift_parser.add_argument("--json-out", help="Optional explicit JSON report output path")
+    drift_parser.add_argument("--strict", action="store_true", help="Exit nonzero when drift findings are present")
+    drift_parser.set_defaults(func=guard_drift_check)
+
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

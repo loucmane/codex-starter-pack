@@ -1,0 +1,258 @@
+Building source distribution...
+running egg_info
+creating aegis_foundation.egg-info
+writing aegis_foundation.egg-info/PKG-INFO
+writing dependency_links to aegis_foundation.egg-info/dependency_links.txt
+writing entry points to aegis_foundation.egg-info/entry_points.txt
+writing requirements to aegis_foundation.egg-info/requires.txt
+writing top-level names to aegis_foundation.egg-info/top_level.txt
+writing manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+reading manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+writing manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+running sdist
+running egg_info
+writing aegis_foundation.egg-info/PKG-INFO
+writing dependency_links to aegis_foundation.egg-info/dependency_links.txt
+writing entry points to aegis_foundation.egg-info/entry_points.txt
+writing requirements to aegis_foundation.egg-info/requires.txt
+writing top-level names to aegis_foundation.egg-info/top_level.txt
+reading manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+writing manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+running check
+creating aegis_foundation-0.1.0
+creating aegis_foundation-0.1.0/aegis_foundation
+creating aegis_foundation-0.1.0/aegis_foundation.egg-info
+creating aegis_foundation-0.1.0/aegis_foundation/assets
+creating aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts
+creating aegis_foundation-0.1.0/aegis_foundation/assets/docs/aegis
+creating aegis_foundation-0.1.0/aegis_foundation/assets/schemas/aegis
+creating aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+creating aegis_foundation-0.1.0/aegis_foundation/assets/templates/registry
+creating aegis_foundation-0.1.0/aegis_mcp
+creating aegis_foundation-0.1.0/scripts
+copying files to aegis_foundation-0.1.0...
+copying MANIFEST.in -> aegis_foundation-0.1.0
+copying README.md -> aegis_foundation-0.1.0
+copying pyproject.toml -> aegis_foundation-0.1.0
+copying aegis_foundation/__init__.py -> aegis_foundation-0.1.0/aegis_foundation
+copying aegis_foundation/cli.py -> aegis_foundation-0.1.0/aegis_foundation
+copying aegis_foundation/resources.py -> aegis_foundation-0.1.0/aegis_foundation
+copying aegis_foundation/version.py -> aegis_foundation-0.1.0/aegis_foundation
+copying aegis_foundation.egg-info/PKG-INFO -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+copying aegis_foundation.egg-info/SOURCES.txt -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+copying aegis_foundation.egg-info/dependency_links.txt -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+copying aegis_foundation.egg-info/entry_points.txt -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+copying aegis_foundation.egg-info/requires.txt -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+copying aegis_foundation.egg-info/top_level.txt -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+copying aegis_foundation/assets/CODEX.md -> aegis_foundation-0.1.0/aegis_foundation/assets
+copying aegis_foundation/assets/.claude/scripts/bash-command-guard.sh -> aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/codex-path-guard.sh -> aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/gate_lib.py -> aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh -> aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/readiness.sh -> aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/docs/aegis/invocation-contract.md -> aegis_foundation-0.1.0/aegis_foundation/assets/docs/aegis
+copying aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json -> aegis_foundation-0.1.0/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/install-plan.schema.json -> aegis_foundation-0.1.0/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/profile.schema.json -> aegis_foundation-0.1.0/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/scripts/_aegis_installer.py -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/_repo_structure.py -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/codex-guard -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/codex-task -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_governance.py -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_registry.py -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_versioning.py -> aegis_foundation-0.1.0/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json -> aegis_foundation-0.1.0/aegis_foundation/assets/templates/registry
+copying aegis_mcp/__init__.py -> aegis_foundation-0.1.0/aegis_mcp
+copying aegis_mcp/server.py -> aegis_foundation-0.1.0/aegis_mcp
+copying scripts/__init__.py -> aegis_foundation-0.1.0/scripts
+copying scripts/_aegis_installer.py -> aegis_foundation-0.1.0/scripts
+copying scripts/_repo_structure.py -> aegis_foundation-0.1.0/scripts
+copying scripts/template_governance.py -> aegis_foundation-0.1.0/scripts
+copying scripts/template_lifecycle.py -> aegis_foundation-0.1.0/scripts
+copying scripts/template_registry.py -> aegis_foundation-0.1.0/scripts
+copying scripts/template_testing.py -> aegis_foundation-0.1.0/scripts
+copying scripts/template_versioning.py -> aegis_foundation-0.1.0/scripts
+copying aegis_foundation.egg-info/SOURCES.txt -> aegis_foundation-0.1.0/aegis_foundation.egg-info
+Writing aegis_foundation-0.1.0/setup.cfg
+Creating tar archive
+removing 'aegis_foundation-0.1.0' (and everything under it)
+Building wheel...
+running egg_info
+writing aegis_foundation.egg-info/PKG-INFO
+writing dependency_links to aegis_foundation.egg-info/dependency_links.txt
+writing entry points to aegis_foundation.egg-info/entry_points.txt
+writing requirements to aegis_foundation.egg-info/requires.txt
+writing top-level names to aegis_foundation.egg-info/top_level.txt
+reading manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+writing manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+running bdist_wheel
+running build
+running build_py
+creating build/lib/aegis_mcp
+copying aegis_mcp/__init__.py -> build/lib/aegis_mcp
+copying aegis_mcp/server.py -> build/lib/aegis_mcp
+creating build/lib/aegis_foundation
+copying aegis_foundation/cli.py -> build/lib/aegis_foundation
+copying aegis_foundation/resources.py -> build/lib/aegis_foundation
+copying aegis_foundation/version.py -> build/lib/aegis_foundation
+copying aegis_foundation/__init__.py -> build/lib/aegis_foundation
+creating build/lib/scripts
+copying scripts/template_governance.py -> build/lib/scripts
+copying scripts/_aegis_installer.py -> build/lib/scripts
+copying scripts/_repo_structure.py -> build/lib/scripts
+copying scripts/template_testing.py -> build/lib/scripts
+copying scripts/template_lifecycle.py -> build/lib/scripts
+copying scripts/__init__.py -> build/lib/scripts
+copying scripts/template_versioning.py -> build/lib/scripts
+copying scripts/template_registry.py -> build/lib/scripts
+creating build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_governance.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/_aegis_installer.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/_repo_structure.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_versioning.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_registry.py -> build/lib/aegis_foundation/assets/scripts
+running egg_info
+writing aegis_foundation.egg-info/PKG-INFO
+writing dependency_links to aegis_foundation.egg-info/dependency_links.txt
+writing entry points to aegis_foundation.egg-info/entry_points.txt
+writing requirements to aegis_foundation.egg-info/requires.txt
+writing top-level names to aegis_foundation.egg-info/top_level.txt
+reading manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+writing manifest file 'aegis_foundation.egg-info/SOURCES.txt'
+copying aegis_foundation/assets/CODEX.md -> build/lib/aegis_foundation/assets
+creating build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/codex-path-guard.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/gate_lib.py -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/bash-command-guard.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/readiness.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+creating build/lib/aegis_foundation/assets/docs/aegis
+copying aegis_foundation/assets/docs/aegis/invocation-contract.md -> build/lib/aegis_foundation/assets/docs/aegis
+creating build/lib/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/profile.schema.json -> build/lib/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/install-plan.schema.json -> build/lib/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json -> build/lib/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/scripts/codex-task -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_governance.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/_aegis_installer.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/_repo_structure.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/codex-guard -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_versioning.py -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/template_registry.py -> build/lib/aegis_foundation/assets/scripts
+creating build/lib/aegis_foundation/assets/templates/registry
+copying aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json -> build/lib/aegis_foundation/assets/templates/registry
+copying aegis_foundation/assets/CODEX.md -> build/lib/aegis_foundation/assets
+copying aegis_foundation/assets/.claude/scripts/bash-command-guard.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/codex-path-guard.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/gate_lib.py -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/.claude/scripts/readiness.sh -> build/lib/aegis_foundation/assets/.claude/scripts
+copying aegis_foundation/assets/scripts/codex-guard -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/scripts/codex-task -> build/lib/aegis_foundation/assets/scripts
+copying aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json -> build/lib/aegis_foundation/assets/templates/registry
+copying aegis_foundation/assets/docs/aegis/invocation-contract.md -> build/lib/aegis_foundation/assets/docs/aegis
+copying aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json -> build/lib/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/install-plan.schema.json -> build/lib/aegis_foundation/assets/schemas/aegis
+copying aegis_foundation/assets/schemas/aegis/profile.schema.json -> build/lib/aegis_foundation/assets/schemas/aegis
+warning: build_py: byte-compiling is disabled, skipping.
+
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/aegis_mcp
+copying build/lib/aegis_mcp/__init__.py -> build/bdist.linux-x86_64/wheel/./aegis_mcp
+copying build/lib/aegis_mcp/server.py -> build/bdist.linux-x86_64/wheel/./aegis_mcp
+creating build/bdist.linux-x86_64/wheel/aegis_foundation
+copying build/lib/aegis_foundation/cli.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation
+copying build/lib/aegis_foundation/resources.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation
+copying build/lib/aegis_foundation/version.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets
+copying build/lib/aegis_foundation/assets/CODEX.md -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/templates
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/templates/registry
+copying build/lib/aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/templates/registry
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/.claude
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/.claude/scripts
+copying build/lib/aegis_foundation/assets/.claude/scripts/codex-path-guard.sh -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/.claude/scripts
+copying build/lib/aegis_foundation/assets/.claude/scripts/gate_lib.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/.claude/scripts
+copying build/lib/aegis_foundation/assets/.claude/scripts/bash-command-guard.sh -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/.claude/scripts
+copying build/lib/aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/.claude/scripts
+copying build/lib/aegis_foundation/assets/.claude/scripts/readiness.sh -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/.claude/scripts
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/docs
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/docs/aegis
+copying build/lib/aegis_foundation/assets/docs/aegis/invocation-contract.md -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/docs/aegis
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/codex-task -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/template_governance.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/_aegis_installer.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/_repo_structure.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/codex-guard -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/template_versioning.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+copying build/lib/aegis_foundation/assets/scripts/template_registry.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/scripts
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/schemas
+creating build/bdist.linux-x86_64/wheel/aegis_foundation/assets/schemas/aegis
+copying build/lib/aegis_foundation/assets/schemas/aegis/profile.schema.json -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/schemas/aegis
+copying build/lib/aegis_foundation/assets/schemas/aegis/install-plan.schema.json -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/schemas/aegis
+copying build/lib/aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json -> build/bdist.linux-x86_64/wheel/./aegis_foundation/assets/schemas/aegis
+copying build/lib/aegis_foundation/__init__.py -> build/bdist.linux-x86_64/wheel/./aegis_foundation
+creating build/bdist.linux-x86_64/wheel/scripts
+copying build/lib/scripts/template_governance.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/_aegis_installer.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/_repo_structure.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/template_testing.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/template_lifecycle.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/__init__.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/template_versioning.py -> build/bdist.linux-x86_64/wheel/./scripts
+copying build/lib/scripts/template_registry.py -> build/bdist.linux-x86_64/wheel/./scripts
+warning: install_lib: byte-compiling is disabled, skipping.
+
+running install_egg_info
+Copying aegis_foundation.egg-info to build/bdist.linux-x86_64/wheel/./aegis_foundation-0.1.0-py3.12.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/aegis_foundation-0.1.0.dist-info/WHEEL
+creating '/tmp/aegis-release-hardening-dist-package-assets/.tmp-3oto90rp/aegis_foundation-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'aegis_foundation/__init__.py'
+adding 'aegis_foundation/cli.py'
+adding 'aegis_foundation/resources.py'
+adding 'aegis_foundation/version.py'
+adding 'aegis_foundation/assets/CODEX.md'
+adding 'aegis_foundation/assets/.claude/scripts/bash-command-guard.sh'
+adding 'aegis_foundation/assets/.claude/scripts/codex-path-guard.sh'
+adding 'aegis_foundation/assets/.claude/scripts/gate_lib.py'
+adding 'aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh'
+adding 'aegis_foundation/assets/.claude/scripts/readiness.sh'
+adding 'aegis_foundation/assets/docs/aegis/invocation-contract.md'
+adding 'aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json'
+adding 'aegis_foundation/assets/schemas/aegis/install-plan.schema.json'
+adding 'aegis_foundation/assets/schemas/aegis/profile.schema.json'
+adding 'aegis_foundation/assets/scripts/_aegis_installer.py'
+adding 'aegis_foundation/assets/scripts/_repo_structure.py'
+adding 'aegis_foundation/assets/scripts/codex-guard'
+adding 'aegis_foundation/assets/scripts/codex-task'
+adding 'aegis_foundation/assets/scripts/template_governance.py'
+adding 'aegis_foundation/assets/scripts/template_registry.py'
+adding 'aegis_foundation/assets/scripts/template_versioning.py'
+adding 'aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json'
+adding 'aegis_mcp/__init__.py'
+adding 'aegis_mcp/server.py'
+adding 'scripts/__init__.py'
+adding 'scripts/_aegis_installer.py'
+adding 'scripts/_repo_structure.py'
+adding 'scripts/template_governance.py'
+adding 'scripts/template_lifecycle.py'
+adding 'scripts/template_registry.py'
+adding 'scripts/template_testing.py'
+adding 'scripts/template_versioning.py'
+adding 'aegis_foundation-0.1.0.dist-info/METADATA'
+adding 'aegis_foundation-0.1.0.dist-info/WHEEL'
+adding 'aegis_foundation-0.1.0.dist-info/entry_points.txt'
+adding 'aegis_foundation-0.1.0.dist-info/top_level.txt'
+adding 'aegis_foundation-0.1.0.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Successfully built /tmp/aegis-release-hardening-dist-package-assets/aegis_foundation-0.1.0.tar.gz
+Successfully built /tmp/aegis-release-hardening-dist-package-assets/aegis_foundation-0.1.0-py3-none-any.whl
