@@ -39,6 +39,7 @@ RELEASE_POLICY_DOC = REPO_ROOT / "docs" / "aegis" / "release-policy.md"
 UPDATE_ROLLBACK_DOC = REPO_ROOT / "docs" / "aegis" / "update-rollback.md"
 CI_INSTALL_TEMPLATES_DOC = REPO_ROOT / "docs" / "aegis" / "ci-install-templates.md"
 RELEASE_VERIFICATION_MATRIX_DOC = REPO_ROOT / "docs" / "aegis" / "release-verification-matrix.md"
+MCP_CLIENT_SETUP_DOC = REPO_ROOT / "docs" / "aegis" / "mcp-client-setup.md"
 
 
 async def _run_wheel_mcp_stdio_smoke(
@@ -268,6 +269,7 @@ def test_packaged_asset_bundle_contains_required_runtime_assets() -> None:
         "docs/aegis/update-rollback.md",
         "docs/aegis/ci-install-templates.md",
         "docs/aegis/release-verification-matrix.md",
+        "docs/aegis/mcp-client-setup.md",
         "templates/registry/agent-compatibility-matrix.json",
     }
 
@@ -322,6 +324,34 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
     assert "docs/aegis/update-rollback.md" in text
     assert "docs/aegis/ci-install-templates.md" in text
     assert "docs/aegis/release-verification-matrix.md" in text
+    assert "docs/aegis/mcp-client-setup.md" in text
+
+
+def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> None:
+    text = MCP_CLIENT_SETUP_DOC.read_text(encoding="utf-8")
+    asset_text = (
+        REPO_ROOT
+        / "aegis_foundation"
+        / "assets"
+        / "docs"
+        / "aegis"
+        / "mcp-client-setup.md"
+    ).read_text(encoding="utf-8")
+
+    assert asset_text == text
+    for snippet in (
+        "Task 114 validates local wheel and sdist artifacts",
+        "GitHub release artifacts",
+        "PyPI publication is a later explicit release task",
+        "[mcp_servers.aegis]",
+        '"mcpServers"',
+        '"name": "aegis"',
+        "uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --transport stdio",
+        "aegis-foundation==0.1.0",
+        '"asset_origin": "package"',
+        "stdio tool/resource/prompt discovery",
+    ):
+        assert snippet in text
 
 
 def test_release_policy_docs_cover_update_rollback_and_signing() -> None:

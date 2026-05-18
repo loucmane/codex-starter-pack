@@ -5611,13 +5611,94 @@
           }
         ],
         "updatedAt": "2026-05-17T20:19:42.884Z"
+      },
+      {
+        "id": "114",
+        "title": "Aegis MCP Release Candidate Validation",
+        "description": "Validate the packaged Aegis CLI and MCP server as a release candidate from clean external projects, proving install, startup, discovery, inspect, plan, install, verify, and documentation paths without relying on repository-local execution.",
+        "details": "Scope:\n- Build wheel/sdist from main and treat the artifacts as release candidates.\n- Install the candidate into clean temporary projects using local artifact paths and documented uvx/pipx-style commands.\n- Start aegis-mcp-server from the installed artifact outside the repository and verify MCP tools, resources, and prompts are discoverable.\n- Use the installed MCP/CLI surfaces to inspect, plan-install, install, status, and verify Aegis in clean target repositories.\n- Produce user-facing setup instructions for Codex, Claude, and generic MCP clients.\n- Decide and document the first release channel: GitHub artifact, TestPyPI, PyPI, or git/uvx source install.\n- Capture all evidence under the task work-tracking reports folder and leave clear release blockers if any remain.\nAcceptance:\n- Clean-project CLI smoke passes from an installed artifact.\n- Clean-project MCP stdio smoke passes from an installed artifact.\n- Cross-agent MCP setup docs are explicit and tested where practical.\n- Guard, taskmaster health, work-tracking audit, plan sync, and diff-check pass.\n- Task ends with a concrete go/no-go for public MCP release readiness.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "113"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define release-candidate scope and test matrix",
+            "description": "Document the release-candidate boundary, first release-channel options, clean-project target matrix, and go/no-go criteria before building artifacts.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 114,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T09:56:36.409Z"
+          },
+          {
+            "id": 2,
+            "title": "Build and inspect local release-candidate artifacts",
+            "description": "Build wheel and sdist from the task branch, inspect metadata/package data/entry points, and store artifact evidence as release-candidate baseline.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 114,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T10:02:10.220Z"
+          },
+          {
+            "id": 3,
+            "title": "Verify clean-project CLI install and workflow smoke",
+            "description": "Install the release-candidate artifact into clean external target projects and prove aegis inspect, plan-install, install, status, and verify work without repository-local paths.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 114,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T10:07:06.303Z"
+          },
+          {
+            "id": 4,
+            "title": "Verify clean-project MCP stdio startup and discovery",
+            "description": "Start aegis-mcp-server from an installed release-candidate artifact outside the repo, verify tools/resources/prompts discovery, and call inspect/plan/status paths through MCP.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 114,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T10:08:14.655Z"
+          },
+          {
+            "id": 5,
+            "title": "Document cross-agent MCP setup and release-channel decision",
+            "description": "Write Codex, Claude, and generic MCP setup guidance for the installed server, document the chosen first release channel, and list any blockers before public release.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 114,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T10:14:08.269Z"
+          },
+          {
+            "id": 6,
+            "title": "Finalize release-candidate evidence and handoff",
+            "description": "Run final regression, plan sync, Taskmaster health, work-tracking audit, guard, and diff-check; update tracker/handoff with a concrete go/no-go for public MCP release readiness.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 114,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T10:17:38.221Z"
+          }
+        ],
+        "updatedAt": "2026-05-18T10:17:38.221Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-17T20:19:42.884Z",
-      "taskCount": 113,
-      "completedCount": 113,
+      "lastModified": "2026-05-18T10:17:38.221Z",
+      "taskCount": 114,
+      "completedCount": 114,
       "tags": [
         "master"
       ]
