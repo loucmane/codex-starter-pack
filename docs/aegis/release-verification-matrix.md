@@ -29,6 +29,8 @@ Every release candidate must prove:
 - `aegis-mcp-server --describe-config` reports `asset_origin=package` from installed packages
 - MCP stdio startup lists tools, resources, and prompts
 - MCP `aegis.inspect` and `aegis.status` are read-only
+- MCP `aegis.plan_install`, `aegis.install`, and `aegis.verify` work end to end against generated empty, Python, web, backend, and docs-heavy local target projects
+- MCP conflict and partial-install paths return structured safety results without silently overwriting target files
 - `aegis.install` requires explicit `--apply` / MCP `apply=true`
 - `aegis.verify` writes and preserves `.aegis/reports/verification-report.json`
 - release policy covers signing, provenance, checksums, prereleases, update, rollback, and downgrade
@@ -61,6 +63,7 @@ reports/aegis-release-hardening/artifacts-*.txt
 reports/aegis-release-hardening/tests-*.txt
 reports/aegis-release-hardening/mcp-describe-*.txt
 reports/aegis-release-hardening/status-*.txt
+reports/aegis-mcp-e2e-target-validation/tests-*.txt
 ```
 
 ## Release Decision

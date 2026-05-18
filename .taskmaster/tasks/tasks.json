@@ -5692,13 +5692,94 @@
           }
         ],
         "updatedAt": "2026-05-18T10:17:38.221Z"
+      },
+      {
+        "id": "115",
+        "title": "Aegis MCP End-to-End Target Project Validation",
+        "description": "Validate the packaged Aegis MCP server against representative local target projects before public release artifacts. Generate throwaway empty, Python, web, backend, docs-heavy, partial-install, and conflict targets; exercise MCP inspect, plan, install, verify, resources, and prompt discovery from an installed local wheel; and record whether the MCP is ready for GitHub release-candidate artifact publication.",
+        "details": "Create generated target-project fixtures rather than permanent demo apps. Run the MCP from packaged artifacts where possible and keep source-checkout shortcuts explicit. Prove safe behavior for new projects, existing projects, partial Aegis installs, and conflict/manual-review cases. Store evidence under Task 115 work tracking and update docs or tests only where needed.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "114"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define MCP E2E target matrix and fixture strategy",
+            "description": "Define the representative target-project shapes, MCP operations, safety expectations, evidence paths, and go/no-go criteria for local end-to-end validation.",
+            "details": "Cover empty, Python app, web app, backend server, docs-heavy project, partial Aegis install, and conflict/manual-review targets. Prefer generated throwaway fixtures in pytest tmp_path over checked-in demo applications.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T11:32:52.957Z"
+          },
+          {
+            "id": 2,
+            "title": "Build generated target-project fixtures",
+            "description": "Implement generated local target fixtures for empty, Python, web, backend, docs-heavy, partial-install, and conflict project shapes.",
+            "details": "Use pytest tmp_path factory helpers. Fixtures should include enough realistic files to test safe Aegis planning without committing full demo apps to the repository.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T11:49:19.532Z"
+          },
+          {
+            "id": 3,
+            "title": "Validate MCP install flow for new and Python targets",
+            "description": "Exercise MCP inspect, plan_install, install, verify, status, and resources against empty and Python target projects from packaged local artifacts.",
+            "details": "Assert .aegis reports, manifest, contract, managed files, and verification resources are created and readable. Ensure inspect/status/plan remain read-only and install/verify require explicit acknowledgements.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T11:49:32.422Z"
+          },
+          {
+            "id": 4,
+            "title": "Validate MCP install flow for web, backend, and docs-heavy targets",
+            "description": "Exercise the same MCP E2E install and verification flow against representative web app, backend API, and docs-heavy existing projects.",
+            "details": "Confirm Aegis preserves unrelated project files, handles existing docs/source directories safely, and reports installed runtime state consistently across project shapes.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T11:49:43.472Z"
+          },
+          {
+            "id": 5,
+            "title": "Validate partial-install and conflict safety paths",
+            "description": "Prove MCP behavior for partial Aegis installs and target-file conflicts, including structured refusal or manual-review outcomes.",
+            "details": "Seed partial .aegis state and conflicting managed files. Assert plan/install do not blindly overwrite unrelated or conflicting content and that structured errors/resources make the safety state clear.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T11:37:18.996Z"
+          },
+          {
+            "id": 6,
+            "title": "Finalize evidence, docs, and release-readiness decision",
+            "description": "Capture local MCP E2E evidence, update work tracking and any release docs needed, and decide whether the MCP is ready for GitHub release-candidate artifact publication.",
+            "details": "Run focused MCP E2E tests, relevant package/server regressions, guard, audit, plan sync, and diff check. Record readiness decision and remaining risks in Task 115 handoff.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-18T11:43:14.358Z"
+          }
+        ],
+        "updatedAt": "2026-05-18T11:49:43.472Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-18T10:17:38.221Z",
-      "taskCount": 114,
-      "completedCount": 114,
+      "lastModified": "2026-05-18T11:49:43.472Z",
+      "taskCount": 115,
+      "completedCount": 115,
       "tags": [
         "master"
       ]
