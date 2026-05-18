@@ -1,7 +1,7 @@
 # Task 114 Aegis MCP Release Candidate Validation Tracker
 
 **Started**: 2026-05-18
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-18
 
 ## Goals
@@ -22,6 +22,10 @@
 - **2026-05-18 12:08** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:pytest:mcp-release-candidate|E:docs/ai/work-tracking/active/20260518-task114-aegis-mcp-release-candidate-ACTIVE/reports/aegis-mcp-release-candidate/tests-2026-05-18-clean-mcp.txt] Completed clean installed-artifact CLI and MCP smoke evidence: CLI wheel smoke passed and MCP stdio smoke passed from a local wheel outside the source checkout. Started subtask 114.5 for cross-agent MCP setup docs and release-channel decision.
 - **2026-05-18 12:14** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:docs/aegis|E:docs/aegis/mcp-client-setup.md] Completed cross-agent MCP setup docs for Codex, Claude, and generic clients, with local wheel RC command shape and the GitHub-artifact-before-PyPI release-channel decision. Started final verification subtask 114.6.
 - **2026-05-18 12:18** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:pytest:final|E:docs/ai/work-tracking/active/20260518-task114-aegis-mcp-release-candidate-ACTIVE/reports/aegis-mcp-release-candidate/tests-2026-05-18-final-aegis.txt] Final Aegis-focused regression passed with `50 passed, 2 skipped`; Taskmaster Task 114 and all subtasks are done.
+- **2026-05-18 13:10** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:gh:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/114] PR #114 passed GitHub Actions, was marked ready, and merged into `main` with merge commit `c76027c`.
+- **2026-05-18 13:14** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260518-task114-aegis-mcp-release-candidate-COMPLETED/] Archived Task 114 work-tracking after PR merge and branch cleanup.
+- **2026-05-18 13:15** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:session-closeout|E:sessions/state.json] Cleared `sessions/current`, `plans/current`, and `sessions/state.json.current` so the repository is between sessions.
+- **2026-05-18 13:16** — [S:20260518|W:task114-aegis-mcp-release-candidate|H:post-archive-verify|E:reports/aegis-mcp-release-candidate/guard-2026-05-18-post-archive.txt] Post-archive verification passed: work-tracking audit produced expected between-session warnings, guard passed, and `git diff --check` passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define release-candidate contract, target matrix, release-channel decision boundary, and go/no-go criteria
@@ -33,3 +37,6 @@
 - Session log: sessions/current
 - Scope artifact: `designs/aegis-mcp-release-candidate-contract.md`
 - Release readiness recommendation: go for GitHub release-candidate artifact preparation; defer PyPI publication to a separate release task.
+- PR: https://github.com/loucmane/codex-starter-pack/pull/114 (`MERGED`)
+- Archive: `docs/ai/work-tracking/archive/20260518-task114-aegis-mcp-release-candidate-COMPLETED/`
+- Post-archive evidence: `reports/aegis-mcp-release-candidate/work-tracking-audit-2026-05-18-post-archive.txt`, `reports/aegis-mcp-release-candidate/guard-2026-05-18-post-archive.txt`, `reports/aegis-mcp-release-candidate/diff-check-2026-05-18-post-archive.txt`
