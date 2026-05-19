@@ -1,0 +1,97 @@
+TARGET=/tmp/aegis-mcp-manual-workflow-test-dh_0wbqo/shop-webapp
+STEP inspect before install
+{
+  "installed": false,
+  "ok": true
+}
+STEP install via MCP
+{
+  "ok": true,
+  "read_only": false,
+  "status": "applied"
+}
+READINESS_BEFORE 2 BLOCKED | blocked=1 | first=branch 'main' does not contain a task ID
+PRE_KICKOFF_WRITE_GATE 2 BLOCKED by .claude/scripts/pretooluse-gate.sh
+PRE_KICKOFF_FILE_EXISTS False
+STEP kickoff apply=false refusal
+{
+  "code": "apply_required",
+  "ok": false
+}
+STEP kickoff apply=true
+{
+  "branch": "feat/task-42-build-cart",
+  "ok": true,
+  "paths": {
+    "plan": "plans/2026-05-19-task42-build-cart.md",
+    "plan_current": "plans/current",
+    "reports": "docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart",
+    "session": "sessions/2026/05/2026-05-19-001-task42-build-cart.md",
+    "session_current": "sessions/current",
+    "work_tracking": "docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE",
+    "workflow_templates": ".aegis/templates/workflow"
+  },
+  "status": "started"
+}
+CURRENT_WORK_TASK {'id': '42', 'slug': 'build-cart', 'status': 'in-progress', 'title': 'Build Cart Flow'}
+READINESS_AFTER 0 READY | task=42
+REQUIRED_FILES
+  OK .aegis/state/current-work.json
+  OK .aegis/templates/workflow/session.md
+  OK .aegis/templates/workflow/plan.md
+  OK symlink sessions/current -> 2026/05/2026-05-19-001-task42-build-cart.md
+  OK symlink plans/current -> 2026-05-19-task42-build-cart.md
+  OK sessions/2026/05/2026-05-19-001-task42-build-cart.md
+  OK plans/2026-05-19-task42-build-cart.md
+  OK docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/TRACKER.md
+  OK docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/FINDINGS.md
+  OK docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/DECISIONS.md
+  OK docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/HANDOFF.md
+  OK docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/IMPLEMENTATION.md
+  OK docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/CHANGELOG.md
+CONTENT_CHECKS
+  session: OK
+  plan: OK
+  tracker: OK
+READY_REPORT_WRITE_GATE 0
+READY_PROTECTED_BASH_GATE 2
+READY_PROTECTED_BASH_MESSAGE Bash may not be used to bypass protected Codex-owned path boundaries.
+CODEX_EXISTS False
+ORIGINAL_PROJECT_FILES
+  OK README.md: True
+  OK package.json: True
+  OK src/main.ts: True
+FINAL_TREE_SAMPLE
+  .aegis/contract.md
+  .aegis/foundation-manifest.json
+  .aegis/reports/install-plan.json
+  .aegis/reports/install-report.json
+  .aegis/reports/kickoff-report.json
+  .aegis/state/current-work.json
+  .aegis/templates/workflow/changelog.md
+  .aegis/templates/workflow/decisions.md
+  .aegis/templates/workflow/findings.md
+  .aegis/templates/workflow/handoff.md
+  .aegis/templates/workflow/implementation.md
+  .aegis/templates/workflow/plan.md
+  .aegis/templates/workflow/session.md
+  .aegis/templates/workflow/tracker.md
+  .claude/scripts/bash-command-guard.sh
+  .claude/scripts/codex-path-guard.sh
+  .claude/scripts/gate_lib.py
+  .claude/scripts/pretooluse-gate.sh
+  .claude/scripts/readiness.sh
+  .claude/settings.json
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/CHANGELOG.md
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/DECISIONS.md
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/FINDINGS.md
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/HANDOFF.md
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/IMPLEMENTATION.md
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/TRACKER.md
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/manual-ready-output.txt
+  plans/2026-05-19-task42-build-cart.md
+  plans/current -> 2026-05-19-task42-build-cart.md
+  sessions/2026/05/2026-05-19-001-task42-build-cart.md
+  sessions/current -> 2026/05/2026-05-19-001-task42-build-cart.md
+  sessions/state.json
+RESULT manual MCP workflow smoke passed

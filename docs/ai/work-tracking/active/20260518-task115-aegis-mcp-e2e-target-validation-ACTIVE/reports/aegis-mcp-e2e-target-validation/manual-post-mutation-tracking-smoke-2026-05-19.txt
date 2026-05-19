@@ -1,0 +1,60 @@
+Manual post-mutation S:W:H:E tracking smoke - 2026-05-19
+
+Target project:
+- /tmp/aegis-live-workflow-test-eqo84Nr6/shop-webapp
+
+Source:
+- /home/loucmane/codex
+- Branch: feat/task-115-aegis-mcp-e2e-target-validation
+
+Scenario:
+1. Created a fresh target project from tests/fixtures/aegis-target-projects/web-started.
+2. Initialized git in the target project.
+3. Installed Aegis from the current source checkout with Claude as primary:
+   python3 -m aegis_foundation.cli --source-root /home/loucmane/codex install --target-dir /tmp/aegis-live-workflow-test-eqo84Nr6/shop-webapp --primary-agent claude --agent claude --apply
+4. Verified cold readiness:
+   bash .claude/scripts/readiness.sh --quick
+   Result: BLOCKED | blocked=1 | first=branch 'main' does not contain a task ID
+5. Simulated Claude PreToolUse Write while cold.
+   Result: blocked by .claude/scripts/pretooluse-gate.sh because readiness was BLOCKED.
+6. Ran kickoff:
+   python3 -m aegis_foundation.cli --source-root /home/loucmane/codex kickoff --target-dir /tmp/aegis-live-workflow-test-eqo84Nr6/shop-webapp --task 42 --slug build-cart --title "Build Cart" --goal "Verify S:W:H:E tracking gates after allowed task writes"
+   Result: created branch feat/task-42-build-cart, sessions/current, plans/current, and docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/.
+7. Verified READY:
+   bash .claude/scripts/readiness.sh --quick
+   Result: READY | task=42
+8. Simulated allowed Claude Bash write to:
+   docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/claude-live-ready-write.txt
+   Result: PreToolUse allowed the write and the file contained ready-output.
+9. Simulated PostToolUse for the Bash write.
+   Result: .aegis/state/pending-tracking.json was created with:
+   - H=bash:printf
+   - E=docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/claude-live-ready-write.txt
+10. Simulated another Write before logging.
+    Result: blocked by .claude/scripts/pretooluse-gate.sh with "pending S:W:H:E tracking must be logged before another persistent mutation."
+11. Ran Stop tracking gate before logging.
+    Result: blocked by .claude/scripts/tracking-stop-gate.sh with "pending S:W:H:E tracking remains before session stop."
+12. Verified PreToolUse allows aegis log while pending tracking exists.
+    Result: allowed.
+13. Ran:
+    python3 -m aegis_foundation.cli --source-root /home/loucmane/codex log --target-dir /tmp/aegis-live-workflow-test-eqo84Nr6/shop-webapp --handler bash:printf --evidence docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/claude-live-ready-write.txt --note logged-ready-write
+    Result: status logged; pending cleared=1, remaining=0.
+14. Verified entries were written to both:
+    - sessions/2026/05/2026-05-19-001-task42-build-cart.md
+    - docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/TRACKER.md
+    Entry:
+    [S:20260519|W:task42-build-cart|H:bash:printf|E:docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/claude-live-ready-write.txt] logged-ready-write
+15. Verified .aegis/state/pending-tracking.json no longer exists.
+16. Verified another Write PreToolUse check is allowed after logging.
+17. Verified Stop tracking gate is allowed after logging.
+18. Verified protected Bash bypass remains blocked:
+    printf blocked > templates/should-not-land.md
+    Result: blocked because redirection targets protected path templates/should-not-land.md.
+
+Result:
+- PASS. Aegis now enforces the intended loop in an installed target project:
+  READY mutation -> pending S:W:H:E tracking -> next mutation blocked -> Stop blocked -> aegis log writes session/tracker -> pending clears -> mutation/Stop allowed again.
+
+Notes:
+- This smoke used the installed target's Claude hook scripts directly with Claude-style JSON payloads.
+- The target project remains available at /tmp/aegis-live-workflow-test-eqo84Nr6/shop-webapp for user inspection until /tmp cleanup.

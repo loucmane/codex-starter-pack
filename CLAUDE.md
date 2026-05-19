@@ -1,6 +1,6 @@
 # Claude Runtime Adapter
 
-This repo uses Claude as a gated participant in the portable Codex foundation. The adapter is a runtime system, not a reminder document: readiness, PreToolUse hooks, tests, and work-tracking evidence define whether Claude may mutate project state.
+This repo uses Claude as a gated participant in the portable Codex foundation. The adapter is a runtime system, not a reminder document: readiness, PreToolUse/PostToolUse/Stop hooks, tests, and work-tracking evidence define whether Claude may mutate project state.
 
 ## First Rule
 Before Claude performs any persistent mutation, readiness must be `READY`.
@@ -11,7 +11,7 @@ bash .claude/scripts/readiness.sh
 
 `BLOCKED` means no file edits, Bash mutations, Taskmaster mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed.
 
-The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns.
+The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
 ## Required Workflow State
 Claude mutations require all of these to align:
@@ -28,7 +28,7 @@ Claude mutations require all of these to align:
 2. Read `sessions/current`, `plans/current`, and the active `HANDOFF.md`.
 3. Review the Taskmaster task with `task-master show <id>`.
 4. Work one subtask at a time.
-5. For every meaningful step, write paired S:W:H:E entries in the session and tracker.
+5. For every meaningful step, run `aegis log` or `./.aegis/bin/aegis log` before attempting the next mutation. The log must update the active session, tracker, implementation log, changelog, handoff, and current plan evidence; add `--surface findings` or `--surface decisions` when the mutation captured one of those records.
 6. Capture command evidence under the active work-tracking `reports/` folder.
 7. Run focused tests, `python3 scripts/codex-task plan sync`, `python3 scripts/codex-task work-tracking audit`, `python3 scripts/codex-guard validate --include-untracked`, `git diff --check`, and pre-commit before checkpointing.
 

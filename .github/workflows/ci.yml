@@ -39,6 +39,7 @@ jobs:
           print("\n".join(dependencies))
           PY
           python3 -m pip install -r /tmp/codex-ci-dependencies.txt
+          python3 -m pip install -e .
 
       - name: Run Taskmaster health
         run: python3 scripts/codex-task taskmaster health

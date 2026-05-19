@@ -4,8 +4,20 @@
     "allow": [
       "Bash(bash .claude/scripts/readiness.sh:*)",
       "Bash(bash .claude/scripts/pretooluse-gate.sh:*)",
+      "Bash(bash .claude/scripts/posttooluse-tracking.sh:*)",
+      "Bash(bash .claude/scripts/tracking-stop-gate.sh:*)",
       "Bash(bash .claude/scripts/codex-path-guard.sh:*)",
       "Bash(bash .claude/scripts/bash-command-guard.sh:*)",
+      "Bash(aegis inspect:*)",
+      "Bash(aegis status:*)",
+      "Bash(aegis kickoff:*)",
+      "Bash(aegis log:*)",
+      "Bash(aegis verify:*)",
+      "Bash(./.aegis/bin/aegis inspect:*)",
+      "Bash(./.aegis/bin/aegis status:*)",
+      "Bash(./.aegis/bin/aegis kickoff:*)",
+      "Bash(./.aegis/bin/aegis log:*)",
+      "Bash(./.aegis/bin/aegis verify:*)",
       "Bash(bash .claude/scripts/handoff-nudge.sh:*)",
       "Bash(python3 scripts/codex-task:*)",
       "Bash(python3 scripts/codex-guard:*)",
@@ -37,7 +49,8 @@
       "Bash(sort:*)",
       "Bash(readlink:*)",
       "mcp__task-master-ai__*",
-      "mcp__taskmaster-ai__*"
+      "mcp__taskmaster-ai__*",
+      "mcp__aegis__*"
     ],
     "deny": [
       "Bash(rm -rf:*)",
@@ -62,9 +75,24 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
+          },
           {
             "type": "command",
             "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/handoff-nudge.sh"

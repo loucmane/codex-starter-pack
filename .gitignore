@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.egg-info/
 
 # Codex runtime artifacts
 .codex/log/
@@ -15,7 +16,7 @@ __pycache__/
 .codex/cache/
 .codex/config.toml.bak*
 .codex/installation_id
-.codex/logs_*.sqlite
+.codex/logs_*.sqlite*
 .codex/models_cache.json
 .codex/plugins/
 .codex/rules/

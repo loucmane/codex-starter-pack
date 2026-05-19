@@ -243,7 +243,7 @@
           "properties": {
             "command": {
               "type": "string",
-              "const": "python3 scripts/codex-task aegis"
+              "const": "aegis"
             }
           }
         },

@@ -25,11 +25,15 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
 from _aegis_installer import (
+    AEGIS_LOG_SURFACES,
+    AEGIS_PLAN_STATUS_CHOICES,
     AegisError,
     explain_profile as aegis_explain_profile,
     inspect_project as aegis_inspect_project,
     install as aegis_install,
+    kickoff as aegis_kickoff,
     list_profiles as aegis_list_profiles,
+    log_work as aegis_log_work,
     plan_install as aegis_plan_install,
     status as aegis_status,
     verify as aegis_verify,
@@ -437,8 +441,9 @@ def _convert_taskmaster_markdown_to_text(markdown_text: str) -> str:
 def _render_generated_task_content(source_path: Path, destination_path: Path) -> str:
     content = source_path.read_text(encoding="utf-8")
     if source_path.suffix == ".md" and destination_path.suffix == ".txt":
-        return _convert_taskmaster_markdown_to_text(content)
-    return content if content.endswith("\n") else f"{content}\n"
+        content = _convert_taskmaster_markdown_to_text(content)
+    rendered = content if content.endswith("\n") else f"{content}\n"
+    return "\n".join(line.rstrip() for line in rendered.splitlines()) + "\n"
 
 
 def _target_path(target_root: Path, raw_value: str) -> Path:
@@ -746,6 +751,38 @@ def handle_aegis_verify(args: argparse.Namespace) -> None:
     _print_json(payload)
     if payload.get("status") == "failed":
         raise TaskError("Aegis verification failed")
+
+
+def handle_aegis_kickoff(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_kickoff(
+            args.target_dir,
+            task_id=args.task,
+            slug=args.slug,
+            title=args.title,
+            goals=list(args.goal or []),
+            create_branch=not args.no_create_branch,
+            source_root=REPO_ROOT,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+
+
+def handle_aegis_log(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_log_work(
+            args.target_dir,
+            handler=args.handler,
+            evidence=args.evidence,
+            note=args.note,
+            surfaces=args.surface,
+            plan_step=args.plan_step,
+            plan_status=args.plan_status,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
 
 
 def handle_aegis_list_profiles(args: argparse.Namespace) -> None:
@@ -17950,6 +17987,43 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_verify_parser = aegis_sub.add_parser("verify", help="Verify an installed Aegis Foundation target repository")
     aegis_verify_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_verify_parser.set_defaults(func=handle_aegis_verify)
+
+    aegis_kickoff_parser = aegis_sub.add_parser("kickoff", help="Create Aegis-native session, plan, and work-tracking state")
+    aegis_kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_kickoff_parser.add_argument("--task", required=True, help="Numeric task/work id")
+    aegis_kickoff_parser.add_argument("--slug", required=True, help="Short lowercase work slug")
+    aegis_kickoff_parser.add_argument("--title", required=True, help="Human-readable work title")
+    aegis_kickoff_parser.add_argument("--goal", action="append", help="Goal to write into generated plan/tracker")
+    aegis_kickoff_parser.add_argument(
+        "--no-create-branch",
+        action="store_true",
+        help="Require the current branch to already contain the task id",
+    )
+    aegis_kickoff_parser.set_defaults(func=handle_aegis_kickoff)
+
+    aegis_log_parser = aegis_sub.add_parser("log", help="Write required S:W:H:E progress entries for current Aegis work")
+    aegis_log_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_log_parser.add_argument("--handler", required=True, help="Handler identifier for the S:W:H:E H field")
+    aegis_log_parser.add_argument("--evidence", required=True, help="Evidence path or command for the S:W:H:E E field")
+    aegis_log_parser.add_argument("--note", required=True, help="Past-tense summary to append after the S:W:H:E token")
+    aegis_log_parser.add_argument(
+        "--surface",
+        action="append",
+        choices=sorted(AEGIS_LOG_SURFACES),
+        help="Workflow surface to update. Defaults to implementation, changelog, and handoff.",
+    )
+    aegis_log_parser.add_argument(
+        "--plan-step",
+        default="plan-step-implement",
+        help="Plan step to update with this evidence. Pass an empty value to skip plan updates.",
+    )
+    aegis_log_parser.add_argument(
+        "--plan-status",
+        default="in-progress",
+        choices=sorted(AEGIS_PLAN_STATUS_CHOICES),
+        help="Status to write for --plan-step.",
+    )
+    aegis_log_parser.set_defaults(func=handle_aegis_log)
 
     aegis_list_profiles = aegis_sub.add_parser("list-profiles", help="List built-in Aegis profiles")
     aegis_list_profiles.set_defaults(func=handle_aegis_list_profiles)

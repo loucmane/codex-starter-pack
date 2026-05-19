@@ -143,6 +143,8 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.plan_install",
         "aegis.install",
         "aegis.verify",
+        "aegis.kickoff",
+        "aegis.log",
         "aegis.list_profiles",
         "aegis.explain_profile",
     }
@@ -212,6 +214,28 @@ def test_verify_schema_requires_acknowledged_report_write(tmp_path: Path) -> Non
 
     assert set(schema["required"]) == {"target_dir", "acknowledge_report_write"}
     assert schema["properties"]["acknowledge_report_write"]["type"] == "boolean"
+
+
+def test_kickoff_schema_requires_explicit_apply_and_task_inputs(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    schema = tool_by_name(server, "aegis.kickoff").inputSchema
+
+    assert set(schema["required"]) == {"target_dir", "task", "slug", "title"}
+    assert schema["properties"]["apply"]["default"] is False
+    assert schema["properties"]["create_branch"]["default"] is True
+
+
+def test_log_schema_requires_explicit_apply_and_tracking_inputs(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    schema = tool_by_name(server, "aegis.log").inputSchema
+
+    assert set(schema["required"]) == {"target_dir", "handler", "evidence", "note"}
+    assert schema["properties"]["apply"]["default"] is False
+    assert schema["properties"]["plan_step"]["default"] == "plan-step-implement"
+    assert schema["properties"]["plan_status"]["default"] == "in-progress"
+    assert schema["properties"]["surfaces"]["default"] is None
 
 
 def test_plan_install_calls_core_and_validates_schema(tmp_path: Path) -> None:
@@ -300,6 +324,16 @@ def test_missing_required_fields_are_rejected_by_schema(tmp_path: Path) -> None:
             "apply",
         ),
         ("aegis.verify", {"target_dir": tmp_path.as_posix()}, "acknowledge_report_write"),
+        (
+            "aegis.kickoff",
+            {"target_dir": tmp_path.as_posix(), "task": "1", "slug": "smoke"},
+            "title",
+        ),
+        (
+            "aegis.log",
+            {"target_dir": tmp_path.as_posix(), "handler": "claude-test", "evidence": "reports/example.txt"},
+            "note",
+        ),
     ]
 
     for tool_name, arguments, expected_message in missing_required_calls:
@@ -321,6 +355,54 @@ def test_install_requires_apply_true_before_core_mutation(tmp_path: Path) -> Non
             "profile": "generic",
             "primary_agent": "claude",
             "agents": ["claude"],
+            "apply": False,
+        },
+    )
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "apply_required"
+    assert payload["error"]["status"] == "refused"
+
+
+def test_kickoff_requires_apply_true_before_core_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    payload = call_tool_payload(
+        server,
+        "aegis.kickoff",
+        {
+            "target_dir": target.as_posix(),
+            "task": "1",
+            "slug": "smoke",
+            "title": "Smoke",
+            "apply": False,
+        },
+    )
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "apply_required"
+    assert payload["error"]["status"] == "refused"
+    assert not (target / ".aegis" / "state" / "current-work.json").exists()
+    assert not (target / ".aegis").exists()
+
+
+def test_log_requires_apply_true_before_core_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    payload = call_tool_payload(
+        server,
+        "aegis.log",
+        {
+            "target_dir": target.as_posix(),
+            "handler": "claude-test",
+            "evidence": "reports/example.txt",
+            "note": "Recorded example evidence",
             "apply": False,
         },
     )

@@ -124,6 +124,35 @@ def handle_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_kickoff(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.kickoff(
+            args.target_dir,
+            task_id=args.task,
+            slug=args.slug,
+            title=args.title,
+            goals=list(args.goal or []),
+            create_branch=not args.no_create_branch,
+            source_root=source_root,
+        )
+    _dump_json(payload)
+    return 0
+
+
+def handle_log(args: argparse.Namespace) -> int:
+    payload = _aegis_installer.log_work(
+        args.target_dir,
+        handler=args.handler,
+        evidence=args.evidence,
+        note=args.note,
+        surfaces=args.surface,
+        plan_step=args.plan_step,
+        plan_status=args.plan_status,
+    )
+    _dump_json(payload)
+    return 0
+
+
 def handle_list_profiles(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.list_profiles(source_root=source_root)
@@ -228,6 +257,53 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     verify_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     verify_parser.set_defaults(func=handle_verify)
+
+    kickoff_parser = subparsers.add_parser(
+        "kickoff",
+        help="Create Aegis-native session, plan, and work-tracking state for a task.",
+    )
+    kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    kickoff_parser.add_argument("--task", required=True, help="Numeric task/work id.")
+    kickoff_parser.add_argument("--slug", required=True, help="Short lowercase work slug.")
+    kickoff_parser.add_argument("--title", required=True, help="Human-readable work title.")
+    kickoff_parser.add_argument(
+        "--goal",
+        action="append",
+        help="Goal to write into the generated plan/tracker; repeat for multiple goals.",
+    )
+    kickoff_parser.add_argument(
+        "--no-create-branch",
+        action="store_true",
+        help="Require the current branch to already contain the task id.",
+    )
+    kickoff_parser.set_defaults(func=handle_kickoff)
+
+    log_parser = subparsers.add_parser(
+        "log",
+        help="Write required S:W:H:E progress entries for the current Aegis task.",
+    )
+    log_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    log_parser.add_argument("--handler", required=True, help="Handler identifier for the S:W:H:E H field.")
+    log_parser.add_argument("--evidence", required=True, help="Evidence path or command for the S:W:H:E E field.")
+    log_parser.add_argument("--note", required=True, help="Past-tense summary to append after the S:W:H:E token.")
+    log_parser.add_argument(
+        "--surface",
+        action="append",
+        choices=sorted(_aegis_installer.AEGIS_LOG_SURFACES),
+        help="Additional workflow surface to update. Defaults to implementation, changelog, and handoff.",
+    )
+    log_parser.add_argument(
+        "--plan-step",
+        default="plan-step-implement",
+        help="Plan step to update with this evidence. Pass an empty value to skip plan updates.",
+    )
+    log_parser.add_argument(
+        "--plan-status",
+        default="in-progress",
+        choices=sorted(_aegis_installer.AEGIS_PLAN_STATUS_CHOICES),
+        help="Status to write for --plan-step.",
+    )
+    log_parser.set_defaults(func=handle_log)
 
     list_profiles_parser = subparsers.add_parser(
         "list-profiles",

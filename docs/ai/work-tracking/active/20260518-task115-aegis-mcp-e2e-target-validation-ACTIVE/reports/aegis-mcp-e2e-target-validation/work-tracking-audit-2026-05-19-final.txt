@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE has prefix 20260518; today's prefix is 20260519 (ensure multi-day reuse is intentional)

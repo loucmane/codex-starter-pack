@@ -100,6 +100,34 @@ def readiness(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return run(["bash", str(READINESS), "--root", str(repo), *args], repo)
 
 
+def write_aegis_current_work(repo: Path, *, task_id: int = 103, taskmaster_required: bool = False) -> None:
+    write(
+        repo / ".aegis" / "state" / "current-work.json",
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "status": "in-progress",
+                "task": {
+                    "id": str(task_id),
+                    "slug": "claude-runtime-adapter",
+                    "title": "Claude Runtime Adapter",
+                    "status": "in-progress",
+                },
+                "integrations": {
+                    "taskmaster": {
+                        "required": taskmaster_required,
+                        "detected": True,
+                    },
+                    "serena": {
+                        "required": False,
+                        "detected": False,
+                    },
+                },
+            }
+        ),
+    )
+
+
 def test_ready_when_task_session_plan_and_tracker_align(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
 
@@ -115,6 +143,7 @@ def test_ready_inside_linked_git_worktree(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     assert run(["git", "config", "user.email", "test@example.com"], repo).returncode == 0
     assert run(["git", "config", "user.name", "Test User"], repo).returncode == 0
+    assert run(["git", "config", "commit.gpgsign", "false"], repo).returncode == 0
     assert run(["git", "add", "."], repo).returncode == 0
     assert run(["git", "commit", "-q", "-m", "init"], repo).returncode == 0
     worktree = tmp_path / "linked-worktree"
@@ -159,6 +188,36 @@ def test_blocks_when_taskmaster_parent_not_in_progress(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     assert "expected 'in-progress'" in result.stdout
+
+
+def test_aegis_current_work_is_authoritative_when_taskmaster_is_optional(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    write_aegis_current_work(repo, taskmaster_required=False)
+    tasks_path = repo / ".taskmaster" / "tasks" / "tasks.json"
+    data = json.loads(tasks_path.read_text(encoding="utf-8"))
+    data["master"]["tasks"][0]["status"] = "done"
+    tasks_path.write_text(json.dumps(data), encoding="utf-8")
+
+    result = readiness(repo)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "STATE: READY" in result.stdout
+    assert "Aegis current work Task 103 is in-progress" in result.stdout
+    assert "Taskmaster Task 103 is optional with status 'done'" in result.stdout
+
+
+def test_aegis_current_work_can_require_taskmaster_alignment(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    write_aegis_current_work(repo, taskmaster_required=True)
+    tasks_path = repo / ".taskmaster" / "tasks" / "tasks.json"
+    data = json.loads(tasks_path.read_text(encoding="utf-8"))
+    data["master"]["tasks"][0]["status"] = "done"
+    tasks_path.write_text(json.dumps(data), encoding="utf-8")
+
+    result = readiness(repo)
+
+    assert result.returncode == 2
+    assert "Taskmaster Task 103 status is 'done', expected 'in-progress'" in result.stdout
 
 
 def test_blocks_when_sessions_current_missing(tmp_path: Path) -> None:

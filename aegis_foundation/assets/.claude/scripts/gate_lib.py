@@ -7,12 +7,16 @@ import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from hashlib import sha1
 from pathlib import Path
 from typing import Any
 
 
 FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
+AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
+AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 
 PROTECTED_PREFIXES = ("templates/", ".codex/")
 PROTECTED_EXACT = {"CODEX.md"}
@@ -30,6 +34,20 @@ MUTATING_TASKMASTER_RE = re.compile(
     r"add-task|add-subtask|set-status|update|update-task|update-subtask|"
     r"expand|generate|parse-prd|move|add-dependency|remove-dependency|fix-dependencies"
     r")\b",
+    re.IGNORECASE,
+)
+MUTATING_AEGIS_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
+    r"install|verify|kickoff|log"
+    r")\b",
+    re.IGNORECASE,
+)
+AEGIS_BOOTSTRAP_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+kickoff\b",
+    re.IGNORECASE,
+)
+AEGIS_LOG_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+log\b",
     re.IGNORECASE,
 )
 REDIRECT_RE = re.compile(r"(?<![<])(?:>>|>)(?![>&])\s*([\"']?)([^\"'\s;&|]+)\1")
@@ -181,10 +199,22 @@ def shlex_tokens(command: str) -> list[str]:
         return []
 
 
+def is_shell_assignment(token: str) -> bool:
+    return bool(re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", token))
+
+
+def redirect_targets(command: str) -> list[str]:
+    return [match.group(2) for match in REDIRECT_RE.finditer(command)]
+
+
+def is_persistent_redirect_target(target: str) -> bool:
+    return target not in {"/dev/null", "NUL", "nul"}
+
+
 def bash_is_mutation(command: str) -> bool:
     if not command.strip():
         return False
-    if REDIRECT_RE.search(command):
+    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
         return True
     if re.search(r"(^|[;&|]\s*)(sed\b[^;\n]*\s-i\b|sed\s+-i\b)", command):
         return True
@@ -192,11 +222,19 @@ def bash_is_mutation(command: str) -> bool:
         return True
     if re.search(r"(^|[;&|]\s*)(rm|mv|cp|install|touch|chmod|chown|mkdir|rmdir)\b", command):
         return True
-    if MUTATING_GIT_RE.search(command) or MUTATING_TASKMASTER_RE.search(command):
+    if MUTATING_GIT_RE.search(command) or MUTATING_TASKMASTER_RE.search(command) or MUTATING_AEGIS_RE.search(command):
         return True
     if re.search(r"python3?\s+-c\s+['\"][^'\"]*(open|write_text)", command):
         return True
     return False
+
+
+def bash_is_aegis_bootstrap(command: str) -> bool:
+    return bool(AEGIS_BOOTSTRAP_RE.search(command))
+
+
+def bash_is_aegis_log(command: str) -> bool:
+    return bool(AEGIS_LOG_RE.search(command))
 
 
 def protected_bash_violations(command: str, root: Path | None = None) -> list[str]:
@@ -205,6 +243,8 @@ def protected_bash_violations(command: str, root: Path | None = None) -> list[st
 
     for match in REDIRECT_RE.finditer(command):
         target = match.group(2)
+        if not is_persistent_redirect_target(target):
+            continue
         if is_protected_path(target, root):
             violations.append(f"redirection targets protected path {normalize_path(target, root)}")
 
@@ -289,6 +329,97 @@ def run_readiness(root: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
+def read_json(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def current_work(root: Path) -> dict[str, Any] | None:
+    return read_json(root / AEGIS_CURRENT_WORK_REL)
+
+
+def pending_tracking_path(root: Path) -> Path:
+    return root / AEGIS_PENDING_TRACKING_REL
+
+
+def pending_tracking_events(root: Path) -> list[dict[str, Any]]:
+    payload = read_json(pending_tracking_path(root))
+    if not payload:
+        return []
+    events = payload.get("events")
+    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+
+
+def write_pending_tracking_events(root: Path, events: list[dict[str, Any]]) -> None:
+    path = pending_tracking_path(root)
+    if not events:
+        if path.exists():
+            path.unlink()
+        return
+    write_json(
+        path,
+        {
+            "schema_version": "1.0.0",
+            "updated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            "events": events,
+        },
+    )
+
+
+def first_redirect_target(command: str, root: Path) -> str | None:
+    for target in redirect_targets(command):
+        if is_persistent_redirect_target(target):
+            return normalize_path(target, root)
+    return None
+
+
+def payload_evidence(payload: Payload, root: Path) -> str:
+    if payload.tool_name in FILE_MUTATION_TOOLS:
+        paths = file_paths_from_payload(payload, root)
+        if paths:
+            return paths[0]
+    if payload.tool_name == "Bash":
+        command = bash_command(payload)
+        redirect_target = first_redirect_target(command, root)
+        if redirect_target:
+            return redirect_target
+        return f"cmd`{command}`"
+    if is_mcp_tool(payload.tool_name):
+        paths = mcp_path_values(payload.tool_input)
+        if paths:
+            return normalize_path(paths[0], root)
+        return payload.tool_name
+    return payload.tool_name or "unknown"
+
+
+def payload_handler(payload: Payload) -> str:
+    if payload.tool_name == "Bash":
+        tokens = shlex_tokens(bash_command(payload))
+        for token in tokens:
+            if is_shell_assignment(token):
+                continue
+            return f"bash:{token}"
+        return "bash"
+    return f"claude:{payload.tool_name}" if payload.tool_name else "claude:unknown"
+
+
+def payload_is_aegis_log(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_log(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("log")
+    return False
+
+
 def payload_is_mutation(payload: Payload) -> bool:
     if payload.tool_name in FILE_MUTATION_TOOLS:
         return True
@@ -297,6 +428,61 @@ def payload_is_mutation(payload: Payload) -> bool:
     if is_mcp_tool(payload.tool_name):
         return mcp_is_mutation(payload)
     return False
+
+
+def payload_is_aegis_bootstrap(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_bootstrap(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("kickoff")
+    return False
+
+
+def record_pending_tracking_event(root: Path, payload: Payload) -> None:
+    work = current_work(root)
+    if not work:
+        return
+    if not payload_is_mutation(payload) or payload_is_aegis_bootstrap(payload) or payload_is_aegis_log(payload):
+        return
+    evidence = payload_evidence(payload, root)
+    handler = payload_handler(payload)
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    task = work.get("task") if isinstance(work.get("task"), dict) else {}
+    task_id = str(task.get("id") or "")
+    slug = str(task.get("slug") or "")
+    event_id = sha1(f"{now}|{payload.tool_name}|{handler}|{evidence}".encode("utf-8")).hexdigest()[:12]
+    events = pending_tracking_events(root)
+    for event in events:
+        if event.get("evidence") == evidence and event.get("handler") == handler:
+            event["updated_at"] = now
+            write_pending_tracking_events(root, events)
+            return
+    events.append(
+        {
+            "id": event_id,
+            "created_at": now,
+            "updated_at": now,
+            "tool": payload.tool_name,
+            "handler": handler,
+            "evidence": evidence,
+            "task": {
+                "id": task_id,
+                "slug": slug,
+            },
+            "reason": "Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.",
+        }
+    )
+    write_pending_tracking_events(root, events)
+
+
+def format_pending_tracking(events: list[dict[str, Any]]) -> str:
+    lines = []
+    for event in events:
+        lines.append(
+            f"  - {event.get('id', '<unknown>')}: H={event.get('handler', '<unknown>')} E={event.get('evidence', '<unknown>')}"
+        )
+    return "\n".join(lines)
 
 
 def pretooluse_gate() -> int:
@@ -309,7 +495,7 @@ def pretooluse_gate() -> int:
     root = project_root()
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
-    if readiness.returncode == 2 and is_mutation:
+    if readiness.returncode == 2 and is_mutation and not payload_is_aegis_bootstrap(payload):
         return block(
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
@@ -323,6 +509,18 @@ def pretooluse_gate() -> int:
             f"Tool: {payload.tool_name}\n"
             f"Reason: readiness failed with exit {readiness.returncode}.\n\n"
             f"{readiness.stdout.strip()}\n{readiness.stderr.strip()}"
+        )
+
+    pending_events = pending_tracking_events(root)
+    if pending_events and is_mutation and not payload_is_aegis_log(payload):
+        return block(
+            "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+            f"Tool: {payload.tool_name}\n"
+            "Reason: pending S:W:H:E tracking must be logged before another persistent mutation.\n\n"
+            f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
+            "Run `aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"` "
+            "or `./.aegis/bin/aegis log ...` so the active session, tracker, plan, implementation log, changelog, "
+            "and handoff all contain the required S:W:H:E entry."
         )
 
     if payload.tool_name in FILE_MUTATION_TOOLS:
@@ -365,6 +563,29 @@ def pretooluse_gate() -> int:
     return 0
 
 
+def posttooluse_tracking() -> int:
+    payload = load_payload()
+    if payload is None:
+        return 0
+    root = project_root()
+    record_pending_tracking_event(root, payload)
+    return 0
+
+
+def stop_gate() -> int:
+    root = project_root()
+    pending_events = pending_tracking_events(root)
+    if not pending_events:
+        return 0
+    return block(
+        "BLOCKED by .claude/scripts/tracking-stop-gate.sh\n\n"
+        "Reason: pending S:W:H:E tracking remains before session stop.\n\n"
+        f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
+        "Run `aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"` "
+        "or `./.aegis/bin/aegis log ...` before ending the session."
+    )
+
+
 def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
     try:
         data = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -393,6 +614,21 @@ def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
     ):
         issues.append("required PreToolUse dispatcher hook missing or changed")
 
+    posttool = hooks.get("PostToolUse")
+    if not isinstance(posttool, list) or not any(
+        isinstance(group, dict)
+        and str(group.get("matcher") or "") == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
+        and any(
+            isinstance(hook, dict)
+            and hook.get("type") == "command"
+            and hook.get("command") == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
+            for hook in group.get("hooks", [])
+            if isinstance(group.get("hooks"), list)
+        )
+        for group in posttool
+    ):
+        issues.append("required PostToolUse S:W:H:E tracking hook missing or changed")
+
     stop = hooks.get("Stop")
     if not isinstance(stop, list) or not any(
         isinstance(group, dict)
@@ -406,6 +642,19 @@ def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
         for group in stop
     ):
         issues.append("required Stop handoff hook missing or changed")
+
+    if not isinstance(stop, list) or not any(
+        isinstance(group, dict)
+        and any(
+            isinstance(hook, dict)
+            and hook.get("type") == "command"
+            and hook.get("command") == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
+            for hook in group.get("hooks", [])
+            if isinstance(group.get("hooks"), list)
+        )
+        for group in stop
+    ):
+        issues.append("required Stop S:W:H:E tracking gate missing or changed")
 
     return not issues, issues
 
@@ -450,11 +699,15 @@ def config_change_guard() -> int:
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print("usage: gate_lib.py <pretooluse|path|bash>", file=sys.stderr)
+        print("usage: gate_lib.py <pretooluse|posttooluse|stop|path|bash>", file=sys.stderr)
         return 1
     command = sys.argv[1]
     if command == "pretooluse":
         return pretooluse_gate()
+    if command == "posttooluse":
+        return posttooluse_tracking()
+    if command == "stop":
+        return stop_gate()
     if command == "path":
         return path_guard()
     if command == "bash":

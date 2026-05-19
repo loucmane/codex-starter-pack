@@ -48,7 +48,8 @@
       "required": [
         "manifest",
         "reports",
-        "state"
+        "state",
+        "local_cli"
       ],
       "properties": {
         "manifest": {
@@ -60,6 +61,10 @@
         },
         "state": {
           "$ref": "#/$defs/repo_path"
+        },
+        "local_cli": {
+          "type": "string",
+          "const": ".aegis/bin/aegis"
         }
       }
     },
@@ -217,7 +222,6 @@
       "required": [
         "settings_path",
         "event",
-        "matcher",
         "command"
       ],
       "properties": {

@@ -41,7 +41,7 @@ uv build --sdist --wheel --out-dir dist
 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py
 AEGIS_RUN_WHEEL_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py::test_local_wheel_cli_smoke_when_enabled
 AEGIS_RUN_WHEEL_MCP_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py::test_local_wheel_mcp_stdio_smoke_when_enabled
-python3 scripts/codex-task aegis status --target-dir /path/to/test-project
+aegis status --target-dir /path/to/test-project
 ```
 
 The release owner must preserve build, test, checksum, and signing evidence with the release notes.

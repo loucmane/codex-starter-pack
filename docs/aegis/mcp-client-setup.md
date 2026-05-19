@@ -127,11 +127,11 @@ Any stdio MCP client can use the same command shape:
 
 Release-candidate validation must discover:
 
-- tools: `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.status`, and related V1 tools
-- resources: Aegis contract, schema, and runtime metadata resources
+- tools: `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.kickoff`, `aegis.log`, `aegis.status`, and related V1 tools
+- resources: Aegis contract, schema, current work, and runtime metadata resources
 - prompts: advisory prompts for planning and workflow handoff
 
-The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires the explicit install/apply path exposed by the Aegis tools.
+The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires the explicit install/apply path exposed by the Aegis tools. Starting work uses `aegis.kickoff` with `apply=true`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from `.aegis/templates/workflow/`. After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with `apply=true` records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `HANDOFF.md`, and current plan evidence before the next mutation or session stop is allowed.
 
 ## Release Readiness Rule
 
@@ -143,5 +143,8 @@ Do not call the MCP publicly ready until these checks pass from an installed art
 - `aegis install --target-dir . --primary-agent claude --agent claude --apply`
 - `aegis status --target-dir .`
 - `aegis verify --target-dir .`
+- `aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"`
+- `aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"`
+- `./.aegis/bin/aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"` when the global `aegis` command is unavailable.
 - `aegis-mcp-server --default-target-dir . --describe-config`
 - stdio tool/resource/prompt discovery
