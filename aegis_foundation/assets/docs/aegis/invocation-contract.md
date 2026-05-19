@@ -4,8 +4,10 @@ This document defines the supported V1 ways to run Aegis from a project that is 
 
 Task 112 deliberately separates two modes:
 
-- **Development checkout mode**: use a local checkout of this repository by absolute path.
-- **Package-style mode**: use the future install-like command surface. This mode is selected in Task 112 but finalized after the package entrypoint is implemented.
+- **Package-style mode**: use the `aegis` and `aegis-mcp-server` console commands. This is the canonical portable surface.
+- **Development checkout mode**: use a local checkout only to provide package assets while keeping the same command semantics.
+
+Taskmaster and Serena are optional integrations. The installed runtime must still work without either one by using Aegis-native workflow state.
 
 ## Release Package Identity
 
@@ -22,38 +24,80 @@ The release package identity is additive. It does not remove the development che
 
 See `docs/aegis/distribution.md` for local wheel, `pip`, `uvx`, `pipx`, MCP startup, and hosted-service release snippets.
 
+## Package-Style Mode
+
+Run Aegis from the target project directory:
+
+```bash
+aegis inspect --target-dir .
+aegis status --target-dir .
+aegis plan-install --target-dir . --primary-agent claude --agent claude
+aegis install --target-dir . --primary-agent claude --agent claude --apply
+aegis verify --target-dir .
+```
+
+Start tracked work without requiring Taskmaster or Serena:
+
+```bash
+aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"
+bash .claude/scripts/readiness.sh --quick
+```
+
+Kickoff creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and `docs/ai/work-tracking/active/<date>-task<id>-<slug>-ACTIVE/`. The active folder is not a placeholder: it includes `TRACKER.md`, `FINDINGS.md`, `DECISIONS.md`, `HANDOFF.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `designs/`, and `reports/<slug>/` rendered from packaged workflow templates. The templates are installed for inspection under `.aegis/templates/workflow/`.
+
+After a successful mutation, the installed Claude `PostToolUse` hook records pending S:W:H:E tracking in `.aegis/state/pending-tracking.json`. The next persistent mutation and session stop are refused until the agent records the work across the active workflow surfaces:
+
+```bash
+aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
+```
+
+If the global command is not on PATH, use the installed project shim:
+
+```bash
+./.aegis/bin/aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
+```
+
+`aegis log` appends a `[S:<date>|W:task<id>-<slug>|H:<handler>|E:<evidence>]` line to `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`; it updates current plan evidence for `plan-step-implement` by default; and it clears the matching pending event. Use repeated `--surface findings` or `--surface decisions` when the mutation also updates those documents. Use `--plan-step plan-step-verify --plan-status completed` for final verification evidence. This is the portable Aegis equivalent of this repository's S:W:H:E progress discipline; it does not require Taskmaster or Serena.
+
 ## Development Checkout Mode
 
-From the target project directory, replace `/path/to/codex` with the absolute path to the Aegis source checkout.
+From the target project directory, replace `/path/to/codex` with the absolute path to the Aegis source checkout. The command surface remains the package-style `aegis` CLI; `--source-root` points it at local assets.
 
 Inspect without mutating the project:
 
 ```bash
-python3 /path/to/codex/scripts/codex-task aegis inspect --target-dir .
+aegis --source-root /path/to/codex inspect --target-dir .
 ```
 
 Plan an install without mutating the project:
 
 ```bash
-python3 /path/to/codex/scripts/codex-task aegis plan-install --target-dir . --primary-agent claude --agent claude
+aegis --source-root /path/to/codex plan-install --target-dir . --primary-agent claude --agent claude
 ```
 
 Check release/update status without mutating the project:
 
 ```bash
-python3 /path/to/codex/scripts/codex-task aegis status --target-dir .
+aegis --source-root /path/to/codex status --target-dir .
 ```
 
 Apply the install after reviewing the plan:
 
 ```bash
-python3 /path/to/codex/scripts/codex-task aegis install --target-dir . --primary-agent claude --agent claude --apply
+aegis --source-root /path/to/codex install --target-dir . --primary-agent claude --agent claude --apply
 ```
 
 Verify the installed runtime:
 
 ```bash
-python3 /path/to/codex/scripts/codex-task aegis verify --target-dir .
+aegis --source-root /path/to/codex verify --target-dir .
+```
+
+Create portable Aegis workflow state:
+
+```bash
+aegis --source-root /path/to/codex kickoff --target-dir . --task 1 --slug first-task --title "First Task"
+aegis --source-root /path/to/codex log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
 ```
 
 Use `--target-dir .` when running from the target project. Use an explicit target path when running from somewhere else.
@@ -83,6 +127,10 @@ The MCP tools keep the same safety boundary as the CLI:
 - `aegis.status` is read-only and reports release/update state without writing target files.
 - `aegis.install` requires explicit `apply=true`.
 - `aegis.verify` writes a verification report and requires `acknowledge_report_write=true`.
+- `aegis.kickoff` writes current work state and requires `apply=true`.
+- `aegis.kickoff` renders the packaged workflow templates into a full session/plan/work-tracking scaffold, not thin placeholder docs.
+- `aegis.log` writes S:W:H:E entries to `sessions/current`, the active `TRACKER.md`, implementation log, changelog, handoff, and plan evidence, and requires `apply=true` when invoked through MCP.
+- Installed Claude `PostToolUse` and `Stop` hooks enforce pending S:W:H:E completion: task-scoped writes create `.aegis/state/pending-tracking.json`, further mutations are blocked until `aegis.log` clears it, and session stop is blocked while pending events remain.
 - Agents must cite `.aegis/reports/*` or MCP tool/resource results as evidence, not prompt text.
 
 ## Editable Package-Style Mode
@@ -104,6 +152,8 @@ aegis status --target-dir .
 aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
+aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"
+aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
 ```
 
 Start the editable package-style MCP server from the target project directory:
@@ -128,5 +178,6 @@ After Aegis is installed into a target project, the generated target still conta
 
 - Do not run `install --apply` until the plan output has been reviewed.
 - Do not write `.aegis/` directly. Use Aegis CLI or MCP operations.
+- Do not perform a second mutation after a successful task write until `aegis log` has recorded the S:W:H:E entry in the active session, tracker, implementation log, changelog, handoff, and plan evidence.
 - Treat `.aegis/reports/install-plan.json`, `.aegis/reports/install-report.json`, and `.aegis/reports/verification-report.json` as the evidence trail.
 - Development checkout snippets may contain the source checkout path in local shell or MCP client configuration. Installed target `.aegis/` state should not depend on an absolute source checkout path.

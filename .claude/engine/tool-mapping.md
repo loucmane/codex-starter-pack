@@ -15,6 +15,7 @@ The shared foundation documentation was originally written for Codex and often n
 ## Runtime-Specific Rules
 - Before mutation, Claude readiness must be `READY`.
 - File mutations flow through `.claude/scripts/pretooluse-gate.sh`.
+- Successful mutations flow through `.claude/scripts/posttooluse-tracking.sh`; pending S:W:H:E tracking must be cleared with `aegis log --handler <handler> --evidence <path-or-command> --note "<past-tense note>"` or `./.aegis/bin/aegis log ...` before the next mutation. The log updates the active session, tracker, implementation log, changelog, handoff, and current plan evidence.
 - Bash write-surface bypasses are blocked for tested patterns.
 - Codex-owned paths remain off limits from Claude sessions.
 

@@ -1,0 +1,47 @@
+Live Claude Hardened Full Workflow Smoke - 2026-05-19
+
+Target:
+- /tmp/aegis-full-workflow-hardened-test-n0JCm7/shop-webapp
+
+Preflight:
+- pwd: /tmp/aegis-full-workflow-hardened-test-n0JCm7/shop-webapp
+- branch: feat/task-42-build-cart
+- readiness: READY | task=42
+- local shim: ./.aegis/bin/aegis
+- shim version: aegis 0.1.0
+
+Observed behavior:
+- Claude Write created:
+  docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/claude-hardened-workflow-write.txt
+- PostToolUse created pending tracking:
+  id=df33ee718563
+  handler=claude:Write
+  evidence=docs/ai/work-tracking/active/20260519-task42-build-cart-ACTIVE/reports/build-cart/claude-hardened-workflow-write.txt
+- A second Write before logging was blocked by pending S:W:H:E tracking.
+- ./.aegis/bin/aegis log succeeded and cleared pending tracking.
+- Evidence appeared in all six workflow surfaces:
+  - sessions/current
+  - TRACKER.md
+  - IMPLEMENTATION.md
+  - CHANGELOG.md
+  - HANDOFF.md
+  - plans/current
+- Read-only verification did not recreate pending tracking.
+- Protected Bash bypass attempt:
+  printf 'should not land\n' > templates/should-not-land.md
+  was blocked by the protected-path Bash guard, not by pending tracking.
+
+Protected-path block message excerpt:
+- Tool: Bash
+- Violation: redirection targets protected path templates/should-not-land.md
+- Bash may not be used to bypass protected Codex-owned path boundaries.
+
+Unexpected behavior:
+- None affecting the Aegis workflow.
+- Claude reported two cosmetic TaskCreate reminders in tool output; they did not affect gate behavior.
+
+Conclusion:
+- The hardened installed-project workflow passed the real Claude session smoke.
+- The previous `/dev/null` read-only verification bug did not reproduce.
+- The previous non-matching pending evidence issue did not reproduce.
+- The local shim, full workflow-surface logging, pending S:W:H:E enforcement, and protected Bash guard all behaved as intended.

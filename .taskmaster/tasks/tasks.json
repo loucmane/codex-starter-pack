@@ -5770,14 +5770,69 @@
             "parentTaskId": 115,
             "parentId": "undefined",
             "updatedAt": "2026-05-18T11:43:14.358Z"
+          },
+          {
+            "id": 7,
+            "title": "Validate real local target projects through packaged MCP flow",
+            "description": "Add a second validation layer that creates concrete local Python, web, and backend target projects in temporary directories, including new and already-started variants, then exercises the packaged MCP inspect/plan/install/verify flow and records evidence that existing project files remain unchanged.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "updatedAt": "2026-05-18T12:52:38.055Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Prove or implement installed-project READY kickoff path",
+            "description": "Validate the positive path after Aegis installation: from inside a newly installed target project, create or invoke the project-local workflow state needed for Claude readiness, including task branch, Taskmaster or lightweight task state, sessions/current, plans/current, active work-tracking folder, and tracker/plan alignment. If the path does not exist, implement or explicitly block release readiness until it does.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "updatedAt": "2026-05-18T14:19:39.801Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 9,
+            "title": "Make Aegis kickoff scaffold the full portable workflow",
+            "description": "Replace the thin installed-project kickoff output with packaged workflow templates that create session, plan, work-tracking, current pointers, state, reports, and audit docs comparable to this repository's operating model.",
+            "details": "Use templates/aegis/workflow as source and package the same templates into aegis_foundation/assets. Update CLI/MCP kickoff to render templates from source assets. Extend installed target-project tests to assert scaffold content, not just file existence.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "parentId": "undefined",
+            "updatedAt": "2026-05-19T10:03:52.193Z"
+          },
+          {
+            "id": 10,
+            "title": "Enforce S:W:H:E tracking after installed-project mutations",
+            "description": "Add portable post-mutation tracking enforcement so Aegis-installed projects require meaningful S:W:H:E entries in the active session and tracker after task-scoped mutations. The live Claude smoke proved ready-state writes work but are not yet forced into the audit trail.",
+            "details": "Implement an Aegis-native logging workflow that records pending mutation events, exposes an explicit tracking command or equivalent helper that writes S:W:H:E entries to sessions/current and the active TRACKER.md, and gates subsequent mutation or session stop until the pending event is represented in the audit trail. Tests must prove a READY write creates pending tracking, another mutation is refused until logging occurs, logging writes S:W:H:E entries to both files, and Taskmaster/Serena remain optional.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "updatedAt": "2026-05-19T12:05:32.055Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 11,
+            "title": "Enforce full workflow-surface accountability in installed projects",
+            "description": "Extend Aegis runtime beyond session/tracker mutation logging so installed projects enforce this repository's workflow model: plan status/evidence alignment, task-scoped implementation/finding/decision/changelog/handoff surfaces, and Stop/verification gates that prevent Claude from ending or claiming completion with only minimal S:W:H:E entries. The fix must be mechanical through Aegis commands/hooks/tests, not documentation-only.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 115,
+            "updatedAt": "2026-05-19T14:06:08.149Z",
+            "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-05-18T11:49:43.472Z"
+        "updatedAt": "2026-05-19T14:06:08.149Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-18T11:49:43.472Z",
+      "lastModified": "2026-05-19T14:06:08.150Z",
       "taskCount": 115,
       "completedCount": 115,
       "tags": [

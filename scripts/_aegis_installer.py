@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -35,17 +37,46 @@ AEGIS_MANIFEST_REL = ".aegis/foundation-manifest.json"
 AEGIS_CONTRACT_REL = ".aegis/contract.md"
 AEGIS_REPORTS_REL = ".aegis/reports"
 AEGIS_STATE_REL = ".aegis/state"
+AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
+AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
+AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
+AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
+AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT = "templates/aegis/workflow"
+AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT = ".aegis/templates/workflow"
+AEGIS_WORKFLOW_TEMPLATE_NAMES = (
+    "session.md",
+    "plan.md",
+    "tracker.md",
+    "findings.md",
+    "decisions.md",
+    "handoff.md",
+    "implementation.md",
+    "changelog.md",
+)
+AEGIS_LOG_SURFACES = {
+    "implementation": "IMPLEMENTATION.md",
+    "changelog": "CHANGELOG.md",
+    "handoff": "HANDOFF.md",
+    "findings": "FINDINGS.md",
+    "decisions": "DECISIONS.md",
+}
+AEGIS_DEFAULT_LOG_SURFACES = ("implementation", "changelog", "handoff")
+AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 
 CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
 CLAUDE_PRETOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
+CLAUDE_POSTTOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
+CLAUDE_STOP_TRACKING_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
 CLAUDE_REQUIRED_FILES = (
     "CLAUDE.md",
     ".claude/settings.json",
     ".claude/scripts/readiness.sh",
     ".claude/scripts/pretooluse-gate.sh",
+    ".claude/scripts/posttooluse-tracking.sh",
+    ".claude/scripts/tracking-stop-gate.sh",
     ".claude/scripts/bash-command-guard.sh",
     ".claude/scripts/codex-path-guard.sh",
 )
@@ -55,6 +86,8 @@ CLAUDE_SUPPORT_FILES = (
 CLAUDE_GATE_IDS = (
     "claude.readiness",
     "claude.pretooluse",
+    "claude.posttooluse_tracking",
+    "claude.stop_tracking",
     "claude.bash_command",
     "claude.protected_path",
 )
@@ -179,6 +212,7 @@ def profile_payload() -> dict[str, Any]:
             "manifest": AEGIS_MANIFEST_REL,
             "reports": AEGIS_REPORTS_REL,
             "state": AEGIS_STATE_REL,
+            "local_cli": AEGIS_LOCAL_BIN_REL,
         },
         "adapter_requirements": {
             "claude": {
@@ -190,6 +224,17 @@ def profile_payload() -> dict[str, Any]:
                         "event": "PreToolUse",
                         "matcher": CLAUDE_PRETOOLUSE_MATCHER,
                         "command": CLAUDE_PRETOOLUSE_COMMAND,
+                    },
+                    {
+                        "settings_path": ".claude/settings.json",
+                        "event": "PostToolUse",
+                        "matcher": CLAUDE_PRETOOLUSE_MATCHER,
+                        "command": CLAUDE_POSTTOOLUSE_COMMAND,
+                    },
+                    {
+                        "settings_path": ".claude/settings.json",
+                        "event": "Stop",
+                        "command": CLAUDE_STOP_TRACKING_COMMAND,
                     }
                 ],
             },
@@ -204,10 +249,12 @@ def profile_payload() -> dict[str, Any]:
             "agents.codex.enabled": list(CODEX_GATE_IDS),
         },
         "verification": {
-            "required_commands": ["python3 scripts/codex-task aegis verify"],
+            "required_commands": ["aegis verify"],
             "optional_smoke_tests": [
                 "cold-session mutation blocked",
+                "Aegis-native kickoff reaches READY without Taskmaster or Serena",
                 "READY evidence write allowed",
+                "aegis log updates session, tracker, plan, implementation, changelog, and handoff surfaces",
             ],
         },
     }
@@ -249,13 +296,23 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "- `.aegis/` is readable shared foundation state.",
             "- Direct writes to `.aegis/` are not allowed.",
-            "- Mutating foundation operations go through `python3 scripts/codex-task aegis ...` or future `aegis.*` MCP tools.",
+            "- Mutating foundation operations go through `aegis ...`, the project-local `./.aegis/bin/aegis ...` CLI shim, or `aegis.*` MCP tools.",
+            "- Taskmaster and Serena are optional integrations. Aegis-native state is sufficient for READY when they are absent.",
             "",
             "## Verification",
             "",
-            "- Required gates must pass `python3 scripts/codex-task aegis verify`.",
+            "- Required gates must pass `aegis verify`.",
             "- Missing, non-executable, unconfigured, or failing required gates make verification fail.",
             "- Policy-only gates are documented limitations, not proof of enforcement.",
+            "",
+            "## Work Kickoff",
+            "",
+            "- Start work with `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` or `./.aegis/bin/aegis kickoff ...` when the global command is unavailable.",
+            "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
+            "- `.aegis/state/current-work.json` is the portable authority for READY.",
+            "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
+            "- After every meaningful mutation, run `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, implementation log, changelog, handoff, and current plan evidence.",
+            "- Use `--surface findings` or `--surface decisions` when the mutation also records a finding or decision. Use `--plan-step` and `--plan-status` for explicit scope/verify transitions.",
             "",
         ]
     )
@@ -275,7 +332,20 @@ def _render_claude_entrypoint() -> bytes:
             "bash .claude/scripts/readiness.sh --quick",
             "```",
             "",
+            "If readiness is BLOCKED because no current work exists, start tracked work with:",
+            "",
+            "```bash",
+            "aegis kickoff --task <id> --slug <slug> --title \"<title>\"",
+            "```",
+            "",
+            "If `aegis` is not on PATH, use the installed project-local shim:",
+            "",
+            "```bash",
+            "./.aegis/bin/aegis kickoff --task <id> --slug <slug> --title \"<title>\"",
+            "```",
+            "",
             "Project hooks route mutation tools through `.claude/scripts/pretooluse-gate.sh`.",
+            "After a mutation, use `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` before attempting the next mutation. The command updates the session, tracker, implementation log, changelog, handoff, and plan evidence.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
             "",
         ]
@@ -290,9 +360,20 @@ def _render_claude_settings() -> bytes:
             "allow": [
                 "Bash(bash .claude/scripts/readiness.sh:*)",
                 "Bash(bash .claude/scripts/pretooluse-gate.sh:*)",
+                "Bash(bash .claude/scripts/posttooluse-tracking.sh:*)",
+                "Bash(bash .claude/scripts/tracking-stop-gate.sh:*)",
                 "Bash(bash .claude/scripts/codex-path-guard.sh:*)",
                 "Bash(bash .claude/scripts/bash-command-guard.sh:*)",
-                "Bash(python3 scripts/codex-task aegis:*)",
+                "Bash(aegis inspect:*)",
+                "Bash(aegis status:*)",
+                "Bash(aegis kickoff:*)",
+                "Bash(aegis log:*)",
+                "Bash(aegis verify:*)",
+                "Bash(./.aegis/bin/aegis inspect:*)",
+                "Bash(./.aegis/bin/aegis status:*)",
+                "Bash(./.aegis/bin/aegis kickoff:*)",
+                "Bash(./.aegis/bin/aegis log:*)",
+                "Bash(./.aegis/bin/aegis verify:*)",
                 "Bash(git status:*)",
                 "Bash(git diff:*)",
                 "Bash(date:*)",
@@ -318,10 +399,69 @@ def _render_claude_settings() -> bytes:
                         }
                     ],
                 }
+            ],
+            "PostToolUse": [
+                {
+                    "matcher": CLAUDE_PRETOOLUSE_MATCHER,
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": CLAUDE_POSTTOOLUSE_COMMAND,
+                        }
+                    ],
+                }
+            ],
+            "Stop": [
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": CLAUDE_STOP_TRACKING_COMMAND,
+                        }
+                    ],
+                }
             ]
         },
     }
     return _dump_json(payload).encode("utf-8")
+
+
+def _render_local_cli_shim(source_root: Path) -> bytes:
+    source = source_root.resolve().as_posix()
+    text = "\n".join(
+        [
+            "#!/usr/bin/env bash",
+            "set -euo pipefail",
+            "",
+            "SELF=\"$0\"",
+            "SELF_RESOLVED=\"$(cd \"$(dirname \"$SELF\")\" && pwd -P)/$(basename \"$SELF\")\"",
+            "if command -v aegis >/dev/null 2>&1; then",
+            "  RESOLVED=\"$(command -v aegis)\"",
+            "  RESOLVED_ABS=\"$(cd \"$(dirname \"$RESOLVED\")\" && pwd -P)/$(basename \"$RESOLVED\")\"",
+            "  if [ \"$RESOLVED_ABS\" != \"$SELF_RESOLVED\" ]; then",
+            "    exec \"$RESOLVED\" \"$@\"",
+            "  fi",
+            "fi",
+            "",
+            "if python3 -c 'import aegis_foundation.cli' >/dev/null 2>&1; then",
+            "  exec python3 -m aegis_foundation.cli \"$@\"",
+            "fi",
+            "",
+            f"AEGIS_SOURCE_FALLBACK=\"{source}\"",
+            "if [ -n \"${AEGIS_SOURCE_ROOT:-}\" ]; then",
+            "  AEGIS_SOURCE_FALLBACK=\"$AEGIS_SOURCE_ROOT\"",
+            "fi",
+            "if [ -d \"$AEGIS_SOURCE_FALLBACK\" ]; then",
+            "  export PYTHONPATH=\"$AEGIS_SOURCE_FALLBACK${PYTHONPATH:+:$PYTHONPATH}\"",
+            "  exec python3 -m aegis_foundation.cli --source-root \"$AEGIS_SOURCE_FALLBACK\" \"$@\"",
+            "fi",
+            "",
+            "echo \"Aegis CLI is unavailable. Install aegis-foundation, add aegis to PATH, or set AEGIS_SOURCE_ROOT.\" >&2",
+            "exit 127",
+            "",
+        ]
+    )
+    return text.encode("utf-8")
 
 
 def _asset_from_source(source_root: Path, rel_path: str, *, kind: str = "managed") -> Asset:
@@ -329,13 +469,27 @@ def _asset_from_source(source_root: Path, rel_path: str, *, kind: str = "managed
     return Asset(path=rel_path, content=_read_bytes(source_root, rel_path), executable=os.access(path, os.X_OK), kind=kind)
 
 
+def _asset_from_source_as(source_root: Path, source_rel_path: str, target_rel_path: str, *, kind: str = "managed") -> Asset:
+    path = source_root / source_rel_path
+    return Asset(path=target_rel_path, content=_read_bytes(source_root, source_rel_path), executable=os.access(path, os.X_OK), kind=kind)
+
+
 def _base_assets(source_root: Path, primary_agent: str, enabled_agents: Sequence[str]) -> list[Asset]:
     assets = [
         Asset("AGENTS.md", _render_agents_doc(primary_agent, enabled_agents)),
         Asset(AEGIS_CONTRACT_REL, _render_contract(primary_agent, enabled_agents)),
+        Asset(AEGIS_LOCAL_BIN_REL, _render_local_cli_shim(source_root), executable=True),
     ]
     for rel_path in SHARED_SCHEMA_FILES:
         assets.append(_asset_from_source(source_root, rel_path))
+    for template_name in AEGIS_WORKFLOW_TEMPLATE_NAMES:
+        assets.append(
+            _asset_from_source_as(
+                source_root,
+                f"{AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT}/{template_name}",
+                f"{AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT}/{template_name}",
+            )
+        )
     return assets
 
 
@@ -467,6 +621,33 @@ def _gates(enabled_agents: Sequence[str]) -> list[dict[str, Any]]:
                     expected=CLAUDE_PRETOOLUSE_COMMAND,
                 ),
                 _gate(
+                    "claude.posttooluse_tracking",
+                    required=True,
+                    enforcement="mechanical",
+                    scope="adapter",
+                    adapter="claude",
+                    path=".claude/scripts/posttooluse-tracking.sh",
+                    settings_path=".claude/settings.json",
+                    hook_event="PostToolUse",
+                    hook_matcher=CLAUDE_PRETOOLUSE_MATCHER,
+                    method="settings_hook",
+                    failure_mode="fail",
+                    expected=CLAUDE_POSTTOOLUSE_COMMAND,
+                ),
+                _gate(
+                    "claude.stop_tracking",
+                    required=True,
+                    enforcement="mechanical",
+                    scope="adapter",
+                    adapter="claude",
+                    path=".claude/scripts/tracking-stop-gate.sh",
+                    settings_path=".claude/settings.json",
+                    hook_event="Stop",
+                    method="settings_hook",
+                    failure_mode="fail",
+                    expected=CLAUDE_STOP_TRACKING_COMMAND,
+                ),
+                _gate(
                     "claude.bash_command",
                     required=True,
                     enforcement="mechanical",
@@ -564,7 +745,7 @@ def _manifest_payload(
         },
         "interfaces": {
             "cli": {
-                "command": "python3 scripts/codex-task aegis",
+                "command": "aegis",
             },
             "mcp": {
                 "namespace": "aegis",
@@ -931,6 +1112,645 @@ def _cleanup_created_paths(target_root: Path, rel_paths: Iterable[str]) -> dict[
     }
 
 
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    if not slug:
+        raise AegisError("slug must contain at least one alphanumeric character")
+    return slug
+
+
+def _normalize_task_id(task_id: str | int) -> str:
+    value = str(task_id).strip()
+    if not re.fullmatch(r"\d+", value):
+        raise AegisError("Aegis kickoff currently requires a numeric task id")
+    return value
+
+
+def _run_target_git(target_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(target_root), *args],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
+def _current_branch(target_root: Path) -> str:
+    result = _run_target_git(target_root, "branch", "--show-current")
+    if result.returncode != 0 or not result.stdout.strip():
+        detail = (result.stderr or result.stdout or "empty branch").strip()
+        raise AegisError(f"could not determine current git branch: {detail}")
+    return result.stdout.strip()
+
+
+def _ensure_git_work_tree(target_root: Path) -> None:
+    result = _run_target_git(target_root, "rev-parse", "--is-inside-work-tree")
+    if result.returncode != 0 or result.stdout.strip() != "true":
+        detail = (result.stderr or result.stdout or "not a git work tree").strip()
+        raise AegisError(f"Aegis kickoff requires a git work tree: {detail}")
+
+
+def _branch_task_id(branch: str) -> str | None:
+    match = re.search(r"(?:^|[-_/])task-?(\d+)(?:[-_/]|$)", branch)
+    return match.group(1) if match else None
+
+
+def _ensure_task_branch(target_root: Path, task_id: str, slug: str, *, create_branch: bool) -> dict[str, Any]:
+    before = _current_branch(target_root)
+    if _branch_task_id(before) == task_id:
+        return {
+            "before": before,
+            "current": before,
+            "action": "already_on_task_branch",
+            "created": False,
+        }
+    if not create_branch:
+        raise AegisError(
+            f"current branch '{before}' does not contain task id {task_id}; rerun with branch creation enabled"
+        )
+
+    branch_name = f"feat/task-{task_id}-{slug}"
+    exists = _run_target_git(target_root, "rev-parse", "--verify", "--quiet", branch_name)
+    if exists.returncode == 0:
+        switch = _run_target_git(target_root, "switch", branch_name)
+        action = "switched_existing_branch"
+        created = False
+    else:
+        switch = _run_target_git(target_root, "switch", "-c", branch_name)
+        action = "created_branch"
+        created = True
+    if switch.returncode != 0:
+        detail = (switch.stderr or switch.stdout or "git switch failed").strip()
+        raise AegisError(f"could not switch to task branch '{branch_name}': {detail}")
+    return {
+        "before": before,
+        "current": _current_branch(target_root),
+        "action": action,
+        "created": created,
+    }
+
+
+def _replace_symlink(link: Path, target: str) -> None:
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if link.exists() or link.is_symlink():
+        if not link.is_symlink():
+            raise AegisError(f"cannot replace non-symlink current pointer: {link}")
+        link.unlink()
+    link.symlink_to(target)
+
+
+def _next_session_rel(target_root: Path, task_id: str, slug: str, now: datetime) -> str:
+    date_text = now.strftime("%Y-%m-%d")
+    month_rel = Path("sessions") / now.strftime("%Y") / now.strftime("%m")
+    for index in range(1, 1000):
+        candidate = month_rel / f"{date_text}-{index:03d}-task{task_id}-{slug}.md"
+        if not (target_root / candidate).exists():
+            return candidate.as_posix()
+    raise AegisError("could not allocate session file name")
+
+
+def _plan_rel(task_id: str, slug: str, now: datetime) -> str:
+    return f"plans/{now.strftime('%Y-%m-%d')}-task{task_id}-{slug}.md"
+
+
+def _work_tracking_rel(task_id: str, slug: str, now: datetime) -> str:
+    return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-task{task_id}-{slug}-ACTIVE"
+
+
+def _default_goals() -> list[str]:
+    return [
+        "Define scope and constraints before implementation",
+        "Implement only task-scoped changes",
+        "Verify behavior with captured evidence before completion",
+    ]
+
+
+def _read_workflow_template(target_root: Path, source_root: Path | None, template_name: str) -> str:
+    candidates: list[Path] = []
+    if source_root is not None:
+        candidates.append(source_root / AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT / template_name)
+    candidates.append(target_root / AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT / template_name)
+    candidates.append(_REPO_ROOT / AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT / template_name)
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate.read_text(encoding="utf-8")
+    raise AegisError(f"Required workflow template is missing: {template_name}")
+
+
+def _render_workflow_template(
+    target_root: Path,
+    source_root: Path | None,
+    template_name: str,
+    context: Mapping[str, str],
+) -> str:
+    rendered = _read_workflow_template(target_root, source_root, template_name)
+    for key, value in sorted(context.items(), key=lambda item: len(item[0]), reverse=True):
+        rendered = rendered.replace("{{" + key + "}}", value)
+    unresolved = sorted(set(re.findall(r"{{\s*([a-zA-Z0-9_]+)\s*}}", rendered)))
+    if unresolved:
+        raise AegisError(f"Workflow template {template_name} has unresolved variable(s): {', '.join(unresolved)}")
+    return rendered.rstrip() + "\n"
+
+
+def _workflow_template_context(
+    *,
+    task_id: str,
+    title: str,
+    slug: str,
+    goals: Sequence[str],
+    now: datetime,
+    branch_current: str,
+    session_rel: str,
+    plan_rel: str,
+    work_rel: str,
+    reports_rel: str,
+) -> dict[str, str]:
+    selected_goals = list(goals or _default_goals())
+    session_id = Path(session_rel).stem
+    work_context = f"task{task_id}-{slug}"
+    tracker_rel = f"{work_rel}/TRACKER.md"
+    return {
+        "task_id": task_id,
+        "title": title,
+        "slug": slug,
+        "session_id": session_id,
+        "session_value": now.strftime("%Y%m%d"),
+        "work_context": work_context,
+        "date": now.strftime("%Y-%m-%d"),
+        "time_label": now.strftime("%H:%M %Z").strip(),
+        "time_hm": now.strftime("%H:%M"),
+        "timestamp_full": now.strftime("%Y-%m-%d %H:%M:%S %Z %z").strip(),
+        "timestamp_tracker": now.strftime("%Y-%m-%d %H:%M %Z").strip(),
+        "created_at": now.isoformat(),
+        "branch_current": branch_current,
+        "current_work_rel": AEGIS_CURRENT_WORK_REL,
+        "session_rel": session_rel,
+        "plan_rel": plan_rel,
+        "work_rel": work_rel,
+        "tracker_rel": tracker_rel,
+        "reports_rel": reports_rel,
+        "goals_checklist": "\n".join(f"- [ ] {goal}" for goal in selected_goals),
+        "goals_bullets": "\n".join(f"- {goal}" for goal in selected_goals),
+    }
+
+
+def _write_text(target_root: Path, rel_path: str, content: str) -> None:
+    path = target_root / rel_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def _update_manifest_after_kickoff(target_root: Path) -> None:
+    manifest_path = target_root / AEGIS_MANIFEST_REL
+    manifest = _read_json(manifest_path)
+    if manifest is None:
+        return
+    capabilities = manifest.get("capabilities")
+    if isinstance(capabilities, dict):
+        capabilities["work_tracking"] = True
+    manifest_path.write_text(_dump_json(manifest), encoding="utf-8")
+
+
+def kickoff(
+    target_dir: str | Path,
+    *,
+    task_id: str | int,
+    slug: str,
+    title: str,
+    goals: Sequence[str] | None = None,
+    create_branch: bool = True,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Create Aegis-native current work state for an installed target project."""
+
+    target_root = _resolve_target_root(target_dir)
+    resolved_source = Path(source_root).resolve() if source_root is not None else None
+    if not (target_root / AEGIS_MANIFEST_REL).is_file():
+        raise AegisError("Aegis kickoff requires an installed .aegis/foundation-manifest.json")
+    _ensure_git_work_tree(target_root)
+
+    normalized_task_id = _normalize_task_id(task_id)
+    normalized_slug = _slugify(slug)
+    clean_title = title.strip()
+    if not clean_title:
+        raise AegisError("title is required")
+
+    now = datetime.now().astimezone().replace(microsecond=0)
+    selected_goals = list(goals or _default_goals())
+    branch = _ensure_task_branch(target_root, normalized_task_id, normalized_slug, create_branch=create_branch)
+
+    session_rel = _next_session_rel(target_root, normalized_task_id, normalized_slug, now)
+    plan_rel = _plan_rel(normalized_task_id, normalized_slug, now)
+    work_rel = _work_tracking_rel(normalized_task_id, normalized_slug, now)
+    reports_rel = f"{work_rel}/reports/{normalized_slug}"
+    template_context = _workflow_template_context(
+        task_id=normalized_task_id,
+        title=clean_title,
+        slug=normalized_slug,
+        goals=selected_goals,
+        now=now,
+        branch_current=str(branch["current"]),
+        session_rel=session_rel,
+        plan_rel=plan_rel,
+        work_rel=work_rel,
+        reports_rel=reports_rel,
+    )
+
+    _write_text(target_root, session_rel, _render_workflow_template(target_root, resolved_source, "session.md", template_context))
+    _replace_symlink(target_root / "sessions" / "current", str(Path(session_rel).relative_to("sessions")))
+    state_payload = {
+        "schema_version": SCHEMA_VERSION,
+        "current": Path(session_rel).name,
+        "current_path": session_rel,
+        "task": {
+            "id": normalized_task_id,
+            "slug": normalized_slug,
+            "title": clean_title,
+            "status": "in-progress",
+        },
+        "updated_at": _iso_now(),
+    }
+    _write_text(target_root, "sessions/state.json", _dump_json(state_payload))
+
+    _write_text(target_root, plan_rel, _render_workflow_template(target_root, resolved_source, "plan.md", template_context))
+    _replace_symlink(target_root / "plans" / "current", Path(plan_rel).name)
+
+    work_files = {
+        f"{work_rel}/TRACKER.md": _render_workflow_template(target_root, resolved_source, "tracker.md", template_context),
+        f"{work_rel}/FINDINGS.md": _render_workflow_template(target_root, resolved_source, "findings.md", template_context),
+        f"{work_rel}/DECISIONS.md": _render_workflow_template(target_root, resolved_source, "decisions.md", template_context),
+        f"{work_rel}/HANDOFF.md": _render_workflow_template(target_root, resolved_source, "handoff.md", template_context),
+        f"{work_rel}/IMPLEMENTATION.md": _render_workflow_template(target_root, resolved_source, "implementation.md", template_context),
+        f"{work_rel}/CHANGELOG.md": _render_workflow_template(target_root, resolved_source, "changelog.md", template_context),
+    }
+    for rel_path, content in work_files.items():
+        _write_text(target_root, rel_path, content)
+    (target_root / work_rel / "designs").mkdir(parents=True, exist_ok=True)
+    (target_root / reports_rel).mkdir(parents=True, exist_ok=True)
+
+    current_work = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "in-progress",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": _iso_now(),
+        "task": {
+            "id": normalized_task_id,
+            "slug": normalized_slug,
+            "title": clean_title,
+            "status": "in-progress",
+        },
+        "branch": branch,
+        "paths": {
+            "session": session_rel,
+            "session_current": "sessions/current",
+            "plan": plan_rel,
+            "plan_current": "plans/current",
+            "work_tracking": work_rel,
+            "reports": reports_rel,
+            "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        },
+        "integrations": {
+            "taskmaster": {
+                "required": False,
+                "detected": (target_root / ".taskmaster").exists(),
+            },
+            "serena": {
+                "required": False,
+                "detected": (target_root / ".serena").exists(),
+            },
+        },
+    }
+    _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+    _update_manifest_after_kickoff(target_root)
+
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "started",
+        "started_at": _iso_now(),
+        "target_root": str(target_root),
+        "task": current_work["task"],
+        "branch": branch,
+        "paths": current_work["paths"],
+        "integrations": current_work["integrations"],
+        "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+    }
+    _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
+    return report
+
+
+def _current_work_payload(target_root: Path) -> dict[str, Any]:
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if current_work is None:
+        raise AegisError("Aegis log requires .aegis/state/current-work.json; run aegis kickoff first")
+    return current_work
+
+
+def _normalize_evidence(target_root: Path, evidence: str) -> str:
+    if not evidence.strip():
+        raise AegisError("evidence is required")
+    path = Path(evidence).expanduser()
+    if path.is_absolute():
+        try:
+            return path.resolve().relative_to(target_root).as_posix()
+        except ValueError:
+            return path.as_posix()
+    return evidence.strip().lstrip("./")
+
+
+def _append_progress_entry(path: Path, heading: str, line: str) -> None:
+    if not path.is_file():
+        raise AegisError(f"required workflow file missing: {path}")
+    lines = path.read_text(encoding="utf-8").splitlines()
+    try:
+        heading_index = next(index for index, value in enumerate(lines) if value.strip() == heading)
+    except StopIteration:
+        lines.extend(["", heading, line])
+        path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+        return
+
+    insert_at = len(lines)
+    for index in range(heading_index + 1, len(lines)):
+        stripped = lines[index].strip()
+        if stripped.startswith("#") and stripped != heading:
+            insert_at = index
+            break
+    while insert_at > heading_index + 1 and not lines[insert_at - 1].strip():
+        insert_at -= 1
+    lines.insert(insert_at, line)
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def _normalize_log_surfaces(surfaces: Sequence[str] | None) -> tuple[str, ...]:
+    selected = tuple(surfaces or AEGIS_DEFAULT_LOG_SURFACES)
+    if not selected:
+        return ()
+    normalized: list[str] = []
+    unknown: list[str] = []
+    for value in selected:
+        key = value.strip().lower()
+        if not key:
+            continue
+        if key not in AEGIS_LOG_SURFACES:
+            unknown.append(value)
+            continue
+        if key not in normalized:
+            normalized.append(key)
+    if unknown:
+        choices = ", ".join(sorted(AEGIS_LOG_SURFACES))
+        raise AegisError(f"unknown log surface(s): {', '.join(unknown)}; expected one of: {choices}")
+    return tuple(normalized)
+
+
+def _normalize_plan_status(status: str | None) -> str:
+    clean = (status or "in-progress").strip().lower()
+    if clean not in AEGIS_PLAN_STATUS_CHOICES:
+        choices = ", ".join(sorted(AEGIS_PLAN_STATUS_CHOICES))
+        raise AegisError(f"unknown plan status: {status}; expected one of: {choices}")
+    return "completed" if clean == "done" else clean
+
+
+def _update_tracker_timestamp(tracker_path: Path, timestamp: str) -> None:
+    lines = tracker_path.read_text(encoding="utf-8").splitlines()
+    changed = False
+    for index, line in enumerate(lines):
+        if line.startswith("**Last Updated**:"):
+            lines[index] = f"**Last Updated**: {timestamp}"
+            changed = True
+            break
+    if changed:
+        tracker_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def _update_tracker_plan_step(tracker_path: Path, plan_step: str, plan_status: str) -> None:
+    if plan_status != "completed":
+        return
+    lines = tracker_path.read_text(encoding="utf-8").splitlines()
+    changed = False
+    for index, line in enumerate(lines):
+        if line.startswith("- [ ] ") and plan_step in line:
+            lines[index] = line.replace("- [ ] ", "- [x] ", 1)
+            changed = True
+    if changed:
+        tracker_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def _update_plan_table(
+    plan_path: Path,
+    *,
+    plan_step: str,
+    plan_status: str,
+    evidence_rel: str,
+    timestamp: str,
+) -> bool:
+    if not plan_path.is_file():
+        raise AegisError(f"required workflow file missing: {plan_path}")
+    lines = plan_path.read_text(encoding="utf-8").splitlines()
+    changed = False
+    for index, line in enumerate(lines):
+        if not line.startswith(f"| {plan_step} |"):
+            continue
+        columns = [column.strip() for column in line.strip().strip("|").split("|")]
+        if len(columns) != 4:
+            raise AegisError(f"plan row for {plan_step} is malformed")
+        evidence = columns[2]
+        if evidence_rel not in evidence:
+            evidence = f"{evidence}; {evidence_rel}" if evidence else evidence_rel
+        current_status = columns[3]
+        next_status = current_status
+        if current_status not in {"completed", "n/a"} or plan_status == "completed":
+            next_status = plan_status
+        lines[index] = f"| {columns[0]} | {columns[1]} | {evidence} | {next_status} |"
+        changed = True
+        break
+    if not changed:
+        raise AegisError(f"plan step not found in current plan: {plan_step}")
+    amendment = f"- {timestamp} - `aegis log` updated `{plan_step}` to `{plan_status}` with evidence `{evidence_rel}`."
+    if amendment not in lines:
+        try:
+            heading_index = next(index for index, value in enumerate(lines) if value.strip() == "## Amendments & Versioning")
+        except StopIteration:
+            lines.extend(["", "## Amendments & Versioning", amendment])
+        else:
+            insert_at = len(lines)
+            for index in range(heading_index + 1, len(lines)):
+                stripped = lines[index].strip()
+                if stripped.startswith("#") and stripped != "## Amendments & Versioning":
+                    insert_at = index
+                    break
+            while insert_at > heading_index + 1 and not lines[insert_at - 1].strip():
+                insert_at -= 1
+            lines.insert(insert_at, amendment)
+    plan_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    return True
+
+
+def _pending_tracking_events(target_root: Path) -> list[dict[str, Any]]:
+    payload = _read_json(target_root / AEGIS_PENDING_TRACKING_REL)
+    if not payload:
+        return []
+    events = payload.get("events")
+    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+
+
+def _write_pending_tracking_events(target_root: Path, events: list[dict[str, Any]]) -> None:
+    path = target_root / AEGIS_PENDING_TRACKING_REL
+    if not events:
+        if path.exists():
+            path.unlink()
+        return
+    _write_text(
+        target_root,
+        AEGIS_PENDING_TRACKING_REL,
+        _dump_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "updated_at": _iso_now(),
+                "events": events,
+            }
+        ),
+    )
+
+
+def _format_pending_tracking_for_error(events: Sequence[Mapping[str, Any]]) -> str:
+    lines = []
+    for event in events:
+        lines.append(
+            f"- {event.get('id', 'unknown')}: "
+            f"H={event.get('handler', 'unknown')} "
+            f"E={event.get('evidence', 'unknown')}"
+        )
+    return "\n".join(lines)
+
+
+def log_work(
+    target_dir: str | Path,
+    *,
+    handler: str,
+    evidence: str,
+    note: str,
+    surfaces: Sequence[str] | None = None,
+    plan_step: str | None = "plan-step-implement",
+    plan_status: str | None = "in-progress",
+) -> dict[str, Any]:
+    """Append S:W:H:E progress entries, update workflow surfaces, and clear pending tracking."""
+
+    target_root = _resolve_target_root(target_dir)
+    current_work = _current_work_payload(target_root)
+    task = current_work.get("task") if isinstance(current_work.get("task"), dict) else {}
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), dict) else {}
+    task_id = str(task.get("id") or "").strip()
+    slug = str(task.get("slug") or "").strip()
+    if not task_id or not slug:
+        raise AegisError("current work task id and slug are required before logging")
+    clean_handler = handler.strip()
+    clean_note = note.strip()
+    if not clean_handler:
+        raise AegisError("handler is required")
+    if not clean_note:
+        raise AegisError("note is required")
+
+    session_rel = str(paths.get("session") or "")
+    plan_rel = str(paths.get("plan") or "")
+    work_rel = str(paths.get("work_tracking") or "")
+    if not session_rel or not plan_rel or not work_rel:
+        raise AegisError("current work paths are incomplete; rerun aegis kickoff")
+    session_path = target_root / session_rel
+    plan_path = target_root / plan_rel
+    tracker_path = target_root / work_rel / "TRACKER.md"
+    evidence_rel = _normalize_evidence(target_root, evidence)
+    log_surfaces = _normalize_log_surfaces(surfaces)
+    normalized_plan_step = plan_step.strip() if plan_step else ""
+    normalized_plan_status = _normalize_plan_status(plan_status) if normalized_plan_step else ""
+
+    now = datetime.now().astimezone().replace(microsecond=0)
+    session_value = now.strftime("%Y%m%d")
+    date_value = now.strftime("%Y-%m-%d")
+    work_context = f"task{task_id}-{slug}"
+    swhe = f"[S:{session_value}|W:{work_context}|H:{clean_handler}|E:{evidence_rel}]"
+    session_line = f"- **[{now.strftime('%H:%M')}]** - {swhe} {clean_note}"
+    tracker_line = f"- **{now.strftime('%Y-%m-%d %H:%M %Z').strip()}** - {swhe} {clean_note}"
+
+    pending_before = _pending_tracking_events(target_root)
+    cleared = [
+        event
+        for event in pending_before
+        if str(event.get("evidence") or "") == evidence_rel
+    ]
+    if pending_before and not cleared:
+        pending_summary = _format_pending_tracking_for_error(pending_before)
+        raise AegisError(
+            "aegis log evidence does not match any pending S:W:H:E tracking event. "
+            "Log the pending evidence first or inspect .aegis/state/pending-tracking.json.\n"
+            f"Pending tracking:\n{pending_summary}"
+        )
+
+    _append_progress_entry(session_path, "### Progress Log", session_line)
+    _append_progress_entry(tracker_path, "## Progress Log", tracker_line)
+    _update_tracker_timestamp(tracker_path, date_value)
+
+    updated_surfaces: dict[str, str] = {}
+    for surface in log_surfaces:
+        rel_path = f"{work_rel}/{AEGIS_LOG_SURFACES[surface]}"
+        _append_progress_entry(target_root / rel_path, "## Progress Log", tracker_line)
+        updated_surfaces[surface] = rel_path
+
+    plan_updated = False
+    if normalized_plan_step:
+        plan_updated = _update_plan_table(
+            plan_path,
+            plan_step=normalized_plan_step,
+            plan_status=normalized_plan_status,
+            evidence_rel=evidence_rel,
+            timestamp=date_value,
+        )
+        _update_tracker_plan_step(tracker_path, normalized_plan_step, normalized_plan_status)
+
+    remaining = [
+        event
+        for event in pending_before
+        if str(event.get("evidence") or "") != evidence_rel
+    ]
+    _write_pending_tracking_events(target_root, remaining)
+
+    current_work["updated_at"] = _iso_now()
+    _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "logged",
+        "logged_at": _iso_now(),
+        "target_root": str(target_root),
+        "entry": {
+            "session": session_line,
+            "tracker": tracker_line,
+            "s": session_value,
+            "w": work_context,
+            "h": clean_handler,
+            "e": evidence_rel,
+            "note": clean_note,
+        },
+        "paths": {
+            "session": session_rel,
+            "plan": plan_rel,
+            "tracker": f"{work_rel}/TRACKER.md",
+            "surfaces": updated_surfaces,
+            "pending_tracking": AEGIS_PENDING_TRACKING_REL,
+        },
+        "plan": {
+            "updated": plan_updated,
+            "step": normalized_plan_step or None,
+            "status": normalized_plan_status or None,
+            "evidence": evidence_rel,
+        },
+        "pending": {
+            "cleared": len(cleared),
+            "remaining": len(remaining),
+            "cleared_events": cleared,
+        },
+    }
+
+
 def install(
     target_dir: str | Path,
     *,
@@ -1037,7 +1857,9 @@ def _check_settings_hook(target_root: Path, gate: Mapping[str, Any]) -> tuple[bo
     if not isinstance(entries, list):
         return False, f"settings hook event missing: {event}"
     for entry in entries:
-        if not isinstance(entry, dict) or entry.get("matcher") != matcher:
+        if not isinstance(entry, dict):
+            continue
+        if matcher and entry.get("matcher") != matcher:
             continue
         hook_items = entry.get("hooks")
         if not isinstance(hook_items, list):
@@ -1045,7 +1867,8 @@ def _check_settings_hook(target_root: Path, gate: Mapping[str, Any]) -> tuple[bo
         for hook in hook_items:
             if isinstance(hook, dict) and hook.get("command") == expected:
                 return True, "hook registered"
-    return False, f"hook registration missing for {event} / {matcher}"
+    label = f"{event} / {matcher}" if matcher else event
+    return False, f"hook registration missing for {label}"
 
 
 def _verify_gate(target_root: Path, gate: Mapping[str, Any]) -> dict[str, Any]:

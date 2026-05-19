@@ -1,0 +1,30 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+plugins: cov-4.1.0, benchmark-4.0.0, anyio-4.13.0
+collected 341 items
+
+tests/meta_workflow_guard/test_aegis_installer.py ..........             [  2%]
+tests/meta_workflow_guard/test_aegis_mcp_server.py ..................... [  9%]
+............                                                             [ 12%]
+tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py ...............s [ 17%]
+                                                                         [ 17%]
+tests/meta_workflow_guard/test_aegis_invocation_contract.py ........     [ 19%]
+tests/meta_workflow_guard/test_aegis_release_distribution.py ........... [ 22%]
+..ss                                                                     [ 24%]
+tests/meta_workflow_guard/test_aegis_schemas.py ...............          [ 28%]
+tests/claude_adapter/test_adapter_contract_files.py ..........           [ 31%]
+tests/claude_adapter/test_pretooluse_gates.py ..............             [ 35%]
+tests/claude_adapter/test_readiness_gate.py .............                [ 39%]
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 47%]
+........................................................................ [ 68%]
+........................................................................ [ 89%]
+....................................                                     [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py:1016: Set AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 to run real target-project MCP smoke.
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_release_distribution.py:433: Set AEGIS_RUN_WHEEL_SMOKE=1 to run the local wheel CLI smoke.
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_release_distribution.py:524: Set AEGIS_RUN_WHEEL_MCP_SMOKE=1 to run the local wheel MCP smoke.
+======================= 338 passed, 3 skipped in 29.97s ========================

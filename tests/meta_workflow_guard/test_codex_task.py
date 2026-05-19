@@ -878,6 +878,17 @@ def test_build_parser_accepts_taskmaster_generate_one() -> None:
     assert args.task_id == "104"
 
 
+def test_taskmaster_generate_one_renderer_strips_trailing_whitespace(tmp_path: Path) -> None:
+    module = load_task_module()
+    source = tmp_path / "task_115.md"
+    destination = tmp_path / "task_115.md"
+    source.write_text("# Task 115  \n\n**Status:** done  \n", encoding="utf-8")
+
+    rendered = module._render_generated_task_content(source, destination)
+
+    assert rendered == "# Task 115\n\n**Status:** done\n"
+
+
 def test_build_parser_accepts_taskmaster_health() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -4994,7 +5005,7 @@ def test_build_agent_compatibility_report_summarizes_matrix(monkeypatch) -> None
     assert report["valid"] is True
     assert report["matrix_schema"] == "agent-compatibility-matrix.v1"
     assert report["metrics"]["agent_count"] == 3
-    assert report["metrics"]["feature_count"] == 10
+    assert report["metrics"]["feature_count"] == 11
     assert report["metrics"]["validation_issue_count"] == 0
     assert report["metrics"]["agent_status_counts"]["supported"] == 2
     assert report["metrics"]["agent_status_counts"]["planned"] == 1

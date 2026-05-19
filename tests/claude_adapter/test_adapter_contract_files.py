@@ -46,7 +46,12 @@ def test_settings_registers_pretooluse_and_stop_hooks() -> None:
     pretool = hooks["PreToolUse"][0]
     assert pretool["matcher"] == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
     assert pretool["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
-    assert hooks["Stop"][0]["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/handoff-nudge.sh"
+    posttool = hooks["PostToolUse"][0]
+    assert posttool["matcher"] == "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
+    assert posttool["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
+    stop_commands = [hook["command"] for hook in hooks["Stop"][0]["hooks"]]
+    assert "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh" in stop_commands
+    assert "bash $CLAUDE_PROJECT_DIR/.claude/scripts/handoff-nudge.sh" in stop_commands
     assert hooks["ConfigChange"][0]["hooks"][0]["command"] == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/config-change-guard.sh"
 
 

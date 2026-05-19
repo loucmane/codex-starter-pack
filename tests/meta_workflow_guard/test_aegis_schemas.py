@@ -46,7 +46,7 @@ def valid_manifest() -> dict:
         },
         "interfaces": {
             "cli": {
-                "command": "python3 scripts/codex-task aegis",
+                "command": "aegis",
             },
             "mcp": {
                 "namespace": "aegis",
@@ -69,12 +69,16 @@ def valid_manifest() -> dict:
                     ".claude/settings.json",
                     ".claude/scripts/readiness.sh",
                     ".claude/scripts/pretooluse-gate.sh",
+                    ".claude/scripts/posttooluse-tracking.sh",
+                    ".claude/scripts/tracking-stop-gate.sh",
                     ".claude/scripts/bash-command-guard.sh",
                     ".claude/scripts/codex-path-guard.sh",
                 ],
                 "gate_ids": [
                     "claude.readiness",
                     "claude.pretooluse",
+                    "claude.posttooluse_tracking",
+                    "claude.stop_tracking",
                     "claude.bash_command",
                     "claude.protected_path",
                 ],
@@ -131,6 +135,37 @@ def valid_manifest() -> dict:
                     "method": "settings_hook",
                     "failure_mode": "fail",
                     "expected": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh",
+                },
+            },
+            {
+                "id": "claude.posttooluse_tracking",
+                "required": True,
+                "enforcement": "mechanical",
+                "scope": "adapter",
+                "adapter": "claude",
+                "path": ".claude/scripts/posttooluse-tracking.sh",
+                "settings_path": ".claude/settings.json",
+                "hook_event": "PostToolUse",
+                "hook_matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+                "verification": {
+                    "method": "settings_hook",
+                    "failure_mode": "fail",
+                    "expected": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh",
+                },
+            },
+            {
+                "id": "claude.stop_tracking",
+                "required": True,
+                "enforcement": "mechanical",
+                "scope": "adapter",
+                "adapter": "claude",
+                "path": ".claude/scripts/tracking-stop-gate.sh",
+                "settings_path": ".claude/settings.json",
+                "hook_event": "Stop",
+                "verification": {
+                    "method": "settings_hook",
+                    "failure_mode": "fail",
+                    "expected": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh",
                 },
             },
             {
@@ -219,6 +254,7 @@ def valid_profile() -> dict:
             "manifest": ".aegis/foundation-manifest.json",
             "reports": ".aegis/reports",
             "state": ".aegis/state",
+            "local_cli": ".aegis/bin/aegis",
         },
         "adapter_requirements": {
             "claude": {
@@ -228,6 +264,8 @@ def valid_profile() -> dict:
                     ".claude/settings.json",
                     ".claude/scripts/readiness.sh",
                     ".claude/scripts/pretooluse-gate.sh",
+                    ".claude/scripts/posttooluse-tracking.sh",
+                    ".claude/scripts/tracking-stop-gate.sh",
                     ".claude/scripts/bash-command-guard.sh",
                     ".claude/scripts/codex-path-guard.sh",
                 ],
@@ -237,6 +275,17 @@ def valid_profile() -> dict:
                         "event": "PreToolUse",
                         "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
                         "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh",
+                    },
+                    {
+                        "settings_path": ".claude/settings.json",
+                        "event": "PostToolUse",
+                        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+                        "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh",
+                    },
+                    {
+                        "settings_path": ".claude/settings.json",
+                        "event": "Stop",
+                        "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh",
                     },
                 ],
             },
@@ -252,6 +301,8 @@ def valid_profile() -> dict:
             "agents.claude.enabled": [
                 "claude.readiness",
                 "claude.pretooluse",
+                "claude.posttooluse_tracking",
+                "claude.stop_tracking",
                 "claude.bash_command",
                 "claude.protected_path",
             ],
@@ -262,10 +313,11 @@ def valid_profile() -> dict:
         },
         "verification": {
             "required_commands": [
-                "python3 scripts/codex-task aegis verify",
+                "aegis verify",
             ],
             "optional_smoke_tests": [
                 "cold-session mutation blocked",
+                "Aegis-native kickoff reaches READY without Taskmaster or Serena",
                 "READY evidence write allowed",
             ],
         },
@@ -317,6 +369,8 @@ def valid_install_plan() -> dict:
                     "gate_ids": [
                         "claude.readiness",
                         "claude.pretooluse",
+                        "claude.posttooluse_tracking",
+                        "claude.stop_tracking",
                         "claude.bash_command",
                         "claude.protected_path",
                     ],
@@ -325,6 +379,8 @@ def valid_install_plan() -> dict:
             "gates": [
                 "claude.readiness",
                 "claude.pretooluse",
+                "claude.posttooluse_tracking",
+                "claude.stop_tracking",
                 "claude.bash_command",
                 "claude.protected_path",
             ],

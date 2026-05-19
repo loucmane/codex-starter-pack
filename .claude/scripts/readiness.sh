@@ -111,6 +111,23 @@ def find_task(tasks: Iterable[dict[str, object]], task_id: str) -> dict[str, obj
     return None
 
 
+def aegis_work_task(data: object) -> dict[str, object] | None:
+    if not isinstance(data, dict):
+        return None
+    task = data.get("task")
+    return task if isinstance(task, dict) else None
+
+
+def aegis_integration_required(data: object, name: str) -> bool:
+    if not isinstance(data, dict):
+        return False
+    integrations = data.get("integrations")
+    if not isinstance(integrations, dict):
+        return False
+    integration = integrations.get(name)
+    return isinstance(integration, dict) and integration.get("required") is True
+
+
 def symlink_target(path: Path) -> tuple[Path | None, str | None]:
     if not path.exists() and not path.is_symlink():
         return None, None
@@ -176,6 +193,50 @@ def check_plan_tracker_alignment(plan_text: str, tracker_text: str) -> list[str]
     return issues
 
 
+def check_taskmaster_task(root: Path, task_id: str, *, required: bool, checks: list[Check]) -> None:
+    tasks_path = root / ".taskmaster" / "tasks" / "tasks.json"
+    if not tasks_path.is_file():
+        if required:
+            checks.append(Check(BLOCKED, "Taskmaster is required by Aegis current work but tasks file is missing"))
+        return
+
+    try:
+        payload = taskmaster_tasks_payload(read_json(tasks_path))
+    except Exception as exc:  # noqa: BLE001 - surface exact readiness failure.
+        if required:
+            checks.append(Check(BLOCKED, f"could not read required Taskmaster tasks: {exc}"))
+        else:
+            checks.append(Check(READY, f"Taskmaster present but optional and unreadable: {exc}"))
+        return
+
+    if payload is None:
+        if required:
+            checks.append(Check(BLOCKED, "required Taskmaster tasks JSON has an unsupported shape"))
+        else:
+            checks.append(Check(READY, "Taskmaster present but optional and has unsupported shape"))
+        return
+
+    tag, tasks = payload
+    task = find_task(tasks, task_id)
+    if not task:
+        if required:
+            checks.append(Check(BLOCKED, f"required Taskmaster Task {task_id} missing from tag '{tag}'"))
+        else:
+            checks.append(Check(READY, f"Taskmaster present but optional; Task {task_id} not found in tag '{tag}'"))
+        return
+
+    status = task.get("status")
+    if status != "in-progress":
+        if required:
+            checks.append(Check(BLOCKED, f"Taskmaster Task {task_id} status is {status!r}, expected 'in-progress'"))
+        else:
+            checks.append(Check(READY, f"Taskmaster Task {task_id} is optional with status {status!r}"))
+        return
+
+    prefix = "Required Taskmaster" if required else "Optional Taskmaster"
+    checks.append(Check(READY, f"{prefix} Task {task_id} is in-progress"))
+
+
 def build_checks(root: Path) -> tuple[str | None, list[Check]]:
     checks: list[Check] = []
 
@@ -195,28 +256,34 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
         return None, checks
     checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
 
-    tasks_path = root / ".taskmaster" / "tasks" / "tasks.json"
-    if not tasks_path.is_file():
-        checks.append(Check(BLOCKED, ".taskmaster/tasks/tasks.json missing"))
-    else:
+    aegis_work_path = root / ".aegis" / "state" / "current-work.json"
+    if aegis_work_path.is_file():
         try:
-            payload = taskmaster_tasks_payload(read_json(tasks_path))
+            aegis_work = read_json(aegis_work_path)
+            task = aegis_work_task(aegis_work)
         except Exception as exc:  # noqa: BLE001 - surface exact readiness failure.
-            checks.append(Check(BLOCKED, f"could not read Taskmaster tasks: {exc}"))
+            checks.append(Check(BLOCKED, f"could not read Aegis current work state: {exc}"))
         else:
-            if payload is None:
-                checks.append(Check(BLOCKED, "Taskmaster tasks JSON has an unsupported shape"))
+            if task is None:
+                checks.append(Check(BLOCKED, "Aegis current work state has an unsupported shape"))
+            elif str(task.get("id")) != task_id:
+                checks.append(Check(BLOCKED, f"Aegis current work task is {task.get('id')!r}, expected Task {task_id}"))
+            elif task.get("status") != "in-progress":
+                checks.append(
+                    Check(BLOCKED, f"Aegis current work status is {task.get('status')!r}, expected 'in-progress'")
+                )
             else:
-                tag, tasks = payload
-                task = find_task(tasks, task_id)
-                if not task:
-                    checks.append(Check(BLOCKED, f"Taskmaster Task {task_id} missing from tag '{tag}'"))
-                elif task.get("status") != "in-progress":
-                    checks.append(
-                        Check(BLOCKED, f"Taskmaster Task {task_id} status is {task.get('status')!r}, expected 'in-progress'")
-                    )
-                else:
-                    checks.append(Check(READY, f"Taskmaster Task {task_id} is in-progress"))
+                checks.append(Check(READY, f"Aegis current work Task {task_id} is in-progress"))
+                check_taskmaster_task(
+                    root,
+                    task_id,
+                    required=aegis_integration_required(aegis_work, "taskmaster"),
+                    checks=checks,
+                )
+    elif (root / ".taskmaster" / "tasks" / "tasks.json").is_file():
+        check_taskmaster_task(root, task_id, required=True, checks=checks)
+    else:
+        checks.append(Check(BLOCKED, "no Taskmaster tasks file or Aegis current work state found"))
 
     session_current = root / "sessions" / "current"
     session_path, session_target = symlink_target(session_current)
@@ -340,8 +407,8 @@ def print_full(root: Path, state: str, task_id: str | None, checks: list[Check])
         print()
         print("## Remediation")
         print("- Start or repair the workflow before Claude performs persistent mutations.")
-        print("- Required state: task branch, Taskmaster in-progress task, sessions/current, plans/current, and one ACTIVE tracker for the same task.")
-        print("- Use the project kickoff workflow instead of writing files or memory by hand.")
+        print("- Required state: task branch, Aegis current work or Taskmaster in-progress task, sessions/current, plans/current, and one ACTIVE tracker for the same task.")
+        print("- Use `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` or the project kickoff workflow instead of writing files or memory by hand.")
 
 
 def main() -> int:

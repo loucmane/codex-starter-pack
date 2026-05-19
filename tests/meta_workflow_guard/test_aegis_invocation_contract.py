@@ -239,11 +239,13 @@ def test_invocation_contract_documents_local_checkout_adoption_commands() -> Non
     text = INVOCATION_DOC.read_text(encoding="utf-8")
 
     required_snippets = [
-        "python3 /path/to/codex/scripts/codex-task aegis inspect --target-dir .",
-        "python3 /path/to/codex/scripts/codex-task aegis plan-install --target-dir . --primary-agent claude --agent claude",
-        "python3 /path/to/codex/scripts/codex-task aegis status --target-dir .",
-        "python3 /path/to/codex/scripts/codex-task aegis install --target-dir . --primary-agent claude --agent claude --apply",
-        "python3 /path/to/codex/scripts/codex-task aegis verify --target-dir .",
+        "aegis --source-root /path/to/codex inspect --target-dir .",
+        "aegis --source-root /path/to/codex plan-install --target-dir . --primary-agent claude --agent claude",
+        "aegis --source-root /path/to/codex status --target-dir .",
+        "aegis --source-root /path/to/codex install --target-dir . --primary-agent claude --agent claude --apply",
+        "aegis --source-root /path/to/codex verify --target-dir .",
+        "aegis --source-root /path/to/codex kickoff --target-dir . --task 1 --slug first-task --title \"First Task\"",
+        "aegis --source-root /path/to/codex log --target-dir . --handler claude-live-write",
         "python3 /path/to/codex/scripts/aegis-mcp-server",
         "--source-root /path/to/codex",
         "--default-target-dir /path/to/project",
@@ -330,6 +332,8 @@ def test_invocation_contract_documents_editable_package_style_commands() -> None
         "aegis plan-install --target-dir . --primary-agent claude --agent claude",
         "aegis install --target-dir . --primary-agent claude --agent claude --apply",
         "aegis verify --target-dir .",
+        "aegis kickoff --target-dir . --task 1 --slug first-task --title \"First Task\"",
+        "aegis log --target-dir . --handler claude-live-write",
     ]
     for snippet in required_snippets:
         assert snippet in text
@@ -421,6 +425,8 @@ def test_invocation_contract_documents_external_mcp_startup_commands() -> None:
         "aegis.status",
         "aegis.verify",
         "acknowledge_report_write=true",
+        "aegis.log",
+        "S:W:H:E",
     ]
     for snippet in required_snippets:
         assert snippet in text

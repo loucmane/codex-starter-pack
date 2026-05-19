@@ -35,6 +35,8 @@ V1_TOOL_NAMES = (
     "aegis.plan_install",
     "aegis.install",
     "aegis.verify",
+    "aegis.kickoff",
+    "aegis.log",
     "aegis.list_profiles",
     "aegis.explain_profile",
 )
@@ -47,6 +49,7 @@ RESOURCE_URIS = (
     "aegis://profiles",
     "aegis://install-plan/latest",
     "aegis://verification/latest",
+    "aegis://work/current",
     "aegis://limitations",
     "aegis://managed-files",
 )
@@ -448,6 +451,83 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             callback=call_core,
         )
 
+    @server.tool(name="aegis.kickoff")
+    def aegis_kickoff(
+        target_dir: str,
+        task: str,
+        slug: str,
+        title: str,
+        goals: list[str] | None = None,
+        create_branch: bool = True,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Create Aegis-native current work state after explicit apply confirmation."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.kickoff",
+                code="apply_required",
+                message="aegis.kickoff creates workflow state and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            return installer.kickoff(
+                target_dir,
+                task_id=task,
+                slug=slug,
+                title=title,
+                goals=goals or [],
+                create_branch=create_branch,
+                source_root=config.source_root,
+            )
+
+        return run_tool(
+            "aegis.kickoff",
+            read_only=False,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.log")
+    def aegis_log(
+        target_dir: str,
+        handler: str,
+        evidence: str,
+        note: str,
+        surfaces: list[str] | None = None,
+        plan_step: str = "plan-step-implement",
+        plan_status: str = "in-progress",
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Append required S:W:H:E progress entries and update workflow surfaces after a task mutation."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.log",
+                code="apply_required",
+                message="aegis.log writes workflow progress surfaces and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            return installer.log_work(
+                target_dir,
+                handler=handler,
+                evidence=evidence,
+                note=note,
+                surfaces=surfaces,
+                plan_step=plan_step,
+                plan_status=plan_status,
+            )
+
+        return run_tool(
+            "aegis.log",
+            read_only=False,
+            callback=call_core,
+        )
+
     @server.tool(name="aegis.list_profiles")
     def aegis_list_profiles() -> dict[str, Any]:
         """List Aegis install profiles supported by the V1 installer."""
@@ -610,6 +690,14 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
             "not_available",
         )
 
+    @server.resource("aegis://work/current")
+    def current_work() -> str:
+        return read_target_json_resource(
+            "aegis://work/current",
+            _aegis_installer.AEGIS_CURRENT_WORK_REL,
+            "not_available",
+        )
+
     @server.resource("aegis://limitations")
     def limitations() -> str:
         manifest = _read_json_file(target_path(_aegis_installer.AEGIS_MANIFEST_REL))
@@ -747,9 +835,10 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     f"Agent: `{agent}`",
                     f"Target: `{target_dir}`",
                     "1. Read `aegis://contract/current`, `aegis://managed-files`, and `aegis://limitations`.",
-                    "2. Confirm the agent entrypoint and gates from the compatibility notes.",
-                    "3. Use the agent-specific readiness/workflow gate before any persistent mutation.",
-                    "4. Treat memory as continuity only; tracked reports and workflow files are evidence.",
+                    "2. Run readiness; if BLOCKED because no current work exists, request or run `aegis.kickoff apply=true`.",
+                    "3. Confirm the agent entrypoint and gates from the compatibility notes.",
+                    "4. Use the agent-specific readiness/workflow gate before any persistent mutation.",
+                    "5. Treat memory as continuity only; tracked reports and workflow files are evidence.",
                 ]
             ),
         )

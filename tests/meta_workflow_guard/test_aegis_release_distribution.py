@@ -250,6 +250,8 @@ def test_packaged_asset_bundle_contains_required_runtime_assets() -> None:
         "CODEX.md",
         ".claude/scripts/readiness.sh",
         ".claude/scripts/pretooluse-gate.sh",
+        ".claude/scripts/posttooluse-tracking.sh",
+        ".claude/scripts/tracking-stop-gate.sh",
         ".claude/scripts/bash-command-guard.sh",
         ".claude/scripts/codex-path-guard.sh",
         ".claude/scripts/gate_lib.py",
@@ -294,6 +296,8 @@ def test_packaged_asset_root_can_drive_install_plan_without_checkout(tmp_path: P
     assert payload["mode"] == "dry_run"
     planned_paths = {entry["path"] for entry in payload["operations"]}
     assert ".claude/scripts/pretooluse-gate.sh" in planned_paths
+    assert ".claude/scripts/posttooluse-tracking.sh" in planned_paths
+    assert ".claude/scripts/tracking-stop-gate.sh" in planned_paths
     assert "schemas/aegis/foundation-manifest.schema.json" in planned_paths
 
 
@@ -405,8 +409,8 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "`3.11`, `3.12`",
         "`pip`, `uvx`, `pipx`, `local-wheel`, `editable`",
         "`aegis`, `aegis-mcp-server`",
-        "`aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`",
-        "`aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, tool/resource/prompt discovery",
+        "`aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis kickoff`, `aegis log`",
+        "`aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis://work/current`, tool/resource/prompt discovery",
         "`package`, `source`",
         "online package resolution, offline/local wheel",
         "empty repository",
@@ -414,6 +418,11 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "web/app repository",
         "docs-heavy Task 101-style repository",
         "partial existing Aegis install",
+        "local-wheel MCP stdio validation works against concrete new and already-started Python, web, and backend fixture projects",
+        "installed projects can reach `READY` through Aegis-native kickoff without `.taskmaster/` or `.serena/`",
+        "installed projects with stale optional `.taskmaster/` state still reach `READY` through Aegis-native current work unless Taskmaster is explicitly required",
+        "installed kickoff renders packaged workflow templates into session, plan, tracker, findings, decisions, implementation, changelog, handoff, designs, and reports surfaces comparable to this repository's workflow model",
+        "installed Claude runtime records pending S:W:H:E tracking after successful task mutations",
         "Policy-only claims are not release evidence.",
     ):
         assert snippet in matrix
