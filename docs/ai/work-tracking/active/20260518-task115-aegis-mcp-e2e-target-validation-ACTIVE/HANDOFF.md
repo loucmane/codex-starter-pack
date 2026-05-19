@@ -35,6 +35,8 @@
 - User-run Claude smoke in the hardened target passed: first task-scoped Write created pending tracking, second Write was blocked until `./.aegis/bin/aegis log`, all six workflow surfaces were updated, read-only verification did not create pending tracking, and protected Bash redirection was blocked by the protected-path guard.
 - Focused Aegis runtime, MCP, packaging, schema, docs, and Claude gate regression was refreshed after the hardening pass with `131 passed, 3 skipped`.
 - PR CI Python job failure was fixed by excluding copied target-project fixtures from top-level pytest discovery; CI-equivalent local run passed with `703 passed, 3 skipped`.
+- Follow-up PR CI package import failure was fixed by installing the local project in editable mode before pytest; targeted installed-target shim regression passed with `6 passed`.
+- Final evidence after the CI package-install fix: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed, and work-tracking audit has only the expected multi-day active-folder warning.
 - Final May 19 evidence after the live-test hardening pass: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed, and work-tracking audit has only the expected multi-day active-folder warning.
 - Final May 19 evidence after `115.10`: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed. Work-tracking audit exits cleanly with the expected warning that the task-scoped active folder has a May 18 prefix while the daily session is May 19.
 - Final May 19 evidence after `115.11`: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed. Work-tracking audit still exits cleanly with the expected multi-day active-folder warning.
@@ -43,6 +45,7 @@
 ## Next Steps
 - Have the user run one final Claude smoke in `/tmp/aegis-full-workflow-hardened-test-n0JCm7/shop-webapp` to confirm the patched installed-project behavior in a real Claude session.
 - Review the PR diff and evidence before marking the draft PR ready.
+- Re-check PR #115 after pushing the CI package-install fix.
 - Only after merge, prepare GitHub release-candidate artifacts with checksums/provenance.
 - Verify downstream install from the published GitHub release artifact before considering PyPI.
 - Keep Task 115 active until the PR merges; archive this folder only after merge and branch cleanup.
