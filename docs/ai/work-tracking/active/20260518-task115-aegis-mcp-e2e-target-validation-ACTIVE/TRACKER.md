@@ -76,6 +76,7 @@
 - **2026-05-19 16:07** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:pytest:tracking-hardening|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-full-workflow-surfaces.txt] Refreshed focused Aegis runtime, MCP, packaging, schema, docs, and Claude gate regression after hardening; `131 passed, 3 skipped`.
 - **2026-05-19 16:14** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:final-evidence|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/guard-2026-05-19-final.txt] Refreshed final plan sync, Taskmaster health, work-tracking audit, diff-check, and guard after the live-test hardening pass; guard, health, and diff-check passed, and the audit warning remains the expected multi-day active-folder prefix.
 - **2026-05-19 16:24** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:live-claude-hardened-smoke|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/live-claude-hardened-full-workflow-smoke-2026-05-19.txt] User-run Claude smoke in the hardened target passed: local shim present, readiness `READY | task=42`, first Write created pending tracking, second Write was blocked until `./.aegis/bin/aegis log`, all six workflow surfaces were updated, read-only verification did not create pending tracking, and protected Bash redirection was blocked by the protected-path guard.
+- **2026-05-19 17:13** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:ci:pytest-collection-fix|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-ci-pytest-collection-fix.txt] Fixed PR CI collection by excluding copied target-project fixtures from top-level pytest discovery; CI-equivalent local run passed with `703 passed, 3 skipped`.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define local MCP E2E target matrix and fixture strategy
@@ -100,6 +101,7 @@
 - Manual post-mutation tracking smoke: `reports/aegis-mcp-e2e-target-validation/manual-post-mutation-tracking-smoke-2026-05-19.txt`
 - Live Claude post-mutation tracking smoke: `reports/aegis-mcp-e2e-target-validation/live-claude-post-mutation-tracking-smoke-2026-05-19.txt`
 - Full workflow-surface accountability evidence: `reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-full-workflow-surfaces.txt`
+- CI pytest collection fix evidence: `reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-ci-pytest-collection-fix.txt`
 - Post-mutation tracking enforcement evidence: `reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-tracking-enforcement.txt`
 - Aegis-native READY evidence: `reports/aegis-mcp-e2e-target-validation/tests-2026-05-18-aegis-native-ready.txt`
 - Local-wheel READY smoke evidence: `reports/aegis-mcp-e2e-target-validation/tests-2026-05-18-real-target-ready-wheel.txt`

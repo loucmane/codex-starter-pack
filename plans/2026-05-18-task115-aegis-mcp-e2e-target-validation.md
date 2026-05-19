@@ -74,6 +74,7 @@ emergency_bypass: false
 - 2026-05-19 - Reopened Task 115 for subtask `115.11` after live Claude testing showed `aegis log` needed to update the full workflow surface set, not only session/tracker.
 - 2026-05-19 - Completed subtask `115.11`: installed-project `aegis log` now updates full workflow surfaces and the focused regression passed with `131 passed, 3 skipped`.
 - 2026-05-19 - Hardened `115.11` after live retest: read-only Bash redirects to `/dev/null` no longer create pending tracking, and `aegis log` refuses non-matching evidence while pending tracking exists.
+- 2026-05-19 - Fixed PR CI collection by excluding copied target-project fixtures from top-level pytest discovery; CI-equivalent local run passed with `703 passed, 3 skipped`.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
@@ -99,6 +100,7 @@ emergency_bypass: false
 - [x] Packaged workflow-template scaffold evidence proving Aegis kickoff creates rich workflow files, not placeholder docs
 - [x] Post-mutation S:W:H:E tracking evidence proving successful task-scoped mutations require `aegis log` entries before the next mutation or Stop
 - [x] Full workflow-surface accountability evidence proving `aegis log` updates implementation, changelog, handoff, and plan evidence in installed projects
+- [x] CI pytest collection fix evidence proving copied target-project fixture tests are not collected by the repository's top-level pytest run
 
 ## Emergency Bypass Protocol
 - No bypass authorized.

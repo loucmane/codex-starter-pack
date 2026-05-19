@@ -1,0 +1,70 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-7.4.4, pluggy-1.6.0
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /home/loucmane/codex
+configfile: pyproject.toml
+testpaths: tests, scripts/template-ssot-scanner
+plugins: cov-4.1.0, benchmark-4.0.0, anyio-4.13.0
+collected 706 items
+
+tests/claude_adapter/test_adapter_contract_files.py ..........           [  1%]
+tests/claude_adapter/test_pretooluse_gates.py ..............             [  3%]
+tests/claude_adapter/test_readiness_gate.py .............                [  5%]
+tests/meta_workflow_guard/test_aegis_cross_project_smoke.py ..........   [  6%]
+tests/meta_workflow_guard/test_aegis_installer.py ..........             [  8%]
+tests/meta_workflow_guard/test_aegis_installer_fixtures.py ....          [  8%]
+tests/meta_workflow_guard/test_aegis_invocation_contract.py ........     [  9%]
+tests/meta_workflow_guard/test_aegis_mcp_contract_docs.py ...            [ 10%]
+tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py ...............s [ 12%]
+                                                                         [ 12%]
+tests/meta_workflow_guard/test_aegis_mcp_server.py ..................... [ 15%]
+............                                                             [ 17%]
+tests/meta_workflow_guard/test_aegis_release_distribution.py ........... [ 18%]
+..ss                                                                     [ 19%]
+tests/meta_workflow_guard/test_aegis_schemas.py ...............          [ 21%]
+tests/meta_workflow_guard/test_ci_workflows.py .....                     [ 22%]
+tests/meta_workflow_guard/test_codex_task.py ........................... [ 25%]
+........................................................................ [ 36%]
+........................................................................ [ 46%]
+....................................                                     [ 51%]
+tests/meta_workflow_guard/test_communication_templates.py ......         [ 52%]
+tests/meta_workflow_guard/test_guard_integration.py .                    [ 52%]
+tests/meta_workflow_guard/test_guard_rules.py .......................... [ 56%]
+...............................................                          [ 62%]
+tests/meta_workflow_guard/test_migration_health_dashboard.py ......      [ 63%]
+tests/meta_workflow_guard/test_phase0_scanner_validation.py .......      [ 64%]
+tests/meta_workflow_guard/test_registration.py .....                     [ 65%]
+tests/meta_workflow_guard/test_repo_structure_config.py ...              [ 65%]
+tests/meta_workflow_guard/test_template_cost_report.py ......            [ 66%]
+tests/meta_workflow_guard/test_template_governance.py .........          [ 67%]
+tests/meta_workflow_guard/test_template_lifecycle.py ..........          [ 69%]
+tests/meta_workflow_guard/test_template_metrics_dashboard.py ....        [ 69%]
+tests/meta_workflow_guard/test_template_monitoring.py ........           [ 70%]
+tests/meta_workflow_guard/test_template_performance_harness.py ......    [ 71%]
+tests/meta_workflow_guard/test_template_registry.py ..................   [ 74%]
+tests/meta_workflow_guard/test_template_testing.py .....                 [ 75%]
+tests/meta_workflow_guard/test_template_versioning.py ...........        [ 76%]
+tests/meta_workflow_guard/test_training_materials.py ....                [ 77%]
+tests/session_continuation/test_engine_metadata_alignment.py ...         [ 77%]
+tests/session_continuation/test_guard_stub.py .                          [ 77%]
+tests/session_continuation/test_metadata.py ...                          [ 78%]
+tests/timestamp_guard/test_timestamp_validation.py .....                 [ 78%]
+scripts/template-ssot-scanner/test_cli_behavior.py .................     [ 81%]
+scripts/template-ssot-scanner/test_config_integration.py ........        [ 82%]
+scripts/template-ssot-scanner/test_config_loader.py ............         [ 84%]
+scripts/template-ssot-scanner/test_config_schema.py ................     [ 86%]
+scripts/template-ssot-scanner/test_config_validation.py ........         [ 87%]
+scripts/template-ssot-scanner/test_env_override.py ...........           [ 89%]
+scripts/template-ssot-scanner/test_inheritance.py ..............         [ 91%]
+scripts/template-ssot-scanner/test_metadata_compatibility.py .....       [ 91%]
+scripts/template-ssot-scanner/test_pattern_matcher.py .................. [ 94%]
+...                                                                      [ 94%]
+scripts/template-ssot-scanner/test_rule_engine.py ...................    [ 97%]
+scripts/template-ssot-scanner/test_scanner_modules.py ............       [ 99%]
+scripts/template-ssot-scanner/test_security_validator.py ......          [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py:1044: Set AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 to run real target-project MCP smoke.
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_release_distribution.py:433: Set AEGIS_RUN_WHEEL_SMOKE=1 to run the local wheel CLI smoke.
+SKIPPED [1] tests/meta_workflow_guard/test_aegis_release_distribution.py:524: Set AEGIS_RUN_WHEEL_MCP_SMOKE=1 to run the local wheel MCP smoke.
+======================= 703 passed, 3 skipped in 56.15s ========================

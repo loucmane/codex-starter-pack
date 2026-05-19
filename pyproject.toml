@@ -90,6 +90,9 @@ testpaths = [
 python_files = [
     "test_*.py",
 ]
+norecursedirs = [
+    "tests/fixtures",
+]
 addopts = "-ra"
 markers = [
     "integration: marks integration tests",
