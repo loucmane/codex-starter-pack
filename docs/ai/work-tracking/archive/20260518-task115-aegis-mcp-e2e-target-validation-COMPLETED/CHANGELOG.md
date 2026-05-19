@@ -35,3 +35,6 @@
 - **2026-05-19 17:13** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:ci:pytest-collection-fix|E:pyproject.toml] Excluded copied target-project fixtures from top-level pytest discovery so PR CI does not collect fixture-local tests from the repository root.
 - **2026-05-19 17:26** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:ci:package-install-fix|E:.github/workflows/ci.yml] Installed the local project in editable mode during CI setup so project-local Aegis shims can import `aegis_foundation.cli` under GitHub Actions.
 - **2026-05-19 17:28** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:final-evidence|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/guard-2026-05-19-final.txt] Refreshed final workflow evidence after the CI package-install fix.
+- 2026-05-19 17:53 CEST — Archived active work-tracking folder.
+- 2026-05-19 17:55 CEST — Recorded PR #115 merge, branch cleanup, and between-session closeout.
+- 2026-05-19 17:57 CEST — Recorded post-archive audit, guard, and diff-check evidence.

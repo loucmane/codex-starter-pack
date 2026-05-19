@@ -2,10 +2,11 @@
 
 ## Current State
 - Taskmaster Task 115 and all subtasks through `115.11` are done.
-- Branch: `feat/task-115-aegis-mcp-e2e-target-validation`.
+- PR #115 is merged into `main` with merge commit `c89cdff`.
+- Branch `feat/task-115-aegis-mcp-e2e-target-validation` was deleted locally and remotely.
 - Session: `sessions/2026/05/2026-05-19-001-task115-aegis-mcp-e2e-target-validation.md`.
 - Plan: `plans/2026-05-18-task115-aegis-mcp-e2e-target-validation.md`.
-- Active work-tracking: `docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/`.
+- Archive: `docs/ai/work-tracking/archive/20260518-task115-aegis-mcp-e2e-target-validation-COMPLETED/`.
 - Scope artifact: `designs/local-mcp-e2e-target-matrix.md`.
 - Generated MCP E2E tests are implemented in `tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py`.
 - Local MCP E2E validation passed for generated empty, Python, web, backend, docs-heavy, partial-install, and conflict targets.
@@ -37,18 +38,16 @@
 - PR CI Python job failure was fixed by excluding copied target-project fixtures from top-level pytest discovery; CI-equivalent local run passed with `703 passed, 3 skipped`.
 - Follow-up PR CI package import failure was fixed by installing the local project in editable mode before pytest; targeted installed-target shim regression passed with `6 passed`.
 - Final evidence after the CI package-install fix: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed, and work-tracking audit has only the expected multi-day active-folder warning.
+- Post-archive closeout cleared `sessions/current`, `plans/current`, and `sessions/state.json.current`; the repository is between sessions.
+- Post-archive verification passed: work-tracking audit produced expected between-session warnings, guard passed, and `git diff --check` passed.
 - Final May 19 evidence after the live-test hardening pass: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed, and work-tracking audit has only the expected multi-day active-folder warning.
 - Final May 19 evidence after `115.10`: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed. Work-tracking audit exits cleanly with the expected warning that the task-scoped active folder has a May 18 prefix while the daily session is May 19.
 - Final May 19 evidence after `115.11`: plan sync recorded, Taskmaster health OK, diff-check clean, guard passed. Work-tracking audit still exits cleanly with the expected multi-day active-folder warning.
 - Local release readiness recommendation: the PR can move from draft review toward merge after user inspection.
 
 ## Next Steps
-- Have the user run one final Claude smoke in `/tmp/aegis-full-workflow-hardened-test-n0JCm7/shop-webapp` to confirm the patched installed-project behavior in a real Claude session.
-- Review the PR diff and evidence before marking the draft PR ready.
-- Re-check PR #115 after pushing the CI package-install fix.
-- Only after merge, prepare GitHub release-candidate artifacts with checksums/provenance.
+- Prepare GitHub release-candidate artifacts with checksums/provenance in the next Aegis release task.
 - Verify downstream install from the published GitHub release artifact before considering PyPI.
-- Keep Task 115 active until the PR merges; archive this folder only after merge and branch cleanup.
 
 
 
@@ -84,3 +83,4 @@
 - **2026-05-19 16:14** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:final-evidence|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/guard-2026-05-19-final.txt] Refreshed final plan sync, Taskmaster health, work-tracking audit, diff-check, and guard after the live-test hardening pass; guard, health, and diff-check passed, and the audit warning remains the expected multi-day active-folder prefix.
 - **2026-05-19 16:24** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:live-claude-hardened-smoke|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/live-claude-hardened-full-workflow-smoke-2026-05-19.txt] User-run Claude smoke in the hardened target passed: local shim present, readiness `READY | task=42`, first Write created pending tracking, second Write was blocked until `./.aegis/bin/aegis log`, all six workflow surfaces were updated, read-only verification did not create pending tracking, and protected Bash redirection was blocked by the protected-path guard.
 - **2026-05-19 17:13** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:ci:pytest-collection-fix|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-ci-pytest-collection-fix.txt] Fixed PR CI collection by excluding copied target-project fixtures from top-level pytest discovery; CI-equivalent local run passed with `703 passed, 3 skipped`.
+- Archived on 2026-05-19 17:53 CEST — Folder moved to archive and tracker marked COMPLETED.

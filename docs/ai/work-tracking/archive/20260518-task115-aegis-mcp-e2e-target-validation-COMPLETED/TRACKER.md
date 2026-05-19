@@ -1,7 +1,7 @@
 # Task 115 Aegis MCP End-to-End Target Project Validation Tracker
 
 **Started**: 2026-05-18
-**Status**: READY FOR PR
+**Status**: COMPLETED
 **Last Updated**: 2026-05-19
 
 ## Goals
@@ -79,6 +79,10 @@
 - **2026-05-19 17:13** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:ci:pytest-collection-fix|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-ci-pytest-collection-fix.txt] Fixed PR CI collection by excluding copied target-project fixtures from top-level pytest discovery; CI-equivalent local run passed with `703 passed, 3 skipped`.
 - **2026-05-19 17:26** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:ci:package-install-fix|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/tests-2026-05-19-ci-package-install-fix.txt] Fixed PR CI package import behavior by installing the local project in editable mode before pytest; targeted installed-target shim regression passed with `6 passed`.
 - **2026-05-19 17:28** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:final-evidence|E:docs/ai/work-tracking/active/20260518-task115-aegis-mcp-e2e-target-validation-ACTIVE/reports/aegis-mcp-e2e-target-validation/guard-2026-05-19-final.txt] Refreshed final plan sync, Taskmaster health, work-tracking audit, diff-check, and guard evidence after the CI package-install fix; guard, health, and diff-check passed, with the expected multi-day active-folder audit warning.
+- **2026-05-19 17:49** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:gh:pr-merge|E:https://github.com/loucmane/codex-starter-pack/pull/115] PR #115 passed GitHub Actions, was marked ready, and merged into `main` with merge commit `c89cdff`.
+- **2026-05-19 17:53** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260518-task115-aegis-mcp-e2e-target-validation-COMPLETED/] Archived Task 115 work-tracking after PR merge and branch cleanup.
+- **2026-05-19 17:55** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:session-closeout|E:sessions/state.json] Cleared `sessions/current`, `plans/current`, and `sessions/state.json.current` so the repository is between sessions.
+- **2026-05-19 17:57** — [S:20260519|W:task115-aegis-mcp-e2e-target-validation|H:post-archive-verify|E:reports/aegis-mcp-e2e-target-validation/guard-2026-05-19-post-archive.txt] Post-archive verification passed: work-tracking audit produced expected between-session warnings, guard passed, and `git diff --check` passed.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define local MCP E2E target matrix and fixture strategy
@@ -112,4 +116,5 @@
 - Final regression evidence: `reports/aegis-mcp-e2e-target-validation/tests-2026-05-18-final-aegis-mcp.txt`
 - Final workflow evidence: `reports/aegis-mcp-e2e-target-validation/plan-sync-2026-05-18-final.txt`, `taskmaster-health-2026-05-18-final.txt`, `work-tracking-audit-2026-05-18-final.txt`, `diff-check-2026-05-18-final.txt`, `guard-2026-05-18-final.txt`
 - Final continuation evidence: `reports/aegis-mcp-e2e-target-validation/plan-sync-2026-05-19-final.txt`, `taskmaster-health-2026-05-19-final.txt`, `work-tracking-audit-2026-05-19-final.txt`, `diff-check-2026-05-19-final.txt`, `guard-2026-05-19-final.txt`
+- Post-archive evidence: `reports/aegis-mcp-e2e-target-validation/work-tracking-audit-2026-05-19-post-archive.txt`, `reports/aegis-mcp-e2e-target-validation/guard-2026-05-19-post-archive.txt`, `reports/aegis-mcp-e2e-target-validation/diff-check-2026-05-19-post-archive.txt`
 - Local release readiness recommendation: go for GitHub release-candidate artifact preparation; defer PyPI publication to a separate release task.
