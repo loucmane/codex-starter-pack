@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260519-task116-aegis-strict-verification-ACTIVE has prefix 20260519; today's prefix is 20260520 (ensure multi-day reuse is intentional)

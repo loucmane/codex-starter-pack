@@ -28,6 +28,7 @@ from _aegis_installer import (
     AEGIS_LOG_SURFACES,
     AEGIS_PLAN_STATUS_CHOICES,
     AegisError,
+    certify_release_candidate as aegis_certify_release_candidate,
     explain_profile as aegis_explain_profile,
     inspect_project as aegis_inspect_project,
     install as aegis_install,
@@ -745,12 +746,28 @@ def handle_aegis_install(args: argparse.Namespace) -> None:
 
 def handle_aegis_verify(args: argparse.Namespace) -> None:
     try:
-        payload = aegis_verify(args.target_dir, source_root=REPO_ROOT)
+        payload = aegis_verify(args.target_dir, source_root=REPO_ROOT, strict=args.strict)
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
     _print_json(payload)
     if payload.get("status") == "failed":
         raise TaskError("Aegis verification failed")
+
+
+def handle_aegis_certify_release(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_certify_release_candidate(
+            args.source_dir,
+            dist_dir=args.dist_dir,
+            report_file=args.report_file,
+            build=not args.skip_build,
+            run_smoke=not args.skip_smoke,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") == "failed":
+        raise TaskError("Aegis release certification failed")
 
 
 def handle_aegis_kickoff(args: argparse.Namespace) -> None:
@@ -17986,7 +18003,31 @@ def build_parser() -> argparse.ArgumentParser:
 
     aegis_verify_parser = aegis_sub.add_parser("verify", help="Verify an installed Aegis Foundation target repository")
     aegis_verify_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_verify_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Require release-certification runtime, workflow, hook, and tracking checks",
+    )
     aegis_verify_parser.set_defaults(func=handle_aegis_verify)
+
+    aegis_certify_parser = aegis_sub.add_parser(
+        "certify-release",
+        help="Build and inspect release-candidate artifacts and write a certification report",
+    )
+    aegis_certify_parser.add_argument("--source-dir", default=".", help="Source repository root (default: current repo)")
+    aegis_certify_parser.add_argument(
+        "--dist-dir",
+        default="dist/aegis-release-candidate",
+        help="Directory for built or pre-existing release artifacts",
+    )
+    aegis_certify_parser.add_argument(
+        "--report-file",
+        default="reports/aegis-release-certification/certification-report.json",
+        help="Certification report path",
+    )
+    aegis_certify_parser.add_argument("--skip-build", action="store_true", help="Inspect existing artifacts instead of building")
+    aegis_certify_parser.add_argument("--skip-smoke", action="store_true", help="Skip clean installed-wheel CLI smoke")
+    aegis_certify_parser.set_defaults(func=handle_aegis_certify_release)
 
     aegis_kickoff_parser = aegis_sub.add_parser("kickoff", help="Create Aegis-native session, plan, and work-tracking state")
     aegis_kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")

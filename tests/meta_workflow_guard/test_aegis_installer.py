@@ -4,19 +4,26 @@ from __future__ import annotations
 
 import importlib.machinery
 import importlib.util
+import io
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tarfile
+import zipfile
 from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
+from scripts import _aegis_installer as aegis_installer
 from scripts._aegis_installer import (
     AEGIS_MANIFEST_REL,
     AEGIS_PENDING_TRACKING_REL,
+    AEGIS_RELEASE_CERT_REPORT_REL,
     AegisError,
+    certify_release_candidate,
     install,
     inspect_project,
     kickoff,
@@ -134,8 +141,23 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert install_args.apply is True
     assert install_args.agent == ["claude", "codex"]
 
-    verify_args = parser.parse_args(["aegis", "verify", "--target-dir", "/tmp/example"])
+    verify_args = parser.parse_args(["aegis", "verify", "--target-dir", "/tmp/example", "--strict"])
     assert verify_args.subcommand == "verify"
+    assert verify_args.strict is True
+
+    certify_args = parser.parse_args([
+        "aegis",
+        "certify-release",
+        "--source-dir",
+        "/tmp/source",
+        "--dist-dir",
+        "/tmp/dist",
+        "--skip-build",
+        "--skip-smoke",
+    ])
+    assert certify_args.subcommand == "certify-release"
+    assert certify_args.skip_build is True
+    assert certify_args.skip_smoke is True
 
     kickoff_args = parser.parse_args([
         "aegis",
@@ -227,6 +249,7 @@ def test_install_verify_and_second_plan_are_idempotent(tmp_path: Path) -> None:
 
     verification = verify(target, source_root=REPO_ROOT)
     assert verification["status"] == "passed"
+    assert verification["mode"] == "standard"
     assert verification["summary"]["failed_required"] == 0
     assert (target / ".aegis" / "reports" / "verification-report.json").exists()
 
@@ -476,6 +499,261 @@ def test_kickoff_ready_state_does_not_depend_on_optional_stale_taskmaster(tmp_pa
     assert full.returncode == 0, full.stdout + full.stderr
     assert "Aegis current work Task 1 is in-progress" in full.stdout
     assert "Taskmaster Task 1 is optional with status 'done'" in full.stdout
+
+
+def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_path: Path) -> None:
+    target = tmp_path / "strict-repo"
+    target.mkdir()
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+
+    before_kickoff = verify(target, source_root=REPO_ROOT, strict=True)
+    assert before_kickoff["mode"] == "strict"
+    assert before_kickoff["status"] == "failed"
+    assert any(
+        check["gate_id"] == "workflow.current_work" and check["status"] == "fail"
+        for check in before_kickoff["checks"]
+    )
+
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+
+    kickoff_report = kickoff(
+        target,
+        task_id="42",
+        slug="strict-verify",
+        title="Strict Verify",
+        goals=["Prove strict verification validates an installed workflow runtime"],
+    )
+    assert kickoff_report["status"] == "started"
+
+    strict_report = verify(target, source_root=REPO_ROOT, strict=True)
+
+    assert strict_report["mode"] == "strict"
+    assert strict_report["status"] == "passed"
+    check_ids = {check["gate_id"] for check in strict_report["checks"]}
+    assert {
+        "manifest.managed_files",
+        "runtime.local_cli_shim",
+        "runtime.workflow_templates",
+        "workflow.current_work",
+        "workflow.branch_task_alignment",
+        "workflow.tracking_surfaces",
+        "mutation.pending_tracking_empty",
+        "claude.required_files",
+        "claude.hooks_registered",
+        "protection.codex_owned_paths",
+        "integrations.taskmaster_optional",
+        "integrations.serena_optional",
+    }.issubset(check_ids)
+    assert strict_report["summary"]["failed_required"] == 0
+
+
+def test_strict_verify_fails_when_workflow_template_is_missing(tmp_path: Path) -> None:
+    target = tmp_path / "strict-missing-template"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+    kickoff(
+        target,
+        task_id="42",
+        slug="strict-verify",
+        title="Strict Verify",
+    )
+
+    (target / ".aegis" / "templates" / "workflow" / "session.md").unlink()
+
+    strict_report = verify(target, source_root=REPO_ROOT, strict=True)
+
+    assert strict_report["mode"] == "strict"
+    assert strict_report["status"] == "failed"
+    assert any(
+        check["gate_id"] == "runtime.workflow_templates" and check["status"] == "fail"
+        for check in strict_report["checks"]
+    )
+
+
+def _write_fake_wheel(path: Path, *, omit: str | None = None) -> None:
+    members = [
+        "aegis_foundation/cli.py",
+        "aegis_mcp/server.py",
+        "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
+        "aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
+        "aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh",
+        "aegis_foundation/assets/scripts/_aegis_installer.py",
+        "aegis_foundation/assets/scripts/codex-task",
+        "aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json",
+        "aegis_foundation/assets/templates/aegis/workflow/session.md",
+        "aegis_foundation/assets/templates/aegis/workflow/tracker.md",
+        "aegis_foundation-0.1.0.dist-info/entry_points.txt",
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w") as archive:
+        for member in members:
+            if omit and member.endswith(omit):
+                continue
+            archive.writestr(member, "x\n")
+
+
+def _write_fake_sdist(path: Path) -> None:
+    members = [
+        "aegis_foundation-0.1.0/aegis_foundation/cli.py",
+        "aegis_foundation-0.1.0/aegis_mcp/server.py",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/scripts/_aegis_installer.py",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/scripts/codex-task",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/templates/aegis/workflow/session.md",
+        "aegis_foundation-0.1.0/aegis_foundation/assets/templates/aegis/workflow/tracker.md",
+        "aegis_foundation-0.1.0/pyproject.toml",
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(path, "w:gz") as archive:
+        for member in members:
+            data = b"x\n"
+            info = tarfile.TarInfo(member)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+
+
+def test_release_certification_inspects_artifacts_and_writes_report(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    dist = tmp_path / "dist"
+    source.mkdir()
+    _write_fake_wheel(dist / "aegis_foundation-0.1.0-py3-none-any.whl")
+    _write_fake_sdist(dist / "aegis_foundation-0.1.0.tar.gz")
+
+    report = certify_release_candidate(
+        source,
+        dist_dir=dist,
+        report_file=AEGIS_RELEASE_CERT_REPORT_REL,
+        build=False,
+        run_smoke=False,
+    )
+
+    assert report["status"] == "passed"
+    assert report["build"]["status"] == "skipped"
+    assert report["smokes"]["clean_cli"]["status"] == "skipped"
+    assert {artifact["kind"] for artifact in report["artifacts"]} == {"wheel", "sdist"}
+    assert all(len(artifact["sha256"]) == 64 for artifact in report["artifacts"])
+    assert (source / AEGIS_RELEASE_CERT_REPORT_REL).is_file()
+
+
+def test_release_certification_fails_on_missing_required_artifact_member(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    dist = tmp_path / "dist"
+    source.mkdir()
+    _write_fake_wheel(
+        dist / "aegis_foundation-0.1.0-py3-none-any.whl",
+        omit="pretooluse-gate.sh",
+    )
+    _write_fake_sdist(dist / "aegis_foundation-0.1.0.tar.gz")
+
+    report = certify_release_candidate(
+        source,
+        dist_dir=dist,
+        report_file=AEGIS_RELEASE_CERT_REPORT_REL,
+        build=False,
+        run_smoke=False,
+    )
+
+    assert report["status"] == "failed"
+    assert any(failure["stage"] == "artifact_inspection" for failure in report["failures"])
+    wheel = next(artifact for artifact in report["artifacts"] if artifact["kind"] == "wheel")
+    assert "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh" in wheel["missing_required_suffixes"]
+
+
+def test_release_certification_runs_clean_smoke_when_enabled(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "source"
+    dist = tmp_path / "dist"
+    source.mkdir()
+    wheel_path = dist / "aegis_foundation-0.1.0-py3-none-any.whl"
+    _write_fake_wheel(wheel_path)
+    _write_fake_sdist(dist / "aegis_foundation-0.1.0.tar.gz")
+    called: list[str] = []
+
+    def fake_clean_smoke(wheel: Path) -> dict:
+        called.append(wheel.name)
+        return {
+            "status": "passed",
+            "steps": [
+                {
+                    "name": "aegis_verify_strict",
+                    "status": "passed",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(aegis_installer, "_certify_clean_cli_smoke", fake_clean_smoke)
+
+    report = certify_release_candidate(
+        source,
+        dist_dir=dist,
+        report_file=AEGIS_RELEASE_CERT_REPORT_REL,
+        build=False,
+        run_smoke=True,
+    )
+
+    assert called == [wheel_path.name]
+    assert report["status"] == "passed"
+    assert report["smokes"]["clean_cli"]["status"] == "passed"
+    assert report["smokes"]["clean_cli"]["steps"][0]["name"] == "aegis_verify_strict"
+
+
+def test_release_certification_full_clean_smoke_when_enabled(tmp_path: Path) -> None:
+    if os.environ.get("AEGIS_RUN_CERTIFICATION_SMOKE") != "1":
+        pytest.skip("Set AEGIS_RUN_CERTIFICATION_SMOKE=1 to run the full release certification smoke.")
+    if shutil.which("uv") is None:
+        pytest.skip("uv is required for the full release certification smoke.")
+
+    report = certify_release_candidate(
+        REPO_ROOT,
+        dist_dir=tmp_path / "dist",
+        report_file=tmp_path / "certification-report.json",
+        build=True,
+        run_smoke=True,
+    )
+
+    assert report["status"] == "passed"
+    assert report["build"]["status"] == "passed"
+    assert report["smokes"]["clean_cli"]["status"] == "passed"
+    assert any(
+        step["name"] == "aegis_verify_strict" and step["status"] == "passed"
+        for step in report["smokes"]["clean_cli"]["steps"]
+    )
 
 
 def test_install_refuses_existing_file_conflict_without_overwrite(tmp_path: Path) -> None:

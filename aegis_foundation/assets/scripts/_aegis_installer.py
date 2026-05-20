@@ -12,6 +12,10 @@ import re
 import shutil
 import subprocess
 import sys
+import hashlib
+import tarfile
+import tempfile
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +48,7 @@ AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
+AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
 AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT = "templates/aegis/workflow"
 AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT = ".aegis/templates/workflow"
 AEGIS_WORKFLOW_TEMPLATE_NAMES = (
@@ -1912,15 +1917,439 @@ def _verify_gate(target_root: Path, gate: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
-def verify(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
+def _strict_check(
+    check_id: str,
+    *,
+    category: str,
+    required: bool,
+    passed: bool,
+    message: str,
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "gate_id": check_id,
+        "id": check_id,
+        "category": category,
+        "required": required,
+        "enforcement": "strict",
+        "method": "strict",
+        "status": "pass" if passed else "fail",
+        "message": message,
+    }
+    if details is not None:
+        result["details"] = dict(details)
+    return result
+
+
+def _strict_path_check(
+    target_root: Path,
+    check_id: str,
+    *,
+    category: str,
+    rel_path: str,
+    required: bool = True,
+    directory: bool = False,
+    executable: bool = False,
+) -> dict[str, Any]:
+    target = target_root / rel_path
+    exists = target.exists()
+    kind_ok = target.is_dir() if directory else target.is_file()
+    executable_ok = not executable or os.access(target, os.X_OK)
+    passed = exists and kind_ok and executable_ok
+    if not exists:
+        message = f"path missing: {rel_path}"
+    elif not kind_ok:
+        expected = "directory" if directory else "file"
+        message = f"path is not a {expected}: {rel_path}"
+    elif not executable_ok:
+        message = f"path not executable: {rel_path}"
+    else:
+        message = "ok"
+    return _strict_check(
+        check_id,
+        category=category,
+        required=required,
+        passed=passed,
+        message=message,
+        details={
+            "path": rel_path,
+            "directory": directory,
+            "executable": executable,
+        },
+    )
+
+
+def _agent_enabled(manifest: Mapping[str, Any], agent: str) -> bool:
+    agents = manifest.get("agents")
+    if not isinstance(agents, Mapping):
+        return False
+    agent_payload = agents.get(agent)
+    return isinstance(agent_payload, Mapping) and agent_payload.get("enabled") is True
+
+
+def _strict_managed_files_check(target_root: Path, manifest: Mapping[str, Any]) -> dict[str, Any]:
+    managed_files = manifest.get("managed_files")
+    if not isinstance(managed_files, list):
+        return _strict_check(
+            "manifest.managed_files",
+            category="manifest",
+            required=True,
+            passed=False,
+            message="managed_files is missing or not a list",
+        )
+    missing: list[str] = []
+    directories: list[str] = []
+    checked: list[str] = []
+    for item in managed_files:
+        if not isinstance(item, Mapping):
+            continue
+        rel_path = str(item.get("path") or "").strip()
+        if not rel_path:
+            continue
+        checked.append(rel_path)
+        target = target_root / rel_path
+        if not target.exists():
+            missing.append(rel_path)
+        elif target.is_dir():
+            directories.append(rel_path)
+    passed = not missing and not directories
+    message = "all manifest managed files exist" if passed else "manifest managed files missing or invalid"
+    return _strict_check(
+        "manifest.managed_files",
+        category="manifest",
+        required=True,
+        passed=passed,
+        message=message,
+        details={
+            "checked": len(checked),
+            "missing": missing,
+            "directories": directories,
+        },
+    )
+
+
+def _strict_workflow_template_check(target_root: Path) -> dict[str, Any]:
+    missing = [
+        template_name
+        for template_name in AEGIS_WORKFLOW_TEMPLATE_NAMES
+        if not (target_root / AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT / template_name).is_file()
+    ]
+    return _strict_check(
+        "runtime.workflow_templates",
+        category="runtime",
+        required=True,
+        passed=not missing,
+        message="all workflow templates installed" if not missing else "workflow templates missing",
+        details={
+            "template_root": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+            "missing": missing,
+        },
+    )
+
+
+def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    current_work_path = target_root / AEGIS_CURRENT_WORK_REL
+    current_work = _read_json(current_work_path)
+    if current_work is None:
+        return [
+            _strict_check(
+                "workflow.current_work",
+                category="workflow",
+                required=True,
+                passed=False,
+                message=f"{AEGIS_CURRENT_WORK_REL} missing or invalid JSON",
+            )
+        ], None
+
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    task_id = str(task.get("id") or "").strip()
+    task_slug = str(task.get("slug") or "").strip()
+    missing_path_keys = [
+        key
+        for key in (
+            "session",
+            "session_current",
+            "plan",
+            "plan_current",
+            "work_tracking",
+            "reports",
+            "workflow_templates",
+        )
+        if not str(paths.get(key) or "").strip()
+    ]
+    valid_payload = (
+        current_work.get("status") == "in-progress"
+        and bool(task_id)
+        and bool(task_slug)
+        and not missing_path_keys
+    )
+    checks = [
+        _strict_check(
+            "workflow.current_work",
+            category="workflow",
+            required=True,
+            passed=valid_payload,
+            message="current work payload is active and complete" if valid_payload else "current work payload is incomplete",
+            details={
+                "task": task,
+                "missing_path_keys": missing_path_keys,
+            },
+        )
+    ]
+
+    if task_id:
+        try:
+            branch = _current_branch(target_root)
+            branch_task = _branch_task_id(branch)
+            branch_matches = branch_task == task_id
+            checks.append(
+                _strict_check(
+                    "workflow.branch_task_alignment",
+                    category="workflow",
+                    required=True,
+                    passed=branch_matches,
+                    message="branch task id matches current work" if branch_matches else "branch task id does not match current work",
+                    details={
+                        "branch": branch,
+                        "branch_task_id": branch_task,
+                        "current_work_task_id": task_id,
+                    },
+                )
+            )
+        except AegisError as exc:
+            checks.append(
+                _strict_check(
+                    "workflow.branch_task_alignment",
+                    category="workflow",
+                    required=True,
+                    passed=False,
+                    message=str(exc),
+                )
+            )
+
+    for key, check_id, directory in (
+        ("session", "workflow.session_file", False),
+        ("session_current", "workflow.session_current", False),
+        ("plan", "workflow.plan_file", False),
+        ("plan_current", "workflow.plan_current", False),
+        ("work_tracking", "workflow.work_tracking", True),
+        ("reports", "workflow.reports", True),
+        ("workflow_templates", "workflow.workflow_templates_path", True),
+    ):
+        rel_path = str(paths.get(key) or "").strip()
+        if rel_path:
+            checks.append(
+                _strict_path_check(
+                    target_root,
+                    check_id,
+                    category="workflow",
+                    rel_path=rel_path,
+                    directory=directory,
+                )
+            )
+
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    if work_rel:
+        missing_surfaces = [
+            name
+            for name in (
+                "TRACKER.md",
+                "FINDINGS.md",
+                "DECISIONS.md",
+                "IMPLEMENTATION.md",
+                "CHANGELOG.md",
+                "HANDOFF.md",
+            )
+            if not (target_root / work_rel / name).is_file()
+        ]
+        checks.append(
+            _strict_check(
+                "workflow.tracking_surfaces",
+                category="workflow",
+                required=True,
+                passed=not missing_surfaces,
+                message="all work-tracking surfaces exist" if not missing_surfaces else "work-tracking surfaces missing",
+                details={
+                    "work_tracking": work_rel,
+                    "missing": missing_surfaces,
+                },
+            )
+        )
+    return checks, current_work
+
+
+def _strict_pending_tracking_check(target_root: Path) -> dict[str, Any]:
+    pending_path = target_root / AEGIS_PENDING_TRACKING_REL
+    if not pending_path.exists():
+        return _strict_check(
+            "mutation.pending_tracking_empty",
+            category="mutation",
+            required=True,
+            passed=True,
+            message="pending tracking queue absent",
+            details={"path": AEGIS_PENDING_TRACKING_REL, "events": 0},
+        )
+    payload = _read_json(pending_path)
+    if payload is None:
+        return _strict_check(
+            "mutation.pending_tracking_empty",
+            category="mutation",
+            required=True,
+            passed=False,
+            message="pending tracking queue is invalid JSON",
+            details={"path": AEGIS_PENDING_TRACKING_REL},
+        )
+    events = payload.get("events")
+    event_count = len(events) if isinstance(events, list) else 0
+    return _strict_check(
+        "mutation.pending_tracking_empty",
+        category="mutation",
+        required=True,
+        passed=event_count == 0,
+        message="pending tracking queue empty" if event_count == 0 else "pending tracking queue has unlogged mutation events",
+        details={"path": AEGIS_PENDING_TRACKING_REL, "events": event_count},
+    )
+
+
+def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+    required = _agent_enabled(manifest, "claude")
+    if not required:
+        return [
+            _strict_check(
+                "claude.adapter_enabled",
+                category="claude",
+                required=False,
+                passed=True,
+                message="Claude adapter is not enabled for this install",
+            )
+        ]
+
+    missing_required_files = [
+        rel_path
+        for rel_path in CLAUDE_REQUIRED_FILES
+        if not (target_root / rel_path).is_file()
+    ]
+    checks = [
+        _strict_check(
+            "claude.required_files",
+            category="claude",
+            required=True,
+            passed=not missing_required_files,
+            message="all Claude required files exist" if not missing_required_files else "Claude required files missing",
+            details={"missing": missing_required_files},
+        )
+    ]
+
+    hook_gate_ids = {
+        "claude.pretooluse",
+        "claude.posttooluse_tracking",
+        "claude.stop_tracking",
+    }
+    hook_results = [
+        _verify_gate(target_root, gate)
+        for gate in manifest.get("gates", [])
+        if isinstance(gate, Mapping) and gate.get("id") in hook_gate_ids
+    ]
+    failed_hooks = [
+        str(result.get("gate_id"))
+        for result in hook_results
+        if result.get("status") != "pass"
+    ]
+    checks.append(
+        _strict_check(
+            "claude.hooks_registered",
+            category="claude",
+            required=True,
+            passed=len(hook_results) == len(hook_gate_ids) and not failed_hooks,
+            message="Claude hook registrations are present" if not failed_hooks and len(hook_results) == len(hook_gate_ids) else "Claude hook registrations are missing or invalid",
+            details={
+                "expected": sorted(hook_gate_ids),
+                "observed": [str(result.get("gate_id")) for result in hook_results],
+                "failed": failed_hooks,
+            },
+        )
+    )
+    checks.append(
+        _strict_check(
+            "protection.codex_owned_paths",
+            category="protection",
+            required=True,
+            passed=(target_root / ".claude/scripts/codex-path-guard.sh").is_file()
+            and os.access(target_root / ".claude/scripts/codex-path-guard.sh", os.X_OK)
+            and (target_root / ".claude/scripts/bash-command-guard.sh").is_file()
+            and os.access(target_root / ".claude/scripts/bash-command-guard.sh", os.X_OK),
+            message="Codex-owned path guard scripts are installed and executable",
+            details={
+                "file_tool_guard": ".claude/scripts/codex-path-guard.sh",
+                "bash_guard": ".claude/scripts/bash-command-guard.sh",
+            },
+        )
+    )
+    return checks
+
+
+def _strict_integration_checks(target_root: Path, current_work: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    integrations = current_work.get("integrations") if isinstance(current_work, Mapping) and isinstance(current_work.get("integrations"), Mapping) else {}
+    checks: list[dict[str, Any]] = []
+    for name, rel_path in (("taskmaster", ".taskmaster"), ("serena", ".serena")):
+        integration = integrations.get(name) if isinstance(integrations, Mapping) else {}
+        required = isinstance(integration, Mapping) and integration.get("required") is True
+        detected = (target_root / rel_path).exists()
+        checks.append(
+            _strict_check(
+                f"integrations.{name}_optional",
+                category="integrations",
+                required=required,
+                passed=(detected or not required),
+                message=(
+                    f"{name} integration present"
+                    if detected
+                    else f"{name} integration is optional and absent"
+                    if not required
+                    else f"{name} integration is required but absent"
+                ),
+                details={
+                    "path": rel_path,
+                    "required": required,
+                    "detected": detected,
+                },
+            )
+        )
+    return checks
+
+
+def _strict_verification_checks(target_root: Path, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = [
+        _strict_managed_files_check(target_root, manifest),
+        _strict_path_check(
+            target_root,
+            "runtime.local_cli_shim",
+            category="runtime",
+            rel_path=AEGIS_LOCAL_BIN_REL,
+            executable=True,
+        ),
+        _strict_workflow_template_check(target_root),
+    ]
+    workflow_checks, current_work = _strict_current_work_checks(target_root)
+    checks.extend(workflow_checks)
+    checks.append(_strict_pending_tracking_check(target_root))
+    checks.extend(_strict_claude_checks(target_root, manifest))
+    checks.extend(_strict_integration_checks(target_root, current_work))
+    return checks
+
+
+def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = False) -> dict[str, Any]:
     target_root = _resolve_target_root(target_dir)
     source = Path(source_root).resolve()
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest = _read_json(manifest_path)
+    mode = "strict" if strict else "standard"
     checks: list[dict[str, Any]] = []
     if manifest is None:
         report = {
             "schema_version": SCHEMA_VERSION,
+            "mode": mode,
             "status": "failed",
             "verified_at": _iso_now(),
             "target_root": str(target_root),
@@ -1933,6 +2362,12 @@ def verify(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]
                     "message": "Aegis manifest missing or invalid JSON.",
                 }
             ],
+            "summary": {
+                "total": 1,
+                "failed_required": 1,
+                "warnings": 0,
+                "unsupported": 0,
+            },
         }
         _write_verify_report(target_root, report)
         return report
@@ -1961,9 +2396,13 @@ def verify(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]
         if isinstance(gate, Mapping):
             checks.append(_verify_gate(target_root, gate))
 
+    if strict:
+        checks.extend(_strict_verification_checks(target_root, manifest))
+
     failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
     report = {
         "schema_version": SCHEMA_VERSION,
+        "mode": mode,
         "status": "failed" if failed_required else "passed",
         "verified_at": _iso_now(),
         "target_root": str(target_root),
@@ -1991,6 +2430,440 @@ def _write_verify_report(target_root: Path, report: Mapping[str, Any]) -> None:
     reports_dir = target_root / AEGIS_REPORTS_REL
     reports_dir.mkdir(parents=True, exist_ok=True)
     (target_root / AEGIS_VERIFY_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _run_cert_command(
+    command: Sequence[str],
+    *,
+    cwd: Path,
+    env: Mapping[str, str] | None = None,
+    input_text: str | None = None,
+    expected_returncodes: Sequence[int] = (0,),
+) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
+    result = subprocess.run(
+        list(command),
+        cwd=cwd,
+        env=dict(env) if env is not None else None,
+        input=input_text,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    output = result.stdout + result.stderr
+    payload = {
+        "command": list(command),
+        "cwd": cwd.as_posix(),
+        "returncode": result.returncode,
+        "status": "passed" if result.returncode in expected_returncodes else "failed",
+        "stdout_tail": result.stdout[-4000:],
+        "stderr_tail": result.stderr[-4000:],
+        "output_tail": output[-4000:],
+        "expected_returncodes": list(expected_returncodes),
+    }
+    return result, payload
+
+
+def _git_provenance(source_root: Path) -> dict[str, Any]:
+    def run_git(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-C", source_root.as_posix(), *args],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+    commit = run_git("rev-parse", "HEAD")
+    status = run_git("status", "--short")
+    branch = run_git("branch", "--show-current")
+    return {
+        "commit": commit.stdout.strip() if commit.returncode == 0 else None,
+        "branch": branch.stdout.strip() if branch.returncode == 0 else None,
+        "dirty": bool(status.stdout.strip()) if status.returncode == 0 else None,
+        "status_short": status.stdout.splitlines() if status.returncode == 0 else [],
+        "available": commit.returncode == 0,
+    }
+
+
+def _artifact_kind(path: Path) -> str:
+    name = path.name
+    if name.endswith(".whl"):
+        return "wheel"
+    if name.endswith(".tar.gz") or name.endswith(".tgz"):
+        return "sdist"
+    return "unknown"
+
+
+def _artifact_members(path: Path) -> list[str]:
+    if path.name.endswith(".whl"):
+        with zipfile.ZipFile(path) as archive:
+            return sorted(archive.namelist())
+    if path.name.endswith(".tar.gz") or path.name.endswith(".tgz"):
+        with tarfile.open(path, "r:gz") as archive:
+            return sorted(member.name for member in archive.getmembers())
+    return []
+
+
+def _required_artifact_suffixes(kind: str) -> tuple[str, ...]:
+    shared = (
+        "aegis_foundation/cli.py",
+        "aegis_mcp/server.py",
+        "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
+        "aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
+        "aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh",
+        "aegis_foundation/assets/scripts/_aegis_installer.py",
+        "aegis_foundation/assets/scripts/codex-task",
+        "aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json",
+        "aegis_foundation/assets/templates/aegis/workflow/session.md",
+        "aegis_foundation/assets/templates/aegis/workflow/tracker.md",
+    )
+    if kind == "wheel":
+        return (*shared, "entry_points.txt")
+    if kind == "sdist":
+        return (*shared, "pyproject.toml")
+    return shared
+
+
+def _inspect_release_artifact(path: Path) -> dict[str, Any]:
+    kind = _artifact_kind(path)
+    members = _artifact_members(path)
+    required = _required_artifact_suffixes(kind)
+    missing = [
+        suffix
+        for suffix in required
+        if not any(member.endswith(suffix) for member in members)
+    ]
+    return {
+        "path": path.as_posix(),
+        "name": path.name,
+        "kind": kind,
+        "size_bytes": path.stat().st_size,
+        "sha256": _sha256_file(path),
+        "member_count": len(members),
+        "required_suffixes": list(required),
+        "missing_required_suffixes": missing,
+        "status": "passed" if kind != "unknown" and not missing else "failed",
+    }
+
+
+def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="aegis-release-cert-") as tmp:
+        tmp_root = Path(tmp)
+        venv_dir = tmp_root / "venv"
+        target = tmp_root / "target"
+        target.mkdir()
+        steps: list[dict[str, Any]] = []
+
+        venv_result, step = _run_cert_command(
+            [sys.executable, "-m", "venv", venv_dir.as_posix()],
+            cwd=tmp_root,
+        )
+        step["name"] = "create_venv"
+        steps.append(step)
+        if venv_result.returncode != 0:
+            return {"status": "failed", "steps": steps}
+
+        python = venv_dir / "bin" / "python"
+        install_result, step = _run_cert_command(
+            [python.as_posix(), "-m", "pip", "install", wheel.as_posix()],
+            cwd=tmp_root,
+        )
+        step["name"] = "install_wheel"
+        steps.append(step)
+        if install_result.returncode != 0:
+            return {"status": "failed", "steps": steps}
+
+        env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+        env.pop("AEGIS_SOURCE_ROOT", None)
+        aegis_bin = venv_dir / "bin" / "aegis"
+
+        command_steps: list[tuple[str, list[str], Path, Sequence[int], str | None, Mapping[str, str] | None]] = [
+            ("aegis_version", [aegis_bin.as_posix(), "--version"], target, (0,), None, env),
+            ("git_init", ["git", "init", "-b", "main"], target, (0,), None, env),
+            ("aegis_inspect", [aegis_bin.as_posix(), "inspect", "--target-dir", "."], target, (0,), None, env),
+            (
+                "aegis_plan_install",
+                [aegis_bin.as_posix(), "plan-install", "--target-dir", ".", "--primary-agent", "claude", "--agent", "claude"],
+                target,
+                (0,),
+                None,
+                env,
+            ),
+            (
+                "aegis_install",
+                [aegis_bin.as_posix(), "install", "--target-dir", ".", "--primary-agent", "claude", "--agent", "claude", "--apply"],
+                target,
+                (0,),
+                None,
+                env,
+            ),
+            ("aegis_status", [aegis_bin.as_posix(), "status", "--target-dir", "."], target, (0,), None, env),
+            (
+                "aegis_kickoff",
+                [aegis_bin.as_posix(), "kickoff", "--target-dir", ".", "--task", "42", "--slug", "release-cert", "--title", "Release Certification"],
+                target,
+                (0,),
+                None,
+                env,
+            ),
+            (
+                "readiness_quick",
+                ["bash", ".claude/scripts/readiness.sh", "--quick"],
+                target,
+                (0,),
+                None,
+                env,
+            ),
+        ]
+        for name, command, cwd, expected, input_text, command_env in command_steps:
+            result, step = _run_cert_command(
+                command,
+                cwd=cwd,
+                env=command_env,
+                input_text=input_text,
+                expected_returncodes=expected,
+            )
+            step["name"] = name
+            steps.append(step)
+            if result.returncode not in expected:
+                return {"status": "failed", "steps": steps}
+
+        current_work = _read_json(target / AEGIS_CURRENT_WORK_REL)
+        if current_work is None:
+            steps.append(
+                {
+                    "name": "read_current_work",
+                    "status": "failed",
+                    "message": f"{AEGIS_CURRENT_WORK_REL} missing after kickoff",
+                }
+            )
+            return {"status": "failed", "steps": steps}
+        paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+        reports_rel = str(paths.get("reports") or "").strip()
+        if not reports_rel:
+            steps.append(
+                {
+                    "name": "read_current_work_reports",
+                    "status": "failed",
+                    "message": "current work reports path missing",
+                }
+            )
+            return {"status": "failed", "steps": steps}
+        evidence_rel = f"{reports_rel}/release-certification-evidence.txt"
+        claude_env = {**env, "CLAUDE_PROJECT_DIR": target.as_posix()}
+        tracking_steps: list[tuple[str, list[str], Sequence[int], str | None, Mapping[str, str]]] = [
+            (
+                "pretooluse_allowed_evidence_write",
+                ["bash", ".claude/scripts/pretooluse-gate.sh"],
+                (0,),
+                json.dumps({"tool_name": "Write", "tool_input": {"file_path": evidence_rel}}),
+                claude_env,
+            ),
+            (
+                "posttooluse_pending_tracking",
+                ["bash", ".claude/scripts/posttooluse-tracking.sh"],
+                (0,),
+                json.dumps({"tool_name": "Write", "tool_input": {"file_path": evidence_rel}}),
+                claude_env,
+            ),
+            (
+                "pretooluse_blocks_before_log",
+                ["bash", ".claude/scripts/pretooluse-gate.sh"],
+                (2,),
+                json.dumps({"tool_name": "Write", "tool_input": {"file_path": f"{reports_rel}/blocked-before-log.txt"}}),
+                claude_env,
+            ),
+            (
+                "aegis_log_tracking",
+                [
+                    aegis_bin.as_posix(),
+                    "log",
+                    "--target-dir",
+                    ".",
+                    "--handler",
+                    "certification:write",
+                    "--evidence",
+                    evidence_rel,
+                    "--note",
+                    "Recorded release certification smoke evidence",
+                ],
+                (0,),
+                None,
+                env,
+            ),
+            (
+                "aegis_verify_strict",
+                [aegis_bin.as_posix(), "verify", "--target-dir", ".", "--strict"],
+                (0,),
+                None,
+                env,
+            ),
+            (
+                "protected_path_refusal",
+                ["bash", ".claude/scripts/pretooluse-gate.sh"],
+                (2,),
+                json.dumps(
+                    {
+                        "tool_name": "Bash",
+                        "tool_input": {
+                            "command": "printf blocked > templates/should-not-land.md",
+                        },
+                    }
+                ),
+                claude_env,
+            ),
+        ]
+        evidence_path = target / evidence_rel
+        evidence_path.parent.mkdir(parents=True, exist_ok=True)
+        for name, command, expected, input_text, command_env in tracking_steps:
+            if name == "posttooluse_pending_tracking":
+                evidence_path.write_text("release certification smoke evidence\n", encoding="utf-8")
+                steps.append(
+                    {
+                        "name": "write_evidence_file",
+                        "status": "passed",
+                        "path": evidence_rel,
+                    }
+                )
+            result, step = _run_cert_command(
+                command,
+                cwd=target,
+                env=command_env,
+                input_text=input_text,
+                expected_returncodes=expected,
+            )
+            step["name"] = name
+            steps.append(step)
+            if result.returncode not in expected:
+                return {"status": "failed", "steps": steps}
+
+        verification_report = target / AEGIS_VERIFY_REPORT_REL
+        return {
+            "status": "passed",
+            "steps": steps,
+            "strict_verification_report": (
+                verification_report.read_text(encoding="utf-8")
+                if verification_report.is_file()
+                else None
+            ),
+        }
+
+
+def certify_release_candidate(
+    source_dir: str | Path,
+    *,
+    dist_dir: str | Path,
+    report_file: str | Path | None = None,
+    build: bool = True,
+    run_smoke: bool = True,
+) -> dict[str, Any]:
+    source_root = _resolve_target_root(source_dir)
+    dist_path = Path(dist_dir).expanduser()
+    if not dist_path.is_absolute():
+        dist_path = source_root / dist_path
+    dist_path.mkdir(parents=True, exist_ok=True)
+    report_path = Path(report_file or AEGIS_RELEASE_CERT_REPORT_REL).expanduser()
+    if not report_path.is_absolute():
+        report_path = source_root / report_path
+
+    build_payload: dict[str, Any]
+    if build:
+        uv = shutil.which("uv")
+        command = (
+            [uv, "build", "--sdist", "--wheel", "--out-dir", dist_path.as_posix()]
+            if uv
+            else [sys.executable, "-m", "build", "--sdist", "--wheel", "--outdir", dist_path.as_posix()]
+        )
+        build_result, build_payload = _run_cert_command(command, cwd=source_root)
+    else:
+        build_payload = {
+            "status": "skipped",
+            "command": None,
+            "reason": "build disabled by caller",
+        }
+
+    artifact_paths = sorted(
+        [
+            *dist_path.glob("*.whl"),
+            *dist_path.glob("*.tar.gz"),
+            *dist_path.glob("*.tgz"),
+        ]
+    )
+    artifacts = [_inspect_release_artifact(path) for path in artifact_paths]
+    artifact_kinds = {artifact["kind"] for artifact in artifacts}
+    missing_kinds = sorted({"wheel", "sdist"} - artifact_kinds)
+
+    wheel_paths = [path for path in artifact_paths if _artifact_kind(path) == "wheel"]
+    if run_smoke and wheel_paths:
+        cli_smoke = _certify_clean_cli_smoke(wheel_paths[0])
+    elif run_smoke:
+        cli_smoke = {"status": "failed", "reason": "no wheel artifact available for clean CLI smoke"}
+    else:
+        cli_smoke = {"status": "skipped", "reason": "clean CLI smoke disabled by caller"}
+
+    failures: list[dict[str, Any]] = []
+    if build_payload.get("status") == "failed":
+        failures.append({"stage": "build", "message": "artifact build failed"})
+    if missing_kinds:
+        failures.append({"stage": "artifacts", "message": "required artifact kind missing", "missing": missing_kinds})
+    for artifact in artifacts:
+        if artifact.get("status") == "failed":
+            failures.append(
+                {
+                    "stage": "artifact_inspection",
+                    "artifact": artifact.get("name"),
+                    "missing": artifact.get("missing_required_suffixes"),
+                }
+            )
+    if cli_smoke.get("status") == "failed":
+        failures.append({"stage": "clean_cli_smoke", "message": "clean CLI smoke failed"})
+
+    status_value = "failed" if failures else "passed"
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": status_value,
+        "generated_at": _iso_now(),
+        "source_root": source_root.as_posix(),
+        "dist_dir": dist_path.as_posix(),
+        "report_file": report_path.as_posix(),
+        "provenance": {
+            "python": sys.version.split()[0],
+            "git": _git_provenance(source_root),
+            "foundation_version": FOUNDATION_VERSION,
+            "installer_version": INSTALLER_VERSION,
+            "schema_version": SCHEMA_VERSION,
+        },
+        "build": build_payload,
+        "artifacts": artifacts,
+        "smokes": {
+            "clean_cli": cli_smoke,
+            "mcp_stdio": {
+                "status": "deferred",
+                "reason": "MCP stdio artifact smoke remains covered by focused pytest until full release matrix execution.",
+            },
+        },
+        "failures": failures,
+        "publishing_handoff": {
+            "github_release_candidate_ready": status_value == "passed" and cli_smoke.get("status") == "passed",
+            "pypi_ready": False,
+            "notes": [
+                "GitHub release-candidate artifacts remain the first recommended public channel.",
+                "PyPI publication requires a separate explicit release task.",
+            ],
+        },
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(_dump_json(report), encoding="utf-8")
+    return report
 
 
 def list_profiles(*, source_root: str | Path) -> dict[str, Any]:

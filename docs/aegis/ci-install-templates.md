@@ -92,6 +92,7 @@ jobs:
       - name: Build release candidate
         run: |
           uv build --sdist --wheel --out-dir dist
+          aegis certify-release --source-dir . --dist-dir dist --report-file reports/aegis-release-certification/certification-report.json --skip-build --skip-smoke
           python -m pip install dist/aegis_foundation-0.1.0-py3-none-any.whl
           aegis --version
       - name: Exercise local wheel with uvx and pipx
@@ -113,6 +114,7 @@ jobs:
           path: |
             dist/*.whl
             dist/*.tar.gz
+            reports/aegis-release-certification/certification-report.json
             .aegis/reports/install-plan.json
             .aegis/reports/verification-report.json
 ```
@@ -139,6 +141,7 @@ CI jobs must preserve:
 - `.aegis/reports/install-plan.json`
 - `.aegis/reports/install-report.json`
 - `.aegis/reports/verification-report.json`
+- `reports/aegis-release-certification/certification-report.json`
 - package build logs
 - checksum/signing/provenance logs for publishing jobs
 - MCP `--describe-config` output

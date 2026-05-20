@@ -38,7 +38,10 @@ Before publication, run the release verification matrix:
 
 ```bash
 uv build --sdist --wheel --out-dir dist
+aegis certify-release --source-dir . --dist-dir dist/aegis-release-candidate --report-file reports/aegis-release-certification/certification-report.json
 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py
+python3 -m pytest tests/meta_workflow_guard/test_aegis_installer.py::test_release_certification_inspects_artifacts_and_writes_report
+AEGIS_RUN_CERTIFICATION_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_installer.py::test_release_certification_full_clean_smoke_when_enabled
 AEGIS_RUN_WHEEL_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py::test_local_wheel_cli_smoke_when_enabled
 AEGIS_RUN_WHEEL_MCP_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py::test_local_wheel_mcp_stdio_smoke_when_enabled
 aegis status --target-dir /path/to/test-project

@@ -395,6 +395,7 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "aegis-foundation==0.1.0",
         "install-method: [pip, uvx, pipx]",
         "uv build --sdist --wheel --out-dir dist",
+        "aegis certify-release --source-dir .",
         "pipx run --spec aegis-foundation==0.1.0 aegis inspect --target-dir .",
         "uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis status --target-dir .",
         "aegis-mcp-server --default-target-dir . --describe-config",
@@ -409,7 +410,7 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "`3.11`, `3.12`",
         "`pip`, `uvx`, `pipx`, `local-wheel`, `editable`",
         "`aegis`, `aegis-mcp-server`",
-        "`aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis kickoff`, `aegis log`",
+        "`aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis certify-release`, `aegis kickoff`, `aegis log`",
         "`aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis://work/current`, tool/resource/prompt discovery",
         "`package`, `source`",
         "online package resolution, offline/local wheel",
@@ -423,6 +424,7 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "installed projects with stale optional `.taskmaster/` state still reach `READY` through Aegis-native current work unless Taskmaster is explicitly required",
         "installed kickoff renders packaged workflow templates into session, plan, tracker, findings, decisions, implementation, changelog, handoff, designs, and reports surfaces comparable to this repository's workflow model",
         "installed Claude runtime records pending S:W:H:E tracking after successful task mutations",
+        "aegis certify-release",
         "Policy-only claims are not release evidence.",
     ):
         assert snippet in matrix
