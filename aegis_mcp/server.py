@@ -421,6 +421,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     def aegis_verify(
         target_dir: str,
         acknowledge_report_write: bool,
+        strict: bool = False,
     ) -> dict[str, Any]:
         """Verify an Aegis installation after acknowledging report writes."""
 
@@ -434,7 +435,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
-            report = installer.verify(target_dir, source_root=config.source_root)
+            report = installer.verify(target_dir, source_root=config.source_root, strict=strict)
             if report.get("status") == "failed":
                 return _error_tool_response(
                     "aegis.verify",

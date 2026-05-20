@@ -955,6 +955,217 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
     _assert_snapshot_preserved(target, original_snapshot)
 
 
+def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path: Path) -> None:
+    """Prove a normal "add a button" task drives source changes plus workflow evidence."""
+
+    target = tmp_path / "web-started"
+    shutil.copytree(REAL_TARGET_FIXTURE_ROOT / "web-started", target)
+    _init_git_main(target)
+    server = _server_for(target)
+
+    install_payload = _call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    assert install_payload["ok"] is True
+    claude_entrypoint = (target / "CLAUDE.md").read_text(encoding="utf-8")
+    contract_text = (target / ".aegis/contract.md").read_text(encoding="utf-8")
+    assert "Normal feature-work loop:" in claude_entrypoint
+    assert "aegis verify --strict" in claude_entrypoint
+    assert "do not report the task complete until strict verification passes" in claude_entrypoint
+    assert "Normal feature work is:" in contract_text
+    assert "aegis verify --strict" in contract_text
+
+    kickoff = _run_target_aegis_cli(
+        target,
+        [
+            "kickoff",
+            "--target-dir",
+            ".",
+            "--task",
+            "42",
+            "--slug",
+            "add-cart-button",
+            "--title",
+            "Add Cart Button",
+            "--goal",
+            "Add a visible cart button to the web page",
+            "--goal",
+            "Record session, plan, and work-tracking evidence",
+        ],
+    )
+    assert kickoff.returncode == 0, kickoff.stdout + kickoff.stderr
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    assert current_work["task"] == {
+        "id": "42",
+        "slug": "add-cart-button",
+        "title": "Add Cart Button",
+        "status": "in-progress",
+    }
+    _assert_full_workflow_scaffold(target, current_work)
+
+    readiness = _run_target_readiness(target)
+    assert readiness.returncode == 0, readiness.stdout + readiness.stderr
+    assert readiness.stdout.strip().startswith("READY | task=42")
+
+    scope_log = _run_target_aegis_shim(
+        target,
+        [
+            "log",
+            "--target-dir",
+            ".",
+            "--handler",
+            "claude:scope",
+            "--evidence",
+            f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+            "--note",
+            "Confirmed cart button scope before implementation",
+            "--surface",
+            "findings",
+            "--surface",
+            "decisions",
+            "--plan-step",
+            "plan-step-scope",
+            "--plan-status",
+            "completed",
+        ],
+    )
+    assert scope_log.returncode == 0, scope_log.stdout + scope_log.stderr
+
+    source_rel = "src/main.ts"
+    source_path = target / source_rel
+    allowed_source_edit = _run_target_pretooluse(
+        target,
+        {"tool_name": "Edit", "tool_input": {"file_path": source_rel}},
+    )
+    assert allowed_source_edit.returncode == 0, allowed_source_edit.stderr
+
+    source_path.write_text(
+        source_path.read_text(encoding="utf-8")
+        + "\n"
+        + "const cartButton = document.createElement('button');\n"
+        + "cartButton.textContent = 'Add to cart';\n"
+        + "cartButton.dataset.action = 'add-to-cart';\n"
+        + "document.body.appendChild(cartButton);\n",
+        encoding="utf-8",
+    )
+    assert "Add to cart" in source_path.read_text(encoding="utf-8")
+
+    recorded_source_edit = _run_target_posttooluse(
+        target,
+        {"tool_name": "Edit", "tool_input": {"file_path": source_rel}},
+    )
+    assert recorded_source_edit.returncode == 0, recorded_source_edit.stderr
+    pending = json.loads((target / AEGIS_PENDING_TRACKING_REL).read_text(encoding="utf-8"))
+    assert pending["events"][0]["handler"] == "claude:Edit"
+    assert pending["events"][0]["evidence"] == source_rel
+    assert pending["events"][0]["task"] == {"id": "42", "slug": "add-cart-button"}
+
+    blocked_second_mutation = _run_target_pretooluse(
+        target,
+        {"tool_name": "Write", "tool_input": {"file_path": "src/another-change.ts"}},
+    )
+    assert blocked_second_mutation.returncode == 2
+    assert "pending S:W:H:E tracking must be logged" in blocked_second_mutation.stderr
+
+    implementation_log = _run_target_aegis_shim(
+        target,
+        [
+            "log",
+            "--target-dir",
+            ".",
+            "--handler",
+            "claude:Edit",
+            "--evidence",
+            source_rel,
+            "--note",
+            "Added the cart button to the web page",
+            "--plan-step",
+            "plan-step-implement",
+            "--plan-status",
+            "completed",
+        ],
+    )
+    assert implementation_log.returncode == 0, implementation_log.stdout + implementation_log.stderr
+    implementation_payload = json.loads(implementation_log.stdout)
+    assert implementation_payload["status"] == "logged"
+    assert implementation_payload["pending"]["cleared"] == 1
+    assert implementation_payload["plan"] == {
+        "updated": True,
+        "step": "plan-step-implement",
+        "status": "completed",
+        "evidence": source_rel,
+    }
+    assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+    verify_log = _run_target_aegis_shim(
+        target,
+        [
+            "log",
+            "--target-dir",
+            ".",
+            "--handler",
+            "verify:source-inspection",
+            "--evidence",
+            "cmd`rg \"Add to cart\" src/main.ts`",
+            "--note",
+            "Verified the cart button source change",
+            "--plan-step",
+            "plan-step-verify",
+            "--plan-status",
+            "completed",
+        ],
+    )
+    assert verify_log.returncode == 0, verify_log.stdout + verify_log.stderr
+
+    strict_verify = _run_target_aegis_shim(target, ["verify", "--target-dir", ".", "--strict"])
+    assert strict_verify.returncode == 0, strict_verify.stdout + strict_verify.stderr
+    strict_payload = json.loads(strict_verify.stdout)
+    assert strict_payload["status"] == "passed"
+    assert strict_payload["mode"] == "strict"
+
+    session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
+    plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
+    work_root = target / current_work["paths"]["work_tracking"]
+    tracker_text = (work_root / "TRACKER.md").read_text(encoding="utf-8")
+    implementation_text = (work_root / "IMPLEMENTATION.md").read_text(encoding="utf-8")
+    changelog_text = (work_root / "CHANGELOG.md").read_text(encoding="utf-8")
+    handoff_text = (work_root / "HANDOFF.md").read_text(encoding="utf-8")
+    findings_text = (work_root / "FINDINGS.md").read_text(encoding="utf-8")
+    decisions_text = (work_root / "DECISIONS.md").read_text(encoding="utf-8")
+
+    feature_token = f"|W:task42-add-cart-button|H:claude:Edit|E:{source_rel}]"
+    verify_token = "|W:task42-add-cart-button|H:verify:source-inspection|E:cmd`rg \"Add to cart\" src/main.ts`]"
+    scope_token = (
+        f"|W:task42-add-cart-button|H:claude:scope|E:{current_work['paths']['work_tracking']}/FINDINGS.md]"
+    )
+    for text in (session_text, tracker_text):
+        assert scope_token in text
+        assert feature_token in text
+        assert verify_token in text
+    for text in (implementation_text, changelog_text, handoff_text):
+        assert feature_token in text
+        assert verify_token in text
+    assert scope_token in findings_text
+    assert scope_token in decisions_text
+    assert "| plan-step-scope |" in plan_text and "| completed |" in plan_text
+    assert f"; {source_rel} | completed |" in plan_text
+    assert 'cmd`rg "Add to cart" src/main.ts` | completed |' in plan_text
+    assert "- [x] plan-step-scope" in tracker_text
+    assert "- [x] plan-step-implement" in tracker_text
+    assert "- [x] plan-step-verify" in tracker_text
+
+    stop_gate = _run_target_stop_gate(target)
+    assert stop_gate.returncode == 0, stop_gate.stderr
+
+
 def test_mcp_partial_install_resources_are_structured(tmp_path: Path) -> None:
     target = tmp_path / "partial-aegis"
     target.mkdir()

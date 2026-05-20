@@ -116,10 +116,26 @@ def handle_verify(args: argparse.Namespace) -> int:
         payload = _aegis_installer.verify(
             args.target_dir,
             source_root=source_root,
+            strict=args.strict,
         )
     _dump_json(payload)
     if payload.get("status") == "failed":
         print("Aegis verification failed", file=sys.stderr)
+        return 1
+    return 0
+
+
+def handle_certify_release(args: argparse.Namespace) -> int:
+    payload = _aegis_installer.certify_release_candidate(
+        args.source_dir,
+        dist_dir=args.dist_dir,
+        report_file=args.report_file,
+        build=not args.skip_build,
+        run_smoke=not args.skip_smoke,
+    )
+    _dump_json(payload)
+    if payload.get("status") == "failed":
+        print("Aegis release certification failed", file=sys.stderr)
         return 1
     return 0
 
@@ -256,7 +272,31 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Verify an installed Aegis Foundation target repository.",
     )
     verify_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    verify_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Require release-certification runtime, workflow, hook, and tracking checks.",
+    )
     verify_parser.set_defaults(func=handle_verify)
+
+    certify_parser = subparsers.add_parser(
+        "certify-release",
+        help="Build and inspect release-candidate artifacts and write a certification report.",
+    )
+    certify_parser.add_argument("--source-dir", default=".", help="Source repository root.")
+    certify_parser.add_argument(
+        "--dist-dir",
+        default="dist/aegis-release-candidate",
+        help="Directory for built or pre-existing release artifacts.",
+    )
+    certify_parser.add_argument(
+        "--report-file",
+        default=_aegis_installer.AEGIS_RELEASE_CERT_REPORT_REL,
+        help="Certification report path.",
+    )
+    certify_parser.add_argument("--skip-build", action="store_true", help="Inspect existing artifacts instead of building.")
+    certify_parser.add_argument("--skip-smoke", action="store_true", help="Skip clean installed-wheel CLI smoke.")
+    certify_parser.set_defaults(func=handle_certify_release)
 
     kickoff_parser = subparsers.add_parser(
         "kickoff",

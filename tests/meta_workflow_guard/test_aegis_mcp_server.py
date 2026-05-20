@@ -214,6 +214,8 @@ def test_verify_schema_requires_acknowledged_report_write(tmp_path: Path) -> Non
 
     assert set(schema["required"]) == {"target_dir", "acknowledge_report_write"}
     assert schema["properties"]["acknowledge_report_write"]["type"] == "boolean"
+    assert schema["properties"]["strict"]["type"] == "boolean"
+    assert schema["properties"]["strict"]["default"] is False
 
 
 def test_kickoff_schema_requires_explicit_apply_and_task_inputs(tmp_path: Path) -> None:
@@ -529,6 +531,65 @@ def test_verify_success_and_failure_details_are_structured(tmp_path: Path) -> No
     assert failed_payload["error"]["code"] == "verification_failed"
     assert failed_payload["error"]["status"] == "failed"
     assert failed_payload["error"]["details"]["report"]["status"] == "failed"
+
+
+def test_verify_strict_flag_passes_through_to_core_report(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+
+    install_payload = call_tool_payload(
+        server,
+        "aegis.install",
+        {
+            "target_dir": target.as_posix(),
+            "profile": "generic",
+            "primary_agent": "claude",
+            "agents": ["claude"],
+            "apply": True,
+        },
+    )
+    assert install_payload["ok"] is True
+    kickoff_payload = call_tool_payload(
+        server,
+        "aegis.kickoff",
+        {
+            "target_dir": target.as_posix(),
+            "task": "42",
+            "slug": "strict-verify",
+            "title": "Strict Verify",
+            "apply": True,
+        },
+    )
+    assert kickoff_payload["ok"] is True
+
+    verify_payload = call_tool_payload(
+        server,
+        "aegis.verify",
+        {
+            "target_dir": target.as_posix(),
+            "acknowledge_report_write": True,
+            "strict": True,
+        },
+    )
+
+    assert verify_payload["ok"] is True
+    assert verify_payload["result"]["mode"] == "strict"
+    assert verify_payload["result"]["status"] == "passed"
+    assert any(
+        check["gate_id"] == "workflow.current_work"
+        for check in verify_payload["result"]["checks"]
+    )
 
 
 def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None:

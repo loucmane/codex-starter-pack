@@ -34,6 +34,7 @@ aegis status --target-dir .
 aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
+aegis verify --target-dir . --strict
 ```
 
 Start tracked work without requiring Taskmaster or Serena:
@@ -102,6 +103,16 @@ aegis --source-root /path/to/codex log --target-dir . --handler claude-live-writ
 
 Use `--target-dir .` when running from the target project. Use an explicit target path when running from somewhere else.
 
+## Release Certification
+
+Before preparing GitHub release artifacts, run the release-candidate certification workflow from the Aegis source checkout:
+
+```bash
+aegis certify-release --source-dir /path/to/codex --dist-dir /tmp/aegis-rc --report-file reports/aegis-release-certification/certification-report.json
+```
+
+The certification workflow builds wheel and sdist artifacts, computes SHA-256 checksums, records git/package/Python provenance, inspects artifact contents for Aegis assets and entry points, and can run a clean installed-wheel CLI smoke that reaches `aegis verify --strict`. Use `--skip-build` only when inspecting prebuilt artifacts, and use `--skip-smoke` only for a deliberately lighter local evidence pass. PyPI publication remains a separate explicit release task.
+
 ## MCP Development Startup
 
 Run the MCP server from the same local checkout, but point the default target directory at the project being managed.
@@ -152,6 +163,7 @@ aegis status --target-dir .
 aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
+aegis verify --target-dir . --strict
 aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"
 aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
 ```

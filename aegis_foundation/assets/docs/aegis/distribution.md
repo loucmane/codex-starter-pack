@@ -41,9 +41,18 @@ aegis status --target-dir .
 aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
+aegis verify --target-dir . --strict
 ```
 
 The installed command must resolve packaged Aegis assets from the wheel, not from the source checkout.
+
+For release-candidate artifact certification from the source checkout, use:
+
+```bash
+aegis certify-release --source-dir . --dist-dir dist/aegis-release-candidate --report-file reports/aegis-release-certification/certification-report.json
+```
+
+The generated certification report records artifact checksums, provenance, artifact content inspection, clean installed-wheel smoke results, strict verification evidence, and the GitHub-before-PyPI publication handoff.
 
 ## Public Install Snippets
 

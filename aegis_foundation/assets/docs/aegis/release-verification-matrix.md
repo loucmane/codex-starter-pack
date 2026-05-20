@@ -10,7 +10,7 @@ This matrix defines the minimum release-readiness coverage for `aegis-foundation
 | Python | `3.11`, `3.12` |
 | Install method | `pip`, `uvx`, `pipx`, `local-wheel`, `editable` |
 | Command surface | `aegis`, `aegis-mcp-server` |
-| CLI operations | `aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis kickoff`, `aegis log` |
+| CLI operations | `aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis certify-release`, `aegis kickoff`, `aegis log` |
 | MCP operations | `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis://work/current`, tool/resource/prompt discovery |
 | Asset origin | `package`, `source` |
 | Connectivity | online package resolution, offline/local wheel |
@@ -39,6 +39,8 @@ Every release candidate must prove:
 - `aegis.install` requires explicit `--apply` / MCP `apply=true`
 - `aegis.log` requires explicit MCP `apply=true` and writes portable S:W:H:E progress evidence without requiring Taskmaster or Serena
 - `aegis.verify` writes and preserves `.aegis/reports/verification-report.json`
+- `aegis verify --strict` fails with actionable check IDs when required runtime, workflow, hook, mutation-tracking, protection, artifact, or explicitly required integration surfaces are broken
+- `aegis certify-release` writes `reports/aegis-release-certification/certification-report.json` with wheel/sdist checksums, provenance, artifact content inspection, clean installed-wheel smoke results, strict verification evidence, failures, and GitHub-before-PyPI handoff
 - release policy covers signing, provenance, checksums, prereleases, update, rollback, and downgrade
 
 ## Target Repository Shapes
@@ -76,6 +78,7 @@ reports/aegis-release-hardening/artifacts-*.txt
 reports/aegis-release-hardening/tests-*.txt
 reports/aegis-release-hardening/mcp-describe-*.txt
 reports/aegis-release-hardening/status-*.txt
+reports/aegis-release-certification/certification-report.json
 reports/aegis-mcp-e2e-target-validation/tests-*.txt
 reports/aegis-mcp-e2e-target-validation/tests-*-real-target-projects.txt
 ```
