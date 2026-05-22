@@ -29,6 +29,7 @@ SESSIONS_PREFIX = REPO_STRUCTURE.sessions_root.relative_to(REPO_ROOT)
 WORK_TRACKING_PREFIX = REPO_STRUCTURE.work_tracking_active_root
 WORK_TRACKING_RELATIVE = WORK_TRACKING_PREFIX.relative_to(REPO_ROOT)
 WORK_TRACKING_ARCHIVE_RELATIVE = REPO_STRUCTURE.work_tracking_archive_root.relative_to(REPO_ROOT)
+WORK_TRACKING_ACTIVE_PLACEHOLDERS = {".gitkeep"}
 GUARDED_WORKTRACKING_FILES = {"TRACKER.md"}
 SWHE_PATTERN = re.compile(r"\[S:(?P<S>[^|\]]+)\|W:(?P<W>[^|\]]+)\|H:(?P<H>[^|\]]+)\|E:(?P<E>[^\]]+)\]")
 PLACEHOLDER_HANDLERS = {"VOID", "searching", "H:VOID", "VOID→registry"}
@@ -410,6 +411,8 @@ def validate_active_folder_edits(changed_paths: Iterable[Path]) -> List[Validati
         if parts[: len(WORK_TRACKING_RELATIVE.parts)] != WORK_TRACKING_RELATIVE.parts:
             continue
         folder_name = parts[len(WORK_TRACKING_RELATIVE.parts)]
+        if folder_name in WORK_TRACKING_ACTIVE_PLACEHOLDERS:
+            continue
         if folder_name in seen:
             continue
         seen.add(folder_name)
@@ -570,6 +573,8 @@ def detect_untracked_active_folders(entries: List[tuple[str, str]]) -> List[Path
         try:
             active_segment = relative.parts[len(base_parts)]
         except IndexError:
+            continue
+        if active_segment in WORK_TRACKING_ACTIVE_PLACEHOLDERS:
             continue
         if not active_segment.endswith("-ACTIVE"):
             continue
