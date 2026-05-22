@@ -1,7 +1,7 @@
 # Task 118 Native Global MCP Bootstrap for Aegis Tracker
 
 **Started**: 2026-05-22
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-05-22
 
 ## Goals
@@ -30,6 +30,7 @@
 - **2026-05-22 13:13** — [S:20260522|W:task118-native-global-mcp-bootstrap|H:pytest:focused-final|E:docs/ai/work-tracking/active/20260522-task118-native-global-mcp-bootstrap-ACTIVE/reports/native-global-mcp-bootstrap/pytest-focused-final-2026-05-22.txt] Final focused native MCP regression matrix passed: 88 passed, 3 optional smokes skipped
 - **2026-05-22 13:14** — [S:20260522|W:task118-native-global-mcp-bootstrap|H:verification:gates|E:docs/ai/work-tracking/active/20260522-task118-native-global-mcp-bootstrap-ACTIVE/reports/native-global-mcp-bootstrap/plan-sync-final-2026-05-22.txt] Final plan sync, work-tracking audit, guard, Taskmaster health, diff-check, and readiness gates passed
 - **2026-05-22 13:15** — [S:20260522|W:task118-native-global-mcp-bootstrap|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Confirmed closeout ordering: marking Task 118 done while the ACTIVE folder is live blocks readiness, so Taskmaster status was restored to `in-progress` until archive/merge closeout
+- **2026-05-22 13:54** — [S:20260522|W:task118-native-global-mcp-bootstrap|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 118 done after PR #118 merged and refreshed `.taskmaster/tasks/task_118.md`
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

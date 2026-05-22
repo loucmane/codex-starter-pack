@@ -2,7 +2,7 @@
 
 **Title:** Native Global MCP Bootstrap for Aegis
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 117 ✓
 
