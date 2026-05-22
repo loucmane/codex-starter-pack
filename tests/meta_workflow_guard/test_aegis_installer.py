@@ -785,6 +785,8 @@ def test_release_certification_inspects_artifacts_and_writes_report(tmp_path: Pa
     assert report["status"] == "passed"
     assert report["build"]["status"] == "skipped"
     assert report["smokes"]["clean_cli"]["status"] == "skipped"
+    assert report["smokes"]["mcp_server_config"]["status"] == "skipped"
+    assert report["smokes"]["mcp_stdio"]["status"] == "covered_by_focused_pytest"
     assert {artifact["kind"] for artifact in report["artifacts"]} == {"wheel", "sdist"}
     assert all(len(artifact["sha256"]) == 64 for artifact in report["artifacts"])
     assert (source / AEGIS_RELEASE_CERT_REPORT_REL).is_file()
@@ -839,6 +841,11 @@ def test_release_certification_runs_clean_smoke_when_enabled(
         }
 
     monkeypatch.setattr(aegis_installer, "_certify_clean_cli_smoke", fake_clean_smoke)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_certify_mcp_server_config_smoke",
+        lambda wheel: {"status": "passed", "checks": [], "wheel": wheel.name},
+    )
 
     report = certify_release_candidate(
         source,
@@ -851,14 +858,15 @@ def test_release_certification_runs_clean_smoke_when_enabled(
     assert called == [wheel_path.name]
     assert report["status"] == "passed"
     assert report["smokes"]["clean_cli"]["status"] == "passed"
+    assert report["smokes"]["mcp_server_config"]["status"] == "passed"
     assert report["smokes"]["clean_cli"]["steps"][0]["name"] == "aegis_verify_strict"
 
 
 def test_release_certification_full_clean_smoke_when_enabled(tmp_path: Path) -> None:
     if os.environ.get("AEGIS_RUN_CERTIFICATION_SMOKE") != "1":
         pytest.skip("Set AEGIS_RUN_CERTIFICATION_SMOKE=1 to run the full release certification smoke.")
-    if shutil.which("uv") is None:
-        pytest.skip("uv is required for the full release certification smoke.")
+    if shutil.which("uv") is None or shutil.which("uvx") is None:
+        pytest.skip("uv and uvx are required for the full release certification smoke.")
 
     report = certify_release_candidate(
         REPO_ROOT,
@@ -871,6 +879,7 @@ def test_release_certification_full_clean_smoke_when_enabled(tmp_path: Path) -> 
     assert report["status"] == "passed"
     assert report["build"]["status"] == "passed"
     assert report["smokes"]["clean_cli"]["status"] == "passed"
+    assert report["smokes"]["mcp_server_config"]["status"] == "passed"
     assert any(
         step["name"] == "aegis_verify_strict" and step["status"] == "passed"
         for step in report["smokes"]["clean_cli"]["steps"]

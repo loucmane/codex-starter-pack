@@ -66,10 +66,24 @@ def source_spec(request: RegistrationRequest) -> str:
         if request.github_ref:
             url = f"{url}@{request.github_ref}"
         return url
-    if request.source_mode in {"wheel", "source"}:
+    if request.source_mode == "wheel":
         if not request.artifact:
-            raise ValueError(f"--artifact is required for source mode {request.source_mode!r}")
-        return request.artifact
+            raise ValueError("--artifact is required for source mode 'wheel'")
+        artifact = Path(request.artifact).expanduser().resolve()
+        if not artifact.is_file():
+            raise ValueError(f"Wheel artifact does not exist: {artifact.as_posix()}")
+        if artifact.suffix != ".whl":
+            raise ValueError(f"Wheel artifact must end with .whl: {artifact.as_posix()}")
+        return artifact.as_posix()
+    if request.source_mode == "source":
+        if not request.artifact:
+            raise ValueError("--artifact is required for source mode 'source'")
+        artifact = Path(request.artifact).expanduser().resolve()
+        if not artifact.is_dir():
+            raise ValueError(f"Source artifact must be an existing directory: {artifact.as_posix()}")
+        if not (artifact / "pyproject.toml").is_file():
+            raise ValueError(f"Source artifact must contain pyproject.toml: {artifact.as_posix()}")
+        return artifact.as_posix()
     raise ValueError(f"Unsupported source mode: {request.source_mode}")
 
 

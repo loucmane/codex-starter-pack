@@ -120,24 +120,12 @@ def test_claude_project_and_codex_registration_commands_match_native_syntax() ->
             "git+https://github.com/loucmane/codex-starter-pack.git@v0.1.0",
         ),
         (
-            mcp_registration.RegistrationRequest(
-                client="claude",
-                source_mode="wheel",
-                artifact="./dist/aegis_foundation-0.1.0-py3-none-any.whl",
-            ),
-            "./dist/aegis_foundation-0.1.0-py3-none-any.whl",
-        ),
-        (
-            mcp_registration.RegistrationRequest(
-                client="claude",
-                source_mode="source",
-                artifact="/workspace/codex",
-            ),
-            "/workspace/codex",
+            mcp_registration.RegistrationRequest(client="claude", source_mode="package"),
+            "aegis-foundation",
         ),
     ],
 )
-def test_registration_source_modes_resolve_uvx_from_spec(
+def test_package_registration_source_modes_resolve_uvx_from_spec(
     registration_request: mcp_registration.RegistrationRequest,
     expected: str,
 ) -> None:
@@ -148,10 +136,77 @@ def test_registration_source_modes_resolve_uvx_from_spec(
     assert "aegis-mcp-server" in payload["mcp_server_argv"]
 
 
+def test_local_wheel_and_source_modes_resolve_absolute_uvx_from_spec(tmp_path: Path) -> None:
+    wheel = tmp_path / "dist" / "aegis_foundation-0.1.0-py3-none-any.whl"
+    wheel.parent.mkdir()
+    wheel.write_bytes(b"placeholder wheel for registration path validation")
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "pyproject.toml").write_text("[project]\nname = 'aegis-foundation'\n", encoding="utf-8")
+
+    wheel_payload = mcp_registration.registration_payload(
+        mcp_registration.RegistrationRequest(
+            client="claude",
+            source_mode="wheel",
+            artifact=str(wheel),
+        )
+    )
+    source_payload = mcp_registration.registration_payload(
+        mcp_registration.RegistrationRequest(
+            client="claude",
+            source_mode="source",
+            artifact=str(source),
+        )
+    )
+
+    assert wheel_payload["package_spec"] == wheel.resolve().as_posix()
+    assert source_payload["package_spec"] == source.resolve().as_posix()
+    assert wheel_payload["mcp_server_argv"][0:3] == ["uvx", "--from", wheel.resolve().as_posix()]
+    assert source_payload["mcp_server_argv"][0:3] == ["uvx", "--from", source.resolve().as_posix()]
+
+
 def test_wheel_and_source_modes_require_artifact() -> None:
     with pytest.raises(ValueError, match="--artifact is required"):
         mcp_registration.registration_payload(
             mcp_registration.RegistrationRequest(client="claude", source_mode="wheel")
+        )
+
+    with pytest.raises(ValueError, match="--artifact is required"):
+        mcp_registration.registration_payload(
+            mcp_registration.RegistrationRequest(client="claude", source_mode="source")
+        )
+
+
+def test_local_modes_validate_artifact_shape(tmp_path: Path) -> None:
+    missing_wheel = tmp_path / "missing.whl"
+    source_without_pyproject = tmp_path / "source"
+    source_without_pyproject.mkdir()
+    wrong_extension = tmp_path / "aegis_foundation-0.1.0.zip"
+    wrong_extension.write_bytes(b"not a wheel")
+
+    with pytest.raises(ValueError, match="Wheel artifact does not exist"):
+        mcp_registration.registration_payload(
+            mcp_registration.RegistrationRequest(
+                client="claude",
+                source_mode="wheel",
+                artifact=str(missing_wheel),
+            )
+        )
+    with pytest.raises(ValueError, match="Wheel artifact must end with .whl"):
+        mcp_registration.registration_payload(
+            mcp_registration.RegistrationRequest(
+                client="claude",
+                source_mode="wheel",
+                artifact=str(wrong_extension),
+            )
+        )
+    with pytest.raises(ValueError, match="Source artifact must contain pyproject.toml"):
+        mcp_registration.registration_payload(
+            mcp_registration.RegistrationRequest(
+                client="claude",
+                source_mode="source",
+                artifact=str(source_without_pyproject),
+            )
         )
 
 

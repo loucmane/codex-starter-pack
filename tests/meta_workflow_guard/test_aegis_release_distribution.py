@@ -310,8 +310,8 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
         "uvx --from aegis-foundation aegis status --target-dir .",
         "pipx run --spec aegis-foundation aegis inspect --target-dir .",
         "pipx run --spec aegis-foundation aegis status --target-dir .",
-        "uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --target-dir .",
-        "pipx run --spec ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --target-dir .",
+        'uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .',
+        'pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .',
         "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
@@ -322,8 +322,8 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
         "uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "pipx run --spec aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         '"asset_origin": "package"',
-        "uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --describe-config",
-        "uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --transport stdio",
+        'uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis-mcp-server --default-target-dir . --describe-config',
+        'uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis-mcp-server --default-target-dir . --transport stdio',
     ]
     for snippet in required_snippets:
         assert snippet in text
@@ -361,6 +361,8 @@ def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> 
         "Pinned package mode",
         "GitHub URL/ref mode",
         "Local wheel mode",
+        'aegis mcp generate-registration --client claude --scope user --source-mode wheel --artifact "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl"',
+        "Wheel and source modes validate the local path and render an absolute `uvx --from` value",
         "Source checkout mode, for development only",
         "Manual `.mcp.json` or Codex config edits are fallback-only",
         '"name": "aegis"',
@@ -382,6 +384,8 @@ def test_release_policy_docs_cover_update_rollback_and_signing() -> None:
         "Prerelease builds",
         "uvx --from aegis-foundation==0.1.0 aegis status --target-dir .",
         "Hosted MCP service deployment",
+        "AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py::test_local_wheel_mcp_real_target_project_smoke_when_enabled",
+        "TestPyPI and PyPI publication are blocked until the local artifact MCP target smoke passes",
     ):
         assert snippet in release_policy
 
@@ -409,7 +413,7 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "uv build --sdist --wheel --out-dir dist",
         "aegis certify-release --source-dir .",
         "pipx run --spec aegis-foundation==0.1.0 aegis inspect --target-dir .",
-        "uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis status --target-dir .",
+        'uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis status --target-dir .',
         "aegis-mcp-server --default-target-dir . --describe-config",
         ".aegis/reports/install-plan.json",
         ".aegis/reports/install-report.json",
