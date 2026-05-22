@@ -131,7 +131,7 @@ Release-candidate validation must discover:
 - resources: Aegis contract, schema, current work, and runtime metadata resources
 - prompts: advisory prompts for planning and workflow handoff
 
-The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires the explicit install/apply path exposed by the Aegis tools. Starting work uses `aegis.kickoff` with `apply=true`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from `.aegis/templates/workflow/`. After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with `apply=true` records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `HANDOFF.md`, and current plan evidence before the next mutation or session stop is allowed.
+The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires the explicit install/apply path exposed by the Aegis tools. Starting work uses `aegis.kickoff` with `apply=true`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from `.aegis/templates/workflow/`. After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with `apply=true` records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md` before the next mutation or session stop is allowed. Plan evidence is updated only when `plan_step` is supplied explicitly.
 
 ## Release Readiness Rule
 

@@ -17,6 +17,7 @@ FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
+AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 
 PROTECTED_PREFIXES = ("templates/", ".codex/")
 PROTECTED_EXACT = {"CODEX.md"}
@@ -38,7 +39,7 @@ MUTATING_TASKMASTER_RE = re.compile(
 )
 MUTATING_AEGIS_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
-    r"install|verify|kickoff|log"
+    r"install|verify|kickoff|log|closeout"
     r")\b",
     re.IGNORECASE,
 )
@@ -48,6 +49,14 @@ AEGIS_BOOTSTRAP_RE = re.compile(
 )
 AEGIS_LOG_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+log\b",
+    re.IGNORECASE,
+)
+AEGIS_VERIFY_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+verify\b",
+    re.IGNORECASE,
+)
+AEGIS_CLOSEOUT_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+closeout\b",
     re.IGNORECASE,
 )
 REDIRECT_RE = re.compile(r"(?<![<])(?:>>|>)(?![>&])\s*([\"']?)([^\"'\s;&|]+)\1")
@@ -237,6 +246,14 @@ def bash_is_aegis_log(command: str) -> bool:
     return bool(AEGIS_LOG_RE.search(command))
 
 
+def bash_is_aegis_verify(command: str) -> bool:
+    return bool(AEGIS_VERIFY_RE.search(command))
+
+
+def bash_is_aegis_closeout(command: str) -> bool:
+    return bool(AEGIS_CLOSEOUT_RE.search(command))
+
+
 def protected_bash_violations(command: str, root: Path | None = None) -> list[str]:
     root = root or project_root()
     violations: list[str] = []
@@ -388,6 +405,8 @@ def payload_evidence(payload: Payload, root: Path) -> str:
             return paths[0]
     if payload.tool_name == "Bash":
         command = bash_command(payload)
+        if bash_is_aegis_verify(command):
+            return AEGIS_VERIFY_REPORT_REL
         redirect_target = first_redirect_target(command, root)
         if redirect_target:
             return redirect_target
@@ -402,6 +421,8 @@ def payload_evidence(payload: Payload, root: Path) -> str:
 
 def payload_handler(payload: Payload) -> str:
     if payload.tool_name == "Bash":
+        if bash_is_aegis_verify(bash_command(payload)):
+            return "aegis:verify"
         tokens = shlex_tokens(bash_command(payload))
         for token in tokens:
             if is_shell_assignment(token):
@@ -439,11 +460,25 @@ def payload_is_aegis_bootstrap(payload: Payload) -> bool:
     return False
 
 
+def payload_is_aegis_closeout(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_closeout(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("closeout")
+    return False
+
+
 def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     work = current_work(root)
     if not work:
         return
-    if not payload_is_mutation(payload) or payload_is_aegis_bootstrap(payload) or payload_is_aegis_log(payload):
+    if (
+        not payload_is_mutation(payload)
+        or payload_is_aegis_bootstrap(payload)
+        or payload_is_aegis_log(payload)
+        or payload_is_aegis_closeout(payload)
+    ):
         return
     evidence = payload_evidence(payload, root)
     handler = payload_handler(payload)

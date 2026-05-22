@@ -47,6 +47,7 @@ AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
+AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
 AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT = "templates/aegis/workflow"
@@ -254,12 +255,13 @@ def profile_payload() -> dict[str, Any]:
             "agents.codex.enabled": list(CODEX_GATE_IDS),
         },
         "verification": {
-            "required_commands": ["aegis verify"],
+            "required_commands": ["aegis verify --strict", "aegis closeout"],
             "optional_smoke_tests": [
                 "cold-session mutation blocked",
                 "Aegis-native kickoff reaches READY without Taskmaster or Serena",
                 "READY evidence write allowed",
-                "aegis log updates session, tracker, plan, implementation, changelog, and handoff surfaces",
+                "aegis log updates session, tracker, implementation, changelog, handoff, and explicit plan surfaces",
+                "aegis closeout blocks completion until strict verification, plan evidence, and semantic handoff pass",
             ],
         },
     }
@@ -307,6 +309,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "## Verification",
             "",
             "- Required gates must pass `aegis verify --strict` before work is declared complete.",
+            "- `aegis closeout` is the final completion gate. Do not report task completion until it writes a passing closeout report.",
             "- Missing, non-executable, unconfigured, or failing required gates make verification fail.",
             "- Policy-only gates are documented limitations, not proof of enforcement.",
             "",
@@ -316,10 +319,12 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness, mark `plan-step-scope` complete with `aegis log`, make the task-scoped code change, let PostToolUse create pending tracking, run `aegis log` for the changed source file, run task-specific verification, mark `plan-step-verify` complete, then run `aegis verify --strict` before declaring the work complete.",
-            "- After every meaningful mutation, run `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, implementation log, changelog, handoff, and current plan evidence.",
+            "- Normal feature work is: confirm readiness, mark `plan-step-scope` complete with `aegis log`, make the task-scoped code change, let PostToolUse create pending tracking, run `aegis log` for the changed source file with `--plan-step plan-step-implement`, run task-specific verification with `--plan-step plan-step-verify`, run `aegis verify --strict`, log the strict verification report with `--plan-step plan-step-verify`, then run `aegis closeout` before declaring the work complete.",
+            "- After every meaningful mutation, run `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, implementation log, changelog, and handoff.",
+            "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
-            "- Use `--surface findings` or `--surface decisions` when the mutation also records a finding or decision. Use `--plan-step` and `--plan-status` for explicit scope/verify transitions.",
+            "- Use `--surface findings` or `--surface decisions` when the mutation also records a finding or decision. Use `--plan-step` and `--plan-status` for explicit scope/implement/verify transitions.",
+            "- `aegis closeout --update-handoff` may refresh Aegis-owned semantic handoff sections before validation. It preserves the Progress Log.",
             "",
         ]
     )
@@ -360,9 +365,10 @@ def _render_claude_entrypoint() -> bytes:
             "3. Make the task-scoped source change requested by the user.",
             "4. After the hook records pending tracking, run `aegis log --handler <handler> --evidence <changed-file> --note \"<past-tense note>\" --plan-step plan-step-implement --plan-status completed`.",
             "5. Run task-specific verification and log it with `--plan-step plan-step-verify --plan-status completed`.",
-            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`; do not report the task complete until strict verification passes.",
+            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log `.aegis/reports/verification-report.json` with `aegis log --handler aegis:verify --evidence .aegis/reports/verification-report.json --note \"Recorded strict verification evidence\" --plan-step plan-step-verify --plan-status completed`.",
+            "7. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
             "",
-            "After any mutation, use `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` before attempting the next mutation. The command updates the session, tracker, implementation log, changelog, handoff, and plan evidence.",
+            "After any mutation, use `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` before attempting the next mutation. The command updates the session, tracker, implementation log, changelog, and handoff. It updates plan evidence only when `--plan-step` is supplied.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
             "",
         ]
@@ -386,11 +392,13 @@ def _render_claude_settings() -> bytes:
                 "Bash(aegis kickoff:*)",
                 "Bash(aegis log:*)",
                 "Bash(aegis verify:*)",
+                "Bash(aegis closeout:*)",
                 "Bash(./.aegis/bin/aegis inspect:*)",
                 "Bash(./.aegis/bin/aegis status:*)",
                 "Bash(./.aegis/bin/aegis kickoff:*)",
                 "Bash(./.aegis/bin/aegis log:*)",
                 "Bash(./.aegis/bin/aegis verify:*)",
+                "Bash(./.aegis/bin/aegis closeout:*)",
                 "Bash(git status:*)",
                 "Bash(git diff:*)",
                 "Bash(date:*)",
@@ -1472,7 +1480,8 @@ def _normalize_evidence(target_root: Path, evidence: str) -> str:
             return path.resolve().relative_to(target_root).as_posix()
         except ValueError:
             return path.as_posix()
-    return evidence.strip().lstrip("./")
+    clean = evidence.strip()
+    return clean[2:] if clean.startswith("./") else clean
 
 
 def _append_progress_entry(path: Path, heading: str, line: str) -> None:
@@ -1647,7 +1656,7 @@ def log_work(
     evidence: str,
     note: str,
     surfaces: Sequence[str] | None = None,
-    plan_step: str | None = "plan-step-implement",
+    plan_step: str | None = None,
     plan_status: str | None = "in-progress",
 ) -> dict[str, Any]:
     """Append S:W:H:E progress entries, update workflow surfaces, and clear pending tracking."""
@@ -2442,6 +2451,586 @@ def _write_verify_report(target_root: Path, report: Mapping[str, Any]) -> None:
     reports_dir = target_root / AEGIS_REPORTS_REL
     reports_dir.mkdir(parents=True, exist_ok=True)
     (target_root / AEGIS_VERIFY_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
+
+
+def _closeout_check(
+    check_id: str,
+    *,
+    passed: bool,
+    message: str,
+    category: str = "closeout",
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _strict_check(
+        check_id,
+        category=category,
+        required=True,
+        passed=passed,
+        message=message,
+        details=details,
+    )
+
+
+def _read_text_or_empty(path: Path) -> str:
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def _parse_plan_rows(plan_path: Path) -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for index, line in enumerate(_read_text_or_empty(plan_path).splitlines()):
+        if not line.startswith("| plan-step-"):
+            continue
+        columns = [column.strip() for column in line.strip().strip("|").split("|")]
+        if len(columns) != 4:
+            rows[columns[0] if columns else f"malformed-{index}"] = {
+                "id": columns[0] if columns else "",
+                "description": "",
+                "evidence": "",
+                "status": "malformed",
+                "index": index,
+                "malformed": True,
+            }
+            continue
+        rows[columns[0]] = {
+            "id": columns[0],
+            "description": columns[1],
+            "evidence": columns[2],
+            "status": columns[3].lower(),
+            "index": index,
+            "malformed": False,
+        }
+    return rows
+
+
+def _parse_tracker_plan_steps(tracker_path: Path) -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    pattern = re.compile(r"^-\s+\[(?P<mark>[ xX])\]\s+`?(?P<step>plan-step-[A-Za-z0-9_-]+)`?")
+    for line in _read_text_or_empty(tracker_path).splitlines():
+        match = pattern.match(line.strip())
+        if match:
+            statuses[match.group("step")] = "completed" if match.group("mark").lower() == "x" else "pending"
+    return statuses
+
+
+def _split_evidence_tokens(raw_evidence: str) -> list[str]:
+    tokens: list[str] = []
+    for token in raw_evidence.split(";"):
+        clean = token.strip().strip("`")
+        if clean and clean != "_TBD_":
+            tokens.append(clean)
+    return tokens
+
+
+def _is_closeout_required_evidence(token: str) -> bool:
+    if token == "changed files":
+        return False
+    if token.endswith("/"):
+        return False
+    if Path(token).name in {
+        "TRACKER.md",
+        "FINDINGS.md",
+        "DECISIONS.md",
+        "IMPLEMENTATION.md",
+        "CHANGELOG.md",
+        "HANDOFF.md",
+    }:
+        return False
+    return True
+
+
+def _markdown_section(text: str, heading: str) -> str:
+    lines = text.splitlines()
+    try:
+        start = next(index for index, line in enumerate(lines) if line.strip() == heading)
+    except StopIteration:
+        return ""
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## ") and lines[index].strip() != heading:
+            end = index
+            break
+    return "\n".join(lines[start + 1 : end]).strip()
+
+
+def _markdown_before_heading(text: str, heading: str) -> str:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() == heading:
+            return "\n".join(lines[:index]).strip()
+    return text
+
+
+def _replace_markdown_section(text: str, heading: str, body_lines: Sequence[str]) -> str:
+    lines = text.splitlines()
+    replacement = [heading, *body_lines]
+    try:
+        start = next(index for index, line in enumerate(lines) if line.strip() == heading)
+    except StopIteration:
+        insert_at = len(lines)
+        while insert_at > 0 and not lines[insert_at - 1].strip():
+            insert_at -= 1
+        next_lines = lines[:insert_at] + ["", *replacement] + lines[insert_at:]
+        return "\n".join(next_lines).rstrip() + "\n"
+
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## ") and lines[index].strip() != heading:
+            end = index
+            break
+    next_lines = lines[:start] + replacement + lines[end:]
+    return "\n".join(next_lines).rstrip() + "\n"
+
+
+def _closeout_readiness(target_root: Path) -> dict[str, Any]:
+    readiness_script = target_root / ".claude" / "scripts" / "readiness.sh"
+    if readiness_script.is_file():
+        result = subprocess.run(
+            ["bash", str(readiness_script), "--quick", "--root", str(target_root)],
+            cwd=target_root,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        passed = result.returncode == 0 and result.stdout.strip().startswith("READY")
+        return {
+            "status": "passed" if passed else "failed",
+            "command": f"bash {readiness_script.relative_to(target_root).as_posix()} --quick --root {target_root}",
+            "returncode": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+        }
+
+    workflow_checks, _current_work = _strict_current_work_checks(target_root)
+    failed = [check for check in workflow_checks if check.get("required") and check.get("status") == "fail"]
+    return {
+        "status": "passed" if not failed else "failed",
+        "command": None,
+        "returncode": 0 if not failed else 2,
+        "stdout": "READY from strict current-work checks" if not failed else "BLOCKED by strict current-work checks",
+        "stderr": "",
+        "checks": workflow_checks,
+    }
+
+
+def _update_handoff_for_closeout(
+    target_root: Path,
+    *,
+    handoff_path: Path,
+    current_work: Mapping[str, Any],
+    evidence_tokens: Sequence[str],
+    strict_verify_rel: str,
+) -> None:
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    task_id = str(task.get("id") or "")
+    slug = str(task.get("slug") or "")
+    title = str(task.get("title") or f"Task {task_id}")
+    branch = _current_branch(target_root)
+    evidence_lines = [f"- `{token}`" for token in evidence_tokens]
+    if not evidence_lines:
+        evidence_lines = ["- No plan evidence tokens were available."]
+
+    text = _read_text_or_empty(handoff_path)
+    text = _replace_markdown_section(
+        text,
+        "## Current State",
+        [
+            f"- Task {task_id} `{slug}` is ready for closeout validation.",
+            f"- Title: {title}.",
+            f"- Branch: `{branch}`.",
+            f"- Strict verification report: `{strict_verify_rel}`.",
+            f"- Closeout report: `{AEGIS_CLOSEOUT_REPORT_REL}`.",
+        ],
+    )
+    text = _replace_markdown_section(
+        text,
+        "## What Was Done",
+        [
+            "- Completed scope, implementation, and verification plan steps through Aegis logging.",
+            "- Required evidence recorded:",
+            *evidence_lines,
+        ],
+    )
+    text = _replace_markdown_section(
+        text,
+        "## Current Issues/Blockers",
+        [
+            "- None known at closeout.",
+        ],
+    )
+    text = _replace_markdown_section(
+        text,
+        "## Next Steps",
+        [
+            f"1. Review `{AEGIS_CLOSEOUT_REPORT_REL}`.",
+            "2. Commit and open a pull request with normal git/GitHub commands when delegated.",
+            "3. Archive or continue the active work-tracking folder according to the project lifecycle.",
+        ],
+    )
+    text = _replace_markdown_section(
+        text,
+        "## Important Context",
+        [
+            f"- Current work authority remains `{AEGIS_CURRENT_WORK_REL}` with status `in-progress` until archive or lifecycle tooling changes it.",
+            f"- Session: `{paths.get('session', 'unknown')}`.",
+            f"- Plan: `{paths.get('plan', 'unknown')}`.",
+            f"- Active work-tracking: `{paths.get('work_tracking', 'unknown')}`.",
+            "- Taskmaster and Serena are optional unless current work marks them required.",
+            "- Use normal git and GitHub commands by default. `gac` is legacy/manual only.",
+        ],
+    )
+    handoff_path.write_text(text, encoding="utf-8")
+
+
+def _closeout_handoff_checks(
+    handoff_text: str,
+    *,
+    implementation_tokens: Sequence[str],
+    verification_tokens: Sequence[str],
+    strict_verify_rel: str,
+) -> list[dict[str, Any]]:
+    current_state = _markdown_section(handoff_text, "## Current State")
+    next_steps = _markdown_section(handoff_text, "## Next Steps")
+    semantic_text = _markdown_before_heading(handoff_text, "## Progress Log")
+    kickoff_only_phrases = (
+        "has been kicked off through Aegis",
+        "Confirm scope before implementation",
+        "Capture verification evidence",
+        "_Pending_",
+    )
+    current_state_ok = bool(current_state.strip()) and not (
+        "has been kicked off through Aegis" in current_state
+        and "ready for closeout validation" not in current_state
+    )
+    next_steps_ok = bool(next_steps.strip()) and not any(phrase in next_steps for phrase in kickoff_only_phrases)
+
+    checks = [
+        _closeout_check(
+            "closeout.handoff.current_state",
+            passed=current_state_ok,
+            message="handoff current state is semantic" if current_state_ok else "handoff current state is still placeholder/kickoff-oriented",
+        ),
+        _closeout_check(
+            "closeout.handoff.next_steps",
+            passed=next_steps_ok,
+            message="handoff next steps are semantic" if next_steps_ok else "handoff next steps are still placeholder/kickoff-oriented",
+        ),
+    ]
+
+    for check_id, tokens, label in (
+        ("closeout.handoff.implementation_evidence", implementation_tokens, "implementation"),
+        ("closeout.handoff.verification_evidence", verification_tokens, "verification"),
+        ("closeout.handoff.strict_verify_evidence", [strict_verify_rel], "strict verification"),
+    ):
+        missing = [token for token in tokens if token not in semantic_text]
+        checks.append(
+            _closeout_check(
+                check_id,
+                passed=not missing,
+                message=f"handoff semantic sections reference {label} evidence" if not missing else f"handoff semantic sections missing {label} evidence",
+                details={"missing": missing},
+            )
+        )
+    return checks
+
+
+def _closeout_git_report(target_root: Path, *, require_clean_git: bool, include_guidance: bool) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    checks: list[dict[str, Any]] = []
+    status_result = _run_target_git(target_root, "status", "--short")
+    status_short = status_result.stdout.strip().splitlines() if status_result.returncode == 0 else []
+    if require_clean_git:
+        checks.append(
+            _closeout_check(
+                "closeout.git.clean",
+                passed=status_result.returncode == 0 and not status_short,
+                message="git worktree is clean" if status_result.returncode == 0 and not status_short else "git worktree has uncommitted changes",
+                category="git",
+                details={"status_short": status_short, "stderr": status_result.stderr.strip()},
+            )
+        )
+    guidance = []
+    if include_guidance:
+        guidance = [
+            "git status --short",
+            "git add <paths>",
+            "git commit -m \"<type(scope): summary>\"",
+            "git push",
+            "gh pr create",
+        ]
+    return {
+        "require_clean_git": require_clean_git,
+        "status_available": status_result.returncode == 0,
+        "status_short": status_short,
+        "guidance": guidance,
+        "legacy_manual_only": ["gac"],
+    }, checks
+
+
+def closeout(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    update_handoff: bool = False,
+    require_clean_git: bool = False,
+    include_git_guidance: bool = True,
+) -> dict[str, Any]:
+    """Validate that Aegis workflow state is complete enough to report task completion."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve()
+    checked_at = _iso_now()
+    checks: list[dict[str, Any]] = []
+
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    current_work_ok = isinstance(current_work, dict) and current_work.get("status") == "in-progress"
+    checks.append(
+        _closeout_check(
+            "closeout.current_work",
+            passed=current_work_ok,
+            message="current work payload is active" if current_work_ok else f"{AEGIS_CURRENT_WORK_REL} missing, invalid, or not in-progress",
+            details={"path": AEGIS_CURRENT_WORK_REL},
+        )
+    )
+    if not isinstance(current_work, dict):
+        current_work = {}
+
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    session_rel = str(paths.get("session") or "")
+    plan_rel = str(paths.get("plan") or "")
+    work_rel = str(paths.get("work_tracking") or "")
+    session_path = target_root / session_rel if session_rel else target_root / "sessions" / "current"
+    plan_path = target_root / plan_rel if plan_rel else target_root / "plans" / "current"
+    work_path = target_root / work_rel if work_rel else target_root / "docs" / "ai" / "work-tracking" / "active"
+    tracker_path = work_path / "TRACKER.md"
+    implementation_path = work_path / "IMPLEMENTATION.md"
+    changelog_path = work_path / "CHANGELOG.md"
+    handoff_path = work_path / "HANDOFF.md"
+
+    readiness = _closeout_readiness(target_root)
+    checks.append(
+        _closeout_check(
+            "closeout.readiness",
+            passed=readiness.get("status") == "passed",
+            message="readiness is READY" if readiness.get("status") == "passed" else "readiness is not READY",
+            details=readiness,
+        )
+    )
+
+    pending_events = _pending_tracking_events(target_root)
+    checks.append(
+        _closeout_check(
+            "closeout.pending_tracking",
+            passed=not pending_events,
+            message="pending tracking queue is empty" if not pending_events else "pending tracking queue has unlogged mutation events",
+            details={"path": AEGIS_PENDING_TRACKING_REL, "events": pending_events},
+        )
+    )
+
+    strict_verify = verify(target_root, source_root=source, strict=True)
+    checks.append(
+        _closeout_check(
+            "closeout.strict_verify",
+            passed=strict_verify.get("status") == "passed",
+            message="strict verification passed" if strict_verify.get("status") == "passed" else "strict verification failed",
+            details={
+                "report": AEGIS_VERIFY_REPORT_REL,
+                "summary": strict_verify.get("summary", {}),
+            },
+        )
+    )
+
+    plan_rows = _parse_plan_rows(plan_path)
+    tracker_steps = _parse_tracker_plan_steps(tracker_path)
+    required_steps = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
+    for step in required_steps:
+        row = plan_rows.get(step)
+        plan_completed = isinstance(row, Mapping) and row.get("status") in {"completed", "done"}
+        checks.append(
+            _closeout_check(
+                f"closeout.plan.{step.removeprefix('plan-step-')}",
+                passed=plan_completed,
+                message=f"{step} completed in current plan" if plan_completed else f"{step} missing or not completed in current plan",
+                category="plan",
+                details={"row": row},
+            )
+        )
+        tracker_completed = tracker_steps.get(step) == "completed"
+        checks.append(
+            _closeout_check(
+                f"closeout.tracker.{step.removeprefix('plan-step-')}",
+                passed=tracker_completed,
+                message=f"{step} completed in tracker" if tracker_completed else f"{step} missing or unchecked in tracker",
+                category="tracker",
+                details={"tracker_status": tracker_steps.get(step)},
+            )
+        )
+
+    ordered = all(step in plan_rows for step in required_steps) and [
+        int(plan_rows[step]["index"])
+        for step in required_steps
+    ] == sorted(int(plan_rows[step]["index"]) for step in required_steps)
+    checks.append(
+        _closeout_check(
+            "closeout.plan.order",
+            passed=ordered,
+            message="required plan steps are in scope -> implement -> verify order" if ordered else "required plan steps are missing or out of order",
+            category="plan",
+            details={"order": [step for step in plan_rows if step in required_steps]},
+        )
+    )
+
+    implementation_tokens = [
+        token
+        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-implement", {}).get("evidence") or ""))
+        if _is_closeout_required_evidence(token)
+    ]
+    verification_tokens = [
+        token
+        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-verify", {}).get("evidence") or ""))
+        if _is_closeout_required_evidence(token)
+    ]
+    strict_verify_rel = _normalize_evidence(target_root, AEGIS_VERIFY_REPORT_REL)
+    required_evidence = tuple(dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel]))
+
+    surface_texts = {
+        "session": _read_text_or_empty(session_path),
+        "tracker": _read_text_or_empty(tracker_path),
+        "implementation": _read_text_or_empty(implementation_path),
+        "changelog": _read_text_or_empty(changelog_path),
+        "handoff": _read_text_or_empty(handoff_path),
+        "plan": _read_text_or_empty(plan_path),
+    }
+    evidence_matrix = {
+        token: {
+            surface: token in text
+            for surface, text in surface_texts.items()
+        }
+        for token in required_evidence
+    }
+    for surface, text in surface_texts.items():
+        missing = [token for token in required_evidence if token not in text]
+        checks.append(
+            _closeout_check(
+                f"closeout.evidence.{surface}",
+                passed=not missing,
+                message=f"{surface} references all required evidence" if not missing else f"{surface} is missing required evidence",
+                category="evidence",
+                details={"missing": missing},
+            )
+        )
+
+    if update_handoff and handoff_path.is_file():
+        _update_handoff_for_closeout(
+            target_root,
+            handoff_path=handoff_path,
+            current_work=current_work,
+            evidence_tokens=required_evidence,
+            strict_verify_rel=strict_verify_rel,
+        )
+        surface_texts["handoff"] = _read_text_or_empty(handoff_path)
+        evidence_matrix = {
+            token: {
+                surface: (token in surface_texts[surface])
+                for surface in surface_texts
+            }
+            for token in required_evidence
+        }
+        checks = [
+            check
+            for check in checks
+            if check.get("gate_id") != "closeout.evidence.handoff"
+        ]
+        missing = [token for token in required_evidence if token not in surface_texts["handoff"]]
+        checks.append(
+            _closeout_check(
+                "closeout.evidence.handoff",
+                passed=not missing,
+                message="handoff references all required evidence" if not missing else "handoff is missing required evidence",
+                category="evidence",
+                details={"missing": missing, "updated": True},
+            )
+        )
+
+    checks.extend(
+        _closeout_handoff_checks(
+            surface_texts["handoff"],
+            implementation_tokens=implementation_tokens,
+            verification_tokens=verification_tokens,
+            strict_verify_rel=strict_verify_rel,
+        )
+    )
+
+    integrations = current_work.get("integrations") if isinstance(current_work.get("integrations"), Mapping) else {}
+    integration_report: dict[str, Any] = {}
+    for name, rel_path in (("taskmaster", ".taskmaster"), ("serena", ".serena")):
+        integration = integrations.get(name) if isinstance(integrations, Mapping) else {}
+        required = isinstance(integration, Mapping) and integration.get("required") is True
+        detected = (target_root / rel_path).exists()
+        integration_report[name] = {
+            "detected": detected,
+            "required": required,
+            "status": "present" if detected else "optional_absent" if not required else "required_missing",
+        }
+
+    git_report, git_checks = _closeout_git_report(
+        target_root,
+        require_clean_git=require_clean_git,
+        include_guidance=include_git_guidance,
+    )
+    checks.extend(git_checks)
+
+    failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
+    status_value = "failed" if failed_required else "passed"
+    report: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "status": status_value,
+        "checked_at": checked_at,
+        "target_root": str(target_root),
+        "current_work": current_work,
+        "readiness": readiness,
+        "strict_verify": {
+            "status": strict_verify.get("status"),
+            "report": AEGIS_VERIFY_REPORT_REL,
+            "summary": strict_verify.get("summary", {}),
+        },
+        "plan": {
+            "path": _repo_path(plan_path, target_root),
+            "required_steps": {step: plan_rows.get(step) for step in required_steps},
+            "tracker_steps": {step: tracker_steps.get(step) for step in required_steps},
+        },
+        "pending_tracking": {
+            "path": AEGIS_PENDING_TRACKING_REL,
+            "events": pending_events,
+        },
+        "evidence_matrix": evidence_matrix,
+        "handoff": {
+            "path": _repo_path(handoff_path, target_root),
+            "updated": update_handoff,
+        },
+        "integrations": integration_report,
+        "git": git_report,
+        "checks": checks,
+        "summary": {
+            "total": len(checks),
+            "failed_required": len(failed_required),
+            "warnings": 0,
+        },
+    }
+    if status_value == "passed":
+        report["closed_at"] = _iso_now()
+
+    reports_dir = target_root / AEGIS_REPORTS_REL
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    (target_root / AEGIS_CLOSEOUT_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
+
+    if status_value == "passed" and current_work:
+        current_work["updated_at"] = _iso_now()
+        current_work["closeout_passed_at"] = report["closed_at"]
+        current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
+        _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+
+    return report
 
 
 def _sha256_file(path: Path) -> str:

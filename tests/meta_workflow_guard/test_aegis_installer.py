@@ -20,10 +20,13 @@ from jsonschema import Draft202012Validator, FormatChecker
 from scripts import _aegis_installer as aegis_installer
 from scripts._aegis_installer import (
     AEGIS_MANIFEST_REL,
+    AEGIS_CLOSEOUT_REPORT_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
+    AEGIS_VERIFY_REPORT_REL,
     AegisError,
     certify_release_candidate,
+    closeout,
     install,
     inspect_project,
     kickoff,
@@ -145,6 +148,10 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert verify_args.subcommand == "verify"
     assert verify_args.strict is True
 
+    closeout_args = parser.parse_args(["aegis", "closeout", "--target-dir", "/tmp/example", "--update-handoff"])
+    assert closeout_args.subcommand == "closeout"
+    assert closeout_args.update_handoff is True
+
     certify_args = parser.parse_args([
         "aegis",
         "certify-release",
@@ -188,6 +195,7 @@ def test_build_parser_accepts_aegis_commands() -> None:
     ])
     assert log_args.subcommand == "log"
     assert log_args.handler == "claude-test"
+    assert log_args.plan_step == ""
 
     profile_args = parser.parse_args(["aegis", "explain-profile"])
     assert profile_args.profile == "generic"
@@ -385,6 +393,8 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         handler="claude-installer-test",
         evidence=evidence_path,
         note="Recorded installer test evidence",
+        plan_step="plan-step-implement",
+        plan_status="in-progress",
     )
     assert logged["status"] == "logged"
     assert logged["pending"]["cleared"] == 1
@@ -411,6 +421,21 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         "step": "plan-step-implement",
         "status": "in-progress",
         "evidence": evidence_path,
+    }
+
+    generic_logged = log_work(
+        target,
+        handler="claude-note",
+        evidence=f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+        note="Recorded generic workflow note without changing plan state",
+        surfaces=["findings"],
+    )
+    assert generic_logged["status"] == "logged"
+    assert generic_logged["plan"] == {
+        "updated": False,
+        "step": None,
+        "status": None,
+        "evidence": f"{current_work['paths']['work_tracking']}/FINDINGS.md",
     }
 
     verify_loop_payload = {
@@ -560,6 +585,102 @@ def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_
         "integrations.serena_optional",
     }.issubset(check_ids)
     assert strict_report["summary"]["failed_required"] == 0
+
+
+def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Path) -> None:
+    target = tmp_path / "closeout-repo"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+
+    kickoff(
+        target,
+        task_id="42",
+        slug="closeout-gate",
+        title="Closeout Gate",
+        goals=["Prove closeout validates semantic workflow completion"],
+    )
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    report_rel = f"{current_work['paths']['reports']}/closeout-evidence.txt"
+    (target / report_rel).write_text("closeout evidence\n", encoding="utf-8")
+
+    scope = log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed closeout gate scope",
+        surfaces=["findings", "decisions"],
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    assert scope["status"] == "logged"
+    implementation = log_work(
+        target,
+        handler="claude:Write",
+        evidence=report_rel,
+        note="Recorded closeout implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    assert implementation["status"] == "logged"
+    verification = log_work(
+        target,
+        handler="verify:inspection",
+        evidence="cmd`test -f closeout-evidence.txt`",
+        note="Verified closeout evidence exists",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    assert verification["status"] == "logged"
+
+    strict = verify(target, source_root=REPO_ROOT, strict=True)
+    assert strict["status"] == "passed"
+    strict_log = log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    assert strict_log["status"] == "logged"
+
+    failed = closeout(target, source_root=REPO_ROOT)
+    assert failed["status"] == "failed"
+    assert any(
+        check["gate_id"] == "closeout.handoff.current_state" and check["status"] == "fail"
+        for check in failed["checks"]
+    )
+
+    passed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+    assert passed["status"] == "passed"
+    assert passed["summary"]["failed_required"] == 0
+    assert passed["git"]["legacy_manual_only"] == ["gac"]
+    assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]
+    assert (target / AEGIS_CLOSEOUT_REPORT_REL).is_file()
+    refreshed_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    assert refreshed_work["status"] == "in-progress"
+    assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
+    handoff = (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8")
+    assert AEGIS_CLOSEOUT_REPORT_REL in handoff
+    assert AEGIS_VERIFY_REPORT_REL in handoff
+    assert report_rel in handoff
 
 
 def test_strict_verify_fails_when_workflow_template_is_missing(tmp_path: Path) -> None:

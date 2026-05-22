@@ -2,7 +2,7 @@
 
 **Title:** Add Aegis Closeout Gate and Live-Agent Completion Flow
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 116 ✓
 
