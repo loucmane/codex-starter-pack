@@ -21,8 +21,11 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT_DIR = Path(__file__).resolve().parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
+from aegis_foundation import mcp_registration
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
 from _aegis_installer import (
     AEGIS_LOG_SURFACES,
@@ -833,6 +836,95 @@ def handle_aegis_explain_profile(args: argparse.Namespace) -> None:
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
     _print_json(payload)
+
+
+def _aegis_mcp_registration_request_from_args(args: argparse.Namespace) -> mcp_registration.RegistrationRequest:
+    return mcp_registration.RegistrationRequest(
+        client=args.client,
+        scope=getattr(args, "scope", None),
+        source_mode=args.source_mode,
+        package_spec=args.package_spec,
+        package_version=args.package_version,
+        github_url=args.github_url,
+        github_ref=args.github_ref,
+        artifact=args.artifact,
+        target_dir=args.target_dir,
+        transport=args.transport,
+        uv_cache_dir=args.uv_cache_dir,
+        uv_tool_dir=args.uv_tool_dir,
+    )
+
+
+def handle_aegis_mcp_generate_registration(args: argparse.Namespace) -> None:
+    try:
+        payload = mcp_registration.registration_payload(_aegis_mcp_registration_request_from_args(args))
+    except ValueError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+
+
+def handle_aegis_mcp_execute_registration(args: argparse.Namespace) -> None:
+    try:
+        payload = mcp_registration.execute_registration(
+            _aegis_mcp_registration_request_from_args(args),
+            cwd=args.cwd or args.target_dir,
+        )
+    except ValueError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") in {"missing_client", "failed"}:
+        raise TaskError("Aegis native MCP registration failed")
+
+
+def handle_aegis_mcp_verify_registration(args: argparse.Namespace) -> None:
+    try:
+        payload = mcp_registration.verify_registration(
+            _aegis_mcp_registration_request_from_args(args),
+            cwd=args.cwd or args.target_dir,
+        )
+    except ValueError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") in {"missing_client", "failed"}:
+        raise TaskError("Aegis native MCP registration verification failed")
+
+
+def _add_aegis_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute: bool = False) -> None:
+    parser.add_argument("--client", choices=("claude", "codex"), required=True, help="Native MCP client to configure")
+    parser.add_argument(
+        "--scope",
+        choices=("local", "user", "project"),
+        help="Claude MCP scope. Defaults to user for Claude and is ignored for Codex.",
+    )
+    parser.add_argument(
+        "--source-mode",
+        choices=("package", "pinned", "github", "wheel", "source"),
+        default="package",
+        help="How uvx should resolve the Aegis package that provides aegis-mcp-server",
+    )
+    parser.add_argument("--package-spec", help="Explicit uvx --from package/artifact spec")
+    parser.add_argument("--package-version", help="Version for --source-mode pinned")
+    parser.add_argument(
+        "--github-url",
+        default=mcp_registration.DEFAULT_GITHUB_URL,
+        help="GitHub repository URL for --source-mode github",
+    )
+    parser.add_argument("--github-ref", help="Optional ref for --source-mode github")
+    parser.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes")
+    parser.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server")
+    parser.add_argument(
+        "--uv-cache-dir",
+        default=mcp_registration.DEFAULT_UV_CACHE_DIR,
+        help="UV_CACHE_DIR value registered with the native client; use '' to omit",
+    )
+    parser.add_argument(
+        "--uv-tool-dir",
+        default=mcp_registration.DEFAULT_UV_TOOL_DIR,
+        help="UV_TOOL_DIR value registered with the native client; use '' to omit",
+    )
+    parser.add_argument("--transport", choices=("stdio",), default="stdio", help="MCP transport to register")
+    if execute:
+        parser.add_argument("--cwd", help="Working directory for the native client command. Defaults to --target-dir")
 
 
 def _validate_branch_for_task(branch: str, task_id: str) -> None:
@@ -18111,6 +18203,33 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_explain_profile = aegis_sub.add_parser("explain-profile", help="Print the built-in Aegis profile contract")
     aegis_explain_profile.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
     aegis_explain_profile.set_defaults(func=handle_aegis_explain_profile)
+
+    aegis_mcp_parser = aegis_sub.add_parser(
+        "mcp",
+        help="Generate, execute, and verify native MCP client registration commands",
+    )
+    aegis_mcp_sub = aegis_mcp_parser.add_subparsers(dest="aegis_mcp_subcommand", required=True)
+
+    aegis_mcp_generate = aegis_mcp_sub.add_parser(
+        "generate-registration",
+        help="Generate the native MCP client command for registering Aegis",
+    )
+    _add_aegis_mcp_registration_arguments(aegis_mcp_generate)
+    aegis_mcp_generate.set_defaults(func=handle_aegis_mcp_generate_registration)
+
+    aegis_mcp_execute = aegis_mcp_sub.add_parser(
+        "execute-registration",
+        help="Run the native MCP client command for registering Aegis",
+    )
+    _add_aegis_mcp_registration_arguments(aegis_mcp_execute, execute=True)
+    aegis_mcp_execute.set_defaults(func=handle_aegis_mcp_execute_registration)
+
+    aegis_mcp_verify = aegis_mcp_sub.add_parser(
+        "verify-registration",
+        help="Verify the native MCP client's Aegis registration",
+    )
+    _add_aegis_mcp_registration_arguments(aegis_mcp_verify, execute=True)
+    aegis_mcp_verify.set_defaults(func=handle_aegis_mcp_verify_registration)
 
     wizard_parser = subparsers.add_parser("wizard", help="Guided workflow operations")
     wizard_sub = wizard_parser.add_subparsers(dest="subcommand", required=True)

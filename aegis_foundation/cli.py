@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from aegis_foundation import mcp_registration
 from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
@@ -200,6 +201,109 @@ def handle_explain_profile(args: argparse.Namespace) -> int:
         )
     _dump_json(payload)
     return 0
+
+
+def _mcp_registration_request_from_args(args: argparse.Namespace) -> mcp_registration.RegistrationRequest:
+    return mcp_registration.RegistrationRequest(
+        client=args.client,
+        scope=getattr(args, "scope", None),
+        source_mode=args.source_mode,
+        package_spec=args.package_spec,
+        package_version=args.package_version,
+        github_url=args.github_url,
+        github_ref=args.github_ref,
+        artifact=args.artifact,
+        target_dir=args.target_dir,
+        transport=args.transport,
+        uv_cache_dir=args.uv_cache_dir,
+        uv_tool_dir=args.uv_tool_dir,
+    )
+
+
+def handle_mcp_generate_registration(args: argparse.Namespace) -> int:
+    try:
+        payload = mcp_registration.registration_payload(_mcp_registration_request_from_args(args))
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    _dump_json(payload)
+    return 0
+
+
+def handle_mcp_execute_registration(args: argparse.Namespace) -> int:
+    try:
+        payload = mcp_registration.execute_registration(
+            _mcp_registration_request_from_args(args),
+            cwd=args.cwd or args.target_dir,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    _dump_json(payload)
+    if payload.get("status") in {"missing_client", "failed"}:
+        return 1
+    return 0
+
+
+def handle_mcp_verify_registration(args: argparse.Namespace) -> int:
+    try:
+        payload = mcp_registration.verify_registration(
+            _mcp_registration_request_from_args(args),
+            cwd=args.cwd or args.target_dir,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    _dump_json(payload)
+    if payload.get("status") in {"missing_client", "failed"}:
+        return 1
+    return 0
+
+
+def _add_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute: bool = False) -> None:
+    parser.add_argument("--client", choices=("claude", "codex"), required=True, help="Native MCP client to configure.")
+    parser.add_argument(
+        "--scope",
+        choices=("local", "user", "project"),
+        help="Claude MCP scope. Defaults to user for Claude and is ignored for Codex.",
+    )
+    parser.add_argument(
+        "--source-mode",
+        choices=("package", "pinned", "github", "wheel", "source"),
+        default="package",
+        help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
+    )
+    parser.add_argument(
+        "--package-spec",
+        help="Explicit uvx --from package/artifact spec. Overrides source-mode defaults.",
+    )
+    parser.add_argument("--package-version", help="Version for --source-mode pinned. Defaults to the package version.")
+    parser.add_argument(
+        "--github-url",
+        default=mcp_registration.DEFAULT_GITHUB_URL,
+        help="GitHub repository URL for --source-mode github.",
+    )
+    parser.add_argument("--github-ref", help="Optional ref for --source-mode github.")
+    parser.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
+    parser.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
+    parser.add_argument(
+        "--uv-cache-dir",
+        default=mcp_registration.DEFAULT_UV_CACHE_DIR,
+        help="UV_CACHE_DIR value registered with the native client; use '' to omit.",
+    )
+    parser.add_argument(
+        "--uv-tool-dir",
+        default=mcp_registration.DEFAULT_UV_TOOL_DIR,
+        help="UV_TOOL_DIR value registered with the native client; use '' to omit.",
+    )
+    parser.add_argument(
+        "--transport",
+        choices=("stdio",),
+        default="stdio",
+        help="MCP server transport to register.",
+    )
+    if execute:
+        parser.add_argument("--cwd", help="Working directory for the native client command. Defaults to --target-dir.")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -395,6 +499,33 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     explain_profile_parser.add_argument("--profile", default="generic", help="Aegis profile.")
     explain_profile_parser.set_defaults(func=handle_explain_profile)
+
+    mcp_parser = subparsers.add_parser(
+        "mcp",
+        help="Generate, execute, and verify native MCP client registration commands.",
+    )
+    mcp_sub = mcp_parser.add_subparsers(dest="mcp_subcommand", required=True)
+
+    mcp_generate = mcp_sub.add_parser(
+        "generate-registration",
+        help="Generate the native MCP client command for registering Aegis.",
+    )
+    _add_mcp_registration_arguments(mcp_generate)
+    mcp_generate.set_defaults(func=handle_mcp_generate_registration)
+
+    mcp_execute = mcp_sub.add_parser(
+        "execute-registration",
+        help="Run the native MCP client command for registering Aegis.",
+    )
+    _add_mcp_registration_arguments(mcp_execute, execute=True)
+    mcp_execute.set_defaults(func=handle_mcp_execute_registration)
+
+    mcp_verify = mcp_sub.add_parser(
+        "verify-registration",
+        help="Verify the native MCP client's Aegis registration.",
+    )
+    _add_mcp_registration_arguments(mcp_verify, execute=True)
+    mcp_verify.set_defaults(func=handle_mcp_verify_registration)
 
     return parser
 

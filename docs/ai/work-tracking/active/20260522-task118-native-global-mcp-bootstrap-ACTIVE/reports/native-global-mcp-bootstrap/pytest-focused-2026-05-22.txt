@@ -1,0 +1,19 @@
+Command:
+PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_native_mcp_registration.py tests/meta_workflow_guard/test_aegis_release_distribution.py tests/meta_workflow_guard/test_aegis_mcp_server.py tests/meta_workflow_guard/test_aegis_invocation_contract.py tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py
+
+Result:
+88 passed, 3 skipped in 26.50s
+
+Skipped optional environment-gated smokes:
+- AEGIS_RUN_WHEEL_SMOKE=1 local wheel CLI smoke.
+- AEGIS_RUN_WHEEL_MCP_SMOKE=1 local wheel MCP smoke.
+- AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 real target-project MCP smoke.
+
+Coverage notes:
+- Native registration unit coverage passed for Claude and Codex command generation.
+- Source modes covered package, pinned package, GitHub URL/ref, local wheel, and source checkout.
+- Execute mode covered missing clients and exact argv subprocess execution without shell=True.
+- Verify mode covered native client inspection parsing and wrong source/transport failures.
+- Fake native client acceptance covered execute/verify flows from a fresh-project cwd.
+- Invalid CLI source-mode inputs return clean user-facing errors without tracebacks.
+- Existing MCP server, invocation contract, release distribution, and MCP target tests remained green.

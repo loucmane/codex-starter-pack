@@ -1,0 +1,9 @@
+Taskmaster health: OK
+Tag: master
+Tasks: 118
+Subtasks: 354
+Statuses: done=117, in-progress=1
+Dependency refs: 286
+Invalid dependency refs: 0
+
+Note: `task-master list --status=<status>` can print filtered-view dependency warnings because dependencies outside the filtered subset are hidden. Use this helper or `task-master validate-dependencies` for authoritative full-graph health.
