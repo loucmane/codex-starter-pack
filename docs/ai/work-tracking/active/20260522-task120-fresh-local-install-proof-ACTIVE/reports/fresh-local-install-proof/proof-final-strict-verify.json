@@ -1,0 +1,369 @@
+{
+  "checks": [
+    {
+      "gate_id": "aegis.manifest_schema",
+      "message": "manifest schema valid",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "mechanical",
+      "gate_id": "claude.readiness",
+      "message": "ok",
+      "method": "executable",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "mechanical",
+      "gate_id": "claude.pretooluse",
+      "message": "hook registered",
+      "method": "settings_hook",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "mechanical",
+      "gate_id": "claude.posttooluse_tracking",
+      "message": "hook registered",
+      "method": "settings_hook",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "mechanical",
+      "gate_id": "claude.stop_tracking",
+      "message": "hook registered",
+      "method": "settings_hook",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "mechanical",
+      "gate_id": "claude.bash_command",
+      "message": "ok",
+      "method": "executable",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "mechanical",
+      "gate_id": "claude.protected_path",
+      "message": "ok",
+      "method": "executable",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "enforcement": "policy",
+      "gate_id": "mcp.memory_write",
+      "message": "MCP memory writes are not mechanically hookable in every client.",
+      "method": "manual",
+      "required": false,
+      "status": "unsupported"
+    },
+    {
+      "category": "manifest",
+      "details": {
+        "checked": 24,
+        "directories": [],
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "manifest.managed_files",
+      "id": "manifest.managed_files",
+      "message": "all manifest managed files exist",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "runtime",
+      "details": {
+        "directory": false,
+        "executable": true,
+        "path": ".aegis/bin/aegis"
+      },
+      "enforcement": "strict",
+      "gate_id": "runtime.local_cli_shim",
+      "id": "runtime.local_cli_shim",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "runtime",
+      "details": {
+        "missing": [],
+        "template_root": ".aegis/templates/workflow"
+      },
+      "enforcement": "strict",
+      "gate_id": "runtime.workflow_templates",
+      "id": "runtime.workflow_templates",
+      "message": "all workflow templates installed",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "missing_path_keys": [],
+        "task": {
+          "id": "1",
+          "slug": "local-artifact-live-proof",
+          "status": "in-progress",
+          "title": "Local Artifact Live Proof"
+        }
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.current_work",
+      "id": "workflow.current_work",
+      "message": "current work payload is active and complete",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "branch": "feat/task-1-local-artifact-live-proof",
+        "branch_task_id": "1",
+        "current_work_task_id": "1"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.branch_task_alignment",
+      "id": "workflow.branch_task_alignment",
+      "message": "branch task id matches current work",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": false,
+        "executable": false,
+        "path": "sessions/2026/05/2026-05-22-001-task1-local-artifact-live-proof.md"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.session_file",
+      "id": "workflow.session_file",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": false,
+        "executable": false,
+        "path": "sessions/current"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.session_current",
+      "id": "workflow.session_current",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": false,
+        "executable": false,
+        "path": "plans/2026-05-22-task1-local-artifact-live-proof.md"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.plan_file",
+      "id": "workflow.plan_file",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": false,
+        "executable": false,
+        "path": "plans/current"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.plan_current",
+      "id": "workflow.plan_current",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": true,
+        "executable": false,
+        "path": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.work_tracking",
+      "id": "workflow.work_tracking",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": true,
+        "executable": false,
+        "path": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/reports/local-artifact-live-proof"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.reports",
+      "id": "workflow.reports",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "directory": true,
+        "executable": false,
+        "path": ".aegis/templates/workflow"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.workflow_templates_path",
+      "id": "workflow.workflow_templates_path",
+      "message": "ok",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "workflow",
+      "details": {
+        "missing": [],
+        "work_tracking": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE"
+      },
+      "enforcement": "strict",
+      "gate_id": "workflow.tracking_surfaces",
+      "id": "workflow.tracking_surfaces",
+      "message": "all work-tracking surfaces exist",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "mutation",
+      "details": {
+        "events": 0,
+        "path": ".aegis/state/pending-tracking.json"
+      },
+      "enforcement": "strict",
+      "gate_id": "mutation.pending_tracking_empty",
+      "id": "mutation.pending_tracking_empty",
+      "message": "pending tracking queue absent",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "claude",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "claude.required_files",
+      "id": "claude.required_files",
+      "message": "all Claude required files exist",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "claude",
+      "details": {
+        "expected": [
+          "claude.posttooluse_tracking",
+          "claude.pretooluse",
+          "claude.stop_tracking"
+        ],
+        "failed": [],
+        "observed": [
+          "claude.pretooluse",
+          "claude.posttooluse_tracking",
+          "claude.stop_tracking"
+        ]
+      },
+      "enforcement": "strict",
+      "gate_id": "claude.hooks_registered",
+      "id": "claude.hooks_registered",
+      "message": "Claude hook registrations are present",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "protection",
+      "details": {
+        "bash_guard": ".claude/scripts/bash-command-guard.sh",
+        "file_tool_guard": ".claude/scripts/codex-path-guard.sh"
+      },
+      "enforcement": "strict",
+      "gate_id": "protection.codex_owned_paths",
+      "id": "protection.codex_owned_paths",
+      "message": "Codex-owned path guard scripts are installed and executable",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "integrations",
+      "details": {
+        "detected": false,
+        "path": ".taskmaster",
+        "required": false
+      },
+      "enforcement": "strict",
+      "gate_id": "integrations.taskmaster_optional",
+      "id": "integrations.taskmaster_optional",
+      "message": "taskmaster integration is optional and absent",
+      "method": "strict",
+      "required": false,
+      "status": "pass"
+    },
+    {
+      "category": "integrations",
+      "details": {
+        "detected": false,
+        "path": ".serena",
+        "required": false
+      },
+      "enforcement": "strict",
+      "gate_id": "integrations.serena_optional",
+      "id": "integrations.serena_optional",
+      "message": "serena integration is optional and absent",
+      "method": "strict",
+      "required": false,
+      "status": "pass"
+    }
+  ],
+  "manifest_path": ".aegis/foundation-manifest.json",
+  "mode": "strict",
+  "schema_version": "1.0.0",
+  "status": "passed",
+  "summary": {
+    "failed_required": 0,
+    "total": 27,
+    "unsupported": 1,
+    "warnings": 0
+  },
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu",
+  "verified_at": "2026-05-22T14:34:08Z"
+}

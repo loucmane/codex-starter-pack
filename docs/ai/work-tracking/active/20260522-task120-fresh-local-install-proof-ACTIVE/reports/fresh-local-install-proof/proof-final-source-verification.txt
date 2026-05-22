@@ -1,0 +1,1 @@
+9:addToCartButton.textContent = "Add to cart";

@@ -1,0 +1,8 @@
+BLOCKED by .claude/scripts/pretooluse-gate.sh
+
+Tool: Bash
+Command: printf blocked > .aegis/foundation-manifest.json
+Violation(s):
+  - redirection targets protected path .aegis/foundation-manifest.json
+
+Bash may not be used to bypass protected Aegis/Codex-owned path boundaries.

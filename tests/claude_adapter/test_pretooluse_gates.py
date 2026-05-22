@@ -4,6 +4,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PRETOOLUSE = REPO_ROOT / ".claude" / "scripts" / "pretooluse-gate.sh"
@@ -133,13 +135,32 @@ def test_pretooluse_blocks_codex_owned_file_when_ready(tmp_path: Path) -> None:
     assert "CODEX.md" in result.stderr
 
 
-def test_pretooluse_allows_claude_owned_file_when_ready(tmp_path: Path) -> None:
+def test_pretooluse_allows_task_source_file_when_ready(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, ready=True)
 
-    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path=".claude/commands/readiness.md"))
+    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path="src/main.ts"))
 
     assert result.returncode == 0
     assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "protected_path",
+    [
+        "CLAUDE.md",
+        "AGENTS.md",
+        ".aegis/foundation-manifest.json",
+        ".claude/settings.json",
+    ],
+)
+def test_pretooluse_blocks_aegis_runtime_files_when_ready(tmp_path: Path, protected_path: str) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path=protected_path))
+
+    assert result.returncode == 2
+    assert "Protected path" in result.stderr
+    assert protected_path in result.stderr
 
 
 def test_pretooluse_blocks_bash_redirect_to_codex_path_when_ready(tmp_path: Path) -> None:
@@ -149,6 +170,15 @@ def test_pretooluse_blocks_bash_redirect_to_codex_path_when_ready(tmp_path: Path
 
     assert result.returncode == 2
     assert "redirection targets protected path CODEX.md" in result.stderr
+
+
+def test_pretooluse_blocks_bash_redirect_to_aegis_runtime_path_when_ready(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command="printf 'x' > .aegis/foundation-manifest.json"))
+
+    assert result.returncode == 2
+    assert "redirection targets protected path .aegis/foundation-manifest.json" in result.stderr
 
 
 def test_pretooluse_blocks_bash_sed_i_template_when_ready(tmp_path: Path) -> None:

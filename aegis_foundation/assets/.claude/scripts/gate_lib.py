@@ -19,8 +19,8 @@ AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 
-PROTECTED_PREFIXES = ("templates/", ".codex/")
-PROTECTED_EXACT = {"CODEX.md"}
+PROTECTED_PREFIXES = ("templates/", ".codex/", ".aegis/", ".claude/")
+PROTECTED_EXACT = {"CODEX.md", "CLAUDE.md", "AGENTS.md"}
 PROTECTED_NAME_PREFIXES = ("scripts/codex-", "scripts/template-")
 
 MUTATING_GIT_RE = re.compile(
@@ -138,7 +138,10 @@ def normalize_path(path_text: str, root: Path | None = None) -> str:
             return path.resolve().relative_to(root).as_posix()
         except ValueError:
             return path.as_posix()
-    return path.as_posix().lstrip("./")
+    rel = path.as_posix()
+    if rel.startswith("./"):
+        return rel[2:]
+    return rel
 
 
 def is_protected_path(path_text: str, root: Path | None = None) -> bool:
@@ -331,7 +334,7 @@ def bash_guard() -> int:
         "BLOCKED by .claude/scripts/bash-command-guard.sh\n\n"
         f"Command: {command}\n"
         f"Violation(s):\n{details}\n\n"
-        "Bash may not be used to bypass protected Codex-owned path boundaries."
+        "Bash may not be used to bypass protected Aegis/Codex-owned path boundaries."
     )
 
 
@@ -566,7 +569,7 @@ def pretooluse_gate() -> int:
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Protected path(s):\n{paths}\n\n"
-                "Claude may not edit Codex-owned paths from this task."
+                "Claude may not edit protected Aegis/Codex-owned paths from this task."
             )
 
     if payload.tool_name == "Bash":
@@ -577,7 +580,7 @@ def pretooluse_gate() -> int:
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: Bash\nCommand: {bash_command(payload)}\n"
                 f"Violation(s):\n{details}\n\n"
-                "Bash may not be used to bypass protected Codex-owned path boundaries."
+                "Bash may not be used to bypass protected Aegis/Codex-owned path boundaries."
             )
 
     if is_mcp_tool(payload.tool_name):
@@ -592,7 +595,7 @@ def pretooluse_gate() -> int:
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Protected path(s):\n{paths}\n\n"
-                "MCP tools may not bypass protected Codex-owned path boundaries."
+                "MCP tools may not bypass protected Aegis/Codex-owned path boundaries."
             )
 
     return 0

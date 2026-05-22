@@ -1,0 +1,8 @@
+BLOCKED by .claude/scripts/pretooluse-gate.sh
+
+Tool: Write
+Reason: Claude readiness is BLOCKED, so hookable persistent mutations are refused.
+
+BLOCKED | blocked=1 | first=branch 'main' does not contain a task ID
+
+Run the kickoff workflow or repair task/session/plan/work-tracking state before mutating files, memory, Git, Taskmaster, or other persistent surfaces.

@@ -1,0 +1,495 @@
+{
+  "checked_at": "2026-05-22T14:34:36Z",
+  "checks": [
+    {
+      "category": "closeout",
+      "details": {
+        "path": ".aegis/state/current-work.json"
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.current_work",
+      "id": "closeout.current_work",
+      "message": "current work payload is active",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "details": {
+        "command": "bash .claude/scripts/readiness.sh --quick --root /tmp/aegis-task120-proof-shop-final-cNydTu",
+        "returncode": 0,
+        "status": "passed",
+        "stderr": "",
+        "stdout": "READY | task=1"
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.readiness",
+      "id": "closeout.readiness",
+      "message": "readiness is READY",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "details": {
+        "events": [],
+        "path": ".aegis/state/pending-tracking.json"
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.pending_tracking",
+      "id": "closeout.pending_tracking",
+      "message": "pending tracking queue is empty",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "details": {
+        "report": ".aegis/reports/verification-report.json",
+        "summary": {
+          "failed_required": 0,
+          "total": 27,
+          "unsupported": 1,
+          "warnings": 0
+        }
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.strict_verify",
+      "id": "closeout.strict_verify",
+      "message": "strict verification passed",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "plan",
+      "details": {
+        "row": {
+          "description": "Confirm task scope, constraints, expected outputs, and affected files before implementation",
+          "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md; docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/DECISIONS.md",
+          "id": "plan-step-scope",
+          "index": 32,
+          "malformed": false,
+          "status": "completed"
+        }
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.plan.scope",
+      "id": "closeout.plan.scope",
+      "message": "plan-step-scope completed in current plan",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "tracker",
+      "details": {
+        "tracker_status": "completed"
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.tracker.scope",
+      "id": "closeout.tracker.scope",
+      "message": "plan-step-scope completed in tracker",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "plan",
+      "details": {
+        "row": {
+          "description": "Make only task-scoped changes and record implementation notes",
+          "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/IMPLEMENTATION.md; changed files; src/main.ts",
+          "id": "plan-step-implement",
+          "index": 33,
+          "malformed": false,
+          "status": "completed"
+        }
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.plan.implement",
+      "id": "closeout.plan.implement",
+      "message": "plan-step-implement completed in current plan",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "tracker",
+      "details": {
+        "tracker_status": "completed"
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.tracker.implement",
+      "id": "closeout.tracker.implement",
+      "message": "plan-step-implement completed in tracker",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "plan",
+      "details": {
+        "row": {
+          "description": "Run verification, capture reports, and update handoff state",
+          "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/reports/local-artifact-live-proof/; docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/TRACKER.md; cmd`rg -n \"Add to cart\" src/main.ts`; .aegis/reports/verification-report.json",
+          "id": "plan-step-verify",
+          "index": 34,
+          "malformed": false,
+          "status": "completed"
+        }
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.plan.verify",
+      "id": "closeout.plan.verify",
+      "message": "plan-step-verify completed in current plan",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "tracker",
+      "details": {
+        "tracker_status": "completed"
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.tracker.verify",
+      "id": "closeout.tracker.verify",
+      "message": "plan-step-verify completed in tracker",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "plan",
+      "details": {
+        "order": [
+          "plan-step-scope",
+          "plan-step-implement",
+          "plan-step-verify"
+        ]
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.plan.order",
+      "id": "closeout.plan.order",
+      "message": "required plan steps are in scope -> implement -> verify order",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "evidence",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.evidence.session",
+      "id": "closeout.evidence.session",
+      "message": "session references all required evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "evidence",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.evidence.tracker",
+      "id": "closeout.evidence.tracker",
+      "message": "tracker references all required evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "evidence",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.evidence.implementation",
+      "id": "closeout.evidence.implementation",
+      "message": "implementation references all required evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "evidence",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.evidence.changelog",
+      "id": "closeout.evidence.changelog",
+      "message": "changelog references all required evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "evidence",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.evidence.plan",
+      "id": "closeout.evidence.plan",
+      "message": "plan references all required evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "evidence",
+      "details": {
+        "missing": [],
+        "updated": true
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.evidence.handoff",
+      "id": "closeout.evidence.handoff",
+      "message": "handoff references all required evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "enforcement": "strict",
+      "gate_id": "closeout.handoff.current_state",
+      "id": "closeout.handoff.current_state",
+      "message": "handoff current state is semantic",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "enforcement": "strict",
+      "gate_id": "closeout.handoff.next_steps",
+      "id": "closeout.handoff.next_steps",
+      "message": "handoff next steps are semantic",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.handoff.implementation_evidence",
+      "id": "closeout.handoff.implementation_evidence",
+      "message": "handoff semantic sections reference implementation evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.handoff.verification_evidence",
+      "id": "closeout.handoff.verification_evidence",
+      "message": "handoff semantic sections reference verification evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "category": "closeout",
+      "details": {
+        "missing": []
+      },
+      "enforcement": "strict",
+      "gate_id": "closeout.handoff.strict_verify_evidence",
+      "id": "closeout.handoff.strict_verify_evidence",
+      "message": "handoff semantic sections reference strict verification evidence",
+      "method": "strict",
+      "required": true,
+      "status": "pass"
+    }
+  ],
+  "closed_at": "2026-05-22T14:34:37Z",
+  "current_work": {
+    "branch": {
+      "action": "created_branch",
+      "before": "main",
+      "created": true,
+      "current": "feat/task-1-local-artifact-live-proof"
+    },
+    "closeout_passed_at": "2026-05-22T14:34:37Z",
+    "closeout_report": ".aegis/reports/closeout-report.json",
+    "created_at": "2026-05-22T16:32:38+02:00",
+    "integrations": {
+      "serena": {
+        "detected": false,
+        "required": false
+      },
+      "taskmaster": {
+        "detected": false,
+        "required": false
+      }
+    },
+    "paths": {
+      "plan": "plans/2026-05-22-task1-local-artifact-live-proof.md",
+      "plan_current": "plans/current",
+      "reports": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/reports/local-artifact-live-proof",
+      "session": "sessions/2026/05/2026-05-22-001-task1-local-artifact-live-proof.md",
+      "session_current": "sessions/current",
+      "work_tracking": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE",
+      "workflow_templates": ".aegis/templates/workflow"
+    },
+    "schema_version": "1.0.0",
+    "status": "in-progress",
+    "task": {
+      "id": "1",
+      "slug": "local-artifact-live-proof",
+      "status": "in-progress",
+      "title": "Local Artifact Live Proof"
+    },
+    "updated_at": "2026-05-22T14:34:37Z"
+  },
+  "evidence_matrix": {
+    ".aegis/reports/verification-report.json": {
+      "changelog": true,
+      "handoff": true,
+      "implementation": true,
+      "plan": true,
+      "session": true,
+      "tracker": true
+    },
+    "cmd`rg -n \"Add to cart\" src/main.ts": {
+      "changelog": true,
+      "handoff": true,
+      "implementation": true,
+      "plan": true,
+      "session": true,
+      "tracker": true
+    },
+    "src/main.ts": {
+      "changelog": true,
+      "handoff": true,
+      "implementation": true,
+      "plan": true,
+      "session": true,
+      "tracker": true
+    }
+  },
+  "git": {
+    "guidance": [
+      "git status --short",
+      "git add <paths>",
+      "git commit -m \"<type(scope): summary>\"",
+      "git push",
+      "gh pr create"
+    ],
+    "legacy_manual_only": [
+      "gac"
+    ],
+    "require_clean_git": false,
+    "status_available": true,
+    "status_short": [
+      "?? .aegis/",
+      "?? .claude/",
+      "?? AGENTS.md",
+      "?? CLAUDE.md",
+      "?? README.md",
+      "?? docs/",
+      "?? index.html",
+      "?? package.json",
+      "?? plans/",
+      "?? schemas/",
+      "?? sessions/",
+      "?? src/"
+    ]
+  },
+  "handoff": {
+    "path": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/HANDOFF.md",
+    "updated": true
+  },
+  "integrations": {
+    "serena": {
+      "detected": false,
+      "required": false,
+      "status": "optional_absent"
+    },
+    "taskmaster": {
+      "detected": false,
+      "required": false,
+      "status": "optional_absent"
+    }
+  },
+  "pending_tracking": {
+    "events": [],
+    "path": ".aegis/state/pending-tracking.json"
+  },
+  "plan": {
+    "path": "plans/2026-05-22-task1-local-artifact-live-proof.md",
+    "required_steps": {
+      "plan-step-implement": {
+        "description": "Make only task-scoped changes and record implementation notes",
+        "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/IMPLEMENTATION.md; changed files; src/main.ts",
+        "id": "plan-step-implement",
+        "index": 33,
+        "malformed": false,
+        "status": "completed"
+      },
+      "plan-step-scope": {
+        "description": "Confirm task scope, constraints, expected outputs, and affected files before implementation",
+        "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md; docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/DECISIONS.md",
+        "id": "plan-step-scope",
+        "index": 32,
+        "malformed": false,
+        "status": "completed"
+      },
+      "plan-step-verify": {
+        "description": "Run verification, capture reports, and update handoff state",
+        "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/reports/local-artifact-live-proof/; docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/TRACKER.md; cmd`rg -n \"Add to cart\" src/main.ts`; .aegis/reports/verification-report.json",
+        "id": "plan-step-verify",
+        "index": 34,
+        "malformed": false,
+        "status": "completed"
+      }
+    },
+    "tracker_steps": {
+      "plan-step-implement": "completed",
+      "plan-step-scope": "completed",
+      "plan-step-verify": "completed"
+    }
+  },
+  "readiness": {
+    "command": "bash .claude/scripts/readiness.sh --quick --root /tmp/aegis-task120-proof-shop-final-cNydTu",
+    "returncode": 0,
+    "status": "passed",
+    "stderr": "",
+    "stdout": "READY | task=1"
+  },
+  "schema_version": "1.0.0",
+  "status": "passed",
+  "strict_verify": {
+    "report": ".aegis/reports/verification-report.json",
+    "status": "passed",
+    "summary": {
+      "failed_required": 0,
+      "total": 27,
+      "unsupported": 1,
+      "warnings": 0
+    }
+  },
+  "summary": {
+    "failed_required": 0,
+    "total": 22,
+    "warnings": 0
+  },
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

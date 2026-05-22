@@ -1,0 +1,7 @@
+BLOCKED by .claude/scripts/pretooluse-gate.sh
+
+Tool: Write
+Protected path(s):
+  - CLAUDE.md
+
+Claude may not edit protected Aegis/Codex-owned paths from this task.

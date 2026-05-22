@@ -1,0 +1,22 @@
+{
+  "aegis": {
+    "foundation_version": null,
+    "installed": false,
+    "manifest_path": ".aegis/foundation-manifest.json",
+    "primary_agent": null
+  },
+  "detected_agents": {
+    "claude": false,
+    "codex": false,
+    "gemini": false
+  },
+  "exists": true,
+  "paths": {
+    "manifest": "/tmp/aegis-task120-proof-shop-final-cNydTu/.aegis/foundation-manifest.json",
+    "reports": "/tmp/aegis-task120-proof-shop-final-cNydTu/.aegis/reports",
+    "state": "/tmp/aegis-task120-proof-shop-final-cNydTu/.aegis/state"
+  },
+  "profile": "generic",
+  "schema_version": "1.0.0",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

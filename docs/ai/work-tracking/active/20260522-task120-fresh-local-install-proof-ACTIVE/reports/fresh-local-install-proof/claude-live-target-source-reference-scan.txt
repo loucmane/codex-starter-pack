@@ -1,0 +1,1 @@
+/tmp/aegis-task120-claude-live-shop-dry91w/.mcp.json:8:        "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",

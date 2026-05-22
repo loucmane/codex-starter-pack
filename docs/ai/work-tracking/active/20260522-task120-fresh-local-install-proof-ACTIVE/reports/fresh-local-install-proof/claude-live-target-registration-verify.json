@@ -1,0 +1,124 @@
+{
+  "checks": [
+    {
+      "expected": 0,
+      "id": "client_inspection_exit",
+      "observed": 0,
+      "status": "pass"
+    },
+    {
+      "expected": "aegis",
+      "id": "server_name",
+      "status": "pass"
+    },
+    {
+      "expected": "uvx",
+      "id": "uvx_command",
+      "status": "pass"
+    },
+    {
+      "expected": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+      "id": "source_spec",
+      "status": "pass"
+    },
+    {
+      "expected": "aegis-mcp-server",
+      "id": "server_command",
+      "status": "pass"
+    },
+    {
+      "expected": "/tmp/aegis-task120-claude-live-shop-dry91w",
+      "id": "default_target_dir",
+      "status": "pass"
+    },
+    {
+      "expected": "stdio",
+      "id": "transport",
+      "status": "pass"
+    },
+    {
+      "expected": "UV_CACHE_DIR=.aegis/uv-cache",
+      "id": "env_uv_cache_dir",
+      "status": "pass"
+    },
+    {
+      "expected": "UV_TOOL_DIR=.aegis/uv-tools",
+      "id": "env_uv_tool_dir",
+      "status": "pass"
+    }
+  ],
+  "client": "claude",
+  "expected_registration": {
+    "client": "claude",
+    "client_argv": [
+      "claude",
+      "mcp",
+      "add",
+      "--scope",
+      "project",
+      "aegis",
+      "-e",
+      "UV_CACHE_DIR=.aegis/uv-cache",
+      "-e",
+      "UV_TOOL_DIR=.aegis/uv-tools",
+      "--",
+      "uvx",
+      "--from",
+      "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+      "aegis-mcp-server",
+      "--default-target-dir",
+      "/tmp/aegis-task120-claude-live-shop-dry91w",
+      "--transport",
+      "stdio"
+    ],
+    "environment": {
+      "UV_CACHE_DIR": ".aegis/uv-cache",
+      "UV_TOOL_DIR": ".aegis/uv-tools"
+    },
+    "mcp_server_argv": [
+      "uvx",
+      "--from",
+      "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+      "aegis-mcp-server",
+      "--default-target-dir",
+      "/tmp/aegis-task120-claude-live-shop-dry91w",
+      "--transport",
+      "stdio"
+    ],
+    "mcp_server_command": "uvx --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio",
+    "package_spec": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+    "read_only": true,
+    "rendered_command": "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio",
+    "safety_notes": [
+      "native-client-registration-is-primary",
+      "config-file-writes-are-fallback-only",
+      "package-mode-does-not-require-local-source-checkout",
+      "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients"
+    ],
+    "scope": "project",
+    "server": "aegis",
+    "source_mode": "wheel",
+    "status": "generated",
+    "target_dir": "/tmp/aegis-task120-claude-live-shop-dry91w",
+    "transport": "stdio"
+  },
+  "failed_required": 0,
+  "inspection": {
+    "argv": [
+      "claude",
+      "mcp",
+      "get",
+      "aegis"
+    ],
+    "cwd": "/tmp/aegis-task120-claude-live-shop-dry91w",
+    "rendered_command": "claude mcp get aegis",
+    "returncode": 0,
+    "status": "passed",
+    "stderr": "",
+    "stdout": "aegis:\n  Scope: Project config (shared via .mcp.json)\n  Status: \u2713 Connected\n  Type: stdio\n  Command: uvx\n  Args: --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio\n  Environment:\n    UV_CACHE_DIR=.aegis/uv-cache\n    UV_TOOL_DIR=.aegis/uv-tools\n\nTo remove this server, run: claude mcp remove \"aegis\" -s project\n"
+  },
+  "inspection_output": "aegis:\n  Scope: Project config (shared via .mcp.json)\n  Status: \u2713 Connected\n  Type: stdio\n  Command: uvx\n  Args: --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio\n  Environment:\n    UV_CACHE_DIR=.aegis/uv-cache\n    UV_TOOL_DIR=.aegis/uv-tools\n\nTo remove this server, run: claude mcp remove \"aegis\" -s project\n",
+  "package_spec": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+  "server": "aegis",
+  "status": "passed"
+}

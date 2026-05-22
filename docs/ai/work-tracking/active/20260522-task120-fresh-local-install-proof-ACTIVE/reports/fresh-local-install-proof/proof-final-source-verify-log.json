@@ -1,0 +1,37 @@
+{
+  "entry": {
+    "e": "cmd`rg -n \"Add to cart\" src/main.ts`",
+    "h": "verify:source-inspection",
+    "note": "Verified the Add to cart button source change",
+    "s": "20260522",
+    "session": "- **[16:33]** - [S:20260522|W:task1-local-artifact-live-proof|H:verify:source-inspection|E:cmd`rg -n \"Add to cart\" src/main.ts`] Verified the Add to cart button source change",
+    "tracker": "- **2026-05-22 16:33 CEST** - [S:20260522|W:task1-local-artifact-live-proof|H:verify:source-inspection|E:cmd`rg -n \"Add to cart\" src/main.ts`] Verified the Add to cart button source change",
+    "w": "task1-local-artifact-live-proof"
+  },
+  "logged_at": "2026-05-22T14:33:52Z",
+  "paths": {
+    "pending_tracking": ".aegis/state/pending-tracking.json",
+    "plan": "plans/2026-05-22-task1-local-artifact-live-proof.md",
+    "session": "sessions/2026/05/2026-05-22-001-task1-local-artifact-live-proof.md",
+    "surfaces": {
+      "changelog": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/CHANGELOG.md",
+      "handoff": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/HANDOFF.md",
+      "implementation": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/IMPLEMENTATION.md"
+    },
+    "tracker": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/TRACKER.md"
+  },
+  "pending": {
+    "cleared": 0,
+    "cleared_events": [],
+    "remaining": 0
+  },
+  "plan": {
+    "evidence": "cmd`rg -n \"Add to cart\" src/main.ts`",
+    "status": "completed",
+    "step": "plan-step-verify",
+    "updated": true
+  },
+  "schema_version": "1.0.0",
+  "status": "logged",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

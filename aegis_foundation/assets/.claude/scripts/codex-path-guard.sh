@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude path guard for Codex-owned surfaces.
+# Claude path guard for protected Aegis/Codex-owned surfaces.
 
 set -u
 

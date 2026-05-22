@@ -1052,7 +1052,12 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     assert "aegis verify --strict" in claude_entrypoint
     assert "aegis closeout --update-handoff" in claude_entrypoint
     assert "do not report the task complete until closeout passes" in claude_entrypoint
+    assert "Tool routing:" in claude_entrypoint
+    assert "Use Aegis MCP tools for Aegis workflow state" in claude_entrypoint
+    assert "Use native Claude tools for normal implementation work" in claude_entrypoint
     assert "Normal feature work is:" in contract_text
+    assert "Control Plane vs Implementation Tools" in contract_text
+    assert "The installed Aegis runtime, not the MCP session, is responsible for enforcement." in contract_text
     assert "aegis verify --strict" in contract_text
     assert "aegis closeout" in contract_text
 

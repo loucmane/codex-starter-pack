@@ -587,6 +587,38 @@ def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_
     assert strict_report["summary"]["failed_required"] == 0
 
 
+def test_local_cli_shim_resolves_packaged_asset_source_root(tmp_path: Path) -> None:
+    target = tmp_path / "packaged-shim-repo"
+    target.mkdir()
+    package_asset_root = REPO_ROOT / "aegis_foundation" / "assets"
+
+    install_report = install(
+        target,
+        source_root=package_asset_root,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+
+    env = {**os.environ, "PATH": "/usr/bin:/bin"}
+    env.pop("PYTHONPATH", None)
+    result = subprocess.run(
+        [str(target / ".aegis" / "bin" / "aegis"), "status", "--target-dir", "."],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["installed"] is True
+    assert payload["status"] == "current"
+
+
 def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Path) -> None:
     target = tmp_path / "closeout-repo"
     target.mkdir()
