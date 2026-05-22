@@ -1,110 +1,141 @@
 # Aegis MCP Client Setup
 
-This guide documents release-candidate MCP setup for Codex, Claude, and generic MCP clients. Use it with the distribution contract in `docs/aegis/distribution.md` and the release verification matrix in `docs/aegis/release-verification-matrix.md`.
+This guide documents the native MCP registration path for Aegis Foundation. Use it with the distribution contract in `docs/aegis/distribution.md` and the release verification matrix in `docs/aegis/release-verification-matrix.md`.
 
-## Release Candidate Channel
+## Default Install Model
 
-Task 114 validates local wheel and sdist artifacts as the release-candidate baseline. The first public distribution channel should be GitHub release artifacts if the clean-project CLI and MCP evidence remains green. PyPI publication is a later explicit release task.
+Native MCP client registration is the primary path. A user should not need to clone this repository, copy JSON snippets, or edit `.mcp.json` by hand.
 
-For local release-candidate testing, build the artifact first:
+The model is:
 
-```bash
-uv build --sdist --wheel --out-dir dist
-```
+1. Register the packaged Aegis MCP server with the native client.
+2. Start a fresh project in Claude, Codex, or another MCP client.
+3. Use the discovered `aegis.*` MCP tools to install the project-local runtime.
+4. Use `aegis.kickoff`, `aegis.log`, `aegis.verify`, and `aegis.closeout` to run the workflow.
 
-Then use the wheel path:
+The project-local runtime installed by Aegis includes `.aegis/`, `.claude/` hooks, `CLAUDE.md`, sessions, plans, work-tracking scaffolding, readiness gates, pending S:W:H:E tracking, and closeout gates. Taskmaster and Serena are optional integrations; Aegis must work without them.
 
-```text
-./dist/aegis_foundation-0.1.0-py3-none-any.whl
-```
+## Native Registration Commands
 
-After publication, replace the wheel path with a pinned package requirement such as `aegis-foundation==0.1.0`.
-
-## MCP Server Command
-
-The installed MCP server command is:
+Claude user/global scope:
 
 ```bash
-uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --transport stdio
+claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
-Check startup without launching stdio transport:
+Claude project scope:
 
 ```bash
-uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --describe-config
+claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
-Release-candidate output must report package assets:
+Codex:
 
-```json
-{
-  "asset_origin": "package",
-  "distribution_name": "aegis-foundation"
-}
+```bash
+codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
-## Codex MCP Config
+The registered server command uses package assets by default. It must not depend on `/home/loucmane/codex` or any local source checkout.
 
-Use a project-local Codex config entry when testing a release candidate:
+## Generate Commands
 
-```toml
-[mcp_servers.aegis]
-command = "uvx"
-args = [
-  "--from",
-  "./dist/aegis_foundation-0.1.0-py3-none-any.whl",
-  "aegis-mcp-server",
-  "--default-target-dir",
-  ".",
-  "--transport",
-  "stdio",
-]
+Use Aegis to generate deterministic registration payloads:
+
+```bash
+aegis mcp generate-registration --client claude --scope user
+aegis mcp generate-registration --client claude --scope project
+aegis mcp generate-registration --client codex
 ```
 
-For a published release, pin the package:
+The repo-local development wrapper exposes the same contract:
 
-```toml
-[mcp_servers.aegis]
-command = "uvx"
-args = [
-  "--from",
-  "aegis-foundation==0.1.0",
-  "aegis-mcp-server",
-  "--default-target-dir",
-  ".",
-  "--transport",
-  "stdio",
-]
+```bash
+python3 scripts/codex-task aegis mcp generate-registration --client claude --scope user
+python3 scripts/codex-task aegis mcp generate-registration --client codex
 ```
 
-## Claude MCP Config
+Generation is read-only and returns JSON containing the client, scope, server name, source mode, package spec, generated argv, rendered command, target directory, transport, and safety notes.
 
-Use `.mcp.json` in a target project:
+## Execute Registration
 
-```json
-{
-  "mcpServers": {
-    "aegis": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "./dist/aegis_foundation-0.1.0-py3-none-any.whl",
-        "aegis-mcp-server",
-        "--default-target-dir",
-        ".",
-        "--transport",
-        "stdio"
-      ]
-    }
-  }
-}
+After reviewing the generated command, Aegis can execute the native client command:
+
+```bash
+aegis mcp execute-registration --client claude --scope user
+aegis mcp execute-registration --client codex
 ```
 
-For a published release, replace the wheel path with `aegis-foundation==0.1.0`.
+Execution calls the native client with an argv list and never uses `shell=True`. If the requested client is missing, Aegis returns structured `missing_client` JSON and does not write MCP config files.
 
-## Generic MCP Client Config
+## Verify Registration
 
-Any stdio MCP client can use the same command shape:
+Verify the native client registration:
+
+```bash
+aegis mcp verify-registration --client claude --scope user
+aegis mcp verify-registration --client codex
+```
+
+Verification inspects the native client registration and checks that:
+
+- the `aegis` server exists
+- the command uses `uvx`
+- the command includes `--from <source>`
+- the command starts `aegis-mcp-server`
+- the command includes `--default-target-dir`
+- the command includes `--transport stdio`
+
+## Source Modes
+
+Package mode is the default:
+
+```bash
+aegis mcp generate-registration --client claude --scope user --source-mode package
+```
+
+Pinned package mode:
+
+```bash
+aegis mcp generate-registration --client claude --scope user --source-mode pinned --package-version 0.1.0
+```
+
+GitHub URL/ref mode:
+
+```bash
+aegis mcp generate-registration --client claude --scope user --source-mode github --github-ref v0.1.0
+```
+
+Local wheel mode:
+
+```bash
+aegis mcp generate-registration --client claude --scope user --source-mode wheel --artifact ./dist/aegis_foundation-0.1.0-py3-none-any.whl
+```
+
+Source checkout mode, for development only:
+
+```bash
+aegis mcp generate-registration --client claude --scope user --source-mode source --artifact /path/to/codex
+```
+
+Source checkout mode is explicit. Public/fresh-project instructions should use package, pinned package, GitHub artifact, or wheel modes.
+
+## Expected MCP Surfaces
+
+Native registration must discover:
+
+- tools: `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.closeout`, `aegis.kickoff`, `aegis.log`, `aegis.status`, `aegis.list_profiles`, and `aegis.explain_profile`
+- resources: Aegis contract, schema, current work, verification, closeout, and runtime metadata resources
+- prompts: advisory prompts for bootstrap, migration, verification, session prep, and handoff
+
+The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting work uses `aegis.kickoff`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`.
+
+After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md` before the next mutation or session stop is allowed. Plan evidence is updated only when `plan_step` is supplied explicitly.
+
+## Fallback Config Files
+
+Manual `.mcp.json` or Codex config edits are fallback-only. Use them only when the native client command is unavailable or broken, and record the limitation in release evidence.
+
+Generic stdio MCP config shape:
 
 ```json
 {
@@ -113,7 +144,7 @@ Any stdio MCP client can use the same command shape:
   "command": "uvx",
   "args": [
     "--from",
-    "./dist/aegis_foundation-0.1.0-py3-none-any.whl",
+    "aegis-foundation==0.1.0",
     "aegis-mcp-server",
     "--default-target-dir",
     ".",
@@ -123,28 +154,18 @@ Any stdio MCP client can use the same command shape:
 }
 ```
 
-## Expected MCP Surfaces
-
-Release-candidate validation must discover:
-
-- tools: `aegis.inspect`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.kickoff`, `aegis.log`, `aegis.status`, and related V1 tools
-- resources: Aegis contract, schema, current work, and runtime metadata resources
-- prompts: advisory prompts for planning and workflow handoff
-
-The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires the explicit install/apply path exposed by the Aegis tools. Starting work uses `aegis.kickoff` with `apply=true`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from `.aegis/templates/workflow/`. After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with `apply=true` records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md` before the next mutation or session stop is allowed. Plan evidence is updated only when `plan_step` is supplied explicitly.
+Fallback snippets are not the happy path and must not replace native `claude mcp add` / `codex mcp add` coverage.
 
 ## Release Readiness Rule
 
 Do not call the MCP publicly ready until these checks pass from an installed artifact outside the source repository:
 
 - `aegis --version`
-- `aegis inspect --target-dir .`
-- `aegis plan-install --target-dir . --primary-agent claude --agent claude`
-- `aegis install --target-dir . --primary-agent claude --agent claude --apply`
-- `aegis status --target-dir .`
-- `aegis verify --target-dir .`
-- `aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"`
-- `aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"`
-- `./.aegis/bin/aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"` when the global `aegis` command is unavailable.
-- `aegis-mcp-server --default-target-dir . --describe-config`
-- stdio tool/resource/prompt discovery
+- `aegis mcp generate-registration --client claude --scope user`
+- `aegis mcp generate-registration --client claude --scope project`
+- `aegis mcp generate-registration --client codex`
+- `aegis mcp execute-registration --client claude --scope user` or equivalent fake-client test in CI
+- `aegis mcp verify-registration --client claude --scope user` or equivalent fixture/parser test in CI
+- native client tool/resource/prompt discovery for the registered Aegis MCP server
+- `aegis.inspect`, `aegis.install`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, and `aegis.closeout` from a fresh target project
+- `aegis-mcp-server --default-target-dir . --describe-config` reporting `"asset_origin": "package"`

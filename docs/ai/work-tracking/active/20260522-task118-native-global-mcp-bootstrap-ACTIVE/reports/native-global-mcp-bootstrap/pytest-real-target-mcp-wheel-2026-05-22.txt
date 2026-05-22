@@ -1,0 +1,13 @@
+Command:
+PYTHONDONTWRITEBYTECODE=1 AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py::test_local_wheel_mcp_real_target_project_smoke_when_enabled
+
+Result:
+1 passed in 6.86s
+
+Coverage notes:
+- Built a local Aegis wheel.
+- Started the packaged `aegis-mcp-server` through `uvx`.
+- Exercised real target-project fixtures outside this repository.
+- Verified MCP tool/resource/prompt discovery.
+- Ran install, kickoff, verify, status, and readiness through the MCP path.
+- Confirmed installed projects can reach `READY` without Taskmaster or Serena being required.

@@ -1,0 +1,6 @@
+# Decisions
+
+- 2026-05-22 — [S:20260522|W:task118-native-global-mcp-bootstrap|H:design:scope|E:docs/ai/work-tracking/active/20260522-task118-native-global-mcp-bootstrap-ACTIVE/designs/native-mcp-bootstrap-contract.md] Treat native MCP client registration as the primary install path. `mcp add` makes Aegis available globally/project-locally; `aegis.install`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, and `aegis.closeout` install and operate the project-local workflow.
+- 2026-05-22 — [S:20260522|W:task118-native-global-mcp-bootstrap|H:aegis:mcp-registration|E:aegis_foundation/mcp_registration.py] Centralize registration command generation in package code and share it between `aegis` and `scripts/codex-task` instead of maintaining separate command snippets in docs.
+- 2026-05-22 — [S:20260522|W:task118-native-global-mcp-bootstrap|H:docs:aegis|E:docs/aegis/mcp-client-setup.md] Keep manual `.mcp.json` and config-file writes as explicit fallback-only guidance. They are not accepted as release readiness evidence for the happy path.
+- 2026-05-22 — [S:20260522|W:task118-native-global-mcp-bootstrap|H:fresh-folder-smoke|E:/tmp/aegis-native-mcp-fresh-h6VVTd/.mcp.json] Include project-local `UV_CACHE_DIR` and `UV_TOOL_DIR` in generated native registration commands so sandboxed clients can launch `uvx` without writing to user-global cache/tool directories.

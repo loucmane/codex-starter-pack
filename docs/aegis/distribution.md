@@ -89,6 +89,37 @@ pipx run --spec ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --t
 
 ## MCP Startup
 
+Native MCP client registration is the preferred bootstrap path. It registers the packaged `aegis-mcp-server` once, then lets the discovered `aegis.*` tools install and operate the workflow inside each target project.
+
+Claude user/global scope:
+
+```bash
+claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
+```
+
+Claude project scope:
+
+```bash
+claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
+```
+
+Codex:
+
+```bash
+codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio
+```
+
+Generate, execute, and verify those commands through Aegis:
+
+```bash
+aegis mcp generate-registration --client claude --scope user
+aegis mcp generate-registration --client codex
+aegis mcp execute-registration --client claude --scope user
+aegis mcp verify-registration --client claude --scope user
+```
+
+Manual `.mcp.json` and Codex config-file snippets are fallback-only; native `claude mcp add` / `codex mcp add` coverage is required for release readiness.
+
 For local/offline stdio startup from an installed package:
 
 ```bash

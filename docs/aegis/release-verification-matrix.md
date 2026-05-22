@@ -11,7 +11,7 @@ This matrix defines the minimum release-readiness coverage for `aegis-foundation
 | Install method | `pip`, `uvx`, `pipx`, `local-wheel`, `editable` |
 | Command surface | `aegis`, `aegis-mcp-server` |
 | CLI operations | `aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis certify-release`, `aegis kickoff`, `aegis log` |
-| MCP operations | `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis://work/current`, tool/resource/prompt discovery |
+| MCP operations | native `claude mcp add`, native `codex mcp add`, `aegis mcp generate-registration`, `aegis mcp execute-registration`, `aegis mcp verify-registration`, `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis.closeout`, `aegis://work/current`, tool/resource/prompt discovery |
 | Asset origin | `package`, `source` |
 | Connectivity | online package resolution, offline/local wheel |
 | Target shape | empty repo, Python/library repo, web/app repo, docs-heavy Task 101-style repo, partial existing Aegis install |
@@ -27,6 +27,12 @@ Every release candidate must prove:
 - `uvx --from aegis-foundation==0.1.0` works for CLI snippets after publication
 - `pipx run --spec aegis-foundation==0.1.0` works for CLI snippets after publication
 - `aegis-mcp-server --describe-config` reports `asset_origin=package` from installed packages
+- native `claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers Aegis without editing `.mcp.json`
+- native `claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers project-scoped Aegis without editing `.mcp.json`
+- native `codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers Aegis without hand-editing Codex config
+- Aegis registration generation covers package, pinned package, GitHub URL/ref, local wheel, and source checkout source modes
+- missing native MCP clients return structured `missing_client` evidence without writing fallback config files
+- manual `.mcp.json` and Codex config-file writes are fallback-only and are not accepted as the primary release path
 - MCP stdio startup lists tools, resources, and prompts
 - MCP `aegis.inspect` and `aegis.status` are read-only
 - MCP `aegis.plan_install`, `aegis.install`, `aegis.verify`, and `aegis.kickoff` work end to end against generated empty, Python, web, backend, and docs-heavy local target projects

@@ -1,0 +1,7 @@
+# Findings
+
+- 2026-05-22 — Existing package and MCP server entrypoints were already present (`aegis`, `aegis-mcp-server`), but the setup docs still treated manual config snippets as primary. Task 118 needed a native registration layer around the existing package command, not a second MCP server or installer engine.
+- 2026-05-22 — Native clients have different registration syntax: Claude needs `claude mcp add --scope <scope> aegis -e ... -- ...`, while Codex uses `codex mcp add --env ... aegis -- ...`. A shared argv model prevents doc examples and execution from drifting.
+- 2026-05-22 — The first real fresh-folder `claude mcp add` connection failed because `uvx` tried to write under `~/.cache/uv` / `~/.local/share/uv/tools` from a sandboxed client. Project-local `UV_CACHE_DIR=.aegis/uv-cache` and `UV_TOOL_DIR=.aegis/uv-tools` are required in the generated registration for robust fresh-project use.
+- 2026-05-22 — Manual `.mcp.json` / Codex config writes are useful fallback documentation but are not the desired global install path. Release evidence must prove native client registration and fresh-project behavior.
+- 2026-05-22 — Taskmaster done status and ACTIVE work tracking are intentionally incompatible for readiness: if Task 118 is marked `done` while `docs/ai/work-tracking/active/...-ACTIVE` is still live, readiness blocks with "expected in-progress." Keep Taskmaster `in-progress` until archive/merge closeout.
