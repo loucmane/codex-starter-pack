@@ -52,3 +52,4 @@
 - Result: `git diff --check` clean.
 - Evidence: `docs/ai/work-tracking/active/20260522-task118-native-global-mcp-bootstrap-ACTIVE/reports/native-global-mcp-bootstrap/readiness-final-2026-05-22.txt`.
 - Result: `READY | task=118`.
+- Archived on 2026-05-22 13:57 CEST — Folder moved to archive and tracker marked COMPLETED.
