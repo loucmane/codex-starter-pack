@@ -29,6 +29,7 @@ from _aegis_installer import (
     AEGIS_PLAN_STATUS_CHOICES,
     AegisError,
     certify_release_candidate as aegis_certify_release_candidate,
+    closeout as aegis_closeout,
     explain_profile as aegis_explain_profile,
     inspect_project as aegis_inspect_project,
     install as aegis_install,
@@ -752,6 +753,22 @@ def handle_aegis_verify(args: argparse.Namespace) -> None:
     _print_json(payload)
     if payload.get("status") == "failed":
         raise TaskError("Aegis verification failed")
+
+
+def handle_aegis_closeout(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_closeout(
+            args.target_dir,
+            source_root=REPO_ROOT,
+            update_handoff=args.update_handoff,
+            require_clean_git=args.require_clean_git,
+            include_git_guidance=not args.no_git_guidance,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") == "failed":
+        raise TaskError("Aegis closeout failed")
 
 
 def handle_aegis_certify_release(args: argparse.Namespace) -> None:
@@ -18010,6 +18027,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     aegis_verify_parser.set_defaults(func=handle_aegis_verify)
 
+    aegis_closeout_parser = aegis_sub.add_parser(
+        "closeout",
+        help="Run the final Aegis task-completion gate and write a closeout report",
+    )
+    aegis_closeout_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_closeout_parser.add_argument(
+        "--update-handoff",
+        action="store_true",
+        help="Refresh Aegis-owned semantic HANDOFF.md sections before validation",
+    )
+    aegis_closeout_parser.add_argument(
+        "--require-clean-git",
+        action="store_true",
+        help="Fail closeout when the target git worktree has uncommitted changes",
+    )
+    aegis_closeout_parser.add_argument(
+        "--no-git-guidance",
+        action="store_true",
+        help="Omit suggested normal git/GitHub commands from the closeout report",
+    )
+    aegis_closeout_parser.set_defaults(func=handle_aegis_closeout)
+
     aegis_certify_parser = aegis_sub.add_parser(
         "certify-release",
         help="Build and inspect release-candidate artifacts and write a certification report",
@@ -18055,8 +18094,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     aegis_log_parser.add_argument(
         "--plan-step",
-        default="plan-step-implement",
-        help="Plan step to update with this evidence. Pass an empty value to skip plan updates.",
+        default="",
+        help="Plan step to update with this evidence. Omit to skip plan updates.",
     )
     aegis_log_parser.add_argument(
         "--plan-status",

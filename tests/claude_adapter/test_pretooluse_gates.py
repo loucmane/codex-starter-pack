@@ -7,6 +7,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PRETOOLUSE = REPO_ROOT / ".claude" / "scripts" / "pretooluse-gate.sh"
+POSTTOOLUSE = REPO_ROOT / ".claude" / "scripts" / "posttooluse-tracking.sh"
 PATH_GUARD = REPO_ROOT / ".claude" / "scripts" / "codex-path-guard.sh"
 BASH_GUARD = REPO_ROOT / ".claude" / "scripts" / "bash-command-guard.sh"
 
@@ -157,6 +158,28 @@ def test_pretooluse_blocks_bash_sed_i_template_when_ready(tmp_path: Path) -> Non
 
     assert result.returncode == 2
     assert "sed -i targets protected path templates/foo.md" in result.stderr
+
+
+def test_posttooluse_tracks_aegis_verify_as_report_evidence(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "current-work.json",
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "status": "in-progress",
+                "task": {"id": "103", "slug": "claude-runtime-adapter"},
+                "paths": {},
+            }
+        ),
+    )
+
+    result = run_gate(POSTTOOLUSE, repo, payload("Bash", command="./.aegis/bin/aegis verify --strict"))
+
+    assert result.returncode == 0, result.stderr
+    pending = json.loads((repo / ".aegis" / "state" / "pending-tracking.json").read_text(encoding="utf-8"))
+    assert pending["events"][0]["handler"] == "aegis:verify"
+    assert pending["events"][0]["evidence"] == ".aegis/reports/verification-report.json"
 
 
 def test_pretooluse_allows_safe_read_only_bash_when_ready(tmp_path: Path) -> None:

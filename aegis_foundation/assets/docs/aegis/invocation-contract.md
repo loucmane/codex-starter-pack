@@ -35,6 +35,7 @@ aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
 aegis verify --target-dir . --strict
+aegis closeout --target-dir . --update-handoff
 ```
 
 Start tracked work without requiring Taskmaster or Serena:
@@ -58,7 +59,19 @@ If the global command is not on PATH, use the installed project shim:
 ./.aegis/bin/aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
 ```
 
-`aegis log` appends a `[S:<date>|W:task<id>-<slug>|H:<handler>|E:<evidence>]` line to `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`; it updates current plan evidence for `plan-step-implement` by default; and it clears the matching pending event. Use repeated `--surface findings` or `--surface decisions` when the mutation also updates those documents. Use `--plan-step plan-step-verify --plan-status completed` for final verification evidence. This is the portable Aegis equivalent of this repository's S:W:H:E progress discipline; it does not require Taskmaster or Serena.
+`aegis log` appends a `[S:<date>|W:task<id>-<slug>|H:<handler>|E:<evidence>]` line to `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`; it clears the matching pending event; and it updates current plan evidence only when `--plan-step` is supplied. Use repeated `--surface findings` or `--surface decisions` when the mutation also updates those documents. Use explicit plan flags such as `--plan-step plan-step-implement --plan-status completed` for implementation evidence and `--plan-step plan-step-verify --plan-status completed` for verification evidence. This is the portable Aegis equivalent of this repository's S:W:H:E progress discipline; it does not require Taskmaster or Serena.
+
+Finish task work with the closeout gate:
+
+```bash
+aegis verify --target-dir . --strict
+aegis log --target-dir . --handler aegis:verify --evidence .aegis/reports/verification-report.json --note "Recorded strict verification evidence" --plan-step plan-step-verify --plan-status completed
+aegis closeout --target-dir . --update-handoff
+```
+
+`aegis closeout` writes `.aegis/reports/closeout-report.json` and exits non-zero unless readiness is READY, pending S:W:H:E tracking is empty, strict verification passes, plan/tracker scope/implement/verify steps are complete and ordered, required evidence is cross-referenced in session/tracker/implementation/changelog/handoff/plan, and `HANDOFF.md` has semantic current-state and next-step sections. `--update-handoff` rewrites only the Aegis-owned semantic sections and preserves `## Progress Log`.
+
+The closeout report may include normal git/GitHub command guidance (`git status`, `git add`, `git commit`, `git push`, `gh pr create`). `gac` is legacy/manual only and is not the default generated path.
 
 ## Development Checkout Mode
 
@@ -99,6 +112,7 @@ Create portable Aegis workflow state:
 ```bash
 aegis --source-root /path/to/codex kickoff --target-dir . --task 1 --slug first-task --title "First Task"
 aegis --source-root /path/to/codex log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
+aegis --source-root /path/to/codex closeout --target-dir . --update-handoff
 ```
 
 Use `--target-dir .` when running from the target project. Use an explicit target path when running from somewhere else.
@@ -138,9 +152,11 @@ The MCP tools keep the same safety boundary as the CLI:
 - `aegis.status` is read-only and reports release/update state without writing target files.
 - `aegis.install` requires explicit `apply=true`.
 - `aegis.verify` writes a verification report and requires `acknowledge_report_write=true`.
+- `aegis.closeout` writes a closeout report and requires `acknowledge_report_write=true`.
 - `aegis.kickoff` writes current work state and requires `apply=true`.
 - `aegis.kickoff` renders the packaged workflow templates into a full session/plan/work-tracking scaffold, not thin placeholder docs.
-- `aegis.log` writes S:W:H:E entries to `sessions/current`, the active `TRACKER.md`, implementation log, changelog, handoff, and plan evidence, and requires `apply=true` when invoked through MCP.
+- `aegis.log` writes S:W:H:E entries to `sessions/current`, the active `TRACKER.md`, implementation log, changelog, and handoff; it writes plan evidence only when `plan_step` is supplied; and it requires `apply=true` when invoked through MCP.
+- `aegis.closeout` is the final completion gate. It should run only after strict verification evidence has been logged and before an agent claims the task is complete.
 - Installed Claude `PostToolUse` and `Stop` hooks enforce pending S:W:H:E completion: task-scoped writes create `.aegis/state/pending-tracking.json`, further mutations are blocked until `aegis.log` clears it, and session stop is blocked while pending events remain.
 - Agents must cite `.aegis/reports/*` or MCP tool/resource results as evidence, not prompt text.
 
@@ -166,6 +182,7 @@ aegis verify --target-dir .
 aegis verify --target-dir . --strict
 aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"
 aegis log --target-dir . --handler claude-live-write --evidence docs/ai/work-tracking/active/<folder>/reports/<slug>/result.txt --note "Recorded task result evidence"
+aegis closeout --target-dir . --update-handoff
 ```
 
 Start the editable package-style MCP server from the target project directory:
@@ -190,6 +207,7 @@ After Aegis is installed into a target project, the generated target still conta
 
 - Do not run `install --apply` until the plan output has been reviewed.
 - Do not write `.aegis/` directly. Use Aegis CLI or MCP operations.
-- Do not perform a second mutation after a successful task write until `aegis log` has recorded the S:W:H:E entry in the active session, tracker, implementation log, changelog, handoff, and plan evidence.
-- Treat `.aegis/reports/install-plan.json`, `.aegis/reports/install-report.json`, and `.aegis/reports/verification-report.json` as the evidence trail.
+- Do not perform a second mutation after a successful task write until `aegis log` has recorded the S:W:H:E entry in the active session, tracker, implementation log, changelog, and handoff. Include explicit `--plan-step` flags when that evidence should advance scope/implementation/verification plan state.
+- Do not claim task completion until `aegis closeout` passes.
+- Treat `.aegis/reports/install-plan.json`, `.aegis/reports/install-report.json`, `.aegis/reports/verification-report.json`, and `.aegis/reports/closeout-report.json` as the evidence trail.
 - Development checkout snippets may contain the source checkout path in local shell or MCP client configuration. Installed target `.aegis/` state should not depend on an absolute source checkout path.

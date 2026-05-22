@@ -1,0 +1,2 @@
+Audit warnings:
+- Active folder 20260520-task117-aegis-closeout-gate-ACTIVE has prefix 20260520; today's prefix is 20260522 (ensure multi-day reuse is intentional)

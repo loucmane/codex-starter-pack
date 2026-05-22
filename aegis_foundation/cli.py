@@ -125,6 +125,22 @@ def handle_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_closeout(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.closeout(
+            args.target_dir,
+            source_root=source_root,
+            update_handoff=args.update_handoff,
+            require_clean_git=args.require_clean_git,
+            include_git_guidance=not args.no_git_guidance,
+        )
+    _dump_json(payload)
+    if payload.get("status") == "failed":
+        print("Aegis closeout failed", file=sys.stderr)
+        return 1
+    return 0
+
+
 def handle_certify_release(args: argparse.Namespace) -> int:
     payload = _aegis_installer.certify_release_candidate(
         args.source_dir,
@@ -279,6 +295,28 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     verify_parser.set_defaults(func=handle_verify)
 
+    closeout_parser = subparsers.add_parser(
+        "closeout",
+        help="Run the final Aegis task-completion gate and write a closeout report.",
+    )
+    closeout_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    closeout_parser.add_argument(
+        "--update-handoff",
+        action="store_true",
+        help="Refresh Aegis-owned semantic HANDOFF.md sections before validation.",
+    )
+    closeout_parser.add_argument(
+        "--require-clean-git",
+        action="store_true",
+        help="Fail closeout when the target git worktree has uncommitted changes.",
+    )
+    closeout_parser.add_argument(
+        "--no-git-guidance",
+        action="store_true",
+        help="Omit suggested normal git/GitHub commands from the closeout report.",
+    )
+    closeout_parser.set_defaults(func=handle_closeout)
+
     certify_parser = subparsers.add_parser(
         "certify-release",
         help="Build and inspect release-candidate artifacts and write a certification report.",
@@ -334,8 +372,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     log_parser.add_argument(
         "--plan-step",
-        default="plan-step-implement",
-        help="Plan step to update with this evidence. Pass an empty value to skip plan updates.",
+        default="",
+        help="Plan step to update with this evidence. Omit to skip plan updates.",
     )
     log_parser.add_argument(
         "--plan-status",

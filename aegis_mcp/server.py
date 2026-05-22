@@ -35,6 +35,7 @@ V1_TOOL_NAMES = (
     "aegis.plan_install",
     "aegis.install",
     "aegis.verify",
+    "aegis.closeout",
     "aegis.kickoff",
     "aegis.log",
     "aegis.list_profiles",
@@ -49,6 +50,7 @@ RESOURCE_URIS = (
     "aegis://profiles",
     "aegis://install-plan/latest",
     "aegis://verification/latest",
+    "aegis://closeout/latest",
     "aegis://work/current",
     "aegis://limitations",
     "aegis://managed-files",
@@ -452,6 +454,49 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             callback=call_core,
         )
 
+    @server.tool(name="aegis.closeout")
+    def aegis_closeout(
+        target_dir: str,
+        acknowledge_report_write: bool,
+        update_handoff: bool = False,
+        require_clean_git: bool = False,
+        include_git_guidance: bool = True,
+    ) -> dict[str, Any]:
+        """Run the final Aegis task-completion gate after acknowledging report writes."""
+
+        if acknowledge_report_write is not True:
+            return _error_tool_response(
+                "aegis.closeout",
+                code="acknowledgement_required",
+                message="aegis.closeout writes closeout reports and requires acknowledge_report_write=true.",
+                status="refused",
+                details={"acknowledge_report_write": acknowledge_report_write},
+            )
+
+        def call_core() -> dict[str, Any]:
+            report = installer.closeout(
+                target_dir,
+                source_root=config.source_root,
+                update_handoff=update_handoff,
+                require_clean_git=require_clean_git,
+                include_git_guidance=include_git_guidance,
+            )
+            if report.get("status") == "failed":
+                return _error_tool_response(
+                    "aegis.closeout",
+                    code="closeout_failed",
+                    message="Aegis closeout failed.",
+                    status="failed",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
+            "aegis.closeout",
+            read_only=False,
+            callback=call_core,
+        )
+
     @server.tool(name="aegis.kickoff")
     def aegis_kickoff(
         target_dir: str,
@@ -497,7 +542,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         evidence: str,
         note: str,
         surfaces: list[str] | None = None,
-        plan_step: str = "plan-step-implement",
+        plan_step: str = "",
         plan_status: str = "in-progress",
         apply: bool = False,
     ) -> dict[str, Any]:
@@ -688,6 +733,14 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
         return read_target_json_resource(
             "aegis://verification/latest",
             _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            "not_available",
+        )
+
+    @server.resource("aegis://closeout/latest")
+    def latest_closeout() -> str:
+        return read_target_json_resource(
+            "aegis://closeout/latest",
+            _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
             "not_available",
         )
 

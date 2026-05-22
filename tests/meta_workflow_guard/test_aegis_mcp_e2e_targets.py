@@ -25,6 +25,7 @@ from aegis_mcp.server import (
 )
 from scripts._aegis_installer import (
     AEGIS_CONTRACT_REL,
+    AEGIS_CLOSEOUT_REPORT_REL,
     AEGIS_CURRENT_WORK_REL,
     AEGIS_INSTALL_REPORT_REL,
     AEGIS_LOCAL_BIN_REL,
@@ -873,7 +874,8 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
 
     log_command = (
         "./.aegis/bin/aegis log --target-dir . --handler claude-live-write "
-        f"--evidence {task_output.as_posix()} --note 'Recorded task output evidence'"
+        f"--evidence {task_output.as_posix()} --note 'Recorded task output evidence' "
+        "--plan-step plan-step-implement --plan-status in-progress"
     )
     allowed_log = _run_target_pretooluse(
         target,
@@ -893,6 +895,10 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
             task_output.as_posix(),
             "--note",
             "Recorded task output evidence",
+            "--plan-step",
+            "plan-step-implement",
+            "--plan-status",
+            "in-progress",
         ],
     )
     assert logged.returncode == 0, logged.stdout + logged.stderr
@@ -979,9 +985,11 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     contract_text = (target / ".aegis/contract.md").read_text(encoding="utf-8")
     assert "Normal feature-work loop:" in claude_entrypoint
     assert "aegis verify --strict" in claude_entrypoint
-    assert "do not report the task complete until strict verification passes" in claude_entrypoint
+    assert "aegis closeout --update-handoff" in claude_entrypoint
+    assert "do not report the task complete until closeout passes" in claude_entrypoint
     assert "Normal feature work is:" in contract_text
     assert "aegis verify --strict" in contract_text
+    assert "aegis closeout" in contract_text
 
     kickoff = _run_target_aegis_cli(
         target,
@@ -1131,6 +1139,39 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     assert strict_payload["status"] == "passed"
     assert strict_payload["mode"] == "strict"
 
+    strict_verify_log = _run_target_aegis_shim(
+        target,
+        [
+            "log",
+            "--target-dir",
+            ".",
+            "--handler",
+            "aegis:verify",
+            "--evidence",
+            AEGIS_VERIFY_REPORT_REL,
+            "--note",
+            "Recorded strict verification evidence",
+            "--plan-step",
+            "plan-step-verify",
+            "--plan-status",
+            "completed",
+        ],
+    )
+    assert strict_verify_log.returncode == 0, strict_verify_log.stdout + strict_verify_log.stderr
+
+    closeout = _run_target_aegis_shim(target, ["closeout", "--target-dir", ".", "--update-handoff"])
+    assert closeout.returncode == 0, closeout.stdout + closeout.stderr
+    closeout_payload = json.loads(closeout.stdout)
+    assert closeout_payload["status"] == "passed"
+    assert closeout_payload["summary"]["failed_required"] == 0
+    assert closeout_payload["strict_verify"]["status"] == "passed"
+    assert closeout_payload["git"]["legacy_manual_only"] == ["gac"]
+    assert "git commit -m \"<type(scope): summary>\"" in closeout_payload["git"]["guidance"]
+    assert (target / AEGIS_CLOSEOUT_REPORT_REL).is_file()
+    closeout_resource = _read_resource_payload(server, "aegis://closeout/latest")
+    assert closeout_resource["ok"] is True
+    assert closeout_resource["result"]["payload"]["status"] == "passed"
+
     session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
     plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
     work_root = target / current_work["paths"]["work_tracking"]
@@ -1143,6 +1184,7 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
 
     feature_token = f"|W:task42-add-cart-button|H:claude:Edit|E:{source_rel}]"
     verify_token = "|W:task42-add-cart-button|H:verify:source-inspection|E:cmd`rg \"Add to cart\" src/main.ts`]"
+    strict_verify_token = f"|W:task42-add-cart-button|H:aegis:verify|E:{AEGIS_VERIFY_REPORT_REL}]"
     scope_token = (
         f"|W:task42-add-cart-button|H:claude:scope|E:{current_work['paths']['work_tracking']}/FINDINGS.md]"
     )
@@ -1150,14 +1192,18 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
         assert scope_token in text
         assert feature_token in text
         assert verify_token in text
+        assert strict_verify_token in text
     for text in (implementation_text, changelog_text, handoff_text):
         assert feature_token in text
         assert verify_token in text
+        assert strict_verify_token in text
     assert scope_token in findings_text
     assert scope_token in decisions_text
     assert "| plan-step-scope |" in plan_text and "| completed |" in plan_text
     assert f"; {source_rel} | completed |" in plan_text
-    assert 'cmd`rg "Add to cart" src/main.ts` | completed |' in plan_text
+    assert 'cmd`rg "Add to cart" src/main.ts`' in plan_text
+    assert f"{AEGIS_VERIFY_REPORT_REL} | completed |" in plan_text
+    assert AEGIS_CLOSEOUT_REPORT_REL in handoff_text
     assert "- [x] plan-step-scope" in tracker_text
     assert "- [x] plan-step-implement" in tracker_text
     assert "- [x] plan-step-verify" in tracker_text

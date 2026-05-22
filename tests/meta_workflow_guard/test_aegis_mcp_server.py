@@ -143,6 +143,7 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.plan_install",
         "aegis.install",
         "aegis.verify",
+        "aegis.closeout",
         "aegis.kickoff",
         "aegis.log",
         "aegis.list_profiles",
@@ -235,7 +236,7 @@ def test_log_schema_requires_explicit_apply_and_tracking_inputs(tmp_path: Path) 
 
     assert set(schema["required"]) == {"target_dir", "handler", "evidence", "note"}
     assert schema["properties"]["apply"]["default"] is False
-    assert schema["properties"]["plan_step"]["default"] == "plan-step-implement"
+    assert schema["properties"]["plan_step"]["default"] == ""
     assert schema["properties"]["plan_status"]["default"] == "in-progress"
     assert schema["properties"]["surfaces"]["default"] is None
 
