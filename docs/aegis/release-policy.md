@@ -44,10 +44,13 @@ python3 -m pytest tests/meta_workflow_guard/test_aegis_installer.py::test_releas
 AEGIS_RUN_CERTIFICATION_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_installer.py::test_release_certification_full_clean_smoke_when_enabled
 AEGIS_RUN_WHEEL_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py::test_local_wheel_cli_smoke_when_enabled
 AEGIS_RUN_WHEEL_MCP_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_release_distribution.py::test_local_wheel_mcp_stdio_smoke_when_enabled
+AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py::test_local_wheel_mcp_real_target_project_smoke_when_enabled
 aegis status --target-dir /path/to/test-project
 ```
 
 The release owner must preserve build, test, checksum, and signing evidence with the release notes.
+
+TestPyPI and PyPI publication are blocked until the local artifact MCP target smoke passes and its evidence shows a fresh project can install, kickoff, log S:W:H:E evidence, verify, and close out without a source checkout dependency.
 
 ## Consumption Policy
 

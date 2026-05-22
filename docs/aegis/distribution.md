@@ -83,8 +83,8 @@ pipx run --spec aegis-foundation aegis verify --target-dir .
 For local pre-publication smoke tests:
 
 ```bash
-uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --target-dir .
-pipx run --spec ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --target-dir .
+uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .
+pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .
 ```
 
 ## MCP Startup
@@ -149,8 +149,8 @@ pipx run --spec aegis-foundation aegis-mcp-server --default-target-dir . --trans
 For local pre-publication MCP smoke tests:
 
 ```bash
-uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --describe-config
-uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --transport stdio
+uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis-mcp-server --default-target-dir . --describe-config
+uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis-mcp-server --default-target-dir . --transport stdio
 ```
 
 Hosted MCP service deployment is a supported release pattern, but this repository does not publish a hosted service in Task 113. A hosted deployment must document transport, authentication, version pinning, upgrade/rollback, and verification evidence before users treat it as production-ready.

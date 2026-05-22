@@ -108,8 +108,10 @@ aegis mcp generate-registration --client claude --scope user --source-mode githu
 Local wheel mode:
 
 ```bash
-aegis mcp generate-registration --client claude --scope user --source-mode wheel --artifact ./dist/aegis_foundation-0.1.0-py3-none-any.whl
+aegis mcp generate-registration --client claude --scope user --source-mode wheel --artifact "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl"
 ```
+
+Wheel and source modes validate the local path and render an absolute `uvx --from` value so the native MCP client can run from fresh project folders without depending on the shell's original current directory.
 
 Source checkout mode, for development only:
 

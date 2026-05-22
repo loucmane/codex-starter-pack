@@ -414,12 +414,73 @@ async def _run_wheel_mcp_real_project_flow(
                     },
                 )
             )
+            work_after_kickoff = _payload_from_stdio_resource(
+                await session.read_resource("aegis://work/current")
+            )
+            current_work = work_after_kickoff["result"]["payload"]
+            scope_log = _payload_from_stdio_tool(
+                await session.call_tool(
+                    "aegis.log",
+                    {
+                        "target_dir": ".",
+                        "handler": "wheel-mcp:scope",
+                        "evidence": f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+                        "note": "Confirmed local wheel MCP proof scope",
+                        "surfaces": ["findings", "decisions"],
+                        "plan_step": "plan-step-scope",
+                        "plan_status": "completed",
+                        "apply": True,
+                    },
+                )
+            )
+            task_evidence = Path(current_work["paths"]["reports"]) / "local-wheel-mcp-proof.txt"
+            (target / task_evidence).parent.mkdir(parents=True, exist_ok=True)
+            (target / task_evidence).write_text("local wheel MCP proof evidence\n", encoding="utf-8")
+            implementation_log = _payload_from_stdio_tool(
+                await session.call_tool(
+                    "aegis.log",
+                    {
+                        "target_dir": ".",
+                        "handler": "wheel-mcp:write",
+                        "evidence": task_evidence.as_posix(),
+                        "note": "Recorded local wheel MCP proof evidence",
+                        "plan_step": "plan-step-implement",
+                        "plan_status": "completed",
+                        "apply": True,
+                    },
+                )
+            )
             verify = _payload_from_stdio_tool(
                 await session.call_tool(
                     "aegis.verify",
                     {
                         "target_dir": ".",
                         "acknowledge_report_write": True,
+                        "strict": True,
+                    },
+                )
+            )
+            verify_log = _payload_from_stdio_tool(
+                await session.call_tool(
+                    "aegis.log",
+                    {
+                        "target_dir": ".",
+                        "handler": "wheel-mcp:verify",
+                        "evidence": AEGIS_VERIFY_REPORT_REL,
+                        "note": "Recorded local wheel MCP strict verification evidence",
+                        "plan_step": "plan-step-verify",
+                        "plan_status": "completed",
+                        "apply": True,
+                    },
+                )
+            )
+            closeout = _payload_from_stdio_tool(
+                await session.call_tool(
+                    "aegis.closeout",
+                    {
+                        "target_dir": ".",
+                        "acknowledge_report_write": True,
+                        "update_handoff": True,
                     },
                 )
             )
@@ -448,7 +509,11 @@ async def _run_wheel_mcp_real_project_flow(
         "refused_install": refused_install,
         "install": install,
         "kickoff": kickoff,
+        "scope_log": scope_log,
+        "implementation_log": implementation_log,
         "verify": verify,
+        "verify_log": verify_log,
+        "closeout": closeout,
         "status": status,
         "manifest": manifest,
         "contract": contract,
@@ -1370,6 +1435,21 @@ def test_local_wheel_mcp_real_target_project_smoke_when_enabled(tmp_path: Path) 
             assert verify["ok"] is True
             assert verify["read_only"] is False
             assert verify["result"]["status"] == "passed"
+            assert verify["result"]["mode"] == "strict"
+
+            scope_log = payloads["scope_log"]
+            assert scope_log["ok"] is True
+            assert scope_log["result"]["status"] == "logged"
+            implementation_log = payloads["implementation_log"]
+            assert implementation_log["ok"] is True
+            assert implementation_log["result"]["status"] == "logged"
+            verify_log = payloads["verify_log"]
+            assert verify_log["ok"] is True
+            assert verify_log["result"]["status"] == "logged"
+            closeout = payloads["closeout"]
+            assert closeout["ok"] is True
+            assert closeout["result"]["status"] == "passed"
+            assert closeout["result"]["summary"]["failed_required"] == 0
 
             status = payloads["status"]
             assert status["ok"] is True
@@ -1407,11 +1487,34 @@ def test_local_wheel_mcp_real_target_project_smoke_when_enabled(tmp_path: Path) 
             assert (target / AEGIS_PLAN_REPORT_REL).is_file()
             assert (target / AEGIS_INSTALL_REPORT_REL).is_file()
             assert (target / AEGIS_VERIFY_REPORT_REL).is_file()
+            assert (target / AEGIS_CLOSEOUT_REPORT_REL).is_file()
             assert (target / AEGIS_CURRENT_WORK_REL).is_file()
             verify_report = json.loads(
                 (target / AEGIS_VERIFY_REPORT_REL).read_text(encoding="utf-8")
             )
             assert verify_report["status"] == "passed"
+            closeout_report = json.loads(
+                (target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8")
+            )
+            assert closeout_report["status"] == "passed"
+
+            current_work = work["result"]["payload"]
+            work_root = target / current_work["paths"]["work_tracking"]
+            evidence_rel = f"{current_work['paths']['reports']}/local-wheel-mcp-proof.txt"
+            expected_token = f"|W:task1-real-target-smoke|H:wheel-mcp:write|E:{evidence_rel}]"
+            for rel_path in (
+                current_work["paths"]["session"],
+                f"{current_work['paths']['work_tracking']}/TRACKER.md",
+                f"{current_work['paths']['work_tracking']}/IMPLEMENTATION.md",
+                f"{current_work['paths']['work_tracking']}/CHANGELOG.md",
+                f"{current_work['paths']['work_tracking']}/HANDOFF.md",
+            ):
+                assert expected_token in (target / rel_path).read_text(encoding="utf-8")
+            plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
+            assert f"; {evidence_rel} | completed |" in plan_text
+            assert "- [x] plan-step-scope" in (work_root / "TRACKER.md").read_text(encoding="utf-8")
+            assert "- [x] plan-step-implement" in (work_root / "TRACKER.md").read_text(encoding="utf-8")
+            assert "- [x] plan-step-verify" in (work_root / "TRACKER.md").read_text(encoding="utf-8")
 
             source_root_text = REPO_ROOT.as_posix()
             for rel_path in (
@@ -1419,6 +1522,10 @@ def test_local_wheel_mcp_real_target_project_smoke_when_enabled(tmp_path: Path) 
                 AEGIS_PLAN_REPORT_REL,
                 AEGIS_INSTALL_REPORT_REL,
                 AEGIS_VERIFY_REPORT_REL,
+                AEGIS_CLOSEOUT_REPORT_REL,
+                current_work["paths"]["session"],
+                current_work["paths"]["plan"],
+                f"{current_work['paths']['work_tracking']}/TRACKER.md",
             ):
                 assert source_root_text not in (target / rel_path).read_text(encoding="utf-8")
     finally:

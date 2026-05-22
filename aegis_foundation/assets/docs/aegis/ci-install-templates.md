@@ -97,16 +97,16 @@ jobs:
           aegis --version
       - name: Exercise local wheel with uvx and pipx
         run: |
-          uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --target-dir .
-          uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis status --target-dir .
-          uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis verify --target-dir .
+          uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .
+          uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis status --target-dir .
+          uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis verify --target-dir .
           python -m pip install pipx
-          pipx run --spec ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis inspect --target-dir .
-          pipx run --spec ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis status --target-dir .
-          pipx run --spec ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis verify --target-dir .
+          pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .
+          pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis status --target-dir .
+          pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis verify --target-dir .
       - name: Exercise local wheel MCP startup
         run: |
-          uvx --from ./dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir . --describe-config
+          uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis-mcp-server --default-target-dir . --describe-config
       - uses: actions/upload-artifact@v4
         if: always()
         with:

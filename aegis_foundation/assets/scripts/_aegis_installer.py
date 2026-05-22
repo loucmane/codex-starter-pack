@@ -3359,6 +3359,67 @@ def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
         }
 
 
+def _certify_mcp_server_config_smoke(wheel: Path) -> dict[str, Any]:
+    uvx = shutil.which("uvx")
+    if uvx is None:
+        return {
+            "status": "skipped",
+            "reason": "uvx is not available for local wheel MCP server config smoke",
+        }
+    with tempfile.TemporaryDirectory(prefix="aegis-release-mcp-") as tmp:
+        tmp_root = Path(tmp)
+        target = tmp_root / "target"
+        target.mkdir()
+        result, step = _run_cert_command(
+            [
+                uvx,
+                "--from",
+                wheel.as_posix(),
+                "aegis-mcp-server",
+                "--default-target-dir",
+                target.as_posix(),
+                "--describe-config",
+            ],
+            cwd=target,
+        )
+        step["name"] = "mcp_describe_config_from_local_wheel"
+        if result.returncode != 0:
+            return {"status": "failed", "steps": [step]}
+        try:
+            payload = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            return {
+                "status": "failed",
+                "steps": [step],
+                "reason": "aegis-mcp-server --describe-config did not return JSON",
+            }
+        checks = [
+            {
+                "id": "asset_origin_package",
+                "status": "pass" if payload.get("asset_origin") == "package" else "fail",
+                "observed": payload.get("asset_origin"),
+            },
+            {
+                "id": "distribution_name",
+                "status": "pass" if payload.get("distribution_name") == "aegis-foundation" else "fail",
+                "observed": payload.get("distribution_name"),
+            },
+            {
+                "id": "default_target_dir",
+                "status": "pass" if payload.get("default_target_dir") == target.as_posix() else "fail",
+                "observed": payload.get("default_target_dir"),
+            },
+        ]
+        failed = [check for check in checks if check["status"] != "pass"]
+        return {
+            "status": "failed" if failed else "passed",
+            "steps": [step],
+            "checks": checks,
+            "failed_required": len(failed),
+            "config": payload,
+        }
+
+
 def certify_release_candidate(
     source_dir: str | Path,
     *,
@@ -3406,10 +3467,13 @@ def certify_release_candidate(
     wheel_paths = [path for path in artifact_paths if _artifact_kind(path) == "wheel"]
     if run_smoke and wheel_paths:
         cli_smoke = _certify_clean_cli_smoke(wheel_paths[0])
+        mcp_config_smoke = _certify_mcp_server_config_smoke(wheel_paths[0])
     elif run_smoke:
         cli_smoke = {"status": "failed", "reason": "no wheel artifact available for clean CLI smoke"}
+        mcp_config_smoke = {"status": "failed", "reason": "no wheel artifact available for MCP server config smoke"}
     else:
         cli_smoke = {"status": "skipped", "reason": "clean CLI smoke disabled by caller"}
+        mcp_config_smoke = {"status": "skipped", "reason": "MCP server config smoke disabled by caller"}
 
     failures: list[dict[str, Any]] = []
     if build_payload.get("status") == "failed":
@@ -3427,6 +3491,8 @@ def certify_release_candidate(
             )
     if cli_smoke.get("status") == "failed":
         failures.append({"stage": "clean_cli_smoke", "message": "clean CLI smoke failed"})
+    if mcp_config_smoke.get("status") == "failed":
+        failures.append({"stage": "mcp_server_config_smoke", "message": "MCP server config smoke failed"})
 
     status_value = "failed" if failures else "passed"
     report = {
@@ -3447,9 +3513,11 @@ def certify_release_candidate(
         "artifacts": artifacts,
         "smokes": {
             "clean_cli": cli_smoke,
+            "mcp_server_config": mcp_config_smoke,
             "mcp_stdio": {
-                "status": "deferred",
-                "reason": "MCP stdio artifact smoke remains covered by focused pytest until full release matrix execution.",
+                "status": "covered_by_focused_pytest",
+                "test": "tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py::test_local_wheel_mcp_real_target_project_smoke_when_enabled",
+                "reason": "Full install/kickoff/log/verify/closeout MCP stdio artifact proof is intentionally exercised by the focused pytest target.",
             },
         },
         "failures": failures,
