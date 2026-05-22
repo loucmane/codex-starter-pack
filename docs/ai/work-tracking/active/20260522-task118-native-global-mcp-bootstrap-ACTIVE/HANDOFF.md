@@ -13,10 +13,11 @@
 - Generated fresh-folder native Claude MCP registration also passed in `/tmp/aegis-native-mcp-generated-fresh-8iFVuv`: `aegis mcp execute-registration` generated the native `claude mcp add` command, Claude reported `Status: Connected`, and the MCP tool flow installed Aegis, kicked off task 1, logged evidence, verified, closed out, and left readiness `READY | task=1`.
 - Final workflow gates passed: plan sync, work-tracking audit, codex guard, Taskmaster health, diff-check, and readiness.
 - Taskmaster Task 118 remains `in-progress` while the ACTIVE folder is live. A deliberate done-status check proved readiness blocks if Taskmaster is `done` before archive/merge closeout, so the status was restored to `in-progress`.
+- After PR #118 merged, Taskmaster Task 118 was marked `done` and `.taskmaster/tasks/task_118.md` was refreshed. The next closeout step is archiving this ACTIVE folder.
 
 ## Next Steps
-- Commit and push `feat/task-118-native-global-mcp-bootstrap` after reviewing the final diff.
-- Mark Taskmaster Task 118 done only as part of the archive/merge closeout flow, when the ACTIVE folder is no longer expected to satisfy readiness.
+- Archive this ACTIVE folder with `python3 scripts/codex-task work-tracking archive --folder 20260522-task118-native-global-mcp-bootstrap-ACTIVE`.
+- Commit the archive movement separately after the Taskmaster done-status commit lands.
 - Follow-up for true internet install: publish/release the package or document the final public Git ref once this branch merges.
 
 ## Implementation
