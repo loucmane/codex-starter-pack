@@ -1,0 +1,48 @@
+{
+  "checks": [
+    {
+      "id": "manifest_schema",
+      "message": "manifest schema valid",
+      "status": "pass"
+    },
+    {
+      "current": "0.1.0",
+      "id": "foundation_version",
+      "installed": "0.1.0",
+      "status": "pass"
+    },
+    {
+      "current": "0.1.0",
+      "id": "installer_version",
+      "installed": "0.1.0",
+      "status": "pass"
+    },
+    {
+      "current": "1.0.0",
+      "id": "schema_version",
+      "installed": "1.0.0",
+      "status": "pass"
+    }
+  ],
+  "current": {
+    "foundation_version": "0.1.0",
+    "installer_version": "0.1.0",
+    "schema_version": "1.0.0"
+  },
+  "installed": true,
+  "installed_versions": {
+    "foundation_version": "0.1.0",
+    "installer_version": "0.1.0",
+    "schema_version": "1.0.0"
+  },
+  "manifest_path": ".aegis/foundation-manifest.json",
+  "migration_required": false,
+  "read_only": true,
+  "recommended_actions": [
+    "No Aegis package migration is required.",
+    "Run aegis verify after local environment or hook changes."
+  ],
+  "schema_version": "1.0.0",
+  "status": "current",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

@@ -1,0 +1,38 @@
+{
+  "branch": {
+    "action": "created_branch",
+    "before": "main",
+    "created": true,
+    "current": "feat/task-1-local-artifact-live-proof"
+  },
+  "integrations": {
+    "serena": {
+      "detected": false,
+      "required": false
+    },
+    "taskmaster": {
+      "detected": false,
+      "required": false
+    }
+  },
+  "paths": {
+    "plan": "plans/2026-05-22-task1-local-artifact-live-proof.md",
+    "plan_current": "plans/current",
+    "reports": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/reports/local-artifact-live-proof",
+    "session": "sessions/2026/05/2026-05-22-001-task1-local-artifact-live-proof.md",
+    "session_current": "sessions/current",
+    "work_tracking": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE",
+    "workflow_templates": ".aegis/templates/workflow"
+  },
+  "schema_version": "1.0.0",
+  "started_at": "2026-05-22T14:32:38Z",
+  "status": "started",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu",
+  "task": {
+    "id": "1",
+    "slug": "local-artifact-live-proof",
+    "status": "in-progress",
+    "title": "Local Artifact Live Proof"
+  },
+  "workflow_templates": ".aegis/templates/workflow"
+}

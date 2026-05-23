@@ -91,6 +91,8 @@ pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspec
 
 Native MCP client registration is the preferred bootstrap path. It registers the packaged `aegis-mcp-server` once, then lets the discovered `aegis.*` tools install and operate the workflow inside each target project.
 
+MCP is the Aegis bootstrap and control plane. Use it for Aegis workflow state such as inspect, plan-install, install, kickoff, log, verify, closeout, status, and future reconciliation. Use native agent tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status or diffs. The installed Aegis runtime and hooks enforce supported persistent mutations regardless of which tool surface attempts them.
+
 Claude user/global scope:
 
 ```bash

@@ -1,0 +1,9 @@
+BLOCKED by .claude/scripts/pretooluse-gate.sh
+
+Tool: Write
+Reason: pending S:W:H:E tracking must be logged before another persistent mutation.
+
+Pending tracking:
+  - 278c779c7028: H=claude:Edit E=src/main.ts
+
+Run `aegis log --handler <handler> --evidence <path-or-command> --note "<past-tense note>"` or `./.aegis/bin/aegis log ...` so the active session, tracker, plan, implementation log, changelog, and handoff all contain the required S:W:H:E entry.

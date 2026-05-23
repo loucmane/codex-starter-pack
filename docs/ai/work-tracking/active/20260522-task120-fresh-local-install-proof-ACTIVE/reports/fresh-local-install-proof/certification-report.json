@@ -1,0 +1,486 @@
+{
+  "artifacts": [
+    {
+      "kind": "wheel",
+      "member_count": 54,
+      "missing_required_suffixes": [],
+      "name": "aegis_foundation-0.1.0-py3-none-any.whl",
+      "path": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+      "required_suffixes": [
+        "aegis_foundation/cli.py",
+        "aegis_mcp/server.py",
+        "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
+        "aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
+        "aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh",
+        "aegis_foundation/assets/scripts/_aegis_installer.py",
+        "aegis_foundation/assets/scripts/codex-task",
+        "aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json",
+        "aegis_foundation/assets/templates/aegis/workflow/session.md",
+        "aegis_foundation/assets/templates/aegis/workflow/tracker.md",
+        "entry_points.txt"
+      ],
+      "sha256": "e0387cd9a26d7be735cee90a24c3d43f13a493ab668a4413118dd81a2f4bc400",
+      "size_bytes": 330289,
+      "status": "passed"
+    },
+    {
+      "kind": "sdist",
+      "member_count": 77,
+      "missing_required_suffixes": [],
+      "name": "aegis_foundation-0.1.0.tar.gz",
+      "path": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0.tar.gz",
+      "required_suffixes": [
+        "aegis_foundation/cli.py",
+        "aegis_mcp/server.py",
+        "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
+        "aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh",
+        "aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh",
+        "aegis_foundation/assets/scripts/_aegis_installer.py",
+        "aegis_foundation/assets/scripts/codex-task",
+        "aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json",
+        "aegis_foundation/assets/templates/aegis/workflow/session.md",
+        "aegis_foundation/assets/templates/aegis/workflow/tracker.md",
+        "pyproject.toml"
+      ],
+      "sha256": "a74dd3a3095ea80b2bb254e66d32286f2dda73817d3532591ed38e67df065f94",
+      "size_bytes": 305094,
+      "status": "passed"
+    }
+  ],
+  "build": {
+    "command": [
+      "/home/loucmane/.local/bin/uv",
+      "build",
+      "--sdist",
+      "--wheel",
+      "--out-dir",
+      "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist"
+    ],
+    "cwd": "/home/loucmane/codex",
+    "expected_returncodes": [
+      0
+    ],
+    "output_tail": "e_registry.py -> build/bdist.linux-x86_64/wheel/./scripts\nrunning install_egg_info\nCopying aegis_foundation.egg-info to build/bdist.linux-x86_64/wheel/./aegis_foundation-0.1.0-py3.12.egg-info\nrunning install_scripts\ncreating build/bdist.linux-x86_64/wheel/aegis_foundation-0.1.0.dist-info/WHEEL\ncreating '/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/.tmp-up5o0du2/aegis_foundation-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it\nadding 'aegis_foundation/__init__.py'\nadding 'aegis_foundation/cli.py'\nadding 'aegis_foundation/mcp_registration.py'\nadding 'aegis_foundation/resources.py'\nadding 'aegis_foundation/version.py'\nadding 'aegis_foundation/assets/CODEX.md'\nadding 'aegis_foundation/assets/.claude/scripts/bash-command-guard.sh'\nadding 'aegis_foundation/assets/.claude/scripts/codex-path-guard.sh'\nadding 'aegis_foundation/assets/.claude/scripts/gate_lib.py'\nadding 'aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh'\nadding 'aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh'\nadding 'aegis_foundation/assets/.claude/scripts/readiness.sh'\nadding 'aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh'\nadding 'aegis_foundation/assets/docs/aegis/ci-install-templates.md'\nadding 'aegis_foundation/assets/docs/aegis/distribution.md'\nadding 'aegis_foundation/assets/docs/aegis/invocation-contract.md'\nadding 'aegis_foundation/assets/docs/aegis/mcp-client-setup.md'\nadding 'aegis_foundation/assets/docs/aegis/release-policy.md'\nadding 'aegis_foundation/assets/docs/aegis/release-verification-matrix.md'\nadding 'aegis_foundation/assets/docs/aegis/update-rollback.md'\nadding 'aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json'\nadding 'aegis_foundation/assets/schemas/aegis/install-plan.schema.json'\nadding 'aegis_foundation/assets/schemas/aegis/profile.schema.json'\nadding 'aegis_foundation/assets/scripts/_aegis_installer.py'\nadding 'aegis_foundation/assets/scripts/_repo_structure.py'\nadding 'aegis_foundation/assets/scripts/codex-guard'\nadding 'aegis_foundation/assets/scripts/codex-task'\nadding 'aegis_foundation/assets/scripts/template_governance.py'\nadding 'aegis_foundation/assets/scripts/template_registry.py'\nadding 'aegis_foundation/assets/scripts/template_versioning.py'\nadding 'aegis_foundation/assets/templates/aegis/workflow/changelog.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/decisions.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/findings.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/handoff.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/implementation.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/plan.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/session.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/tracker.md'\nadding 'aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json'\nadding 'aegis_mcp/__init__.py'\nadding 'aegis_mcp/server.py'\nadding 'scripts/__init__.py'\nadding 'scripts/_aegis_installer.py'\nadding 'scripts/_repo_structure.py'\nadding 'scripts/template_governance.py'\nadding 'scripts/template_lifecycle.py'\nadding 'scripts/template_registry.py'\nadding 'scripts/template_testing.py'\nadding 'scripts/template_versioning.py'\nadding 'aegis_foundation-0.1.0.dist-info/METADATA'\nadding 'aegis_foundation-0.1.0.dist-info/WHEEL'\nadding 'aegis_foundation-0.1.0.dist-info/entry_points.txt'\nadding 'aegis_foundation-0.1.0.dist-info/top_level.txt'\nadding 'aegis_foundation-0.1.0.dist-info/RECORD'\nremoving build/bdist.linux-x86_64/wheel\nSuccessfully built docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0.tar.gz\nSuccessfully built docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl\n",
+    "returncode": 0,
+    "status": "passed",
+    "stderr_tail": "e_registry.py -> build/bdist.linux-x86_64/wheel/./scripts\nrunning install_egg_info\nCopying aegis_foundation.egg-info to build/bdist.linux-x86_64/wheel/./aegis_foundation-0.1.0-py3.12.egg-info\nrunning install_scripts\ncreating build/bdist.linux-x86_64/wheel/aegis_foundation-0.1.0.dist-info/WHEEL\ncreating '/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/.tmp-up5o0du2/aegis_foundation-0.1.0-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it\nadding 'aegis_foundation/__init__.py'\nadding 'aegis_foundation/cli.py'\nadding 'aegis_foundation/mcp_registration.py'\nadding 'aegis_foundation/resources.py'\nadding 'aegis_foundation/version.py'\nadding 'aegis_foundation/assets/CODEX.md'\nadding 'aegis_foundation/assets/.claude/scripts/bash-command-guard.sh'\nadding 'aegis_foundation/assets/.claude/scripts/codex-path-guard.sh'\nadding 'aegis_foundation/assets/.claude/scripts/gate_lib.py'\nadding 'aegis_foundation/assets/.claude/scripts/posttooluse-tracking.sh'\nadding 'aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh'\nadding 'aegis_foundation/assets/.claude/scripts/readiness.sh'\nadding 'aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh'\nadding 'aegis_foundation/assets/docs/aegis/ci-install-templates.md'\nadding 'aegis_foundation/assets/docs/aegis/distribution.md'\nadding 'aegis_foundation/assets/docs/aegis/invocation-contract.md'\nadding 'aegis_foundation/assets/docs/aegis/mcp-client-setup.md'\nadding 'aegis_foundation/assets/docs/aegis/release-policy.md'\nadding 'aegis_foundation/assets/docs/aegis/release-verification-matrix.md'\nadding 'aegis_foundation/assets/docs/aegis/update-rollback.md'\nadding 'aegis_foundation/assets/schemas/aegis/foundation-manifest.schema.json'\nadding 'aegis_foundation/assets/schemas/aegis/install-plan.schema.json'\nadding 'aegis_foundation/assets/schemas/aegis/profile.schema.json'\nadding 'aegis_foundation/assets/scripts/_aegis_installer.py'\nadding 'aegis_foundation/assets/scripts/_repo_structure.py'\nadding 'aegis_foundation/assets/scripts/codex-guard'\nadding 'aegis_foundation/assets/scripts/codex-task'\nadding 'aegis_foundation/assets/scripts/template_governance.py'\nadding 'aegis_foundation/assets/scripts/template_registry.py'\nadding 'aegis_foundation/assets/scripts/template_versioning.py'\nadding 'aegis_foundation/assets/templates/aegis/workflow/changelog.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/decisions.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/findings.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/handoff.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/implementation.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/plan.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/session.md'\nadding 'aegis_foundation/assets/templates/aegis/workflow/tracker.md'\nadding 'aegis_foundation/assets/templates/registry/agent-compatibility-matrix.json'\nadding 'aegis_mcp/__init__.py'\nadding 'aegis_mcp/server.py'\nadding 'scripts/__init__.py'\nadding 'scripts/_aegis_installer.py'\nadding 'scripts/_repo_structure.py'\nadding 'scripts/template_governance.py'\nadding 'scripts/template_lifecycle.py'\nadding 'scripts/template_registry.py'\nadding 'scripts/template_testing.py'\nadding 'scripts/template_versioning.py'\nadding 'aegis_foundation-0.1.0.dist-info/METADATA'\nadding 'aegis_foundation-0.1.0.dist-info/WHEEL'\nadding 'aegis_foundation-0.1.0.dist-info/entry_points.txt'\nadding 'aegis_foundation-0.1.0.dist-info/top_level.txt'\nadding 'aegis_foundation-0.1.0.dist-info/RECORD'\nremoving build/bdist.linux-x86_64/wheel\nSuccessfully built docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0.tar.gz\nSuccessfully built docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl\n",
+    "stdout_tail": ""
+  },
+  "dist_dir": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist",
+  "failures": [],
+  "generated_at": "2026-05-22T14:30:42Z",
+  "provenance": {
+    "foundation_version": "0.1.0",
+    "git": {
+      "available": true,
+      "branch": "feat/task-120-fresh-local-install-proof",
+      "commit": "ab7e53b2b6bc4317a32bf0560ad57c4b3cccd264",
+      "dirty": true,
+      "status_short": [
+        " M .claude/scripts/codex-path-guard.sh",
+        " M .claude/scripts/gate_lib.py",
+        " M .taskmaster/tasks/tasks.json",
+        " M aegis_foundation/assets/.claude/scripts/codex-path-guard.sh",
+        " M aegis_foundation/assets/.claude/scripts/gate_lib.py",
+        " M aegis_foundation/assets/scripts/_aegis_installer.py",
+        " M scripts/_aegis_installer.py",
+        " M sessions/state.json",
+        " M tests/claude_adapter/test_pretooluse_gates.py",
+        " M tests/meta_workflow_guard/test_aegis_installer.py",
+        "?? .taskmaster/tasks/task_120.md",
+        "?? build/",
+        "?? docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/",
+        "?? plans/2026-05-22-task120-fresh-local-install-proof.md",
+        "?? plans/current",
+        "?? sessions/2026/05/2026-05-22-004-task120-fresh-local-install-proof.md",
+        "?? sessions/current"
+      ]
+    },
+    "installer_version": "0.1.0",
+    "python": "3.12.3",
+    "schema_version": "1.0.0"
+  },
+  "publishing_handoff": {
+    "github_release_candidate_ready": true,
+    "notes": [
+      "GitHub release-candidate artifacts remain the first recommended public channel.",
+      "PyPI publication requires a separate explicit release task."
+    ],
+    "pypi_ready": false
+  },
+  "report_file": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/certification-report.json",
+  "schema_version": "1.0.0",
+  "smokes": {
+    "clean_cli": {
+      "status": "passed",
+      "steps": [
+        {
+          "command": [
+            "/home/loucmane/codex/.venv/bin/python3",
+            "-m",
+            "venv",
+            "/tmp/aegis-release-cert-wbi4ysx4/venv"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "create_venv",
+          "output_tail": "",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": ""
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "install_wheel",
+          "output_tail": "B/s eta 0:00:00\nDownloading httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)\nDownloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)\nDownloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 91.7/91.7 kB 639.4 MB/s eta 0:00:00\nDownloading pydantic-2.13.4-py3-none-any.whl (472 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 472.3/472.3 kB 112.5 MB/s eta 0:00:00\nDownloading pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.1/2.1 MB 105.3 MB/s eta 0:00:00\nDownloading pydantic_settings-2.14.1-py3-none-any.whl (60 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 61.0/61.0 kB 641.8 MB/s eta 0:00:00\nDownloading pygments-2.20.0-py3-none-any.whl (1.2 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.2/1.2 MB 98.7 MB/s eta 0:00:00\nDownloading pyjwt-2.13.0-py3-none-any.whl (31 kB)\nDownloading python_multipart-0.0.29-py3-none-any.whl (29 kB)\nDownloading referencing-0.37.0-py3-none-any.whl (26 kB)\nDownloading rpds_py-0.30.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (394 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 394.1/394.1 kB 124.9 MB/s eta 0:00:00\nDownloading sse_starlette-3.4.4-py3-none-any.whl (16 kB)\nDownloading starlette-1.0.1-py3-none-any.whl (72 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 72.8/72.8 kB 730.7 MB/s eta 0:00:00\nDownloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 44.6/44.6 kB 419.7 MB/s eta 0:00:00\nDownloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)\nDownloading uvicorn-0.47.0-py3-none-any.whl (71 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 71.3/71.3 kB 350.2 MB/s eta 0:00:00\nDownloading annotated_types-0.7.0-py3-none-any.whl (13 kB)\nDownloading cryptography-48.0.0-cp311-abi3-manylinux_2_34_x86_64.whl (4.7 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 4.7/4.7 MB 100.7 MB/s eta 0:00:00\nDownloading h11-0.16.0-py3-none-any.whl (37 kB)\nDownloading idna-3.16-py3-none-any.whl (74 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 74.2/74.2 kB 478.6 MB/s eta 0:00:00\nDownloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)\nDownloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)\nDownloading certifi-2026.5.20-py3-none-any.whl (134 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 134.1/134.1 kB 388.9 MB/s eta 0:00:00\nDownloading cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (219 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 219.6/219.6 kB 157.9 MB/s eta 0:00:00\nDownloading pycparser-3.0-py3-none-any.whl (48 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 48.2/48.2 kB 613.6 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, rpds-py, pyyaml, python-multipart, python-dotenv, pyjwt, pygments, pycparser, mdurl, idna, httpx-sse, h11, click, certifi, attrs, annotated-types, uvicorn, typing-inspection, referencing, pydantic-core, markdown-it-py, httpcore, cffi, anyio, starlette, rich, pydantic, jsonschema-specifications, httpx, cryptography, sse-starlette, pydantic-settings, jsonschema, mcp, aegis-foundation\nSuccessfully installed aegis-foundation-0.1.0 annotated-types-0.7.0 anyio-4.13.0 attrs-26.1.0 certifi-2026.5.20 cffi-2.0.0 click-8.4.1 cryptography-48.0.0 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 httpx-sse-0.4.3 idna-3.16 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 markdown-it-py-4.2.0 mcp-1.27.1 mdurl-0.1.2 pycparser-3.0 pydantic-2.13.4 pydantic-core-2.46.4 pydantic-settings-2.14.1 pygments-2.20.0 pyjwt-2.13.0 python-dotenv-1.2.2 python-multipart-0.0.29 pyyaml-6.0.3 referencing-0.37.0 rich-15.0.0 rpds-py-0.30.0 sse-starlette-3.4.4 starlette-1.0.1 typing-extensions-4.15.0 typing-inspection-0.4.2 uvicorn-0.47.0\nWARNING: The directory '/home/loucmane/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "WARNING: The directory '/home/loucmane/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.\n",
+          "stdout_tail": "3.7 MB/s eta 0:00:00\nDownloading httpx-0.28.1-py3-none-any.whl (73 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 73.5/73.5 kB 700.7 MB/s eta 0:00:00\nDownloading httpcore-1.0.9-py3-none-any.whl (78 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 78.8/78.8 kB 706.2 MB/s eta 0:00:00\nDownloading httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)\nDownloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)\nDownloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 91.7/91.7 kB 639.4 MB/s eta 0:00:00\nDownloading pydantic-2.13.4-py3-none-any.whl (472 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 472.3/472.3 kB 112.5 MB/s eta 0:00:00\nDownloading pydantic_core-2.46.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.1/2.1 MB 105.3 MB/s eta 0:00:00\nDownloading pydantic_settings-2.14.1-py3-none-any.whl (60 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 61.0/61.0 kB 641.8 MB/s eta 0:00:00\nDownloading pygments-2.20.0-py3-none-any.whl (1.2 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.2/1.2 MB 98.7 MB/s eta 0:00:00\nDownloading pyjwt-2.13.0-py3-none-any.whl (31 kB)\nDownloading python_multipart-0.0.29-py3-none-any.whl (29 kB)\nDownloading referencing-0.37.0-py3-none-any.whl (26 kB)\nDownloading rpds_py-0.30.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (394 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 394.1/394.1 kB 124.9 MB/s eta 0:00:00\nDownloading sse_starlette-3.4.4-py3-none-any.whl (16 kB)\nDownloading starlette-1.0.1-py3-none-any.whl (72 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 72.8/72.8 kB 730.7 MB/s eta 0:00:00\nDownloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 44.6/44.6 kB 419.7 MB/s eta 0:00:00\nDownloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)\nDownloading uvicorn-0.47.0-py3-none-any.whl (71 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 71.3/71.3 kB 350.2 MB/s eta 0:00:00\nDownloading annotated_types-0.7.0-py3-none-any.whl (13 kB)\nDownloading cryptography-48.0.0-cp311-abi3-manylinux_2_34_x86_64.whl (4.7 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 4.7/4.7 MB 100.7 MB/s eta 0:00:00\nDownloading h11-0.16.0-py3-none-any.whl (37 kB)\nDownloading idna-3.16-py3-none-any.whl (74 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 74.2/74.2 kB 478.6 MB/s eta 0:00:00\nDownloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)\nDownloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)\nDownloading certifi-2026.5.20-py3-none-any.whl (134 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 134.1/134.1 kB 388.9 MB/s eta 0:00:00\nDownloading cffi-2.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (219 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 219.6/219.6 kB 157.9 MB/s eta 0:00:00\nDownloading pycparser-3.0-py3-none-any.whl (48 kB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 48.2/48.2 kB 613.6 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, rpds-py, pyyaml, python-multipart, python-dotenv, pyjwt, pygments, pycparser, mdurl, idna, httpx-sse, h11, click, certifi, attrs, annotated-types, uvicorn, typing-inspection, referencing, pydantic-core, markdown-it-py, httpcore, cffi, anyio, starlette, rich, pydantic, jsonschema-specifications, httpx, cryptography, sse-starlette, pydantic-settings, jsonschema, mcp, aegis-foundation\nSuccessfully installed aegis-foundation-0.1.0 annotated-types-0.7.0 anyio-4.13.0 attrs-26.1.0 certifi-2026.5.20 cffi-2.0.0 click-8.4.1 cryptography-48.0.0 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 httpx-sse-0.4.3 idna-3.16 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 markdown-it-py-4.2.0 mcp-1.27.1 mdurl-0.1.2 pycparser-3.0 pydantic-2.13.4 pydantic-core-2.46.4 pydantic-settings-2.14.1 pygments-2.20.0 pyjwt-2.13.0 python-dotenv-1.2.2 python-multipart-0.0.29 pyyaml-6.0.3 referencing-0.37.0 rich-15.0.0 rpds-py-0.30.0 sse-starlette-3.4.4 starlette-1.0.1 typing-extensions-4.15.0 typing-inspection-0.4.2 uvicorn-0.47.0\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "--version"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_version",
+          "output_tail": "aegis 0.1.0\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "aegis 0.1.0\n"
+        },
+        {
+          "command": [
+            "git",
+            "init",
+            "-b",
+            "main"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "git_init",
+          "output_tail": "Initialized empty Git repository in /tmp/aegis-release-cert-wbi4ysx4/target/.git/\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "Initialized empty Git repository in /tmp/aegis-release-cert-wbi4ysx4/target/.git/\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "inspect",
+            "--target-dir",
+            "."
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_inspect",
+          "output_tail": "{\n  \"aegis\": {\n    \"foundation_version\": null,\n    \"installed\": false,\n    \"manifest_path\": \".aegis/foundation-manifest.json\",\n    \"primary_agent\": null\n  },\n  \"detected_agents\": {\n    \"claude\": false,\n    \"codex\": false,\n    \"gemini\": false\n  },\n  \"exists\": true,\n  \"paths\": {\n    \"manifest\": \"/tmp/aegis-release-cert-wbi4ysx4/target/.aegis/foundation-manifest.json\",\n    \"reports\": \"/tmp/aegis-release-cert-wbi4ysx4/target/.aegis/reports\",\n    \"state\": \"/tmp/aegis-release-cert-wbi4ysx4/target/.aegis/state\"\n  },\n  \"profile\": \"generic\",\n  \"schema_version\": \"1.0.0\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"aegis\": {\n    \"foundation_version\": null,\n    \"installed\": false,\n    \"manifest_path\": \".aegis/foundation-manifest.json\",\n    \"primary_agent\": null\n  },\n  \"detected_agents\": {\n    \"claude\": false,\n    \"codex\": false,\n    \"gemini\": false\n  },\n  \"exists\": true,\n  \"paths\": {\n    \"manifest\": \"/tmp/aegis-release-cert-wbi4ysx4/target/.aegis/foundation-manifest.json\",\n    \"reports\": \"/tmp/aegis-release-cert-wbi4ysx4/target/.aegis/reports\",\n    \"state\": \"/tmp/aegis-release-cert-wbi4ysx4/target/.aegis/state\"\n  },\n  \"profile\": \"generic\",\n  \"schema_version\": \"1.0.0\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "plan-install",
+            "--target-dir",
+            ".",
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_plan_install",
+          "output_tail": "n\": \"create\",\n      \"managed\": true,\n      \"path\": \".aegis/templates/workflow/implementation.md\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".aegis/templates/workflow/changelog.md\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \"CLAUDE.md\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/settings.json\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/readiness.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/pretooluse-gate.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/posttooluse-tracking.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/tracking-stop-gate.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/bash-command-guard.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/codex-path-guard.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/gate_lib.py\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".aegis/foundation-manifest.json\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    }\n  ],\n  \"plan_id\": \"aegis-generic-20260522143042\",\n  \"profile\": \"generic\",\n  \"reports\": {\n    \"install_json\": null,\n    \"markdown\": \".aegis/reports/install-plan.md\",\n    \"plan_json\": \".aegis/reports/install-plan.json\",\n    \"verification_json\": null\n  },\n  \"schema_version\": \"1.0.0\",\n  \"summary\": {\n    \"conflicts\": 0,\n    \"creates\": 24,\n    \"manual_reviews\": 0,\n    \"modifies\": 0,\n    \"skips\": 0\n  },\n  \"target_root\": \".\",\n  \"verification_requirements\": [\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.readiness\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.pretooluse\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.posttooluse_tracking\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.stop_tracking\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.bash_command\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.protected_path\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"policy\",\n      \"failure_mode\": \"unsupported\",\n      \"gate_id\": \"mcp.memory_write\",\n      \"required\": false\n    }\n  ]\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "n\": \"create\",\n      \"managed\": true,\n      \"path\": \".aegis/templates/workflow/implementation.md\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".aegis/templates/workflow/changelog.md\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \"CLAUDE.md\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/settings.json\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/readiness.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/pretooluse-gate.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/posttooluse-tracking.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/tracking-stop-gate.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/bash-command-guard.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/codex-path-guard.sh\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".claude/scripts/gate_lib.py\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    },\n    {\n      \"action\": \"create\",\n      \"classification\": \"create\",\n      \"managed\": true,\n      \"path\": \".aegis/foundation-manifest.json\",\n      \"reason\": \"Target file is missing.\",\n      \"safe_to_apply\": true\n    }\n  ],\n  \"plan_id\": \"aegis-generic-20260522143042\",\n  \"profile\": \"generic\",\n  \"reports\": {\n    \"install_json\": null,\n    \"markdown\": \".aegis/reports/install-plan.md\",\n    \"plan_json\": \".aegis/reports/install-plan.json\",\n    \"verification_json\": null\n  },\n  \"schema_version\": \"1.0.0\",\n  \"summary\": {\n    \"conflicts\": 0,\n    \"creates\": 24,\n    \"manual_reviews\": 0,\n    \"modifies\": 0,\n    \"skips\": 0\n  },\n  \"target_root\": \".\",\n  \"verification_requirements\": [\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.readiness\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.pretooluse\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.posttooluse_tracking\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.stop_tracking\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.bash_command\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"failure_mode\": \"fail\",\n      \"gate_id\": \"claude.protected_path\",\n      \"required\": true\n    },\n    {\n      \"enforcement\": \"policy\",\n      \"failure_mode\": \"unsupported\",\n      \"gate_id\": \"mcp.memory_write\",\n      \"required\": false\n    }\n  ]\n}\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "install",
+            "--target-dir",
+            ".",
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+            "--apply"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_install",
+          "output_tail": ",\n        \"managed\": true,\n        \"path\": \"CLAUDE.md\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/settings.json\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/readiness.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/pretooluse-gate.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/posttooluse-tracking.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/tracking-stop-gate.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/bash-command-guard.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/codex-path-guard.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/gate_lib.py\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".aegis/foundation-manifest.json\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      }\n    ],\n    \"plan_id\": \"aegis-generic-20260522143042\",\n    \"profile\": \"generic\",\n    \"reports\": {\n      \"install_json\": \".aegis/reports/install-report.json\",\n      \"markdown\": \".aegis/reports/install-plan.md\",\n      \"plan_json\": \".aegis/reports/install-plan.json\",\n      \"verification_json\": \".aegis/reports/verification-report.json\"\n    },\n    \"schema_version\": \"1.0.0\",\n    \"summary\": {\n      \"conflicts\": 0,\n      \"creates\": 24,\n      \"manual_reviews\": 0,\n      \"modifies\": 0,\n      \"skips\": 0\n    },\n    \"target_root\": \".\",\n    \"verification_requirements\": [\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.readiness\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.pretooluse\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.posttooluse_tracking\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.stop_tracking\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.bash_command\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.protected_path\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"policy\",\n        \"failure_mode\": \"unsupported\",\n        \"gate_id\": \"mcp.memory_write\",\n        \"required\": false\n      }\n    ]\n  },\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"applied\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": ",\n        \"managed\": true,\n        \"path\": \"CLAUDE.md\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/settings.json\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/readiness.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/pretooluse-gate.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/posttooluse-tracking.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/tracking-stop-gate.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/bash-command-guard.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/codex-path-guard.sh\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".claude/scripts/gate_lib.py\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      },\n      {\n        \"action\": \"create\",\n        \"classification\": \"create\",\n        \"managed\": true,\n        \"path\": \".aegis/foundation-manifest.json\",\n        \"reason\": \"Target file is missing.\",\n        \"safe_to_apply\": true\n      }\n    ],\n    \"plan_id\": \"aegis-generic-20260522143042\",\n    \"profile\": \"generic\",\n    \"reports\": {\n      \"install_json\": \".aegis/reports/install-report.json\",\n      \"markdown\": \".aegis/reports/install-plan.md\",\n      \"plan_json\": \".aegis/reports/install-plan.json\",\n      \"verification_json\": \".aegis/reports/verification-report.json\"\n    },\n    \"schema_version\": \"1.0.0\",\n    \"summary\": {\n      \"conflicts\": 0,\n      \"creates\": 24,\n      \"manual_reviews\": 0,\n      \"modifies\": 0,\n      \"skips\": 0\n    },\n    \"target_root\": \".\",\n    \"verification_requirements\": [\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.readiness\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.pretooluse\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.posttooluse_tracking\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.stop_tracking\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.bash_command\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"mechanical\",\n        \"failure_mode\": \"fail\",\n        \"gate_id\": \"claude.protected_path\",\n        \"required\": true\n      },\n      {\n        \"enforcement\": \"policy\",\n        \"failure_mode\": \"unsupported\",\n        \"gate_id\": \"mcp.memory_write\",\n        \"required\": false\n      }\n    ]\n  },\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"applied\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "status",
+            "--target-dir",
+            "."
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_status",
+          "output_tail": "{\n  \"checks\": [\n    {\n      \"id\": \"manifest_schema\",\n      \"message\": \"manifest schema valid\",\n      \"status\": \"pass\"\n    },\n    {\n      \"current\": \"0.1.0\",\n      \"id\": \"foundation_version\",\n      \"installed\": \"0.1.0\",\n      \"status\": \"pass\"\n    },\n    {\n      \"current\": \"0.1.0\",\n      \"id\": \"installer_version\",\n      \"installed\": \"0.1.0\",\n      \"status\": \"pass\"\n    },\n    {\n      \"current\": \"1.0.0\",\n      \"id\": \"schema_version\",\n      \"installed\": \"1.0.0\",\n      \"status\": \"pass\"\n    }\n  ],\n  \"current\": {\n    \"foundation_version\": \"0.1.0\",\n    \"installer_version\": \"0.1.0\",\n    \"schema_version\": \"1.0.0\"\n  },\n  \"installed\": true,\n  \"installed_versions\": {\n    \"foundation_version\": \"0.1.0\",\n    \"installer_version\": \"0.1.0\",\n    \"schema_version\": \"1.0.0\"\n  },\n  \"manifest_path\": \".aegis/foundation-manifest.json\",\n  \"migration_required\": false,\n  \"read_only\": true,\n  \"recommended_actions\": [\n    \"No Aegis package migration is required.\",\n    \"Run aegis verify after local environment or hook changes.\"\n  ],\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"current\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"checks\": [\n    {\n      \"id\": \"manifest_schema\",\n      \"message\": \"manifest schema valid\",\n      \"status\": \"pass\"\n    },\n    {\n      \"current\": \"0.1.0\",\n      \"id\": \"foundation_version\",\n      \"installed\": \"0.1.0\",\n      \"status\": \"pass\"\n    },\n    {\n      \"current\": \"0.1.0\",\n      \"id\": \"installer_version\",\n      \"installed\": \"0.1.0\",\n      \"status\": \"pass\"\n    },\n    {\n      \"current\": \"1.0.0\",\n      \"id\": \"schema_version\",\n      \"installed\": \"1.0.0\",\n      \"status\": \"pass\"\n    }\n  ],\n  \"current\": {\n    \"foundation_version\": \"0.1.0\",\n    \"installer_version\": \"0.1.0\",\n    \"schema_version\": \"1.0.0\"\n  },\n  \"installed\": true,\n  \"installed_versions\": {\n    \"foundation_version\": \"0.1.0\",\n    \"installer_version\": \"0.1.0\",\n    \"schema_version\": \"1.0.0\"\n  },\n  \"manifest_path\": \".aegis/foundation-manifest.json\",\n  \"migration_required\": false,\n  \"read_only\": true,\n  \"recommended_actions\": [\n    \"No Aegis package migration is required.\",\n    \"Run aegis verify after local environment or hook changes.\"\n  ],\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"current\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "kickoff",
+            "--target-dir",
+            ".",
+            "--task",
+            "42",
+            "--slug",
+            "release-cert",
+            "--title",
+            "Release Certification"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_kickoff",
+          "output_tail": "{\n  \"branch\": {\n    \"action\": \"created_branch\",\n    \"before\": \"main\",\n    \"created\": true,\n    \"current\": \"feat/task-42-release-cert\"\n  },\n  \"integrations\": {\n    \"serena\": {\n      \"detected\": false,\n      \"required\": false\n    },\n    \"taskmaster\": {\n      \"detected\": false,\n      \"required\": false\n    }\n  },\n  \"paths\": {\n    \"plan\": \"plans/2026-05-22-task42-release-cert.md\",\n    \"plan_current\": \"plans/current\",\n    \"reports\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert\",\n    \"session\": \"sessions/2026/05/2026-05-22-001-task42-release-cert.md\",\n    \"session_current\": \"sessions/current\",\n    \"work_tracking\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE\",\n    \"workflow_templates\": \".aegis/templates/workflow\"\n  },\n  \"schema_version\": \"1.0.0\",\n  \"started_at\": \"2026-05-22T14:30:43Z\",\n  \"status\": \"started\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\",\n  \"task\": {\n    \"id\": \"42\",\n    \"slug\": \"release-cert\",\n    \"status\": \"in-progress\",\n    \"title\": \"Release Certification\"\n  },\n  \"workflow_templates\": \".aegis/templates/workflow\"\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"branch\": {\n    \"action\": \"created_branch\",\n    \"before\": \"main\",\n    \"created\": true,\n    \"current\": \"feat/task-42-release-cert\"\n  },\n  \"integrations\": {\n    \"serena\": {\n      \"detected\": false,\n      \"required\": false\n    },\n    \"taskmaster\": {\n      \"detected\": false,\n      \"required\": false\n    }\n  },\n  \"paths\": {\n    \"plan\": \"plans/2026-05-22-task42-release-cert.md\",\n    \"plan_current\": \"plans/current\",\n    \"reports\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert\",\n    \"session\": \"sessions/2026/05/2026-05-22-001-task42-release-cert.md\",\n    \"session_current\": \"sessions/current\",\n    \"work_tracking\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE\",\n    \"workflow_templates\": \".aegis/templates/workflow\"\n  },\n  \"schema_version\": \"1.0.0\",\n  \"started_at\": \"2026-05-22T14:30:43Z\",\n  \"status\": \"started\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\",\n  \"task\": {\n    \"id\": \"42\",\n    \"slug\": \"release-cert\",\n    \"status\": \"in-progress\",\n    \"title\": \"Release Certification\"\n  },\n  \"workflow_templates\": \".aegis/templates/workflow\"\n}\n"
+        },
+        {
+          "command": [
+            "bash",
+            ".claude/scripts/readiness.sh",
+            "--quick"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "readiness_quick",
+          "output_tail": "READY | task=42\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "READY | task=42\n"
+        },
+        {
+          "command": [
+            "bash",
+            ".claude/scripts/pretooluse-gate.sh"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "pretooluse_allowed_evidence_write",
+          "output_tail": "",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": ""
+        },
+        {
+          "name": "write_evidence_file",
+          "path": "docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt",
+          "status": "passed"
+        },
+        {
+          "command": [
+            "bash",
+            ".claude/scripts/posttooluse-tracking.sh"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "posttooluse_pending_tracking",
+          "output_tail": "",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": ""
+        },
+        {
+          "command": [
+            "bash",
+            ".claude/scripts/pretooluse-gate.sh"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            2
+          ],
+          "name": "pretooluse_blocks_before_log",
+          "output_tail": "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\nTool: Write\nReason: pending S:W:H:E tracking must be logged before another persistent mutation.\n\nPending tracking:\n  - de5860a81df3: H=claude:Write E=docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\n\nRun `aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"` or `./.aegis/bin/aegis log ...` so the active session, tracker, plan, implementation log, changelog, and handoff all contain the required S:W:H:E entry.\n",
+          "returncode": 2,
+          "status": "passed",
+          "stderr_tail": "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\nTool: Write\nReason: pending S:W:H:E tracking must be logged before another persistent mutation.\n\nPending tracking:\n  - de5860a81df3: H=claude:Write E=docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\n\nRun `aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"` or `./.aegis/bin/aegis log ...` so the active session, tracker, plan, implementation log, changelog, and handoff all contain the required S:W:H:E entry.\n",
+          "stdout_tail": ""
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "log",
+            "--target-dir",
+            ".",
+            "--handler",
+            "certification:write",
+            "--evidence",
+            "docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt",
+            "--note",
+            "Recorded release certification smoke evidence"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_log_tracking",
+          "output_tail": "{\n  \"entry\": {\n    \"e\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\",\n    \"h\": \"certification:write\",\n    \"note\": \"Recorded release certification smoke evidence\",\n    \"s\": \"20260522\",\n    \"session\": \"- **[16:30]** - [S:20260522|W:task42-release-cert|H:certification:write|E:docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt] Recorded release certification smoke evidence\",\n    \"tracker\": \"- **2026-05-22 16:30 CEST** - [S:20260522|W:task42-release-cert|H:certification:write|E:docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt] Recorded release certification smoke evidence\",\n    \"w\": \"task42-release-cert\"\n  },\n  \"logged_at\": \"2026-05-22T14:30:43Z\",\n  \"paths\": {\n    \"pending_tracking\": \".aegis/state/pending-tracking.json\",\n    \"plan\": \"plans/2026-05-22-task42-release-cert.md\",\n    \"session\": \"sessions/2026/05/2026-05-22-001-task42-release-cert.md\",\n    \"surfaces\": {\n      \"changelog\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/CHANGELOG.md\",\n      \"handoff\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/HANDOFF.md\",\n      \"implementation\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/IMPLEMENTATION.md\"\n    },\n    \"tracker\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/TRACKER.md\"\n  },\n  \"pending\": {\n    \"cleared\": 1,\n    \"cleared_events\": [\n      {\n        \"created_at\": \"2026-05-22T14:30:43Z\",\n        \"evidence\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\",\n        \"handler\": \"claude:Write\",\n        \"id\": \"de5860a81df3\",\n        \"reason\": \"Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.\",\n        \"task\": {\n          \"id\": \"42\",\n          \"slug\": \"release-cert\"\n        },\n        \"tool\": \"Write\",\n        \"updated_at\": \"2026-05-22T14:30:43Z\"\n      }\n    ],\n    \"remaining\": 0\n  },\n  \"plan\": {\n    \"evidence\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\",\n    \"status\": null,\n    \"step\": null,\n    \"updated\": false\n  },\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"logged\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"entry\": {\n    \"e\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\",\n    \"h\": \"certification:write\",\n    \"note\": \"Recorded release certification smoke evidence\",\n    \"s\": \"20260522\",\n    \"session\": \"- **[16:30]** - [S:20260522|W:task42-release-cert|H:certification:write|E:docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt] Recorded release certification smoke evidence\",\n    \"tracker\": \"- **2026-05-22 16:30 CEST** - [S:20260522|W:task42-release-cert|H:certification:write|E:docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt] Recorded release certification smoke evidence\",\n    \"w\": \"task42-release-cert\"\n  },\n  \"logged_at\": \"2026-05-22T14:30:43Z\",\n  \"paths\": {\n    \"pending_tracking\": \".aegis/state/pending-tracking.json\",\n    \"plan\": \"plans/2026-05-22-task42-release-cert.md\",\n    \"session\": \"sessions/2026/05/2026-05-22-001-task42-release-cert.md\",\n    \"surfaces\": {\n      \"changelog\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/CHANGELOG.md\",\n      \"handoff\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/HANDOFF.md\",\n      \"implementation\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/IMPLEMENTATION.md\"\n    },\n    \"tracker\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/TRACKER.md\"\n  },\n  \"pending\": {\n    \"cleared\": 1,\n    \"cleared_events\": [\n      {\n        \"created_at\": \"2026-05-22T14:30:43Z\",\n        \"evidence\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\",\n        \"handler\": \"claude:Write\",\n        \"id\": \"de5860a81df3\",\n        \"reason\": \"Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.\",\n        \"task\": {\n          \"id\": \"42\",\n          \"slug\": \"release-cert\"\n        },\n        \"tool\": \"Write\",\n        \"updated_at\": \"2026-05-22T14:30:43Z\"\n      }\n    ],\n    \"remaining\": 0\n  },\n  \"plan\": {\n    \"evidence\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert/release-certification-evidence.txt\",\n    \"status\": null,\n    \"step\": null,\n    \"updated\": false\n  },\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"logged\",\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\"\n}\n"
+        },
+        {
+          "command": [
+            "/tmp/aegis-release-cert-wbi4ysx4/venv/bin/aegis",
+            "verify",
+            "--target-dir",
+            ".",
+            "--strict"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "aegis_verify_strict",
+          "output_tail": "t\",\n      \"gate_id\": \"workflow.reports\",\n      \"id\": \"workflow.reports\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": true,\n        \"executable\": false,\n        \"path\": \".aegis/templates/workflow\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.workflow_templates_path\",\n      \"id\": \"workflow.workflow_templates_path\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"missing\": [],\n        \"work_tracking\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.tracking_surfaces\",\n      \"id\": \"workflow.tracking_surfaces\",\n      \"message\": \"all work-tracking surfaces exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"mutation\",\n      \"details\": {\n        \"events\": 0,\n        \"path\": \".aegis/state/pending-tracking.json\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"mutation.pending_tracking_empty\",\n      \"id\": \"mutation.pending_tracking_empty\",\n      \"message\": \"pending tracking queue absent\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"claude\",\n      \"details\": {\n        \"missing\": []\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"claude.required_files\",\n      \"id\": \"claude.required_files\",\n      \"message\": \"all Claude required files exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"claude\",\n      \"details\": {\n        \"expected\": [\n          \"claude.posttooluse_tracking\",\n          \"claude.pretooluse\",\n          \"claude.stop_tracking\"\n        ],\n        \"failed\": [],\n        \"observed\": [\n          \"claude.pretooluse\",\n          \"claude.posttooluse_tracking\",\n          \"claude.stop_tracking\"\n        ]\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"claude.hooks_registered\",\n      \"id\": \"claude.hooks_registered\",\n      \"message\": \"Claude hook registrations are present\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"protection\",\n      \"details\": {\n        \"bash_guard\": \".claude/scripts/bash-command-guard.sh\",\n        \"file_tool_guard\": \".claude/scripts/codex-path-guard.sh\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"protection.codex_owned_paths\",\n      \"id\": \"protection.codex_owned_paths\",\n      \"message\": \"Codex-owned path guard scripts are installed and executable\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"integrations\",\n      \"details\": {\n        \"detected\": false,\n        \"path\": \".taskmaster\",\n        \"required\": false\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"integrations.taskmaster_optional\",\n      \"id\": \"integrations.taskmaster_optional\",\n      \"message\": \"taskmaster integration is optional and absent\",\n      \"method\": \"strict\",\n      \"required\": false,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"integrations\",\n      \"details\": {\n        \"detected\": false,\n        \"path\": \".serena\",\n        \"required\": false\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"integrations.serena_optional\",\n      \"id\": \"integrations.serena_optional\",\n      \"message\": \"serena integration is optional and absent\",\n      \"method\": \"strict\",\n      \"required\": false,\n      \"status\": \"pass\"\n    }\n  ],\n  \"manifest_path\": \".aegis/foundation-manifest.json\",\n  \"mode\": \"strict\",\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"passed\",\n  \"summary\": {\n    \"failed_required\": 0,\n    \"total\": 27,\n    \"unsupported\": 1,\n    \"warnings\": 0\n  },\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\",\n  \"verified_at\": \"2026-05-22T14:30:43Z\"\n}\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "",
+          "stdout_tail": "t\",\n      \"gate_id\": \"workflow.reports\",\n      \"id\": \"workflow.reports\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": true,\n        \"executable\": false,\n        \"path\": \".aegis/templates/workflow\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.workflow_templates_path\",\n      \"id\": \"workflow.workflow_templates_path\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"missing\": [],\n        \"work_tracking\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.tracking_surfaces\",\n      \"id\": \"workflow.tracking_surfaces\",\n      \"message\": \"all work-tracking surfaces exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"mutation\",\n      \"details\": {\n        \"events\": 0,\n        \"path\": \".aegis/state/pending-tracking.json\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"mutation.pending_tracking_empty\",\n      \"id\": \"mutation.pending_tracking_empty\",\n      \"message\": \"pending tracking queue absent\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"claude\",\n      \"details\": {\n        \"missing\": []\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"claude.required_files\",\n      \"id\": \"claude.required_files\",\n      \"message\": \"all Claude required files exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"claude\",\n      \"details\": {\n        \"expected\": [\n          \"claude.posttooluse_tracking\",\n          \"claude.pretooluse\",\n          \"claude.stop_tracking\"\n        ],\n        \"failed\": [],\n        \"observed\": [\n          \"claude.pretooluse\",\n          \"claude.posttooluse_tracking\",\n          \"claude.stop_tracking\"\n        ]\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"claude.hooks_registered\",\n      \"id\": \"claude.hooks_registered\",\n      \"message\": \"Claude hook registrations are present\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"protection\",\n      \"details\": {\n        \"bash_guard\": \".claude/scripts/bash-command-guard.sh\",\n        \"file_tool_guard\": \".claude/scripts/codex-path-guard.sh\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"protection.codex_owned_paths\",\n      \"id\": \"protection.codex_owned_paths\",\n      \"message\": \"Codex-owned path guard scripts are installed and executable\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"integrations\",\n      \"details\": {\n        \"detected\": false,\n        \"path\": \".taskmaster\",\n        \"required\": false\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"integrations.taskmaster_optional\",\n      \"id\": \"integrations.taskmaster_optional\",\n      \"message\": \"taskmaster integration is optional and absent\",\n      \"method\": \"strict\",\n      \"required\": false,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"integrations\",\n      \"details\": {\n        \"detected\": false,\n        \"path\": \".serena\",\n        \"required\": false\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"integrations.serena_optional\",\n      \"id\": \"integrations.serena_optional\",\n      \"message\": \"serena integration is optional and absent\",\n      \"method\": \"strict\",\n      \"required\": false,\n      \"status\": \"pass\"\n    }\n  ],\n  \"manifest_path\": \".aegis/foundation-manifest.json\",\n  \"mode\": \"strict\",\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"passed\",\n  \"summary\": {\n    \"failed_required\": 0,\n    \"total\": 27,\n    \"unsupported\": 1,\n    \"warnings\": 0\n  },\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\",\n  \"verified_at\": \"2026-05-22T14:30:43Z\"\n}\n"
+        },
+        {
+          "command": [
+            "bash",
+            ".claude/scripts/pretooluse-gate.sh"
+          ],
+          "cwd": "/tmp/aegis-release-cert-wbi4ysx4/target",
+          "expected_returncodes": [
+            2
+          ],
+          "name": "protected_path_refusal",
+          "output_tail": "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\nTool: Bash\nCommand: printf blocked > templates/should-not-land.md\nViolation(s):\n  - redirection targets protected path templates/should-not-land.md\n\nBash may not be used to bypass protected Aegis/Codex-owned path boundaries.\n",
+          "returncode": 2,
+          "status": "passed",
+          "stderr_tail": "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\nTool: Bash\nCommand: printf blocked > templates/should-not-land.md\nViolation(s):\n  - redirection targets protected path templates/should-not-land.md\n\nBash may not be used to bypass protected Aegis/Codex-owned path boundaries.\n",
+          "stdout_tail": ""
+        }
+      ],
+      "strict_verification_report": "{\n  \"checks\": [\n    {\n      \"gate_id\": \"aegis.manifest_schema\",\n      \"message\": \"manifest schema valid\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"gate_id\": \"claude.readiness\",\n      \"message\": \"ok\",\n      \"method\": \"executable\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"gate_id\": \"claude.pretooluse\",\n      \"message\": \"hook registered\",\n      \"method\": \"settings_hook\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"gate_id\": \"claude.posttooluse_tracking\",\n      \"message\": \"hook registered\",\n      \"method\": \"settings_hook\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"gate_id\": \"claude.stop_tracking\",\n      \"message\": \"hook registered\",\n      \"method\": \"settings_hook\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"gate_id\": \"claude.bash_command\",\n      \"message\": \"ok\",\n      \"method\": \"executable\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"mechanical\",\n      \"gate_id\": \"claude.protected_path\",\n      \"message\": \"ok\",\n      \"method\": \"executable\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"enforcement\": \"policy\",\n      \"gate_id\": \"mcp.memory_write\",\n      \"message\": \"MCP memory writes are not mechanically hookable in every client.\",\n      \"method\": \"manual\",\n      \"required\": false,\n      \"status\": \"unsupported\"\n    },\n    {\n      \"category\": \"manifest\",\n      \"details\": {\n        \"checked\": 24,\n        \"directories\": [],\n        \"missing\": []\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"manifest.managed_files\",\n      \"id\": \"manifest.managed_files\",\n      \"message\": \"all manifest managed files exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"runtime\",\n      \"details\": {\n        \"directory\": false,\n        \"executable\": true,\n        \"path\": \".aegis/bin/aegis\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"runtime.local_cli_shim\",\n      \"id\": \"runtime.local_cli_shim\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"runtime\",\n      \"details\": {\n        \"missing\": [],\n        \"template_root\": \".aegis/templates/workflow\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"runtime.workflow_templates\",\n      \"id\": \"runtime.workflow_templates\",\n      \"message\": \"all workflow templates installed\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"missing_path_keys\": [],\n        \"task\": {\n          \"id\": \"42\",\n          \"slug\": \"release-cert\",\n          \"status\": \"in-progress\",\n          \"title\": \"Release Certification\"\n        }\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.current_work\",\n      \"id\": \"workflow.current_work\",\n      \"message\": \"current work payload is active and complete\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"branch\": \"feat/task-42-release-cert\",\n        \"branch_task_id\": \"42\",\n        \"current_work_task_id\": \"42\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.branch_task_alignment\",\n      \"id\": \"workflow.branch_task_alignment\",\n      \"message\": \"branch task id matches current work\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": false,\n        \"executable\": false,\n        \"path\": \"sessions/2026/05/2026-05-22-001-task42-release-cert.md\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.session_file\",\n      \"id\": \"workflow.session_file\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": false,\n        \"executable\": false,\n        \"path\": \"sessions/current\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.session_current\",\n      \"id\": \"workflow.session_current\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": false,\n        \"executable\": false,\n        \"path\": \"plans/2026-05-22-task42-release-cert.md\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.plan_file\",\n      \"id\": \"workflow.plan_file\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": false,\n        \"executable\": false,\n        \"path\": \"plans/current\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.plan_current\",\n      \"id\": \"workflow.plan_current\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": true,\n        \"executable\": false,\n        \"path\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.work_tracking\",\n      \"id\": \"workflow.work_tracking\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": true,\n        \"executable\": false,\n        \"path\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE/reports/release-cert\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.reports\",\n      \"id\": \"workflow.reports\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"directory\": true,\n        \"executable\": false,\n        \"path\": \".aegis/templates/workflow\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.workflow_templates_path\",\n      \"id\": \"workflow.workflow_templates_path\",\n      \"message\": \"ok\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"workflow\",\n      \"details\": {\n        \"missing\": [],\n        \"work_tracking\": \"docs/ai/work-tracking/active/20260522-task42-release-cert-ACTIVE\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"workflow.tracking_surfaces\",\n      \"id\": \"workflow.tracking_surfaces\",\n      \"message\": \"all work-tracking surfaces exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"mutation\",\n      \"details\": {\n        \"events\": 0,\n        \"path\": \".aegis/state/pending-tracking.json\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"mutation.pending_tracking_empty\",\n      \"id\": \"mutation.pending_tracking_empty\",\n      \"message\": \"pending tracking queue absent\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"claude\",\n      \"details\": {\n        \"missing\": []\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"claude.required_files\",\n      \"id\": \"claude.required_files\",\n      \"message\": \"all Claude required files exist\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"claude\",\n      \"details\": {\n        \"expected\": [\n          \"claude.posttooluse_tracking\",\n          \"claude.pretooluse\",\n          \"claude.stop_tracking\"\n        ],\n        \"failed\": [],\n        \"observed\": [\n          \"claude.pretooluse\",\n          \"claude.posttooluse_tracking\",\n          \"claude.stop_tracking\"\n        ]\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"claude.hooks_registered\",\n      \"id\": \"claude.hooks_registered\",\n      \"message\": \"Claude hook registrations are present\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"protection\",\n      \"details\": {\n        \"bash_guard\": \".claude/scripts/bash-command-guard.sh\",\n        \"file_tool_guard\": \".claude/scripts/codex-path-guard.sh\"\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"protection.codex_owned_paths\",\n      \"id\": \"protection.codex_owned_paths\",\n      \"message\": \"Codex-owned path guard scripts are installed and executable\",\n      \"method\": \"strict\",\n      \"required\": true,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"integrations\",\n      \"details\": {\n        \"detected\": false,\n        \"path\": \".taskmaster\",\n        \"required\": false\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"integrations.taskmaster_optional\",\n      \"id\": \"integrations.taskmaster_optional\",\n      \"message\": \"taskmaster integration is optional and absent\",\n      \"method\": \"strict\",\n      \"required\": false,\n      \"status\": \"pass\"\n    },\n    {\n      \"category\": \"integrations\",\n      \"details\": {\n        \"detected\": false,\n        \"path\": \".serena\",\n        \"required\": false\n      },\n      \"enforcement\": \"strict\",\n      \"gate_id\": \"integrations.serena_optional\",\n      \"id\": \"integrations.serena_optional\",\n      \"message\": \"serena integration is optional and absent\",\n      \"method\": \"strict\",\n      \"required\": false,\n      \"status\": \"pass\"\n    }\n  ],\n  \"manifest_path\": \".aegis/foundation-manifest.json\",\n  \"mode\": \"strict\",\n  \"schema_version\": \"1.0.0\",\n  \"status\": \"passed\",\n  \"summary\": {\n    \"failed_required\": 0,\n    \"total\": 27,\n    \"unsupported\": 1,\n    \"warnings\": 0\n  },\n  \"target_root\": \"/tmp/aegis-release-cert-wbi4ysx4/target\",\n  \"verified_at\": \"2026-05-22T14:30:43Z\"\n}\n"
+    },
+    "mcp_server_config": {
+      "checks": [
+        {
+          "id": "asset_origin_package",
+          "observed": "package",
+          "status": "pass"
+        },
+        {
+          "id": "distribution_name",
+          "observed": "aegis-foundation",
+          "status": "pass"
+        },
+        {
+          "id": "default_target_dir",
+          "observed": "/tmp/aegis-release-mcp-wmgdb56j/target",
+          "status": "pass"
+        }
+      ],
+      "config": {
+        "asset_origin": "package",
+        "default_target_dir": "/tmp/aegis-release-mcp-wmgdb56j/target",
+        "distribution_name": "aegis-foundation",
+        "foundation_version": "0.1.0",
+        "installer_version": "0.1.0",
+        "schema_version": "1.0.0",
+        "source_root": "/tmp/aegis-task120-uv-cache-final/archive-v0/vVSz6fI1SxurZtmx6uACd/lib/python3.12/site-packages/aegis_foundation/assets"
+      },
+      "failed_required": 0,
+      "status": "passed",
+      "steps": [
+        {
+          "command": [
+            "/home/loucmane/.local/bin/uvx",
+            "--from",
+            "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            "/tmp/aegis-release-mcp-wmgdb56j/target",
+            "--describe-config"
+          ],
+          "cwd": "/tmp/aegis-release-mcp-wmgdb56j/target",
+          "expected_returncodes": [
+            0
+          ],
+          "name": "mcp_describe_config_from_local_wheel",
+          "output_tail": "{\n  \"asset_origin\": \"package\",\n  \"default_target_dir\": \"/tmp/aegis-release-mcp-wmgdb56j/target\",\n  \"distribution_name\": \"aegis-foundation\",\n  \"foundation_version\": \"0.1.0\",\n  \"installer_version\": \"0.1.0\",\n  \"schema_version\": \"1.0.0\",\n  \"source_root\": \"/tmp/aegis-task120-uv-cache-final/archive-v0/vVSz6fI1SxurZtmx6uACd/lib/python3.12/site-packages/aegis_foundation/assets\"\n}\nDownloading pydantic-core (2.0MiB)\nDownloading pygments (1.2MiB)\nDownloading cryptography (4.5MiB)\n Downloading pydantic-core\n Downloading cryptography\n Downloading pygments\nInstalled 35 packages in 29ms\n",
+          "returncode": 0,
+          "status": "passed",
+          "stderr_tail": "Downloading pydantic-core (2.0MiB)\nDownloading pygments (1.2MiB)\nDownloading cryptography (4.5MiB)\n Downloading pydantic-core\n Downloading cryptography\n Downloading pygments\nInstalled 35 packages in 29ms\n",
+          "stdout_tail": "{\n  \"asset_origin\": \"package\",\n  \"default_target_dir\": \"/tmp/aegis-release-mcp-wmgdb56j/target\",\n  \"distribution_name\": \"aegis-foundation\",\n  \"foundation_version\": \"0.1.0\",\n  \"installer_version\": \"0.1.0\",\n  \"schema_version\": \"1.0.0\",\n  \"source_root\": \"/tmp/aegis-task120-uv-cache-final/archive-v0/vVSz6fI1SxurZtmx6uACd/lib/python3.12/site-packages/aegis_foundation/assets\"\n}\n"
+        }
+      ]
+    },
+    "mcp_stdio": {
+      "reason": "Full install/kickoff/log/verify/closeout MCP stdio artifact proof is intentionally exercised by the focused pytest target.",
+      "status": "covered_by_focused_pytest",
+      "test": "tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py::test_local_wheel_mcp_real_target_project_smoke_when_enabled"
+    }
+  },
+  "source_root": "/home/loucmane/codex",
+  "status": "passed"
+}

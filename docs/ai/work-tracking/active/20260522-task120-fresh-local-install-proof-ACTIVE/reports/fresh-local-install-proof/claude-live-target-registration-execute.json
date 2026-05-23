@@ -1,0 +1,83 @@
+{
+  "client": "claude",
+  "client_argv": [
+    "claude",
+    "mcp",
+    "add",
+    "--scope",
+    "project",
+    "aegis",
+    "-e",
+    "UV_CACHE_DIR=.aegis/uv-cache",
+    "-e",
+    "UV_TOOL_DIR=.aegis/uv-tools",
+    "--",
+    "uvx",
+    "--from",
+    "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+    "aegis-mcp-server",
+    "--default-target-dir",
+    "/tmp/aegis-task120-claude-live-shop-dry91w",
+    "--transport",
+    "stdio"
+  ],
+  "environment": {
+    "UV_CACHE_DIR": ".aegis/uv-cache",
+    "UV_TOOL_DIR": ".aegis/uv-tools"
+  },
+  "execution": {
+    "argv": [
+      "claude",
+      "mcp",
+      "add",
+      "--scope",
+      "project",
+      "aegis",
+      "-e",
+      "UV_CACHE_DIR=.aegis/uv-cache",
+      "-e",
+      "UV_TOOL_DIR=.aegis/uv-tools",
+      "--",
+      "uvx",
+      "--from",
+      "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+      "aegis-mcp-server",
+      "--default-target-dir",
+      "/tmp/aegis-task120-claude-live-shop-dry91w",
+      "--transport",
+      "stdio"
+    ],
+    "cwd": "/tmp/aegis-task120-claude-live-shop-dry91w",
+    "rendered_command": "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio",
+    "returncode": 0,
+    "status": "passed",
+    "stderr": "",
+    "stdout": "Added stdio MCP server aegis with command: uvx --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio to project config\nFile modified: /tmp/aegis-task120-claude-live-shop-dry91w/.mcp.json\n"
+  },
+  "mcp_server_argv": [
+    "uvx",
+    "--from",
+    "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+    "aegis-mcp-server",
+    "--default-target-dir",
+    "/tmp/aegis-task120-claude-live-shop-dry91w",
+    "--transport",
+    "stdio"
+  ],
+  "mcp_server_command": "uvx --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio",
+  "package_spec": "/home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl",
+  "read_only": false,
+  "rendered_command": "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from /home/loucmane/codex/docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/dist/aegis_foundation-0.1.0-py3-none-any.whl aegis-mcp-server --default-target-dir /tmp/aegis-task120-claude-live-shop-dry91w --transport stdio",
+  "safety_notes": [
+    "native-client-registration-is-primary",
+    "config-file-writes-are-fallback-only",
+    "package-mode-does-not-require-local-source-checkout",
+    "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients"
+  ],
+  "scope": "project",
+  "server": "aegis",
+  "source_mode": "wheel",
+  "status": "passed",
+  "target_dir": "/tmp/aegis-task120-claude-live-shop-dry91w",
+  "transport": "stdio"
+}

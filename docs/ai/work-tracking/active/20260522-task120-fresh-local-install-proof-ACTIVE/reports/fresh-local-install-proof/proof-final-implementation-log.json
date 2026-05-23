@@ -1,0 +1,51 @@
+{
+  "entry": {
+    "e": "src/main.ts",
+    "h": "claude:Edit",
+    "note": "Added Add to cart button in the final fresh local artifact proof target",
+    "s": "20260522",
+    "session": "- **[16:33]** - [S:20260522|W:task1-local-artifact-live-proof|H:claude:Edit|E:src/main.ts] Added Add to cart button in the final fresh local artifact proof target",
+    "tracker": "- **2026-05-22 16:33 CEST** - [S:20260522|W:task1-local-artifact-live-proof|H:claude:Edit|E:src/main.ts] Added Add to cart button in the final fresh local artifact proof target",
+    "w": "task1-local-artifact-live-proof"
+  },
+  "logged_at": "2026-05-22T14:33:29Z",
+  "paths": {
+    "pending_tracking": ".aegis/state/pending-tracking.json",
+    "plan": "plans/2026-05-22-task1-local-artifact-live-proof.md",
+    "session": "sessions/2026/05/2026-05-22-001-task1-local-artifact-live-proof.md",
+    "surfaces": {
+      "changelog": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/CHANGELOG.md",
+      "handoff": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/HANDOFF.md",
+      "implementation": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/IMPLEMENTATION.md"
+    },
+    "tracker": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/TRACKER.md"
+  },
+  "pending": {
+    "cleared": 1,
+    "cleared_events": [
+      {
+        "created_at": "2026-05-22T14:33:07Z",
+        "evidence": "src/main.ts",
+        "handler": "claude:Edit",
+        "id": "278c779c7028",
+        "reason": "Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.",
+        "task": {
+          "id": "1",
+          "slug": "local-artifact-live-proof"
+        },
+        "tool": "Edit",
+        "updated_at": "2026-05-22T14:33:07Z"
+      }
+    ],
+    "remaining": 0
+  },
+  "plan": {
+    "evidence": "src/main.ts",
+    "status": "completed",
+    "step": "plan-step-implement",
+    "updated": true
+  },
+  "schema_version": "1.0.0",
+  "status": "logged",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

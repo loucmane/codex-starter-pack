@@ -1,0 +1,36 @@
+{
+  "entry": {
+    "e": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md",
+    "h": "codex:scope",
+    "note": "Confirmed fresh local artifact proof scope",
+    "s": "20260522",
+    "session": "- **[16:32]** - [S:20260522|W:task1-local-artifact-live-proof|H:codex:scope|E:docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md] Confirmed fresh local artifact proof scope",
+    "tracker": "- **2026-05-22 16:32 CEST** - [S:20260522|W:task1-local-artifact-live-proof|H:codex:scope|E:docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md] Confirmed fresh local artifact proof scope",
+    "w": "task1-local-artifact-live-proof"
+  },
+  "logged_at": "2026-05-22T14:32:46Z",
+  "paths": {
+    "pending_tracking": ".aegis/state/pending-tracking.json",
+    "plan": "plans/2026-05-22-task1-local-artifact-live-proof.md",
+    "session": "sessions/2026/05/2026-05-22-001-task1-local-artifact-live-proof.md",
+    "surfaces": {
+      "decisions": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/DECISIONS.md",
+      "findings": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md"
+    },
+    "tracker": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/TRACKER.md"
+  },
+  "pending": {
+    "cleared": 0,
+    "cleared_events": [],
+    "remaining": 0
+  },
+  "plan": {
+    "evidence": "docs/ai/work-tracking/active/20260522-task1-local-artifact-live-proof-ACTIVE/FINDINGS.md",
+    "status": "completed",
+    "step": "plan-step-scope",
+    "updated": true
+  },
+  "schema_version": "1.0.0",
+  "status": "logged",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

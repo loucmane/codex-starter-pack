@@ -1,0 +1,8 @@
+BLOCKED by .claude/scripts/tracking-stop-gate.sh
+
+Reason: pending S:W:H:E tracking remains before session stop.
+
+Pending tracking:
+  - 278c779c7028: H=claude:Edit E=src/main.ts
+
+Run `aegis log --handler <handler> --evidence <path-or-command> --note "<past-tense note>"` or `./.aegis/bin/aegis log ...` before ending the session.

@@ -315,6 +315,8 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
         "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
+        "MCP is the Aegis bootstrap and control plane",
+        "Use native agent tools for normal project implementation work",
         "aegis mcp generate-registration --client claude --scope user",
         "aegis mcp execute-registration --client claude --scope user",
         "aegis mcp verify-registration --client claude --scope user",
@@ -351,6 +353,10 @@ def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> 
     assert asset_text == text
     for snippet in (
         "Native MCP client registration is the primary path",
+        "MCP is the bootstrap and control-plane interface",
+        "Expected tool split:",
+        "Aegis MCP or the project-local CLI: inspect, plan_install/plan-install, install, kickoff, log, verify, closeout, status, and future reconciliation.",
+        "Native agent tools: source reads and edits, project test commands, and git status/diff inspection.",
         "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",

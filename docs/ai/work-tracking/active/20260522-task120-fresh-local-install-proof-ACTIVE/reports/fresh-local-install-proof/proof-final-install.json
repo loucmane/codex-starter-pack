@@ -1,0 +1,313 @@
+{
+  "applied_at": "2026-05-22T14:32:13Z",
+  "manifest_path": ".aegis/foundation-manifest.json",
+  "plan": {
+    "agent_selection": {
+      "enabled_agents": [
+        "claude"
+      ],
+      "explicit_flags_required": true,
+      "primary_agent": "claude",
+      "source": "non_interactive"
+    },
+    "apply_confirmed": true,
+    "expected_manifest": {
+      "agents": {
+        "claude": {
+          "enabled": true,
+          "gate_ids": [
+            "claude.readiness",
+            "claude.pretooluse",
+            "claude.posttooluse_tracking",
+            "claude.stop_tracking",
+            "claude.bash_command",
+            "claude.protected_path"
+          ]
+        },
+        "codex": {
+          "enabled": false,
+          "gate_ids": [
+            "codex.guard",
+            "codex.work_tracking_audit"
+          ]
+        },
+        "gemini": {
+          "enabled": false,
+          "gate_ids": []
+        }
+      },
+      "gates": [
+        "claude.readiness",
+        "claude.pretooluse",
+        "claude.posttooluse_tracking",
+        "claude.stop_tracking",
+        "claude.bash_command",
+        "claude.protected_path",
+        "mcp.memory_write"
+      ],
+      "path": ".aegis/foundation-manifest.json",
+      "primary_agent": "claude",
+      "profile": "generic"
+    },
+    "generated_at": "2026-05-22T14:32:13Z",
+    "mode": "apply",
+    "operations": [
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": "AGENTS.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/contract.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/bin/aegis",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": "schemas/aegis/foundation-manifest.schema.json",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": "schemas/aegis/profile.schema.json",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": "schemas/aegis/install-plan.schema.json",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/session.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/plan.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/tracker.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/findings.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/decisions.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/handoff.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/implementation.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/templates/workflow/changelog.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": "CLAUDE.md",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/settings.json",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/readiness.sh",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/pretooluse-gate.sh",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/posttooluse-tracking.sh",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/tracking-stop-gate.sh",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/bash-command-guard.sh",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/codex-path-guard.sh",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".claude/scripts/gate_lib.py",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      },
+      {
+        "action": "create",
+        "classification": "create",
+        "managed": true,
+        "path": ".aegis/foundation-manifest.json",
+        "reason": "Target file is missing.",
+        "safe_to_apply": true
+      }
+    ],
+    "plan_id": "aegis-generic-20260522143213",
+    "profile": "generic",
+    "reports": {
+      "install_json": ".aegis/reports/install-report.json",
+      "markdown": ".aegis/reports/install-plan.md",
+      "plan_json": ".aegis/reports/install-plan.json",
+      "verification_json": ".aegis/reports/verification-report.json"
+    },
+    "schema_version": "1.0.0",
+    "summary": {
+      "conflicts": 0,
+      "creates": 24,
+      "manual_reviews": 0,
+      "modifies": 0,
+      "skips": 0
+    },
+    "target_root": ".",
+    "verification_requirements": [
+      {
+        "enforcement": "mechanical",
+        "failure_mode": "fail",
+        "gate_id": "claude.readiness",
+        "required": true
+      },
+      {
+        "enforcement": "mechanical",
+        "failure_mode": "fail",
+        "gate_id": "claude.pretooluse",
+        "required": true
+      },
+      {
+        "enforcement": "mechanical",
+        "failure_mode": "fail",
+        "gate_id": "claude.posttooluse_tracking",
+        "required": true
+      },
+      {
+        "enforcement": "mechanical",
+        "failure_mode": "fail",
+        "gate_id": "claude.stop_tracking",
+        "required": true
+      },
+      {
+        "enforcement": "mechanical",
+        "failure_mode": "fail",
+        "gate_id": "claude.bash_command",
+        "required": true
+      },
+      {
+        "enforcement": "mechanical",
+        "failure_mode": "fail",
+        "gate_id": "claude.protected_path",
+        "required": true
+      },
+      {
+        "enforcement": "policy",
+        "failure_mode": "unsupported",
+        "gate_id": "mcp.memory_write",
+        "required": false
+      }
+    ]
+  },
+  "schema_version": "1.0.0",
+  "status": "applied",
+  "target_root": "/tmp/aegis-task120-proof-shop-final-cNydTu"
+}

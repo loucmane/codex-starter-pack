@@ -11,9 +11,12 @@ The model is:
 1. Register the packaged Aegis MCP server with the native client.
 2. Start a fresh project in Claude, Codex, or another MCP client.
 3. Use the discovered `aegis.*` MCP tools to install the project-local runtime.
-4. Use `aegis.kickoff`, `aegis.log`, `aegis.verify`, and `aegis.closeout` to run the workflow.
+4. Use `aegis.kickoff`, `aegis.log`, `aegis.verify`, and `aegis.closeout` for Aegis workflow state.
+5. Use the agent's native tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status.
 
 The project-local runtime installed by Aegis includes `.aegis/`, `.claude/` hooks, `CLAUDE.md`, sessions, plans, work-tracking scaffolding, readiness gates, pending S:W:H:E tracking, and closeout gates. Taskmaster and Serena are optional integrations; Aegis must work without them.
+
+MCP is the bootstrap and control-plane interface. It installs and operates the workflow, but it is not a replacement for the agent's normal editor, shell, test runner, or git inspection workflow. The installed runtime enforces behavior around all supported mutation surfaces after installation.
 
 ## Native Registration Commands
 
@@ -132,6 +135,12 @@ Native registration must discover:
 The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting work uses `aegis.kickoff`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`.
 
 After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md` before the next mutation or session stop is allowed. Plan evidence is updated only when `plan_step` is supplied explicitly.
+
+Expected tool split:
+
+- Aegis MCP or the project-local CLI: inspect, plan_install/plan-install, install, kickoff, log, verify, closeout, status, and future reconciliation.
+- Native agent tools: source reads and edits, project test commands, and git status/diff inspection.
+- Installed hooks: enforcement across supported mutation surfaces regardless of whether a mutation attempt comes from MCP, Bash, Edit, Write, or another supported tool.
 
 ## Fallback Config Files
 
