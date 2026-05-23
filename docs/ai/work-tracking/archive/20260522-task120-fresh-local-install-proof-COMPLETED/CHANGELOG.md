@@ -9,3 +9,4 @@
 - 2026-05-22 17:38 CEST — [S:20260522|W:task120-fresh-local-install-proof|H:codex:implement|E:scripts/_aegis_installer.py] Added installed contract wording for MCP/CLI as Aegis control plane and native tools as normal implementation tools.
 - 2026-05-22 17:38 CEST — [S:20260522|W:task120-fresh-local-install-proof|H:codex:docs|E:docs/aegis/mcp-client-setup.md] Updated MCP setup and distribution docs to describe the control-plane/native-tool split.
 - 2026-05-22 17:41 CEST — [S:20260522|W:task120-fresh-local-install-proof|H:codex:verify|E:docs/ai/work-tracking/active/20260522-task120-fresh-local-install-proof-ACTIVE/reports/fresh-local-install-proof/final-verification.md] Completed final verification for Task 120.
+- 2026-05-23 13:32 CEST — Archived active work-tracking folder.

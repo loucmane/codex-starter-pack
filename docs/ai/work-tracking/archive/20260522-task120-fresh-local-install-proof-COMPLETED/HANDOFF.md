@@ -11,3 +11,4 @@
 - Close Task 120 after final verification and commit/push the local-proof branch.
 - Start the follow-up UX hardening task before TestPyPI/PyPI: improve `aegis.log` canonical surface defaults, closeout repair guidance, and pending-event ergonomics.
 - Continue toward TestPyPI only after the hardening task passes its local verification.
+- Archived on 2026-05-23 13:32 CEST — Folder moved to archive and tracker marked COMPLETED.
