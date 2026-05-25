@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -70,6 +71,14 @@ AEGIS_LOG_SURFACES = {
     "decisions": "DECISIONS.md",
 }
 AEGIS_DEFAULT_LOG_SURFACES = ("implementation", "changelog", "handoff")
+AEGIS_LOG_EVENT_CLASSES = ("scope", "implementation", "verification", "note")
+AEGIS_EVENT_DEFAULT_LOG_SURFACES = {
+    "scope": ("findings", "decisions", "handoff"),
+    "implementation": ("implementation", "changelog", "handoff"),
+    "verification": ("implementation", "changelog", "handoff"),
+    "note": AEGIS_DEFAULT_LOG_SURFACES,
+}
+AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 
 CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
@@ -260,7 +269,7 @@ def profile_payload() -> dict[str, Any]:
                 "cold-session mutation blocked",
                 "Aegis-native kickoff reaches READY without Taskmaster or Serena",
                 "READY evidence write allowed",
-                "aegis log updates session, tracker, implementation, changelog, handoff, and explicit plan surfaces",
+                "aegis log updates session, tracker, event-aware canonical surfaces, and explicit plan evidence",
                 "aegis closeout blocks completion until strict verification, plan evidence, and semantic handoff pass",
             ],
         },
@@ -328,11 +337,11 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness, mark `plan-step-scope` complete with `aegis log`, make the task-scoped code change, let PostToolUse create pending tracking, run `aegis log` for the changed source file with `--plan-step plan-step-implement`, run task-specific verification with `--plan-step plan-step-verify`, run `aegis verify --strict`, log the strict verification report with `--plan-step plan-step-verify`, then run `aegis closeout` before declaring the work complete.",
-            "- After every meaningful mutation, run `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, implementation log, changelog, and handoff.",
+            "- Normal feature work is: confirm readiness, mark `plan-step-scope` complete with `aegis log`, make the task-scoped code change, let PostToolUse create pending tracking, run `aegis log --pending-id current` for the changed source file with `--plan-step plan-step-implement`, run task-specific verification with `--plan-step plan-step-verify`, run `aegis verify --strict`, log the strict verification report with `--pending-id current --plan-step plan-step-verify`, then run `aegis closeout` before declaring the work complete.",
+            "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
-            "- Use `--surface findings` or `--surface decisions` when the mutation also records a finding or decision. Use `--plan-step` and `--plan-status` for explicit scope/implement/verify transitions.",
+            "- Omit `--surface` for event-aware defaults. Scope logs update findings, decisions, and handoff; implementation and verification logs update implementation, changelog, and handoff. Use `--surface` only for targeted repairs.",
             "- `aegis closeout --update-handoff` may refresh Aegis-owned semantic handoff sections before validation. It preserves the Progress Log.",
             "",
         ]
@@ -377,14 +386,14 @@ def _render_claude_entrypoint() -> bytes:
             "Normal feature-work loop:",
             "",
             "1. Confirm readiness is READY.",
-            "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --surface findings --surface decisions --plan-step plan-step-scope --plan-status completed`.",
+            "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --plan-step plan-step-scope --plan-status completed`.",
             "3. Make the task-scoped source change requested by the user with native Edit/Write tools.",
-            "4. After the hook records pending tracking, run `aegis log --handler <handler> --evidence <changed-file> --note \"<past-tense note>\" --plan-step plan-step-implement --plan-status completed`.",
+            "4. After the hook records pending tracking, run `aegis log --pending-id current --note \"<past-tense note>\" --plan-step plan-step-implement --plan-status completed`.",
             "5. Run task-specific verification and log it with `--plan-step plan-step-verify --plan-status completed`.",
-            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log `.aegis/reports/verification-report.json` with `aegis log --handler aegis:verify --evidence .aegis/reports/verification-report.json --note \"Recorded strict verification evidence\" --plan-step plan-step-verify --plan-status completed`.",
+            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note \"Recorded strict verification evidence\" --plan-step plan-step-verify --plan-status completed`.",
             "7. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
             "",
-            "After any mutation, use `aegis log --handler <handler> --evidence <path> --note \"<past-tense note>\"` before attempting the next mutation. The command updates the session, tracker, implementation log, changelog, and handoff. It updates plan evidence only when `--plan-step` is supplied.",
+            "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\"` before attempting the next mutation. Use explicit `--handler` and `--evidence` only when no pending event exists. The command updates the session, tracker, event-aware canonical surfaces, and plan evidence only when `--plan-step` is supplied.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
             "",
         ]
@@ -1346,6 +1355,39 @@ def _write_text(target_root: Path, rel_path: str, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _quote_cli(value: str) -> str:
+    return shlex.quote(value)
+
+
+def _workflow_next_action(
+    action: str,
+    message: str,
+    *,
+    suggested_cli: str | None = None,
+    suggested_mcp_tool: str | None = None,
+    suggested_mcp_arguments: Mapping[str, Any] | None = None,
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "action": action,
+        "message": message,
+        "native_tools_policy": (
+            "Use native agent tools for source reads, edits, and project tests. "
+            "Use Aegis CLI/MCP only for workflow state: install, kickoff, log, verify, closeout."
+        ),
+    }
+    if suggested_cli:
+        payload["suggested_cli"] = suggested_cli
+    if suggested_mcp_tool:
+        payload["suggested_mcp"] = {
+            "tool": suggested_mcp_tool,
+            "arguments": dict(suggested_mcp_arguments or {}),
+        }
+    if details:
+        payload["details"] = dict(details)
+    return payload
+
+
 def _update_manifest_after_kickoff(target_root: Path) -> None:
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest = _read_json(manifest_path)
@@ -1479,6 +1521,31 @@ def kickoff(
         "paths": current_work["paths"],
         "integrations": current_work["integrations"],
         "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        "next_action": _workflow_next_action(
+            "log_scope_before_edit",
+            "Before any source edit, record scope against plan-step-scope so closeout can pass first time.",
+            suggested_cli=(
+                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
+                "--note 'Confirmed task scope before implementation' "
+                "--plan-step plan-step-scope --plan-status completed"
+            ),
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "handler": "claude:scope",
+                "evidence": f"{work_rel}/FINDINGS.md",
+                "note": "Confirmed task scope before implementation",
+                "event_class": "scope",
+                "plan_step": "plan-step-scope",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            details={
+                "scope_evidence": f"{work_rel}/FINDINGS.md",
+                "required_before": "native source edits",
+            },
+        ),
     }
     _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
     return report
@@ -1527,8 +1594,76 @@ def _append_progress_entry(path: Path, heading: str, line: str) -> None:
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
-def _normalize_log_surfaces(surfaces: Sequence[str] | None) -> tuple[str, ...]:
-    selected = tuple(surfaces or AEGIS_DEFAULT_LOG_SURFACES)
+def _normalize_log_event_class(value: str | None) -> str:
+    clean = (value or "").strip().lower().replace("-", "_")
+    aliases = {
+        "implement": "implementation",
+        "implementation": "implementation",
+        "verify": "verification",
+        "verification": "verification",
+        "scope": "scope",
+        "note": "note",
+        "generic": "note",
+    }
+    if not clean:
+        return ""
+    if clean not in aliases:
+        choices = ", ".join(AEGIS_LOG_EVENT_CLASSES)
+        raise AegisError(f"unknown log event class: {value}; expected one of: {choices}")
+    return aliases[clean]
+
+
+def _infer_log_event_class(
+    *,
+    plan_step: str | None,
+    handler: str,
+    evidence: str,
+    explicit_event_class: str | None = None,
+) -> str:
+    explicit = _normalize_log_event_class(explicit_event_class)
+    if explicit:
+        return explicit
+
+    step = (plan_step or "").strip().lower()
+    if "scope" in step:
+        return "scope"
+    if "verify" in step:
+        return "verification"
+    if "implement" in step:
+        return "implementation"
+
+    handler_lower = handler.lower()
+    evidence_lower = evidence.lower()
+    if "scope" in handler_lower:
+        return "scope"
+    if (
+        "verify" in handler_lower
+        or "verification" in handler_lower
+        or evidence_lower == AEGIS_VERIFY_REPORT_REL.lower()
+        or "/verification" in evidence_lower
+        or evidence_lower.endswith("verification-report.json")
+    ):
+        return "verification"
+    if (
+        "write" in handler_lower
+        or "edit" in handler_lower
+        or "implement" in handler_lower
+        or "bash" in handler_lower
+    ):
+        return "implementation"
+    return "note"
+
+
+def _default_log_surfaces_for_event(event_class: str) -> tuple[str, ...]:
+    return AEGIS_EVENT_DEFAULT_LOG_SURFACES.get(event_class, AEGIS_DEFAULT_LOG_SURFACES)
+
+
+def _normalize_log_surfaces(
+    surfaces: Sequence[str] | None,
+    *,
+    default_surfaces: Sequence[str] = AEGIS_DEFAULT_LOG_SURFACES,
+) -> tuple[str, ...]:
+    selected = tuple(default_surfaces if surfaces is None else surfaces)
     if not selected:
         return ()
     normalized: list[str] = []
@@ -1658,26 +1793,190 @@ def _write_pending_tracking_events(target_root: Path, events: list[dict[str, Any
     )
 
 
+def _event_matches_current_work(event: Mapping[str, Any], *, task_id: str, slug: str) -> bool:
+    task = event.get("task") if isinstance(event.get("task"), Mapping) else {}
+    return str(task.get("id") or "") == task_id and str(task.get("slug") or "") == slug
+
+
+def _resolve_pending_tracking_event(
+    events: Sequence[Mapping[str, Any]],
+    pending_event_id: str,
+    *,
+    task_id: str,
+    slug: str,
+) -> Mapping[str, Any]:
+    clean = pending_event_id.strip()
+    if not clean:
+        raise AegisError("pending event id cannot be empty")
+    current_events = [
+        event
+        for event in events
+        if _event_matches_current_work(event, task_id=task_id, slug=slug)
+    ]
+    if clean in AEGIS_PENDING_EVENT_SENTINELS:
+        if len(current_events) != 1:
+            valid = ", ".join(str(event.get("id") or "unknown") for event in current_events) or "<none>"
+            raise AegisError(
+                f"pending event sentinel '{clean}' requires exactly one current-work event; valid ids: {valid}"
+            )
+        return current_events[0]
+    matches = [event for event in current_events if str(event.get("id") or "") == clean]
+    if len(matches) == 1:
+        return matches[0]
+    valid = ", ".join(str(event.get("id") or "unknown") for event in current_events) or "<none>"
+    raise AegisError(f"unknown pending event id: {clean}; valid ids: {valid}")
+
+
 def _format_pending_tracking_for_error(events: Sequence[Mapping[str, Any]]) -> str:
     lines = []
     for event in events:
+        event_id = event.get("id", "unknown")
         lines.append(
-            f"- {event.get('id', 'unknown')}: "
+            f"- {event_id}: "
             f"H={event.get('handler', 'unknown')} "
             f"E={event.get('evidence', 'unknown')}"
         )
+        location = event.get("evidence_location")
+        if isinstance(location, Mapping) and location.get("display"):
+            lines.append(
+                f"  location: {location['display']} ({location.get('confidence', 'unknown')})"
+            )
+        lines.append(
+            "  repair: aegis log --pending-id "
+            f"{event_id} --note \"<past-tense note>\" "
+            "--plan-step <plan-step-id> --plan-status completed"
+        )
     return "\n".join(lines)
+
+
+def _evidence_file_location(target_root: Path, evidence_rel: str) -> dict[str, Any] | None:
+    if not evidence_rel or evidence_rel.startswith("cmd`"):
+        return None
+    path = Path(evidence_rel)
+    resolved = path if path.is_absolute() else target_root / evidence_rel
+    try:
+        line_count = len(resolved.read_text(encoding="utf-8").splitlines())
+    except (FileNotFoundError, OSError, UnicodeDecodeError):
+        return None
+    line_start = 1 if line_count > 0 else None
+    line_end = line_count if line_count > 0 else None
+    display = evidence_rel
+    if line_start is not None:
+        display = f"{evidence_rel}:{line_start}" if line_end == line_start else f"{evidence_rel}:{line_start}-{line_end}"
+    return {
+        "path": evidence_rel,
+        "line_start": line_start,
+        "line_end": line_end,
+        "line_count": line_count,
+        "source": "log_file_snapshot",
+        "confidence": "file_snapshot",
+        "display": display,
+    }
+
+
+def _next_action_after_log(
+    *,
+    remaining: Sequence[Mapping[str, Any]],
+    normalized_plan_step: str,
+    normalized_plan_status: str,
+    evidence_rel: str,
+    work_rel: str,
+) -> dict[str, Any]:
+    if remaining:
+        event_ids = [str(event.get("id") or "unknown") for event in remaining]
+        return _workflow_next_action(
+            "log_remaining_pending_event",
+            "A pending mutation still exists. Log it before any further mutation or closeout.",
+            suggested_cli=(
+                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                "--note '<past-tense note>' --plan-step <plan-step-id> --plan-status completed"
+            ),
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "pending_event_id": "current",
+                "note": "<past-tense note>",
+                "plan_step": "<plan-step-id>",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            details={"remaining_pending_event_ids": event_ids},
+        )
+    if normalized_plan_step == "plan-step-scope" and normalized_plan_status == "completed":
+        return _workflow_next_action(
+            "make_task_scoped_source_change",
+            "Scope is logged. Make the requested code/docs change with native tools, then log the pending event.",
+            details={
+                "after_mutation": (
+                    "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                    "--note '<past-tense note>' --plan-step plan-step-implement --plan-status completed"
+                )
+            },
+        )
+    if normalized_plan_step == "plan-step-implement" and normalized_plan_status == "completed":
+        verification_rel = f"{work_rel}/reports/<slug>/task-verification.md"
+        return _workflow_next_action(
+            "run_task_specific_verification",
+            "Implementation is logged. Run the project's relevant verification and save a short report before strict Aegis verify.",
+            suggested_cli=(
+                f"# write verification evidence, then:\n"
+                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                "--note 'Recorded task-specific verification evidence' "
+                "--plan-step plan-step-verify --plan-status completed"
+            ),
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "pending_event_id": "current",
+                "note": "Recorded task-specific verification evidence",
+                "plan_step": "plan-step-verify",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            details={"verification_report_pattern": verification_rel},
+        )
+    if normalized_plan_step == "plan-step-verify" and normalized_plan_status == "completed":
+        if evidence_rel == AEGIS_VERIFY_REPORT_REL:
+            return _workflow_next_action(
+                "run_closeout",
+                "Strict verification is logged. Run closeout before reporting the task complete.",
+                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --update-handoff",
+                suggested_mcp_tool="aegis.closeout",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "acknowledge_report_write": True,
+                    "update_handoff": True,
+                },
+            )
+        return _workflow_next_action(
+            "run_strict_verify",
+            "Task-specific verification is logged. Run strict Aegis verification next, then log its pending event.",
+            suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
+            suggested_mcp_tool="aegis.verify",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "strict": True,
+                "acknowledge_report_write": True,
+            },
+        )
+    return _workflow_next_action(
+        "continue_workflow",
+        "Progress was logged. Check readiness and pending tracking before the next mutation.",
+        suggested_cli="bash .claude/scripts/readiness.sh --quick --root .",
+    )
 
 
 def log_work(
     target_dir: str | Path,
     *,
-    handler: str,
-    evidence: str,
+    handler: str | None = None,
+    evidence: str | None = None,
     note: str,
     surfaces: Sequence[str] | None = None,
     plan_step: str | None = None,
     plan_status: str | None = "in-progress",
+    event_class: str | None = None,
+    pending_event_id: str | None = None,
 ) -> dict[str, Any]:
     """Append S:W:H:E progress entries, update workflow surfaces, and clear pending tracking."""
 
@@ -1689,10 +1988,7 @@ def log_work(
     slug = str(task.get("slug") or "").strip()
     if not task_id or not slug:
         raise AegisError("current work task id and slug are required before logging")
-    clean_handler = handler.strip()
     clean_note = note.strip()
-    if not clean_handler:
-        raise AegisError("handler is required")
     if not clean_note:
         raise AegisError("note is required")
 
@@ -1704,10 +2000,45 @@ def log_work(
     session_path = target_root / session_rel
     plan_path = target_root / plan_rel
     tracker_path = target_root / work_rel / "TRACKER.md"
-    evidence_rel = _normalize_evidence(target_root, evidence)
-    log_surfaces = _normalize_log_surfaces(surfaces)
+
+    pending_before = _pending_tracking_events(target_root)
+    resolved_pending_event: Mapping[str, Any] | None = None
+    if pending_event_id:
+        resolved_pending_event = _resolve_pending_tracking_event(
+            pending_before,
+            pending_event_id,
+            task_id=task_id,
+            slug=slug,
+        )
+        handler = str(resolved_pending_event.get("handler") or "")
+        evidence = str(resolved_pending_event.get("evidence") or "")
+
+    clean_handler = (handler or "").strip()
+    if not clean_handler:
+        raise AegisError("handler is required unless --pending-id identifies a pending event")
+    evidence_rel = _normalize_evidence(target_root, evidence or "")
+    pending_location = (
+        resolved_pending_event.get("evidence_location")
+        if isinstance(resolved_pending_event, Mapping)
+        else None
+    )
+    evidence_location = (
+        dict(pending_location)
+        if isinstance(pending_location, Mapping)
+        else _evidence_file_location(target_root, evidence_rel)
+    )
     normalized_plan_step = plan_step.strip() if plan_step else ""
     normalized_plan_status = _normalize_plan_status(plan_status) if normalized_plan_step else ""
+    normalized_event_class = _infer_log_event_class(
+        plan_step=normalized_plan_step,
+        handler=clean_handler,
+        evidence=evidence_rel,
+        explicit_event_class=event_class,
+    )
+    log_surfaces = _normalize_log_surfaces(
+        surfaces,
+        default_surfaces=_default_log_surfaces_for_event(normalized_event_class),
+    )
 
     now = datetime.now().astimezone().replace(microsecond=0)
     session_value = now.strftime("%Y%m%d")
@@ -1717,12 +2048,19 @@ def log_work(
     session_line = f"- **[{now.strftime('%H:%M')}]** - {swhe} {clean_note}"
     tracker_line = f"- **{now.strftime('%Y-%m-%d %H:%M %Z').strip()}** - {swhe} {clean_note}"
 
-    pending_before = _pending_tracking_events(target_root)
-    cleared = [
-        event
-        for event in pending_before
-        if str(event.get("evidence") or "") == evidence_rel
-    ]
+    if resolved_pending_event is not None:
+        resolved_id = str(resolved_pending_event.get("id") or "")
+        cleared = [
+            event
+            for event in pending_before
+            if str(event.get("id") or "") == resolved_id
+        ]
+    else:
+        cleared = [
+            event
+            for event in pending_before
+            if str(event.get("evidence") or "") == evidence_rel
+        ]
     if pending_before and not cleared:
         pending_summary = _format_pending_tracking_for_error(pending_before)
         raise AegisError(
@@ -1752,30 +2090,43 @@ def log_work(
         )
         _update_tracker_plan_step(tracker_path, normalized_plan_step, normalized_plan_status)
 
-    remaining = [
-        event
-        for event in pending_before
-        if str(event.get("evidence") or "") != evidence_rel
-    ]
+    if resolved_pending_event is not None:
+        resolved_id = str(resolved_pending_event.get("id") or "")
+        remaining = [
+            event
+            for event in pending_before
+            if str(event.get("id") or "") != resolved_id
+        ]
+    else:
+        remaining = [
+            event
+            for event in pending_before
+            if str(event.get("evidence") or "") != evidence_rel
+        ]
     _write_pending_tracking_events(target_root, remaining)
 
     current_work["updated_at"] = _iso_now()
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+
+    entry_payload: dict[str, Any] = {
+        "session": session_line,
+        "tracker": tracker_line,
+        "s": session_value,
+        "w": work_context,
+        "h": clean_handler,
+        "e": evidence_rel,
+        "note": clean_note,
+        "event_class": normalized_event_class,
+    }
+    if evidence_location:
+        entry_payload["evidence_location"] = evidence_location
 
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "logged",
         "logged_at": _iso_now(),
         "target_root": str(target_root),
-        "entry": {
-            "session": session_line,
-            "tracker": tracker_line,
-            "s": session_value,
-            "w": work_context,
-            "h": clean_handler,
-            "e": evidence_rel,
-            "note": clean_note,
-        },
+        "entry": entry_payload,
         "paths": {
             "session": session_rel,
             "plan": plan_rel,
@@ -1793,7 +2144,15 @@ def log_work(
             "cleared": len(cleared),
             "remaining": len(remaining),
             "cleared_events": cleared,
+            "pending_event_id": pending_event_id or None,
         },
+        "next_action": _next_action_after_log(
+            remaining=remaining,
+            normalized_plan_step=normalized_plan_step,
+            normalized_plan_status=normalized_plan_status,
+            evidence_rel=evidence_rel,
+            work_rel=work_rel,
+        ),
     }
 
 
@@ -2409,6 +2768,22 @@ def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = Fa
                 "warnings": 0,
                 "unsupported": 0,
             },
+            "next_action": _workflow_next_action(
+                "install_aegis_before_verify",
+                "Aegis is not installed in this target. Install it before running strict verification.",
+                suggested_cli=(
+                    "./.aegis/bin/aegis install --target-dir . "
+                    "--primary-agent claude --agent claude --apply"
+                ),
+                suggested_mcp_tool="aegis.install",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "profile": "generic",
+                    "primary_agent": "claude",
+                    "agents": ["claude"],
+                    "apply": True,
+                },
+            ),
         }
         _write_verify_report(target_root, report)
         return report
@@ -2455,6 +2830,50 @@ def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = Fa
             "unsupported": sum(1 for check in checks if check.get("status") == "unsupported"),
         },
         "checks": checks,
+        "next_action": (
+            _workflow_next_action(
+                "log_strict_verification_before_closeout",
+                "Strict verification passed. Log the verification evidence against plan-step-verify before closeout.",
+                suggested_cli=(
+                    "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                    "--note 'Recorded strict verification evidence' "
+                    "--plan-step plan-step-verify --plan-status completed"
+                ),
+                suggested_mcp_tool="aegis.log",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "pending_event_id": "current",
+                    "note": "Recorded strict verification evidence",
+                    "plan_step": "plan-step-verify",
+                    "plan_status": "completed",
+                    "apply": True,
+                },
+                details={"evidence": AEGIS_VERIFY_REPORT_REL},
+            )
+            if strict and not failed_required
+            else _workflow_next_action(
+                "repair_verify_failures",
+                "Verification failed. Fix failed required checks before closeout.",
+                details={
+                    "failed_required_gates": [
+                        str(check.get("gate_id"))
+                        for check in failed_required
+                    ]
+                },
+            )
+            if failed_required
+            else _workflow_next_action(
+                "standard_verify_complete",
+                "Standard verification report was written. Run strict verification before closeout.",
+                suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
+                suggested_mcp_tool="aegis.verify",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "strict": True,
+                    "acknowledge_report_write": True,
+                },
+            )
+        ),
     }
     _write_verify_report(target_root, report)
     if report["status"] == "passed":
@@ -2787,6 +3206,152 @@ def _closeout_git_report(target_root: Path, *, require_clean_git: bool, include_
     }, checks
 
 
+SWHE_LINE_RE = re.compile(
+    r"\[S:(?P<s>[^\]|]+)\|W:(?P<w>[^\]|]+)\|H:(?P<h>[^\]|]+)\|E:(?P<e>[^\]]+)\]\s*(?P<note>.*)"
+)
+
+
+def _swhe_entries_by_evidence(surface_texts: Mapping[str, str]) -> dict[str, list[dict[str, str]]]:
+    entries: dict[str, list[dict[str, str]]] = {}
+    for surface, text in surface_texts.items():
+        for line in text.splitlines():
+            match = SWHE_LINE_RE.search(line)
+            if not match:
+                continue
+            evidence = match.group("e")
+            entries.setdefault(evidence, []).append(
+                {
+                    "surface": surface,
+                    "handler": match.group("h"),
+                    "note": match.group("note").strip(),
+                }
+            )
+    return entries
+
+
+def _suggested_plan_step_for_evidence(
+    evidence: str,
+    *,
+    implementation_tokens: Sequence[str],
+    verification_tokens: Sequence[str],
+    strict_verify_rel: str,
+) -> str | None:
+    if evidence == strict_verify_rel or evidence in verification_tokens:
+        return "plan-step-verify"
+    if evidence in implementation_tokens:
+        return "plan-step-implement"
+    return None
+
+
+def _build_closeout_repair_guidance(
+    *,
+    surface_texts: Mapping[str, str],
+    evidence_matrix: Mapping[str, Mapping[str, bool]],
+    implementation_tokens: Sequence[str],
+    verification_tokens: Sequence[str],
+    strict_verify_rel: str,
+    pending_events: Sequence[Mapping[str, Any]],
+    checks: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    entries_by_evidence = _swhe_entries_by_evidence(surface_texts)
+    repair_items: list[dict[str, Any]] = []
+    for evidence, surfaces in evidence_matrix.items():
+        present_entries = entries_by_evidence.get(evidence, [])
+        inferred = present_entries[0] if present_entries else {}
+        handler = inferred.get("handler")
+        note = inferred.get("note")
+        suggested_plan_step = _suggested_plan_step_for_evidence(
+            evidence,
+            implementation_tokens=implementation_tokens,
+            verification_tokens=verification_tokens,
+            strict_verify_rel=strict_verify_rel,
+        )
+        suggested_event_class = _infer_log_event_class(
+            plan_step=suggested_plan_step,
+            handler=handler or "",
+            evidence=evidence,
+        )
+        for surface, present in surfaces.items():
+            if present:
+                continue
+            item: dict[str, Any] = {
+                "kind": "missing_evidence_reference",
+                "surface": surface,
+                "evidence": evidence,
+                "suggested_event_class": suggested_event_class,
+                "suggested_plan_step": suggested_plan_step,
+                "source_surface": inferred.get("surface"),
+                "handler": handler,
+                "note": note,
+            }
+            if handler and note:
+                command_parts = [
+                    "aegis",
+                    "log",
+                    "--handler",
+                    _quote_cli(handler),
+                    "--evidence",
+                    _quote_cli(evidence),
+                    "--note",
+                    _quote_cli(note),
+                ]
+                if surface in AEGIS_LOG_SURFACES:
+                    command_parts.extend(["--surface", _quote_cli(surface)])
+                elif surface == "plan" and suggested_plan_step:
+                    command_parts.extend(
+                        [
+                            "--plan-step",
+                            _quote_cli(suggested_plan_step),
+                            "--plan-status",
+                            "completed",
+                        ]
+                    )
+                item["command"] = " ".join(command_parts)
+            else:
+                command_template = (
+                    "aegis log --handler <handler> --evidence "
+                    f"{_quote_cli(evidence)} --note \"<past-tense note>\""
+                )
+                if surface in AEGIS_LOG_SURFACES:
+                    command_template = f"{command_template} --surface {_quote_cli(surface)}"
+                elif surface == "plan" and suggested_plan_step:
+                    command_template = (
+                        f"{command_template} --plan-step {_quote_cli(suggested_plan_step)} "
+                        "--plan-status completed"
+                    )
+                item["command_template"] = command_template
+            repair_items.append(item)
+
+    for event in pending_events:
+        event_id = str(event.get("id") or "")
+        repair_items.append(
+            {
+                "kind": "pending_tracking_event",
+                "pending_event_id": event_id,
+                "handler": event.get("handler"),
+                "evidence": event.get("evidence"),
+                "command_template": (
+                    "aegis log --pending-id "
+                    f"{_quote_cli(event_id)} --note \"<past-tense note>\" "
+                    "--plan-step <plan-step-id> --plan-status completed"
+                ),
+            }
+        )
+
+    failing_gate_ids = [
+        str(check.get("gate_id"))
+        for check in checks
+        if check.get("required") and check.get("status") == "fail"
+    ]
+    return {
+        "summary": {
+            "items": len(repair_items),
+            "failing_required_gates": failing_gate_ids,
+        },
+        "items": repair_items,
+    }
+
+
 def closeout(
     target_dir: str | Path,
     *,
@@ -3002,6 +3567,15 @@ def closeout(
 
     failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
     status_value = "failed" if failed_required else "passed"
+    repair_guidance = _build_closeout_repair_guidance(
+        surface_texts=surface_texts,
+        evidence_matrix=evidence_matrix,
+        implementation_tokens=implementation_tokens,
+        verification_tokens=verification_tokens,
+        strict_verify_rel=strict_verify_rel,
+        pending_events=pending_events,
+        checks=checks,
+    )
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "status": status_value,
@@ -3030,12 +3604,40 @@ def closeout(
         },
         "integrations": integration_report,
         "git": git_report,
+        "repair_guidance": repair_guidance,
         "checks": checks,
         "summary": {
             "total": len(checks),
             "failed_required": len(failed_required),
             "warnings": 0,
         },
+        "next_action": (
+            _workflow_next_action(
+                "task_complete",
+                "Closeout passed. It is now valid to report the task complete and proceed with normal git/GitHub commands.",
+                suggested_cli="git status --short",
+                details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+            )
+            if status_value == "passed"
+            else _workflow_next_action(
+                "repair_closeout_gates_before_retry",
+                "Closeout failed. Do not report the task complete; apply repair_guidance and retry closeout.",
+                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --update-handoff",
+                suggested_mcp_tool="aegis.closeout",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "acknowledge_report_write": True,
+                    "update_handoff": True,
+                },
+                details={
+                    "failed_required_gates": [
+                        str(check.get("gate_id"))
+                        for check in failed_required
+                    ],
+                    "repair_items": repair_guidance["summary"]["items"],
+                },
+            )
+        ),
     }
     if status_value == "passed":
         report["closed_at"] = _iso_now()

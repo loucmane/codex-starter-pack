@@ -369,6 +369,10 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         {"tool_name": "Write", "tool_input": {"file_path": evidence_path}},
     )
     assert tracked.returncode == 0, tracked.stderr
+    pending_payload = json.loads((target / AEGIS_PENDING_TRACKING_REL).read_text(encoding="utf-8"))
+    pending_event = pending_payload["events"][0]
+    assert pending_event["evidence_location"]["path"] == evidence_path
+    assert pending_event["evidence_location"]["display"] == f"{evidence_path}:1"
     pending_next = run_target_pretooluse(
         target,
         {
@@ -398,6 +402,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     )
     assert logged["status"] == "logged"
     assert logged["pending"]["cleared"] == 1
+    assert logged["entry"]["evidence_location"]["display"] == f"{evidence_path}:1"
     session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
     tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
     plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
@@ -459,6 +464,243 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     )
     assert protected.returncode == 2
     assert "Protected path(s):" in protected.stderr
+
+
+def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
+    target = tmp_path / "event-aware-log-surfaces"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    started = kickoff(target, task_id="42", slug="surface-defaults", title="Surface Defaults")
+    assert started["next_action"]["action"] == "log_scope_before_edit"
+    assert started["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
+    assert started["next_action"]["suggested_mcp"]["arguments"]["plan_step"] == "plan-step-scope"
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    reports_rel = current_work["paths"]["reports"]
+    implementation_evidence = f"{reports_rel}/implementation.txt"
+    (target / implementation_evidence).write_text("implementation\n", encoding="utf-8")
+
+    scope = log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed event-aware logging scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    assert scope["entry"]["event_class"] == "scope"
+    assert set(scope["paths"]["surfaces"]) == {"findings", "decisions", "handoff"}
+    assert scope["next_action"]["action"] == "make_task_scoped_source_change"
+
+    implementation = log_work(
+        target,
+        handler="claude:Write",
+        evidence=implementation_evidence,
+        note="Captured implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    assert implementation["entry"]["event_class"] == "implementation"
+    assert set(implementation["paths"]["surfaces"]) == {"implementation", "changelog", "handoff"}
+    assert implementation["next_action"]["action"] == "run_task_specific_verification"
+
+    verification = log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    assert verification["entry"]["event_class"] == "verification"
+    assert set(verification["paths"]["surfaces"]) == {"implementation", "changelog", "handoff"}
+    assert verification["next_action"]["action"] == "run_closeout"
+
+    explicit = log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/DECISIONS.md",
+        note="Recorded explicit surface override",
+        surfaces=["decisions"],
+    )
+    assert explicit["entry"]["event_class"] == "scope"
+    assert set(explicit["paths"]["surfaces"]) == {"decisions"}
+
+
+def test_log_work_consumes_pending_event_by_id(tmp_path: Path) -> None:
+    target = tmp_path / "pending-id-log"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="pending-id", title="Pending Id")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    evidence_rel = f"{current_work['paths']['reports']}/pending-id.txt"
+    (target / evidence_rel).write_text("pending\n", encoding="utf-8")
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    pending_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "updated_at": "2026-05-23T12:00:00Z",
+                "events": [
+                    {
+                        "id": "abc123def456",
+                        "created_at": "2026-05-23T12:00:00Z",
+                        "updated_at": "2026-05-23T12:00:00Z",
+                        "tool": "Write",
+                        "handler": "claude:Write",
+                        "evidence": evidence_rel,
+                        "evidence_location": {
+                            "path": evidence_rel,
+                            "line_start": 1,
+                            "line_end": 1,
+                            "line_count": 1,
+                            "source": "write_file_snapshot",
+                            "confidence": "file_snapshot",
+                            "display": f"{evidence_rel}:1",
+                        },
+                        "task": {"id": "42", "slug": "pending-id"},
+                    }
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AegisError, match="valid ids: abc123def456"):
+        log_work(target, pending_event_id="missing", note="Tried missing pending id")
+
+    logged = log_work(
+        target,
+        pending_event_id="abc123def456",
+        note="Logged pending event by id",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    assert logged["entry"]["h"] == "claude:Write"
+    assert logged["entry"]["e"] == evidence_rel
+    assert logged["entry"]["evidence_location"]["display"] == f"{evidence_rel}:1"
+    assert logged["pending"]["cleared"] == 1
+    assert logged["pending"]["pending_event_id"] == "abc123def456"
+    assert not pending_path.exists()
+
+
+def test_mcp_verify_pending_event_uses_strict_report_evidence(tmp_path: Path) -> None:
+    target = tmp_path / "mcp-verify-pending"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="mcp-verify", title="MCP Verify")
+    (target / AEGIS_VERIFY_REPORT_REL).parent.mkdir(parents=True, exist_ok=True)
+    (target / AEGIS_VERIFY_REPORT_REL).write_text("{}\n", encoding="utf-8")
+
+    tracked = run_target_posttooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_verify",
+            "tool_input": {
+                "target_dir": target.as_posix(),
+                "strict": True,
+                "acknowledge_report_write": True,
+            },
+        },
+    )
+
+    assert tracked.returncode == 0, tracked.stderr
+    pending_payload = json.loads((target / AEGIS_PENDING_TRACKING_REL).read_text(encoding="utf-8"))
+    event = pending_payload["events"][0]
+    assert event["handler"] == "aegis:verify"
+    assert event["evidence"] == AEGIS_VERIFY_REPORT_REL
+    assert event["evidence_location"]["path"] == AEGIS_VERIFY_REPORT_REL
+
+
+def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> None:
+    target = tmp_path / "closeout-repair-guidance"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="repair-guidance", title="Repair Guidance")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    implementation_evidence = f"{current_work['paths']['reports']}/implementation.txt"
+    (target / implementation_evidence).write_text("implementation\n", encoding="utf-8")
+
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed repair guidance scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Write",
+        evidence=implementation_evidence,
+        note="Captured implementation evidence with an intentionally missing changelog reference",
+        surfaces=["implementation", "handoff"],
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence with an intentionally missing changelog reference",
+        surfaces=["implementation", "handoff"],
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+
+    failed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+
+    assert failed["status"] == "failed"
+    repair_items = failed["repair_guidance"]["items"]
+    changelog_repairs = [
+        item
+        for item in repair_items
+        if item["kind"] == "missing_evidence_reference"
+        and item["surface"] == "changelog"
+        and item["evidence"] == implementation_evidence
+    ]
+    assert changelog_repairs
+    assert "--surface changelog" in changelog_repairs[0]["command"]
+    assert implementation_evidence in changelog_repairs[0]["command"]
 
 
 def test_kickoff_ready_state_does_not_depend_on_optional_stale_taskmaster(tmp_path: Path) -> None:
@@ -585,6 +827,9 @@ def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_
         "integrations.serena_optional",
     }.issubset(check_ids)
     assert strict_report["summary"]["failed_required"] == 0
+    assert strict_report["next_action"]["action"] == "log_strict_verification_before_closeout"
+    assert strict_report["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
+    assert strict_report["next_action"]["suggested_mcp"]["arguments"]["pending_event_id"] == "current"
 
 
 def test_local_cli_shim_resolves_packaged_asset_source_root(tmp_path: Path) -> None:
@@ -695,6 +940,8 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
 
     failed = closeout(target, source_root=REPO_ROOT)
     assert failed["status"] == "failed"
+    assert failed["next_action"]["action"] == "repair_closeout_gates_before_retry"
+    assert "closeout.handoff.current_state" in failed["next_action"]["details"]["failed_required_gates"]
     assert any(
         check["gate_id"] == "closeout.handoff.current_state" and check["status"] == "fail"
         for check in failed["checks"]
@@ -702,6 +949,7 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
 
     passed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
     assert passed["status"] == "passed"
+    assert passed["next_action"]["action"] == "task_complete"
     assert passed["summary"]["failed_required"] == 0
     assert passed["git"]["legacy_manual_only"] == ["gac"]
     assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]
