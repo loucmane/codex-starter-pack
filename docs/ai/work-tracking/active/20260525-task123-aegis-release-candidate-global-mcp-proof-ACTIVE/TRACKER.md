@@ -18,10 +18,12 @@
 - **2026-05-25 16:31** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 123 kickoff
 - **2026-05-25 16:31** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:design|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/designs/existing-project-copy-proof.md] Defined the primary acceptance path around a copied existing project and the MCP control-plane/native-tool split
 - **2026-05-25 16:31** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:serena/memory|E:.serena/memories/2026-05-25_task123_aegis_release_candidate_global_mcp_kickoff.md] Captured Task 123 kickoff context and live acceptance boundary
+- **2026-05-25 16:47** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:implement|E:MANIFEST.in] Fixed release artifact packaging so generated `__pycache__` and `.pyc` files under packaged Aegis assets are excluded from sdist/wheel output
+- **2026-05-25 16:47** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:verify|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/artifact-build.md] Built clean local release-candidate wheel/sdist under `/tmp/aegis-task123-dist-clean` and verified required members plus no bytecode cache entries
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
-- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
+- [ ] plan-step-implement — Update workflow/guard/docs and capture tests (in progress)
 - [ ] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
