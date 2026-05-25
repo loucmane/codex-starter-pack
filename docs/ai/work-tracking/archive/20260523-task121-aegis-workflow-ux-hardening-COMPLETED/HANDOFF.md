@@ -19,3 +19,4 @@
 ## Next Steps
 - Keep Task 122 pending for broader `aegis.next`, `plan_step=auto`, MCP prompts, live matrix, and adapter roadmap work.
 - Commit/push Task 121 after final status review, then start Task 122 when ready.
+- Archived on 2026-05-25 13:13 CEST — Folder moved to archive and tracker marked COMPLETED.

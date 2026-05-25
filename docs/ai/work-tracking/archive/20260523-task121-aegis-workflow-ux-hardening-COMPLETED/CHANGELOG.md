@@ -21,3 +21,4 @@
 - **2026-05-25 12:56** — [S:20260525|W:task121-aegis-workflow-ux-hardening|H:codex:implement|E:scripts/codex-guard] Hardened the pre-commit session-date guard to permit completed same-task multi-day session bundles without requiring a bypass.
 - **2026-05-25 12:56** — [S:20260525|W:task121-aegis-workflow-ux-hardening|H:codex:verify|E:cmd`PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_guard_rules.py -k "validate_session"`] Verified the session-date guard change with focused regression tests.
 
+- 2026-05-25 13:13 CEST — Archived active work-tracking folder.
