@@ -73,6 +73,15 @@ MCP_MUTATION_TOOL_RE = re.compile(
     r"^mcp__.*__(add|create|update|set|write|edit|delete|remove|rename|move|parse|expand|generate|archive|init|initialize)",
     re.IGNORECASE,
 )
+AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
+    "inspect",
+    "status",
+    "next",
+    "plan_install",
+    "closeout_ready",
+    "list_profiles",
+    "explain_profile",
+}
 PATH_FIELD_NAMES = {
     "file_path",
     "filepath",
@@ -189,6 +198,11 @@ def mcp_path_values(value: Any) -> list[str]:
 
 def mcp_is_mutation(payload: Payload) -> bool:
     if not is_mcp_tool(payload.tool_name):
+        return False
+    normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+    if "aegis" in normalized and any(
+        normalized.endswith(suffix) for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES
+    ):
         return False
     if MCP_MUTATION_TOOL_RE.search(payload.tool_name):
         return True

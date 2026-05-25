@@ -31,6 +31,7 @@ from scripts._aegis_installer import (
     inspect_project,
     kickoff,
     log_work,
+    next_action,
     plan_install,
     verify,
 )
@@ -148,9 +149,21 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert verify_args.subcommand == "verify"
     assert verify_args.strict is True
 
-    closeout_args = parser.parse_args(["aegis", "closeout", "--target-dir", "/tmp/example", "--update-handoff"])
+    next_args = parser.parse_args(["aegis", "next", "--target-dir", "/tmp/example"])
+    assert next_args.subcommand == "next"
+    assert next_args.target_dir == "/tmp/example"
+
+    closeout_args = parser.parse_args([
+        "aegis",
+        "closeout",
+        "--target-dir",
+        "/tmp/example",
+        "--update-handoff",
+        "--dry-run",
+    ])
     assert closeout_args.subcommand == "closeout"
     assert closeout_args.update_handoff is True
+    assert closeout_args.dry_run is True
 
     certify_args = parser.parse_args([
         "aegis",
@@ -271,6 +284,211 @@ def test_install_verify_and_second_plan_are_idempotent(tmp_path: Path) -> None:
     assert second_plan["summary"]["manual_reviews"] == 0
     assert second_plan["summary"]["conflicts"] == 0
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
+
+
+def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -> None:
+    target = tmp_path / "guided-repo"
+    target.mkdir()
+
+    initial = next_action(target, source_root=REPO_ROOT)
+    assert initial["read_only"] is True
+    assert initial["phase"] == "bootstrap"
+    assert initial["state"] == "not_installed"
+    assert initial["suggested_mcp_call"]["tool"] == "aegis.plan_install"
+
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+
+    installed = next_action(target, source_root=REPO_ROOT)
+    assert installed["phase"] == "start"
+    assert installed["state"] == "installed_no_current_work"
+    assert installed["suggested_mcp_call"]["tool"] == "aegis.kickoff"
+
+
+def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
+    target = tmp_path / "guided-workflow"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    kickoff_report = kickoff(
+        target,
+        task_id="42",
+        slug="guided-task",
+        title="Guided Task",
+        goals=["Exercise next action guidance"],
+    )
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+
+    scope_required = next_action(target, source_root=REPO_ROOT)
+    assert scope_required["phase"] == "scope"
+    assert scope_required["state"] == "scope_required"
+    assert scope_required["suggested_mcp_call"]["tool"] == "aegis.log"
+    assert scope_required["suggested_mcp_call"]["arguments"]["plan_step"] == "auto"
+
+    scope_logged = log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+        note="Confirmed scope before implementation",
+        event_class="scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    assert scope_logged["status"] == "logged"
+
+    implement_required = next_action(target, source_root=REPO_ROOT)
+    assert implement_required["phase"] == "implement"
+    assert implement_required["state"] == "implementation_required"
+    assert "native" in implement_required["architecture_notes"].lower()
+
+    pending_payload = {"tool_name": "Write", "tool_input": {"file_path": f"{current_work['paths']['reports']}/evidence.txt"}}
+    evidence_file = target / current_work["paths"]["reports"] / "evidence.txt"
+    evidence_file.parent.mkdir(parents=True, exist_ok=True)
+    evidence_file.write_text("implementation evidence\n", encoding="utf-8")
+    run_target_posttooluse(target, pending_payload)
+
+    pending_required = next_action(target, source_root=REPO_ROOT)
+    assert pending_required["phase"] == "track"
+    assert pending_required["state"] == "pending_tracking"
+    assert pending_required["suggested_mcp_call"]["arguments"]["pending_event_id"] == "current"
+
+    implementation_logged = log_work(
+        target,
+        pending_event_id="current",
+        note="Recorded implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    assert implementation_logged["status"] == "logged"
+
+    verify_required = next_action(target, source_root=REPO_ROOT)
+    assert verify_required["phase"] == "verify"
+    assert verify_required["state"] == "task_verification_required"
+
+    verification_rel = f"{current_work['paths']['reports']}/task-verification.md"
+    (target / verification_rel).write_text("verification passed\n", encoding="utf-8")
+    log_work(
+        target,
+        handler="claude:verify",
+        evidence=verification_rel,
+        note="Recorded task verification evidence",
+        event_class="verification",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+
+    strict_required = next_action(target, source_root=REPO_ROOT)
+    assert strict_required["state"] == "strict_verification_required"
+    assert strict_required["suggested_mcp_call"]["tool"] == "aegis.verify"
+
+
+def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path: Path) -> None:
+    target = tmp_path / "auto-plan-step"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    kickoff(
+        target,
+        task_id="42",
+        slug="auto-step",
+        title="Auto Step",
+        goals=["Exercise deterministic plan step inference"],
+    )
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+
+    scope = log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+        note="Confirmed scope before implementation",
+        event_class="scope",
+        plan_step="auto",
+        plan_status="completed",
+    )
+    assert scope["plan"]["step"] == "plan-step-scope"
+    assert scope["plan"]["inferred"] is True
+    assert scope["plan"]["inference_reason"] == "event_class=scope"
+
+    evidence_rel = f"{current_work['paths']['reports']}/implementation.txt"
+    evidence_path = target / evidence_rel
+    evidence_path.parent.mkdir(parents=True, exist_ok=True)
+    evidence_path.write_text("implementation evidence\n", encoding="utf-8")
+    run_target_posttooluse(
+        target,
+        {"tool_name": "Write", "tool_input": {"file_path": evidence_rel}},
+    )
+    implementation = log_work(
+        target,
+        pending_event_id="current",
+        note="Recorded implementation evidence",
+        plan_step="auto",
+        plan_status="completed",
+    )
+    assert implementation["plan"]["step"] == "plan-step-implement"
+    assert implementation["plan"]["inferred"] is True
+    assert implementation["plan"]["inference_reason"] == "event_class=implementation"
+
+    verification_report = verify(target, source_root=REPO_ROOT, strict=True)
+    assert verification_report["status"] == "passed"
+    strict_log = log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="auto",
+        plan_status="completed",
+    )
+    assert strict_log["plan"]["step"] == "plan-step-verify"
+    assert strict_log["plan"]["inferred"] is True
+    assert strict_log["plan"]["strict_verification_evidence"] is True
+
+
+def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> None:
+    target = tmp_path / "ambiguous-auto-plan-step"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    kickoff(
+        target,
+        task_id="42",
+        slug="ambiguous-auto",
+        title="Ambiguous Auto",
+        goals=["Exercise ambiguous plan step inference"],
+    )
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+
+    with pytest.raises(AegisError, match="plan-step auto is ambiguous"):
+        log_work(
+            target,
+            handler="claude:scope-write",
+            evidence=f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+            note="Attempted ambiguous auto plan step",
+            plan_step="auto",
+        )
 
 
 def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_path: Path) -> None:
@@ -426,6 +644,9 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         "step": "plan-step-implement",
         "status": "in-progress",
         "evidence": evidence_path,
+        "inferred": False,
+        "inference_reason": None,
+        "strict_verification_evidence": False,
     }
 
     generic_logged = log_work(
@@ -441,6 +662,9 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         "step": None,
         "status": None,
         "evidence": f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+        "inferred": False,
+        "inference_reason": None,
+        "strict_verification_evidence": False,
     }
 
     verify_loop_payload = {
@@ -482,7 +706,7 @@ def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
     started = kickoff(target, task_id="42", slug="surface-defaults", title="Surface Defaults")
     assert started["next_action"]["action"] == "log_scope_before_edit"
     assert started["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
-    assert started["next_action"]["suggested_mcp"]["arguments"]["plan_step"] == "plan-step-scope"
+    assert started["next_action"]["suggested_mcp"]["arguments"]["plan_step"] == "auto"
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     work_rel = current_work["paths"]["work_tracking"]
     reports_rel = current_work["paths"]["reports"]
@@ -639,6 +863,38 @@ def test_mcp_verify_pending_event_uses_strict_report_evidence(tmp_path: Path) ->
     assert event["handler"] == "aegis:verify"
     assert event["evidence"] == AEGIS_VERIFY_REPORT_REL
     assert event["evidence_location"]["path"] == AEGIS_VERIFY_REPORT_REL
+
+
+def test_read_only_aegis_mcp_tools_do_not_create_pending_tracking(tmp_path: Path) -> None:
+    target = tmp_path / "mcp-read-only-pending"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="mcp-read-only", title="MCP Read Only")
+
+    for tool_name in (
+        "mcp__aegis__aegis_inspect",
+        "mcp__aegis__aegis_status",
+        "mcp__aegis__aegis_next",
+        "mcp__aegis__aegis_plan_install",
+        "mcp__aegis__aegis_closeout_ready",
+        "mcp__aegis__aegis_list_profiles",
+        "mcp__aegis__aegis_explain_profile",
+    ):
+        payload = {"tool_name": tool_name, "tool_input": {"target_dir": target.as_posix()}}
+        pretool = run_target_pretooluse(target, payload)
+        assert pretool.returncode == 0, pretool.stderr
+        posttool = run_target_posttooluse(target, payload)
+        assert posttool.returncode == 0, posttool.stderr
+        assert not (target / AEGIS_PENDING_TRACKING_REL).exists(), tool_name
 
 
 def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> None:
@@ -937,6 +1193,19 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
         plan_status="completed",
     )
     assert strict_log["status"] == "logged"
+
+    manifest_before_dry_run = (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
+    handoff_before_dry_run = (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8")
+    dry_failed = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
+    assert dry_failed["status"] == "failed"
+    assert dry_failed["dry_run"] is True
+    assert dry_failed["report_written"] is False
+    assert dry_failed["state_updated"] is False
+    assert dry_failed["handoff"]["updated"] is False
+    assert dry_failed["handoff"]["would_update"] is True
+    assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
+    assert (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8") == manifest_before_dry_run
+    assert (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8") == handoff_before_dry_run
 
     failed = closeout(target, source_root=REPO_ROOT)
     assert failed["status"] == "failed"

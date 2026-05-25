@@ -2,7 +2,7 @@
 
 **Title:** Advance Aegis Workflow Guidance and Adapter Portability
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 62 ✓, 121 ✓
 

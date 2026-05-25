@@ -140,9 +140,11 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
     assert {tool.name for tool in tools} == {
         "aegis.inspect",
         "aegis.status",
+        "aegis.next",
         "aegis.plan_install",
         "aegis.install",
         "aegis.verify",
+        "aegis.closeout_ready",
         "aegis.closeout",
         "aegis.kickoff",
         "aegis.log",
@@ -160,14 +162,21 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
 
+    status_description = tool_by_name(server, "aegis.status").description or ""
+    next_description = tool_by_name(server, "aegis.next").description or ""
     kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
     log_description = tool_by_name(server, "aegis.log").description or ""
     verify_description = tool_by_name(server, "aegis.verify").description or ""
+    closeout_ready_description = tool_by_name(server, "aegis.closeout_ready").description or ""
     closeout_description = tool_by_name(server, "aegis.closeout").description or ""
 
+    assert "next workflow guidance" in status_description
+    assert "next required Aegis workflow action" in next_description
+    assert "read-only" in next_description
     assert "plan-step-scope before source edits" in kickoff_description
     assert "pending_event_id=current" in log_description
     assert "log its pending event before closeout" in verify_description
+    assert "Read-only pre-closeout gate check" in closeout_ready_description
     assert "scope, implement, verify" in closeout_description
 
 
@@ -722,6 +731,63 @@ def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None
     assert payload["read_only"] is True
     assert payload["result"]["status"] == "current"
     assert payload["result"]["migration_required"] is False
+    assert payload["result"]["workflow_guidance"]["read_only"] is True
+    assert payload["result"]["workflow_guidance"]["state"] == "installed_no_current_work"
+
+
+def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    before = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+
+    payload = call_tool_payload(server, "aegis.next", {"target_dir": target.as_posix()})
+
+    after = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+    assert payload["ok"] is True
+    assert payload["tool"] == "aegis.next"
+    assert payload["read_only"] is True
+    assert payload["result"]["phase"] == "bootstrap"
+    assert payload["result"]["state"] == "not_installed"
+    assert payload["result"]["suggested_mcp_call"]["tool"] == "aegis.plan_install"
+
+
+def test_closeout_ready_reports_without_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    before = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+
+    payload = call_tool_payload(server, "aegis.closeout_ready", {"target_dir": target.as_posix()})
+
+    after = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+    assert payload["ok"] is True
+    assert payload["tool"] == "aegis.closeout_ready"
+    assert payload["read_only"] is True
+    assert payload["result"]["status"] == "failed"
+    assert payload["result"]["dry_run"] is True
+    assert payload["result"]["report_written"] is False
+    assert payload["result"]["state_updated"] is False
 
 
 def test_profile_tools_call_core_and_validate_payloads(tmp_path: Path) -> None:
@@ -972,6 +1038,22 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     assert "aegis.install" in bootstrap
     assert "aegis.verify" in bootstrap
     assert "mechanical gates" in bootstrap
+
+    start_task = get_prompt_text(server, "aegis.start_task")
+    assert "aegis.status" in start_task
+    assert "aegis.next" in start_task
+    assert "aegis.kickoff" in start_task
+    assert "plan_step=auto" in start_task
+
+    implement_task = get_prompt_text(server, "aegis.implement_task")
+    assert "native agent tools" in implement_task
+    assert "pending_event_id=current" in implement_task
+    assert "plan_step=auto" in implement_task
+
+    closeout_task = get_prompt_text(server, "aegis.closeout_task")
+    assert "aegis.closeout_ready" in closeout_task
+    assert "aegis.verify" in closeout_task
+    assert "Only report completion after closeout writes a passing report" in closeout_task
 
 
 def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> None:

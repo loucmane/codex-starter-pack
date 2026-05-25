@@ -92,6 +92,16 @@ def handle_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_next(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.next_action(
+            args.target_dir,
+            source_root=source_root,
+        )
+    _dump_json(payload)
+    return 0
+
+
 def handle_install(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.install(
@@ -134,6 +144,7 @@ def handle_closeout(args: argparse.Namespace) -> int:
             update_handoff=args.update_handoff,
             require_clean_git=args.require_clean_git,
             include_git_guidance=not args.no_git_guidance,
+            dry_run=args.dry_run,
         )
     _dump_json(payload)
     if payload.get("status") == "failed":
@@ -363,6 +374,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
 
+    next_parser = subparsers.add_parser(
+        "next",
+        help="Report the next required Aegis workflow action without mutating the target.",
+    )
+    next_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    next_parser.set_defaults(func=handle_next)
+
     install_parser = subparsers.add_parser(
         "install",
         help="Apply or dry-run an Aegis install plan.",
@@ -420,6 +438,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--no-git-guidance",
         action="store_true",
         help="Omit suggested normal git/GitHub commands from the closeout report.",
+    )
+    closeout_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Evaluate closeout gates without writing reports, handoff updates, or current-work state.",
     )
     closeout_parser.set_defaults(func=handle_closeout)
 
@@ -493,7 +516,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default="",
         help=(
             "Plan step to update with this evidence. Normal flow uses "
-            "plan-step-scope, plan-step-implement, then plan-step-verify."
+            "plan-step-scope, plan-step-implement, then plan-step-verify. "
+            "Use auto only when event class or pending event makes the step deterministic."
         ),
     )
     log_parser.add_argument(

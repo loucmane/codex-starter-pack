@@ -32,10 +32,12 @@ AgentList = Annotated[list[AgentName], Field(json_schema_extra={"uniqueItems": T
 V1_TOOL_NAMES = (
     "aegis.inspect",
     "aegis.status",
+    "aegis.next",
     "aegis.plan_install",
     "aegis.install",
     "aegis.verify",
     "aegis.closeout",
+    "aegis.closeout_ready",
     "aegis.kickoff",
     "aegis.log",
     "aegis.list_profiles",
@@ -56,6 +58,10 @@ RESOURCE_URIS = (
     "aegis://managed-files",
 )
 PROMPT_NAMES = (
+    "aegis.bootstrap",
+    "aegis.start_task",
+    "aegis.implement_task",
+    "aegis.closeout_task",
     "aegis.bootstrap_new_project",
     "aegis.migrate_existing_project",
     "aegis.verify_runtime",
@@ -325,13 +331,26 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
     @server.tool(name="aegis.status")
     def aegis_status(target_dir: str) -> dict[str, Any]:
-        """Report installed Aegis release state without mutating the target."""
+        """Report installed Aegis release state and embedded next workflow guidance without mutating the target."""
 
         def call_core() -> dict[str, Any]:
             return installer.status(target_dir, source_root=config.source_root)
 
         return run_tool(
             "aegis.status",
+            read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.next")
+    def aegis_next(target_dir: str) -> dict[str, Any]:
+        """Tell the agent the next required Aegis workflow action; read-only, no source edits, no .aegis writes."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.next_action(target_dir, source_root=config.source_root)
+
+        return run_tool(
+            "aegis.next",
             read_only=True,
             callback=call_core,
         )
@@ -497,6 +516,31 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             callback=call_core,
         )
 
+    @server.tool(name="aegis.closeout_ready")
+    def aegis_closeout_ready(
+        target_dir: str,
+        update_handoff: bool = False,
+        require_clean_git: bool = False,
+        include_git_guidance: bool = True,
+    ) -> dict[str, Any]:
+        """Read-only pre-closeout gate check; reports whether closeout would pass without writing state."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.closeout(
+                target_dir,
+                source_root=config.source_root,
+                update_handoff=update_handoff,
+                require_clean_git=require_clean_git,
+                include_git_guidance=include_git_guidance,
+                dry_run=True,
+            )
+
+        return run_tool(
+            "aegis.closeout_ready",
+            read_only=True,
+            callback=call_core,
+        )
+
     @server.tool(name="aegis.kickoff")
     def aegis_kickoff(
         target_dir: str,
@@ -548,7 +592,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         plan_status: str = "in-progress",
         apply: bool = False,
     ) -> dict[str, Any]:
-        """Append S:W:H:E entries, preferably with pending_event_id=current, and return the next workflow action."""
+        """Append S:W:H:E entries; prefer pending_event_id=current and plan_step=auto when the step is deterministic."""
 
         if apply is not True:
             return _error_tool_response(
@@ -825,7 +869,7 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                 "",
                 "Aegis prompts are advisory. Do not claim success from prompt text.",
                 "Use MCP tool results, `.aegis/reports/*`, and guard output as evidence.",
-                "Do not write `.aegis/` directly; use `aegis.plan_install`, `aegis.install`, and `aegis.verify`.",
+                "Do not write `.aegis/` directly; use Aegis MCP tools or the project-local `./.aegis/bin/aegis` shim.",
                 "Common resources: `aegis://contract/current`, `aegis://limitations`, `aegis://verification/latest`.",
                 "Distinguish mechanical gates from policy-only limitations.",
                 "",
@@ -834,6 +878,75 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                 "",
                 body,
             ]
+        )
+
+    @server.prompt(name="aegis.bootstrap")
+    def bootstrap(target_dir: str = ".", primary_agent: str = "claude") -> str:
+        return workflow_prompt(
+            "Bootstrap Aegis",
+            "\n".join(
+                [
+                    f"Target: `{target_dir}`",
+                    f"Primary agent: `{primary_agent}`",
+                    "1. Run `aegis.inspect` to classify the project shape.",
+                    "2. Run read-only `aegis.status` and `aegis.next`; if not installed, run `aegis.plan_install`.",
+                    "3. Review the install plan with the user before calling mutating `aegis.install apply=true`.",
+                    "4. Run `aegis.verify` with `acknowledge_report_write=true` after install and cite the report.",
+                    "5. Treat prompts as setup guidance only; installed files, hooks, and reports are the evidence.",
+                ]
+            ),
+        )
+
+    @server.prompt(name="aegis.start_task")
+    def start_task(target_dir: str = ".", task: str = "<task-id>", slug: str = "<slug>") -> str:
+        return workflow_prompt(
+            "Start Aegis Task",
+            "\n".join(
+                [
+                    f"Target: `{target_dir}`",
+                    f"Task: `{task}`",
+                    f"Slug: `{slug}`",
+                    "1. Run `aegis.status` and `aegis.next` first.",
+                    "2. If no current work exists, call `aegis.kickoff apply=true` or run the project-local kickoff shim.",
+                    "3. Confirm readiness is READY after kickoff.",
+                    "4. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
+                    "5. Native agent tools do implementation; Aegis records workflow state and evidence.",
+                ]
+            ),
+        )
+
+    @server.prompt(name="aegis.implement_task")
+    def implement_task(target_dir: str = ".", evidence: str = "<changed-file-or-report>") -> str:
+        return workflow_prompt(
+            "Implement Aegis Task",
+            "\n".join(
+                [
+                    f"Target: `{target_dir}`",
+                    f"Evidence: `{evidence}`",
+                    "1. Run readiness and `aegis.next`; follow the returned next_required_action.",
+                    "2. Use native agent tools for source reads, edits, and project tests.",
+                    "3. After each persistent mutation, consume pending tracking with `aegis.log apply=true`, `pending_event_id=current`, and `plan_step=auto`.",
+                    "4. If `plan_step=auto` is ambiguous, stop and provide an explicit plan-step id instead of guessing.",
+                    "5. Do not continue to another mutation while `.aegis/state/pending-tracking.json` exists.",
+                ]
+            ),
+        )
+
+    @server.prompt(name="aegis.closeout_task")
+    def closeout_task(target_dir: str = ".") -> str:
+        return workflow_prompt(
+            "Close Out Aegis Task",
+            "\n".join(
+                [
+                    f"Target: `{target_dir}`",
+                    "1. Run task-specific verification and log it with `plan_step=auto`.",
+                    "2. Run `aegis.verify` with `strict=true` and `acknowledge_report_write=true`.",
+                    "3. Log the strict verification pending event with `pending_event_id=current`, `plan_step=auto`, and `plan_status=completed`.",
+                    "4. Run read-only `aegis.closeout_ready` or CLI `aegis closeout --dry-run --update-handoff`.",
+                    "5. Apply repair guidance until dry-run passes, then call mutating `aegis.closeout` with `acknowledge_report_write=true`.",
+                    "6. Only report completion after closeout writes a passing report.",
+                ]
+            ),
         )
 
     @server.prompt(name="aegis.bootstrap_new_project")

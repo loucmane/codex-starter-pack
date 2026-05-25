@@ -50,7 +50,21 @@ aegis status --target-dir /path/to/test-project
 
 The release owner must preserve build, test, checksum, and signing evidence with the release notes.
 
-TestPyPI and PyPI publication are blocked until the local artifact MCP target smoke passes and its evidence shows a fresh project can install, kickoff, log S:W:H:E evidence, verify, and close out without a source checkout dependency.
+TestPyPI and PyPI publication are blocked until the local artifact MCP target smoke passes and the live acceptance matrix in `docs/aegis/live-acceptance-matrix.md` has evidence showing fresh and existing projects can install, kickoff, log S:W:H:E evidence, verify, and close out without a source checkout dependency.
+
+Before any TestPyPI/PyPI decision, preserve a publication decision record containing:
+
+- package metadata review
+- version and changelog review
+- wheel and sdist artifact inspection
+- checksum and provenance evidence
+- signing or attestation evidence
+- local wheel CLI smoke
+- local wheel MCP stdio smoke
+- live acceptance matrix status
+- explicit decision: publish, defer, or reject
+
+Do not run `twine upload`, publish to TestPyPI, or publish to PyPI until that record exists and required live matrix rows are passing or explicitly deferred.
 
 ## Consumption Policy
 

@@ -974,6 +974,9 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
         "step": "plan-step-implement",
         "status": "in-progress",
         "evidence": task_output.as_posix(),
+        "inferred": False,
+        "inference_reason": None,
+        "strict_verification_evidence": False,
     }
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
@@ -1048,7 +1051,10 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     claude_entrypoint = (target / "CLAUDE.md").read_text(encoding="utf-8")
     contract_text = (target / ".aegis/contract.md").read_text(encoding="utf-8")
     assert "Normal feature-work loop:" in claude_entrypoint
+    assert "aegis next" in claude_entrypoint
+    assert "--plan-step auto" in claude_entrypoint
     assert "aegis verify --strict" in claude_entrypoint
+    assert "aegis closeout --dry-run --update-handoff" in claude_entrypoint
     assert "aegis closeout --update-handoff" in claude_entrypoint
     assert "do not report the task complete until closeout passes" in claude_entrypoint
     assert "Tool routing:" in claude_entrypoint
@@ -1179,6 +1185,9 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
         "step": "plan-step-implement",
         "status": "completed",
         "evidence": source_rel,
+        "inferred": False,
+        "inference_reason": None,
+        "strict_verification_evidence": False,
     }
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
