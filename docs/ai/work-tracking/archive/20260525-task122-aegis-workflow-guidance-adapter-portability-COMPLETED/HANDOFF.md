@@ -24,3 +24,4 @@
 - [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:verify|E:cmd`python3 scripts/codex-guard validate --include-untracked`] Guard validation passed.
 - [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:verify|E:cmd`python3 scripts/codex-task work-tracking audit`] Work-tracking audit passed.
 - [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:verify|E:cmd`git diff --check`] Diff whitespace check passed.
+- Archived on 2026-05-25 15:28 CEST — Folder moved to archive and tracker marked COMPLETED.
