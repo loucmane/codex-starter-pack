@@ -80,6 +80,8 @@ AEGIS_EVENT_DEFAULT_LOG_SURFACES = {
 }
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
+AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
+AEGIS_CLAUDE_BLOCK_END = "<!-- AEGIS:END claude-runtime -->"
 
 CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
 CLAUDE_PRETOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
@@ -577,6 +579,68 @@ def _managed_assets(source_root: Path, primary_agent: str, enabled_agents: Seque
     return _base_assets(source_root, primary_agent, enabled_agents) + _adapter_assets(source_root, primary_agent, enabled_agents)
 
 
+def _claude_runtime_block(aegis_entrypoint: bytes) -> str:
+    entrypoint = aegis_entrypoint.decode("utf-8").strip()
+    return "\n".join(
+        [
+            AEGIS_CLAUDE_BLOCK_BEGIN,
+            entrypoint,
+            AEGIS_CLAUDE_BLOCK_END,
+            "",
+        ]
+    )
+
+
+def _merge_claude_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes | None:
+    """Return CLAUDE.md with an Aegis-managed block while preserving project content."""
+
+    if existing == aegis_entrypoint:
+        return aegis_entrypoint
+    try:
+        existing_text = existing.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    block = _claude_runtime_block(aegis_entrypoint)
+    if AEGIS_CLAUDE_BLOCK_BEGIN in existing_text and AEGIS_CLAUDE_BLOCK_END in existing_text:
+        pattern = re.compile(
+            rf"{re.escape(AEGIS_CLAUDE_BLOCK_BEGIN)}.*?{re.escape(AEGIS_CLAUDE_BLOCK_END)}\n?",
+            re.DOTALL,
+        )
+        return pattern.sub(block, existing_text, count=1).encode("utf-8")
+    prefix = (
+        f"{block}"
+        "\n"
+        "---\n"
+        "\n"
+        "## Existing Project Instructions\n"
+        "\n"
+    )
+    return f"{prefix}{existing_text}".encode("utf-8")
+
+
+def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset]:
+    """Materialize target-specific assets such as merged Claude entrypoints."""
+
+    materialized: list[Asset] = []
+    for asset in assets:
+        if asset.path == "CLAUDE.md" and asset.kind == "adapter":
+            target = target_root / asset.path
+            if target.exists() and target.is_file():
+                merged = _merge_claude_entrypoint(target.read_bytes(), asset.content)
+                if merged is not None:
+                    materialized.append(
+                        Asset(
+                            path=asset.path,
+                            content=merged,
+                            executable=asset.executable,
+                            kind=asset.kind,
+                        )
+                    )
+                    continue
+        materialized.append(asset)
+    return materialized
+
+
 def _agent_records(enabled_agents: Sequence[str], managed_assets: Sequence[Asset]) -> dict[str, dict[str, Any]]:
     managed_by_agent: dict[str, list[str]] = {
         "claude": [asset.path for asset in managed_assets if asset.path == "CLAUDE.md" or asset.path.startswith(".claude/")],
@@ -881,6 +945,18 @@ def _plan_operations(target_root: Path, assets: Sequence[Asset], manifest_bytes:
                     "safe_to_apply": True,
                     "managed": True,
                     "reason": "Target file already matches expected content.",
+                }
+            )
+            continue
+        if asset.path == "CLAUDE.md" and asset.kind == "adapter":
+            operations.append(
+                {
+                    "action": "modify",
+                    "path": asset.path,
+                    "classification": "modify",
+                    "safe_to_apply": True,
+                    "managed": True,
+                    "reason": "Existing Claude instructions will be preserved below an Aegis-managed runtime block.",
                 }
             )
             continue
@@ -1388,7 +1464,7 @@ def plan_install(
     source = Path(source_root).resolve()
     target_root = _resolve_target_root(target_dir)
     installed_at = _installed_at_for_plan(target_root)
-    assets = _managed_assets(source, primary_agent, enabled_agents)
+    assets = _assets_for_target(target_root, _managed_assets(source, primary_agent, enabled_agents))
     manifest = _manifest_payload(source, target_root, primary_agent, enabled_agents, installed_at=installed_at)
     manifest_bytes = _dump_json(manifest).encode("utf-8")
     operations = _plan_operations(target_root, assets, manifest_bytes)
@@ -2588,7 +2664,7 @@ def install(
         }
 
     installed_at = _installed_at_for_plan(target_root)
-    assets = _managed_assets(source, primary_agent, enabled_agents)
+    assets = _assets_for_target(target_root, _managed_assets(source, primary_agent, enabled_agents))
     manifest = _manifest_payload(source, target_root, primary_agent, enabled_agents, installed_at=installed_at)
     manifest_asset = Asset(AEGIS_MANIFEST_REL, _dump_json(manifest).encode("utf-8"))
     created_plan_paths = [

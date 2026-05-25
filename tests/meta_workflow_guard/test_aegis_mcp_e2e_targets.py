@@ -1314,11 +1314,10 @@ def test_mcp_partial_install_resources_are_structured(tmp_path: Path) -> None:
     assert managed_files["error"]["code"] == "not_installed"
 
 
-def test_mcp_conflict_target_refuses_unsafe_overwrite(tmp_path: Path) -> None:
-    target = tmp_path / "conflict-target"
+def test_mcp_existing_claude_target_preserves_project_instructions(tmp_path: Path) -> None:
+    target = tmp_path / "existing-claude-target"
     target.mkdir()
     _write(target / "CLAUDE.md", "# Existing Claude Instructions\n")
-    before = (target / "CLAUDE.md").read_bytes()
     server = _server_for(target)
 
     plan_payload = _call_tool_payload(
@@ -1334,9 +1333,9 @@ def test_mcp_conflict_target_refuses_unsafe_overwrite(tmp_path: Path) -> None:
     claude_operation = next(operation for operation in operations if operation["path"] == "CLAUDE.md")
 
     assert plan_payload["ok"] is True
-    assert plan_payload["result"]["summary"]["manual_reviews"] >= 1
-    assert claude_operation["classification"] == "manual-review"
-    assert claude_operation["safe_to_apply"] is False
+    assert plan_payload["result"]["summary"]["manual_reviews"] == 0
+    assert claude_operation["classification"] == "modify"
+    assert claude_operation["safe_to_apply"] is True
 
     install_payload = _call_tool_payload(
         server,
@@ -1350,15 +1349,12 @@ def test_mcp_conflict_target_refuses_unsafe_overwrite(tmp_path: Path) -> None:
         },
     )
 
-    assert install_payload["ok"] is False
-    assert install_payload["error"]["code"] == "install_refused"
-    assert install_payload["error"]["status"] == "refused"
-    assert any(
-        operation["path"] == "CLAUDE.md"
-        for operation in install_payload["error"]["details"]["report"]["unsafe_operations"]
-    )
-    assert (target / "CLAUDE.md").read_bytes() == before
-    assert not (target / AEGIS_MANIFEST_REL).exists()
+    assert install_payload["ok"] is True
+    assert install_payload["result"]["status"] == "applied"
+    claude_text = (target / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "<!-- AEGIS:BEGIN claude-runtime -->" in claude_text
+    assert "# Existing Claude Instructions" in claude_text
+    assert (target / AEGIS_MANIFEST_REL).exists()
 
 
 def test_real_target_project_fixtures_cover_new_and_started_matrix() -> None:

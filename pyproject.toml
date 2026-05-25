@@ -82,6 +82,13 @@ aegis_foundation = [
     "assets/**/*",
 ]
 
+[tool.setuptools.exclude-package-data]
+aegis_foundation = [
+    "assets/**/__pycache__/*",
+    "assets/**/*.pyc",
+    "assets/**/*.pyo",
+]
+
 [tool.pytest.ini_options]
 testpaths = [
     "tests",

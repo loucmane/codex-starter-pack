@@ -544,8 +544,8 @@ def test_install_refused_conflict_is_structured_error(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
     target = tmp_path / "target"
-    target.mkdir()
-    (target / "CLAUDE.md").write_text("# Existing\n", encoding="utf-8")
+    (target / ".aegis").mkdir(parents=True)
+    (target / AEGIS_MANIFEST_REL).write_text('{"foundation_name": "Other Foundation"}\n', encoding="utf-8")
 
     payload = call_tool_payload(
         server,
@@ -563,7 +563,7 @@ def test_install_refused_conflict_is_structured_error(tmp_path: Path) -> None:
     assert payload["error"]["code"] == "install_refused"
     assert payload["error"]["status"] == "refused"
     assert payload["error"]["details"]["report"]["status"] == "refused"
-    assert not (target / AEGIS_MANIFEST_REL).exists()
+    assert (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8") == '{"foundation_name": "Other Foundation"}\n'
 
 
 def test_verify_requires_acknowledgement_true_before_report_write(tmp_path: Path) -> None:

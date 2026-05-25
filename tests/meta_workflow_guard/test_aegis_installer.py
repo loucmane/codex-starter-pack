@@ -1435,7 +1435,7 @@ def test_release_certification_full_clean_smoke_when_enabled(tmp_path: Path) -> 
     )
 
 
-def test_install_refuses_existing_file_conflict_without_overwrite(tmp_path: Path) -> None:
+def test_install_merges_existing_claude_entrypoint_without_losing_project_context(tmp_path: Path) -> None:
     target = tmp_path / "existing-claude-project"
     target.mkdir()
     claude = target / "CLAUDE.md"
@@ -1449,10 +1449,17 @@ def test_install_refuses_existing_file_conflict_without_overwrite(tmp_path: Path
         apply=True,
     )
 
-    assert report["status"] == "refused"
-    assert claude.read_text(encoding="utf-8") == "# Existing Claude instructions\n"
-    assert any(operation["path"] == "CLAUDE.md" for operation in report["unsafe_operations"])
-    assert not (target / AEGIS_MANIFEST_REL).exists()
+    assert report["status"] == "applied"
+    text = claude.read_text(encoding="utf-8")
+    assert aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN in text
+    assert aegis_installer.AEGIS_CLAUDE_BLOCK_END in text
+    assert "Before persistent mutation, Claude must be in a READY state" in text
+    assert "## Existing Project Instructions" in text
+    assert "# Existing Claude instructions" in text
+    claude_operation = next(operation for operation in report["plan"]["operations"] if operation["path"] == "CLAUDE.md")
+    assert claude_operation["classification"] == "modify"
+    assert claude_operation["safe_to_apply"] is True
+    assert (target / AEGIS_MANIFEST_REL).exists()
 
 
 def test_verify_fails_when_required_claude_gate_file_is_missing(tmp_path: Path) -> None:
