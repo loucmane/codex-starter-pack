@@ -865,6 +865,38 @@ def test_mcp_verify_pending_event_uses_strict_report_evidence(tmp_path: Path) ->
     assert event["evidence_location"]["path"] == AEGIS_VERIFY_REPORT_REL
 
 
+def test_read_only_aegis_mcp_tools_do_not_create_pending_tracking(tmp_path: Path) -> None:
+    target = tmp_path / "mcp-read-only-pending"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="mcp-read-only", title="MCP Read Only")
+
+    for tool_name in (
+        "mcp__aegis__aegis_inspect",
+        "mcp__aegis__aegis_status",
+        "mcp__aegis__aegis_next",
+        "mcp__aegis__aegis_plan_install",
+        "mcp__aegis__aegis_closeout_ready",
+        "mcp__aegis__aegis_list_profiles",
+        "mcp__aegis__aegis_explain_profile",
+    ):
+        payload = {"tool_name": tool_name, "tool_input": {"target_dir": target.as_posix()}}
+        pretool = run_target_pretooluse(target, payload)
+        assert pretool.returncode == 0, pretool.stderr
+        posttool = run_target_posttooluse(target, payload)
+        assert posttool.returncode == 0, posttool.stderr
+        assert not (target / AEGIS_PENDING_TRACKING_REL).exists(), tool_name
+
+
 def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> None:
     target = tmp_path / "closeout-repair-guidance"
     target.mkdir()
