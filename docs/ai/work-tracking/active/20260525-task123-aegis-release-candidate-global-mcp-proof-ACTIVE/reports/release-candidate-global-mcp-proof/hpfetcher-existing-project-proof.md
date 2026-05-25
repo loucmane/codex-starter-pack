@@ -142,7 +142,32 @@ Using the rebuilt wheel against `/tmp/aegis-task123-hpfetcher-merge-copy-h37v0w/
 
 ## Remaining Work
 
-The live Claude full workflow was run against the pre-merge-fix wheel and surfaced the issue. The rebuilt wheel has been validated for install/merge behavior in a fresh hpfetcher copy. Before Task 123 closeout, either:
+The live Claude full workflow was first run against the pre-merge-fix wheel and surfaced the issue. The rebuilt wheel was then validated for install/merge behavior in a fresh hpfetcher copy.
 
-- run one more headless Claude full workflow against the rebuilt wheel, or
-- accept the combination of the full old-wheel live workflow plus fresh rebuilt-wheel install validation and focused regression coverage.
+## Final Rebuilt-Wheel Full Workflow
+
+A final headless Claude workflow was run against the rebuilt wheel:
+
+- Final copy: `/tmp/aegis-task123-hpfetcher-final-copy-6gDofR/hpfetcher`
+- Registered wheel: `/tmp/aegis-task123-dist-claude-merge/aegis_foundation-0.1.0-py3-none-any.whl`
+- Branch created by kickoff: `feat/task-42-brandmark-accessibility-final`
+- Pre-kickoff readiness: `BLOCKED` because source branch `tier2-planen-block` did not contain a task ID
+- Post-kickoff readiness: `READY | task=42`
+- Active session: `sessions/2026/05/2026-05-25-001-task42-brandmark-accessibility-final.md`
+- Active plan: `plans/2026-05-25-task42-brandmark-accessibility-final.md`
+- Active work-tracking: `docs/ai/work-tracking/active/20260525-task42-brandmark-accessibility-final-ACTIVE/`
+- Source changed: `app/src/components/BrandMark.tsx`
+- Source line reference after change: `app/src/components/BrandMark.tsx:34`
+- Task verification: `pnpm --dir app exec biome check src/components/BrandMark.tsx` passed with no fixes
+- Strict verify: passed, 27 total checks, 0 required failures, 1 unsupported policy-only memory gate
+- `aegis.closeout_ready`: passed, read-only, 22/22 gates, pending tracking empty
+- `aegis.closeout --update-handoff`: passed, report written, state updated, handoff updated
+
+Most important existing-project validation:
+
+- Active `CLAUDE.md` contains `<!-- AEGIS:BEGIN claude-runtime -->` at line 1 and `<!-- AEGIS:END claude-runtime -->` at line 46.
+- Original HP-Coach instructions remain active in the same `CLAUDE.md`, starting at line 58.
+- No `CLAUDE.md.bak` file was created.
+- No `CLAUDE.md.orig` file was created.
+
+Task 123 acceptance implication: the final rebuilt wheel passed the global/native MCP registration path, install into an existing copied project, workflow kickoff, native source edit, tracking gates, strict verification, closeout readiness, and closeout while preserving existing project instructions.

@@ -23,11 +23,12 @@
 - **2026-05-25 19:05** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:claude:live-proof|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Proved wheel-backed native Claude MCP registration and a full headless Claude workflow in a copied hpfetcher project
 - **2026-05-25 19:05** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:implement|E:scripts/_aegis_installer.py] Fixed existing `CLAUDE.md` install behavior so Aegis merges a managed runtime block instead of requiring displacement of project instructions
 - **2026-05-25 19:05** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:verify|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Rebuilt the wheel with the merge fix and validated `aegis plan-install`, `aegis install --apply`, and `aegis verify` against a fresh hpfetcher copy
+- **2026-05-25 19:13** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:claude:live-proof|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Ran the final rebuilt-wheel headless Claude workflow; closeout passed and active `CLAUDE.md` preserved HP-Coach instructions without `.bak` or `.orig` files
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
 - [x] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-verify — Evidence stored, documentation updated (in progress)
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes

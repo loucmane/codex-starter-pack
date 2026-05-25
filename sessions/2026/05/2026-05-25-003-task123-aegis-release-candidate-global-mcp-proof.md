@@ -25,6 +25,7 @@ title: Task 123 - Aegis Release Candidate Global MCP Install Proof
 - [x] Capture initial release-candidate artifact build evidence.
 - [x] Run the live copied existing-project proof.
 - [x] Fix the existing `CLAUDE.md` preservation issue found by the proof.
+- [x] Run final rebuilt-wheel copied existing-project proof.
 - [ ] Run final Task 123 guard stack and closeout.
 
 ### Starting Context
@@ -42,3 +43,4 @@ Task 123 was kicked off via `python3 scripts/codex-task wizard kickoff`, which c
 - **[19:05]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:claude:live-proof|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Registered the wheel-backed Aegis MCP server with native Claude, ran a headless Claude workflow in a copied hpfetcher project, and proved kickoff, readiness, native source edit, S:W:H:E tracking, strict verify, closeout_ready, and closeout
 - **[19:05]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:implement|E:scripts/_aegis_installer.py] Fixed the existing-project `CLAUDE.md` install path so Aegis merges a managed runtime block while preserving existing project instructions
 - **[19:05]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:verify|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Rebuilt the wheel with the merge fix and validated plan-install, install, and standard verify on a fresh hpfetcher copy
+- **[19:13]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:claude:live-proof|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Ran the final rebuilt-wheel headless Claude workflow; install, kickoff, native edit, tracking, strict verify, closeout_ready, and closeout passed while preserving HP-Coach `CLAUDE.md` instructions in the active file
