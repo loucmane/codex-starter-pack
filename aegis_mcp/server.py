@@ -425,7 +425,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         acknowledge_report_write: bool,
         strict: bool = False,
     ) -> dict[str, Any]:
-        """Verify an Aegis installation after acknowledging report writes."""
+        """Write an Aegis verification report; after strict pass, log its pending event before closeout."""
 
         if acknowledge_report_write is not True:
             return _error_tool_response(
@@ -462,7 +462,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         require_clean_git: bool = False,
         include_git_guidance: bool = True,
     ) -> dict[str, Any]:
-        """Run the final Aegis task-completion gate after acknowledging report writes."""
+        """Run the final completion gate after scope, implement, verify, and pending tracking are complete."""
 
         if acknowledge_report_write is not True:
             return _error_tool_response(
@@ -507,7 +507,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         create_branch: bool = True,
         apply: bool = False,
     ) -> dict[str, Any]:
-        """Create Aegis-native current work state after explicit apply confirmation."""
+        """Create current work state; next action is logging plan-step-scope before source edits."""
 
         if apply is not True:
             return _error_tool_response(
@@ -538,15 +538,17 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     @server.tool(name="aegis.log")
     def aegis_log(
         target_dir: str,
-        handler: str,
-        evidence: str,
         note: str,
+        handler: str = "",
+        evidence: str = "",
         surfaces: list[str] | None = None,
+        event_class: Literal["scope", "implementation", "verification", "note"] | None = None,
+        pending_event_id: str = "",
         plan_step: str = "",
         plan_status: str = "in-progress",
         apply: bool = False,
     ) -> dict[str, Any]:
-        """Append required S:W:H:E progress entries and update workflow surfaces after a task mutation."""
+        """Append S:W:H:E entries, preferably with pending_event_id=current, and return the next workflow action."""
 
         if apply is not True:
             return _error_tool_response(
@@ -564,6 +566,8 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
                 evidence=evidence,
                 note=note,
                 surfaces=surfaces,
+                event_class=event_class,
+                pending_event_id=pending_event_id,
                 plan_step=plan_step,
                 plan_status=plan_status,
             )

@@ -40,7 +40,7 @@ Every release candidate must prove:
 - installed projects can reach `READY` through Aegis-native kickoff without `.taskmaster/` or `.serena/`
 - installed projects with stale optional `.taskmaster/` state still reach `READY` through Aegis-native current work unless Taskmaster is explicitly required
 - installed kickoff renders packaged workflow templates into session, plan, tracker, findings, decisions, implementation, changelog, handoff, designs, and reports surfaces comparable to this repository's workflow model
-- installed Claude runtime records pending S:W:H:E tracking after successful task mutations, blocks the next mutation and Stop while pending tracking exists, and clears the pending event only after `aegis log` writes matching entries to `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md`; current plan evidence changes only when `--plan-step` is supplied explicitly
+- installed Claude runtime records pending S:W:H:E tracking after successful task mutations, blocks the next mutation and Stop while pending tracking exists, and clears the pending event only after `aegis log --pending-id <id>` or an explicit handler/evidence log writes matching entries to `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces; current plan evidence changes only when `--plan-step` is supplied explicitly
 - MCP conflict and partial-install paths return structured safety results without silently overwriting target files
 - `aegis.install` requires explicit `--apply` / MCP `apply=true`
 - `aegis.log` requires explicit MCP `apply=true` and writes portable S:W:H:E progress evidence without requiring Taskmaster or Serena

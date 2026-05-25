@@ -920,6 +920,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
     pending_payload = json.loads((target / AEGIS_PENDING_TRACKING_REL).read_text(encoding="utf-8"))
     assert pending_payload["events"][0]["evidence"] == task_output.as_posix()
     assert pending_payload["events"][0]["task"] == {"id": "1", "slug": "real-target-matrix"}
+    pending_id = pending_payload["events"][0]["id"]
 
     blocked_pending = _run_target_pretooluse(
         target,
@@ -938,8 +939,8 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
     assert "pending S:W:H:E tracking remains before session stop" in blocked_stop.stderr
 
     log_command = (
-        "./.aegis/bin/aegis log --target-dir . --handler claude-live-write "
-        f"--evidence {task_output.as_posix()} --note 'Recorded task output evidence' "
+        f"./.aegis/bin/aegis log --target-dir . --pending-id {pending_id} "
+        "--note 'Recorded task output evidence' "
         "--plan-step plan-step-implement --plan-status in-progress"
     )
     allowed_log = _run_target_pretooluse(
@@ -954,10 +955,8 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
             "log",
             "--target-dir",
             ".",
-            "--handler",
-            "claude-live-write",
-            "--evidence",
-            task_output.as_posix(),
+            "--pending-id",
+            pending_id,
             "--note",
             "Recorded task output evidence",
             "--plan-step",
@@ -985,7 +984,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
     implementation_text = (target / current_work["paths"]["work_tracking"] / "IMPLEMENTATION.md").read_text(encoding="utf-8")
     changelog_text = (target / current_work["paths"]["work_tracking"] / "CHANGELOG.md").read_text(encoding="utf-8")
     handoff_text = (target / current_work["paths"]["work_tracking"] / "HANDOFF.md").read_text(encoding="utf-8")
-    expected_token = f"|W:task1-real-target-matrix|H:claude-live-write|E:{task_output.as_posix()}]"
+    expected_token = f"|W:task1-real-target-matrix|H:claude:Write|E:{task_output.as_posix()}]"
     assert swhe in session_text and expected_token in session_text
     assert swhe in tracker_text and expected_token in tracker_text
     assert swhe in implementation_text and expected_token in implementation_text

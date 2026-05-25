@@ -516,6 +516,22 @@ def _find_latest_prior_session() -> Optional[Path]:
     return max(candidates)
 
 
+SESSION_TASK_PATTERN = re.compile(r"task[-_]?(\d+)", re.IGNORECASE)
+
+
+def _session_task_id(path: Path) -> Optional[str]:
+    match = SESSION_TASK_PATTERN.search(path.name)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _current_session_task_id() -> Optional[str]:
+    if CURRENT_SESSION_PATH is None:
+        return None
+    return _session_task_id(CURRENT_SESSION_PATH)
+
+
 
 def _session_marked_complete(path: Path) -> bool:
     try:
@@ -531,6 +547,7 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
     issues: List[ValidationIssue] = []
     latest_prior = _find_latest_prior_session()
     latest_prior_date = latest_prior.name[:10] if latest_prior else None
+    current_task_id = _current_session_task_id()
     for absolute in changed_paths:
         try:
             relative = absolute.relative_to(REPO_ROOT)
@@ -550,6 +567,12 @@ def validate_session_edit_dates(changed_paths: Iterable[Path]) -> List[Validatio
         if date_prefix == TODAY_ISO:
             continue
         if latest_prior_date and date_prefix == latest_prior_date and _session_marked_complete(absolute):
+            continue
+        if (
+            current_task_id
+            and _session_task_id(absolute) == current_task_id
+            and _session_marked_complete(absolute)
+        ):
             continue
         issues.append(
             ValidationIssue(

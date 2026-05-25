@@ -181,6 +181,8 @@ def handle_log(args: argparse.Namespace) -> int:
         surfaces=args.surface,
         plan_step=args.plan_step,
         plan_status=args.plan_status,
+        event_class=args.event_class,
+        pending_event_id=args.pending_id,
     )
     _dump_json(payload)
     return 0
@@ -465,19 +467,34 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Write required S:W:H:E progress entries for the current Aegis task.",
     )
     log_parser.add_argument("--target-dir", default=".", help="Target repository root.")
-    log_parser.add_argument("--handler", required=True, help="Handler identifier for the S:W:H:E H field.")
-    log_parser.add_argument("--evidence", required=True, help="Evidence path or command for the S:W:H:E E field.")
+    log_parser.add_argument("--handler", help="Handler identifier for the S:W:H:E H field. Optional with --pending-id.")
+    log_parser.add_argument("--evidence", help="Evidence path or command for the S:W:H:E E field. Optional with --pending-id.")
     log_parser.add_argument("--note", required=True, help="Past-tense summary to append after the S:W:H:E token.")
     log_parser.add_argument(
         "--surface",
         action="append",
         choices=sorted(_aegis_installer.AEGIS_LOG_SURFACES),
-        help="Additional workflow surface to update. Defaults to implementation, changelog, and handoff.",
+        help="Workflow surface to update. Omit for event-aware defaults; repeat to override defaults.",
+    )
+    log_parser.add_argument(
+        "--event-class",
+        choices=sorted(_aegis_installer.AEGIS_LOG_EVENT_CLASSES),
+        help="Explicit log event class for default surface selection.",
+    )
+    log_parser.add_argument(
+        "--pending-id",
+        help=(
+            "Consume a pending S:W:H:E event by id; use current/latest only when exactly one event exists. "
+            "Preferred after native Edit/Write/Bash/MCP mutations."
+        ),
     )
     log_parser.add_argument(
         "--plan-step",
         default="",
-        help="Plan step to update with this evidence. Omit to skip plan updates.",
+        help=(
+            "Plan step to update with this evidence. Normal flow uses "
+            "plan-step-scope, plan-step-implement, then plan-step-verify."
+        ),
     )
     log_parser.add_argument(
         "--plan-status",

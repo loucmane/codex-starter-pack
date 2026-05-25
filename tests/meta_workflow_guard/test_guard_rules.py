@@ -175,6 +175,60 @@ def test_validate_session_allows_multiple_completed_sessions_from_latest_prior_d
     assert issues == []
 
 
+def test_validate_session_allows_completed_multi_day_bundle_for_current_task(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-04')
+    monkeypatch.setattr(module, '_find_latest_prior_session', lambda: None)
+    monkeypatch.setattr(
+        module,
+        'CURRENT_SESSION_PATH',
+        module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-04-001-task99-workflow.md',
+    )
+    monkeypatch.setattr(module, '_session_marked_complete', lambda path: True)
+
+    changed = [
+        module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-01-001-task99-workflow.md',
+        module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-02-001-task99-workflow.md',
+        module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-03-001-task99-workflow.md',
+    ]
+
+    assert module.validate_session_edit_dates(changed) == []
+
+
+def test_validate_session_flags_incomplete_multi_day_bundle_for_current_task(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-04')
+    monkeypatch.setattr(module, '_find_latest_prior_session', lambda: None)
+    monkeypatch.setattr(
+        module,
+        'CURRENT_SESSION_PATH',
+        module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-04-001-task99-workflow.md',
+    )
+    monkeypatch.setattr(module, '_session_marked_complete', lambda path: False)
+
+    changed = [module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-02-001-task99-workflow.md']
+
+    issues = module.validate_session_edit_dates(changed)
+    assert any('2030-01-02-001-task99-workflow.md' in issue.render() for issue in issues)
+
+
+def test_validate_session_flags_completed_prior_session_for_other_task(monkeypatch) -> None:
+    module = load_guard_module()
+    monkeypatch.setattr(module, 'TODAY_ISO', '2030-01-04')
+    monkeypatch.setattr(module, '_find_latest_prior_session', lambda: None)
+    monkeypatch.setattr(
+        module,
+        'CURRENT_SESSION_PATH',
+        module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-04-001-task99-workflow.md',
+    )
+    monkeypatch.setattr(module, '_session_marked_complete', lambda path: True)
+
+    changed = [module.REPO_ROOT / 'sessions' / '2030' / '01' / '2030-01-02-001-task100-other.md']
+
+    issues = module.validate_session_edit_dates(changed)
+    assert any('2030-01-02-001-task100-other.md' in issue.render() for issue in issues)
+
+
 def test_validate_session_flags_older_completed(monkeypatch) -> None:
     module = load_guard_module()
     monkeypatch.setattr(module, 'TODAY_ISO', '2025-11-25')

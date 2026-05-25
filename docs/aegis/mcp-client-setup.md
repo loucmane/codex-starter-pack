@@ -134,7 +134,7 @@ Native registration must discover:
 
 The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting work uses `aegis.kickoff`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`.
 
-After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, and `HANDOFF.md` before the next mutation or session stop is allowed. Plan evidence is updated only when `plan_step` is supplied explicitly.
+After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics can consume that event with `pending_event_id` and records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces before the next mutation or session stop is allowed. Scope logs default to findings/decisions/handoff; implementation and verification logs default to implementation/changelog/handoff. Plan evidence is updated only when `plan_step` is supplied explicitly.
 
 Expected tool split:
 

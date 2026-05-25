@@ -23,7 +23,7 @@ from aegis_mcp.server import (
     V1_TOOL_NAMES,
     create_server,
 )
-from scripts._aegis_installer import AEGIS_MANIFEST_REL
+from scripts._aegis_installer import AEGIS_MANIFEST_REL, AEGIS_PENDING_TRACKING_REL, install, kickoff
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -156,6 +156,21 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
     }.isdisjoint({tool.name for tool in tools})
 
 
+def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
+    log_description = tool_by_name(server, "aegis.log").description or ""
+    verify_description = tool_by_name(server, "aegis.verify").description or ""
+    closeout_description = tool_by_name(server, "aegis.closeout").description or ""
+
+    assert "plan-step-scope before source edits" in kickoff_description
+    assert "pending_event_id=current" in log_description
+    assert "log its pending event before closeout" in verify_description
+    assert "scope, implement, verify" in closeout_description
+
+
 def test_server_registers_expected_resources_and_prompts(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
@@ -234,11 +249,86 @@ def test_log_schema_requires_explicit_apply_and_tracking_inputs(tmp_path: Path) 
     server = create_server(config)
     schema = tool_by_name(server, "aegis.log").inputSchema
 
-    assert set(schema["required"]) == {"target_dir", "handler", "evidence", "note"}
+    assert set(schema["required"]) == {"target_dir", "note"}
     assert schema["properties"]["apply"]["default"] is False
+    assert schema["properties"]["handler"]["default"] == ""
+    assert schema["properties"]["evidence"]["default"] == ""
     assert schema["properties"]["plan_step"]["default"] == ""
     assert schema["properties"]["plan_status"]["default"] == "in-progress"
     assert schema["properties"]["surfaces"]["default"] is None
+    assert schema["properties"]["event_class"]["default"] is None
+    assert schema["properties"]["pending_event_id"]["default"] == ""
+
+
+def test_log_tool_consumes_pending_event_id(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="mcp-pending-id", title="MCP Pending Id")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    evidence_rel = f"{current_work['paths']['reports']}/mcp-pending-id.txt"
+    (target / evidence_rel).write_text("pending\n", encoding="utf-8")
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    pending_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "updated_at": "2026-05-23T12:00:00Z",
+                "events": [
+                    {
+                        "id": "mcp123",
+                        "handler": "claude:Write",
+                        "evidence": evidence_rel,
+                        "evidence_location": {
+                            "path": evidence_rel,
+                            "line_start": 1,
+                            "line_end": 1,
+                            "line_count": 1,
+                            "source": "write_file_snapshot",
+                            "confidence": "file_snapshot",
+                            "display": f"{evidence_rel}:1",
+                        },
+                        "task": {"id": "42", "slug": "mcp-pending-id"},
+                    }
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = call_tool_payload(
+        server,
+        "aegis.log",
+        {
+            "target_dir": target.as_posix(),
+            "note": "Logged MCP pending event by id",
+            "pending_event_id": "mcp123",
+            "plan_step": "plan-step-implement",
+            "plan_status": "completed",
+            "apply": True,
+        },
+    )
+
+    assert payload["ok"] is True
+    assert payload["result"]["entry"]["h"] == "claude:Write"
+    assert payload["result"]["entry"]["e"] == evidence_rel
+    assert payload["result"]["entry"]["evidence_location"]["display"] == f"{evidence_rel}:1"
+    assert payload["result"]["next_action"]["action"] == "run_task_specific_verification"
+    assert payload["result"]["pending"]["cleared"] == 1
+    assert not pending_path.exists()
 
 
 def test_plan_install_calls_core_and_validates_schema(tmp_path: Path) -> None:
@@ -573,6 +663,7 @@ def test_verify_strict_flag_passes_through_to_core_report(tmp_path: Path) -> Non
         },
     )
     assert kickoff_payload["ok"] is True
+    assert kickoff_payload["result"]["next_action"]["action"] == "log_scope_before_edit"
 
     verify_payload = call_tool_payload(
         server,
@@ -587,6 +678,7 @@ def test_verify_strict_flag_passes_through_to_core_report(tmp_path: Path) -> Non
     assert verify_payload["ok"] is True
     assert verify_payload["result"]["mode"] == "strict"
     assert verify_payload["result"]["status"] == "passed"
+    assert verify_payload["result"]["next_action"]["action"] == "log_strict_verification_before_closeout"
     assert any(
         check["gate_id"] == "workflow.current_work"
         for check in verify_payload["result"]["checks"]

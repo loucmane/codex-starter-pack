@@ -253,6 +253,13 @@ def bash_is_aegis_verify(command: str) -> bool:
     return bool(AEGIS_VERIFY_RE.search(command))
 
 
+def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
+    if not is_mcp_tool(tool_name):
+        return False
+    normalized = tool_name.lower().replace(".", "_").replace("-", "_")
+    return "aegis" in normalized and normalized.endswith("verify")
+
+
 def bash_is_aegis_closeout(command: str) -> bool:
     return bool(AEGIS_CLOSEOUT_RE.search(command))
 
@@ -415,11 +422,137 @@ def payload_evidence(payload: Payload, root: Path) -> str:
             return redirect_target
         return f"cmd`{command}`"
     if is_mcp_tool(payload.tool_name):
+        if mcp_tool_is_aegis_verify(payload.tool_name):
+            return AEGIS_VERIFY_REPORT_REL
         paths = mcp_path_values(payload.tool_input)
         if paths:
             return normalize_path(paths[0], root)
         return payload.tool_name
     return payload.tool_name or "unknown"
+
+
+def _path_for_evidence(root: Path, evidence: str) -> Path | None:
+    if not evidence or evidence.startswith("cmd`"):
+        return None
+    candidate = Path(evidence).expanduser()
+    if candidate.is_absolute():
+        return candidate
+    return root / evidence
+
+
+def _line_count(path: Path) -> int | None:
+    try:
+        return len(path.read_text(encoding="utf-8").splitlines())
+    except (FileNotFoundError, OSError, UnicodeDecodeError):
+        return None
+
+
+def _display_location(path_text: str, line_start: int | None, line_end: int | None) -> str:
+    if line_start is None:
+        return path_text
+    if line_end is None or line_end == line_start:
+        return f"{path_text}:{line_start}"
+    return f"{path_text}:{line_start}-{line_end}"
+
+
+def _snippet_line_range(path: Path, snippet: str) -> tuple[int, int] | None:
+    if not snippet:
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError, UnicodeDecodeError):
+        return None
+    offset = text.find(snippet)
+    if offset < 0:
+        return None
+    line_start = text[:offset].count("\n") + 1
+    line_span = max(1, len(snippet.splitlines()) or 1)
+    return line_start, line_start + line_span - 1
+
+
+def _file_snapshot_location(root: Path, evidence: str, *, source: str) -> dict[str, Any] | None:
+    path = _path_for_evidence(root, evidence)
+    if path is None:
+        return None
+    count = _line_count(path)
+    if count is None:
+        return {
+            "path": evidence,
+            "source": source,
+            "confidence": "unavailable",
+            "display": evidence,
+        }
+    line_start = 1 if count > 0 else None
+    line_end = count if count > 0 else None
+    return {
+        "path": evidence,
+        "line_start": line_start,
+        "line_end": line_end,
+        "line_count": count,
+        "source": source,
+        "confidence": "file_snapshot",
+        "display": _display_location(evidence, line_start, line_end),
+    }
+
+
+def payload_evidence_location(payload: Payload, root: Path, evidence: str) -> dict[str, Any] | None:
+    path = _path_for_evidence(root, evidence)
+    if payload.tool_name == "Edit" and path is not None:
+        new_string = payload.tool_input.get("new_string")
+        if isinstance(new_string, str):
+            found = _snippet_line_range(path, new_string)
+            if found:
+                line_start, line_end = found
+                return {
+                    "path": evidence,
+                    "line_start": line_start,
+                    "line_end": line_end,
+                    "source": "tool_input.new_string",
+                    "confidence": "best_effort",
+                    "display": _display_location(evidence, line_start, line_end),
+                }
+        return _file_snapshot_location(root, evidence, source="edit_file_snapshot")
+
+    if payload.tool_name == "MultiEdit" and path is not None:
+        edits = payload.tool_input.get("edits")
+        ranges: list[dict[str, int]] = []
+        if isinstance(edits, list):
+            for edit in edits:
+                if not isinstance(edit, dict):
+                    continue
+                new_string = edit.get("new_string")
+                if not isinstance(new_string, str):
+                    continue
+                found = _snippet_line_range(path, new_string)
+                if found:
+                    ranges.append({"line_start": found[0], "line_end": found[1]})
+        if ranges:
+            line_start = min(item["line_start"] for item in ranges)
+            line_end = max(item["line_end"] for item in ranges)
+            return {
+                "path": evidence,
+                "line_start": line_start,
+                "line_end": line_end,
+                "ranges": ranges,
+                "source": "tool_input.edits.new_string",
+                "confidence": "best_effort",
+                "display": _display_location(evidence, line_start, line_end),
+            }
+        return _file_snapshot_location(root, evidence, source="multiedit_file_snapshot")
+
+    if payload.tool_name == "Write":
+        return _file_snapshot_location(root, evidence, source="write_file_snapshot")
+
+    if payload.tool_name == "NotebookEdit":
+        return _file_snapshot_location(root, evidence, source="notebook_file_snapshot")
+
+    if payload.tool_name == "Bash" and not evidence.startswith("cmd`"):
+        return _file_snapshot_location(root, evidence, source="bash_file_snapshot")
+
+    if is_mcp_tool(payload.tool_name) and not evidence.startswith("cmd`"):
+        return _file_snapshot_location(root, evidence, source="mcp_file_snapshot")
+
+    return None
 
 
 def payload_handler(payload: Payload) -> str:
@@ -432,6 +565,8 @@ def payload_handler(payload: Payload) -> str:
                 continue
             return f"bash:{token}"
         return "bash"
+    if mcp_tool_is_aegis_verify(payload.tool_name):
+        return "aegis:verify"
     return f"claude:{payload.tool_name}" if payload.tool_name else "claude:unknown"
 
 
@@ -485,6 +620,7 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
         return
     evidence = payload_evidence(payload, root)
     handler = payload_handler(payload)
+    evidence_location = payload_evidence_location(payload, root, evidence)
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     task = work.get("task") if isinstance(work.get("task"), dict) else {}
     task_id = str(task.get("id") or "")
@@ -494,31 +630,44 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     for event in events:
         if event.get("evidence") == evidence and event.get("handler") == handler:
             event["updated_at"] = now
+            if evidence_location:
+                event["evidence_location"] = evidence_location
             write_pending_tracking_events(root, events)
             return
-    events.append(
-        {
-            "id": event_id,
-            "created_at": now,
-            "updated_at": now,
-            "tool": payload.tool_name,
-            "handler": handler,
-            "evidence": evidence,
-            "task": {
-                "id": task_id,
-                "slug": slug,
-            },
-            "reason": "Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.",
-        }
-    )
+    event = {
+        "id": event_id,
+        "created_at": now,
+        "updated_at": now,
+        "tool": payload.tool_name,
+        "handler": handler,
+        "evidence": evidence,
+        "task": {
+            "id": task_id,
+            "slug": slug,
+        },
+        "reason": "Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.",
+    }
+    if evidence_location:
+        event["evidence_location"] = evidence_location
+    events.append(event)
     write_pending_tracking_events(root, events)
 
 
 def format_pending_tracking(events: list[dict[str, Any]]) -> str:
     lines = []
     for event in events:
+        event_id = event.get("id", "<unknown>")
         lines.append(
-            f"  - {event.get('id', '<unknown>')}: H={event.get('handler', '<unknown>')} E={event.get('evidence', '<unknown>')}"
+            f"  - {event_id}: H={event.get('handler', '<unknown>')} E={event.get('evidence', '<unknown>')}"
+        )
+        location = event.get("evidence_location")
+        if isinstance(location, dict) and location.get("display"):
+            confidence = str(location.get("confidence") or "unknown")
+            lines.append(f"    location: {location['display']} ({confidence})")
+        lines.append(
+            "    repair: ./.aegis/bin/aegis log --pending-id "
+            f"{event_id} --note \"<past-tense note>\" "
+            "--plan-step <plan-step-id> --plan-status completed"
         )
     return "\n".join(lines)
 
@@ -556,8 +705,9 @@ def pretooluse_gate() -> int:
             f"Tool: {payload.tool_name}\n"
             "Reason: pending S:W:H:E tracking must be logged before another persistent mutation.\n\n"
             f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
-            "Run `aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"` "
-            "or `./.aegis/bin/aegis log ...` so the active session, tracker, plan, implementation log, changelog, "
+            "Run the pending-id repair command above, or use the explicit fallback "
+            "`aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"`, "
+            "so the active session, tracker, plan, implementation log, changelog, "
             "and handoff all contain the required S:W:H:E entry."
         )
 
@@ -619,8 +769,9 @@ def stop_gate() -> int:
         "BLOCKED by .claude/scripts/tracking-stop-gate.sh\n\n"
         "Reason: pending S:W:H:E tracking remains before session stop.\n\n"
         f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
-        "Run `aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"` "
-        "or `./.aegis/bin/aegis log ...` before ending the session."
+        "Run the pending-id repair command above, or use the explicit fallback "
+        "`aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"`, "
+        "before ending the session."
     )
 
 
