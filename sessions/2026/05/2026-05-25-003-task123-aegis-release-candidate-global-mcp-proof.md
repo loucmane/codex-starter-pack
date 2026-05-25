@@ -26,7 +26,7 @@ title: Task 123 - Aegis Release Candidate Global MCP Install Proof
 - [x] Run the live copied existing-project proof.
 - [x] Fix the existing `CLAUDE.md` preservation issue found by the proof.
 - [x] Run final rebuilt-wheel copied existing-project proof.
-- [ ] Run final Task 123 guard stack and closeout.
+- [x] Run final Task 123 guard stack and mark Taskmaster done.
 
 ### Starting Context
 Task 123 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -44,3 +44,4 @@ Task 123 was kicked off via `python3 scripts/codex-task wizard kickoff`, which c
 - **[19:05]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:implement|E:scripts/_aegis_installer.py] Fixed the existing-project `CLAUDE.md` install path so Aegis merges a managed runtime block while preserving existing project instructions
 - **[19:05]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:codex:verify|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Rebuilt the wheel with the merge fix and validated plan-install, install, and standard verify on a fresh hpfetcher copy
 - **[19:13]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:claude:live-proof|E:docs/ai/work-tracking/active/20260525-task123-aegis-release-candidate-global-mcp-proof-ACTIVE/reports/release-candidate-global-mcp-proof/hpfetcher-existing-project-proof.md] Ran the final rebuilt-wheel headless Claude workflow; install, kickoff, native edit, tracking, strict verify, closeout_ready, and closeout passed while preserving HP-Coach `CLAUDE.md` instructions in the active file
+- **[19:32]** — [S:20260525|W:task123-aegis-release-candidate-global-mcp-proof|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 123 done after PR #124 CI passed

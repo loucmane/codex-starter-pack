@@ -2,6 +2,8 @@
 
 ## Current State
 - Task 123 implementation and live proof work are complete on `feat/task-123-aegis-release-candidate-global-mcp-install-proof`.
+- Taskmaster Task 123 is marked `done`.
+- PR #124 is open and CI passed.
 - Local release-candidate artifacts were built and inspected under `/tmp/aegis-task123-dist-clean` and `/tmp/aegis-task123-dist-claude-merge`.
 - Native Claude MCP registration from a wheel was proven with `claude mcp add --scope local aegis ... uvx --from <wheel> aegis-mcp-server`.
 - A full headless Claude workflow passed in a copied `hpfetcher` project:
@@ -31,7 +33,5 @@
 - `git diff --check` — clean.
 
 ## Next Steps
-- Run the final guard stack after the last evidence update.
-- Commit and push the final Task 123 evidence update.
-- Open/refresh the Task 123 PR.
-- Mark Taskmaster Task 123 done only after PR/CI and any final review are complete.
+- Merge PR #124 when ready.
+- After merge, switch back to `main`, pull, and confirm Taskmaster health remains `done=123`.

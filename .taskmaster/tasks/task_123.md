@@ -2,7 +2,7 @@
 
 **Title:** Prove Aegis Release Candidate Global MCP Install on a User-Supplied Existing Project
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 122 ✓
 
