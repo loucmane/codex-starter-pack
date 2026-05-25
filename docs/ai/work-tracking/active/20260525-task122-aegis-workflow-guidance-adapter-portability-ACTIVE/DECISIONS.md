@@ -1,0 +1,5 @@
+# Decisions
+
+- 2026-05-25 — [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:design|E:docs/ai/work-tracking/active/20260525-task122-aegis-workflow-guidance-adapter-portability-ACTIVE/designs/wizard-flow.md] Keep Task 122 focused on deterministic guidance, adapter contracts, and release documentation. Do not publish packages or add MCP source-editing tools in this task.
+- 2026-05-25 — [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:implement|E:docs/aegis/agent-adapter-contract.md] Treat Claude as the only implemented runtime adapter for now. Codex, Gemini, and future agents stay planned until their hookability, mutation surfaces, MCP registration, and live acceptance rows are proven.
+- 2026-05-25 — [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:implement|E:docs/aegis/live-acceptance-matrix.md] Keep TestPyPI/PyPI publication blocked until local artifact proofs and the live acceptance matrix are satisfied or explicitly deferred with owner and risk.

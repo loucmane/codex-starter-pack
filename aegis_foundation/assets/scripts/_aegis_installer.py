@@ -270,6 +270,7 @@ def profile_payload() -> dict[str, Any]:
                 "Aegis-native kickoff reaches READY without Taskmaster or Serena",
                 "READY evidence write allowed",
                 "aegis log updates session, tracker, event-aware canonical surfaces, and explicit plan evidence",
+                "aegis closeout --dry-run reports closeout readiness without mutation",
                 "aegis closeout blocks completion until strict verification, plan evidence, and semantic handoff pass",
             ],
         },
@@ -318,7 +319,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "## Control Plane vs Implementation Tools",
             "",
-            "- Use Aegis MCP tools, or the project-local Aegis CLI, for Aegis workflow state: inspect, plan-install, install, kickoff, log, verify, closeout, status, and future reconciliation.",
+            "- Use Aegis MCP tools, or the project-local Aegis CLI, for Aegis workflow state: inspect, plan-install, install, status, next, kickoff, log, verify, closeout dry-runs, closeout, and future reconciliation.",
             "- Use native agent tools for normal project implementation: reading files, editing source files, running project tests, and inspecting git status or diffs.",
             "- The installed Aegis runtime, not the MCP session, is responsible for enforcement.",
             "- Installed hooks govern persistent mutations regardless of whether the attempted mutation comes from MCP, Bash, Edit, Write, or another supported tool surface.",
@@ -337,11 +338,12 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness, mark `plan-step-scope` complete with `aegis log`, make the task-scoped code change, let PostToolUse create pending tracking, run `aegis log --pending-id current` for the changed source file with `--plan-step plan-step-implement`, run task-specific verification with `--plan-step plan-step-verify`, run `aegis verify --strict`, log the strict verification report with `--pending-id current --plan-step plan-step-verify`, then run `aegis closeout` before declaring the work complete.",
+            "- Normal feature work is: confirm readiness and `aegis next`, mark scope complete with `aegis log --plan-step auto`, make the task-scoped code change with native tools, let PostToolUse create pending tracking, run `aegis log --pending-id current --plan-step auto` for the changed source file, run task-specific verification and log it with `--plan-step auto`, run `aegis verify --strict`, log the strict verification report with `--pending-id current --plan-step auto`, run `aegis closeout --dry-run --update-handoff` for preflight, then run `aegis closeout --update-handoff` before declaring the work complete.",
             "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
             "- Omit `--surface` for event-aware defaults. Scope logs update findings, decisions, and handoff; implementation and verification logs update implementation, changelog, and handoff. Use `--surface` only for targeted repairs.",
+            "- `aegis closeout --dry-run --update-handoff` checks closeout gates without writing reports, handoff updates, or current-work state.",
             "- `aegis closeout --update-handoff` may refresh Aegis-owned semantic handoff sections before validation. It preserves the Progress Log.",
             "",
         ]
@@ -378,22 +380,23 @@ def _render_claude_entrypoint() -> bytes:
             "",
             "Tool routing:",
             "",
-            "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, plan_install, install, kickoff, log, verify, closeout, status, and future reconciliation.",
+            "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, kickoff, log, verify, closeout_ready, closeout, and future reconciliation.",
             "- Use `aegis ...` or `./.aegis/bin/aegis ...` for the same workflow operations when MCP is unavailable.",
             "- Use native Claude tools for normal implementation work: reading files, editing source, running tests, and inspecting git status or diffs.",
             "- Do not use MCP as a replacement for normal source editing. The installed hooks enforce the workflow around native tool use.",
             "",
             "Normal feature-work loop:",
             "",
-            "1. Confirm readiness is READY.",
-            "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --plan-step plan-step-scope --plan-status completed`.",
+            "1. Confirm readiness is READY, then run `aegis next` or `./.aegis/bin/aegis next` to get the next required workflow action.",
+            "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --plan-step auto --plan-status completed`.",
             "3. Make the task-scoped source change requested by the user with native Edit/Write tools.",
-            "4. After the hook records pending tracking, run `aegis log --pending-id current --note \"<past-tense note>\" --plan-step plan-step-implement --plan-status completed`.",
-            "5. Run task-specific verification and log it with `--plan-step plan-step-verify --plan-status completed`.",
-            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note \"Recorded strict verification evidence\" --plan-step plan-step-verify --plan-status completed`.",
-            "7. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
+            "4. After the hook records pending tracking, run `aegis log --pending-id current --note \"<past-tense note>\" --plan-step auto --plan-status completed`.",
+            "5. Run task-specific verification and log it with `--plan-step auto --plan-status completed`.",
+            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note \"Recorded strict verification evidence\" --plan-step auto --plan-status completed`.",
+            "7. Run `aegis closeout --dry-run --update-handoff` or call MCP `aegis.closeout_ready` before final closeout.",
+            "8. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
             "",
-            "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\"` before attempting the next mutation. Use explicit `--handler` and `--evidence` only when no pending event exists. The command updates the session, tracker, event-aware canonical surfaces, and plan evidence only when `--plan-step` is supplied.",
+            "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
             "",
         ]
@@ -414,12 +417,14 @@ def _render_claude_settings() -> bytes:
                 "Bash(bash .claude/scripts/bash-command-guard.sh:*)",
                 "Bash(aegis inspect:*)",
                 "Bash(aegis status:*)",
+                "Bash(aegis next:*)",
                 "Bash(aegis kickoff:*)",
                 "Bash(aegis log:*)",
                 "Bash(aegis verify:*)",
                 "Bash(aegis closeout:*)",
                 "Bash(./.aegis/bin/aegis inspect:*)",
                 "Bash(./.aegis/bin/aegis status:*)",
+                "Bash(./.aegis/bin/aegis next:*)",
                 "Bash(./.aegis/bin/aegis kickoff:*)",
                 "Bash(./.aegis/bin/aegis log:*)",
                 "Bash(./.aegis/bin/aegis verify:*)",
@@ -1001,6 +1006,7 @@ def status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]
                 "Repair or restore .aegis/foundation-manifest.json before upgrading.",
                 "Use git history or recorded backups for rollback.",
             ]
+        payload["workflow_guidance"] = next_action(target_root, source_root=source)
         return payload
 
     installed_versions = {
@@ -1060,7 +1066,308 @@ def status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]
             ),
         }
     )
+    payload["workflow_guidance"] = next_action(target_root, source_root=source)
     return payload
+
+
+AEGIS_ARCHITECTURE_NOTES = (
+    "Aegis CLI/MCP controls workflow state and evidence. Native agent tools perform "
+    "source reads, edits, and project tests. Installed hooks and guards enforce tracking "
+    "and protected-path behavior."
+)
+
+
+def _workflow_guidance_payload(
+    *,
+    phase: str,
+    state: str,
+    next_required_action: str,
+    suggested_cli: str,
+    suggested_mcp_tool: str | None = None,
+    suggested_mcp_arguments: Mapping[str, Any] | None = None,
+    missing_gates: Sequence[str] | None = None,
+    copyable_repairs: Sequence[str] | None = None,
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "phase": phase,
+        "state": state,
+        "next_required_action": next_required_action,
+        "suggested_cli": suggested_cli,
+        "suggested_mcp_call": (
+            {
+                "tool": suggested_mcp_tool,
+                "arguments": dict(suggested_mcp_arguments or {}),
+            }
+            if suggested_mcp_tool
+            else None
+        ),
+        "missing_gates": list(missing_gates or []),
+        "copyable_repairs": list(copyable_repairs or []),
+        "read_only": True,
+        "architecture_notes": AEGIS_ARCHITECTURE_NOTES,
+    }
+    if details:
+        payload["details"] = dict(details)
+    return payload
+
+
+def _plan_step_completed(plan_rows: Mapping[str, Mapping[str, Any]], step: str) -> bool:
+    row = plan_rows.get(step)
+    return isinstance(row, Mapping) and str(row.get("status") or "").lower() in {"completed", "done"}
+
+
+def _strict_verify_passed(target_root: Path) -> bool:
+    report = _read_json(target_root / AEGIS_VERIFY_REPORT_REL)
+    if not isinstance(report, Mapping):
+        return False
+    return report.get("mode") == "strict" and report.get("status") == "passed"
+
+
+def _closeout_passed(target_root: Path) -> bool:
+    report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
+    if isinstance(report, Mapping) and report.get("status") == "passed":
+        return True
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    return isinstance(current_work, Mapping) and bool(current_work.get("closeout_passed_at"))
+
+
+def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
+    """Return read-only workflow guidance for the next Aegis action."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve()
+    manifest_path = target_root / AEGIS_MANIFEST_REL
+    manifest_exists = manifest_path.exists()
+    manifest = _read_json(manifest_path)
+    if manifest is None:
+        if manifest_exists:
+            return _workflow_guidance_payload(
+                phase="bootstrap",
+                state="invalid_manifest",
+                next_required_action="repair or restore .aegis/foundation-manifest.json before continuing",
+                suggested_cli="./.aegis/bin/aegis status --target-dir .",
+                suggested_mcp_tool="aegis.status",
+                suggested_mcp_arguments={"target_dir": "."},
+                missing_gates=["aegis.manifest_schema"],
+                copyable_repairs=[
+                    "Restore .aegis/foundation-manifest.json from git history or reinstall Aegis after reviewing plan-install output."
+                ],
+            )
+        return _workflow_guidance_payload(
+            phase="bootstrap",
+            state="not_installed",
+            next_required_action="inspect, plan install, then install Aegis before kickoff",
+            suggested_cli="./.aegis/bin/aegis plan-install --target-dir . --primary-agent claude --agent claude",
+            suggested_mcp_tool="aegis.plan_install",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "profile": PROFILE_GENERIC,
+                "primary_agent": "claude",
+                "agents": ["claude"],
+            },
+            missing_gates=["aegis.manifest"],
+            copyable_repairs=[
+                "aegis plan-install --target-dir . --primary-agent claude --agent claude",
+                "aegis install --target-dir . --primary-agent claude --agent claude --apply",
+            ],
+        )
+
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if not isinstance(current_work, Mapping):
+        return _workflow_guidance_payload(
+            phase="start",
+            state="installed_no_current_work",
+            next_required_action="kick off task-scoped work before mutating files",
+            suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+            suggested_mcp_tool="aegis.kickoff",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "task": "<id>",
+                "slug": "<slug>",
+                "title": "<title>",
+            },
+            missing_gates=["aegis.current_work"],
+            copyable_repairs=[
+                "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'"
+            ],
+        )
+
+    pending_events = _pending_tracking_events(target_root)
+    if pending_events:
+        ids = [str(event.get("id") or "unknown") for event in pending_events]
+        return _workflow_guidance_payload(
+            phase="track",
+            state="pending_tracking",
+            next_required_action="log the pending S:W:H:E event before any further mutation",
+            suggested_cli="./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense note>' --plan-step auto --plan-status completed",
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "pending_event_id": "current",
+                "note": "<past-tense note>",
+                "plan_step": "auto",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            missing_gates=["mutation.pending_tracking_empty"],
+            copyable_repairs=[
+                "./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense note>' --plan-step auto --plan-status completed"
+            ],
+            details={"pending_event_ids": ids},
+        )
+
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    plan_rel = str(paths.get("plan") or "plans/current").strip()
+    tracker_rel = f"{work_rel}/TRACKER.md" if work_rel else "docs/ai/work-tracking/active/<folder>/TRACKER.md"
+    findings_rel = f"{work_rel}/FINDINGS.md" if work_rel else "docs/ai/work-tracking/active/<folder>/FINDINGS.md"
+    reports_rel = str(paths.get("reports") or f"{work_rel}/reports/<slug>").strip()
+    plan_path = target_root / plan_rel
+    tracker_path = target_root / tracker_rel
+    if not plan_path.exists() or not tracker_path.exists():
+        missing = []
+        if not plan_path.exists():
+            missing.append("workflow.plan")
+        if not tracker_path.exists():
+            missing.append("workflow.tracker")
+        return _workflow_guidance_payload(
+            phase="repair",
+            state="workflow_scaffold_incomplete",
+            next_required_action="repair current work, plan, and tracker pointers before continuing",
+            suggested_cli="./.aegis/bin/aegis status --target-dir .",
+            suggested_mcp_tool="aegis.status",
+            suggested_mcp_arguments={"target_dir": "."},
+            missing_gates=missing,
+            copyable_repairs=[
+                "Re-run kickoff only after preserving existing task evidence, or restore missing workflow files from git history."
+            ],
+        )
+
+    plan_rows = _parse_plan_rows(plan_path)
+    if not _plan_step_completed(plan_rows, "plan-step-scope"):
+        return _workflow_guidance_payload(
+            phase="scope",
+            state="scope_required",
+            next_required_action="log task scope before source edits",
+            suggested_cli=(
+                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"--evidence {_quote_cli(findings_rel)} --note 'Confirmed task scope before implementation' "
+                "--plan-step auto --plan-status completed"
+            ),
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "handler": "claude:scope",
+                "evidence": findings_rel,
+                "note": "Confirmed task scope before implementation",
+                "event_class": "scope",
+                "plan_step": "auto",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            missing_gates=["plan.scope", "tracker.scope"],
+            copyable_repairs=[
+                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"--evidence {_quote_cli(findings_rel)} --note 'Confirmed task scope before implementation' "
+                "--plan-step auto --plan-status completed"
+            ],
+        )
+
+    if not _plan_step_completed(plan_rows, "plan-step-implement"):
+        return _workflow_guidance_payload(
+            phase="implement",
+            state="implementation_required",
+            next_required_action="make the task-scoped change with native tools, then log the pending mutation",
+            suggested_cli="./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense implementation note>' --plan-step auto --plan-status completed",
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "pending_event_id": "current",
+                "note": "<past-tense implementation note>",
+                "plan_step": "auto",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            missing_gates=["plan.implement", "tracker.implement"],
+            copyable_repairs=[
+                "Use native agent tools for the source edit.",
+                "./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense implementation note>' --plan-step auto --plan-status completed",
+            ],
+        )
+
+    if not _plan_step_completed(plan_rows, "plan-step-verify"):
+        return _workflow_guidance_payload(
+            phase="verify",
+            state="task_verification_required",
+            next_required_action="run project verification, save evidence, then log it",
+            suggested_cli=(
+                f"# Save task verification under {_quote_cli(reports_rel)}/, then:\n"
+                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                "--note 'Recorded task-specific verification evidence' --plan-step auto --plan-status completed"
+            ),
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "pending_event_id": "current",
+                "note": "Recorded task-specific verification evidence",
+                "plan_step": "auto",
+                "plan_status": "completed",
+                "apply": True,
+            },
+            missing_gates=["plan.verify", "tracker.verify"],
+            copyable_repairs=[
+                f"Save task verification under {reports_rel}/",
+                "./.aegis/bin/aegis log --target-dir . --pending-id current --note 'Recorded task-specific verification evidence' --plan-step auto --plan-status completed",
+            ],
+        )
+
+    if not _strict_verify_passed(target_root):
+        return _workflow_guidance_payload(
+            phase="verify",
+            state="strict_verification_required",
+            next_required_action="run strict Aegis verification and log its pending event",
+            suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
+            suggested_mcp_tool="aegis.verify",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "strict": True,
+                "acknowledge_report_write": True,
+            },
+            missing_gates=["strict_verification"],
+            copyable_repairs=[
+                "./.aegis/bin/aegis verify --target-dir . --strict",
+                "./.aegis/bin/aegis log --target-dir . --pending-id current --note 'Recorded strict verification evidence' --plan-step auto --plan-status completed",
+            ],
+        )
+
+    if _closeout_passed(target_root):
+        return _workflow_guidance_payload(
+            phase="complete",
+            state="closeout_passed",
+            next_required_action="no workflow action required",
+            suggested_cli="./.aegis/bin/aegis status --target-dir .",
+            suggested_mcp_tool="aegis.status",
+            suggested_mcp_arguments={"target_dir": "."},
+            details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+        )
+
+    return _workflow_guidance_payload(
+        phase="closeout",
+        state="closeout_required",
+        next_required_action="run closeout dry-run/readiness, then final closeout before reporting the task complete",
+        suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+        suggested_mcp_tool="aegis.closeout_ready",
+        suggested_mcp_arguments={
+            "target_dir": ".",
+            "update_handoff": True,
+        },
+        missing_gates=["closeout.readiness"],
+        copyable_repairs=[
+            "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+            "./.aegis/bin/aegis closeout --target-dir . --update-handoff",
+        ],
+    )
 
 
 def plan_install(
@@ -1528,7 +1835,7 @@ def kickoff(
                 "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
                 f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
                 "--note 'Confirmed task scope before implementation' "
-                "--plan-step plan-step-scope --plan-status completed"
+                "--plan-step auto --plan-status completed"
             ),
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments={
@@ -1537,7 +1844,7 @@ def kickoff(
                 "evidence": f"{work_rel}/FINDINGS.md",
                 "note": "Confirmed task scope before implementation",
                 "event_class": "scope",
-                "plan_step": "plan-step-scope",
+                "plan_step": "auto",
                 "plan_status": "completed",
                 "apply": True,
             },
@@ -1689,6 +1996,78 @@ def _normalize_plan_status(status: str | None) -> str:
         choices = ", ".join(sorted(AEGIS_PLAN_STATUS_CHOICES))
         raise AegisError(f"unknown plan status: {status}; expected one of: {choices}")
     return "completed" if clean == "done" else clean
+
+
+AEGIS_PLAN_STEP_IDS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
+
+
+def _infer_auto_plan_step(
+    *,
+    event_class: str,
+    handler: str,
+    evidence: str,
+    pending_event: Mapping[str, Any] | None,
+) -> tuple[str, str]:
+    candidates: dict[str, str] = {}
+
+    if event_class == "scope":
+        candidates["plan-step-scope"] = "event_class=scope"
+    elif event_class == "implementation":
+        candidates["plan-step-implement"] = "event_class=implementation"
+    elif event_class == "verification":
+        candidates["plan-step-verify"] = "event_class=verification"
+
+    handler_lower = handler.lower()
+    evidence_lower = evidence.lower()
+    if "scope" in handler_lower:
+        candidates.setdefault("plan-step-scope", "handler contains scope")
+    if evidence_lower == AEGIS_VERIFY_REPORT_REL.lower() or "verify" in handler_lower or "verification" in handler_lower:
+        candidates.setdefault("plan-step-verify", "verification handler/evidence")
+    if any(token in handler_lower for token in ("write", "edit", "implement", "bash")):
+        candidates.setdefault("plan-step-implement", "mutation handler")
+
+    if isinstance(pending_event, Mapping):
+        tool_name = str(pending_event.get("tool") or pending_event.get("tool_name") or "")
+        if tool_name in {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"}:
+            candidates.setdefault("plan-step-implement", "pending mutation event")
+
+    if len(candidates) == 1:
+        step, reason = next(iter(candidates.items()))
+        return step, reason
+
+    choices = ", ".join(AEGIS_PLAN_STEP_IDS)
+    if not candidates:
+        raise AegisError(
+            "plan-step auto could not infer a deterministic plan step; "
+            f"pass one of: {choices}"
+        )
+    observed = ", ".join(f"{step} ({reason})" for step, reason in candidates.items())
+    raise AegisError(
+        "plan-step auto is ambiguous; "
+        f"observed candidates: {observed}; pass one explicit plan step: {choices}"
+    )
+
+
+def _resolve_plan_step_argument(
+    plan_step: str | None,
+    *,
+    event_class: str,
+    handler: str,
+    evidence: str,
+    pending_event: Mapping[str, Any] | None,
+) -> tuple[str, bool, str | None]:
+    clean = (plan_step or "").strip()
+    if not clean:
+        return "", False, None
+    if clean.lower() != "auto":
+        return clean, False, None
+    inferred, reason = _infer_auto_plan_step(
+        event_class=event_class,
+        handler=handler,
+        evidence=evidence,
+        pending_event=pending_event,
+    )
+    return inferred, True, reason
 
 
 def _update_tracker_timestamp(tracker_path: Path, timestamp: str) -> None:
@@ -1939,12 +2318,11 @@ def _next_action_after_log(
         if evidence_rel == AEGIS_VERIFY_REPORT_REL:
             return _workflow_next_action(
                 "run_closeout",
-                "Strict verification is logged. Run closeout before reporting the task complete.",
-                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --update-handoff",
-                suggested_mcp_tool="aegis.closeout",
+                "Strict verification is logged. Run closeout readiness/dry-run, then final closeout before reporting the task complete.",
+                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                suggested_mcp_tool="aegis.closeout_ready",
                 suggested_mcp_arguments={
                     "target_dir": ".",
-                    "acknowledge_report_write": True,
                     "update_handoff": True,
                 },
             )
@@ -2027,14 +2405,20 @@ def log_work(
         if isinstance(pending_location, Mapping)
         else _evidence_file_location(target_root, evidence_rel)
     )
-    normalized_plan_step = plan_step.strip() if plan_step else ""
-    normalized_plan_status = _normalize_plan_status(plan_status) if normalized_plan_step else ""
     normalized_event_class = _infer_log_event_class(
-        plan_step=normalized_plan_step,
+        plan_step="" if (plan_step or "").strip().lower() == "auto" else (plan_step or "").strip(),
         handler=clean_handler,
         evidence=evidence_rel,
         explicit_event_class=event_class,
     )
+    normalized_plan_step, plan_step_inferred, plan_inference_reason = _resolve_plan_step_argument(
+        plan_step,
+        event_class=normalized_event_class,
+        handler=clean_handler,
+        evidence=evidence_rel,
+        pending_event=resolved_pending_event,
+    )
+    normalized_plan_status = _normalize_plan_status(plan_status) if normalized_plan_step else ""
     log_surfaces = _normalize_log_surfaces(
         surfaces,
         default_surfaces=_default_log_surfaces_for_event(normalized_event_class),
@@ -2139,6 +2523,11 @@ def log_work(
             "step": normalized_plan_step or None,
             "status": normalized_plan_status or None,
             "evidence": evidence_rel,
+            "inferred": plan_step_inferred,
+            "inference_reason": plan_inference_reason,
+            "strict_verification_evidence": (
+                evidence_rel == AEGIS_VERIFY_REPORT_REL and normalized_plan_step == "plan-step-verify"
+            ),
         },
         "pending": {
             "cleared": len(cleared),
@@ -2739,7 +3128,13 @@ def _strict_verification_checks(target_root: Path, manifest: Mapping[str, Any]) 
     return checks
 
 
-def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = False) -> dict[str, Any]:
+def verify(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    strict: bool = False,
+    dry_run: bool = False,
+) -> dict[str, Any]:
     target_root = _resolve_target_root(target_dir)
     source = Path(source_root).resolve()
     manifest_path = target_root / AEGIS_MANIFEST_REL
@@ -2754,6 +3149,8 @@ def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = Fa
             "verified_at": _iso_now(),
             "target_root": str(target_root),
             "manifest_path": AEGIS_MANIFEST_REL,
+            "dry_run": dry_run,
+            "report_written": False,
             "checks": [
                 {
                     "gate_id": "aegis.manifest",
@@ -2785,7 +3182,9 @@ def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = Fa
                 },
             ),
         }
-        _write_verify_report(target_root, report)
+        if not dry_run:
+            _write_verify_report(target_root, report)
+            report["report_written"] = True
         return report
 
     try:
@@ -2823,6 +3222,8 @@ def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = Fa
         "verified_at": _iso_now(),
         "target_root": str(target_root),
         "manifest_path": AEGIS_MANIFEST_REL,
+        "dry_run": dry_run,
+        "report_written": False,
         "summary": {
             "total": len(checks),
             "failed_required": len(failed_required),
@@ -2875,8 +3276,10 @@ def verify(target_dir: str | Path, *, source_root: str | Path, strict: bool = Fa
             )
         ),
     }
-    _write_verify_report(target_root, report)
-    if report["status"] == "passed":
+    if not dry_run:
+        _write_verify_report(target_root, report)
+        report["report_written"] = True
+    if report["status"] == "passed" and not dry_run:
         manifest["verification"] = {
             "status": "passed",
             "last_verified_at": report["verified_at"],
@@ -3359,6 +3762,7 @@ def closeout(
     update_handoff: bool = False,
     require_clean_git: bool = False,
     include_git_guidance: bool = True,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     """Validate that Aegis workflow state is complete enough to report task completion."""
 
@@ -3412,7 +3816,7 @@ def closeout(
         )
     )
 
-    strict_verify = verify(target_root, source_root=source, strict=True)
+    strict_verify = verify(target_root, source_root=source, strict=True, dry_run=dry_run)
     checks.append(
         _closeout_check(
             "closeout.strict_verify",
@@ -3505,7 +3909,7 @@ def closeout(
             )
         )
 
-    if update_handoff and handoff_path.is_file():
+    if update_handoff and not dry_run and handoff_path.is_file():
         _update_handoff_for_closeout(
             target_root,
             handoff_path=handoff_path,
@@ -3579,6 +3983,9 @@ def closeout(
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "status": status_value,
+        "dry_run": dry_run,
+        "report_written": False,
+        "state_updated": False,
         "checked_at": checked_at,
         "target_root": str(target_root),
         "current_work": current_work,
@@ -3600,7 +4007,8 @@ def closeout(
         "evidence_matrix": evidence_matrix,
         "handoff": {
             "path": _repo_path(handoff_path, target_root),
-            "updated": update_handoff,
+            "updated": update_handoff and not dry_run,
+            "would_update": update_handoff and dry_run,
         },
         "integrations": integration_report,
         "git": git_report,
@@ -3613,6 +4021,20 @@ def closeout(
         },
         "next_action": (
             _workflow_next_action(
+                "run_closeout_to_write_report",
+                "Closeout readiness passed. Run non-dry-run closeout to write the closeout report before reporting the task complete.",
+                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --update-handoff",
+                suggested_mcp_tool="aegis.closeout",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "acknowledge_report_write": True,
+                    "update_handoff": True,
+                },
+                details={"dry_run": True, "closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+            )
+            if status_value == "passed" and dry_run
+            else
+            _workflow_next_action(
                 "task_complete",
                 "Closeout passed. It is now valid to report the task complete and proceed with normal git/GitHub commands.",
                 suggested_cli="git status --short",
@@ -3622,12 +4044,16 @@ def closeout(
             else _workflow_next_action(
                 "repair_closeout_gates_before_retry",
                 "Closeout failed. Do not report the task complete; apply repair_guidance and retry closeout.",
-                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --update-handoff",
-                suggested_mcp_tool="aegis.closeout",
+                suggested_cli=(
+                    "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff"
+                    if dry_run
+                    else "./.aegis/bin/aegis closeout --target-dir . --update-handoff"
+                ),
+                suggested_mcp_tool="aegis.closeout_ready" if dry_run else "aegis.closeout",
                 suggested_mcp_arguments={
                     "target_dir": ".",
-                    "acknowledge_report_write": True,
                     "update_handoff": True,
+                    **({} if dry_run else {"acknowledge_report_write": True}),
                 },
                 details={
                     "failed_required_gates": [
@@ -3639,18 +4065,21 @@ def closeout(
             )
         ),
     }
-    if status_value == "passed":
+    if status_value == "passed" and not dry_run:
         report["closed_at"] = _iso_now()
 
-    reports_dir = target_root / AEGIS_REPORTS_REL
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    (target_root / AEGIS_CLOSEOUT_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
+    if not dry_run:
+        reports_dir = target_root / AEGIS_REPORTS_REL
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        (target_root / AEGIS_CLOSEOUT_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
+        report["report_written"] = True
 
-    if status_value == "passed" and current_work:
+    if status_value == "passed" and current_work and not dry_run:
         current_work["updated_at"] = _iso_now()
         current_work["closeout_passed_at"] = report["closed_at"]
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+        report["state_updated"] = True
 
     return report
 

@@ -2,7 +2,7 @@
 
 This document describes release-oriented install and invocation paths for Aegis Foundation. The development checkout and editable package modes in `docs/aegis/invocation-contract.md` remain supported.
 
-Release lifecycle policy lives in `docs/aegis/release-policy.md`; operational upgrade, downgrade, and rollback flow lives in `docs/aegis/update-rollback.md`; reusable CI snippets and release matrix live in `docs/aegis/ci-install-templates.md` and `docs/aegis/release-verification-matrix.md`; MCP client setup for Codex, Claude, and generic stdio clients lives in `docs/aegis/mcp-client-setup.md`.
+Release lifecycle policy lives in `docs/aegis/release-policy.md`; operational upgrade, downgrade, and rollback flow lives in `docs/aegis/update-rollback.md`; reusable CI snippets and release matrix live in `docs/aegis/ci-install-templates.md` and `docs/aegis/release-verification-matrix.md`; live project acceptance lives in `docs/aegis/live-acceptance-matrix.md`; adapter boundaries live in `docs/aegis/agent-adapter-contract.md`; MCP client setup for Codex, Claude, and generic stdio clients lives in `docs/aegis/mcp-client-setup.md`.
 
 ## Package Identity
 
@@ -38,10 +38,12 @@ From the target project directory, run the installed command without `AEGIS_SOUR
 ```bash
 aegis inspect --target-dir .
 aegis status --target-dir .
+aegis next --target-dir .
 aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
 aegis verify --target-dir . --strict
+aegis closeout --target-dir . --dry-run --update-handoff
 ```
 
 The installed command must resolve packaged Aegis assets from the wheel, not from the source checkout.
@@ -67,6 +69,7 @@ Run with `uvx`:
 ```bash
 uvx --from aegis-foundation aegis inspect --target-dir .
 uvx --from aegis-foundation aegis status --target-dir .
+uvx --from aegis-foundation aegis next --target-dir .
 uvx --from aegis-foundation aegis plan-install --target-dir . --primary-agent claude --agent claude
 uvx --from aegis-foundation aegis verify --target-dir .
 ```
@@ -76,6 +79,7 @@ Run with `pipx`:
 ```bash
 pipx run --spec aegis-foundation aegis inspect --target-dir .
 pipx run --spec aegis-foundation aegis status --target-dir .
+pipx run --spec aegis-foundation aegis next --target-dir .
 pipx run --spec aegis-foundation aegis plan-install --target-dir . --primary-agent claude --agent claude
 pipx run --spec aegis-foundation aegis verify --target-dir .
 ```
@@ -91,7 +95,7 @@ pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspec
 
 Native MCP client registration is the preferred bootstrap path. It registers the packaged `aegis-mcp-server` once, then lets the discovered `aegis.*` tools install and operate the workflow inside each target project.
 
-MCP is the Aegis bootstrap and control plane. Use it for Aegis workflow state such as inspect, plan-install, install, kickoff, log, verify, closeout, status, and future reconciliation. Use native agent tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status or diffs. The installed Aegis runtime and hooks enforce supported persistent mutations regardless of which tool surface attempts them.
+MCP is the Aegis bootstrap and control plane. Use it for Aegis workflow state such as inspect, status, next, plan-install, install, kickoff, log, verify, closeout-ready/dry-run, closeout, and future reconciliation. Use native agent tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status or diffs. The installed Aegis runtime and hooks enforce supported persistent mutations regardless of which tool surface attempts them.
 
 Claude user/global scope:
 

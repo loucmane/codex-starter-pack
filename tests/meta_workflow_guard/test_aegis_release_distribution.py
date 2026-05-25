@@ -40,6 +40,8 @@ UPDATE_ROLLBACK_DOC = REPO_ROOT / "docs" / "aegis" / "update-rollback.md"
 CI_INSTALL_TEMPLATES_DOC = REPO_ROOT / "docs" / "aegis" / "ci-install-templates.md"
 RELEASE_VERIFICATION_MATRIX_DOC = REPO_ROOT / "docs" / "aegis" / "release-verification-matrix.md"
 MCP_CLIENT_SETUP_DOC = REPO_ROOT / "docs" / "aegis" / "mcp-client-setup.md"
+LIVE_ACCEPTANCE_MATRIX_DOC = REPO_ROOT / "docs" / "aegis" / "live-acceptance-matrix.md"
+AGENT_ADAPTER_CONTRACT_DOC = REPO_ROOT / "docs" / "aegis" / "agent-adapter-contract.md"
 
 
 async def _run_wheel_mcp_stdio_smoke(
@@ -272,6 +274,8 @@ def test_packaged_asset_bundle_contains_required_runtime_assets() -> None:
         "docs/aegis/ci-install-templates.md",
         "docs/aegis/release-verification-matrix.md",
         "docs/aegis/mcp-client-setup.md",
+        "docs/aegis/live-acceptance-matrix.md",
+        "docs/aegis/agent-adapter-contract.md",
         "templates/registry/agent-compatibility-matrix.json",
     }
 
@@ -308,8 +312,10 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
         "python3 -m pip install aegis-foundation",
         "uvx --from aegis-foundation aegis inspect --target-dir .",
         "uvx --from aegis-foundation aegis status --target-dir .",
+        "uvx --from aegis-foundation aegis next --target-dir .",
         "pipx run --spec aegis-foundation aegis inspect --target-dir .",
         "pipx run --spec aegis-foundation aegis status --target-dir .",
+        "pipx run --spec aegis-foundation aegis next --target-dir .",
         'uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .',
         'pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspect --target-dir .',
         "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
@@ -317,6 +323,8 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
         "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "MCP is the Aegis bootstrap and control plane",
         "Use native agent tools for normal project implementation work",
+        "aegis next --target-dir .",
+        "aegis closeout --target-dir . --dry-run --update-handoff",
         "aegis mcp generate-registration --client claude --scope user",
         "aegis mcp execute-registration --client claude --scope user",
         "aegis mcp verify-registration --client claude --scope user",
@@ -337,6 +345,8 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
     assert "docs/aegis/ci-install-templates.md" in text
     assert "docs/aegis/release-verification-matrix.md" in text
     assert "docs/aegis/mcp-client-setup.md" in text
+    assert "docs/aegis/live-acceptance-matrix.md" in text
+    assert "docs/aegis/agent-adapter-contract.md" in text
 
 
 def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> None:
@@ -355,8 +365,10 @@ def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> 
         "Native MCP client registration is the primary path",
         "MCP is the bootstrap and control-plane interface",
         "Expected tool split:",
-        "Aegis MCP or the project-local CLI: inspect, plan_install/plan-install, install, kickoff, log, verify, closeout, status, and future reconciliation.",
+        "Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, kickoff, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.",
         "Native agent tools: source reads and edits, project test commands, and git status/diff inspection.",
+        "pending_event_id=current",
+        "plan_step=auto",
         "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
         "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio",
@@ -392,6 +404,8 @@ def test_release_policy_docs_cover_update_rollback_and_signing() -> None:
         "Hosted MCP service deployment",
         "AEGIS_RUN_WHEEL_MCP_TARGET_SMOKE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py::test_local_wheel_mcp_real_target_project_smoke_when_enabled",
         "TestPyPI and PyPI publication are blocked until the local artifact MCP target smoke passes",
+        "publication decision record",
+        "Do not run `twine upload`",
     ):
         assert snippet in release_policy
 
@@ -432,8 +446,8 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "`3.11`, `3.12`",
         "`pip`, `uvx`, `pipx`, `local-wheel`, `editable`",
         "`aegis`, `aegis-mcp-server`",
-        "`aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis certify-release`, `aegis kickoff`, `aegis log`",
-        "native `claude mcp add`, native `codex mcp add`, `aegis mcp generate-registration`, `aegis mcp execute-registration`, `aegis mcp verify-registration`, `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis.closeout`, `aegis://work/current`, tool/resource/prompt discovery",
+        "`aegis --version`, `aegis inspect`, `aegis status`, `aegis next`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis closeout --dry-run`, `aegis certify-release`, `aegis kickoff`, `aegis log`",
+        "native `claude mcp add`, native `codex mcp add`, `aegis mcp generate-registration`, `aegis mcp execute-registration`, `aegis mcp verify-registration`, `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.kickoff`, `aegis.log`, `aegis.closeout_ready`, `aegis.closeout`, `aegis://work/current`, tool/resource/prompt discovery",
         "`package`, `source`",
         "online package resolution, offline/local wheel",
         "empty repository",
@@ -442,6 +456,8 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "docs-heavy Task 101-style repository",
         "partial existing Aegis install",
         "local-wheel MCP stdio validation works against concrete new and already-started Python, web, and backend fixture projects",
+        "docs/aegis/live-acceptance-matrix.md",
+        "fresh/existing web, Python, backend",
         "native `claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers Aegis without editing `.mcp.json`",
         "native `codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers Aegis without hand-editing Codex config",
         "Aegis registration generation covers package, pinned package, GitHub URL/ref, local wheel, and source checkout source modes",
@@ -455,6 +471,45 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
         "Policy-only claims are not release evidence.",
     ):
         assert snippet in matrix
+
+
+def test_live_acceptance_matrix_and_adapter_contract_are_packaged() -> None:
+    live_matrix = LIVE_ACCEPTANCE_MATRIX_DOC.read_text(encoding="utf-8")
+    adapter_contract = AGENT_ADAPTER_CONTRACT_DOC.read_text(encoding="utf-8")
+    packaged_live_matrix = (
+        REPO_ROOT / "aegis_foundation" / "assets" / "docs" / "aegis" / "live-acceptance-matrix.md"
+    ).read_text(encoding="utf-8")
+    packaged_adapter_contract = (
+        REPO_ROOT / "aegis_foundation" / "assets" / "docs" / "aegis" / "agent-adapter-contract.md"
+    ).read_text(encoding="utf-8")
+
+    assert packaged_live_matrix == live_matrix
+    assert packaged_adapter_contract == adapter_contract
+    for snippet in (
+        "web-new",
+        "web-started",
+        "python-new",
+        "python-started",
+        "backend-new",
+        "backend-started",
+        "existing-mcp-json",
+        "cli-shim-fallback",
+        "no-taskmaster-no-serena",
+        "live-claude",
+        "aegis.next",
+        "pending S:W:H:E tracking",
+    ):
+        assert snippet in live_matrix
+    for snippet in (
+        "Claude | implemented default",
+        "Codex | planned adapter",
+        "Gemini | planned adapter",
+        "mechanical for hookable mutations",
+        "policy-only",
+        "native agent tools perform implementation",
+        "Aegis MCP/CLI is the control plane",
+    ):
+        assert snippet in adapter_contract
 
 
 def test_local_wheel_cli_smoke_when_enabled(tmp_path: Path) -> None:

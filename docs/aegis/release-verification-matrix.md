@@ -1,6 +1,7 @@
 # Aegis Release Verification Matrix
 
 This matrix defines the minimum release-readiness coverage for `aegis-foundation`.
+Live workflow acceptance details live in `docs/aegis/live-acceptance-matrix.md`; this release matrix references that live matrix instead of duplicating every target-project row.
 
 ## Dimensions
 
@@ -10,12 +11,13 @@ This matrix defines the minimum release-readiness coverage for `aegis-foundation
 | Python | `3.11`, `3.12` |
 | Install method | `pip`, `uvx`, `pipx`, `local-wheel`, `editable` |
 | Command surface | `aegis`, `aegis-mcp-server` |
-| CLI operations | `aegis --version`, `aegis inspect`, `aegis status`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis certify-release`, `aegis kickoff`, `aegis log` |
-| MCP operations | native `claude mcp add`, native `codex mcp add`, `aegis mcp generate-registration`, `aegis mcp execute-registration`, `aegis mcp verify-registration`, `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.kickoff`, `aegis.log`, `aegis.closeout`, `aegis://work/current`, tool/resource/prompt discovery |
+| CLI operations | `aegis --version`, `aegis inspect`, `aegis status`, `aegis next`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis closeout --dry-run`, `aegis certify-release`, `aegis kickoff`, `aegis log` |
+| MCP operations | native `claude mcp add`, native `codex mcp add`, `aegis mcp generate-registration`, `aegis mcp execute-registration`, `aegis mcp verify-registration`, `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.kickoff`, `aegis.log`, `aegis.closeout_ready`, `aegis.closeout`, `aegis://work/current`, tool/resource/prompt discovery |
 | Asset origin | `package`, `source` |
 | Connectivity | online package resolution, offline/local wheel |
 | Target shape | empty repo, Python/library repo, web/app repo, docs-heavy Task 101-style repo, partial existing Aegis install |
 | Evidence | install plan, install report, verification report, build log, package artifact list, MCP config output |
+| Live acceptance | `docs/aegis/live-acceptance-matrix.md` rows for fresh/existing web, Python, backend, existing MCP config, local shim fallback, no Taskmaster/Serena, and live Claude |
 
 ## Required Checks
 
@@ -37,6 +39,7 @@ Every release candidate must prove:
 - MCP `aegis.inspect` and `aegis.status` are read-only
 - MCP `aegis.plan_install`, `aegis.install`, `aegis.verify`, and `aegis.kickoff` work end to end against generated empty, Python, web, backend, and docs-heavy local target projects
 - local-wheel MCP stdio validation works against concrete new and already-started Python, web, and backend fixture projects copied into temporary target directories
+- live matrix rows in `docs/aegis/live-acceptance-matrix.md` define the expected first-pass workflow behavior for fresh/existing web, Python, backend, existing MCP config, local shim fallback, no Taskmaster/Serena, and live Claude tests
 - installed projects can reach `READY` through Aegis-native kickoff without `.taskmaster/` or `.serena/`
 - installed projects with stale optional `.taskmaster/` state still reach `READY` through Aegis-native current work unless Taskmaster is explicitly required
 - installed kickoff renders packaged workflow templates into session, plan, tracker, findings, decisions, implementation, changelog, handoff, designs, and reports surfaces comparable to this repository's workflow model

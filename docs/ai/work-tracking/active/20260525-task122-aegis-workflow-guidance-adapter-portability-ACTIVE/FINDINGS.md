@@ -1,0 +1,4 @@
+# Findings
+
+- 2026-05-25 — [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:design|E:docs/ai/work-tracking/active/20260525-task122-aegis-workflow-guidance-adapter-portability-ACTIVE/designs/wizard-flow.md] Task 122 should preserve the Task 121 architecture: Aegis CLI/MCP controls workflow state, native tools perform implementation edits, and installed hooks/guards enforce behavior.
+- 2026-05-25 — [S:20260525|W:task122-aegis-workflow-guidance-adapter-portability|H:codex:verify|E:cmd`PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_*.py`] Full Aegis meta-workflow coverage passed with 151 tests and 4 opt-in smoke tests skipped, confirming the new next-action, `plan_step=auto`, closeout-ready, docs, prompts, packaged assets, and live-matrix checks together.
