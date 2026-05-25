@@ -360,9 +360,9 @@ def test_aegis_mcp_tools_preserve_core_install_and_verify_contract(tmp_path: Pat
     assert _source_fingerprint() == source_before
 
 
-def test_aegis_mcp_conflict_refusal_preserves_core_report_shape(tmp_path: Path) -> None:
-    mcp_target = tmp_path / "mcp-conflict"
-    core_target = tmp_path / "core-conflict"
+def test_aegis_mcp_existing_claude_merge_preserves_core_report_shape(tmp_path: Path) -> None:
+    mcp_target = tmp_path / "mcp-existing-claude"
+    core_target = tmp_path / "core-existing-claude"
     for target in (mcp_target, core_target):
         _write_files(target, {"CLAUDE.md": "# Existing Claude instructions\n"})
 
@@ -386,20 +386,17 @@ def test_aegis_mcp_conflict_refusal_preserves_core_report_shape(tmp_path: Path) 
         apply=True,
     )
 
-    assert mcp_payload["ok"] is False
-    assert mcp_payload["error"]["code"] == "install_refused"
-    assert mcp_payload["error"]["status"] == "refused"
-    mcp_report = mcp_payload["error"]["details"]["report"]
-    assert mcp_report["status"] == core_report["status"] == "refused"
-    assert mcp_report["reason"] == core_report["reason"]
-    assert [operation["path"] for operation in mcp_report["unsafe_operations"]] == [
-        operation["path"] for operation in core_report["unsafe_operations"]
-    ]
-    assert "CLAUDE.md" in [operation["path"] for operation in mcp_report["unsafe_operations"]]
-    assert (mcp_target / "CLAUDE.md").read_text(encoding="utf-8") == "# Existing Claude instructions\n"
-    assert (core_target / "CLAUDE.md").read_text(encoding="utf-8") == "# Existing Claude instructions\n"
-    assert not (mcp_target / aegis.AEGIS_MANIFEST_REL).exists()
-    assert not (core_target / aegis.AEGIS_MANIFEST_REL).exists()
+    assert mcp_payload["ok"] is True
+    mcp_report = mcp_payload["result"]
+    assert mcp_report["status"] == core_report["status"] == "applied"
+    for target, report in ((mcp_target, mcp_report), (core_target, core_report)):
+        claude_text = (target / "CLAUDE.md").read_text(encoding="utf-8")
+        assert aegis.AEGIS_CLAUDE_BLOCK_BEGIN in claude_text
+        assert "# Existing Claude instructions" in claude_text
+        claude_operation = next(operation for operation in report["plan"]["operations"] if operation["path"] == "CLAUDE.md")
+        assert claude_operation["classification"] == "modify"
+        assert claude_operation["safe_to_apply"] is True
+        assert (target / aegis.AEGIS_MANIFEST_REL).exists()
 
 
 def test_aegis_cli_refuses_partial_existing_manifest_without_partial_writes(tmp_path: Path) -> None:
