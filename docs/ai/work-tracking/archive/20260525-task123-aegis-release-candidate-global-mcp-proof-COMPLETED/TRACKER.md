@@ -1,8 +1,8 @@
 # Task 123 Aegis Release Candidate Global MCP Install Proof Tracker
 
 **Started**: 2026-05-25
-**Status**: ACTIVE
-**Last Updated**: 2026-05-25
+**Status**: COMPLETED
+**Last Updated**: 2026-05-26
 
 ## Goals
 - [ ] Build or expose a local Aegis release-candidate artifact and prove it starts outside this repo
