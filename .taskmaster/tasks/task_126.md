@@ -2,7 +2,7 @@
 
 **Title:** Harden Aegis Acceptance Fixture Verification
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 125 ✓
 

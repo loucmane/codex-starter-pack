@@ -20,6 +20,10 @@ Each live row must capture:
 - proof that pending S:W:H:E tracking blocks the next mutation until `aegis log --pending-id current --plan-step auto` clears it
 - proof that closeout cannot be claimed until strict verification and closeout pass
 
+Application behavior evidence must be semantic wherever practical. Web, Python, and backend fixtures should prefer runtime checks, AST/import checks, parsed DOM/source intent, schema-backed payload assertions, or reusable acceptance helpers over literal source-grep checks. A live row should not force an agent to rewrite idiomatic application code only to satisfy a fixture substring.
+
+Literal assertions remain valid for Aegis-owned runtime contracts: managed block markers, public command names such as `aegis init` and `aegis start`, required report paths, schema keys, hook names, and S:W:H:E token syntax. If an application fixture genuinely requires a literal implementation style, that fixture must document why a semantic check is not available.
+
 Policy-only limitations are not accepted as live evidence.
 
 ## Matrix

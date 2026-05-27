@@ -36,6 +36,11 @@ from scripts._aegis_installer import (
     AEGIS_WORKFLOW_TEMPLATE_NAMES,
     AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
 )
+from tests.meta_workflow_guard.aegis_acceptance_assertions import (
+    assert_plan_step_evidence,
+    assert_web_cart_button_semantics,
+    assert_workflow_evidence,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -980,7 +985,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
     }
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
-    swhe = f"[S:20"
+    swhe = "[S:20"
     session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
     plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
     tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
@@ -1133,13 +1138,15 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     source_path.write_text(
         source_path.read_text(encoding="utf-8")
         + "\n"
+        + "const cartLabel = ['Add', 'to', 'cart'].join(' ');\n"
         + "const cartButton = document.createElement('button');\n"
-        + "cartButton.textContent = 'Add to cart';\n"
+        + "cartButton.textContent = cartLabel;\n"
         + "cartButton.dataset.action = 'add-to-cart';\n"
         + "document.body.appendChild(cartButton);\n",
         encoding="utf-8",
     )
-    assert "Add to cart" in source_path.read_text(encoding="utf-8")
+    cart_button_evidence = assert_web_cart_button_semantics(source_path.read_text(encoding="utf-8"))
+    assert cart_button_evidence.strategy == "dom-button"
 
     recorded_source_edit = _run_target_posttooluse(
         target,
@@ -1191,6 +1198,7 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     }
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
+    semantic_verify_evidence = f"semantic:web-cart-button:{source_rel}"
     verify_log = _run_target_aegis_shim(
         target,
         [
@@ -1198,11 +1206,11 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
             "--target-dir",
             ".",
             "--handler",
-            "verify:source-inspection",
+            "verify:web-cart-button-semantics",
             "--evidence",
-            "cmd`rg \"Add to cart\" src/main.ts`",
+            semantic_verify_evidence,
             "--note",
-            "Verified the cart button source change",
+            "Verified the cart button source change semantically",
             "--plan-step",
             "plan-step-verify",
             "--plan-status",
@@ -1250,37 +1258,64 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     assert closeout_resource["ok"] is True
     assert closeout_resource["result"]["payload"]["status"] == "passed"
 
-    session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
     plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
     work_root = target / current_work["paths"]["work_tracking"]
     tracker_text = (work_root / "TRACKER.md").read_text(encoding="utf-8")
-    implementation_text = (work_root / "IMPLEMENTATION.md").read_text(encoding="utf-8")
-    changelog_text = (work_root / "CHANGELOG.md").read_text(encoding="utf-8")
     handoff_text = (work_root / "HANDOFF.md").read_text(encoding="utf-8")
-    findings_text = (work_root / "FINDINGS.md").read_text(encoding="utf-8")
-    decisions_text = (work_root / "DECISIONS.md").read_text(encoding="utf-8")
 
-    feature_token = f"|W:task42-add-cart-button|H:claude:Edit|E:{source_rel}]"
-    verify_token = "|W:task42-add-cart-button|H:verify:source-inspection|E:cmd`rg \"Add to cart\" src/main.ts`]"
-    strict_verify_token = f"|W:task42-add-cart-button|H:aegis:verify|E:{AEGIS_VERIFY_REPORT_REL}]"
-    scope_token = (
-        f"|W:task42-add-cart-button|H:claude:scope|E:{current_work['paths']['work_tracking']}/FINDINGS.md]"
+    scope_evidence = f"{current_work['paths']['work_tracking']}/FINDINGS.md"
+    assert_workflow_evidence(
+        target,
+        current_work,
+        handler="claude:scope",
+        evidence=scope_evidence,
+        surfaces=["session", "tracker", "findings", "decisions"],
     )
-    for text in (session_text, tracker_text):
-        assert scope_token in text
-        assert feature_token in text
-        assert verify_token in text
-        assert strict_verify_token in text
-    for text in (implementation_text, changelog_text, handoff_text):
-        assert feature_token in text
-        assert verify_token in text
-        assert strict_verify_token in text
-    assert scope_token in findings_text
-    assert scope_token in decisions_text
-    assert "| plan-step-scope |" in plan_text and "| completed |" in plan_text
-    assert f"; {source_rel} | completed |" in plan_text
-    assert 'cmd`rg "Add to cart" src/main.ts`' in plan_text
-    assert f"{AEGIS_VERIFY_REPORT_REL} | completed |" in plan_text
+    assert_workflow_evidence(
+        target,
+        current_work,
+        handler="claude:Edit",
+        evidence=source_rel,
+        surfaces=["session", "tracker", "implementation", "changelog", "handoff"],
+    )
+    assert_workflow_evidence(
+        target,
+        current_work,
+        handler="verify:web-cart-button-semantics",
+        evidence=semantic_verify_evidence,
+        surfaces=["session", "tracker", "implementation", "changelog", "handoff"],
+    )
+    assert_workflow_evidence(
+        target,
+        current_work,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        surfaces=["session", "tracker", "implementation", "changelog", "handoff"],
+    )
+    assert_plan_step_evidence(
+        plan_text,
+        plan_step="plan-step-scope",
+        evidence=scope_evidence,
+        status="completed",
+    )
+    assert_plan_step_evidence(
+        plan_text,
+        plan_step="plan-step-implement",
+        evidence=source_rel,
+        status="completed",
+    )
+    assert_plan_step_evidence(
+        plan_text,
+        plan_step="plan-step-verify",
+        evidence=semantic_verify_evidence,
+        status="completed",
+    )
+    assert_plan_step_evidence(
+        plan_text,
+        plan_step="plan-step-verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        status="completed",
+    )
     assert AEGIS_CLOSEOUT_REPORT_REL in handoff_text
     assert "- [x] plan-step-scope" in tracker_text
     assert "- [x] plan-step-implement" in tracker_text
