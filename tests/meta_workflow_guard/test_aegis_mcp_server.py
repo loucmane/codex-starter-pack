@@ -143,9 +143,11 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.next",
         "aegis.plan_install",
         "aegis.install",
+        "aegis.init",
         "aegis.verify",
         "aegis.closeout_ready",
         "aegis.closeout",
+        "aegis.start",
         "aegis.kickoff",
         "aegis.log",
         "aegis.list_profiles",
@@ -164,6 +166,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
 
     status_description = tool_by_name(server, "aegis.status").description or ""
     next_description = tool_by_name(server, "aegis.next").description or ""
+    init_description = tool_by_name(server, "aegis.init").description or ""
+    start_description = tool_by_name(server, "aegis.start").description or ""
     kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
     log_description = tool_by_name(server, "aegis.log").description or ""
     verify_description = tool_by_name(server, "aegis.verify").description or ""
@@ -173,6 +177,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "next workflow guidance" in status_description
     assert "next required Aegis workflow action" in next_description
     assert "read-only" in next_description
+    assert "Public project setup" in init_description
+    assert "Public local-task kickoff" in start_description
     assert "plan-step-scope before source edits" in kickoff_description
     assert "pending_event_id=current" in log_description
     assert "log its pending event before closeout" in verify_description
@@ -230,6 +236,21 @@ def test_install_schema_requires_apply_and_full_selection(tmp_path: Path) -> Non
     }
     assert schema["properties"]["profile"]["const"] == "generic"
     assert schema["properties"]["apply"]["type"] == "boolean"
+
+
+def test_public_init_and_start_schemas_require_apply_confirmation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    init_schema = tool_by_name(server, "aegis.init").inputSchema
+    assert set(init_schema["required"]) == {"target_dir", "apply"}
+    assert init_schema["properties"]["apply"]["type"] == "boolean"
+    assert init_schema["properties"]["primary_agent"]["default"] == "claude"
+
+    start_schema = tool_by_name(server, "aegis.start").inputSchema
+    assert set(start_schema["required"]) == {"target_dir", "title"}
+    assert start_schema["properties"]["apply"]["default"] is False
+    assert start_schema["properties"]["create_branch"]["default"] is True
 
 
 def test_verify_schema_requires_acknowledged_report_write(tmp_path: Path) -> None:
@@ -464,6 +485,38 @@ def test_install_requires_apply_true_before_core_mutation(tmp_path: Path) -> Non
     assert payload["ok"] is False
     assert payload["error"]["code"] == "apply_required"
     assert payload["error"]["status"] == "refused"
+
+
+def test_public_init_and_start_require_apply_true_before_core_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    init_payload = call_tool_payload(
+        server,
+        "aegis.init",
+        {
+            "target_dir": target.as_posix(),
+            "apply": False,
+        },
+    )
+    assert init_payload["ok"] is False
+    assert init_payload["error"]["code"] == "apply_required"
+    assert not (target / ".aegis").exists()
+
+    start_payload = call_tool_payload(
+        server,
+        "aegis.start",
+        {
+            "target_dir": target.as_posix(),
+            "title": "Improve BrandMark accessibility",
+            "apply": False,
+        },
+    )
+    assert start_payload["ok"] is False
+    assert start_payload["error"]["code"] == "apply_required"
+    assert not (target / ".aegis" / "state" / "current-work.json").exists()
 
 
 def test_kickoff_requires_apply_true_before_core_mutation(tmp_path: Path) -> None:

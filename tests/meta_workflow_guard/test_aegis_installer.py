@@ -21,18 +21,21 @@ from scripts import _aegis_installer as aegis_installer
 from scripts._aegis_installer import (
     AEGIS_MANIFEST_REL,
     AEGIS_CLOSEOUT_REPORT_REL,
+    AEGIS_LOCAL_TASKS_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
     AEGIS_VERIFY_REPORT_REL,
     AegisError,
     certify_release_candidate,
     closeout,
+    initialize_project,
     install,
     inspect_project,
     kickoff,
     log_work,
     next_action,
     plan_install,
+    start_local_work,
     verify,
 )
 
@@ -129,6 +132,15 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert plan_args.primary_agent == "claude"
     assert plan_args.agent == ["claude"]
 
+    init_args = parser.parse_args(["aegis", "init", "--target-dir", "/tmp/example"])
+    assert init_args.subcommand == "init"
+    assert init_args.primary_agent == "claude"
+    assert init_args.agent is None
+
+    start_args = parser.parse_args(["aegis", "start", "Improve BrandMark accessibility"])
+    assert start_args.subcommand == "start"
+    assert start_args.title == "Improve BrandMark accessibility"
+
     install_args = parser.parse_args([
         "aegis",
         "install",
@@ -194,6 +206,18 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert kickoff_args.subcommand == "kickoff"
     assert kickoff_args.task == "1"
 
+    kickoff_local_args = parser.parse_args([
+        "aegis",
+        "kickoff",
+        "--target-dir",
+        "/tmp/example",
+        "--local",
+        "--title",
+        "Improve BrandMark accessibility",
+    ])
+    assert kickoff_local_args.local is True
+    assert kickoff_local_args.title == "Improve BrandMark accessibility"
+
     log_args = parser.parse_args([
         "aegis",
         "log",
@@ -212,6 +236,53 @@ def test_build_parser_accepts_aegis_commands() -> None:
 
     profile_args = parser.parse_args(["aegis", "explain-profile"])
     assert profile_args.profile == "generic"
+
+
+def test_public_init_installs_with_default_claude_adapter(tmp_path: Path) -> None:
+    target = tmp_path / "public-init"
+    target.mkdir()
+
+    payload = initialize_project(target, source_root=REPO_ROOT)
+
+    assert payload["status"] == "initialized"
+    assert payload["agent_selection"] == {
+        "source": "public_defaults",
+        "primary_agent": "claude",
+        "enabled_agents": ["claude"],
+    }
+    assert payload["install"]["status"] == "applied"
+    assert payload["verification"]["status"] == "passed"
+    assert payload["public_commands"]["start"] == 'aegis start "<task title>"'
+    assert (target / AEGIS_MANIFEST_REL).exists()
+    assert (target / ".claude" / "settings.json").exists()
+    assert (target / AEGIS_VERIFY_REPORT_REL).exists()
+
+
+def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path: Path) -> None:
+    target = tmp_path / "local-start"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    initialize_project(target, source_root=REPO_ROOT)
+
+    payload = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
+
+    assert payload["status"] == "started"
+    assert payload["local_task"]["id"] == "1"
+    assert payload["task"]["id"] == "1"
+    assert payload["task"]["slug"] == "improve-brandmark-accessibility"
+    assert payload["branch"]["current"] == "feat/task-1-improve-brandmark-accessibility"
+    local_tasks = json.loads((target / AEGIS_LOCAL_TASKS_REL).read_text(encoding="utf-8"))
+    assert local_tasks["next_id"] == 2
+    assert local_tasks["tasks"][0]["source"] == "aegis-local"
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    assert current_work["task"]["source"] == "aegis-local"
+    assert current_work["integrations"]["taskmaster"]["required"] is False
+    assert current_work["integrations"]["taskmaster"]["detected"] is False
+    assert current_work["integrations"]["serena"]["required"] is False
+    assert current_work["integrations"]["serena"]["detected"] is False
+    readiness = run_target_readiness(target)
+    assert readiness.returncode == 0
+    assert "READY | task=1" in readiness.stdout
 
 
 def test_plan_install_is_dry_run_and_schema_valid(tmp_path: Path) -> None:

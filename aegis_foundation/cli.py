@@ -82,6 +82,23 @@ def handle_plan_install(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_init(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.initialize_project(
+            args.target_dir,
+            source_root=source_root,
+            profile=args.profile,
+            primary_agent=args.primary_agent,
+            agents=_agents_from_args(args),
+            verify_after_install=not args.no_verify,
+        )
+    _dump_json(payload)
+    if payload.get("status") in {"refused", "failed"}:
+        print("Aegis init failed or was refused", file=sys.stderr)
+        return 1
+    return 0
+
+
 def handle_status(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.status(
@@ -170,11 +187,42 @@ def handle_certify_release(args: argparse.Namespace) -> int:
 
 def handle_kickoff(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
-        payload = _aegis_installer.kickoff(
+        if args.local:
+            if not args.title:
+                print("aegis kickoff --local requires --title", file=sys.stderr)
+                return 1
+            payload = _aegis_installer.start_local_work(
+                args.target_dir,
+                title=args.title,
+                slug=args.slug,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=source_root,
+            )
+        else:
+            missing = [name for name in ("task", "slug", "title") if not getattr(args, name)]
+            if missing:
+                print(f"aegis kickoff requires: {', '.join('--' + name for name in missing)}", file=sys.stderr)
+                return 1
+            payload = _aegis_installer.kickoff(
+                args.target_dir,
+                task_id=args.task,
+                slug=args.slug,
+                title=args.title,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=source_root,
+            )
+    _dump_json(payload)
+    return 0
+
+
+def handle_start(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.start_local_work(
             args.target_dir,
-            task_id=args.task,
-            slug=args.slug,
             title=args.title,
+            slug=args.slug,
             goals=list(args.goal or []),
             create_branch=not args.no_create_branch,
             source_root=source_root,
@@ -261,6 +309,21 @@ def handle_mcp_execute_registration(args: argparse.Namespace) -> int:
 def handle_mcp_verify_registration(args: argparse.Namespace) -> int:
     try:
         payload = mcp_registration.verify_registration(
+            _mcp_registration_request_from_args(args),
+            cwd=args.cwd or args.target_dir,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    _dump_json(payload)
+    if payload.get("status") in {"missing_client", "failed"}:
+        return 1
+    return 0
+
+
+def handle_mcp_register(args: argparse.Namespace) -> int:
+    try:
+        payload = mcp_registration.execute_registration(
             _mcp_registration_request_from_args(args),
             cwd=args.cwd or args.target_dir,
         )
@@ -367,6 +430,56 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     plan_install_parser.set_defaults(func=handle_plan_install)
 
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Install Aegis in the current project with public defaults.",
+    )
+    init_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    init_parser.add_argument("--profile", default="generic", help="Aegis profile.")
+    init_parser.add_argument(
+        "--primary-agent",
+        choices=sorted(_aegis_installer.PRIMARY_AGENT_CHOICES),
+        default="claude",
+        help="Primary agent for the installed runtime; defaults to claude.",
+    )
+    init_parser.add_argument(
+        "--agent",
+        choices=sorted(_aegis_installer.AGENT_CHOICES),
+        action="append",
+        help="Enable an agent adapter; defaults to the primary Claude adapter.",
+    )
+    init_parser.add_argument(
+        "--no-verify",
+        action="store_true",
+        help="Skip the standard post-install verification pass.",
+    )
+    init_parser.set_defaults(func=handle_init)
+
+    setup_parser = subparsers.add_parser(
+        "setup",
+        help="Compatibility alias for aegis init.",
+    )
+    setup_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    setup_parser.add_argument("--profile", default="generic", help="Aegis profile.")
+    setup_parser.add_argument(
+        "--primary-agent",
+        choices=sorted(_aegis_installer.PRIMARY_AGENT_CHOICES),
+        default="claude",
+        help="Primary agent for the installed runtime; defaults to claude.",
+    )
+    setup_parser.add_argument(
+        "--agent",
+        choices=sorted(_aegis_installer.AGENT_CHOICES),
+        action="append",
+        help="Enable an agent adapter; defaults to the primary Claude adapter.",
+    )
+    setup_parser.add_argument(
+        "--no-verify",
+        action="store_true",
+        help="Skip the standard post-install verification pass.",
+    )
+    setup_parser.set_defaults(func=handle_init)
+
     status_parser = subparsers.add_parser(
         "status",
         help="Report installed Aegis release state without mutating the target.",
@@ -470,9 +583,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Create Aegis-native session, plan, and work-tracking state for a task.",
     )
     kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root.")
-    kickoff_parser.add_argument("--task", required=True, help="Numeric task/work id.")
-    kickoff_parser.add_argument("--slug", required=True, help="Short lowercase work slug.")
-    kickoff_parser.add_argument("--title", required=True, help="Human-readable work title.")
+    kickoff_parser.add_argument("--task", help="Numeric task/work id.")
+    kickoff_parser.add_argument("--slug", help="Short lowercase work slug.")
+    kickoff_parser.add_argument("--title", help="Human-readable work title.")
+    kickoff_parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Allocate a local Aegis task id from --title before creating workflow state.",
+    )
     kickoff_parser.add_argument(
         "--goal",
         action="append",
@@ -484,6 +602,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Require the current branch to already contain the task id.",
     )
     kickoff_parser.set_defaults(func=handle_kickoff)
+
+    start_parser = subparsers.add_parser(
+        "start",
+        help="Start local tracked work from a normal task title.",
+    )
+    start_parser.add_argument("title", help="Normal-language task title.")
+    start_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    start_parser.add_argument("--slug", help="Override the generated slug.")
+    start_parser.add_argument("--goal", action="append", help="Goal to write into the generated plan/tracker.")
+    start_parser.add_argument(
+        "--no-create-branch",
+        action="store_true",
+        help="Require the current branch to already contain the allocated task id.",
+    )
+    start_parser.set_defaults(func=handle_start)
 
     log_parser = subparsers.add_parser(
         "log",
@@ -546,6 +679,47 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Generate, execute, and verify native MCP client registration commands.",
     )
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_subcommand", required=True)
+
+    mcp_register = mcp_sub.add_parser(
+        "register",
+        help="Register Aegis with a native MCP client. Public Claude path: aegis mcp register claude.",
+    )
+    mcp_register.add_argument("client", choices=("claude", "codex"), help="Native MCP client to configure.")
+    mcp_register.add_argument(
+        "--scope",
+        choices=("local", "user", "project"),
+        default="user",
+        help="Claude MCP scope. Defaults to user for Claude and is ignored for Codex.",
+    )
+    mcp_register.add_argument(
+        "--source-mode",
+        choices=("package", "pinned", "github", "wheel", "source"),
+        default="package",
+        help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
+    )
+    mcp_register.add_argument("--package-spec", help="Explicit uvx --from package/artifact spec.")
+    mcp_register.add_argument("--package-version", help="Version for --source-mode pinned. Defaults to the package version.")
+    mcp_register.add_argument(
+        "--github-url",
+        default=mcp_registration.DEFAULT_GITHUB_URL,
+        help="GitHub repository URL for --source-mode github.",
+    )
+    mcp_register.add_argument("--github-ref", help="Optional ref for --source-mode github.")
+    mcp_register.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
+    mcp_register.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
+    mcp_register.add_argument(
+        "--uv-cache-dir",
+        default=mcp_registration.DEFAULT_UV_CACHE_DIR,
+        help="UV_CACHE_DIR value registered with the native client; use '' to omit.",
+    )
+    mcp_register.add_argument(
+        "--uv-tool-dir",
+        default=mcp_registration.DEFAULT_UV_TOOL_DIR,
+        help="UV_TOOL_DIR value registered with the native client; use '' to omit.",
+    )
+    mcp_register.add_argument("--transport", choices=("stdio",), default="stdio", help="MCP server transport to register.")
+    mcp_register.add_argument("--cwd", help="Working directory for the native client command. Defaults to --target-dir.")
+    mcp_register.set_defaults(func=handle_mcp_register)
 
     mcp_generate = mcp_sub.add_parser(
         "generate-registration",

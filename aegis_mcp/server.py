@@ -35,10 +35,12 @@ V1_TOOL_NAMES = (
     "aegis.next",
     "aegis.plan_install",
     "aegis.install",
+    "aegis.init",
     "aegis.verify",
     "aegis.closeout",
     "aegis.closeout_ready",
     "aegis.kickoff",
+    "aegis.start",
     "aegis.log",
     "aegis.list_profiles",
     "aegis.explain_profile",
@@ -438,6 +440,61 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             callback=call_core,
         )
 
+    @server.tool(name="aegis.init")
+    def aegis_init(
+        target_dir: str,
+        apply: bool,
+        profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
+        primary_agent: PrimaryAgentName = "claude",
+        agents: AgentList | None = None,
+        verify_after_install: bool = True,
+    ) -> dict[str, Any]:
+        """Public project setup: install Aegis with Claude defaults after explicit apply confirmation."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.init",
+                code="apply_required",
+                message="aegis.init installs project files and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            profile_value = _validate_profile(profile)
+            selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents or ["claude"])
+            report = installer.initialize_project(
+                target_dir,
+                source_root=config.source_root,
+                profile=profile_value,
+                primary_agent=primary_agent,
+                agents=selected,
+                verify_after_install=verify_after_install,
+            )
+            if report.get("status") == "refused":
+                return _error_tool_response(
+                    "aegis.init",
+                    code="init_refused",
+                    message="Aegis init refused unsafe install operations.",
+                    status="refused",
+                    details={"report": report},
+                )
+            if report.get("status") == "failed":
+                return _error_tool_response(
+                    "aegis.init",
+                    code="init_failed",
+                    message="Aegis init failed.",
+                    status="failed",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
+            "aegis.init",
+            read_only=False,
+            callback=call_core,
+        )
+
     @server.tool(name="aegis.verify")
     def aegis_verify(
         target_dir: str,
@@ -575,6 +632,42 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         return run_tool(
             "aegis.kickoff",
+            read_only=False,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.start")
+    def aegis_start(
+        target_dir: str,
+        title: str,
+        slug: str = "",
+        goals: list[str] | None = None,
+        create_branch: bool = True,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Public local-task kickoff: allocate a local task id from a normal title and create workflow state."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.start",
+                code="apply_required",
+                message="aegis.start creates workflow state and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            return installer.start_local_work(
+                target_dir,
+                title=title,
+                slug=slug or None,
+                goals=goals or [],
+                create_branch=create_branch,
+                source_root=config.source_root,
+            )
+
+        return run_tool(
+            "aegis.start",
             read_only=False,
             callback=call_core,
         )

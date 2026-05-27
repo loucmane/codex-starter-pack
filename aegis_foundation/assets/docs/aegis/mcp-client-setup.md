@@ -2,6 +2,16 @@
 
 This guide documents the native MCP registration path for Aegis Foundation. Use it with the distribution contract in `docs/aegis/distribution.md` and the release verification matrix in `docs/aegis/release-verification-matrix.md`.
 
+## Public Claude Registration
+
+The public Claude path is:
+
+```bash
+aegis mcp register claude
+```
+
+This delegates to Claude's native MCP registration command and defaults to user scope, package mode, project-local uv cache/tool dirs, and `--default-target-dir .`. Use `aegis mcp generate-registration`, `aegis mcp execute-registration`, and `aegis mcp verify-registration` for advanced debugging, pinned versions, local wheels, or source checkouts.
+
 ## Default Install Model
 
 Native MCP client registration is the primary path. A user should not need to clone this repository, copy JSON snippets, or edit `.mcp.json` by hand.

@@ -2,6 +2,8 @@
 
 This matrix defines the live evidence needed before Aegis is treated as a portable workflow runtime, not just an installable package. The goal is to prove the same workflow behavior across fresh and already-started projects without requiring Taskmaster or Serena.
 
+Public-flow rows must exercise `aegis init` and `aegis start "<normal task title>"` where possible. Existing low-level install/kickoff rows remain useful for regression coverage, but public acceptance is measured against the normal command path and a no-large-prompt Claude session.
+
 Canonical roadmap context for Task 122 lives in `docs/ai/work-tracking/active/20260525-task122-aegis-workflow-guidance-adapter-portability-ACTIVE/designs/task122-roadmap.md`.
 
 ## Evidence Standard
@@ -40,4 +42,3 @@ Policy-only limitations are not accepted as live evidence.
 - Hosted MCP service deployment is deferred until transport, authentication, version pinning, rollback, and verification evidence exist.
 - Non-Claude adapters are documented in `docs/aegis/agent-adapter-contract.md`; full Codex/Gemini runtime implementation is deferred unless a task explicitly owns it.
 - TestPyPI/PyPI publication is blocked until the local artifact and live matrix evidence are complete.
-

@@ -310,6 +310,9 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
 
     required_snippets = [
         "python3 -m pip install aegis-foundation",
+        "aegis mcp register claude",
+        "aegis init",
+        'aegis start "Improve BrandMark accessibility"',
         "uvx --from aegis-foundation aegis inspect --target-dir .",
         "uvx --from aegis-foundation aegis status --target-dir .",
         "uvx --from aegis-foundation aegis next --target-dir .",
@@ -347,6 +350,7 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
     assert "docs/aegis/mcp-client-setup.md" in text
     assert "docs/aegis/live-acceptance-matrix.md" in text
     assert "docs/aegis/agent-adapter-contract.md" in text
+    assert "docs/aegis/public-adoption-flow.md" in text or (REPO_ROOT / "docs" / "aegis" / "public-adoption-flow.md").exists()
 
 
 def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> None:
@@ -363,6 +367,7 @@ def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> 
     assert asset_text == text
     for snippet in (
         "Native MCP client registration is the primary path",
+        "aegis mcp register claude",
         "MCP is the bootstrap and control-plane interface",
         "Expected tool split:",
         "Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, kickoff, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.",

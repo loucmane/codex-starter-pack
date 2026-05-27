@@ -2,9 +2,9 @@
 
 **Title:** Build Public Aegis Real-Project Adoption Flow
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 124 ⧖
+**Dependencies:** 124 ✓
 
 **Priority:** medium
 
