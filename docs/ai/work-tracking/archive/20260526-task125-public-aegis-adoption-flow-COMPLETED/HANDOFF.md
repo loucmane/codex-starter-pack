@@ -21,3 +21,4 @@
 - **2026-05-27 13:25** — [S:20260527|W:task125-public-aegis-adoption-flow|H:codex:handoff|E:docs/ai/work-tracking/active/20260526-task125-public-aegis-adoption-flow-ACTIVE/reports/public-flow/normal-language-claude-live-acceptance.md] Normal-language Claude acceptance passed with documented follow-up improvements
 - **2026-05-27 13:31** — [S:20260527|W:task125-public-aegis-adoption-flow|H:pytest:aegis-public-flow|E:docs/ai/work-tracking/active/20260526-task125-public-aegis-adoption-flow-ACTIVE/reports/public-flow/final-public-flow-regression.md] Final focused public-flow regression passed
 - Archived on 2026-05-27 14:08 CEST — Folder moved to archive and tracker marked COMPLETED.
+- Archived on 2026-05-27 14:15 CEST — Folder moved to archive and tracker marked COMPLETED.

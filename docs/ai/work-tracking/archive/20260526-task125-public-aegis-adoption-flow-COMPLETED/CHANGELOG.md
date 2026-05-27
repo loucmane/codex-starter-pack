@@ -12,3 +12,4 @@
 - **2026-05-27 13:25** — [S:20260527|W:task125-public-aegis-adoption-flow|H:codex:changelog|E:docs/ai/work-tracking/active/20260526-task125-public-aegis-adoption-flow-ACTIVE/reports/public-flow/normal-language-claude-live-acceptance.md] Confirmed the public flow works from a normal-language Claude request in a realistic fresh project fixture
 
 - 2026-05-27 14:08 CEST — Archived active work-tracking folder.
+- 2026-05-27 14:15 CEST — Archived active work-tracking folder.
