@@ -4,6 +4,20 @@ This document describes release-oriented install and invocation paths for Aegis 
 
 Release lifecycle policy lives in `docs/aegis/release-policy.md`; operational upgrade, downgrade, and rollback flow lives in `docs/aegis/update-rollback.md`; reusable CI snippets and release matrix live in `docs/aegis/ci-install-templates.md` and `docs/aegis/release-verification-matrix.md`; live project acceptance lives in `docs/aegis/live-acceptance-matrix.md`; adapter boundaries live in `docs/aegis/agent-adapter-contract.md`; MCP client setup for Codex, Claude, and generic stdio clients lives in `docs/aegis/mcp-client-setup.md`.
 
+## Public Quick Start
+
+Use these commands first. The longer inspect/plan-install/install/kickoff sequence remains available for advanced review and debugging, but it is no longer the public happy path.
+
+```bash
+python3 -m pip install aegis-foundation
+aegis mcp register claude
+cd /path/to/project
+aegis init
+aegis start "Improve BrandMark accessibility"
+```
+
+`aegis init` installs the runtime with Claude defaults and verifies it. `aegis start` allocates a local Aegis task id and creates branch/session/plan/work-tracking state without requiring Taskmaster or Serena.
+
 ## Package Identity
 
 - Distribution package: `aegis-foundation`

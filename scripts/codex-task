@@ -34,6 +34,7 @@ from _aegis_installer import (
     certify_release_candidate as aegis_certify_release_candidate,
     closeout as aegis_closeout,
     explain_profile as aegis_explain_profile,
+    initialize_project as aegis_initialize_project,
     inspect_project as aegis_inspect_project,
     install as aegis_install,
     kickoff as aegis_kickoff,
@@ -41,6 +42,7 @@ from _aegis_installer import (
     log_work as aegis_log_work,
     next_action as aegis_next_action,
     plan_install as aegis_plan_install,
+    start_local_work as aegis_start_local_work,
     status as aegis_status,
     verify as aegis_verify,
 )
@@ -722,6 +724,23 @@ def handle_aegis_plan_install(args: argparse.Namespace) -> None:
     _print_json(payload)
 
 
+def handle_aegis_init(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_initialize_project(
+            args.target_dir,
+            source_root=REPO_ROOT,
+            profile=args.profile,
+            primary_agent=args.primary_agent,
+            agents=_aegis_agents_from_args(args),
+            verify_after_install=not args.no_verify,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") in {"refused", "failed"}:
+        raise TaskError("Aegis init failed or was refused")
+
+
 def handle_aegis_status(args: argparse.Namespace) -> None:
     try:
         payload = aegis_status(args.target_dir, source_root=REPO_ROOT)
@@ -802,11 +821,41 @@ def handle_aegis_certify_release(args: argparse.Namespace) -> None:
 
 def handle_aegis_kickoff(args: argparse.Namespace) -> None:
     try:
-        payload = aegis_kickoff(
+        if args.local:
+            if not args.title:
+                raise AegisError("aegis kickoff --local requires --title")
+            payload = aegis_start_local_work(
+                args.target_dir,
+                title=args.title,
+                slug=args.slug,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=REPO_ROOT,
+            )
+        else:
+            missing = [name for name in ("task", "slug", "title") if not getattr(args, name)]
+            if missing:
+                raise AegisError(f"aegis kickoff requires: {', '.join('--' + name for name in missing)}")
+            payload = aegis_kickoff(
+                args.target_dir,
+                task_id=args.task,
+                slug=args.slug,
+                title=args.title,
+                goals=list(args.goal or []),
+                create_branch=not args.no_create_branch,
+                source_root=REPO_ROOT,
+            )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+
+
+def handle_aegis_start(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_start_local_work(
             args.target_dir,
-            task_id=args.task,
-            slug=args.slug,
             title=args.title,
+            slug=args.slug,
             goals=list(args.goal or []),
             create_branch=not args.no_create_branch,
             source_root=REPO_ROOT,
@@ -897,6 +946,19 @@ def handle_aegis_mcp_verify_registration(args: argparse.Namespace) -> None:
     _print_json(payload)
     if payload.get("status") in {"missing_client", "failed"}:
         raise TaskError("Aegis native MCP registration verification failed")
+
+
+def handle_aegis_mcp_register(args: argparse.Namespace) -> None:
+    try:
+        payload = mcp_registration.execute_registration(
+            _aegis_mcp_registration_request_from_args(args),
+            cwd=args.cwd or args.target_dir,
+        )
+    except ValueError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") in {"missing_client", "failed"}:
+        raise TaskError("Aegis native MCP registration failed")
 
 
 def _add_aegis_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute: bool = False) -> None:
@@ -18098,6 +18160,42 @@ def build_parser() -> argparse.ArgumentParser:
     )
     aegis_plan_install.set_defaults(func=handle_aegis_plan_install)
 
+    aegis_init_parser = aegis_sub.add_parser("init", help="Install Aegis in the current project with public defaults")
+    aegis_init_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_init_parser.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
+    aegis_init_parser.add_argument(
+        "--primary-agent",
+        default="claude",
+        choices=("claude", "codex", "gemini", "multi", "none"),
+        help="Primary agent selected by the installer user",
+    )
+    aegis_init_parser.add_argument(
+        "--agent",
+        action="append",
+        choices=("claude", "codex", "gemini"),
+        help="Enabled agent adapter (repeatable); defaults to Claude",
+    )
+    aegis_init_parser.add_argument("--no-verify", action="store_true", help="Skip standard post-install verification")
+    aegis_init_parser.set_defaults(func=handle_aegis_init)
+
+    aegis_setup_parser = aegis_sub.add_parser("setup", help="Compatibility alias for aegis init")
+    aegis_setup_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_setup_parser.add_argument("--profile", default="generic", help="Aegis profile (V1 supports generic)")
+    aegis_setup_parser.add_argument(
+        "--primary-agent",
+        default="claude",
+        choices=("claude", "codex", "gemini", "multi", "none"),
+        help="Primary agent selected by the installer user",
+    )
+    aegis_setup_parser.add_argument(
+        "--agent",
+        action="append",
+        choices=("claude", "codex", "gemini"),
+        help="Enabled agent adapter (repeatable); defaults to Claude",
+    )
+    aegis_setup_parser.add_argument("--no-verify", action="store_true", help="Skip standard post-install verification")
+    aegis_setup_parser.set_defaults(func=handle_aegis_init)
+
     aegis_status_parser = aegis_sub.add_parser("status", help="Report installed Aegis release state without mutating the target")
     aegis_status_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_status_parser.set_defaults(func=handle_aegis_status)
@@ -18181,9 +18279,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     aegis_kickoff_parser = aegis_sub.add_parser("kickoff", help="Create Aegis-native session, plan, and work-tracking state")
     aegis_kickoff_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
-    aegis_kickoff_parser.add_argument("--task", required=True, help="Numeric task/work id")
-    aegis_kickoff_parser.add_argument("--slug", required=True, help="Short lowercase work slug")
-    aegis_kickoff_parser.add_argument("--title", required=True, help="Human-readable work title")
+    aegis_kickoff_parser.add_argument("--task", help="Numeric task/work id")
+    aegis_kickoff_parser.add_argument("--slug", help="Short lowercase work slug")
+    aegis_kickoff_parser.add_argument("--title", help="Human-readable work title")
+    aegis_kickoff_parser.add_argument("--local", action="store_true", help="Allocate a local Aegis task id from --title")
     aegis_kickoff_parser.add_argument("--goal", action="append", help="Goal to write into generated plan/tracker")
     aegis_kickoff_parser.add_argument(
         "--no-create-branch",
@@ -18191,6 +18290,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Require the current branch to already contain the task id",
     )
     aegis_kickoff_parser.set_defaults(func=handle_aegis_kickoff)
+
+    aegis_start_parser = aegis_sub.add_parser("start", help="Start local tracked work from a normal task title")
+    aegis_start_parser.add_argument("title", help="Normal-language task title")
+    aegis_start_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_start_parser.add_argument("--slug", help="Override the generated slug")
+    aegis_start_parser.add_argument("--goal", action="append", help="Goal to write into generated plan/tracker")
+    aegis_start_parser.add_argument(
+        "--no-create-branch",
+        action="store_true",
+        help="Require the current branch to already contain the allocated task id",
+    )
+    aegis_start_parser.set_defaults(func=handle_aegis_start)
 
     aegis_log_parser = aegis_sub.add_parser("log", help="Write required S:W:H:E progress entries for current Aegis work")
     aegis_log_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
@@ -18228,6 +18339,44 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate, execute, and verify native MCP client registration commands",
     )
     aegis_mcp_sub = aegis_mcp_parser.add_subparsers(dest="aegis_mcp_subcommand", required=True)
+
+    aegis_mcp_register = aegis_mcp_sub.add_parser("register", help="Register Aegis with a native MCP client")
+    aegis_mcp_register.add_argument("client", choices=("claude", "codex"), help="Native MCP client to configure")
+    aegis_mcp_register.add_argument(
+        "--scope",
+        choices=("local", "user", "project"),
+        default="user",
+        help="Claude MCP scope. Defaults to user for Claude and is ignored for Codex.",
+    )
+    aegis_mcp_register.add_argument(
+        "--source-mode",
+        choices=("package", "pinned", "github", "wheel", "source"),
+        default="package",
+        help="How uvx should resolve the Aegis package that provides aegis-mcp-server",
+    )
+    aegis_mcp_register.add_argument("--package-spec", help="Explicit uvx --from package/artifact spec")
+    aegis_mcp_register.add_argument("--package-version", help="Version for --source-mode pinned")
+    aegis_mcp_register.add_argument(
+        "--github-url",
+        default=mcp_registration.DEFAULT_GITHUB_URL,
+        help="GitHub repository URL for --source-mode github",
+    )
+    aegis_mcp_register.add_argument("--github-ref", help="Optional ref for --source-mode github")
+    aegis_mcp_register.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes")
+    aegis_mcp_register.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server")
+    aegis_mcp_register.add_argument(
+        "--uv-cache-dir",
+        default=mcp_registration.DEFAULT_UV_CACHE_DIR,
+        help="UV_CACHE_DIR value registered with the native client; use '' to omit.",
+    )
+    aegis_mcp_register.add_argument(
+        "--uv-tool-dir",
+        default=mcp_registration.DEFAULT_UV_TOOL_DIR,
+        help="UV_TOOL_DIR value registered with the native client; use '' to omit.",
+    )
+    aegis_mcp_register.add_argument("--transport", choices=("stdio",), default="stdio", help="MCP server transport to register")
+    aegis_mcp_register.add_argument("--cwd", help="Working directory for native client command. Defaults to --target-dir")
+    aegis_mcp_register.set_defaults(func=handle_aegis_mcp_register)
 
     aegis_mcp_generate = aegis_mcp_sub.add_parser(
         "generate-registration",

@@ -2,6 +2,18 @@
 
 This document defines the supported V1 ways to run Aegis from a project that is not the Aegis source checkout.
 
+## Public Flow
+
+The stable public adoption commands are:
+
+```bash
+aegis mcp register claude
+aegis init
+aegis start "Improve BrandMark accessibility"
+```
+
+`aegis init` is the task-master-init style setup command. `aegis start "<title>"` is the local-task path for projects without Taskmaster or Serena. The lower-level `inspect`, `plan-install`, `install --apply`, and explicit `kickoff --task ...` commands remain supported for advanced use and debugging.
+
 Task 112 deliberately separates two modes:
 
 - **Package-style mode**: use the `aegis` and `aegis-mcp-server` console commands. This is the canonical portable surface.

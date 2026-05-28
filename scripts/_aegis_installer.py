@@ -20,7 +20,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
@@ -45,6 +45,7 @@ AEGIS_STATE_REL = ".aegis/state"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
+AEGIS_LOCAL_TASKS_REL = ".aegis/state/local-tasks.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
@@ -321,7 +322,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "## Control Plane vs Implementation Tools",
             "",
-            "- Use Aegis MCP tools, or the project-local Aegis CLI, for Aegis workflow state: inspect, plan-install, install, status, next, kickoff, log, verify, closeout dry-runs, closeout, and future reconciliation.",
+            "- Use Aegis MCP tools, or the project-local Aegis CLI, for Aegis workflow state: init, inspect, plan-install, install, status, next, start, kickoff, log, verify, closeout dry-runs, closeout, and future reconciliation.",
             "- Use native agent tools for normal project implementation: reading files, editing source files, running project tests, and inspecting git status or diffs.",
             "- The installed Aegis runtime, not the MCP session, is responsible for enforcement.",
             "- Installed hooks govern persistent mutations regardless of whether the attempted mutation comes from MCP, Bash, Edit, Write, or another supported tool surface.",
@@ -336,11 +337,12 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "## Work Kickoff",
             "",
-            "- Start work with `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` or `./.aegis/bin/aegis kickoff ...` when the global command is unavailable.",
+            "- Start local work with `aegis start \"<task title>\"` or `./.aegis/bin/aegis start ...` when the global command is unavailable.",
+            "- Use explicit `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` only when an external task id already exists.",
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness and `aegis next`, mark scope complete with `aegis log --plan-step auto`, make the task-scoped code change with native tools, let PostToolUse create pending tracking, run `aegis log --pending-id current --plan-step auto` for the changed source file, run task-specific verification and log it with `--plan-step auto`, run `aegis verify --strict`, log the strict verification report with `--pending-id current --plan-step auto`, run `aegis closeout --dry-run --update-handoff` for preflight, then run `aegis closeout --update-handoff` before declaring the work complete.",
+            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; then run `aegis closeout --update-handoff` before declaring the work complete.",
             "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
@@ -366,30 +368,33 @@ def _render_claude_entrypoint() -> bytes:
             "bash .claude/scripts/readiness.sh --quick",
             "```",
             "",
-            "If readiness is BLOCKED because no current work exists, start tracked work with:",
+            "If this project is not initialized yet, run:",
             "",
             "```bash",
-            "aegis kickoff --task <id> --slug <slug> --title \"<title>\"",
+            "aegis init",
             "```",
             "",
-            "If `aegis` is not on PATH, use the installed project-local shim:",
+            "If readiness is BLOCKED because no current work exists, infer a short task title from the user's request and start tracked local work with:",
             "",
             "```bash",
-            "./.aegis/bin/aegis kickoff --task <id> --slug <slug> --title \"<title>\"",
+            "aegis start \"<task title>\"",
             "```",
+            "",
+            "If `aegis` is not on PATH, use the installed project-local shim: `./.aegis/bin/aegis ...`.",
             "",
             "Project hooks route mutation tools through `.claude/scripts/pretooluse-gate.sh`.",
             "",
             "Tool routing:",
             "",
             "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, kickoff, log, verify, closeout_ready, closeout, and future reconciliation.",
+            "- Use `aegis init` for first-time project setup and `aegis start \"<task title>\"` for local task kickoff when no external task id exists.",
             "- Use `aegis ...` or `./.aegis/bin/aegis ...` for the same workflow operations when MCP is unavailable.",
             "- Use native Claude tools for normal implementation work: reading files, editing source, running tests, and inspecting git status or diffs.",
             "- Do not use MCP as a replacement for normal source editing. The installed hooks enforce the workflow around native tool use.",
             "",
             "Normal feature-work loop:",
             "",
-            "1. Confirm readiness is READY, then run `aegis next` or `./.aegis/bin/aegis next` to get the next required workflow action.",
+            "1. Confirm readiness. If Aegis is missing, run `aegis init`. If no current work exists, infer a task title and run `aegis start \"<task title>\"`. Then run `aegis next` or `./.aegis/bin/aegis next`.",
             "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --plan-step auto --plan-status completed`.",
             "3. Make the task-scoped source change requested by the user with native Edit/Write tools.",
             "4. After the hook records pending tracking, run `aegis log --pending-id current --note \"<past-tense note>\" --plan-step auto --plan-status completed`.",
@@ -418,15 +423,21 @@ def _render_claude_settings() -> bytes:
                 "Bash(bash .claude/scripts/codex-path-guard.sh:*)",
                 "Bash(bash .claude/scripts/bash-command-guard.sh:*)",
                 "Bash(aegis inspect:*)",
+                "Bash(aegis init:*)",
                 "Bash(aegis status:*)",
                 "Bash(aegis next:*)",
+                "Bash(aegis start:*)",
+                "Bash(aegis mcp register:*)",
                 "Bash(aegis kickoff:*)",
                 "Bash(aegis log:*)",
                 "Bash(aegis verify:*)",
                 "Bash(aegis closeout:*)",
                 "Bash(./.aegis/bin/aegis inspect:*)",
+                "Bash(./.aegis/bin/aegis init:*)",
                 "Bash(./.aegis/bin/aegis status:*)",
                 "Bash(./.aegis/bin/aegis next:*)",
+                "Bash(./.aegis/bin/aegis start:*)",
+                "Bash(./.aegis/bin/aegis mcp register:*)",
                 "Bash(./.aegis/bin/aegis kickoff:*)",
                 "Bash(./.aegis/bin/aegis log:*)",
                 "Bash(./.aegis/bin/aegis verify:*)",
@@ -1233,8 +1244,8 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
         return _workflow_guidance_payload(
             phase="bootstrap",
             state="not_installed",
-            next_required_action="inspect, plan install, then install Aegis before kickoff",
-            suggested_cli="./.aegis/bin/aegis plan-install --target-dir . --primary-agent claude --agent claude",
+            next_required_action="run aegis init before starting work",
+            suggested_cli="aegis init",
             suggested_mcp_tool="aegis.plan_install",
             suggested_mcp_arguments={
                 "target_dir": ".",
@@ -1244,6 +1255,7 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             },
             missing_gates=["aegis.manifest"],
             copyable_repairs=[
+                "aegis init",
                 "aegis plan-install --target-dir . --primary-agent claude --agent claude",
                 "aegis install --target-dir . --primary-agent claude --agent claude --apply",
             ],
@@ -1254,8 +1266,8 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
         return _workflow_guidance_payload(
             phase="start",
             state="installed_no_current_work",
-            next_required_action="kick off task-scoped work before mutating files",
-            suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+            next_required_action="start task-scoped local work before mutating files",
+            suggested_cli="./.aegis/bin/aegis start '<task title>'",
             suggested_mcp_tool="aegis.kickoff",
             suggested_mcp_arguments={
                 "target_dir": ".",
@@ -1265,7 +1277,8 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             },
             missing_gates=["aegis.current_work"],
             copyable_repairs=[
-                "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'"
+                "./.aegis/bin/aegis start '<task title>'",
+                "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
             ],
         )
 
@@ -1554,6 +1567,51 @@ def _slugify(value: str) -> str:
     if not slug:
         raise AegisError("slug must contain at least one alphanumeric character")
     return slug
+
+
+def _local_tasks_payload(target_root: Path) -> dict[str, Any]:
+    payload = _read_json(target_root / AEGIS_LOCAL_TASKS_REL)
+    if isinstance(payload, Mapping):
+        tasks = payload.get("tasks")
+        if isinstance(tasks, list):
+            return dict(payload)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "next_id": 1,
+        "tasks": [],
+    }
+
+
+def _allocate_local_task(target_root: Path, title: str, slug: str) -> dict[str, Any]:
+    payload = _local_tasks_payload(target_root)
+    raw_next = payload.get("next_id", 1)
+    try:
+        task_id = int(raw_next)
+    except (TypeError, ValueError):
+        task_id = 1
+    if task_id < 1:
+        task_id = 1
+    existing_ids = {
+        int(task.get("id"))
+        for task in payload.get("tasks", [])
+        if isinstance(task, Mapping) and str(task.get("id") or "").isdigit()
+    }
+    while task_id in existing_ids:
+        task_id += 1
+    task = {
+        "id": str(task_id),
+        "slug": slug,
+        "title": title,
+        "status": "in-progress",
+        "source": "aegis-local",
+        "created_at": _iso_now(),
+        "updated_at": _iso_now(),
+    }
+    payload["next_id"] = task_id + 1
+    payload.setdefault("tasks", []).append(task)
+    payload["updated_at"] = _iso_now()
+    _write_text(target_root, AEGIS_LOCAL_TASKS_REL, _dump_json(payload))
+    return task
 
 
 def _normalize_task_id(task_id: str | int) -> str:
@@ -1931,6 +1989,48 @@ def kickoff(
         ),
     }
     _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
+    return report
+
+
+def start_local_work(
+    target_dir: str | Path,
+    *,
+    title: str,
+    slug: str | None = None,
+    goals: Sequence[str] | None = None,
+    create_branch: bool = True,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Allocate a local task id and reuse kickoff for projects without Taskmaster."""
+
+    target_root = _resolve_target_root(target_dir)
+    if not (target_root / AEGIS_MANIFEST_REL).is_file():
+        raise AegisError("Aegis start requires an installed .aegis/foundation-manifest.json; run aegis init first")
+    _ensure_git_work_tree(target_root)
+    clean_title = title.strip()
+    if not clean_title:
+        raise AegisError("task title is required")
+    normalized_slug = _slugify(slug or clean_title)
+    local_task = _allocate_local_task(target_root, clean_title, normalized_slug)
+    report = kickoff(
+        target_root,
+        task_id=local_task["id"],
+        slug=normalized_slug,
+        title=clean_title,
+        goals=goals,
+        create_branch=create_branch,
+        source_root=source_root,
+    )
+    current_work_path = target_root / AEGIS_CURRENT_WORK_REL
+    current_work = _read_json(current_work_path)
+    if isinstance(current_work, MutableMapping):
+        task_payload = current_work.get("task")
+        if isinstance(task_payload, MutableMapping):
+            task_payload["source"] = "aegis-local"
+        current_work["local_task"] = local_task
+        current_work_path.write_text(_dump_json(current_work), encoding="utf-8")
+    report["local_task"] = local_task
+    report["public_command"] = 'aegis start "<task title>"'
     return report
 
 
@@ -2708,6 +2808,83 @@ def install(
             "plan": plan,
             "cleanup": cleanup,
         }
+
+
+def initialize_project(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    profile: str = PROFILE_GENERIC,
+    primary_agent: str = "claude",
+    agents: Sequence[str] | None = None,
+    verify_after_install: bool = True,
+) -> dict[str, Any]:
+    """Install Aegis into a project using public task-master-init style defaults."""
+
+    target_root = _resolve_target_root(target_dir)
+    target_root.mkdir(parents=True, exist_ok=True)
+    selected_agents = list(agents or [primary_agent])
+    enabled_agents = _enabled_agents(primary_agent, selected_agents)
+    inspect_before = inspect_project(target_root, profile=profile)
+    plan = plan_install(
+        target_root,
+        source_root=source_root,
+        profile=profile,
+        primary_agent=primary_agent,
+        agents=enabled_agents,
+        mode="apply",
+        apply_confirmed=True,
+    )
+    install_report = install(
+        target_root,
+        source_root=source_root,
+        profile=profile,
+        primary_agent=primary_agent,
+        agents=enabled_agents,
+        apply=True,
+    )
+    verification: dict[str, Any] | None = None
+    status_value = str(install_report.get("status") or "unknown")
+    if status_value == "applied" and verify_after_install:
+        verification = verify(target_root, source_root=source_root)
+        if verification.get("status") == "failed":
+            status_value = "failed"
+
+    payload: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "initialized" if status_value == "applied" else status_value,
+        "initialized_at": _iso_now(),
+        "target_root": str(target_root),
+        "profile": profile,
+        "agent_selection": {
+            "source": "public_defaults",
+            "primary_agent": primary_agent,
+            "enabled_agents": list(enabled_agents),
+        },
+        "public_commands": {
+            "status": "aegis status",
+            "next": "aegis next",
+            "start": 'aegis start "<task title>"',
+            "verify": "aegis verify --strict",
+            "closeout": "aegis closeout --update-handoff",
+        },
+        "inspect_before": inspect_before,
+        "plan": plan,
+        "install": install_report,
+        "verification": verification,
+        "reports": {
+            "plan_json": AEGIS_PLAN_REPORT_REL,
+            "install_json": AEGIS_INSTALL_REPORT_REL,
+            "verification_json": AEGIS_VERIFY_REPORT_REL if verification is not None else None,
+        },
+        "next_action": _workflow_next_action(
+            "start_tracked_work",
+            "Aegis is installed. Start local tracked work before mutating source files.",
+            suggested_cli='./.aegis/bin/aegis start "<task title>"',
+            details={"public_flow": "aegis init -> aegis start -> native edit -> aegis log/verify/closeout"},
+        ),
+    }
+    return payload
 
 
 def _check_settings_hook(target_root: Path, gate: Mapping[str, Any]) -> tuple[bool, str]:

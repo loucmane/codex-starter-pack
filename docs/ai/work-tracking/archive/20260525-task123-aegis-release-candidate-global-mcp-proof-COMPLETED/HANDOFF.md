@@ -35,3 +35,4 @@
 ## Next Steps
 - Merge PR #124 when ready.
 - After merge, switch back to `main`, pull, and confirm Taskmaster health remains `done=123`.
+- Archived on 2026-05-26 10:11 CEST — Folder moved to archive and tracker marked COMPLETED.

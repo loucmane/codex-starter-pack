@@ -323,6 +323,40 @@ def test_package_cli_generates_native_registration_json(
     assert payload["rendered_command"].startswith("claude mcp add --scope project aegis -e")
 
 
+def test_package_cli_public_register_delegates_to_native_registration(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured_request: dict[str, Any] = {}
+
+    def fake_execute(request: mcp_registration.RegistrationRequest, *, cwd: str | Path | None = None) -> dict[str, Any]:
+        captured_request["request"] = request
+        captured_request["cwd"] = cwd
+        return {
+            "status": "passed",
+            "client": request.client,
+            "scope": request.scope,
+            "source_mode": request.source_mode,
+            "target_dir": request.target_dir,
+        }
+
+    monkeypatch.setattr(aegis_cli.mcp_registration, "execute_registration", fake_execute)
+
+    result = aegis_cli.main(["mcp", "register", "claude"])
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "passed"
+    assert payload["client"] == "claude"
+    assert payload["scope"] == "user"
+    request = captured_request["request"]
+    assert request.client == "claude"
+    assert request.scope == "user"
+    assert request.source_mode == "package"
+    assert request.target_dir == "."
+    assert captured_request["cwd"] == "."
+
+
 def test_package_cli_reports_invalid_source_mode_without_traceback(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
