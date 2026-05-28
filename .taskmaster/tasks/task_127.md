@@ -2,7 +2,7 @@
 
 **Title:** Add Aegis handoff auto-repair flow
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 125 ✓
 
