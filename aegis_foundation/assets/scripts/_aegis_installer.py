@@ -342,7 +342,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; then run `aegis closeout --update-handoff` before declaring the work complete.",
+            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; then run `aegis closeout --update-handoff` before declaring the work complete.",
             "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
@@ -401,7 +401,8 @@ def _render_claude_entrypoint() -> bytes:
             "5. Run task-specific verification and log it with `--plan-step auto --plan-status completed`.",
             "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note \"Recorded strict verification evidence\" --plan-step auto --plan-status completed`.",
             "7. Run `aegis closeout --dry-run --update-handoff` or call MCP `aegis.closeout_ready` before final closeout.",
-            "8. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
+            "8. If handoff semantic gates fail, run `aegis handoff repair` or call MCP `aegis.handoff_repair apply=true`, then re-run closeout readiness.",
+            "9. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
             "",
             "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
@@ -3676,6 +3677,105 @@ def _replace_markdown_section(text: str, heading: str, body_lines: Sequence[str]
     return "\n".join(next_lines).rstrip() + "\n"
 
 
+def _first_markdown_title(text: str, fallback: str) -> str:
+    for line in text.splitlines():
+        if line.startswith("# "):
+            return line.strip()
+    return fallback
+
+
+def _markdown_tail_from_heading(text: str, heading: str) -> str:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() == heading:
+            return "\n".join(lines[index:]).rstrip()
+    return ""
+
+
+def _bullet_lines(tokens: Sequence[str], *, fallback: str) -> list[str]:
+    unique_tokens = list(dict.fromkeys(token for token in tokens if token))
+    if not unique_tokens:
+        return [f"- {fallback}"]
+    return [f"- `{token}`" for token in unique_tokens]
+
+
+def _current_work_branch_name(current_work: Mapping[str, Any], paths: Mapping[str, Any]) -> str:
+    branch_payload = current_work.get("branch")
+    if isinstance(branch_payload, Mapping):
+        return str(branch_payload.get("current") or branch_payload.get("name") or "")
+    if isinstance(branch_payload, str):
+        return branch_payload
+    path_branch = paths.get("branch")
+    return path_branch if isinstance(path_branch, str) else ""
+
+
+def _render_closeout_handoff(
+    existing_text: str,
+    *,
+    current_work: Mapping[str, Any],
+    implementation_tokens: Sequence[str],
+    verification_tokens: Sequence[str],
+    strict_verify_rel: str,
+) -> str:
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    task_id = str(task.get("id") or "")
+    slug = str(task.get("slug") or "")
+    title = str(task.get("title") or f"Task {task_id}")
+    branch = _current_work_branch_name(current_work, paths)
+    work_label = f"task{task_id}-{slug}" if task_id or slug else "current-work"
+    semantic_title = _first_markdown_title(existing_text, f"# Task {task_id} {title} - Handoff Summary")
+    progress_log = _markdown_tail_from_heading(existing_text, "## Progress Log")
+    all_evidence = list(dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel]))
+    evidence_summary = ", ".join(f"`{token}`" for token in all_evidence) if all_evidence else "none available"
+
+    lines = [
+        semantic_title,
+        "",
+        "## Current State",
+        f"- Task {task_id} `{slug}` is ready for closeout validation.",
+        f"- Title: {title}.",
+        f"- Branch: `{branch}`.",
+        f"- Current work: `{work_label}`.",
+        f"- Strict verification report: `{strict_verify_rel}`.",
+        f"- Closeout report target: `{AEGIS_CLOSEOUT_REPORT_REL}`.",
+        "",
+        "## What Was Done",
+        "- Completed scope, implementation, and verification plan steps through Aegis logging.",
+        "- Updated required workflow evidence across session, tracker, implementation, changelog, handoff, and plan surfaces.",
+        "- Prepared closeout evidence so final closeout can write the report without ad hoc handoff edits.",
+        "",
+        "## Implementation Evidence",
+        *_bullet_lines(implementation_tokens, fallback="No implementation evidence tokens were available."),
+        "",
+        "## Verification Evidence",
+        *_bullet_lines(verification_tokens, fallback="No task-specific verification evidence tokens were available."),
+        "",
+        "## Strict Verification Evidence",
+        f"- `{strict_verify_rel}`",
+        "",
+        "## Current Issues/Blockers",
+        "- None known at closeout.",
+        "",
+        "## Next Steps",
+        f"1. Review `{AEGIS_CLOSEOUT_REPORT_REL}` after final closeout writes it.",
+        "2. Commit and open a pull request with normal git/GitHub commands when delegated.",
+        "3. Archive or continue the active work-tracking folder according to the project lifecycle.",
+        "",
+        "## Important Context",
+        f"- Current work authority remains `{AEGIS_CURRENT_WORK_REL}` with status `in-progress` until archive or lifecycle tooling changes it.",
+        f"- Session: `{paths.get('session', 'unknown')}`.",
+        f"- Plan: `{paths.get('plan', 'unknown')}`.",
+        f"- Active work-tracking: `{paths.get('work_tracking', 'unknown')}`.",
+        f"- Required closeout evidence: {evidence_summary}.",
+        "- Taskmaster and Serena are optional unless current work marks them required.",
+        "- Use normal git and GitHub commands by default. `gac` is legacy/manual only.",
+    ]
+    if progress_log:
+        lines.extend(["", progress_log])
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _closeout_readiness(target_root: Path) -> dict[str, Any]:
     readiness_script = target_root / ".claude" / "scripts" / "readiness.sh"
     if readiness_script.is_file():
@@ -3713,69 +3813,19 @@ def _update_handoff_for_closeout(
     *,
     handoff_path: Path,
     current_work: Mapping[str, Any],
-    evidence_tokens: Sequence[str],
+    implementation_tokens: Sequence[str],
+    verification_tokens: Sequence[str],
     strict_verify_rel: str,
 ) -> None:
-    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
-    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
-    task_id = str(task.get("id") or "")
-    slug = str(task.get("slug") or "")
-    title = str(task.get("title") or f"Task {task_id}")
-    branch = _current_branch(target_root)
-    evidence_lines = [f"- `{token}`" for token in evidence_tokens]
-    if not evidence_lines:
-        evidence_lines = ["- No plan evidence tokens were available."]
-
     text = _read_text_or_empty(handoff_path)
-    text = _replace_markdown_section(
+    next_text = _render_closeout_handoff(
         text,
-        "## Current State",
-        [
-            f"- Task {task_id} `{slug}` is ready for closeout validation.",
-            f"- Title: {title}.",
-            f"- Branch: `{branch}`.",
-            f"- Strict verification report: `{strict_verify_rel}`.",
-            f"- Closeout report: `{AEGIS_CLOSEOUT_REPORT_REL}`.",
-        ],
+        current_work=current_work,
+        implementation_tokens=implementation_tokens,
+        verification_tokens=verification_tokens,
+        strict_verify_rel=strict_verify_rel,
     )
-    text = _replace_markdown_section(
-        text,
-        "## What Was Done",
-        [
-            "- Completed scope, implementation, and verification plan steps through Aegis logging.",
-            "- Required evidence recorded:",
-            *evidence_lines,
-        ],
-    )
-    text = _replace_markdown_section(
-        text,
-        "## Current Issues/Blockers",
-        [
-            "- None known at closeout.",
-        ],
-    )
-    text = _replace_markdown_section(
-        text,
-        "## Next Steps",
-        [
-            f"1. Review `{AEGIS_CLOSEOUT_REPORT_REL}`.",
-            "2. Commit and open a pull request with normal git/GitHub commands when delegated.",
-            "3. Archive or continue the active work-tracking folder according to the project lifecycle.",
-        ],
-    )
-    text = _replace_markdown_section(
-        text,
-        "## Important Context",
-        [
-            f"- Current work authority remains `{AEGIS_CURRENT_WORK_REL}` with status `in-progress` until archive or lifecycle tooling changes it.",
-            f"- Session: `{paths.get('session', 'unknown')}`.",
-            f"- Plan: `{paths.get('plan', 'unknown')}`.",
-            f"- Active work-tracking: `{paths.get('work_tracking', 'unknown')}`.",
-            "- Taskmaster and Serena are optional unless current work marks them required.",
-            "- Use normal git and GitHub commands by default. `gac` is legacy/manual only.",
-        ],
-    )
-    handoff_path.write_text(text, encoding="utf-8")
+    handoff_path.write_text(next_text, encoding="utf-8")
 
 
 def _closeout_handoff_checks(
@@ -4008,6 +4058,190 @@ def _build_closeout_repair_guidance(
     }
 
 
+def repair_handoff(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Repair Aegis-owned semantic HANDOFF.md sections without final closeout side effects."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve()
+    checked_at = _iso_now()
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if not isinstance(current_work, dict):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "failed",
+            "dry_run": dry_run,
+            "report_written": False,
+            "state_updated": False,
+            "checked_at": checked_at,
+            "target_root": str(target_root),
+            "reason": f"{AEGIS_CURRENT_WORK_REL} missing or invalid; run aegis kickoff first",
+            "next_action": _workflow_next_action(
+                "kickoff_before_handoff_repair",
+                "Aegis handoff repair requires active current work state.",
+                suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title \"<title>\"",
+                suggested_mcp_tool="aegis.kickoff",
+            ),
+        }
+
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    plan_rel = str(paths.get("plan") or "")
+    work_rel = str(paths.get("work_tracking") or "")
+    plan_path = target_root / plan_rel if plan_rel else target_root / "plans" / "current"
+    work_path = target_root / work_rel if work_rel else target_root / "docs" / "ai" / "work-tracking" / "active"
+    handoff_path = work_path / "HANDOFF.md"
+    if not handoff_path.is_file():
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "failed",
+            "dry_run": dry_run,
+            "report_written": False,
+            "state_updated": False,
+            "checked_at": checked_at,
+            "target_root": str(target_root),
+            "current_work": current_work,
+            "handoff": {
+                "path": _repo_path(handoff_path, target_root),
+                "exists": False,
+                "updated": False,
+                "would_update": False,
+            },
+            "reason": "HANDOFF.md is missing from the active work-tracking folder.",
+            "next_action": _workflow_next_action(
+                "repair_missing_work_tracking_before_handoff_repair",
+                "Aegis handoff repair can only update an existing active HANDOFF.md.",
+                suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title \"<title>\"",
+            ),
+        }
+
+    before = closeout(
+        target_root,
+        source_root=source,
+        update_handoff=True,
+        dry_run=True,
+    )
+    plan_rows = _parse_plan_rows(plan_path)
+    implementation_tokens = [
+        token
+        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-implement", {}).get("evidence") or ""))
+        if _is_closeout_required_evidence(token)
+    ]
+    verification_tokens = [
+        token
+        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-verify", {}).get("evidence") or ""))
+        if _is_closeout_required_evidence(token)
+    ]
+    strict_verify_rel = _normalize_evidence(target_root, AEGIS_VERIFY_REPORT_REL)
+    before_text = _read_text_or_empty(handoff_path)
+    repaired_text = _render_closeout_handoff(
+        before_text,
+        current_work=current_work,
+        implementation_tokens=implementation_tokens,
+        verification_tokens=verification_tokens,
+        strict_verify_rel=strict_verify_rel,
+    )
+    changed = repaired_text != before_text
+    after: dict[str, Any] | None = None
+    if not dry_run and changed:
+        handoff_path.write_text(repaired_text, encoding="utf-8")
+        after = closeout(
+            target_root,
+            source_root=source,
+            update_handoff=True,
+            dry_run=True,
+        )
+    elif not dry_run:
+        after = before
+
+    failing_before = [
+        str(check.get("gate_id"))
+        for check in before.get("checks", [])
+        if check.get("required") and check.get("status") == "fail"
+    ]
+    failing_after = [
+        str(check.get("gate_id"))
+        for check in (after or {}).get("checks", [])
+        if check.get("required") and check.get("status") == "fail"
+    ]
+    status_value = "planned" if dry_run else "repaired"
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": status_value,
+        "dry_run": dry_run,
+        "report_written": False,
+        "state_updated": False,
+        "checked_at": checked_at,
+        "target_root": str(target_root),
+        "current_work": current_work,
+        "handoff": {
+            "path": _repo_path(handoff_path, target_root),
+            "exists": True,
+            "updated": changed and not dry_run,
+            "would_update": changed and dry_run,
+            "changed": changed,
+            "preserved_progress_log": "## Progress Log" in before_text,
+            "sections": [
+                "Current State",
+                "What Was Done",
+                "Implementation Evidence",
+                "Verification Evidence",
+                "Strict Verification Evidence",
+                "Current Issues/Blockers",
+                "Next Steps",
+                "Important Context",
+            ],
+        },
+        "evidence": {
+            "implementation": implementation_tokens,
+            "verification": verification_tokens,
+            "strict_verify": strict_verify_rel,
+        },
+        "closeout_ready_before": {
+            "status": before.get("status"),
+            "failed_required_gates": failing_before,
+            "repair_items": before.get("repair_guidance", {}).get("summary", {}).get("items"),
+        },
+        "closeout_ready_after": (
+            {
+                "status": after.get("status"),
+                "failed_required_gates": failing_after,
+                "repair_items": after.get("repair_guidance", {}).get("summary", {}).get("items"),
+            }
+            if after is not None
+            else None
+        ),
+        "preview": repaired_text if dry_run else None,
+        "next_action": (
+            _workflow_next_action(
+                "apply_handoff_repair",
+                "Aegis can repair the active handoff without writing closeout reports or current-work state.",
+                suggested_cli="./.aegis/bin/aegis handoff repair --target-dir .",
+                suggested_mcp_tool="aegis.handoff_repair",
+                suggested_mcp_arguments={"target_dir": ".", "apply": True},
+            )
+            if dry_run and changed
+            else _workflow_next_action(
+                "rerun_closeout_ready",
+                "Handoff repair applied. Re-run closeout_ready; if it passes, run final closeout.",
+                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                suggested_mcp_tool="aegis.closeout_ready",
+                suggested_mcp_arguments={"target_dir": ".", "update_handoff": True},
+                details={"closeout_ready_status": after.get("status") if after else before.get("status")},
+            )
+            if not dry_run
+            else _workflow_next_action(
+                "no_handoff_repair_needed",
+                "The active handoff already matches the deterministic repair rendering.",
+                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+            )
+        ),
+    }
+
+
 def closeout(
     target_dir: str | Path,
     *,
@@ -4167,7 +4401,8 @@ def closeout(
             target_root,
             handoff_path=handoff_path,
             current_work=current_work,
-            evidence_tokens=required_evidence,
+            implementation_tokens=implementation_tokens,
+            verification_tokens=verification_tokens,
             strict_verify_rel=strict_verify_rel,
         )
         surface_texts["handoff"] = _read_text_or_empty(handoff_path)
@@ -4321,18 +4556,18 @@ def closeout(
     if status_value == "passed" and not dry_run:
         report["closed_at"] = _iso_now()
 
-    if not dry_run:
-        reports_dir = target_root / AEGIS_REPORTS_REL
-        reports_dir.mkdir(parents=True, exist_ok=True)
-        (target_root / AEGIS_CLOSEOUT_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
-        report["report_written"] = True
-
     if status_value == "passed" and current_work and not dry_run:
         current_work["updated_at"] = _iso_now()
         current_work["closeout_passed_at"] = report["closed_at"]
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
         report["state_updated"] = True
+
+    if not dry_run:
+        report["report_written"] = True
+        reports_dir = target_root / AEGIS_REPORTS_REL
+        reports_dir.mkdir(parents=True, exist_ok=True)
+        (target_root / AEGIS_CLOSEOUT_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
 
     return report
 

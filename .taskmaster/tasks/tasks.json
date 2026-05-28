@@ -6057,12 +6057,13 @@
         "description": "Improve Aegis closeout handoff repair so agents do not have to manually rewrite placeholder handoff sections after closeout_ready identifies content gaps.",
         "details": "Add a deterministic repair surface, such as aegis handoff repair or stronger closeout --update-handoff behavior, that can populate Current State, What Was Done, Implementation Evidence, Verification Evidence, Strict Verification Evidence, Current Issues, and Next Steps from current-work state, plan evidence, logged S:W:H:E events, verification report, and closeout_ready failures. Preserve strict closeout gates and do not weaken handoff requirements. Add CLI and MCP coverage, plus live-style fixture tests showing a placeholder handoff can be repaired without ad hoc manual editing.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "125"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-05-28T09:43:32.411Z"
       },
       {
         "id": "128",
@@ -6080,9 +6081,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-27T12:53:21.835Z",
+      "lastModified": "2026-05-28T09:43:32.412Z",
       "taskCount": 128,
-      "completedCount": 126,
+      "completedCount": 127,
       "tags": [
         "master"
       ]

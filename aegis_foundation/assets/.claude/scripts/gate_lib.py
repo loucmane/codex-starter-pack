@@ -200,6 +200,8 @@ def mcp_is_mutation(payload: Payload) -> bool:
     if not is_mcp_tool(payload.tool_name):
         return False
     normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+    if "aegis" in normalized and normalized.endswith("handoff_repair"):
+        return payload.tool_input.get("apply") is True
     if "aegis" in normalized and any(
         normalized.endswith(suffix) for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES
     ):

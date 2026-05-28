@@ -39,6 +39,7 @@ V1_TOOL_NAMES = (
     "aegis.verify",
     "aegis.closeout",
     "aegis.closeout_ready",
+    "aegis.handoff_repair",
     "aegis.kickoff",
     "aegis.start",
     "aegis.log",
@@ -598,6 +599,35 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             callback=call_core,
         )
 
+    @server.tool(name="aegis.handoff_repair")
+    def aegis_handoff_repair(
+        target_dir: str,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Preview or apply deterministic HANDOFF.md semantic-section repair after closeout_ready reports gaps."""
+
+        def call_core() -> dict[str, Any]:
+            report = installer.repair_handoff(
+                target_dir,
+                source_root=config.source_root,
+                dry_run=not apply,
+            )
+            if report.get("status") == "failed":
+                return _error_tool_response(
+                    "aegis.handoff_repair",
+                    code="handoff_repair_failed",
+                    message=str(report.get("reason") or "Aegis handoff repair failed."),
+                    status="failed",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
+            "aegis.handoff_repair",
+            read_only=not apply,
+            callback=call_core,
+        )
+
     @server.tool(name="aegis.kickoff")
     def aegis_kickoff(
         target_dir: str,
@@ -1036,8 +1066,9 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     "2. Run `aegis.verify` with `strict=true` and `acknowledge_report_write=true`.",
                     "3. Log the strict verification pending event with `pending_event_id=current`, `plan_step=auto`, and `plan_status=completed`.",
                     "4. Run read-only `aegis.closeout_ready` or CLI `aegis closeout --dry-run --update-handoff`.",
-                    "5. Apply repair guidance until dry-run passes, then call mutating `aegis.closeout` with `acknowledge_report_write=true`.",
-                    "6. Only report completion after closeout writes a passing report.",
+                    "5. If handoff semantic gates fail, call `aegis.handoff_repair` with `apply=true`, then re-run closeout readiness.",
+                    "6. Apply any remaining repair guidance until dry-run passes, then call mutating `aegis.closeout` with `acknowledge_report_write=true`.",
+                    "7. Only report completion after closeout writes a passing report.",
                 ]
             ),
         )

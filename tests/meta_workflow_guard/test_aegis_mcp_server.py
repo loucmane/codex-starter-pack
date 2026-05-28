@@ -23,7 +23,17 @@ from aegis_mcp.server import (
     V1_TOOL_NAMES,
     create_server,
 )
-from scripts._aegis_installer import AEGIS_MANIFEST_REL, AEGIS_PENDING_TRACKING_REL, install, kickoff
+from scripts._aegis_installer import (
+    AEGIS_CLOSEOUT_REPORT_REL,
+    AEGIS_MANIFEST_REL,
+    AEGIS_PENDING_TRACKING_REL,
+    AEGIS_VERIFY_REPORT_REL,
+    closeout,
+    install,
+    kickoff,
+    log_work,
+    verify,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -147,6 +157,7 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.verify",
         "aegis.closeout_ready",
         "aegis.closeout",
+        "aegis.handoff_repair",
         "aegis.start",
         "aegis.kickoff",
         "aegis.log",
@@ -173,6 +184,7 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     verify_description = tool_by_name(server, "aegis.verify").description or ""
     closeout_ready_description = tool_by_name(server, "aegis.closeout_ready").description or ""
     closeout_description = tool_by_name(server, "aegis.closeout").description or ""
+    handoff_repair_description = tool_by_name(server, "aegis.handoff_repair").description or ""
 
     assert "next workflow guidance" in status_description
     assert "next required Aegis workflow action" in next_description
@@ -184,6 +196,7 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "log its pending event before closeout" in verify_description
     assert "Read-only pre-closeout gate check" in closeout_ready_description
     assert "scope, implement, verify" in closeout_description
+    assert "HANDOFF.md semantic-section repair" in handoff_repair_description
 
 
 def test_server_registers_expected_resources_and_prompts(tmp_path: Path) -> None:
@@ -843,6 +856,87 @@ def test_closeout_ready_reports_without_mutation(tmp_path: Path) -> None:
     assert payload["result"]["state_updated"] is False
 
 
+def test_handoff_repair_tool_previews_and_applies_without_closeout_report(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    kickoff(target, task_id="42", slug="handoff-repair", title="Handoff Repair")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    evidence_rel = f"{current_work['paths']['reports']}/repair-evidence.txt"
+    (target / evidence_rel).write_text("evidence\n", encoding="utf-8")
+
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed MCP handoff repair scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Write",
+        evidence=evidence_rel,
+        note="Captured MCP handoff repair implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="verify:inspection",
+        evidence="cmd`test -f repair-evidence.txt`",
+        note="Verified MCP handoff repair evidence exists",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    strict = verify(target, source_root=REPO_ROOT, strict=True)
+    assert strict["status"] == "passed"
+    log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    handoff_path = target / work_rel / "HANDOFF.md"
+    before = handoff_path.read_text(encoding="utf-8")
+
+    preview = call_tool_payload(server, "aegis.handoff_repair", {"target_dir": target.as_posix()})
+
+    assert preview["ok"] is True
+    assert preview["read_only"] is True
+    assert preview["result"]["status"] == "planned"
+    assert preview["result"]["handoff"]["would_update"] is True
+    assert handoff_path.read_text(encoding="utf-8") == before
+
+    applied = call_tool_payload(
+        server,
+        "aegis.handoff_repair",
+        {"target_dir": target.as_posix(), "apply": True},
+    )
+
+    assert applied["ok"] is True
+    assert applied["read_only"] is False
+    assert applied["result"]["status"] == "repaired"
+    assert applied["result"]["handoff"]["updated"] is True
+    assert applied["result"]["closeout_ready_after"]["status"] == "passed"
+    assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
+    assert closeout(target, source_root=REPO_ROOT, dry_run=True)["status"] == "passed"
+
+
 def test_profile_tools_call_core_and_validate_payloads(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
@@ -1105,6 +1199,7 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
 
     closeout_task = get_prompt_text(server, "aegis.closeout_task")
     assert "aegis.closeout_ready" in closeout_task
+    assert "aegis.handoff_repair" in closeout_task
     assert "aegis.verify" in closeout_task
     assert "Only report completion after closeout writes a passing report" in closeout_task
 

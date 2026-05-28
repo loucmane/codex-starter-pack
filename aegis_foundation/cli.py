@@ -170,6 +170,20 @@ def handle_closeout(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_handoff_repair(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.repair_handoff(
+            args.target_dir,
+            source_root=source_root,
+            dry_run=args.dry_run,
+        )
+    _dump_json(payload)
+    if payload.get("status") == "failed":
+        print("Aegis handoff repair failed", file=sys.stderr)
+        return 1
+    return 0
+
+
 def handle_certify_release(args: argparse.Namespace) -> int:
     payload = _aegis_installer.certify_release_candidate(
         args.source_dir,
@@ -558,6 +572,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Evaluate closeout gates without writing reports, handoff updates, or current-work state.",
     )
     closeout_parser.set_defaults(func=handle_closeout)
+
+    handoff_parser = subparsers.add_parser(
+        "handoff",
+        help="Inspect and repair active Aegis handoff surfaces.",
+    )
+    handoff_sub = handoff_parser.add_subparsers(dest="handoff_subcommand", required=True)
+    handoff_repair_parser = handoff_sub.add_parser(
+        "repair",
+        help="Repair Aegis-owned semantic HANDOFF.md sections without writing closeout state.",
+    )
+    handoff_repair_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    handoff_repair_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview the deterministic handoff repair without writing HANDOFF.md.",
+    )
+    handoff_repair_parser.set_defaults(func=handle_handoff_repair)
 
     certify_parser = subparsers.add_parser(
         "certify-release",

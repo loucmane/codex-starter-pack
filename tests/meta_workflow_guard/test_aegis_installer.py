@@ -35,6 +35,7 @@ from scripts._aegis_installer import (
     log_work,
     next_action,
     plan_install,
+    repair_handoff,
     start_local_work,
     verify,
 )
@@ -176,6 +177,19 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert closeout_args.subcommand == "closeout"
     assert closeout_args.update_handoff is True
     assert closeout_args.dry_run is True
+
+    handoff_repair_args = parser.parse_args([
+        "aegis",
+        "handoff",
+        "repair",
+        "--target-dir",
+        "/tmp/example",
+        "--dry-run",
+    ])
+    assert handoff_repair_args.subcommand == "handoff"
+    assert handoff_repair_args.handoff_subcommand == "repair"
+    assert handoff_repair_args.target_dir == "/tmp/example"
+    assert handoff_repair_args.dry_run is True
 
     certify_args = parser.parse_args([
         "aegis",
@@ -779,6 +793,13 @@ def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
     assert started["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
     assert started["next_action"]["suggested_mcp"]["arguments"]["plan_step"] == "auto"
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work["branch"] = {
+        "action": "created_branch",
+        "before": "main",
+        "created": True,
+        "current": "feat/task-42-handoff-repair",
+    }
+    (target / ".aegis" / "state" / "current-work.json").write_text(json.dumps(current_work, indent=2) + "\n", encoding="utf-8")
     work_rel = current_work["paths"]["work_tracking"]
     reports_rel = current_work["paths"]["reports"]
     implementation_evidence = f"{reports_rel}/implementation.txt"
@@ -957,6 +978,7 @@ def test_read_only_aegis_mcp_tools_do_not_create_pending_tracking(tmp_path: Path
         "mcp__aegis__aegis_next",
         "mcp__aegis__aegis_plan_install",
         "mcp__aegis__aegis_closeout_ready",
+        "mcp__aegis__aegis_handoff_repair",
         "mcp__aegis__aegis_list_profiles",
         "mcp__aegis__aegis_explain_profile",
     ):
@@ -1294,6 +1316,9 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert passed["git"]["legacy_manual_only"] == ["gac"]
     assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]
     assert (target / AEGIS_CLOSEOUT_REPORT_REL).is_file()
+    closeout_report = json.loads((target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8"))
+    assert closeout_report["report_written"] is True
+    assert closeout_report["state_updated"] is True
     refreshed_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     assert refreshed_work["status"] == "in-progress"
     assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
@@ -1301,6 +1326,114 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert AEGIS_CLOSEOUT_REPORT_REL in handoff
     assert AEGIS_VERIFY_REPORT_REL in handoff
     assert report_rel in handoff
+
+
+def test_handoff_repair_fixes_placeholder_handoff_before_closeout(tmp_path: Path) -> None:
+    target = tmp_path / "handoff-repair-repo"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+
+    kickoff(
+        target,
+        task_id="42",
+        slug="handoff-repair",
+        title="Handoff Repair",
+        goals=["Repair placeholder handoff before final closeout"],
+    )
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    report_rel = f"{current_work['paths']['reports']}/handoff-repair-evidence.txt"
+    (target / report_rel).write_text("handoff repair evidence\n", encoding="utf-8")
+
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed handoff repair scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Write",
+        evidence=report_rel,
+        note="Recorded handoff repair implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="verify:inspection",
+        evidence="cmd`test -f handoff-repair-evidence.txt`",
+        note="Verified handoff repair evidence exists",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    strict = verify(target, source_root=REPO_ROOT, strict=True)
+    assert strict["status"] == "passed"
+    log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+
+    handoff_path = target / work_rel / "HANDOFF.md"
+    handoff_before = handoff_path.read_text(encoding="utf-8")
+    assert "has been kicked off through Aegis" in handoff_before
+    assert closeout(target, source_root=REPO_ROOT, dry_run=True)["status"] == "failed"
+
+    dry_run = repair_handoff(target, source_root=REPO_ROOT, dry_run=True)
+    assert dry_run["status"] == "planned"
+    assert dry_run["dry_run"] is True
+    assert dry_run["handoff"]["would_update"] is True
+    assert "closeout.handoff.current_state" in dry_run["closeout_ready_before"]["failed_required_gates"]
+    assert "## Implementation Evidence" in dry_run["preview"]
+    assert handoff_path.read_text(encoding="utf-8") == handoff_before
+    assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
+
+    repaired = repair_handoff(target, source_root=REPO_ROOT)
+    assert repaired["status"] == "repaired"
+    assert repaired["report_written"] is False
+    assert repaired["state_updated"] is False
+    assert repaired["handoff"]["updated"] is True
+    assert repaired["closeout_ready_after"]["status"] == "passed"
+    assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
+
+    handoff = handoff_path.read_text(encoding="utf-8")
+    semantic_handoff = handoff.split("## Progress Log", 1)[0]
+    assert "## Implementation Evidence" in semantic_handoff
+    assert "## Verification Evidence" in semantic_handoff
+    assert "## Strict Verification Evidence" in semantic_handoff
+    assert "Branch: `feat/task-42-handoff-repair`." in semantic_handoff
+    assert "'action': 'created_branch'" not in semantic_handoff
+    assert report_rel in semantic_handoff
+    assert AEGIS_VERIFY_REPORT_REL in semantic_handoff
+    assert "## Progress Log" in handoff
+    assert "Handoff initialized by Aegis kickoff" in handoff
+
+    closeout_ready = closeout(target, source_root=REPO_ROOT, dry_run=True)
+    assert closeout_ready["status"] == "passed"
+    assert closeout_ready["report_written"] is False
+    assert closeout_ready["state_updated"] is False
 
 
 def test_strict_verify_fails_when_workflow_template_is_missing(tmp_path: Path) -> None:

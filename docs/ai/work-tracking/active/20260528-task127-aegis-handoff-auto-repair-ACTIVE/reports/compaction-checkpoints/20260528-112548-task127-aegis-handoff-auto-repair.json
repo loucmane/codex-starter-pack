@@ -1,0 +1,166 @@
+{
+  "created_at": "2026-05-28T11:25:48+02:00",
+  "git": {
+    "branch": "feat/task-127-aegis-handoff-auto-repair",
+    "head": "7798712c94b650f07696ca47d0a8fc9ac20261e6",
+    "status": [
+      {
+        "path": ".claude/scripts/gate_lib.py",
+        "status": " M"
+      },
+      {
+        "path": ".taskmaster/tasks/task_127.md",
+        "status": " M"
+      },
+      {
+        "path": ".taskmaster/tasks/tasks.json",
+        "status": " M"
+      },
+      {
+        "path": "aegis_foundation/assets/.claude/scripts/gate_lib.py",
+        "status": " M"
+      },
+      {
+        "path": "aegis_foundation/assets/scripts/_aegis_installer.py",
+        "status": " M"
+      },
+      {
+        "path": "aegis_foundation/assets/scripts/codex-task",
+        "status": " M"
+      },
+      {
+        "path": "aegis_foundation/cli.py",
+        "status": " M"
+      },
+      {
+        "path": "aegis_mcp/server.py",
+        "status": " M"
+      },
+      {
+        "path": "scripts/_aegis_installer.py",
+        "status": " M"
+      },
+      {
+        "path": "scripts/codex-task",
+        "status": " M"
+      },
+      {
+        "path": "sessions/state.json",
+        "status": " M"
+      },
+      {
+        "path": "tests/meta_workflow_guard/test_aegis_installer.py",
+        "status": " M"
+      },
+      {
+        "path": "tests/meta_workflow_guard/test_aegis_mcp_server.py",
+        "status": " M"
+      },
+      {
+        "path": "docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE/",
+        "status": "??"
+      },
+      {
+        "path": "plans/2026-05-28-task127-aegis-handoff-auto-repair.md",
+        "status": "??"
+      },
+      {
+        "path": "plans/current",
+        "status": "??"
+      },
+      {
+        "path": "sessions/2026/05/2026-05-28-001-task127-aegis-handoff-auto-repair.md",
+        "status": "??"
+      },
+      {
+        "path": "sessions/current",
+        "status": "??"
+      }
+    ]
+  },
+  "kind": "compaction-checkpoint",
+  "last_completed": [
+    "Added repair_handoff core renderer preserving Progress Log",
+    "Added aegis handoff repair CLI, codex-task wrapper, MCP tool, and hook classifier behavior",
+    "Focused installer/MCP tests and packaged-asset smoke tests passed"
+  ],
+  "next_step": "continue Task 127 verification and closeout after reading the Serena/memory checkpoint",
+  "open_items": [
+    "Run final guard validation, update Taskmaster status, and close out Task 127"
+  ],
+  "paths": {
+    "manifest": "docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE/reports/compaction-checkpoints/20260528-112548-task127-aegis-handoff-auto-repair.json",
+    "memory_file": ".serena/memories/compaction_2026-05-28_task127_aegis_handoff_auto_repair.md",
+    "memory_name": "compaction_2026-05-28_task127_aegis_handoff_auto_repair",
+    "plan": "plans/2026-05-28-task127-aegis-handoff-auto-repair.md",
+    "resume": "docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE/reports/compaction-checkpoints/20260528-112548-task127-aegis-handoff-auto-repair-resume.md",
+    "session": "sessions/2026/05/2026-05-28-001-task127-aegis-handoff-auto-repair.md",
+    "tracker": "docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE/TRACKER.md",
+    "work_tracking": "docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE"
+  },
+  "serena": {
+    "count": 203,
+    "exists": true,
+    "latest": [
+      ".serena/memories/2026-05-22_task120_fresh_local_install_proof.md",
+      ".serena/memories/2026-05-23_task121_aegis_workflow_ux_hardening_kickoff.md",
+      ".serena/memories/2026-05-24_task121_live_acceptance_task122_followup.md",
+      ".serena/memories/2026-05-25_task121_commit_handoff.md",
+      ".serena/memories/2026-05-25_task122_aegis_workflow_guidance_kickoff.md",
+      ".serena/memories/2026-05-25_task123_aegis_release_candidate_global_mcp_kickoff.md",
+      ".serena/memories/2026-05-26_task124_aegis_live_hpfetcher_acceptance_kickoff.md",
+      ".serena/memories/2026-05-26_task125_public_aegis_adoption_flow_kickoff.md",
+      ".serena/memories/2026-05-27_task125_public_aegis_acceptance.md",
+      ".serena/memories/2026-05-27_task126_acceptance_fixture_hardening.md"
+    ],
+    "path": ".serena/memories"
+  },
+  "slug": "aegis-handoff-auto-repair",
+  "summary": "Implemented deterministic Aegis handoff repair CLI and MCP flow with focused tests passing",
+  "task_id": "127",
+  "taskmaster": {
+    "exists": true,
+    "invalid_refs": [],
+    "path": ".taskmaster/tasks/tasks.json",
+    "sha256": "c5427eef2f9bad4c0db8242ed46f475f1c661e6284350765ccf4e338498f117a",
+    "summary": {
+      "dependency_refs": 297,
+      "invalid_refs": 0,
+      "status_counts": {
+        "done": 126,
+        "in-progress": 1,
+        "pending": 1
+      },
+      "subtasks": 354,
+      "tasks": 128
+    },
+    "tag": "master"
+  },
+  "version": 1,
+  "workflow": {
+    "active_work_tracking": [
+      "docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE"
+    ],
+    "current_plan": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "plans/current",
+      "resolved": "plans/2026-05-28-task127-aegis-handoff-auto-repair.md",
+      "sha256": "79fc201676e7133e14689056eabb5fcc1327b6ce0e73bf3a67c07fdc392b0c0c",
+      "target": "2026-05-28-task127-aegis-handoff-auto-repair.md"
+    },
+    "current_session": {
+      "exists": true,
+      "is_symlink": true,
+      "path": "sessions/current",
+      "resolved": "sessions/2026/05/2026-05-28-001-task127-aegis-handoff-auto-repair.md",
+      "sha256": "9a9f74c7bdaaf456e12f18bf24fdb2929c4d55be512013b4c8645c56ea0f1040",
+      "target": "2026/05/2026-05-28-001-task127-aegis-handoff-auto-repair.md"
+    },
+    "session_state": {
+      "exists": true,
+      "path": "sessions/state.json",
+      "sha256": "99d7254cab287575d760637920df5ca1a5f85ac3a5ba1c5a9c45f0371e149a7a"
+    }
+  }
+}
