@@ -173,10 +173,12 @@ def test_build_parser_accepts_aegis_commands() -> None:
         "/tmp/example",
         "--update-handoff",
         "--dry-run",
+        "--json",
     ])
     assert closeout_args.subcommand == "closeout"
     assert closeout_args.update_handoff is True
     assert closeout_args.dry_run is True
+    assert closeout_args.json is True
 
     handoff_repair_args = parser.parse_args([
         "aegis",
@@ -277,6 +279,27 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     target.mkdir()
     subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     initialize_project(target, source_root=REPO_ROOT)
+    next_before_start = next_action(target, source_root=REPO_ROOT)
+    assert next_before_start["state"] == "installed_no_current_work"
+    assert next_before_start["suggested_mcp_call"]["tool"] == "aegis.start"
+    assert next_before_start["suggested_mcp_call"]["arguments"]["apply"] is True
+
+    bash_start_payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": './.aegis/bin/aegis start "Improve BrandMark accessibility"'},
+    }
+    mcp_start_payload = {
+        "tool_name": "mcp__aegis__aegis_start",
+        "tool_input": {
+            "target_dir": target.as_posix(),
+            "title": "Improve BrandMark accessibility",
+            "apply": True,
+        },
+    }
+    bash_start_gate = run_target_pretooluse(target, bash_start_payload)
+    assert bash_start_gate.returncode == 0, bash_start_gate.stderr
+    mcp_start_gate = run_target_pretooluse(target, mcp_start_payload)
+    assert mcp_start_gate.returncode == 0, mcp_start_gate.stderr
 
     payload = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
 
@@ -297,6 +320,9 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     readiness = run_target_readiness(target)
     assert readiness.returncode == 0
     assert "READY | task=1" in readiness.stdout
+    assert run_target_posttooluse(target, bash_start_payload).returncode == 0
+    assert run_target_posttooluse(target, mcp_start_payload).returncode == 0
+    assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
 
 def test_plan_install_is_dry_run_and_schema_valid(tmp_path: Path) -> None:
@@ -393,7 +419,8 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     installed = next_action(target, source_root=REPO_ROOT)
     assert installed["phase"] == "start"
     assert installed["state"] == "installed_no_current_work"
-    assert installed["suggested_mcp_call"]["tool"] == "aegis.kickoff"
+    assert installed["suggested_mcp_call"]["tool"] == "aegis.start"
+    assert installed["suggested_mcp_call"]["arguments"]["apply"] is True
 
 
 def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
@@ -611,6 +638,16 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     assert blocked_verify.returncode == 2
     assert "Claude readiness is BLOCKED" in blocked_verify.stderr
 
+    blocked_mcp_verify = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_verify",
+            "tool_input": {"target_dir": target.as_posix(), "strict": True},
+        },
+    )
+    assert blocked_mcp_verify.returncode == 2
+    assert "Claude readiness is BLOCKED" in blocked_mcp_verify.stderr
+
     bootstrap = run_target_pretooluse(
         target,
         {
@@ -621,6 +658,24 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         },
     )
     assert bootstrap.returncode == 0, bootstrap.stderr
+
+    start_bootstrap = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": './.aegis/bin/aegis start "Portable Smoke"'},
+        },
+    )
+    assert start_bootstrap.returncode == 0, start_bootstrap.stderr
+
+    mcp_start_bootstrap = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_start",
+            "tool_input": {"target_dir": target.as_posix(), "title": "Portable Smoke", "apply": True},
+        },
+    )
+    assert mcp_start_bootstrap.returncode == 0, mcp_start_bootstrap.stderr
 
     kickoff_report = kickoff(
         target,
@@ -1299,6 +1354,31 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
     assert (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8") == manifest_before_dry_run
     assert (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8") == handoff_before_dry_run
+    concise_failed = run_cli([
+        "aegis",
+        "closeout",
+        "--target-dir",
+        str(target),
+        "--dry-run",
+        "--update-handoff",
+    ])
+    assert concise_failed.returncode == 1
+    assert "Aegis closeout readiness: FAILED" in concise_failed.stdout
+    assert "failed_required:" in concise_failed.stdout
+    assert "failed_gates:" in concise_failed.stdout
+    assert "closeout.handoff.current_state" in concise_failed.stdout
+    assert not concise_failed.stdout.lstrip().startswith("{")
+    json_failed = run_cli([
+        "aegis",
+        "closeout",
+        "--target-dir",
+        str(target),
+        "--dry-run",
+        "--update-handoff",
+        "--json",
+    ])
+    assert json_failed.returncode == 1
+    assert json.loads(json_failed.stdout)["status"] == "failed"
 
     failed = closeout(target, source_root=REPO_ROOT)
     assert failed["status"] == "failed"
@@ -1315,13 +1395,22 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert passed["summary"]["failed_required"] == 0
     assert passed["git"]["legacy_manual_only"] == ["gac"]
     assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]
+    concise_passed = aegis_installer.format_closeout_summary(passed)
+    assert "Aegis closeout: PASSED" in concise_passed
+    assert "closeout_report: .aegis/reports/closeout-report.json (written)" in concise_passed
     assert (target / AEGIS_CLOSEOUT_REPORT_REL).is_file()
     closeout_report = json.loads((target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8"))
     assert closeout_report["report_written"] is True
     assert closeout_report["state_updated"] is True
     refreshed_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
-    assert refreshed_work["status"] == "in-progress"
+    assert refreshed_work["status"] == "completed"
+    assert refreshed_work["task"]["status"] == "completed"
     assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
+    idempotent_dry_run = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
+    assert idempotent_dry_run["status"] == "passed"
+    assert idempotent_dry_run["readiness"]["status"] == "passed"
+    assert idempotent_dry_run["readiness"]["stdout"] == "READY from completed closeout state"
+    assert idempotent_dry_run["next_action"]["action"] == "task_complete"
     handoff = (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8")
     assert AEGIS_CLOSEOUT_REPORT_REL in handoff
     assert AEGIS_VERIFY_REPORT_REL in handoff

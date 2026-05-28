@@ -57,10 +57,10 @@ aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
 aegis verify --target-dir . --strict
-aegis closeout --target-dir . --dry-run --update-handoff
+aegis closeout --target-dir . --dry-run --update-handoff --json
 ```
 
-The installed command must resolve packaged Aegis assets from the wheel, not from the source checkout.
+The installed command must resolve packaged Aegis assets from the wheel, not from the source checkout. Closeout prints a concise human summary by default; use `--json` in release automation when the full structured report must be parsed.
 
 For release-candidate artifact certification from the source checkout, use:
 
@@ -109,7 +109,7 @@ pipx run --spec "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis inspec
 
 Native MCP client registration is the preferred bootstrap path. It registers the packaged `aegis-mcp-server` once, then lets the discovered `aegis.*` tools install and operate the workflow inside each target project.
 
-MCP is the Aegis bootstrap and control plane. Use it for Aegis workflow state such as inspect, status, next, plan-install, install, kickoff, log, verify, closeout-ready/dry-run, closeout, and future reconciliation. Use native agent tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status or diffs. The installed Aegis runtime and hooks enforce supported persistent mutations regardless of which tool surface attempts them.
+MCP is the Aegis bootstrap and control plane. Use it for Aegis workflow state such as inspect, status, next, plan-install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout-ready/dry-run, closeout, and future reconciliation. Use native agent tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status or diffs. The installed Aegis runtime and hooks enforce supported persistent mutations regardless of which tool surface attempts them.
 
 Claude user/global scope:
 

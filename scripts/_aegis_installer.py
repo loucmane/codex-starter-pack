@@ -386,7 +386,7 @@ def _render_claude_entrypoint() -> bytes:
             "",
             "Tool routing:",
             "",
-            "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, kickoff, log, verify, closeout_ready, closeout, and future reconciliation.",
+            "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready, closeout, and future reconciliation.",
             "- Use `aegis init` for first-time project setup and `aegis start \"<task title>\"` for local task kickoff when no external task id exists.",
             "- Use `aegis ...` or `./.aegis/bin/aegis ...` for the same workflow operations when MCP is unavailable.",
             "- Use native Claude tools for normal implementation work: reading files, editing source, running tests, and inspecting git status or diffs.",
@@ -1269,12 +1269,11 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             state="installed_no_current_work",
             next_required_action="start task-scoped local work before mutating files",
             suggested_cli="./.aegis/bin/aegis start '<task title>'",
-            suggested_mcp_tool="aegis.kickoff",
+            suggested_mcp_tool="aegis.start",
             suggested_mcp_arguments={
                 "target_dir": ".",
-                "task": "<id>",
-                "slug": "<slug>",
                 "title": "<title>",
+                "apply": True,
             },
             missing_gates=["aegis.current_work"],
             copyable_repairs=[
@@ -1815,7 +1814,7 @@ def _workflow_next_action(
         "message": message,
         "native_tools_policy": (
             "Use native agent tools for source reads, edits, and project tests. "
-            "Use Aegis CLI/MCP only for workflow state: install, kickoff, log, verify, closeout."
+            "Use Aegis CLI/MCP only for workflow state: install, start, kickoff for explicit external numeric task ids, log, verify, closeout."
         ),
     }
     if suggested_cli:
@@ -3121,11 +3120,16 @@ def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]]
         )
         if not str(paths.get(key) or "").strip()
     ]
-    valid_payload = (
-        current_work.get("status") == "in-progress"
-        and bool(task_id)
-        and bool(task_slug)
-        and not missing_path_keys
+    work_status = str(current_work.get("status") or "").strip()
+    active_payload = work_status == "in-progress"
+    completed_payload = work_status == "completed" and bool(current_work.get("closeout_passed_at"))
+    valid_payload = (active_payload or completed_payload) and bool(task_id) and bool(task_slug) and not missing_path_keys
+    status_message = (
+        "current work payload is active and complete"
+        if active_payload
+        else "current work payload is completed and closeout-passed"
+        if completed_payload
+        else "current work payload is incomplete"
     )
     checks = [
         _strict_check(
@@ -3133,9 +3137,10 @@ def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]]
             category="workflow",
             required=True,
             passed=valid_payload,
-            message="current work payload is active and complete" if valid_payload else "current work payload is incomplete",
+            message=status_message,
             details={
                 "task": task,
+                "status": work_status,
                 "missing_path_keys": missing_path_keys,
             },
         )
@@ -3763,7 +3768,7 @@ def _render_closeout_handoff(
         "3. Archive or continue the active work-tracking folder according to the project lifecycle.",
         "",
         "## Important Context",
-        f"- Current work authority remains `{AEGIS_CURRENT_WORK_REL}` with status `in-progress` until archive or lifecycle tooling changes it.",
+        f"- Current work authority remains `{AEGIS_CURRENT_WORK_REL}` and final closeout marks it `completed`.",
         f"- Session: `{paths.get('session', 'unknown')}`.",
         f"- Plan: `{paths.get('plan', 'unknown')}`.",
         f"- Active work-tracking: `{paths.get('work_tracking', 'unknown')}`.",
@@ -3776,7 +3781,18 @@ def _render_closeout_handoff(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _closeout_readiness(target_root: Path) -> dict[str, Any]:
+def _closeout_readiness(target_root: Path, current_work: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    current_work_status = str((current_work or {}).get("status") or "").strip()
+    if current_work_status == "completed" and bool((current_work or {}).get("closeout_passed_at")):
+        return {
+            "status": "passed",
+            "command": None,
+            "returncode": 0,
+            "stdout": "READY from completed closeout state",
+            "stderr": "",
+            "current_work_status": current_work_status,
+        }
+
     readiness_script = target_root / ".claude" / "scripts" / "readiness.sh"
     if readiness_script.is_file():
         result = subprocess.run(
@@ -4058,6 +4074,57 @@ def _build_closeout_repair_guidance(
     }
 
 
+def _closeout_failed_required_gate_ids(report: Mapping[str, Any]) -> list[str]:
+    return [
+        str(check.get("gate_id") or check.get("id") or "unknown")
+        for check in report.get("checks", [])
+        if isinstance(check, Mapping) and check.get("required") and check.get("status") == "fail"
+    ]
+
+
+def format_closeout_summary(report: Mapping[str, Any]) -> str:
+    """Render a concise human closeout summary while preserving JSON reports for automation."""
+
+    dry_run = bool(report.get("dry_run"))
+    label = "Aegis closeout readiness" if dry_run else "Aegis closeout"
+    status = str(report.get("status") or "unknown").upper()
+    summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    pending = report.get("pending_tracking") if isinstance(report.get("pending_tracking"), Mapping) else {}
+    pending_events = pending.get("events") if isinstance(pending.get("events"), list) else []
+    failed_gates = _closeout_failed_required_gate_ids(report)
+    next_action = report.get("next_action") if isinstance(report.get("next_action"), Mapping) else {}
+    repair_guidance = report.get("repair_guidance") if isinstance(report.get("repair_guidance"), Mapping) else {}
+    repair_items = repair_guidance.get("items") if isinstance(repair_guidance.get("items"), list) else []
+    first_repair = repair_items[0] if repair_items and isinstance(repair_items[0], Mapping) else {}
+    first_repair_command = str(
+        first_repair.get("command")
+        or first_repair.get("command_template")
+        or ""
+    ).strip()
+    report_written = bool(report.get("report_written"))
+    closeout_report_state = "written" if report_written else "not written by this run"
+    lines = [
+        f"{label}: {status}",
+        f"mode: {'dry-run' if dry_run else 'final'}",
+        f"failed_required: {summary.get('failed_required', 0)}",
+        f"warnings: {summary.get('warnings', 0)}",
+        f"pending_tracking: {len(pending_events)}",
+        f"closeout_report: {AEGIS_CLOSEOUT_REPORT_REL} ({closeout_report_state})",
+    ]
+    if failed_gates:
+        lines.append("failed_gates:")
+        lines.extend(f"- {gate}" for gate in failed_gates[:10])
+        if len(failed_gates) > 10:
+            lines.append(f"- ... {len(failed_gates) - 10} more")
+    if first_repair_command:
+        lines.append(f"repair: {first_repair_command}")
+    suggested_cli = str(next_action.get("suggested_cli") or "").strip()
+    if suggested_cli:
+        lines.append(f"next: {suggested_cli}")
+    lines.append("json: rerun with --json for the full structured report")
+    return "\n".join(lines) + "\n"
+
+
 def repair_handoff(
     target_dir: str | Path,
     *,
@@ -4259,13 +4326,24 @@ def closeout(
     checks: list[dict[str, Any]] = []
 
     current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
-    current_work_ok = isinstance(current_work, dict) and current_work.get("status") == "in-progress"
+    current_work_status = str(current_work.get("status") or "").strip() if isinstance(current_work, Mapping) else ""
+    current_work_ok = isinstance(current_work, dict) and (
+        current_work_status == "in-progress"
+        or (current_work_status == "completed" and bool(current_work.get("closeout_passed_at")))
+    )
+    current_work_message = (
+        "current work payload is active"
+        if current_work_status == "in-progress"
+        else "current work payload is completed"
+        if current_work_ok
+        else f"{AEGIS_CURRENT_WORK_REL} missing, invalid, or not active/completed"
+    )
     checks.append(
         _closeout_check(
             "closeout.current_work",
             passed=current_work_ok,
-            message="current work payload is active" if current_work_ok else f"{AEGIS_CURRENT_WORK_REL} missing, invalid, or not in-progress",
-            details={"path": AEGIS_CURRENT_WORK_REL},
+            message=current_work_message,
+            details={"path": AEGIS_CURRENT_WORK_REL, "status": current_work_status},
         )
     )
     if not isinstance(current_work, dict):
@@ -4283,7 +4361,7 @@ def closeout(
     changelog_path = work_path / "CHANGELOG.md"
     handoff_path = work_path / "HANDOFF.md"
 
-    readiness = _closeout_readiness(target_root)
+    readiness = _closeout_readiness(target_root, current_work=current_work)
     checks.append(
         _closeout_check(
             "closeout.readiness",
@@ -4520,7 +4598,9 @@ def closeout(
                 },
                 details={"dry_run": True, "closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
             )
-            if status_value == "passed" and dry_run
+            if status_value == "passed" and dry_run and not (
+                current_work_status == "completed" and bool(current_work.get("closeout_passed_at"))
+            )
             else
             _workflow_next_action(
                 "task_complete",
@@ -4560,6 +4640,10 @@ def closeout(
         current_work["updated_at"] = _iso_now()
         current_work["closeout_passed_at"] = report["closed_at"]
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
+        current_work["status"] = "completed"
+        task_payload = current_work.get("task")
+        if isinstance(task_payload, dict):
+            task_payload["status"] = "completed"
         _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
         report["state_updated"] = True
 

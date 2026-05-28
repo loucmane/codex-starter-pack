@@ -247,7 +247,7 @@ def test_invocation_contract_documents_local_checkout_adoption_commands() -> Non
         "aegis --source-root /path/to/codex status --target-dir .",
         "aegis --source-root /path/to/codex install --target-dir . --primary-agent claude --agent claude --apply",
         "aegis --source-root /path/to/codex verify --target-dir .",
-        "aegis --source-root /path/to/codex kickoff --target-dir . --task 1 --slug first-task --title \"First Task\"",
+        "aegis --source-root /path/to/codex start --target-dir . \"First Task\"",
         "aegis --source-root /path/to/codex log --target-dir . --pending-id current",
         "python3 /path/to/codex/scripts/aegis-mcp-server",
         "--source-root /path/to/codex",
@@ -337,7 +337,7 @@ def test_invocation_contract_documents_editable_package_style_commands() -> None
         "aegis plan-install --target-dir . --primary-agent claude --agent claude",
         "aegis install --target-dir . --primary-agent claude --agent claude --apply",
         "aegis verify --target-dir .",
-        "aegis kickoff --target-dir . --task 1 --slug first-task --title \"First Task\"",
+        "aegis start --target-dir . \"First Task\"",
         "aegis log --target-dir . --pending-id current",
     ]
     for snippet in required_snippets:

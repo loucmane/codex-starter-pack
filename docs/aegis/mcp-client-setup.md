@@ -21,7 +21,7 @@ The model is:
 1. Register the packaged Aegis MCP server with the native client.
 2. Start a fresh project in Claude, Codex, or another MCP client.
 3. Use the discovered `aegis.*` MCP tools to install the project-local runtime.
-4. Use `aegis.status`, `aegis.next`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, `aegis.closeout_ready`, and `aegis.closeout` for Aegis workflow state.
+4. Use `aegis.status`, `aegis.next`, `aegis.start`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, `aegis.closeout_ready`, and `aegis.closeout` for Aegis workflow state.
 5. Use the agent's native tools for normal project implementation work such as reading files, editing source, running tests, and inspecting git status.
 
 The project-local runtime installed by Aegis includes `.aegis/`, `.claude/` hooks, `CLAUDE.md`, sessions, plans, work-tracking scaffolding, readiness gates, pending S:W:H:E tracking, and closeout gates. Taskmaster and Serena are optional integrations; Aegis must work without them.
@@ -138,17 +138,19 @@ Source checkout mode is explicit. Public/fresh-project instructions should use p
 
 Native registration must discover:
 
-- tools: `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.closeout_ready`, `aegis.closeout`, `aegis.kickoff`, `aegis.log`, `aegis.list_profiles`, and `aegis.explain_profile`
+- tools: `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.plan_install`, `aegis.install`, `aegis.verify`, `aegis.closeout_ready`, `aegis.closeout`, `aegis.start`, `aegis.kickoff`, `aegis.log`, `aegis.list_profiles`, and `aegis.explain_profile`
 - resources: Aegis contract, schema, current work, verification, closeout, and runtime metadata resources
 - prompts: advisory prompts for bootstrap, migration, verification, session prep, and handoff
 
-The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting work uses `aegis.kickoff`; it creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`.
+The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting local work uses `aegis.start`; it allocates a local Aegis task id, creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`. Use `aegis.kickoff` only when the project or user provides an explicit external numeric task id.
+
+For installed Claude projects, `aegis.start` and `aegis.kickoff` are readiness bootstrap operations. The hooks allow those two operations before readiness is READY so agents can create the missing task branch and workflow scaffold. Other mutating MCP or CLI operations, such as `aegis.verify` and source edits, remain blocked until readiness passes.
 
 After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics can consume that event with `pending_event_id=current` and `plan_step=auto`, then records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces before the next mutation or session stop is allowed. Scope logs default to findings/decisions/handoff; implementation and verification logs default to implementation/changelog/handoff. Plan evidence is updated only when `plan_step` is supplied explicitly or `auto` can infer the step deterministically.
 
 Expected tool split:
 
-- Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, kickoff, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.
+- Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.
 - Native agent tools: source reads and edits, project test commands, and git status/diff inspection.
 - Installed hooks: enforcement across supported mutation surfaces regardless of whether a mutation attempt comes from MCP, Bash, Edit, Write, or another supported tool.
 
@@ -188,5 +190,5 @@ Do not call the MCP publicly ready until these checks pass from an installed art
 - `aegis mcp execute-registration --client claude --scope user` or equivalent fake-client test in CI
 - `aegis mcp verify-registration --client claude --scope user` or equivalent fixture/parser test in CI
 - native client tool/resource/prompt discovery for the registered Aegis MCP server
-- `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.install`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, `aegis.closeout_ready`, and `aegis.closeout` from a fresh target project
+- `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.install`, `aegis.start`, `aegis.kickoff`, `aegis.log`, `aegis.verify`, `aegis.closeout_ready`, and `aegis.closeout` from a fresh target project
 - `aegis-mcp-server --default-target-dir . --describe-config` reporting `"asset_origin": "package"`

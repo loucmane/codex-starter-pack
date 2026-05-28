@@ -39,12 +39,12 @@ MUTATING_TASKMASTER_RE = re.compile(
 )
 MUTATING_AEGIS_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
-    r"install|verify|kickoff|log|closeout"
+    r"install|verify|start|kickoff|log|closeout"
     r")\b",
     re.IGNORECASE,
 )
 AEGIS_BOOTSTRAP_RE = re.compile(
-    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+kickoff\b",
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+(start|kickoff)\b",
     re.IGNORECASE,
 )
 AEGIS_LOG_RE = re.compile(
@@ -70,7 +70,7 @@ MCP_READ_ONLY_TOOL_RE = re.compile(
     re.IGNORECASE,
 )
 MCP_MUTATION_TOOL_RE = re.compile(
-    r"^mcp__.*__(add|create|update|set|write|edit|delete|remove|rename|move|parse|expand|generate|archive|init|initialize)",
+    r"^mcp__.*__(add|create|update|set|write|edit|delete|remove|rename|move|parse|expand|generate|archive|init|initialize|start|kickoff)",
     re.IGNORECASE,
 )
 AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
@@ -610,7 +610,7 @@ def payload_is_aegis_bootstrap(payload: Payload) -> bool:
         return bash_is_aegis_bootstrap(bash_command(payload))
     if is_mcp_tool(payload.tool_name):
         normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
-        return "aegis" in normalized and normalized.endswith("kickoff")
+        return "aegis" in normalized and normalized.endswith(("start", "kickoff"))
     return False
 
 

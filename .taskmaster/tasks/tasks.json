@@ -6071,19 +6071,20 @@
         "description": "Make Aegis closeout and closeout_ready output easier for public users and agents by defaulting to concise actionable summaries while preserving full JSON output for automation.",
         "details": "Add a concise default output mode for aegis closeout_ready and aegis closeout that reports status, failed required gates, warnings, pending tracking, next repair command, and report path without dumping the entire check array. Preserve structured JSON output behind an explicit --json or equivalent flag and keep MCP responses structured. Update docs, packaged docs, CLI tests, MCP tests where relevant, and live-flow acceptance notes so agents can act on closeout failures without parsing oversized terminal output.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "125"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-05-28T13:53:22.490Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-05-28T09:43:32.412Z",
+      "lastModified": "2026-05-28T13:53:22.491Z",
       "taskCount": 128,
-      "completedCount": 127,
+      "completedCount": 128,
       "tags": [
         "master"
       ]

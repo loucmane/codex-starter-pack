@@ -1189,7 +1189,9 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     start_task = get_prompt_text(server, "aegis.start_task")
     assert "aegis.status" in start_task
     assert "aegis.next" in start_task
+    assert "aegis.start apply=true" in start_task
     assert "aegis.kickoff" in start_task
+    assert "explicit external numeric task id" in start_task
     assert "plan_step=auto" in start_task
 
     implement_task = get_prompt_text(server, "aegis.implement_task")

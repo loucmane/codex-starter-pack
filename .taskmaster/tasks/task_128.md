@@ -2,7 +2,7 @@
 
 **Title:** Add concise Aegis closeout output mode
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 125 ✓
 

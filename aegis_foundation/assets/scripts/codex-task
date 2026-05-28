@@ -34,6 +34,7 @@ from _aegis_installer import (
     certify_release_candidate as aegis_certify_release_candidate,
     closeout as aegis_closeout,
     explain_profile as aegis_explain_profile,
+    format_closeout_summary as aegis_format_closeout_summary,
     initialize_project as aegis_initialize_project,
     inspect_project as aegis_inspect_project,
     install as aegis_install,
@@ -799,7 +800,10 @@ def handle_aegis_closeout(args: argparse.Namespace) -> None:
         )
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
-    _print_json(payload)
+    if args.json:
+        _print_json(payload)
+    else:
+        print(aegis_format_closeout_summary(payload), end="")
     if payload.get("status") == "failed":
         raise TaskError("Aegis closeout failed")
 
@@ -18270,6 +18274,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Evaluate closeout gates without writing reports, handoff updates, or current-work state",
+    )
+    aegis_closeout_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured closeout report instead of the concise human summary",
     )
     aegis_closeout_parser.set_defaults(func=handle_aegis_closeout)
 

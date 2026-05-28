@@ -163,7 +163,10 @@ def handle_closeout(args: argparse.Namespace) -> int:
             include_git_guidance=not args.no_git_guidance,
             dry_run=args.dry_run,
         )
-    _dump_json(payload)
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_closeout_summary(payload), end="")
     if payload.get("status") == "failed":
         print("Aegis closeout failed", file=sys.stderr)
         return 1
@@ -570,6 +573,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Evaluate closeout gates without writing reports, handoff updates, or current-work state.",
+    )
+    closeout_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured closeout report instead of the concise human summary.",
     )
     closeout_parser.set_defaults(func=handle_closeout)
 

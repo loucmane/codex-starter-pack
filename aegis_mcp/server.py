@@ -1021,19 +1021,21 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
         )
 
     @server.prompt(name="aegis.start_task")
-    def start_task(target_dir: str = ".", task: str = "<task-id>", slug: str = "<slug>") -> str:
+    def start_task(target_dir: str = ".", title: str = "<task title>", task: str = "", slug: str = "") -> str:
         return workflow_prompt(
             "Start Aegis Task",
             "\n".join(
                 [
                     f"Target: `{target_dir}`",
-                    f"Task: `{task}`",
-                    f"Slug: `{slug}`",
+                    f"Title: `{title}`",
                     "1. Run `aegis.status` and `aegis.next` first.",
-                    "2. If no current work exists, call `aegis.kickoff apply=true` or run the project-local kickoff shim.",
-                    "3. Confirm readiness is READY after kickoff.",
-                    "4. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
-                    "5. Native agent tools do implementation; Aegis records workflow state and evidence.",
+                    "2. If no current work exists and the user did not give an external task id, call `aegis.start apply=true` with a short normal-language title.",
+                    "3. Use `aegis.kickoff apply=true` only when the user or project gives an explicit external numeric task id.",
+                    "4. Confirm readiness is READY after start/kickoff.",
+                    "5. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
+                    "6. Native agent tools do implementation; Aegis records workflow state and evidence.",
+                    f"External task id if explicitly provided: `{task or '<none>'}`",
+                    f"Slug override if explicitly provided: `{slug or '<auto>'}`",
                 ]
             ),
         )
