@@ -32,3 +32,4 @@
 - Safe repair does not overwrite divergent user files; it only restores missing managed assets or repairs deterministic Aegis pointers/metadata.
 - `aegis log` replay should now be idempotent but still useful: no duplicate session/tracker entries, missing requested surfaces can be filled.
 - The second live run did not force the exact missing-surface backfill branch because its evidence matrix was already complete; that branch is covered by `test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_entries`.
+- Archived on 2026-05-29 12:12 CEST — Folder moved to archive and tracker marked COMPLETED.

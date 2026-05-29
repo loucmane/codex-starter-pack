@@ -1,7 +1,7 @@
 # Task 129 Aegis Doctor, Repair, and Idempotency Hardening Tracker
 
 **Started**: 2026-05-28
-**Status**: COMPLETE - live Claude validation passed
+**Status**: COMPLETED
 **Last Updated**: 2026-05-29
 
 ## Goals
