@@ -50,6 +50,7 @@ AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
+AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
 AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT = "templates/aegis/workflow"
@@ -1864,6 +1865,20 @@ def kickoff(
     if not clean_title:
         raise AegisError("title is required")
 
+    existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if isinstance(existing_current_work, Mapping):
+        existing_status = str(existing_current_work.get("status") or "")
+        existing_task = existing_current_work.get("task") if isinstance(existing_current_work.get("task"), Mapping) else {}
+        existing_id = str(existing_task.get("id") or "")
+        existing_slug = str(existing_task.get("slug") or "")
+        if existing_status == "in-progress":
+            if existing_id == normalized_task_id and existing_slug == normalized_slug:
+                return _already_started_report(target_root, existing_current_work)
+            raise AegisError(
+                "Aegis current work is already in progress: "
+                f"task {existing_id} {existing_slug}. Close it out before starting task {normalized_task_id} {normalized_slug}."
+            )
+
     now = datetime.now().astimezone().replace(microsecond=0)
     selected_goals = list(goals or _default_goals())
     branch = _ensure_task_branch(target_root, normalized_task_id, normalized_slug, create_branch=create_branch)
@@ -1992,6 +2007,57 @@ def kickoff(
     return report
 
 
+def _already_started_report(target_root: Path, current_work: Mapping[str, Any]) -> dict[str, Any]:
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    work_rel = str(paths.get("work_tracking") or "")
+    task_id = str(task.get("id") or "")
+    slug = str(task.get("slug") or "")
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "already_started",
+        "started_at": current_work.get("created_at"),
+        "checked_at": _iso_now(),
+        "target_root": str(target_root),
+        "task": dict(task),
+        "branch": current_work.get("branch"),
+        "paths": dict(paths),
+        "integrations": current_work.get("integrations", {}),
+        "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        "idempotent": True,
+        "next_action": _workflow_next_action(
+            "continue_existing_work",
+            "Current work already exists; continue by logging scope, implementation, or verification evidence as appropriate.",
+            suggested_cli=(
+                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
+                "--note 'Confirmed task scope before implementation' "
+                "--plan-step auto --plan-status completed"
+            )
+            if work_rel
+            else None,
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "handler": "claude:scope",
+                "evidence": f"{work_rel}/FINDINGS.md",
+                "note": "Confirmed task scope before implementation",
+                "event_class": "scope",
+                "plan_step": "auto",
+                "plan_status": "completed",
+                "apply": True,
+            }
+            if work_rel
+            else None,
+            details={"task": task_id, "slug": slug},
+        ),
+    }
+    if isinstance(current_work.get("local_task"), Mapping):
+        report["local_task"] = dict(current_work["local_task"])
+        report["public_command"] = 'aegis start "<task title>"'
+    return report
+
+
 def start_local_work(
     target_dir: str | Path,
     *,
@@ -2011,6 +2077,19 @@ def start_local_work(
     if not clean_title:
         raise AegisError("task title is required")
     normalized_slug = _slugify(slug or clean_title)
+    existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if isinstance(existing_current_work, Mapping):
+        existing_status = str(existing_current_work.get("status") or "")
+        existing_task = existing_current_work.get("task") if isinstance(existing_current_work.get("task"), Mapping) else {}
+        existing_slug = str(existing_task.get("slug") or "")
+        existing_title = str(existing_task.get("title") or "")
+        if existing_status == "in-progress":
+            if existing_slug == normalized_slug and existing_title == clean_title:
+                return _already_started_report(target_root, existing_current_work)
+            raise AegisError(
+                "Aegis current work is already in progress: "
+                f"task {existing_task.get('id')} {existing_slug}. Close it out before starting {normalized_slug}."
+            )
     local_task = _allocate_local_task(target_root, clean_title, normalized_slug)
     report = kickoff(
         target_root,
@@ -2608,6 +2687,10 @@ def log_work(
     session_line = f"- **[{now.strftime('%H:%M')}]** - {swhe} {clean_note}"
     tracker_line = f"- **{now.strftime('%Y-%m-%d %H:%M %Z').strip()}** - {swhe} {clean_note}"
 
+    existing_session_text = _read_text_or_empty(session_path)
+    existing_tracker_text = _read_text_or_empty(tracker_path)
+    already_logged = swhe in existing_session_text and swhe in existing_tracker_text
+
     if resolved_pending_event is not None:
         resolved_id = str(resolved_pending_event.get("id") or "")
         cleared = [
@@ -2628,6 +2711,91 @@ def log_work(
             "Log the pending evidence first or inspect .aegis/state/pending-tracking.json.\n"
             f"Pending tracking:\n{pending_summary}"
         )
+    if already_logged and not pending_before:
+        updated_surfaces: dict[str, str] = {}
+        replay_line = f"- **{now.strftime('%Y-%m-%d %H:%M %Z').strip()}** - {swhe} {clean_note}"
+        for surface in log_surfaces:
+            rel_path = f"{work_rel}/{AEGIS_LOG_SURFACES[surface]}"
+            surface_path = target_root / rel_path
+            if swhe in _read_text_or_empty(surface_path):
+                continue
+            _append_progress_entry(surface_path, "## Progress Log", replay_line)
+            updated_surfaces[surface] = rel_path
+
+        plan_updated = False
+        if normalized_plan_step:
+            plan_rows = _parse_plan_rows(plan_path)
+            row = plan_rows.get(normalized_plan_step)
+            evidence_text = str(row.get("evidence") or "") if isinstance(row, Mapping) else ""
+            row_status = str(row.get("status") or "") if isinstance(row, Mapping) else ""
+            needs_plan_update = evidence_rel not in evidence_text or (
+                normalized_plan_status == "completed" and row_status not in {"completed", "done"}
+            )
+            if needs_plan_update:
+                plan_updated = _update_plan_table(
+                    plan_path,
+                    plan_step=normalized_plan_step,
+                    plan_status=normalized_plan_status,
+                    evidence_rel=evidence_rel,
+                    timestamp=date_value,
+                )
+                _update_tracker_plan_step(tracker_path, normalized_plan_step, normalized_plan_status)
+
+        if updated_surfaces or plan_updated:
+            _update_tracker_timestamp(tracker_path, date_value)
+            current_work["updated_at"] = _iso_now()
+            _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "logged" if (updated_surfaces or plan_updated) else "already_logged",
+            "logged_at": _iso_now(),
+            "target_root": str(target_root),
+            "entry": {
+                "session": session_line,
+                "tracker": tracker_line,
+                "s": session_value,
+                "w": work_context,
+                "h": clean_handler,
+                "e": evidence_rel,
+                "note": clean_note,
+                "event_class": normalized_event_class,
+                "evidence_location": evidence_location,
+            },
+            "paths": {
+                "session": session_rel,
+                "plan": plan_rel,
+                "tracker": f"{work_rel}/TRACKER.md",
+                "surfaces": updated_surfaces,
+                "pending_tracking": AEGIS_PENDING_TRACKING_REL,
+            },
+            "plan": {
+                "updated": plan_updated,
+                "step": normalized_plan_step or None,
+                "status": normalized_plan_status or None,
+                "evidence": evidence_rel,
+                "inferred": plan_step_inferred,
+                "inference_reason": plan_inference_reason,
+                "strict_verification_evidence": (
+                    evidence_rel == AEGIS_VERIFY_REPORT_REL and normalized_plan_step == "plan-step-verify"
+                ),
+            },
+            "pending": {
+                "cleared": 0,
+                "remaining": 0,
+                "cleared_events": [],
+                "pending_event_id": pending_event_id or None,
+            },
+            "idempotent": not (updated_surfaces or plan_updated),
+            "replay_completed_missing_surfaces": bool(updated_surfaces or plan_updated),
+            "next_action": _next_action_after_log(
+                remaining=[],
+                normalized_plan_step=normalized_plan_step,
+                normalized_plan_status=normalized_plan_status,
+                evidence_rel=evidence_rel,
+                work_rel=work_rel,
+            ),
+        }
 
     _append_progress_entry(session_path, "### Progress Log", session_line)
     _append_progress_entry(tracker_path, "## Progress Log", tracker_line)
@@ -3385,6 +3553,507 @@ def _strict_verification_checks(target_root: Path, manifest: Mapping[str, Any]) 
     checks.extend(_strict_claude_checks(target_root, manifest))
     checks.extend(_strict_integration_checks(target_root, current_work))
     return checks
+
+
+def _manifest_primary_agent(manifest: Mapping[str, Any]) -> str:
+    primary = str(manifest.get("primary_agent") or "claude")
+    return primary if primary in PRIMARY_AGENT_CHOICES else "claude"
+
+
+def _manifest_enabled_agents(manifest: Mapping[str, Any]) -> tuple[str, ...]:
+    agents = manifest.get("agents")
+    if not isinstance(agents, Mapping):
+        return ("claude",)
+    enabled = [
+        name
+        for name, payload in agents.items()
+        if name in AGENT_CHOICES and isinstance(payload, Mapping) and payload.get("enabled") is True
+    ]
+    return tuple(enabled or ("claude",))
+
+
+def _doctor_summary(checks: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    total = len(checks)
+    failed_required = sum(
+        1 for check in checks if check.get("required") is True and check.get("status") == "fail"
+    )
+    warnings = sum(
+        1 for check in checks if check.get("required") is False and check.get("status") == "fail"
+    )
+    return {
+        "total": total,
+        "failed_required": failed_required,
+        "warnings": warnings,
+    }
+
+
+def _doctor_action(
+    action_id: str,
+    *,
+    kind: str,
+    path: str,
+    reason: str,
+    safe: bool = True,
+    details: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    action: dict[str, Any] = {
+        "id": action_id,
+        "kind": kind,
+        "path": path,
+        "reason": reason,
+        "safe": safe,
+    }
+    if details:
+        action["details"] = dict(details)
+    return action
+
+
+def _doctor_manifest_assets(
+    target_root: Path,
+    source_root: Path,
+    manifest: Mapping[str, Any],
+) -> dict[str, Asset]:
+    primary_agent = _manifest_primary_agent(manifest)
+    enabled_agents = _manifest_enabled_agents(manifest)
+    assets = _assets_for_target(
+        target_root,
+        _managed_assets(source_root, primary_agent, enabled_agents),
+    )
+    return {asset.path: asset for asset in assets}
+
+
+def _current_work_pointer_actions(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    if not isinstance(current_work, Mapping):
+        return []
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    actions: list[dict[str, Any]] = []
+    for key, target_key in (("session_current", "session"), ("plan_current", "plan")):
+        link_rel = str(paths.get(key) or "").strip()
+        target_rel = str(paths.get(target_key) or "").strip()
+        if not link_rel or not target_rel:
+            continue
+        link = target_root / link_rel
+        target = target_root / target_rel
+        if not target.is_file():
+            continue
+        desired = os.path.relpath(target, start=link.parent)
+        needs_repair = False
+        if not link.exists() and not link.is_symlink():
+            needs_repair = True
+        elif link.is_symlink():
+            try:
+                needs_repair = os.readlink(link) != desired
+            except OSError:
+                needs_repair = True
+        else:
+            needs_repair = True
+        if needs_repair:
+            actions.append(
+                _doctor_action(
+                    f"workflow.recreate_{key}",
+                    kind="recreate_symlink",
+                    path=link_rel,
+                    reason=f"{link_rel} should point at {target_rel}",
+                    details={"target": target_rel, "link_target": desired},
+                )
+            )
+    reports_rel = str(paths.get("reports") or "").strip()
+    if reports_rel and not (target_root / reports_rel).is_dir():
+        actions.append(
+            _doctor_action(
+                "workflow.ensure_reports_dir",
+                kind="ensure_directory",
+                path=reports_rel,
+                reason="active reports directory is missing",
+            )
+        )
+    return actions
+
+
+def _completed_closeout_action(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(current_work, Mapping):
+        return None
+    status_value = str(current_work.get("status") or "")
+    if status_value == "completed" and current_work.get("closeout_passed_at"):
+        return None
+    closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
+    if not isinstance(closeout_report, Mapping) or closeout_report.get("status") != "passed":
+        return None
+    return _doctor_action(
+        "workflow.normalize_completed_closeout",
+        kind="normalize_completed_closeout",
+        path=AEGIS_CURRENT_WORK_REL,
+        reason="closeout report passed but current-work is not marked completed",
+        details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+    )
+
+
+def _doctor_repair_actions(
+    target_root: Path,
+    source_root: Path,
+    manifest: Mapping[str, Any] | None,
+    current_work: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    if isinstance(manifest, Mapping):
+        asset_map = _doctor_manifest_assets(target_root, source_root, manifest)
+        managed_files = manifest.get("managed_files")
+        if isinstance(managed_files, list):
+            for item in managed_files:
+                if not isinstance(item, Mapping):
+                    continue
+                rel_path = str(item.get("path") or "").strip()
+                if not rel_path:
+                    continue
+                target = target_root / rel_path
+                asset = asset_map.get(rel_path)
+                if not target.exists() and asset is not None:
+                    actions.append(
+                        _doctor_action(
+                            f"managed.restore:{rel_path}",
+                            kind="restore_managed_file",
+                            path=rel_path,
+                            reason="manifest-managed file is missing",
+                            details={"executable": asset.executable, "managed_kind": asset.kind},
+                        )
+                    )
+                elif target.is_dir():
+                    actions.append(
+                        _doctor_action(
+                            f"managed.manual:{rel_path}",
+                            kind="manual_review",
+                            path=rel_path,
+                            reason="manifest-managed path is a directory, not a file",
+                            safe=False,
+                        )
+                    )
+        shim = target_root / AEGIS_LOCAL_BIN_REL
+        if shim.is_file() and not os.access(shim, os.X_OK):
+            actions.append(
+                _doctor_action(
+                    "runtime.chmod_local_cli_shim",
+                    kind="chmod_executable",
+                    path=AEGIS_LOCAL_BIN_REL,
+                    reason="project-local Aegis CLI shim is not executable",
+                )
+            )
+    actions.extend(_current_work_pointer_actions(target_root, current_work))
+    completed_action = _completed_closeout_action(target_root, current_work)
+    if completed_action is not None:
+        actions.append(completed_action)
+    return actions
+
+
+def _classify_doctor_state(
+    *,
+    manifest: Mapping[str, Any] | None,
+    current_work: Mapping[str, Any] | None,
+    checks: Sequence[Mapping[str, Any]],
+    repair_actions: Sequence[Mapping[str, Any]],
+) -> tuple[str, str]:
+    if manifest is None:
+        return "not_installed", "failed"
+    if not isinstance(current_work, Mapping):
+        return "installed_no_current_work", "healthy" if not _doctor_summary(checks)["failed_required"] else "repairable"
+    pending_check = next(
+        (check for check in checks if check.get("id") == "mutation.pending_tracking_empty"),
+        None,
+    )
+    if isinstance(pending_check, Mapping) and pending_check.get("status") == "fail":
+        return "pending_tracking", "blocked"
+    status_value = str(current_work.get("status") or "")
+    if status_value == "completed" and current_work.get("closeout_passed_at"):
+        summary = _doctor_summary(checks)
+        return "completed_closeout", "healthy" if summary["failed_required"] == 0 else "repairable"
+    workflow_failed = any(
+        check.get("category") == "workflow" and check.get("status") == "fail"
+        for check in checks
+    )
+    if workflow_failed:
+        return "workflow_scaffold_incomplete", "repairable" if repair_actions else "failed"
+    summary = _doctor_summary(checks)
+    if summary["failed_required"]:
+        return "installed_with_failures", "repairable" if repair_actions else "failed"
+    if summary["warnings"]:
+        return "in_progress_ready", "degraded"
+    return "in_progress_ready", "healthy"
+
+
+def doctor(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+) -> dict[str, Any]:
+    """Diagnose installed Aegis state without mutating the target repository."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve()
+    manifest_path = target_root / AEGIS_MANIFEST_REL
+    manifest = _read_json(manifest_path)
+    checks: list[dict[str, Any]] = []
+    current_work: dict[str, Any] | None = None
+
+    if manifest is None:
+        checks.append(
+            _strict_check(
+                "aegis.manifest",
+                category="manifest",
+                required=True,
+                passed=False,
+                message="Aegis manifest missing or invalid JSON",
+                details={"path": AEGIS_MANIFEST_REL},
+            )
+        )
+    else:
+        try:
+            _validate_with_schema(source, "foundation-manifest.schema.json", manifest)
+            checks.append(
+                _strict_check(
+                    "aegis.manifest",
+                    category="manifest",
+                    required=True,
+                    passed=True,
+                    message="Aegis manifest is valid",
+                    details={"path": AEGIS_MANIFEST_REL},
+                )
+            )
+        except ValidationError as exc:
+            checks.append(
+                _strict_check(
+                    "aegis.manifest",
+                    category="manifest",
+                    required=True,
+                    passed=False,
+                    message=f"Aegis manifest schema validation failed: {exc.message}",
+                    details={"path": AEGIS_MANIFEST_REL, "schema_path": list(exc.schema_path)},
+                )
+            )
+        strict_checks = _strict_verification_checks(target_root, manifest)
+        checks.extend(strict_checks)
+        current_work_path = target_root / AEGIS_CURRENT_WORK_REL
+        current_work = _read_json(current_work_path)
+        if not current_work_path.exists():
+            for check in checks:
+                if check.get("id") == "workflow.current_work":
+                    check["required"] = False
+                    check["status"] = "pass"
+                    check["message"] = "no active current work; run aegis start or aegis kickoff before source edits"
+
+    repair_actions = _doctor_repair_actions(target_root, source, manifest, current_work)
+    active_root = target_root / "docs/ai/work-tracking/active"
+    active_folders = sorted(
+        path.relative_to(target_root).as_posix()
+        for path in active_root.glob("*-ACTIVE")
+        if path.is_dir()
+    )
+    current_work_rel = ""
+    if isinstance(current_work, Mapping):
+        paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+        current_work_rel = str(paths.get("work_tracking") or "").strip()
+    stale_active = [path for path in active_folders if path != current_work_rel]
+    if stale_active:
+        checks.append(
+            _strict_check(
+                "workflow.stale_active_folders",
+                category="workflow",
+                required=False,
+                passed=False,
+                message="non-current ACTIVE work-tracking folders exist",
+                details={"folders": stale_active, "current": current_work_rel},
+            )
+        )
+
+    current_state, status_value = _classify_doctor_state(
+        manifest=manifest,
+        current_work=current_work,
+        checks=checks,
+        repair_actions=repair_actions,
+    )
+    safe_actions = [action for action in repair_actions if action.get("safe") is True]
+    manual_actions = [action for action in repair_actions if action.get("safe") is not True]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "checked_at": _iso_now(),
+        "target_root": str(target_root),
+        "read_only": True,
+        "status": status_value,
+        "current_state": current_state,
+        "checks": checks,
+        "summary": _doctor_summary(checks),
+        "repair_plan": {
+            "available": bool(repair_actions),
+            "safe": len(safe_actions),
+            "manual_review": len(manual_actions),
+            "actions": repair_actions,
+            "apply_command": "aegis repair --apply" if safe_actions else None,
+        },
+        "next_action": next_action(target_root, source_root=source),
+    }
+
+
+def _apply_repair_action(
+    target_root: Path,
+    source_root: Path,
+    manifest: Mapping[str, Any] | None,
+    action: Mapping[str, Any],
+) -> dict[str, Any]:
+    kind = str(action.get("kind") or "")
+    rel_path = str(action.get("path") or "")
+    target = target_root / rel_path
+    if action.get("safe") is not True:
+        return {"id": action.get("id"), "status": "skipped", "reason": "manual review action"}
+    if kind == "restore_managed_file":
+        if not isinstance(manifest, Mapping):
+            return {"id": action.get("id"), "status": "skipped", "reason": "manifest unavailable"}
+        asset = _doctor_manifest_assets(target_root, source_root, manifest).get(rel_path)
+        if asset is None:
+            return {"id": action.get("id"), "status": "skipped", "reason": "managed asset unavailable"}
+        if target.exists():
+            return {"id": action.get("id"), "status": "skipped", "reason": "path already exists"}
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(asset.content)
+        if asset.executable:
+            target.chmod(target.stat().st_mode | 0o755)
+        return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "chmod_executable":
+        if not target.is_file():
+            return {"id": action.get("id"), "status": "skipped", "reason": "file missing"}
+        target.chmod(target.stat().st_mode | 0o755)
+        return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "ensure_directory":
+        target.mkdir(parents=True, exist_ok=True)
+        return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "recreate_symlink":
+        details = action.get("details") if isinstance(action.get("details"), Mapping) else {}
+        target_rel = str(details.get("target") or "")
+        link_target = str(details.get("link_target") or "")
+        if not target_rel or not (target_root / target_rel).is_file():
+            return {"id": action.get("id"), "status": "skipped", "reason": "target file missing"}
+        if target.exists() and not target.is_symlink():
+            return {"id": action.get("id"), "status": "skipped", "reason": "non-symlink path exists"}
+        if target.is_symlink():
+            target.unlink()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(link_target or os.path.relpath(target_root / target_rel, start=target.parent))
+        return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "normalize_completed_closeout":
+        current_path = target_root / AEGIS_CURRENT_WORK_REL
+        current_work = _read_json(current_path)
+        closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
+        if current_work is None or closeout_report is None or closeout_report.get("status") != "passed":
+            return {"id": action.get("id"), "status": "skipped", "reason": "completed closeout evidence unavailable"}
+        current_work["status"] = "completed"
+        task = current_work.get("task") if isinstance(current_work.get("task"), MutableMapping) else None
+        if task is not None:
+            task["status"] = "completed"
+        current_work["closeout_passed_at"] = str(closeout_report.get("checked_at") or _iso_now())
+        current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
+        current_path.write_text(_dump_json(current_work), encoding="utf-8")
+        return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    return {"id": action.get("id"), "status": "skipped", "reason": f"unsupported repair kind: {kind}"}
+
+
+def repair(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    apply: bool = False,
+) -> dict[str, Any]:
+    """Preview or apply safe Aegis state repairs."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve()
+    preflight = doctor(target_root, source_root=source)
+    actions = list(preflight.get("repair_plan", {}).get("actions") or [])
+    safe_actions = [action for action in actions if isinstance(action, Mapping) and action.get("safe") is True]
+    if not apply:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "checked_at": _iso_now(),
+            "target_root": str(target_root),
+            "read_only": True,
+            "status": "preview",
+            "current_state": preflight.get("current_state"),
+            "repair_plan": preflight.get("repair_plan"),
+            "applied": [],
+            "report_written": False,
+        }
+    if preflight.get("current_state") == "pending_tracking":
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "checked_at": _iso_now(),
+            "target_root": str(target_root),
+            "read_only": False,
+            "status": "blocked",
+            "reason": "pending S:W:H:E tracking must be logged before repair can mutate workflow state",
+            "current_state": preflight.get("current_state"),
+            "repair_plan": preflight.get("repair_plan"),
+            "applied": [],
+            "report_written": False,
+            "next_action": preflight.get("next_action"),
+        }
+
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    applied = [
+        _apply_repair_action(target_root, source, manifest, action)
+        for action in safe_actions
+    ]
+    postflight = doctor(target_root, source_root=source)
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "checked_at": _iso_now(),
+        "target_root": str(target_root),
+        "read_only": False,
+        "status": "applied",
+        "preflight": {
+            "status": preflight.get("status"),
+            "current_state": preflight.get("current_state"),
+            "summary": preflight.get("summary"),
+        },
+        "applied": applied,
+        "postflight": {
+            "status": postflight.get("status"),
+            "current_state": postflight.get("current_state"),
+            "summary": postflight.get("summary"),
+        },
+        "report_written": True,
+        "reports": [AEGIS_REPAIR_REPORT_REL],
+    }
+    report_path = target_root / AEGIS_REPAIR_REPORT_REL
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(_dump_json(report), encoding="utf-8")
+    return report
+
+
+def format_doctor_summary(report: Mapping[str, Any]) -> str:
+    summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    repair_plan = report.get("repair_plan") if isinstance(report.get("repair_plan"), Mapping) else {}
+    return "\n".join(
+        [
+            f"Aegis doctor: {report.get('status')} ({report.get('current_state')})",
+            f"Checks: {summary.get('total', 0)} total, {summary.get('failed_required', 0)} required failures, {summary.get('warnings', 0)} warnings",
+            f"Repair plan: {repair_plan.get('safe', 0)} safe, {repair_plan.get('manual_review', 0)} manual-review",
+            "",
+        ]
+    )
+
+
+def format_repair_summary(report: Mapping[str, Any]) -> str:
+    applied = report.get("applied") if isinstance(report.get("applied"), list) else []
+    return "\n".join(
+        [
+            f"Aegis repair: {report.get('status')}",
+            f"Applied/skipped actions: {len(applied)}",
+            f"Report written: {report.get('report_written')}",
+            "",
+        ]
+    )
 
 
 def verify(

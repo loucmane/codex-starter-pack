@@ -29,6 +29,13 @@ After `aegis init`, a fresh Claude session should not need a large workflow prom
 6. Clear pending tracking with `aegis log --pending-id current --plan-step auto --plan-status completed`.
 7. Run task verification, strict Aegis verification, closeout preflight, and final closeout before reporting completion.
 
+When the workflow state looks inconsistent, the normal recovery path is:
+
+1. Run `aegis doctor` to classify the state without changing files.
+2. Review the repair plan.
+3. Run `aegis repair --apply` only for safe mechanical drift such as missing current symlinks, expected directories, absent managed runtime files, or executable bits.
+4. Continue with normal verification and closeout gates.
+
 ## Advanced Equivalents
 
 The public commands delegate to the established primitives:
@@ -51,3 +58,4 @@ The flow is done only when behavior proves it:
 - Projects without Taskmaster or Serena can start local work with `aegis start`.
 - Claude can receive a normal request like `Improve BrandMark accessibility` and follow installed Aegis files/hooks without a large checklist prompt.
 - Pending tracking, strict verification, closeout, and handoff pass mechanically.
+- Doctor and repair can diagnose and recover safe mechanical state drift without overwriting project files or clearing unlogged work.

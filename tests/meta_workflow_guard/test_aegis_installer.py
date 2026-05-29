@@ -24,10 +24,12 @@ from scripts._aegis_installer import (
     AEGIS_LOCAL_TASKS_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
+    AEGIS_REPAIR_REPORT_REL,
     AEGIS_VERIFY_REPORT_REL,
     AegisError,
     certify_release_candidate,
     closeout,
+    doctor,
     initialize_project,
     install,
     inspect_project,
@@ -35,6 +37,7 @@ from scripts._aegis_installer import (
     log_work,
     next_action,
     plan_install,
+    repair,
     repair_handoff,
     start_local_work,
     verify,
@@ -166,6 +169,17 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert next_args.subcommand == "next"
     assert next_args.target_dir == "/tmp/example"
 
+    doctor_args = parser.parse_args(["aegis", "doctor", "--target-dir", "/tmp/example", "--json"])
+    assert doctor_args.subcommand == "doctor"
+    assert doctor_args.target_dir == "/tmp/example"
+    assert doctor_args.json is True
+
+    repair_args = parser.parse_args(["aegis", "repair", "--target-dir", "/tmp/example", "--apply", "--json"])
+    assert repair_args.subcommand == "repair"
+    assert repair_args.target_dir == "/tmp/example"
+    assert repair_args.apply is True
+    assert repair_args.json is True
+
     closeout_args = parser.parse_args([
         "aegis",
         "closeout",
@@ -274,6 +288,114 @@ def test_public_init_installs_with_default_claude_adapter(tmp_path: Path) -> Non
     assert (target / AEGIS_VERIFY_REPORT_REL).exists()
 
 
+def test_doctor_reports_installed_no_current_work_without_mutating(tmp_path: Path) -> None:
+    target = tmp_path / "doctor-installed"
+    target.mkdir()
+    initialize_project(target, source_root=REPO_ROOT)
+    repair_report = target / AEGIS_REPAIR_REPORT_REL
+
+    payload = doctor(target, source_root=REPO_ROOT)
+
+    assert payload["read_only"] is True
+    assert payload["current_state"] == "installed_no_current_work"
+    assert payload["status"] == "healthy"
+    assert payload["summary"]["failed_required"] == 0
+    assert payload["repair_plan"]["available"] is False
+    assert not repair_report.exists()
+
+
+def test_repair_preview_is_read_only_and_apply_restores_safe_managed_file(tmp_path: Path) -> None:
+    target = tmp_path / "repair-missing-shim"
+    target.mkdir()
+    initialize_project(target, source_root=REPO_ROOT)
+    shim = target / ".aegis" / "bin" / "aegis"
+    shim.unlink()
+
+    preview = repair(target, source_root=REPO_ROOT)
+
+    assert preview["read_only"] is True
+    assert preview["status"] == "preview"
+    assert preview["repair_plan"]["safe"] >= 1
+    assert any(
+        action["kind"] == "restore_managed_file" and action["path"] == ".aegis/bin/aegis"
+        for action in preview["repair_plan"]["actions"]
+    )
+    assert not shim.exists()
+    assert not (target / AEGIS_REPAIR_REPORT_REL).exists()
+
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+
+    assert applied["read_only"] is False
+    assert applied["status"] == "applied"
+    assert shim.is_file()
+    assert os.access(shim, os.X_OK)
+    assert (target / AEGIS_REPAIR_REPORT_REL).is_file()
+    assert applied["postflight"]["summary"]["failed_required"] == 0
+
+
+def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_folders(tmp_path: Path) -> None:
+    target = tmp_path / "repair-current-links"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    initialize_project(target, source_root=REPO_ROOT)
+    kickoff(target, task_id="42", slug="pointer-repair", title="Pointer Repair")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    stale = target / "docs/ai/work-tracking/active/20990101-task99-stale-ACTIVE"
+    stale.mkdir(parents=True)
+    (target / "sessions/current").unlink()
+    (target / "plans/current").unlink()
+
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    preview = repair(target, source_root=REPO_ROOT)
+
+    assert diagnosis["status"] == "repairable"
+    assert any(action["kind"] == "recreate_symlink" for action in preview["repair_plan"]["actions"])
+    assert any(check["id"] == "workflow.stale_active_folders" for check in diagnosis["checks"])
+    assert stale.is_dir()
+
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+
+    assert applied["status"] == "applied"
+    assert (target / "sessions/current").is_symlink()
+    assert (target / "plans/current").is_symlink()
+    assert stale.is_dir()
+
+
+def test_repair_apply_is_blocked_while_pending_tracking_exists(tmp_path: Path) -> None:
+    target = tmp_path / "repair-pending"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    initialize_project(target, source_root=REPO_ROOT)
+    kickoff(target, task_id="42", slug="pending-repair", title="Pending Repair")
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    pending_path.write_text(
+        json.dumps(
+            {
+                "events": [
+                    {
+                        "id": "abc123def456",
+                        "handler": "claude:Write",
+                        "evidence": "src/main.ts",
+                    }
+                ]
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+
+    assert diagnosis["current_state"] == "pending_tracking"
+    assert applied["status"] == "blocked"
+    assert applied["applied"] == []
+    assert pending_path.exists()
+    assert not (target / AEGIS_REPAIR_REPORT_REL).exists()
+
+
 def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path: Path) -> None:
     target = tmp_path / "local-start"
     target.mkdir()
@@ -323,6 +445,27 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     assert run_target_posttooluse(target, bash_start_payload).returncode == 0
     assert run_target_posttooluse(target, mcp_start_payload).returncode == 0
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+
+def test_start_local_work_replay_is_noop_and_different_work_is_refused(tmp_path: Path) -> None:
+    target = tmp_path / "local-start-replay"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    initialize_project(target, source_root=REPO_ROOT)
+
+    first = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
+    replay = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
+
+    assert replay["status"] == "already_started"
+    assert replay["idempotent"] is True
+    assert replay["task"]["id"] == first["task"]["id"]
+    assert replay["paths"] == first["paths"]
+    local_tasks = json.loads((target / AEGIS_LOCAL_TASKS_REL).read_text(encoding="utf-8"))
+    assert local_tasks["next_id"] == 2
+    assert len(local_tasks["tasks"]) == 1
+
+    with pytest.raises(AegisError, match="current work is already in progress"):
+        start_local_work(target, title="Add checkout screen", source_root=REPO_ROOT)
 
 
 def test_plan_install_is_dry_run_and_schema_valid(tmp_path: Path) -> None:
@@ -571,6 +714,103 @@ def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path
     assert strict_log["plan"]["step"] == "plan-step-verify"
     assert strict_log["plan"]["inferred"] is True
     assert strict_log["plan"]["strict_verification_evidence"] is True
+
+
+def test_log_work_replay_does_not_duplicate_swhe_entries(tmp_path: Path) -> None:
+    target = tmp_path / "log-replay"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    kickoff(target, task_id="42", slug="log-replay", title="Log Replay")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    evidence_rel = f"{current_work['paths']['work_tracking']}/FINDINGS.md"
+
+    first = log_work(
+        target,
+        handler="claude:scope",
+        evidence=evidence_rel,
+        note="Confirmed scope before implementation",
+        event_class="scope",
+        plan_step="auto",
+        plan_status="completed",
+    )
+    replay = log_work(
+        target,
+        handler="claude:scope",
+        evidence=evidence_rel,
+        note="Confirmed scope before implementation",
+        event_class="scope",
+        plan_step="auto",
+        plan_status="completed",
+    )
+
+    assert first["status"] == "logged"
+    assert replay["status"] == "already_logged"
+    assert replay["idempotent"] is True
+    swhe = f"[S:{first['entry']['s']}|W:{first['entry']['w']}|H:claude:scope|E:{evidence_rel}]"
+    session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
+    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
+    assert session_text.count(swhe) == 1
+    assert tracker_text.count(swhe) == 1
+
+
+def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_entries(tmp_path: Path) -> None:
+    target = tmp_path / "log-replay-backfill"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    kickoff(target, task_id="42", slug="log-backfill", title="Log Backfill")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    evidence_rel = f"{current_work['paths']['reports']}/implementation.txt"
+    (target / evidence_rel).parent.mkdir(parents=True, exist_ok=True)
+    (target / evidence_rel).write_text("implementation\n", encoding="utf-8")
+
+    first = log_work(
+        target,
+        handler="claude:Write",
+        evidence=evidence_rel,
+        note="Recorded implementation evidence",
+        surfaces=["implementation"],
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    replay = log_work(
+        target,
+        handler="claude:Write",
+        evidence=evidence_rel,
+        note="Recorded implementation evidence",
+        surfaces=["changelog"],
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+
+    assert first["status"] == "logged"
+    assert replay["status"] == "logged"
+    assert replay["replay_completed_missing_surfaces"] is True
+    assert replay["paths"]["surfaces"] == {
+        "changelog": f"{current_work['paths']['work_tracking']}/CHANGELOG.md"
+    }
+    swhe = f"[S:{first['entry']['s']}|W:{first['entry']['w']}|H:claude:Write|E:{evidence_rel}]"
+    session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
+    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
+    implementation_text = (target / current_work["paths"]["work_tracking"] / "IMPLEMENTATION.md").read_text(encoding="utf-8")
+    changelog_text = (target / current_work["paths"]["work_tracking"] / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert session_text.count(swhe) == 1
+    assert tracker_text.count(swhe) == 1
+    assert implementation_text.count(swhe) == 1
+    assert changelog_text.count(swhe) == 1
 
 
 def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> None:
@@ -1031,6 +1271,8 @@ def test_read_only_aegis_mcp_tools_do_not_create_pending_tracking(tmp_path: Path
         "mcp__aegis__aegis_inspect",
         "mcp__aegis__aegis_status",
         "mcp__aegis__aegis_next",
+        "mcp__aegis__aegis_doctor",
+        "mcp__aegis__aegis_repair",
         "mcp__aegis__aegis_plan_install",
         "mcp__aegis__aegis_closeout_ready",
         "mcp__aegis__aegis_handoff_repair",

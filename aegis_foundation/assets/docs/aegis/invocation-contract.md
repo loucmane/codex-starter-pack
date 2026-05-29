@@ -35,6 +35,7 @@ aegis-mcp-server --describe-config
 The release package identity is additive. It does not remove the development checkout or editable package-style commands below.
 
 See `docs/aegis/distribution.md` for local wheel, `pip`, `uvx`, `pipx`, MCP startup, and hosted-service release snippets.
+See `docs/aegis/state-recovery-model.md` for the doctor/repair, replay, and idempotency contract.
 
 ## Package-Style Mode
 
@@ -47,6 +48,8 @@ aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
 aegis verify --target-dir . --strict
+aegis doctor --target-dir .
+aegis repair --target-dir .
 aegis closeout --target-dir . --update-handoff
 ```
 
@@ -84,6 +87,16 @@ aegis closeout --target-dir . --update-handoff
 `aegis closeout` prints a concise human summary by default, writes `.aegis/reports/closeout-report.json` during final closeout, and exits non-zero unless readiness is READY, pending S:W:H:E tracking is empty, strict verification passes, plan/tracker scope/implement/verify steps are complete and ordered, required evidence is cross-referenced in session/tracker/implementation/changelog/handoff/plan, and `HANDOFF.md` has semantic current-state and next-step sections. Use `--json` when automation needs the full structured report on stdout. `--update-handoff` rewrites only the Aegis-owned semantic sections and preserves `## Progress Log`. A passed final closeout marks `.aegis/state/current-work.json` as `completed` while retaining the closeout evidence path.
 
 The closeout report may include normal git/GitHub command guidance (`git status`, `git add`, `git commit`, `git push`, `gh pr create`). `gac` is legacy/manual only and is not the default generated path.
+
+Diagnose and repair workflow state with the recovery surfaces:
+
+```bash
+aegis doctor --target-dir .
+aegis repair --target-dir .
+aegis repair --target-dir . --apply
+```
+
+`aegis doctor` is read-only and classifies the current state, failed checks, safe repair candidates, manual-review items, and next action. `aegis repair` previews the same repair plan by default. `aegis repair --apply` may only apply deterministic low-risk fixes such as missing current symlinks, expected empty directories, absent managed runtime files, executable bits, and completed closeout metadata that is already proven by the closeout report. It must not overwrite divergent user files, clear non-empty pending tracking, delete stale active folders, or invent work state.
 
 ## Development Checkout Mode
 
@@ -162,6 +175,8 @@ The MCP tools keep the same safety boundary as the CLI:
 
 - `aegis.inspect` and `aegis.plan_install` are read-only.
 - `aegis.status` is read-only and reports release/update state without writing target files.
+- `aegis.doctor` is read-only and reports recovery/idempotency state plus repair candidates.
+- `aegis.repair` is read-only unless `apply=true`; mutating repair writes a repair report and only applies safe deterministic actions.
 - `aegis.install` requires explicit `apply=true`.
 - `aegis.verify` writes a verification report and requires `acknowledge_report_write=true`.
 - `aegis.closeout` writes a closeout report, returns structured MCP data, and requires `acknowledge_report_write=true`.

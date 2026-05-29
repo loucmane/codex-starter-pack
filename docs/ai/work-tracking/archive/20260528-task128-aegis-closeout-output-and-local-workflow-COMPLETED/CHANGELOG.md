@@ -7,3 +7,4 @@
 - 2026-05-28 13:29 CEST — Fixed post-closeout closeout-readiness idempotency so completed closeout state does not fail its own re-check.
 - 2026-05-28 13:29 CEST — Mirrored changed scripts and docs into `aegis_foundation/assets/`.
 - 2026-05-28 15:30 CEST — Fixed the installed Claude gate classifier so `aegis.start` is an explicit bootstrap exception through both CLI and MCP, matching the expected normal-language local workflow.
+- 2026-05-28 16:37 CEST — Archived active work-tracking folder.

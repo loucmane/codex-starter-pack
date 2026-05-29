@@ -27,3 +27,4 @@
 ## Next Steps
 - Review the final diff.
 - Commit and push the branch, then open a PR.
+- Archived on 2026-05-28 16:37 CEST — Folder moved to archive and tracker marked COMPLETED.

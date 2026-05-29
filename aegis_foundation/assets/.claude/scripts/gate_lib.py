@@ -43,6 +43,10 @@ MUTATING_AEGIS_RE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+AEGIS_REPAIR_APPLY_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+repair\b[^\n;&|]*\s--apply\b",
+    re.IGNORECASE,
+)
 AEGIS_BOOTSTRAP_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+(start|kickoff)\b",
     re.IGNORECASE,
@@ -77,6 +81,7 @@ AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "inspect",
     "status",
     "next",
+    "doctor",
     "plan_install",
     "closeout_ready",
     "list_profiles",
@@ -200,6 +205,8 @@ def mcp_is_mutation(payload: Payload) -> bool:
     if not is_mcp_tool(payload.tool_name):
         return False
     normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+    if "aegis" in normalized and normalized.endswith("repair"):
+        return payload.tool_input.get("apply") is True
     if "aegis" in normalized and normalized.endswith("handoff_repair"):
         return payload.tool_input.get("apply") is True
     if "aegis" in normalized and any(
@@ -250,7 +257,12 @@ def bash_is_mutation(command: str) -> bool:
         return True
     if re.search(r"(^|[;&|]\s*)(rm|mv|cp|install|touch|chmod|chown|mkdir|rmdir)\b", command):
         return True
-    if MUTATING_GIT_RE.search(command) or MUTATING_TASKMASTER_RE.search(command) or MUTATING_AEGIS_RE.search(command):
+    if (
+        MUTATING_GIT_RE.search(command)
+        or MUTATING_TASKMASTER_RE.search(command)
+        or MUTATING_AEGIS_RE.search(command)
+        or AEGIS_REPAIR_APPLY_RE.search(command)
+    ):
         return True
     if re.search(r"python3?\s+-c\s+['\"][^'\"]*(open|write_text)", command):
         return True

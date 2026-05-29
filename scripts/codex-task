@@ -33,8 +33,11 @@ from _aegis_installer import (
     AegisError,
     certify_release_candidate as aegis_certify_release_candidate,
     closeout as aegis_closeout,
+    doctor as aegis_doctor,
     explain_profile as aegis_explain_profile,
     format_closeout_summary as aegis_format_closeout_summary,
+    format_doctor_summary as aegis_format_doctor_summary,
+    format_repair_summary as aegis_format_repair_summary,
     initialize_project as aegis_initialize_project,
     inspect_project as aegis_inspect_project,
     install as aegis_install,
@@ -43,6 +46,7 @@ from _aegis_installer import (
     log_work as aegis_log_work,
     next_action as aegis_next_action,
     plan_install as aegis_plan_install,
+    repair as aegis_repair,
     repair_handoff as aegis_repair_handoff,
     start_local_work as aegis_start_local_work,
     status as aegis_status,
@@ -757,6 +761,32 @@ def handle_aegis_next(args: argparse.Namespace) -> None:
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
     _print_json(payload)
+
+
+def handle_aegis_doctor(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_doctor(args.target_dir, source_root=REPO_ROOT)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    if args.json:
+        _print_json(payload)
+    else:
+        print(aegis_format_doctor_summary(payload), end="")
+    if payload.get("status") == "failed":
+        raise TaskError("Aegis doctor found required failures")
+
+
+def handle_aegis_repair(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_repair(args.target_dir, source_root=REPO_ROOT, apply=args.apply)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    if args.json:
+        _print_json(payload)
+    else:
+        print(aegis_format_repair_summary(payload), end="")
+    if payload.get("status") == "failed":
+        raise TaskError("Aegis repair failed")
 
 
 def handle_aegis_install(args: argparse.Namespace) -> None:
@@ -18222,6 +18252,29 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_next_parser = aegis_sub.add_parser("next", help="Report the next required Aegis workflow action without mutating the target")
     aegis_next_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_next_parser.set_defaults(func=handle_aegis_next)
+
+    aegis_doctor_parser = aegis_sub.add_parser("doctor", help="Diagnose installed Aegis workflow state without mutating the target")
+    aegis_doctor_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_doctor_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured doctor report instead of the concise summary",
+    )
+    aegis_doctor_parser.set_defaults(func=handle_aegis_doctor)
+
+    aegis_repair_parser = aegis_sub.add_parser("repair", help="Preview or apply safe Aegis workflow-state repairs")
+    aegis_repair_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_repair_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply safe repairs and write .aegis/reports/repair-report.json; omitted means dry-run preview",
+    )
+    aegis_repair_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured repair report instead of the concise summary",
+    )
+    aegis_repair_parser.set_defaults(func=handle_aegis_repair)
 
     aegis_install_parser = aegis_sub.add_parser("install", help="Apply or dry-run an Aegis install plan")
     aegis_install_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")

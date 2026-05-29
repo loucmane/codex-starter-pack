@@ -33,6 +33,8 @@ V1_TOOL_NAMES = (
     "aegis.inspect",
     "aegis.status",
     "aegis.next",
+    "aegis.doctor",
+    "aegis.repair",
     "aegis.plan_install",
     "aegis.install",
     "aegis.init",
@@ -355,6 +357,35 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         return run_tool(
             "aegis.next",
             read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.doctor")
+    def aegis_doctor(target_dir: str) -> dict[str, Any]:
+        """Read-only state diagnostic with a safe repair plan for installed Aegis projects."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.doctor(target_dir, source_root=config.source_root)
+
+        return run_tool(
+            "aegis.doctor",
+            read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.repair")
+    def aegis_repair(
+        target_dir: str,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Preview or apply safe Aegis state repairs; preview mode is read-only."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.repair(target_dir, source_root=config.source_root, apply=apply)
+
+        return run_tool(
+            "aegis.repair",
+            read_only=not apply,
             callback=call_core,
         )
 

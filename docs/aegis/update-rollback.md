@@ -8,6 +8,7 @@ This guide defines the safe operational flow for updating Aegis in an installed 
 
 ```bash
 uvx --from aegis-foundation==0.1.0 aegis status --target-dir .
+uvx --from aegis-foundation==0.1.0 aegis doctor --target-dir .
 ```
 
 2. If `aegis status` reports `migration_required=false`, no package migration is required. Run verification after local environment or hook changes.
@@ -57,6 +58,7 @@ uvx --from aegis-foundation==0.1.0 aegis verify --target-dir .
 ```
 
 If verification fails, keep the failed verification report and fix the target through a reviewed plan. Do not edit `.aegis/` directly.
+Use `aegis doctor` before any manual rollback repair to classify whether the target has safe mechanical drift or requires human review.
 
 ## Downgrade Flow
 
@@ -85,9 +87,13 @@ Read-only surfaces:
 
 - `aegis inspect`
 - `aegis status`
+- `aegis doctor`
+- `aegis repair` without `--apply`
 - `aegis plan-install`
 - MCP `aegis.inspect`
 - MCP `aegis.status`
+- MCP `aegis.doctor`
+- MCP `aegis.repair` with `apply=false`
 - MCP `aegis.plan_install`
 
 ## Deferred Commands
