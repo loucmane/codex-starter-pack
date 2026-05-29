@@ -32,3 +32,4 @@
 
 ## Compaction Checkpoints
 - 2026-05-28T11:25:48+02:00 — [S:20260528|W:task127-aegis-handoff-auto-repair|H:scripts/codex-task:compaction-checkpoint|E:docs/ai/work-tracking/active/20260528-task127-aegis-handoff-auto-repair-ACTIVE/reports/compaction-checkpoints/20260528-112548-task127-aegis-handoff-auto-repair.json] Resume at: continue Task 127 verification and closeout after reading the Serena/memory checkpoint
+- Archived on 2026-05-28 13:10 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -119,6 +119,39 @@ def handle_next(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_doctor(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.doctor(
+            args.target_dir,
+            source_root=source_root,
+        )
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_doctor_summary(payload), end="")
+    if payload.get("status") == "failed":
+        print("Aegis doctor found required failures", file=sys.stderr)
+        return 1
+    return 0
+
+
+def handle_repair(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.repair(
+            args.target_dir,
+            source_root=source_root,
+            apply=args.apply,
+        )
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_repair_summary(payload), end="")
+    if payload.get("status") == "failed":
+        print("Aegis repair failed", file=sys.stderr)
+        return 1
+    return 0
+
+
 def handle_install(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.install(
@@ -163,7 +196,10 @@ def handle_closeout(args: argparse.Namespace) -> int:
             include_git_guidance=not args.no_git_guidance,
             dry_run=args.dry_run,
         )
-    _dump_json(payload)
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_closeout_summary(payload), end="")
     if payload.get("status") == "failed":
         print("Aegis closeout failed", file=sys.stderr)
         return 1
@@ -508,6 +544,35 @@ def build_arg_parser() -> argparse.ArgumentParser:
     next_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     next_parser.set_defaults(func=handle_next)
 
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Diagnose installed Aegis workflow state without mutating the target.",
+    )
+    doctor_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    doctor_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured doctor report instead of a concise summary.",
+    )
+    doctor_parser.set_defaults(func=handle_doctor)
+
+    repair_parser = subparsers.add_parser(
+        "repair",
+        help="Preview or apply safe Aegis workflow-state repairs.",
+    )
+    repair_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    repair_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply safe repairs and write .aegis/reports/repair-report.json; omitted means dry-run preview.",
+    )
+    repair_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured repair report instead of a concise summary.",
+    )
+    repair_parser.set_defaults(func=handle_repair)
+
     install_parser = subparsers.add_parser(
         "install",
         help="Apply or dry-run an Aegis install plan.",
@@ -570,6 +635,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Evaluate closeout gates without writing reports, handoff updates, or current-work state.",
+    )
+    closeout_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured closeout report instead of the concise human summary.",
     )
     closeout_parser.set_defaults(func=handle_closeout)
 

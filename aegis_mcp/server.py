@@ -33,6 +33,8 @@ V1_TOOL_NAMES = (
     "aegis.inspect",
     "aegis.status",
     "aegis.next",
+    "aegis.doctor",
+    "aegis.repair",
     "aegis.plan_install",
     "aegis.install",
     "aegis.init",
@@ -355,6 +357,35 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         return run_tool(
             "aegis.next",
             read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.doctor")
+    def aegis_doctor(target_dir: str) -> dict[str, Any]:
+        """Read-only state diagnostic with a safe repair plan for installed Aegis projects."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.doctor(target_dir, source_root=config.source_root)
+
+        return run_tool(
+            "aegis.doctor",
+            read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.repair")
+    def aegis_repair(
+        target_dir: str,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Preview or apply safe Aegis state repairs; preview mode is read-only."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.repair(target_dir, source_root=config.source_root, apply=apply)
+
+        return run_tool(
+            "aegis.repair",
+            read_only=not apply,
             callback=call_core,
         )
 
@@ -1021,19 +1052,21 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
         )
 
     @server.prompt(name="aegis.start_task")
-    def start_task(target_dir: str = ".", task: str = "<task-id>", slug: str = "<slug>") -> str:
+    def start_task(target_dir: str = ".", title: str = "<task title>", task: str = "", slug: str = "") -> str:
         return workflow_prompt(
             "Start Aegis Task",
             "\n".join(
                 [
                     f"Target: `{target_dir}`",
-                    f"Task: `{task}`",
-                    f"Slug: `{slug}`",
+                    f"Title: `{title}`",
                     "1. Run `aegis.status` and `aegis.next` first.",
-                    "2. If no current work exists, call `aegis.kickoff apply=true` or run the project-local kickoff shim.",
-                    "3. Confirm readiness is READY after kickoff.",
-                    "4. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
-                    "5. Native agent tools do implementation; Aegis records workflow state and evidence.",
+                    "2. If no current work exists and the user did not give an external task id, call `aegis.start apply=true` with a short normal-language title.",
+                    "3. Use `aegis.kickoff apply=true` only when the user or project gives an explicit external numeric task id.",
+                    "4. Confirm readiness is READY after start/kickoff.",
+                    "5. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
+                    "6. Native agent tools do implementation; Aegis records workflow state and evidence.",
+                    f"External task id if explicitly provided: `{task or '<none>'}`",
+                    f"Slug override if explicitly provided: `{slug or '<auto>'}`",
                 ]
             ),
         )

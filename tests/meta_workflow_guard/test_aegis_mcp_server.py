@@ -27,6 +27,7 @@ from scripts._aegis_installer import (
     AEGIS_CLOSEOUT_REPORT_REL,
     AEGIS_MANIFEST_REL,
     AEGIS_PENDING_TRACKING_REL,
+    AEGIS_REPAIR_REPORT_REL,
     AEGIS_VERIFY_REPORT_REL,
     closeout,
     install,
@@ -151,6 +152,8 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.inspect",
         "aegis.status",
         "aegis.next",
+        "aegis.doctor",
+        "aegis.repair",
         "aegis.plan_install",
         "aegis.install",
         "aegis.init",
@@ -177,6 +180,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
 
     status_description = tool_by_name(server, "aegis.status").description or ""
     next_description = tool_by_name(server, "aegis.next").description or ""
+    doctor_description = tool_by_name(server, "aegis.doctor").description or ""
+    repair_description = tool_by_name(server, "aegis.repair").description or ""
     init_description = tool_by_name(server, "aegis.init").description or ""
     start_description = tool_by_name(server, "aegis.start").description or ""
     kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
@@ -189,6 +194,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "next workflow guidance" in status_description
     assert "next required Aegis workflow action" in next_description
     assert "read-only" in next_description
+    assert "Read-only state diagnostic" in doctor_description
+    assert "Preview or apply safe Aegis state repairs" in repair_description
     assert "Public project setup" in init_description
     assert "Public local-task kickoff" in start_description
     assert "plan-step-scope before source edits" in kickoff_description
@@ -530,6 +537,53 @@ def test_public_init_and_start_require_apply_true_before_core_mutation(tmp_path:
     assert start_payload["ok"] is False
     assert start_payload["error"]["code"] == "apply_required"
     assert not (target / ".aegis" / "state" / "current-work.json").exists()
+
+
+def test_doctor_and_repair_tools_preserve_read_only_preview_contract(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "doctor-repair-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        profile="generic",
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    shim = target / ".aegis" / "bin" / "aegis"
+    shim.unlink()
+
+    doctor_payload = call_tool_payload(server, "aegis.doctor", {"target_dir": target.as_posix()})
+
+    assert doctor_payload["ok"] is True
+    assert doctor_payload["read_only"] is True
+    assert doctor_payload["result"]["repair_plan"]["safe"] >= 1
+
+    preview_payload = call_tool_payload(
+        server,
+        "aegis.repair",
+        {"target_dir": target.as_posix(), "apply": False},
+    )
+
+    assert preview_payload["ok"] is True
+    assert preview_payload["read_only"] is True
+    assert preview_payload["result"]["status"] == "preview"
+    assert not shim.exists()
+    assert not (target / AEGIS_REPAIR_REPORT_REL).exists()
+
+    applied_payload = call_tool_payload(
+        server,
+        "aegis.repair",
+        {"target_dir": target.as_posix(), "apply": True},
+    )
+
+    assert applied_payload["ok"] is True
+    assert applied_payload["read_only"] is False
+    assert applied_payload["result"]["status"] == "applied"
+    assert shim.is_file()
+    assert (target / AEGIS_REPAIR_REPORT_REL).is_file()
 
 
 def test_kickoff_requires_apply_true_before_core_mutation(tmp_path: Path) -> None:
@@ -1189,7 +1243,9 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     start_task = get_prompt_text(server, "aegis.start_task")
     assert "aegis.status" in start_task
     assert "aegis.next" in start_task
+    assert "aegis.start apply=true" in start_task
     assert "aegis.kickoff" in start_task
+    assert "explicit external numeric task id" in start_task
     assert "plan_step=auto" in start_task
 
     implement_task = get_prompt_text(server, "aegis.implement_task")

@@ -1,0 +1,7 @@
+# Findings
+
+- 2026-05-28 — The copied hpfetcher live acceptance showed the MCP install/workflow path is usable, but Claude still chose `aegis_kickoff` with an invented numeric id (`9001`) instead of the normal-language local-work path. Aegis must make `aegis.start` the obvious default when no external numeric task id exists.
+- 2026-05-28 — Passed closeout left `.aegis/state/current-work.json` and its nested task payload visually `in-progress`, which makes post-closeout state ambiguous even though `.aegis/reports/closeout-report.json` records success.
+- 2026-05-28 — `aegis closeout` full JSON output is too noisy for normal terminal use; agents and humans need a concise default with failed gate ids and a copyable next step, while automation still needs the full JSON via an explicit flag.
+- 2026-05-28 — Live Task 128 testing caught an additional edge case: after final closeout marked current work `completed`, a later closeout dry-run still called the readiness script and failed because the readiness script correctly expects active work to be `in-progress`. Closeout re-checks must treat completed closeout state as an accepted readiness source.
+- 2026-05-28 — The first fresh Claude Task 128 acceptance run proved normal-language work now uses local id `1` and `aegis start`, but it also showed the MCP `aegis.start` path could be blocked by readiness while the CLI fallback was allowed. The hook classifier must treat both CLI and MCP `aegis.start` as bootstrap operations, the same way explicit-id kickoff is treated.

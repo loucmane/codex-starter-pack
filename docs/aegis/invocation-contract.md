@@ -35,6 +35,7 @@ aegis-mcp-server --describe-config
 The release package identity is additive. It does not remove the development checkout or editable package-style commands below.
 
 See `docs/aegis/distribution.md` for local wheel, `pip`, `uvx`, `pipx`, MCP startup, and hosted-service release snippets.
+See `docs/aegis/state-recovery-model.md` for the doctor/repair, replay, and idempotency contract.
 
 ## Package-Style Mode
 
@@ -47,17 +48,19 @@ aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
 aegis verify --target-dir . --strict
+aegis doctor --target-dir .
+aegis repair --target-dir .
 aegis closeout --target-dir . --update-handoff
 ```
 
-Start tracked work without requiring Taskmaster or Serena:
+Start tracked local work without requiring Taskmaster or Serena:
 
 ```bash
-aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"
+aegis start --target-dir . "First Task"
 bash .claude/scripts/readiness.sh --quick
 ```
 
-Kickoff creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and `docs/ai/work-tracking/active/<date>-task<id>-<slug>-ACTIVE/`. The active folder is not a placeholder: it includes `TRACKER.md`, `FINDINGS.md`, `DECISIONS.md`, `HANDOFF.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `designs/`, and `reports/<slug>/` rendered from packaged workflow templates. The templates are installed for inspection under `.aegis/templates/workflow/`.
+`aegis start` allocates the next local Aegis task id, derives the slug, creates the task branch, and renders `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and `docs/ai/work-tracking/active/<date>-task<id>-<slug>-ACTIVE/`. The active folder is not a placeholder: it includes `TRACKER.md`, `FINDINGS.md`, `DECISIONS.md`, `HANDOFF.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `designs/`, and `reports/<slug>/` rendered from packaged workflow templates. The templates are installed for inspection under `.aegis/templates/workflow/`. Use `aegis kickoff --task ...` only when the project or user provides an explicit external numeric task id.
 
 After a successful mutation, the installed Claude `PostToolUse` hook records pending S:W:H:E tracking in `.aegis/state/pending-tracking.json`. The next persistent mutation and session stop are refused until the agent records the work across the active workflow surfaces:
 
@@ -81,9 +84,19 @@ aegis log --target-dir . --pending-id current --note "Recorded strict verificati
 aegis closeout --target-dir . --update-handoff
 ```
 
-`aegis closeout` writes `.aegis/reports/closeout-report.json` and exits non-zero unless readiness is READY, pending S:W:H:E tracking is empty, strict verification passes, plan/tracker scope/implement/verify steps are complete and ordered, required evidence is cross-referenced in session/tracker/implementation/changelog/handoff/plan, and `HANDOFF.md` has semantic current-state and next-step sections. `--update-handoff` rewrites only the Aegis-owned semantic sections and preserves `## Progress Log`.
+`aegis closeout` prints a concise human summary by default, writes `.aegis/reports/closeout-report.json` during final closeout, and exits non-zero unless readiness is READY, pending S:W:H:E tracking is empty, strict verification passes, plan/tracker scope/implement/verify steps are complete and ordered, required evidence is cross-referenced in session/tracker/implementation/changelog/handoff/plan, and `HANDOFF.md` has semantic current-state and next-step sections. Use `--json` when automation needs the full structured report on stdout. `--update-handoff` rewrites only the Aegis-owned semantic sections and preserves `## Progress Log`. A passed final closeout marks `.aegis/state/current-work.json` as `completed` while retaining the closeout evidence path.
 
 The closeout report may include normal git/GitHub command guidance (`git status`, `git add`, `git commit`, `git push`, `gh pr create`). `gac` is legacy/manual only and is not the default generated path.
+
+Diagnose and repair workflow state with the recovery surfaces:
+
+```bash
+aegis doctor --target-dir .
+aegis repair --target-dir .
+aegis repair --target-dir . --apply
+```
+
+`aegis doctor` is read-only and classifies the current state, failed checks, safe repair candidates, manual-review items, and next action. `aegis repair` previews the same repair plan by default. `aegis repair --apply` may only apply deterministic low-risk fixes such as missing current symlinks, expected empty directories, absent managed runtime files, executable bits, and completed closeout metadata that is already proven by the closeout report. It must not overwrite divergent user files, clear non-empty pending tracking, delete stale active folders, or invent work state.
 
 ## Development Checkout Mode
 
@@ -122,7 +135,7 @@ aegis --source-root /path/to/codex verify --target-dir .
 Create portable Aegis workflow state:
 
 ```bash
-aegis --source-root /path/to/codex kickoff --target-dir . --task 1 --slug first-task --title "First Task"
+aegis --source-root /path/to/codex start --target-dir . "First Task"
 aegis --source-root /path/to/codex log --target-dir . --pending-id current --note "Recorded task result evidence" --plan-step plan-step-implement --plan-status completed
 aegis --source-root /path/to/codex closeout --target-dir . --update-handoff
 ```
@@ -162,11 +175,15 @@ The MCP tools keep the same safety boundary as the CLI:
 
 - `aegis.inspect` and `aegis.plan_install` are read-only.
 - `aegis.status` is read-only and reports release/update state without writing target files.
+- `aegis.doctor` is read-only and reports recovery/idempotency state plus repair candidates.
+- `aegis.repair` is read-only unless `apply=true`; mutating repair writes a repair report and only applies safe deterministic actions.
 - `aegis.install` requires explicit `apply=true`.
 - `aegis.verify` writes a verification report and requires `acknowledge_report_write=true`.
-- `aegis.closeout` writes a closeout report and requires `acknowledge_report_write=true`.
-- `aegis.kickoff` writes current work state and requires `apply=true`.
-- `aegis.kickoff` renders the packaged workflow templates into a full session/plan/work-tracking scaffold, not thin placeholder docs.
+- `aegis.closeout` writes a closeout report, returns structured MCP data, and requires `acknowledge_report_write=true`.
+- `aegis.start` writes local current work state and requires `apply=true`; this is the default local path when no external task id exists.
+- `aegis.kickoff` writes current work state for explicit external numeric task ids and requires `apply=true`.
+- `aegis.start` and `aegis.kickoff` render the packaged workflow templates into a full session/plan/work-tracking scaffold, not thin placeholder docs.
+- Installed Claude hooks treat `aegis.start` and `aegis.kickoff` as readiness bootstrap operations. They are allowed when readiness is otherwise blocked because their job is to create the missing branch/session/plan/work-tracking state; normal mutations and non-bootstrap Aegis operations remain blocked until readiness passes.
 - `aegis.log` writes S:W:H:E entries to `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces; it writes plan evidence only when `plan_step` is supplied; it can consume pending hook events through `pending_event_id`; and it requires `apply=true` when invoked through MCP.
 - `aegis.closeout` is the final completion gate. It should run only after strict verification evidence has been logged and before an agent claims the task is complete.
 - Installed Claude `PostToolUse` and `Stop` hooks enforce pending S:W:H:E completion: task-scoped writes create `.aegis/state/pending-tracking.json`, further mutations are blocked until `aegis.log` clears it, and session stop is blocked while pending events remain.
@@ -192,7 +209,7 @@ aegis plan-install --target-dir . --primary-agent claude --agent claude
 aegis install --target-dir . --primary-agent claude --agent claude --apply
 aegis verify --target-dir .
 aegis verify --target-dir . --strict
-aegis kickoff --target-dir . --task 1 --slug first-task --title "First Task"
+aegis start --target-dir . "First Task"
 aegis log --target-dir . --pending-id current --note "Recorded task result evidence" --plan-step plan-step-implement --plan-status completed
 aegis closeout --target-dir . --update-handoff
 ```
