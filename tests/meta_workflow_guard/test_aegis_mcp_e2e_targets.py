@@ -68,6 +68,36 @@ def _call_tool_payload(server: FastMCP, name: str, arguments: dict | None = None
     return payload
 
 
+def _assert_client_reload_blocked(payload: dict, *, tool: str = "aegis.install", report_status: str = "applied") -> dict:
+    assert payload["ok"] is False
+    assert payload["tool"] == tool
+    assert payload["error"]["code"] == "client_reload_required"
+    assert payload["error"]["status"] == "blocked"
+    assert payload["error"]["details"]["must_stop"] is True
+    report = payload["error"]["details"]["report"]
+    assert report["status"] == report_status
+    return report
+
+
+def _simulate_claude_reload(target: Path) -> None:
+    result = subprocess.run(
+        ["bash", str(target / ".claude" / "scripts" / "pretooluse-gate.sh")],
+        cwd=target,
+        input=json.dumps(
+            {
+                "tool_name": "mcp__aegis__aegis_next",
+                "tool_input": {"target_dir": target.as_posix()},
+            }
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "CLAUDE_PROJECT_DIR": target.as_posix()},
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def _read_resource_payload(server: FastMCP, uri: str) -> dict:
     contents = asyncio.run(server.read_resource(uri))
     assert len(contents) == 1
@@ -622,9 +652,9 @@ def test_mcp_e2e_installs_and_verifies_representative_targets(
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
-    assert install_payload["read_only"] is False
-    assert install_payload["result"]["status"] == "applied"
+    install_report = _assert_client_reload_blocked(install_payload)
+    _simulate_claude_reload(target)
+    assert install_report["status"] == "applied"
     assert (target / AEGIS_MANIFEST_REL).is_file()
 
     verify_payload = _call_tool_payload(
@@ -685,7 +715,8 @@ def test_mcp_kickoff_reaches_ready_without_taskmaster_or_serena(tmp_path: Path) 
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
+    _assert_client_reload_blocked(install_payload)
+    _simulate_claude_reload(target)
 
     refused_kickoff = _call_tool_payload(
         server,
@@ -765,9 +796,9 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
-    assert install_payload["read_only"] is False
-    assert install_payload["result"]["status"] == "applied"
+    install_report = _assert_client_reload_blocked(install_payload)
+    _simulate_claude_reload(target)
+    assert install_report["status"] == "applied"
     for installed_path in (
         AEGIS_MANIFEST_REL,
         AEGIS_CONTRACT_REL,
@@ -1052,7 +1083,8 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
+    _assert_client_reload_blocked(install_payload)
+    _simulate_claude_reload(target)
     claude_entrypoint = (target / "CLAUDE.md").read_text(encoding="utf-8")
     contract_text = (target / ".aegis/contract.md").read_text(encoding="utf-8")
     assert "Normal feature-work loop:" in claude_entrypoint
@@ -1384,8 +1416,8 @@ def test_mcp_existing_claude_target_preserves_project_instructions(tmp_path: Pat
         },
     )
 
-    assert install_payload["ok"] is True
-    assert install_payload["result"]["status"] == "applied"
+    install_report = _assert_client_reload_blocked(install_payload)
+    assert install_report["status"] == "applied"
     claude_text = (target / "CLAUDE.md").read_text(encoding="utf-8")
     assert "<!-- AEGIS:BEGIN claude-runtime -->" in claude_text
     assert "# Existing Claude Instructions" in claude_text

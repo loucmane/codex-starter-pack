@@ -28,6 +28,8 @@ The project-local runtime installed by Aegis includes `.aegis/`, `.claude/` hook
 
 MCP is the bootstrap and control-plane interface. It installs and operates the workflow, but it is not a replacement for the agent's normal editor, shell, test runner, or git inspection workflow. The installed runtime enforces behavior around all supported mutation surfaces after installation.
 
+Claude Code reads `.claude/settings.json` when a session starts. If `aegis.init` or `aegis.install` creates or changes Claude hooks, the MCP tool returns `ok=false`, `error.code=client_reload_required`, `error.status=blocked`, and `details.must_stop=true` even though the install itself was applied and preserved under `details.report`. Aegis writes `.aegis/state/client-reload-required.json` and blocks `aegis.start` / `aegis.kickoff` until a restarted Claude session runs the installed `PreToolUse` hook and clears that marker. Treat this as a hard stop: the current Claude session must not edit source, run project verification, mutate Taskmaster, or call start/kickoff. Restart Claude in the project. After restart, run `aegis.next` and continue with start/kickoff, scope logging, native edits, verification, closeout, doctor, and only then Taskmaster completion if Taskmaster is in use.
+
 ## Native Registration Commands
 
 Claude user/global scope:
@@ -142,15 +144,19 @@ Native registration must discover:
 - resources: Aegis contract, schema, current work, verification, closeout, and runtime metadata resources
 - prompts: advisory prompts for bootstrap, migration, verification, session prep, and handoff
 
-The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting local work uses `aegis.start`; it allocates a local Aegis task id, creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`. Use `aegis.kickoff` only when the project or user provides an explicit external numeric task id.
+The MCP server is allowed to inspect and plan in read-only mode. Applying installation changes still requires explicit `aegis.install` with apply semantics. Starting standalone local work uses `aegis.start`; it allocates a local Aegis task id, creates `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and a full active work-tracking scaffold rendered from packaged `.aegis/templates/workflow/`. When `.taskmaster/tasks/tasks.json` has available numeric work, `aegis.next` should direct the agent to run `task-master next` and `task-master show <id>` or Taskmaster MCP equivalents, then call `aegis.kickoff apply=true` with that numeric id. In that state, `aegis.start` refuses to allocate a competing local Aegis task.
 
-For installed Claude projects, `aegis.start` and `aegis.kickoff` are readiness bootstrap operations. The hooks allow those two operations before readiness is READY so agents can create the missing task branch and workflow scaffold. Other mutating MCP or CLI operations, such as `aegis.verify` and source edits, remain blocked until readiness passes.
+For installed Claude projects, `aegis.start` and `aegis.kickoff` are readiness bootstrap operations only after the reload marker is cleared. The hooks allow those two operations before readiness is READY so agents can create the missing task branch and workflow scaffold. Other mutating MCP or CLI operations, such as `aegis.verify` and source edits, remain blocked until readiness passes.
 
 After a task-scoped mutation, installed Claude `PostToolUse` hooks create `.aegis/state/pending-tracking.json`; `aegis.log` with apply semantics can consume that event with `pending_event_id=current` and `plan_step=auto`, then records the required S:W:H:E entry in `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces before the next mutation or session stop is allowed. Scope logs default to findings/decisions/handoff; implementation and verification logs default to implementation/changelog/handoff. Plan evidence is updated only when `plan_step` is supplied explicitly or `auto` can infer the step deterministically.
+
+After final Aegis closeout, the installed hooks keep normal mutations blocked but allow the matching Taskmaster completion bookkeeping path: `task-master set-status --id=<task-id> --status=done` or the Taskmaster MCP equivalent, followed by `task-master generate` when no targeted generated-file helper exists. This is intentionally narrow; source edits, Git mutations, non-bootstrap Aegis mutations, and mismatched Taskmaster ids remain blocked once current work is completed.
 
 Expected tool split:
 
 - Aegis MCP or the project-local CLI: inspect, status, next, plan_install/plan-install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready/closeout --dry-run, closeout, and future reconciliation.
+- Taskmaster CLI/MCP when present: next/show before Aegis kickoff, and set-status done only after Aegis closeout plus read-only doctor pass.
+- Taskmaster generated files: refresh after set-status done with the project helper when present; otherwise run broad `task-master generate` deliberately and report that broad refresh was used.
 - Native agent tools: source reads and edits, project test commands, and git status/diff inspection.
 - Installed hooks: enforcement across supported mutation surfaces regardless of whether a mutation attempt comes from MCP, Bash, Edit, Write, or another supported tool.
 

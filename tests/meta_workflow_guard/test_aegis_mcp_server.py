@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +25,7 @@ from aegis_mcp.server import (
     create_server,
 )
 from scripts._aegis_installer import (
+    AEGIS_CLIENT_RELOAD_REL,
     AEGIS_CLOSEOUT_REPORT_REL,
     AEGIS_MANIFEST_REL,
     AEGIS_PENDING_TRACKING_REL,
@@ -55,6 +57,38 @@ def call_tool_payload(server: FastMCP, name: str, arguments: dict | None = None)
     payload = json.loads(content[0].text)
     assert structured_payload == payload
     return payload
+
+
+def assert_client_reload_blocked(payload: dict, *, tool: str, report_status: str) -> dict:
+    assert payload["ok"] is False
+    assert payload["tool"] == tool
+    assert payload["error"]["code"] == "client_reload_required"
+    assert payload["error"]["status"] == "blocked"
+    assert payload["error"]["details"]["must_stop"] is True
+    assert "source edits" in payload["error"]["details"]["forbidden_until_reload"]
+    report = payload["error"]["details"]["report"]
+    assert report["status"] == report_status
+    return report
+
+
+def simulate_claude_reload(target: Path) -> None:
+    result = subprocess.run(
+        ["bash", str(target / ".claude" / "scripts" / "pretooluse-gate.sh")],
+        cwd=target,
+        input=json.dumps(
+            {
+                "tool_name": "mcp__aegis__aegis_next",
+                "tool_input": {"target_dir": target.as_posix()},
+            }
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "CLAUDE_PROJECT_DIR": target.as_posix()},
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
 
 
 def read_resource_payload(server: FastMCP, uri: str) -> dict:
@@ -325,6 +359,7 @@ def test_log_tool_consumes_pending_event_id(tmp_path: Path) -> None:
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="mcp-pending-id", title="MCP Pending Id")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     evidence_rel = f"{current_work['paths']['reports']}/mcp-pending-id.txt"
@@ -653,11 +688,32 @@ def test_install_apply_true_writes_aegis_foundation_to_temp_target(tmp_path: Pat
         },
     )
 
-    assert payload["ok"] is True
-    assert payload["tool"] == "aegis.install"
-    assert payload["read_only"] is False
-    assert payload["result"]["status"] == "applied"
+    report = assert_client_reload_blocked(payload, tool="aegis.install", report_status="applied")
+    assert report["client_reload"]["must_stop"] is True
+    assert report["client_reload"]["severity"] == "hard_stop"
     assert (target / AEGIS_MANIFEST_REL).exists()
+
+
+def test_public_init_returns_hard_stop_when_claude_reload_is_required(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+
+    payload = call_tool_payload(
+        server,
+        "aegis.init",
+        {
+            "target_dir": target.as_posix(),
+            "apply": True,
+        },
+    )
+
+    report = assert_client_reload_blocked(payload, tool="aegis.init", report_status="initialized")
+    assert report["next_action"]["action"] == "restart_claude_before_mutation"
+    assert report["next_action"]["details"]["must_stop"] is True
+    assert "Taskmaster mutations" in report["install"]["client_reload"]["forbidden_until_reload"]
+    assert (target / AEGIS_CLIENT_RELOAD_REL).exists()
 
 
 def test_install_refused_conflict_is_structured_error(tmp_path: Path) -> None:
@@ -724,7 +780,7 @@ def test_verify_success_and_failure_details_are_structured(tmp_path: Path) -> No
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
+    assert_client_reload_blocked(install_payload, tool="aegis.install", report_status="applied")
 
     verify_payload = call_tool_payload(
         server,
@@ -779,7 +835,8 @@ def test_verify_strict_flag_passes_through_to_core_report(tmp_path: Path) -> Non
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
+    assert_client_reload_blocked(install_payload, tool="aegis.install", report_status="applied")
+    simulate_claude_reload(target)
     kickoff_payload = call_tool_payload(
         server,
         "aegis.kickoff",
@@ -831,7 +888,7 @@ def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
+    assert_client_reload_blocked(install_payload, tool="aegis.install", report_status="applied")
     before = {
         path.relative_to(target).as_posix(): path.read_bytes()
         for path in sorted(target.rglob("*"))
@@ -852,7 +909,8 @@ def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None
     assert payload["result"]["status"] == "current"
     assert payload["result"]["migration_required"] is False
     assert payload["result"]["workflow_guidance"]["read_only"] is True
-    assert payload["result"]["workflow_guidance"]["state"] == "installed_no_current_work"
+    assert payload["result"]["workflow_guidance"]["state"] == "client_reload_required"
+    assert payload["result"]["workflow_guidance"]["suggested_mcp_call"]["tool"] == "aegis.next"
 
 
 def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
@@ -881,6 +939,44 @@ def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
     assert payload["result"]["state"] == "not_installed"
     assert payload["result"]["suggested_mcp_call"]["tool"] == "aegis.init"
     assert payload["result"]["suggested_mcp_call"]["arguments"]["apply"] is True
+    assert payload["result"]["details"]["must_initialize_before_source_edits"] is True
+    assert "source edits" in payload["result"]["details"]["forbidden_until_init"]
+    assert "Taskmaster mutations" in payload["result"]["details"]["forbidden_until_init"]
+
+
+def test_inspect_reports_not_installed_hard_stop_guidance_without_mutation(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    before = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+
+    payload = call_tool_payload(server, "aegis.inspect", {"target_dir": target.as_posix()})
+
+    after = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in sorted(target.rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+    assert payload["ok"] is True
+    assert payload["tool"] == "aegis.inspect"
+    assert payload["read_only"] is True
+    assert payload["result"]["aegis"]["installed"] is False
+    guidance = payload["result"]["workflow_guidance"]
+    assert guidance["read_only"] is True
+    assert guidance["phase"] == "bootstrap"
+    assert guidance["state"] == "not_installed"
+    assert guidance["suggested_mcp_call"]["tool"] == "aegis.init"
+    assert guidance["suggested_mcp_call"]["arguments"]["apply"] is True
+    assert guidance["details"]["must_initialize_before_source_edits"] is True
+    assert "source edits" in guidance["details"]["forbidden_until_init"]
+    assert "project verification" in guidance["details"]["forbidden_until_init"]
+    assert "Taskmaster mutations" in guidance["details"]["forbidden_until_init"]
 
 
 def test_closeout_ready_reports_without_mutation(tmp_path: Path) -> None:
@@ -926,6 +1022,7 @@ def test_handoff_repair_tool_previews_and_applies_without_closeout_report(tmp_pa
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="handoff-repair", title="Handoff Repair")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     work_rel = current_work["paths"]["work_tracking"]
@@ -1178,7 +1275,7 @@ def test_installed_target_resources_and_latest_verification(tmp_path: Path) -> N
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
+    assert_client_reload_blocked(install_payload, tool="aegis.install", report_status="applied")
     verify_payload = call_tool_payload(
         server,
         "aegis.verify",
@@ -1240,13 +1337,19 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     assert "aegis.install" in bootstrap
     assert "aegis.start apply=true" in bootstrap
     assert "aegis.next" in bootstrap
+    assert "restart Claude" in bootstrap
+    assert "client_reload.required" in bootstrap
     assert "mechanical gates" in bootstrap
 
     start_task = get_prompt_text(server, "aegis.start_task")
     assert "aegis.status" in start_task
     assert "aegis.next" in start_task
+    assert "restart_claude_before_mutation" in start_task
+    assert "task-master next" in start_task
+    assert "task-master show <id>" in start_task
     assert "aegis.start apply=true" in start_task
     assert "aegis.kickoff" in start_task
+    assert "Taskmaster numeric task id" in start_task
     assert "explicit external numeric task id" in start_task
     assert "plan_step=auto" in start_task
 
@@ -1258,9 +1361,30 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     closeout_task = get_prompt_text(server, "aegis.closeout_task")
     assert "aegis.closeout_ready" in closeout_task
     assert "aegis.handoff_repair" in closeout_task
+    assert "Do not hand-edit HANDOFF.md" in closeout_task
     assert "aegis.verify" in closeout_task
     assert "aegis.doctor" in closeout_task
+    assert "task-master generate" in closeout_task
     assert "Only report completion after closeout passes and doctor reports the completed state" in closeout_task
+
+
+def test_tool_descriptions_make_aegis_discoverable_from_normal_task_requests(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    inspect_description = tool_by_name(server, "aegis.inspect").description or ""
+    init_description = tool_by_name(server, "aegis.init").description or ""
+    next_description = tool_by_name(server, "aegis.next").description or ""
+    kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
+
+    assert "Use proactively" in inspect_description
+    assert "normal coding task" in inspect_description
+    assert "aegis.init" in inspect_description
+    assert "before source edits" in inspect_description
+    assert "project workflow" in init_description
+    assert "restart Claude" in init_description
+    assert "normal request" in next_description
+    assert "Taskmaster" in kickoff_description
 
 
 def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> None:

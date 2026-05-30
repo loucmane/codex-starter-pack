@@ -16,6 +16,7 @@ from typing import Any
 FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
+AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 
@@ -77,6 +78,11 @@ MCP_MUTATION_TOOL_RE = re.compile(
     r"^mcp__.*__(add|create|update|set|write|edit|delete|remove|rename|move|parse|expand|generate|archive|init|initialize|start|kickoff)",
     re.IGNORECASE,
 )
+TASKMASTER_SET_STATUS_RE = re.compile(
+    r"(^|[;&|]\s*)task-master\s+set-status\b(?P<args>[^;&|]*)",
+    re.IGNORECASE,
+)
+TASKMASTER_GENERATE_RE = re.compile(r"(^|[;&|]\s*)task-master\s+generate\b", re.IGNORECASE)
 AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "inspect",
     "status",
@@ -232,6 +238,16 @@ def shlex_tokens(command: str) -> list[str]:
         return shlex.split(command)
     except ValueError:
         return []
+
+
+def option_value(tokens: list[str], option: str) -> str | None:
+    for index, token in enumerate(tokens):
+        if token == option and index + 1 < len(tokens):
+            return tokens[index + 1]
+        prefix = f"{option}="
+        if token.startswith(prefix):
+            return token[len(prefix) :]
+    return None
 
 
 def is_shell_assignment(token: str) -> bool:
@@ -399,6 +415,21 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def current_work(root: Path) -> dict[str, Any] | None:
     return read_json(root / AEGIS_CURRENT_WORK_REL)
+
+
+def current_work_closeout_completed(root: Path) -> dict[str, Any] | None:
+    work = current_work(root)
+    if not isinstance(work, dict):
+        return None
+    if work.get("status") == "completed" and work.get("closeout_passed_at"):
+        return work
+    return None
+
+
+def clear_client_reload_marker(root: Path) -> None:
+    marker = root / AEGIS_CLIENT_RELOAD_REL
+    if marker.exists():
+        marker.unlink()
 
 
 def pending_tracking_path(root: Path) -> Path:
@@ -635,9 +666,56 @@ def payload_is_aegis_closeout(payload: Payload) -> bool:
     return False
 
 
+def bash_is_post_closeout_taskmaster_completion(command: str, task_id: str) -> bool:
+    if TASKMASTER_GENERATE_RE.search(command):
+        return True
+    for match in TASKMASTER_SET_STATUS_RE.finditer(command):
+        tokens = shlex_tokens(f"task-master set-status {match.group('args')}")
+        status = (option_value(tokens, "--status") or "").strip().lower()
+        requested_id = (option_value(tokens, "--id") or "").strip()
+        if status in {"done", "completed"} and requested_id == task_id:
+            return True
+    return False
+
+
+def mcp_is_post_closeout_taskmaster_completion(payload: Payload, task_id: str) -> bool:
+    normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+    if "taskmaster" not in normalized and "task_master" not in normalized:
+        return False
+    if normalized.endswith("generate"):
+        return True
+    if not normalized.endswith("set_task_status"):
+        return False
+    requested_id = str(
+        payload.tool_input.get("id")
+        or payload.tool_input.get("task_id")
+        or payload.tool_input.get("taskId")
+        or ""
+    ).strip()
+    status = str(payload.tool_input.get("status") or "").strip().lower()
+    return requested_id == task_id and status in {"done", "completed"}
+
+
+def payload_is_post_closeout_taskmaster_completion(root: Path, payload: Payload) -> bool:
+    work = current_work_closeout_completed(root)
+    if work is None or pending_tracking_events(root):
+        return False
+    task = work.get("task") if isinstance(work.get("task"), dict) else {}
+    task_id = str(task.get("id") or "").strip()
+    if not task_id:
+        return False
+    if payload.tool_name == "Bash":
+        return bash_is_post_closeout_taskmaster_completion(bash_command(payload), task_id)
+    if is_mcp_tool(payload.tool_name):
+        return mcp_is_post_closeout_taskmaster_completion(payload, task_id)
+    return False
+
+
 def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     work = current_work(root)
     if not work:
+        return
+    if work.get("status") != "in-progress":
         return
     if (
         not payload_is_mutation(payload)
@@ -708,9 +786,16 @@ def pretooluse_gate() -> int:
         return 0
 
     root = project_root()
+    clear_client_reload_marker(root)
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
-    if readiness.returncode == 2 and is_mutation and not payload_is_aegis_bootstrap(payload):
+    post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(root, payload)
+    if (
+        readiness.returncode == 2
+        and is_mutation
+        and not payload_is_aegis_bootstrap(payload)
+        and not post_closeout_taskmaster_completion
+    ):
         return block(
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"

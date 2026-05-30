@@ -9,10 +9,11 @@ The stable public adoption commands are:
 ```bash
 aegis mcp register claude
 aegis init
+# restart Claude if init reports client_reload.required=true
 aegis start "Improve BrandMark accessibility"
 ```
 
-`aegis init` is the task-master-init style setup command. `aegis start "<title>"` is the local-task path for projects without Taskmaster or Serena. The lower-level `inspect`, `plan-install`, `install --apply`, and explicit `kickoff --task ...` commands remain supported for advanced use and debugging.
+`aegis init` is the task-master-init style setup command. `aegis start "<title>"` is the local-task path for projects without an external task id. In projects that already use Taskmaster, the public path is `task-master next`, `task-master show <id>`, then `aegis kickoff --task <id> --slug <slug> --title "<title>"` so Aegis uses Taskmaster's numeric task id instead of allocating a local one. The lower-level `inspect`, `plan-install`, and `install --apply` commands remain supported for advanced use and debugging.
 
 Task 112 deliberately separates two modes:
 
@@ -61,6 +62,20 @@ bash .claude/scripts/readiness.sh --quick
 ```
 
 `aegis start` allocates the next local Aegis task id, derives the slug, creates the task branch, and renders `.aegis/state/current-work.json`, `sessions/current`, `plans/current`, and `docs/ai/work-tracking/active/<date>-task<id>-<slug>-ACTIVE/`. The active folder is not a placeholder: it includes `TRACKER.md`, `FINDINGS.md`, `DECISIONS.md`, `HANDOFF.md`, `IMPLEMENTATION.md`, `CHANGELOG.md`, `designs/`, and `reports/<slug>/` rendered from packaged workflow templates. The templates are installed for inspection under `.aegis/templates/workflow/`. Use `aegis kickoff --task ...` only when the project or user provides an explicit external numeric task id.
+
+Start tracked work from Taskmaster when a numeric task already exists:
+
+```bash
+task-master next
+task-master show <id>
+aegis kickoff --target-dir . --task <id> --slug <slug> --title "<title>"
+```
+
+For Taskmaster-backed work, Aegis creates the same branch, current-work file, session, plan, and active work-tracking scaffold as `aegis start`, but it does not create `.aegis/state/local-tasks.json` for that task. `aegis start` refuses to bypass an available Taskmaster task. After implementation, verification, strict verification, closeout, and read-only `aegis doctor` pass, mark the Taskmaster task done and refresh the targeted generated task file.
+
+Claude Code hook activation has a session boundary. If `aegis init` or `aegis install` creates or modifies `.claude/settings.json` or `.claude/scripts/*`, the install report includes `client_reload.required=true` and Aegis writes `.aegis/state/client-reload-required.json`. MCP `aegis.init` / `aegis.install` surface this as a blocked hard-stop response: `ok=false`, `error.code=client_reload_required`, `error.status=blocked`, and `details.must_stop=true`, while preserving the applied install report under `details.report`. In that state, `aegis.start` and `aegis.kickoff` are blocked, and the current Claude session must not edit source, run project verification, mutate Taskmaster, or attempt closeout. Stop, restart Claude in the project, let the installed `PreToolUse` hook clear the marker, run `aegis next`, and continue only after the installed hooks are active.
+
+Taskmaster generated task-file refresh should use the project-specific targeted helper when present. If no targeted helper exists, run broad `task-master generate` deliberately after Taskmaster done and report the broad refresh in the final evidence.
 
 After a successful mutation, the installed Claude `PostToolUse` hook records pending S:W:H:E tracking in `.aegis/state/pending-tracking.json`. The next persistent mutation and session stop are refused until the agent records the work across the active workflow surfaces:
 
@@ -183,10 +198,11 @@ The MCP tools keep the same safety boundary as the CLI:
 - `aegis.start` writes local current work state and requires `apply=true`; this is the default local path when no external task id exists.
 - `aegis.kickoff` writes current work state for explicit external numeric task ids and requires `apply=true`.
 - `aegis.start` and `aegis.kickoff` render the packaged workflow templates into a full session/plan/work-tracking scaffold, not thin placeholder docs.
-- Installed Claude hooks treat `aegis.start` and `aegis.kickoff` as readiness bootstrap operations. They are allowed when readiness is otherwise blocked because their job is to create the missing branch/session/plan/work-tracking state; normal mutations and non-bootstrap Aegis operations remain blocked until readiness passes.
+- Installed Claude hooks treat `aegis.start` and `aegis.kickoff` as readiness bootstrap operations after `.aegis/state/client-reload-required.json` has been cleared by a running `PreToolUse` hook. They are allowed when readiness is otherwise blocked because their job is to create the missing branch/session/plan/work-tracking state; normal mutations and non-bootstrap Aegis operations remain blocked until readiness passes.
 - `aegis.log` writes S:W:H:E entries to `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces; it writes plan evidence only when `plan_step` is supplied; it can consume pending hook events through `pending_event_id`; and it requires `apply=true` when invoked through MCP.
 - `aegis.closeout` is the final completion gate. It should run only after strict verification evidence has been logged and before an agent claims the task is complete.
 - Installed Claude `PostToolUse` and `Stop` hooks enforce pending S:W:H:E completion: task-scoped writes create `.aegis/state/pending-tracking.json`, further mutations are blocked until `aegis.log` clears it, and session stop is blocked while pending events remain.
+- After a successful closeout, installed Claude hooks allow only the narrow Taskmaster bookkeeping path for the matching task: `task-master set-status --id=<task-id> --status=done` or the Taskmaster MCP equivalent, plus `task-master generate` for generated task-file refresh. Other source, Aegis, Git, or mismatched Taskmaster mutations remain blocked in the completed-closeout state.
 - Agents must cite `.aegis/reports/*` or MCP tool/resource results as evidence, not prompt text.
 
 ## Editable Package-Style Mode

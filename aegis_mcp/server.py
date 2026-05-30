@@ -217,6 +217,39 @@ def _error_tool_response(
     }
 
 
+def _client_reload_required_response(tool_name: str, report: dict[str, Any]) -> dict[str, Any]:
+    """Return a hard-stop MCP result after an install that changed Claude hooks."""
+
+    if tool_name == "aegis.init":
+        client_reload = (
+            report.get("install", {}).get("client_reload", {})
+            if isinstance(report.get("install"), dict)
+            else {}
+        )
+    else:
+        client_reload = report.get("client_reload", {}) if isinstance(report.get("client_reload"), dict) else {}
+    return _error_tool_response(
+        tool_name,
+        code="client_reload_required",
+        status="blocked",
+        message=(
+            "HARD STOP: Aegis installed or changed Claude hooks/settings, but this Claude "
+            "session has not loaded those hooks. Do not edit source, run project verification, "
+            "mutate Taskmaster, or call aegis.start/aegis.kickoff. Tell the user to restart "
+            "Claude in this project, then continue with aegis.next."
+        ),
+        details={
+            "install_applied": True,
+            "must_stop": True,
+            "client_reload": client_reload,
+            "forbidden_until_reload": client_reload.get("forbidden_until_reload", []),
+            "allowed_until_reload": client_reload.get("allowed_until_reload", []),
+            "next_allowed_action": "Restart Claude in this project, then call aegis.next.",
+            "report": report,
+        },
+    )
+
+
 def _json_text(payload: dict[str, Any]) -> str:
     return json.dumps(payload, indent=2, sort_keys=True)
 
@@ -322,11 +355,11 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         target_dir: str,
         profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
     ) -> dict[str, Any]:
-        """Inspect a target project for Aegis installation state."""
+        """Use proactively at the start of a normal coding task to detect Aegis workflow state; if not installed, run aegis.init before source edits."""
 
         def call_core() -> dict[str, Any]:
             profile_value = _validate_profile(profile)
-            return installer.inspect_project(target_dir, profile=profile_value)
+            return installer.inspect_project(target_dir, profile=profile_value, source_root=config.source_root)
 
         return run_tool(
             "aegis.inspect",
@@ -349,7 +382,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
     @server.tool(name="aegis.next")
     def aegis_next(target_dir: str) -> dict[str, Any]:
-        """Tell the agent the next required Aegis workflow action; read-only, no source edits, no .aegis writes."""
+        """Tell the agent the next required Aegis workflow action for a normal request; read-only, no source edits, no .aegis writes."""
 
         def call_core() -> dict[str, Any]:
             return installer.next_action(target_dir, source_root=config.source_root)
@@ -426,7 +459,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         agents: AgentList,
         apply: bool,
     ) -> dict[str, Any]:
-        """Apply an Aegis installation after explicit apply confirmation."""
+        """Apply an Aegis installation; if Claude hooks changed, returns client_reload_required as a HARD STOP before edits."""
 
         if apply is not True:
             return _error_tool_response(
@@ -464,6 +497,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
                     status="failed",
                     details={"report": report},
                 )
+            client_reload = report.get("client_reload")
+            if isinstance(client_reload, dict) and client_reload.get("required") is True:
+                return _client_reload_required_response("aegis.install", report)
             return report
 
         return run_tool(
@@ -481,7 +517,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         agents: AgentList | None = None,
         verify_after_install: bool = True,
     ) -> dict[str, Any]:
-        """Public project setup: install Aegis with Claude defaults after explicit apply confirmation."""
+        """Public project setup: install the Aegis project workflow; if Claude hooks changed, returns client_reload_required as a HARD STOP and tells the user to restart Claude before edits."""
 
         if apply is not True:
             return _error_tool_response(
@@ -519,6 +555,13 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
                     status="failed",
                     details={"report": report},
                 )
+            client_reload = (
+                report.get("install", {}).get("client_reload", {})
+                if isinstance(report.get("install"), dict)
+                else {}
+            )
+            if isinstance(client_reload, dict) and client_reload.get("required") is True:
+                return _client_reload_required_response("aegis.init", report)
             return report
 
         return run_tool(
@@ -669,7 +712,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         create_branch: bool = True,
         apply: bool = False,
     ) -> dict[str, Any]:
-        """Create current work state; next action is logging plan-step-scope before source edits."""
+        """Start Aegis current work from an explicit external numeric task id such as a Taskmaster task; next action is logging plan-step-scope before source edits; requires apply=true."""
 
         if apply is not True:
             return _error_tool_response(
@@ -1046,7 +1089,8 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     "2. Run read-only `aegis.status` and `aegis.next`; if not installed, run `aegis.plan_install`.",
                     "3. Review the install plan with the user before calling mutating `aegis.install apply=true`.",
                     "4. Run `aegis.verify` with `acknowledge_report_write=true` after install and cite the report.",
-                    "5. Treat prompts as setup guidance only; installed files, hooks, and reports are the evidence.",
+                    "5. If the install report says `client_reload.required=true`, ask the user to restart Claude before source edits; hooks from `.claude/settings.json` load at Claude session start.",
+                    "6. Treat prompts as setup guidance only; installed files, hooks, and reports are the evidence.",
                 ]
             ),
         )
@@ -1060,11 +1104,14 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     f"Target: `{target_dir}`",
                     f"Title: `{title}`",
                     "1. Run `aegis.status` and `aegis.next` first.",
-                    "2. If no current work exists and the user did not give an external task id, call `aegis.start apply=true` with a short normal-language title.",
-                    "3. Use `aegis.kickoff apply=true` only when the user or project gives an explicit external numeric task id.",
-                    "4. Confirm readiness is READY after start/kickoff.",
-                    "5. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
-                    "6. Native agent tools do implementation; Aegis records workflow state and evidence.",
+                    "2. If `aegis.next` returns `restart_claude_before_mutation`, stop and ask the user to restart Claude before source edits.",
+                    "3. If `.taskmaster/` exists, run `task-master next` and `task-master show <id>` or the Taskmaster MCP equivalents before choosing a start path.",
+                    "4. Use `aegis.kickoff apply=true` with the Taskmaster numeric task id when Taskmaster returns available work.",
+                    "5. If no current work exists and no external task id is available, call `aegis.start apply=true` with a short normal-language title.",
+                    "6. Use `aegis.kickoff apply=true` only when the user, Taskmaster, or project gives an explicit external numeric task id.",
+                    "7. Confirm readiness is READY after start/kickoff.",
+                    "8. Before source edits, log scope with `aegis.log apply=true`, `plan_step=auto`, and `plan_status=completed`.",
+                    "9. Native agent tools do implementation; Aegis records workflow state and evidence.",
                     f"External task id if explicitly provided: `{task or '<none>'}`",
                     f"Slug override if explicitly provided: `{slug or '<auto>'}`",
                 ]
@@ -1099,10 +1146,11 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     "2. Run `aegis.verify` with `strict=true` and `acknowledge_report_write=true`.",
                     "3. Log the strict verification pending event with `pending_event_id=current`, `plan_step=auto`, and `plan_status=completed`.",
                     "4. Run read-only `aegis.closeout_ready` or CLI `aegis closeout --dry-run --update-handoff`.",
-                    "5. If handoff semantic gates fail, call `aegis.handoff_repair` with `apply=true`, then re-run closeout readiness.",
+                    "5. If handoff semantic gates fail, call `aegis.handoff_repair` with `apply=true`, then re-run closeout readiness. Do not hand-edit HANDOFF.md for deterministic repairable handoff gates.",
                     "6. Apply any remaining repair guidance until dry-run passes, then call mutating `aegis.closeout` with `acknowledge_report_write=true`.",
                     "7. Run read-only `aegis.doctor` after closeout writes a passing report.",
-                    "8. Only report completion after closeout passes and doctor reports the completed state.",
+                    "8. If Taskmaster is in use, mark Taskmaster done only after closeout and doctor pass; then refresh generated task files with the project helper when present, otherwise run `task-master generate` deliberately.",
+                    "9. Only report completion after closeout passes and doctor reports the completed state.",
                 ]
             ),
         )
@@ -1117,8 +1165,9 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     "1. Run `aegis.inspect` and read `aegis://limitations`.",
                     "2. For the normal public path, call `aegis.init apply=true` with Claude defaults.",
                     "3. Use `aegis.plan_install` and `aegis.install` only when you need an advanced dry-run/conflict review path.",
-                    "4. Follow the returned `next_action`; it should direct you to `aegis.start apply=true` before source mutations.",
-                    "5. Run or cite the verification report produced by init, then continue with `aegis.next`.",
+                    "4. If `aegis.init` returns `client_reload.required=true` or `next_action=restart_claude_before_mutation`, ask the user to restart Claude before source mutations.",
+                    "5. After reload, follow the returned `next_action`; it should direct you to `aegis.start apply=true` or Taskmaster-backed `aegis.kickoff apply=true` before source mutations.",
+                    "6. Run or cite the verification report produced by init, then continue with `aegis.next`.",
                     "Mechanical gates are evidence; policy-only limitations are not proof of enforcement.",
                 ]
             ),
