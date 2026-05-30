@@ -1101,7 +1101,8 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                     "4. Run read-only `aegis.closeout_ready` or CLI `aegis closeout --dry-run --update-handoff`.",
                     "5. If handoff semantic gates fail, call `aegis.handoff_repair` with `apply=true`, then re-run closeout readiness.",
                     "6. Apply any remaining repair guidance until dry-run passes, then call mutating `aegis.closeout` with `acknowledge_report_write=true`.",
-                    "7. Only report completion after closeout writes a passing report.",
+                    "7. Run read-only `aegis.doctor` after closeout writes a passing report.",
+                    "8. Only report completion after closeout passes and doctor reports the completed state.",
                 ]
             ),
         )
@@ -1114,10 +1115,10 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                 [
                     f"Target: `{target_dir}`",
                     "1. Run `aegis.inspect` and read `aegis://limitations`.",
-                    "2. Run `aegis.plan_install` with explicit primary_agent and agents.",
-                    "3. Ask the user to approve the plan; approval is required before `aegis.install`.",
-                    "4. Run `aegis.install` with `apply=true` only after approval.",
-                    "5. Run `aegis.verify` with `acknowledge_report_write=true` and cite `aegis://verification/latest`.",
+                    "2. For the normal public path, call `aegis.init apply=true` with Claude defaults.",
+                    "3. Use `aegis.plan_install` and `aegis.install` only when you need an advanced dry-run/conflict review path.",
+                    "4. Follow the returned `next_action`; it should direct you to `aegis.start apply=true` before source mutations.",
+                    "5. Run or cite the verification report produced by init, then continue with `aegis.next`.",
                     "Mechanical gates are evidence; policy-only limitations are not proof of enforcement.",
                 ]
             ),

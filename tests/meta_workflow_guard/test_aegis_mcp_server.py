@@ -879,7 +879,8 @@ def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
     assert payload["read_only"] is True
     assert payload["result"]["phase"] == "bootstrap"
     assert payload["result"]["state"] == "not_installed"
-    assert payload["result"]["suggested_mcp_call"]["tool"] == "aegis.plan_install"
+    assert payload["result"]["suggested_mcp_call"]["tool"] == "aegis.init"
+    assert payload["result"]["suggested_mcp_call"]["arguments"]["apply"] is True
 
 
 def test_closeout_ready_reports_without_mutation(tmp_path: Path) -> None:
@@ -1234,10 +1235,11 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
 
     bootstrap = get_prompt_text(server, "aegis.bootstrap_new_project")
     assert "aegis.inspect" in bootstrap
+    assert "aegis.init apply=true" in bootstrap
     assert "aegis.plan_install" in bootstrap
-    assert "user" in bootstrap and "approval" in bootstrap
     assert "aegis.install" in bootstrap
-    assert "aegis.verify" in bootstrap
+    assert "aegis.start apply=true" in bootstrap
+    assert "aegis.next" in bootstrap
     assert "mechanical gates" in bootstrap
 
     start_task = get_prompt_text(server, "aegis.start_task")
@@ -1257,7 +1259,8 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     assert "aegis.closeout_ready" in closeout_task
     assert "aegis.handoff_repair" in closeout_task
     assert "aegis.verify" in closeout_task
-    assert "Only report completion after closeout writes a passing report" in closeout_task
+    assert "aegis.doctor" in closeout_task
+    assert "Only report completion after closeout passes and doctor reports the completed state" in closeout_task
 
 
 def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> None:

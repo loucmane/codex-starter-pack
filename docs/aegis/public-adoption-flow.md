@@ -27,7 +27,9 @@ After `aegis init`, a fresh Claude session should not need a large workflow prom
 4. Use native tools for source reads, edits, tests, and git inspection.
 5. Let hooks create pending S:W:H:E tracking after mutations.
 6. Clear pending tracking with `aegis log --pending-id current --plan-step auto --plan-status completed`.
-7. Run task verification, strict Aegis verification, closeout preflight, and final closeout before reporting completion.
+7. Run task verification, strict Aegis verification, closeout preflight, final closeout, and one read-only `aegis doctor` health check before reporting completion.
+
+For MCP clients, the same public path is `aegis.init apply=true` followed by `aegis.start apply=true`. `aegis.next` should recommend those public tools for normal work; `aegis.plan_install`, `aegis.install`, and explicit-id `aegis.kickoff` are advanced/debug equivalents, not the expected first choice for a normal-language request.
 
 When the workflow state looks inconsistent, the normal recovery path is:
 

@@ -548,7 +548,8 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     assert initial["read_only"] is True
     assert initial["phase"] == "bootstrap"
     assert initial["state"] == "not_installed"
-    assert initial["suggested_mcp_call"]["tool"] == "aegis.plan_install"
+    assert initial["suggested_mcp_call"]["tool"] == "aegis.init"
+    assert initial["suggested_mcp_call"]["arguments"]["apply"] is True
 
     install_report = install(
         target,
@@ -564,6 +565,19 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     assert installed["state"] == "installed_no_current_work"
     assert installed["suggested_mcp_call"]["tool"] == "aegis.start"
     assert installed["suggested_mcp_call"]["arguments"]["apply"] is True
+
+
+def test_public_init_guides_start_as_next_action(tmp_path: Path) -> None:
+    target = tmp_path / "public-init-guided-repo"
+    target.mkdir()
+
+    initialized = initialize_project(target, source_root=REPO_ROOT)
+
+    assert initialized["status"] == "initialized"
+    assert initialized["next_action"]["action"] == "start_tracked_work"
+    assert initialized["next_action"]["suggested_mcp"]["tool"] == "aegis.start"
+    assert initialized["next_action"]["suggested_mcp"]["arguments"]["apply"] is True
+    assert initialized["next_action"]["suggested_mcp"]["arguments"]["title"] == "<task title>"
 
 
 def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
@@ -1336,6 +1350,8 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
     failed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
 
     assert failed["status"] == "failed"
+    assert failed["next_action"]["action"] == "repair_closeout_gates_before_retry"
+    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.closeout"
     repair_items = failed["repair_guidance"]["items"]
     changelog_repairs = [
         item
@@ -1624,7 +1640,9 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
 
     failed = closeout(target, source_root=REPO_ROOT)
     assert failed["status"] == "failed"
-    assert failed["next_action"]["action"] == "repair_closeout_gates_before_retry"
+    assert failed["next_action"]["action"] == "apply_handoff_repair_before_retry"
+    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.handoff_repair"
+    assert failed["next_action"]["suggested_mcp"]["arguments"]["apply"] is True
     assert "closeout.handoff.current_state" in failed["next_action"]["details"]["failed_required_gates"]
     assert any(
         check["gate_id"] == "closeout.handoff.current_state" and check["status"] == "fail"
@@ -1633,7 +1651,8 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
 
     passed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
     assert passed["status"] == "passed"
-    assert passed["next_action"]["action"] == "task_complete"
+    assert passed["next_action"]["action"] == "run_post_closeout_doctor"
+    assert passed["next_action"]["suggested_mcp"]["tool"] == "aegis.doctor"
     assert passed["summary"]["failed_required"] == 0
     assert passed["git"]["legacy_manual_only"] == ["gac"]
     assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]

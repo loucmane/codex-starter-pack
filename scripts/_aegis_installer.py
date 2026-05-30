@@ -343,7 +343,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; then run `aegis closeout --update-handoff` before declaring the work complete.",
+            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; run `aegis closeout --update-handoff`; then run read-only `aegis doctor` before declaring the work complete.",
             "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
@@ -404,6 +404,7 @@ def _render_claude_entrypoint() -> bytes:
             "7. Run `aegis closeout --dry-run --update-handoff` or call MCP `aegis.closeout_ready` before final closeout.",
             "8. If handoff semantic gates fail, run `aegis handoff repair` or call MCP `aegis.handoff_repair apply=true`, then re-run closeout readiness.",
             "9. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
+            "10. Run read-only `aegis doctor --target-dir .` or call MCP `aegis.doctor` once after closeout; include the health result in the final report.",
             "",
             "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
@@ -1248,12 +1249,14 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             state="not_installed",
             next_required_action="run aegis init before starting work",
             suggested_cli="aegis init",
-            suggested_mcp_tool="aegis.plan_install",
+            suggested_mcp_tool="aegis.init",
             suggested_mcp_arguments={
                 "target_dir": ".",
                 "profile": PROFILE_GENERIC,
                 "primary_agent": "claude",
                 "agents": ["claude"],
+                "apply": True,
+                "verify_after_install": True,
             },
             missing_gates=["aegis.manifest"],
             copyable_repairs=[
@@ -3049,6 +3052,12 @@ def initialize_project(
             "start_tracked_work",
             "Aegis is installed. Start local tracked work before mutating source files.",
             suggested_cli='./.aegis/bin/aegis start "<task title>"',
+            suggested_mcp_tool="aegis.start",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "title": "<task title>",
+                "apply": True,
+            },
             details={"public_flow": "aegis init -> aegis start -> native edit -> aegis log/verify/closeout"},
         ),
     }
@@ -4743,6 +4752,17 @@ def _build_closeout_repair_guidance(
     }
 
 
+def _handoff_repairable_closeout_failure(gate_ids: Sequence[str]) -> bool:
+    """Return true when deterministic handoff repair is the right next action."""
+
+    if not gate_ids:
+        return False
+    return all(
+        gate_id.startswith("closeout.handoff.") or gate_id == "closeout.evidence.handoff"
+        for gate_id in gate_ids
+    )
+
+
 def _closeout_failed_required_gate_ids(report: Mapping[str, Any]) -> list[str]:
     return [
         str(check.get("gate_id") or check.get("id") or "unknown")
@@ -5205,6 +5225,7 @@ def closeout(
     checks.extend(git_checks)
 
     failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
+    failed_required_gate_ids = [str(check.get("gate_id")) for check in failed_required]
     status_value = "failed" if failed_required else "passed"
     repair_guidance = _build_closeout_repair_guidance(
         surface_texts=surface_texts,
@@ -5272,12 +5293,37 @@ def closeout(
             )
             else
             _workflow_next_action(
+                "run_post_closeout_doctor",
+                "Closeout passed and wrote the report. Run read-only doctor once before the final user report.",
+                suggested_cli="./.aegis/bin/aegis doctor --target-dir .",
+                suggested_mcp_tool="aegis.doctor",
+                suggested_mcp_arguments={"target_dir": "."},
+                details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+            )
+            if status_value == "passed" and not dry_run
+            else _workflow_next_action(
                 "task_complete",
                 "Closeout passed. It is now valid to report the task complete and proceed with normal git/GitHub commands.",
                 suggested_cli="git status --short",
                 details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
             )
             if status_value == "passed"
+            else _workflow_next_action(
+                "apply_handoff_repair_before_retry",
+                "Closeout failed only on handoff gates. Run deterministic handoff repair, then re-run closeout readiness.",
+                suggested_cli="./.aegis/bin/aegis handoff repair --target-dir .",
+                suggested_mcp_tool="aegis.handoff_repair",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "apply": True,
+                },
+                details={
+                    "failed_required_gates": failed_required_gate_ids,
+                    "repair_items": repair_guidance["summary"]["items"],
+                    "after_repair": "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                },
+            )
+            if _handoff_repairable_closeout_failure(failed_required_gate_ids)
             else _workflow_next_action(
                 "repair_closeout_gates_before_retry",
                 "Closeout failed. Do not report the task complete; apply repair_guidance and retry closeout.",
@@ -5293,10 +5339,7 @@ def closeout(
                     **({} if dry_run else {"acknowledge_report_write": True}),
                 },
                 details={
-                    "failed_required_gates": [
-                        str(check.get("gate_id"))
-                        for check in failed_required
-                    ],
+                    "failed_required_gates": failed_required_gate_ids,
                     "repair_items": repair_guidance["summary"]["items"],
                 },
             )
