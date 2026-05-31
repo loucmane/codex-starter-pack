@@ -86,6 +86,8 @@ AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
 AEGIS_CLAUDE_BLOCK_END = "<!-- AEGIS:END claude-runtime -->"
+AEGIS_AGENTS_BLOCK_BEGIN = "<!-- AEGIS:BEGIN agents-runtime -->"
+AEGIS_AGENTS_BLOCK_END = "<!-- AEGIS:END agents-runtime -->"
 
 CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
 CLAUDE_PRETOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
@@ -628,31 +630,67 @@ def _claude_runtime_block(aegis_entrypoint: bytes) -> str:
     )
 
 
-def _merge_claude_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes | None:
-    """Return CLAUDE.md with an Aegis-managed block while preserving project content."""
+def _managed_runtime_block(
+    *,
+    begin_marker: str,
+    end_marker: str,
+    entrypoint: bytes,
+) -> str:
+    text = entrypoint.decode("utf-8").strip()
+    return "\n".join([begin_marker, text, end_marker, ""])
 
+
+def _merge_managed_entrypoint(
+    existing: bytes,
+    aegis_entrypoint: bytes,
+    *,
+    begin_marker: str,
+    end_marker: str,
+    existing_heading: str,
+) -> bytes | None:
     if existing == aegis_entrypoint:
         return aegis_entrypoint
     try:
         existing_text = existing.decode("utf-8")
     except UnicodeDecodeError:
         return None
-    block = _claude_runtime_block(aegis_entrypoint)
-    if AEGIS_CLAUDE_BLOCK_BEGIN in existing_text and AEGIS_CLAUDE_BLOCK_END in existing_text:
+    block = _managed_runtime_block(
+        begin_marker=begin_marker,
+        end_marker=end_marker,
+        entrypoint=aegis_entrypoint,
+    )
+    if begin_marker in existing_text and end_marker in existing_text:
         pattern = re.compile(
-            rf"{re.escape(AEGIS_CLAUDE_BLOCK_BEGIN)}.*?{re.escape(AEGIS_CLAUDE_BLOCK_END)}\n?",
+            rf"{re.escape(begin_marker)}.*?{re.escape(end_marker)}\n?",
             re.DOTALL,
         )
         return pattern.sub(block, existing_text, count=1).encode("utf-8")
-    prefix = (
-        f"{block}"
-        "\n"
-        "---\n"
-        "\n"
-        "## Existing Project Instructions\n"
-        "\n"
-    )
+    prefix = f"{block}\n---\n\n## {existing_heading}\n\n"
     return f"{prefix}{existing_text}".encode("utf-8")
+
+
+def _merge_claude_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes | None:
+    """Return CLAUDE.md with an Aegis-managed block while preserving project content."""
+
+    return _merge_managed_entrypoint(
+        existing,
+        aegis_entrypoint,
+        begin_marker=AEGIS_CLAUDE_BLOCK_BEGIN,
+        end_marker=AEGIS_CLAUDE_BLOCK_END,
+        existing_heading="Existing Project Instructions",
+    )
+
+
+def _merge_agents_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes | None:
+    """Return AGENTS.md with an Aegis-managed block while preserving project content."""
+
+    return _merge_managed_entrypoint(
+        existing,
+        aegis_entrypoint,
+        begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+        end_marker=AEGIS_AGENTS_BLOCK_END,
+        existing_heading="Existing Agent Instructions",
+    )
 
 
 def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset]:
@@ -664,6 +702,20 @@ def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset
             target = target_root / asset.path
             if target.exists() and target.is_file():
                 merged = _merge_claude_entrypoint(target.read_bytes(), asset.content)
+                if merged is not None:
+                    materialized.append(
+                        Asset(
+                            path=asset.path,
+                            content=merged,
+                            executable=asset.executable,
+                            kind=asset.kind,
+                        )
+                    )
+                    continue
+        if asset.path == "AGENTS.md":
+            target = target_root / asset.path
+            if target.exists() and target.is_file():
+                merged = _merge_agents_entrypoint(target.read_bytes(), asset.content)
                 if merged is not None:
                     materialized.append(
                         Asset(
@@ -997,6 +1049,18 @@ def _plan_operations(target_root: Path, assets: Sequence[Asset], manifest_bytes:
                 }
             )
             continue
+        if asset.path == "AGENTS.md":
+            operations.append(
+                {
+                    "action": "modify",
+                    "path": asset.path,
+                    "classification": "modify",
+                    "safe_to_apply": True,
+                    "managed": True,
+                    "reason": "Existing agent instructions will be preserved below an Aegis-managed runtime block.",
+                }
+            )
+            continue
         operations.append(
             {
                 "action": "manual-review",
@@ -1160,6 +1224,8 @@ def inspect_project(
     *,
     profile: str = PROFILE_GENERIC,
     source_root: str | Path | None = None,
+    default_primary_agent: str = "claude",
+    default_agents: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     if profile != PROFILE_GENERIC:
         raise AegisError(f"Unsupported Aegis profile in V1: {profile}")
@@ -1187,11 +1253,22 @@ def inspect_project(
             "reports": str(target_root / AEGIS_REPORTS_REL),
             "state": str(target_root / AEGIS_STATE_REL),
         },
-        "workflow_guidance": next_action(target_root, source_root=source),
+        "workflow_guidance": next_action(
+            target_root,
+            source_root=source,
+            default_primary_agent=default_primary_agent,
+            default_agents=default_agents,
+        ),
     }
 
 
-def status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
+def status(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    default_primary_agent: str = "claude",
+    default_agents: Sequence[str] | None = None,
+) -> dict[str, Any]:
     """Report installed Aegis release state without mutating the target."""
 
     target_root = _resolve_target_root(target_dir)
@@ -1226,7 +1303,12 @@ def status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]
                 "Repair or restore .aegis/foundation-manifest.json before upgrading.",
                 "Use git history or recorded backups for rollback.",
             ]
-        payload["workflow_guidance"] = next_action(target_root, source_root=source)
+        payload["workflow_guidance"] = next_action(
+            target_root,
+            source_root=source,
+            default_primary_agent=default_primary_agent,
+            default_agents=default_agents,
+        )
         return payload
 
     installed_versions = {
@@ -1286,7 +1368,12 @@ def status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]
             ),
         }
     )
-    payload["workflow_guidance"] = next_action(target_root, source_root=source)
+    payload["workflow_guidance"] = next_action(
+        target_root,
+        source_root=source,
+        default_primary_agent=default_primary_agent,
+        default_agents=default_agents,
+    )
     return payload
 
 
@@ -1425,7 +1512,79 @@ def _taskmaster_available_task(target_root: Path) -> dict[str, str] | None:
     return None
 
 
-def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
+def _normalise_default_agent_selection(
+    primary_agent: str = "claude",
+    agents: Sequence[str] | None = None,
+) -> tuple[str, tuple[str, ...]]:
+    """Return a valid default install agent selection for guidance payloads."""
+
+    primary = primary_agent if primary_agent in PRIMARY_AGENT_CHOICES else "claude"
+    requested = tuple(dict.fromkeys(agents or ()))
+    if not requested and primary in AGENT_CHOICES:
+        requested = (primary,)
+    if not requested and primary == "none":
+        requested = ()
+    try:
+        selected = _enabled_agents(primary, requested)
+    except AegisError:
+        primary = "claude"
+        selected = ("claude",)
+    return primary, selected
+
+
+def _agent_selection_cli_args(primary_agent: str, agents: Sequence[str]) -> str:
+    parts = [f"--primary-agent {primary_agent}"]
+    parts.extend(f"--agent {agent}" for agent in agents)
+    return " ".join(parts)
+
+
+def _enabled_agents_from_manifest(manifest: Mapping[str, Any] | None) -> tuple[str, ...]:
+    if not isinstance(manifest, Mapping):
+        return ()
+    agents = manifest.get("agents")
+    if not isinstance(agents, Mapping):
+        return ()
+    enabled: list[str] = []
+    for name, payload in agents.items():
+        if name not in AGENT_CHOICES or not isinstance(payload, Mapping):
+            continue
+        if bool(payload.get("enabled")):
+            enabled.append(str(name))
+    return tuple(enabled)
+
+
+def _workflow_handler_prefix(target_root: Path) -> str:
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    primary = str(manifest.get("primary_agent") or "").strip() if isinstance(manifest, Mapping) else ""
+    if primary in AGENT_CHOICES:
+        return primary
+    enabled = _enabled_agents_from_manifest(manifest)
+    if len(enabled) == 1:
+        return enabled[0]
+    return "agent"
+
+
+def _workflow_log_handler(target_root: Path, event_class: str) -> str:
+    return f"{_workflow_handler_prefix(target_root)}:{event_class}"
+
+
+def _expects_pending_tracking(target_root: Path) -> bool:
+    """Return true when the installed primary workflow is expected to enqueue hook events."""
+
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    if not isinstance(manifest, Mapping):
+        return True
+    primary = str(manifest.get("primary_agent") or "").strip()
+    return primary == "claude" and "claude" in _enabled_agents_from_manifest(manifest)
+
+
+def next_action(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    default_primary_agent: str = "claude",
+    default_agents: Sequence[str] | None = None,
+) -> dict[str, Any]:
     """Return read-only workflow guidance for the next Aegis action."""
 
     target_root = _resolve_target_root(target_dir)
@@ -1433,6 +1592,21 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest_exists = manifest_path.exists()
     manifest = _read_json(manifest_path)
+    guidance_primary_agent, guidance_agents = _normalise_default_agent_selection(
+        default_primary_agent,
+        default_agents,
+    )
+    public_init_cli = (
+        "aegis init"
+        if guidance_primary_agent == "claude" and guidance_agents == ("claude",)
+        else f"aegis init {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)}"
+    )
+    plan_install_cli = (
+        f"aegis plan-install --target-dir . {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)}"
+    )
+    install_cli = (
+        f"aegis install --target-dir . {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)} --apply"
+    )
     if manifest is None:
         if manifest_exists:
             return _workflow_guidance_payload(
@@ -1451,26 +1625,33 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             phase="bootstrap",
             state="not_installed",
             next_required_action=(
-                "HARD STOP before source edits: run aegis init before starting work, "
-                "project verification, Taskmaster mutation, or Aegis start/kickoff"
+                "HARD STOP before source edits: when Aegis MCP is available, call "
+                "suggested_mcp_call (aegis.init) before starting work. Use suggested_cli "
+                "only as a CLI fallback when `aegis` is already on PATH. Do not run "
+                "project verification, Taskmaster mutation, or Aegis start/kickoff first."
             ),
-            suggested_cli="aegis init",
+            suggested_cli=public_init_cli,
             suggested_mcp_tool="aegis.init",
             suggested_mcp_arguments={
                 "target_dir": ".",
                 "profile": PROFILE_GENERIC,
-                "primary_agent": "claude",
-                "agents": ["claude"],
+                "primary_agent": guidance_primary_agent,
+                "agents": list(guidance_agents),
                 "apply": True,
                 "verify_after_install": True,
             },
             missing_gates=["aegis.manifest"],
             copyable_repairs=[
-                "aegis init",
-                "aegis plan-install --target-dir . --primary-agent claude --agent claude",
-                "aegis install --target-dir . --primary-agent claude --agent claude --apply",
+                public_init_cli,
+                plan_install_cli,
+                install_cli,
             ],
             details={
+                "default_primary_agent": guidance_primary_agent,
+                "default_agents": list(guidance_agents),
+                "preferred_invocation": "mcp",
+                "mcp_preferred_when_available": True,
+                "cli_requires_aegis_on_path": True,
                 "must_initialize_before_source_edits": True,
                 "forbidden_until_init": [
                     "source edits",
@@ -1617,6 +1798,10 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
     reports_rel = str(paths.get("reports") or f"{work_rel}/reports/<slug>").strip()
     plan_path = target_root / plan_rel
     tracker_path = target_root / tracker_rel
+    scope_handler = _workflow_log_handler(target_root, "scope")
+    implementation_handler = _workflow_log_handler(target_root, "implementation")
+    verification_handler = _workflow_log_handler(target_root, "verification")
+    pending_tracking_expected = _expects_pending_tracking(target_root)
     if not plan_path.exists() or not tracker_path.exists():
         missing = []
         if not plan_path.exists():
@@ -1643,14 +1828,14 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             state="scope_required",
             next_required_action="log task scope before source edits",
             suggested_cli=(
-                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
                 f"--evidence {_quote_cli(findings_rel)} --note 'Confirmed task scope before implementation' "
                 "--plan-step auto --plan-status completed"
             ),
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments={
                 "target_dir": ".",
-                "handler": "claude:scope",
+                "handler": scope_handler,
                 "evidence": findings_rel,
                 "note": "Confirmed task scope before implementation",
                 "event_class": "scope",
@@ -1660,58 +1845,118 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
             },
             missing_gates=["plan.scope", "tracker.scope"],
             copyable_repairs=[
-                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
                 f"--evidence {_quote_cli(findings_rel)} --note 'Confirmed task scope before implementation' "
                 "--plan-step auto --plan-status completed"
             ],
         )
 
     if not _plan_step_completed(plan_rows, "plan-step-implement"):
-        return _workflow_guidance_payload(
-            phase="implement",
-            state="implementation_required",
-            next_required_action="make the task-scoped change with native tools, then log the pending mutation",
-            suggested_cli="./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense implementation note>' --plan-step auto --plan-status completed",
-            suggested_mcp_tool="aegis.log",
-            suggested_mcp_arguments={
+        if pending_tracking_expected:
+            suggested_cli = (
+                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                "--note '<past-tense implementation note>' --plan-step auto --plan-status completed"
+            )
+            suggested_mcp_arguments = {
                 "target_dir": ".",
                 "pending_event_id": "current",
                 "note": "<past-tense implementation note>",
                 "plan_step": "auto",
                 "plan_status": "completed",
                 "apply": True,
-            },
-            missing_gates=["plan.implement", "tracker.implement"],
-            copyable_repairs=[
+            }
+            copyable_repairs = [
                 "Use native agent tools for the source edit.",
-                "./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense implementation note>' --plan-step auto --plan-status completed",
-            ],
+                suggested_cli,
+            ]
+            next_required_action = "make the task-scoped change with native tools, then log the pending mutation"
+        else:
+            suggested_cli = (
+                f"./.aegis/bin/aegis log --target-dir . --handler {implementation_handler} "
+                "--evidence '<changed-file-or-command>' --note '<past-tense implementation note>' "
+                "--plan-step plan-step-implement --plan-status completed"
+            )
+            suggested_mcp_arguments = {
+                "target_dir": ".",
+                "handler": implementation_handler,
+                "evidence": "<changed-file-or-command>",
+                "note": "<past-tense implementation note>",
+                "event_class": "implementation",
+                "plan_step": "plan-step-implement",
+                "plan_status": "completed",
+                "apply": True,
+            }
+            copyable_repairs = [
+                "Use native agent tools for the source edit.",
+                suggested_cli,
+            ]
+            next_required_action = (
+                "make the task-scoped change with native tools, then log explicit implementation evidence"
+            )
+        return _workflow_guidance_payload(
+            phase="implement",
+            state="implementation_required",
+            next_required_action=next_required_action,
+            suggested_cli=suggested_cli,
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments=suggested_mcp_arguments,
+            missing_gates=["plan.implement", "tracker.implement"],
+            copyable_repairs=copyable_repairs,
+            details={"pending_tracking_expected": pending_tracking_expected},
         )
 
     if not _plan_step_completed(plan_rows, "plan-step-verify"):
-        return _workflow_guidance_payload(
-            phase="verify",
-            state="task_verification_required",
-            next_required_action="run project verification, save evidence, then log it",
-            suggested_cli=(
+        verification_report_rel = f"{reports_rel}/task-verification.md"
+        if pending_tracking_expected:
+            suggested_cli = (
                 f"# Save task verification under {_quote_cli(reports_rel)}/, then:\n"
                 "./.aegis/bin/aegis log --target-dir . --pending-id current "
                 "--note 'Recorded task-specific verification evidence' --plan-step auto --plan-status completed"
-            ),
-            suggested_mcp_tool="aegis.log",
-            suggested_mcp_arguments={
+            )
+            suggested_mcp_arguments = {
                 "target_dir": ".",
                 "pending_event_id": "current",
                 "note": "Recorded task-specific verification evidence",
                 "plan_step": "auto",
                 "plan_status": "completed",
                 "apply": True,
-            },
-            missing_gates=["plan.verify", "tracker.verify"],
-            copyable_repairs=[
+            }
+            copyable_repairs = [
                 f"Save task verification under {reports_rel}/",
                 "./.aegis/bin/aegis log --target-dir . --pending-id current --note 'Recorded task-specific verification evidence' --plan-step auto --plan-status completed",
-            ],
+            ]
+        else:
+            suggested_cli = (
+                f"# Save task verification at {_quote_cli(verification_report_rel)}, then:\n"
+                f"./.aegis/bin/aegis log --target-dir . --handler {verification_handler} "
+                f"--evidence {_quote_cli(verification_report_rel)} "
+                "--note 'Recorded task-specific verification evidence' "
+                "--plan-step plan-step-verify --plan-status completed"
+            )
+            suggested_mcp_arguments = {
+                "target_dir": ".",
+                "handler": verification_handler,
+                "evidence": verification_report_rel,
+                "note": "Recorded task-specific verification evidence",
+                "event_class": "verification",
+                "plan_step": "plan-step-verify",
+                "plan_status": "completed",
+                "apply": True,
+            }
+            copyable_repairs = [
+                f"Save task verification at {verification_report_rel}",
+                suggested_cli.splitlines()[-1],
+            ]
+        return _workflow_guidance_payload(
+            phase="verify",
+            state="task_verification_required",
+            next_required_action="run project verification, save evidence, then log it",
+            suggested_cli=suggested_cli,
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments=suggested_mcp_arguments,
+            missing_gates=["plan.verify", "tracker.verify"],
+            copyable_repairs=copyable_repairs,
+            details={"pending_tracking_expected": pending_tracking_expected},
         )
 
     if not _strict_verify_passed(target_root):
@@ -1922,6 +2167,17 @@ def _normalize_task_id(task_id: str | int) -> str:
     if not re.fullmatch(r"\d+", value):
         raise AegisError("Aegis kickoff currently requires a numeric task id")
     return value
+
+
+def _normalize_task_slug(slug: str, *, task_id: str | int) -> str:
+    normalized = _slugify(slug)
+    task_text = _normalize_task_id(task_id)
+    for prefix in (f"task-{task_text}-", f"{task_text}-"):
+        if normalized.startswith(prefix):
+            stripped = normalized[len(prefix):].strip("-")
+            if stripped:
+                return stripped
+    return normalized
 
 
 def _run_target_git(target_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -2214,7 +2470,7 @@ def kickoff(
     _ensure_git_work_tree(target_root)
 
     normalized_task_id = _normalize_task_id(task_id)
-    normalized_slug = _slugify(slug)
+    normalized_slug = _normalize_task_slug(slug, task_id=normalized_task_id)
     clean_title = title.strip()
     if not clean_title:
         raise AegisError("title is required")
@@ -2321,6 +2577,7 @@ def kickoff(
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
     _update_manifest_after_kickoff(target_root)
 
+    scope_handler = _workflow_log_handler(target_root, "scope")
     report = {
         "schema_version": SCHEMA_VERSION,
         "status": "started",
@@ -2335,7 +2592,7 @@ def kickoff(
             "log_scope_before_edit",
             "Before any source edit, record scope against plan-step-scope so closeout can pass first time.",
             suggested_cli=(
-                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
                 f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
                 "--note 'Confirmed task scope before implementation' "
                 "--plan-step auto --plan-status completed"
@@ -2343,7 +2600,7 @@ def kickoff(
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments={
                 "target_dir": ".",
-                "handler": "claude:scope",
+                "handler": scope_handler,
                 "evidence": f"{work_rel}/FINDINGS.md",
                 "note": "Confirmed task scope before implementation",
                 "event_class": "scope",
@@ -2367,6 +2624,7 @@ def _already_started_report(target_root: Path, current_work: Mapping[str, Any]) 
     work_rel = str(paths.get("work_tracking") or "")
     task_id = str(task.get("id") or "")
     slug = str(task.get("slug") or "")
+    scope_handler = _workflow_log_handler(target_root, "scope")
     report = {
         "schema_version": SCHEMA_VERSION,
         "status": "already_started",
@@ -2383,7 +2641,7 @@ def _already_started_report(target_root: Path, current_work: Mapping[str, Any]) 
             "continue_existing_work",
             "Current work already exists; continue by logging scope, implementation, or verification evidence as appropriate.",
             suggested_cli=(
-                "./.aegis/bin/aegis log --target-dir . --handler claude:scope "
+                f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
                 f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
                 "--note 'Confirmed task scope before implementation' "
                 "--plan-step auto --plan-status completed"
@@ -2393,7 +2651,7 @@ def _already_started_report(target_root: Path, current_work: Mapping[str, Any]) 
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments={
                 "target_dir": ".",
-                "handler": "claude:scope",
+                "handler": scope_handler,
                 "evidence": f"{work_rel}/FINDINGS.md",
                 "note": "Confirmed task scope before implementation",
                 "event_class": "scope",
@@ -2874,12 +3132,17 @@ def _evidence_file_location(target_root: Path, evidence_rel: str) -> dict[str, A
 
 def _next_action_after_log(
     *,
+    target_root: Path,
     remaining: Sequence[Mapping[str, Any]],
     normalized_plan_step: str,
     normalized_plan_status: str,
     evidence_rel: str,
     work_rel: str,
+    reports_rel: str,
 ) -> dict[str, Any]:
+    implementation_handler = _workflow_log_handler(target_root, "implementation")
+    verification_handler = _workflow_log_handler(target_root, "verification")
+    pending_tracking_expected = _expects_pending_tracking(target_root)
     if remaining:
         event_ids = [str(event.get("id") or "unknown") for event in remaining]
         return _workflow_next_action(
@@ -2901,37 +3164,96 @@ def _next_action_after_log(
             details={"remaining_pending_event_ids": event_ids},
         )
     if normalized_plan_step == "plan-step-scope" and normalized_plan_status == "completed":
+        if pending_tracking_expected:
+            after_mutation = (
+                "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                "--note '<past-tense note>' --plan-step plan-step-implement --plan-status completed"
+            )
+            suggested_mcp_arguments = {
+                "target_dir": ".",
+                "pending_event_id": "current",
+                "note": "<past-tense implementation note>",
+                "plan_step": "plan-step-implement",
+                "plan_status": "completed",
+                "apply": True,
+            }
+        else:
+            after_mutation = (
+                f"./.aegis/bin/aegis log --target-dir . --handler {implementation_handler} "
+                "--evidence '<changed-file-or-command>' --note '<past-tense implementation note>' "
+                "--plan-step plan-step-implement --plan-status completed"
+            )
+            suggested_mcp_arguments = {
+                "target_dir": ".",
+                "handler": implementation_handler,
+                "evidence": "<changed-file-or-command>",
+                "note": "<past-tense implementation note>",
+                "event_class": "implementation",
+                "plan_step": "plan-step-implement",
+                "plan_status": "completed",
+                "apply": True,
+            }
         return _workflow_next_action(
             "make_task_scoped_source_change",
-            "Scope is logged. Make the requested code/docs change with native tools, then log the pending event.",
+            (
+                "Scope is logged. Make the requested code/docs change with native tools, "
+                "then log the pending event."
+                if pending_tracking_expected
+                else "Scope is logged. Make the requested code/docs change with native tools, then log explicit implementation evidence."
+            ),
+            suggested_cli=after_mutation,
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments=suggested_mcp_arguments,
             details={
-                "after_mutation": (
-                    "./.aegis/bin/aegis log --target-dir . --pending-id current "
-                    "--note '<past-tense note>' --plan-step plan-step-implement --plan-status completed"
-                )
+                "after_mutation": after_mutation,
+                "pending_tracking_expected": pending_tracking_expected,
             },
         )
     if normalized_plan_step == "plan-step-implement" and normalized_plan_status == "completed":
-        verification_rel = f"{work_rel}/reports/<slug>/task-verification.md"
-        return _workflow_next_action(
-            "run_task_specific_verification",
-            "Implementation is logged. Run the project's relevant verification and save a short report before strict Aegis verify.",
-            suggested_cli=(
+        verification_rel = f"{reports_rel}/task-verification.md"
+        if pending_tracking_expected:
+            suggested_cli = (
                 f"# write verification evidence, then:\n"
                 "./.aegis/bin/aegis log --target-dir . --pending-id current "
                 "--note 'Recorded task-specific verification evidence' "
                 "--plan-step plan-step-verify --plan-status completed"
-            ),
-            suggested_mcp_tool="aegis.log",
-            suggested_mcp_arguments={
+            )
+            suggested_mcp_arguments = {
                 "target_dir": ".",
                 "pending_event_id": "current",
                 "note": "Recorded task-specific verification evidence",
                 "plan_step": "plan-step-verify",
                 "plan_status": "completed",
                 "apply": True,
+            }
+        else:
+            suggested_cli = (
+                f"# write verification evidence, then:\n"
+                f"./.aegis/bin/aegis log --target-dir . --handler {verification_handler} "
+                f"--evidence {_quote_cli(verification_rel)} "
+                "--note 'Recorded task-specific verification evidence' "
+                "--plan-step plan-step-verify --plan-status completed"
+            )
+            suggested_mcp_arguments = {
+                "target_dir": ".",
+                "handler": verification_handler,
+                "evidence": verification_rel,
+                "note": "Recorded task-specific verification evidence",
+                "event_class": "verification",
+                "plan_step": "plan-step-verify",
+                "plan_status": "completed",
+                "apply": True,
+            }
+        return _workflow_next_action(
+            "run_task_specific_verification",
+            "Implementation is logged. Run the project's relevant verification and save a short report before strict Aegis verify.",
+            suggested_cli=suggested_cli,
+            suggested_mcp_tool="aegis.log",
+            suggested_mcp_arguments=suggested_mcp_arguments,
+            details={
+                "verification_report_pattern": verification_rel,
+                "pending_tracking_expected": pending_tracking_expected,
             },
-            details={"verification_report_pattern": verification_rel},
         )
     if normalized_plan_step == "plan-step-verify" and normalized_plan_status == "completed":
         if evidence_rel == AEGIS_VERIFY_REPORT_REL:
@@ -2992,6 +3314,7 @@ def log_work(
     session_rel = str(paths.get("session") or "")
     plan_rel = str(paths.get("plan") or "")
     work_rel = str(paths.get("work_tracking") or "")
+    reports_rel = str(paths.get("reports") or f"{work_rel}/reports/<slug>")
     if not session_rel or not plan_rel or not work_rel:
         raise AegisError("current work paths are incomplete; rerun aegis kickoff")
     session_path = target_root / session_rel
@@ -3153,11 +3476,13 @@ def log_work(
             "idempotent": not (updated_surfaces or plan_updated),
             "replay_completed_missing_surfaces": bool(updated_surfaces or plan_updated),
             "next_action": _next_action_after_log(
+                target_root=target_root,
                 remaining=[],
                 normalized_plan_step=normalized_plan_step,
                 normalized_plan_status=normalized_plan_status,
                 evidence_rel=evidence_rel,
                 work_rel=work_rel,
+                reports_rel=reports_rel,
             ),
         }
 
@@ -3244,11 +3569,13 @@ def log_work(
             "pending_event_id": pending_event_id or None,
         },
         "next_action": _next_action_after_log(
+            target_root=target_root,
             remaining=remaining,
             normalized_plan_step=normalized_plan_step,
             normalized_plan_status=normalized_plan_status,
             evidence_rel=evidence_rel,
             work_rel=work_rel,
+            reports_rel=reports_rel,
         ),
     }
 
@@ -3362,7 +3689,13 @@ def initialize_project(
     target_root.mkdir(parents=True, exist_ok=True)
     selected_agents = list(agents or [primary_agent])
     enabled_agents = _enabled_agents(primary_agent, selected_agents)
-    inspect_before = inspect_project(target_root, profile=profile)
+    inspect_before = inspect_project(
+        target_root,
+        profile=profile,
+        source_root=source_root,
+        default_primary_agent=primary_agent,
+        default_agents=enabled_agents,
+    )
     plan = plan_install(
         target_root,
         source_root=source_root,
@@ -3383,7 +3716,12 @@ def initialize_project(
     verification: dict[str, Any] | None = None
     status_value = str(install_report.get("status") or "unknown")
     if status_value == "applied" and verify_after_install:
-        verification = verify(target_root, source_root=source_root)
+        verification = verify(
+            target_root,
+            source_root=source_root,
+            default_primary_agent=primary_agent,
+            default_agents=enabled_agents,
+        )
         if verification.get("status") == "failed":
             status_value = "failed"
 
@@ -4153,6 +4491,8 @@ def doctor(
     target_dir: str | Path,
     *,
     source_root: str | Path,
+    default_primary_agent: str = "claude",
+    default_agents: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     """Diagnose installed Aegis state without mutating the target repository."""
 
@@ -4257,7 +4597,12 @@ def doctor(
             "actions": repair_actions,
             "apply_command": "aegis repair --apply" if safe_actions else None,
         },
-        "next_action": next_action(target_root, source_root=source),
+        "next_action": next_action(
+            target_root,
+            source_root=source,
+            default_primary_agent=default_primary_agent,
+            default_agents=default_agents,
+        ),
     }
 
 
@@ -4426,6 +4771,8 @@ def verify(
     source_root: str | Path,
     strict: bool = False,
     dry_run: bool = False,
+    default_primary_agent: str = "claude",
+    default_agents: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     target_root = _resolve_target_root(target_dir)
     source = Path(source_root).resolve()
@@ -4434,6 +4781,14 @@ def verify(
     mode = "strict" if strict else "standard"
     checks: list[dict[str, Any]] = []
     if manifest is None:
+        guidance_primary_agent, guidance_agents = _normalise_default_agent_selection(
+            default_primary_agent,
+            default_agents,
+        )
+        install_cli = (
+            f"./.aegis/bin/aegis install --target-dir . "
+            f"{_agent_selection_cli_args(guidance_primary_agent, guidance_agents)} --apply"
+        )
         report = {
             "schema_version": SCHEMA_VERSION,
             "mode": mode,
@@ -4460,16 +4815,13 @@ def verify(
             "next_action": _workflow_next_action(
                 "install_aegis_before_verify",
                 "Aegis is not installed in this target. Install it before running strict verification.",
-                suggested_cli=(
-                    "./.aegis/bin/aegis install --target-dir . "
-                    "--primary-agent claude --agent claude --apply"
-                ),
+                suggested_cli=install_cli,
                 suggested_mcp_tool="aegis.install",
                 suggested_mcp_arguments={
                     "target_dir": ".",
                     "profile": "generic",
-                    "primary_agent": "claude",
-                    "agents": ["claude"],
+                    "primary_agent": guidance_primary_agent,
+                    "agents": list(guidance_agents),
                     "apply": True,
                 },
             ),
@@ -4507,6 +4859,40 @@ def verify(
         checks.extend(_strict_verification_checks(target_root, manifest))
 
     failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
+    pending_tracking_expected = _expects_pending_tracking(target_root)
+    verification_handler = _workflow_log_handler(target_root, "verification")
+    if pending_tracking_expected:
+        strict_log_cli = (
+            "./.aegis/bin/aegis log --target-dir . --pending-id current "
+            "--note 'Recorded strict verification evidence' "
+            "--plan-step plan-step-verify --plan-status completed"
+        )
+        strict_log_mcp_arguments = {
+            "target_dir": ".",
+            "pending_event_id": "current",
+            "note": "Recorded strict verification evidence",
+            "plan_step": "plan-step-verify",
+            "plan_status": "completed",
+            "apply": True,
+        }
+    else:
+        strict_log_cli = (
+            f"./.aegis/bin/aegis log --target-dir . --handler {verification_handler} "
+            f"--evidence {AEGIS_VERIFY_REPORT_REL} "
+            "--note 'Recorded strict verification evidence' "
+            "--plan-step plan-step-verify --plan-status completed"
+        )
+        strict_log_mcp_arguments = {
+            "target_dir": ".",
+            "handler": verification_handler,
+            "evidence": AEGIS_VERIFY_REPORT_REL,
+            "note": "Recorded strict verification evidence",
+            "event_class": "verification",
+            "plan_step": "plan-step-verify",
+            "plan_status": "completed",
+            "apply": True,
+        }
+
     report = {
         "schema_version": SCHEMA_VERSION,
         "mode": mode,
@@ -4527,21 +4913,13 @@ def verify(
             _workflow_next_action(
                 "log_strict_verification_before_closeout",
                 "Strict verification passed. Log the verification evidence against plan-step-verify before closeout.",
-                suggested_cli=(
-                    "./.aegis/bin/aegis log --target-dir . --pending-id current "
-                    "--note 'Recorded strict verification evidence' "
-                    "--plan-step plan-step-verify --plan-status completed"
-                ),
+                suggested_cli=strict_log_cli,
                 suggested_mcp_tool="aegis.log",
-                suggested_mcp_arguments={
-                    "target_dir": ".",
-                    "pending_event_id": "current",
-                    "note": "Recorded strict verification evidence",
-                    "plan_step": "plan-step-verify",
-                    "plan_status": "completed",
-                    "apply": True,
+                suggested_mcp_arguments=strict_log_mcp_arguments,
+                details={
+                    "evidence": AEGIS_VERIFY_REPORT_REL,
+                    "pending_tracking_expected": pending_tracking_expected,
                 },
-                details={"evidence": AEGIS_VERIFY_REPORT_REL},
             )
             if strict and not failed_required
             else _workflow_next_action(

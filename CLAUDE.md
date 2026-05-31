@@ -9,7 +9,7 @@ Before Claude performs any persistent mutation, readiness must be `READY`.
 bash .claude/scripts/readiness.sh
 ```
 
-`BLOCKED` means no file edits, Bash mutations, Taskmaster mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed.
+`BLOCKED` means no file edits, Bash mutations, Taskmaster mutations, memory writes, Git writes, GitHub writes, or MCP mutations. Fix the workflow state first by using the kickoff/session/plan/work-tracking flow. Read-only inspection is allowed. For Taskmaster MCP, only discovery tools (`help`, `get_tasks`, `next_task`, `get_task`) count as read-only before kickoff; Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked.
 
 The PreToolUse dispatcher in `.claude/scripts/pretooluse-gate.sh` enforces this for hookable Claude file tools and tested Bash mutation patterns. After a successful mutation, `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking and `.claude/scripts/tracking-stop-gate.sh` blocks session stop until `aegis log` has updated the session, tracker, implementation log, changelog, handoff, and plan evidence.
 
@@ -26,7 +26,7 @@ Claude mutations require all of these to align:
 ## Operating Loop
 1. Run readiness and stop on `BLOCKED`.
 2. Read `sessions/current`, `plans/current`, and the active `HANDOFF.md`.
-3. Review the Taskmaster task with `task-master show <id>`.
+3. Review the Taskmaster task with `task-master show <id>` or the read-only Taskmaster MCP equivalents (`next_task`, `get_task`) when MCP is available.
 4. Work one subtask at a time.
 5. For every meaningful step, run `aegis log` or `./.aegis/bin/aegis log` before attempting the next mutation. The log must update the active session, tracker, implementation log, changelog, handoff, and current plan evidence; add `--surface findings` or `--surface decisions` when the mutation captured one of those records.
 6. Capture command evidence under the active work-tracking `reports/` folder.

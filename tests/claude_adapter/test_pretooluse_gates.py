@@ -252,13 +252,55 @@ def test_pretooluse_blocks_mutating_mcp_when_readiness_blocked(tmp_path: Path) -
     assert "readiness is BLOCKED" in result.stderr
 
 
-def test_pretooluse_allows_read_only_mcp_when_readiness_blocked(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("mcp__taskmaster_ai__help", {}),
+        ("mcp__taskmaster_ai__get_tasks", {}),
+        ("mcp__taskmaster_ai__next_task", {}),
+        ("mcp__taskmaster_ai__get_task", {"id": "105"}),
+        ("mcp__taskmaster-ai__help", {}),
+        ("mcp__taskmaster-ai__next_task", {}),
+        ("mcp__taskmaster-ai__get_task", {"id": "105"}),
+    ],
+)
+def test_pretooluse_allows_taskmaster_read_only_discovery_when_readiness_blocked(
+    tmp_path: Path, tool_name: str, tool_input: dict[str, str]
+) -> None:
     repo = make_repo(tmp_path, ready=False)
 
-    result = run_gate(PRETOOLUSE, repo, payload("mcp__taskmaster_ai__get_task", id="105"))
+    result = run_gate(PRETOOLUSE, repo, payload(tool_name, **tool_input))
 
     assert result.returncode == 0
     assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("mcp__taskmaster_ai__set_task_status", {"id": "105", "status": "done"}),
+        ("mcp__taskmaster_ai__update_task", {"id": "105", "prompt": "notes"}),
+        ("mcp__taskmaster_ai__update_subtask", {"id": "105.1", "prompt": "notes"}),
+        ("mcp__taskmaster_ai__add_task", {"prompt": "new task"}),
+        ("mcp__taskmaster_ai__expand_task", {"id": "105"}),
+        ("mcp__taskmaster_ai__parse_prd", {"input": ".taskmaster/docs/prd.txt"}),
+        ("mcp__taskmaster_ai__generate", {}),
+        ("mcp__taskmaster_ai__add_dependency", {"id": "105", "depends_on": "104"}),
+        ("mcp__taskmaster_ai__move_task", {"from_id": "105", "to_id": "106"}),
+        ("mcp__taskmaster_ai__show", {"id": "105"}),
+        ("mcp__taskmaster_ai__forget_task", {"id": "105"}),
+        ("mcp__taskmaster_ai__sync_remote_state", {}),
+    ],
+)
+def test_pretooluse_blocks_taskmaster_mcp_mutations_and_unknowns_when_readiness_blocked(
+    tmp_path: Path, tool_name: str, tool_input: dict[str, str]
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload(tool_name, **tool_input))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
 
 
 def test_pretooluse_blocks_unknown_mcp_when_readiness_blocked(tmp_path: Path) -> None:

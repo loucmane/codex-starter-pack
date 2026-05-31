@@ -85,6 +85,8 @@ class AegisMCPConfig:
 
     source_root: Path
     default_target_dir: Path
+    default_primary_agent: str = "claude"
+    default_agents: tuple[str, ...] = ("claude",)
     asset_origin: str = "source"
 
     @classmethod
@@ -93,6 +95,8 @@ class AegisMCPConfig:
         *,
         source_root: str | Path | None = None,
         default_target_dir: str | Path | None = None,
+        default_primary_agent: str | None = None,
+        default_agents: Sequence[str] | None = None,
     ) -> "AegisMCPConfig":
         """Create normalized server configuration from optional path inputs."""
 
@@ -109,9 +113,32 @@ class AegisMCPConfig:
             or os.environ.get("AEGIS_DEFAULT_TARGET_DIR")
             or "."
         ).expanduser().resolve()
+        primary = (
+            default_primary_agent
+            or os.environ.get("AEGIS_DEFAULT_PRIMARY_AGENT")
+            or os.environ.get("AEGIS_PRIMARY_AGENT")
+            or "claude"
+        )
+        if primary not in _aegis_installer.PRIMARY_AGENT_CHOICES:
+            primary = "claude"
+        env_agents = os.environ.get("AEGIS_DEFAULT_AGENTS") or os.environ.get("AEGIS_AGENTS")
+        selected_agents = tuple(dict.fromkeys(default_agents or ()))
+        if not selected_agents and env_agents:
+            selected_agents = tuple(
+                dict.fromkeys(agent.strip() for agent in env_agents.split(",") if agent.strip())
+            )
+        if not selected_agents and primary in _aegis_installer.AGENT_CHOICES:
+            selected_agents = (primary,)
+        if primary == "none":
+            selected_agents = ()
+        if any(agent not in _aegis_installer.AGENT_CHOICES for agent in selected_agents):
+            primary = "claude"
+            selected_agents = ("claude",)
         return cls(
             source_root=resolved_source,
             default_target_dir=resolved_target,
+            default_primary_agent=primary,
+            default_agents=selected_agents,
             asset_origin=asset_origin,
         )
 
@@ -126,6 +153,8 @@ class AegisMCPConfig:
             "schema_version": _aegis_installer.SCHEMA_VERSION,
             "source_root": self.source_root.as_posix(),
             "default_target_dir": self.default_target_dir.as_posix(),
+            "default_primary_agent": self.default_primary_agent,
+            "default_agents": list(self.default_agents),
         }
 
 
@@ -355,11 +384,17 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         target_dir: str,
         profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
     ) -> dict[str, Any]:
-        """Use proactively at the start of a normal coding task to detect Aegis workflow state; if not installed, run aegis.init before source edits."""
+        """Use proactively at the start of a normal coding task to detect Aegis workflow state; if not installed, call MCP aegis.init before source edits, using CLI fallback only when aegis is on PATH."""
 
         def call_core() -> dict[str, Any]:
             profile_value = _validate_profile(profile)
-            return installer.inspect_project(target_dir, profile=profile_value, source_root=config.source_root)
+            return installer.inspect_project(
+                target_dir,
+                profile=profile_value,
+                source_root=config.source_root,
+                default_primary_agent=config.default_primary_agent,
+                default_agents=config.default_agents,
+            )
 
         return run_tool(
             "aegis.inspect",
@@ -372,7 +407,12 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Report installed Aegis release state and embedded next workflow guidance without mutating the target."""
 
         def call_core() -> dict[str, Any]:
-            return installer.status(target_dir, source_root=config.source_root)
+            return installer.status(
+                target_dir,
+                source_root=config.source_root,
+                default_primary_agent=config.default_primary_agent,
+                default_agents=config.default_agents,
+            )
 
         return run_tool(
             "aegis.status",
@@ -385,7 +425,12 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Tell the agent the next required Aegis workflow action for a normal request; read-only, no source edits, no .aegis writes."""
 
         def call_core() -> dict[str, Any]:
-            return installer.next_action(target_dir, source_root=config.source_root)
+            return installer.next_action(
+                target_dir,
+                source_root=config.source_root,
+                default_primary_agent=config.default_primary_agent,
+                default_agents=config.default_agents,
+            )
 
         return run_tool(
             "aegis.next",
@@ -398,7 +443,12 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Read-only state diagnostic with a safe repair plan for installed Aegis projects."""
 
         def call_core() -> dict[str, Any]:
-            return installer.doctor(target_dir, source_root=config.source_root)
+            return installer.doctor(
+                target_dir,
+                source_root=config.source_root,
+                default_primary_agent=config.default_primary_agent,
+                default_agents=config.default_agents,
+            )
 
         return run_tool(
             "aegis.doctor",
@@ -513,11 +563,11 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         target_dir: str,
         apply: bool,
         profile: ProfileName = _aegis_installer.PROFILE_GENERIC,
-        primary_agent: PrimaryAgentName = "claude",
+        primary_agent: PrimaryAgentName | None = None,
         agents: AgentList | None = None,
         verify_after_install: bool = True,
     ) -> dict[str, Any]:
-        """Public project setup: install the Aegis project workflow; if Claude hooks changed, returns client_reload_required as a HARD STOP and tells the user to restart Claude before edits."""
+        """Public project setup: install the Aegis project workflow using this MCP server's default agent selection unless explicitly overridden."""
 
         if apply is not True:
             return _error_tool_response(
@@ -530,12 +580,16 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         def call_core() -> dict[str, Any]:
             profile_value = _validate_profile(profile)
-            selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents or ["claude"])
+            primary = primary_agent or config.default_primary_agent
+            selected = _validate_agent_selection(
+                primary_agent=primary,
+                agents=agents or list(config.default_agents),
+            )
             report = installer.initialize_project(
                 target_dir,
                 source_root=config.source_root,
                 profile=profile_value,
-                primary_agent=primary_agent,
+                primary_agent=primary,
                 agents=selected,
                 verify_after_install=verify_after_install,
             )
@@ -588,7 +642,13 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
-            report = installer.verify(target_dir, source_root=config.source_root, strict=strict)
+            report = installer.verify(
+                target_dir,
+                source_root=config.source_root,
+                strict=strict,
+                default_primary_agent=config.default_primary_agent,
+                default_agents=config.default_agents,
+            )
             if report.get("status") == "failed":
                 return _error_tool_response(
                     "aegis.verify",
@@ -1163,7 +1223,7 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
                 [
                     f"Target: `{target_dir}`",
                     "1. Run `aegis.inspect` and read `aegis://limitations`.",
-                    "2. For the normal public path, call `aegis.init apply=true` with Claude defaults.",
+                    f"2. For the normal public path, call `aegis.init apply=true` with the MCP server default agent selection (`primary_agent={config.default_primary_agent}`, `agents={list(config.default_agents)}`).",
                     "3. Use `aegis.plan_install` and `aegis.install` only when you need an advanced dry-run/conflict review path.",
                     "4. If `aegis.init` returns `client_reload.required=true` or `next_action=restart_claude_before_mutation`, ask the user to restart Claude before source mutations.",
                     "5. After reload, follow the returned `next_action`; it should direct you to `aegis.start apply=true` or Taskmaster-backed `aegis.kickoff apply=true` before source mutations.",
@@ -1205,7 +1265,7 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
         )
 
     @server.prompt(name="aegis.prepare_agent_session")
-    def prepare_agent_session(agent: str = "claude", target_dir: str = ".") -> str:
+    def prepare_agent_session(agent: str = config.default_primary_agent, target_dir: str = ".") -> str:
         return workflow_prompt(
             "Prepare Agent Session",
             "\n".join(
@@ -1253,6 +1313,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Default target directory for read-only operations; mutating tools still require explicit targets.",
     )
     parser.add_argument(
+        "--primary-agent",
+        choices=sorted(_aegis_installer.PRIMARY_AGENT_CHOICES),
+        help="Default primary agent used in public MCP guidance and aegis.init when omitted.",
+    )
+    parser.add_argument(
+        "--agent",
+        choices=sorted(_aegis_installer.AGENT_CHOICES),
+        action="append",
+        help="Default enabled agent adapter for public MCP guidance; repeat for multi-agent defaults.",
+    )
+    parser.add_argument(
         "--transport",
         choices=("stdio", "streamable-http", "sse"),
         default="stdio",
@@ -1274,6 +1345,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = AegisMCPConfig.from_paths(
         source_root=args.source_root,
         default_target_dir=args.default_target_dir,
+        default_primary_agent=args.primary_agent,
+        default_agents=args.agent,
     )
     if args.describe_config:
         print(json.dumps(config.to_dict(), indent=2, sort_keys=True))

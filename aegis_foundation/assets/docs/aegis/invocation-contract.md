@@ -71,6 +71,8 @@ task-master show <id>
 aegis kickoff --target-dir . --task <id> --slug <slug> --title "<title>"
 ```
 
+Taskmaster MCP discovery may be used instead of the CLI when it is available: `help`, `get_tasks`, `next_task`, and `get_task` are treated as read-only even while readiness is `BLOCKED` before kickoff. Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked until readiness is `READY`, except for the narrow post-closeout completion bookkeeping path for the matching task.
+
 For Taskmaster-backed work, Aegis creates the same branch, current-work file, session, plan, and active work-tracking scaffold as `aegis start`, but it does not create `.aegis/state/local-tasks.json` for that task. `aegis start` refuses to bypass an available Taskmaster task. After implementation, verification, strict verification, closeout, and read-only `aegis doctor` pass, mark the Taskmaster task done and refresh the targeted generated task file.
 
 Claude Code hook activation has a session boundary. If `aegis init` or `aegis install` creates or modifies `.claude/settings.json` or `.claude/scripts/*`, the install report includes `client_reload.required=true` and Aegis writes `.aegis/state/client-reload-required.json`. MCP `aegis.init` / `aegis.install` surface this as a blocked hard-stop response: `ok=false`, `error.code=client_reload_required`, `error.status=blocked`, and `details.must_stop=true`, while preserving the applied install report under `details.report`. In that state, `aegis.start` and `aegis.kickoff` are blocked, and the current Claude session must not edit source, run project verification, mutate Taskmaster, or attempt closeout. Stop, restart Claude in the project, let the installed `PreToolUse` hook clear the marker, run `aegis next`, and continue only after the installed hooks are active.
@@ -202,7 +204,7 @@ The MCP tools keep the same safety boundary as the CLI:
 - `aegis.log` writes S:W:H:E entries to `sessions/current`, the active `TRACKER.md`, and event-aware canonical surfaces; it writes plan evidence only when `plan_step` is supplied; it can consume pending hook events through `pending_event_id`; and it requires `apply=true` when invoked through MCP.
 - `aegis.closeout` is the final completion gate. It should run only after strict verification evidence has been logged and before an agent claims the task is complete.
 - Installed Claude `PostToolUse` and `Stop` hooks enforce pending S:W:H:E completion: task-scoped writes create `.aegis/state/pending-tracking.json`, further mutations are blocked until `aegis.log` clears it, and session stop is blocked while pending events remain.
-- After a successful closeout, installed Claude hooks allow only the narrow Taskmaster bookkeeping path for the matching task: `task-master set-status --id=<task-id> --status=done` or the Taskmaster MCP equivalent, plus `task-master generate` for generated task-file refresh. Other source, Aegis, Git, or mismatched Taskmaster mutations remain blocked in the completed-closeout state.
+- After a successful closeout, installed Claude hooks allow only the narrow Taskmaster bookkeeping path for the matching task: `task-master set-status --id=<task-id> --status=done` or the Taskmaster MCP equivalent, plus `task-master generate` for generated task-file refresh. Other source, Aegis, Git, unknown Taskmaster MCP tools, or mismatched Taskmaster mutations remain blocked in the completed-closeout state.
 - Agents must cite `.aegis/reports/*` or MCP tool/resource results as evidence, not prompt text.
 
 ## Editable Package-Style Mode

@@ -93,6 +93,12 @@ AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "list_profiles",
     "explain_profile",
 }
+TASKMASTER_READ_ONLY_MCP_TOOL_SUFFIXES = {
+    "help",
+    "get_tasks",
+    "next_task",
+    "get_task",
+}
 PATH_FIELD_NAMES = {
     "file_path",
     "filepath",
@@ -177,6 +183,22 @@ def is_mcp_tool(tool_name: str) -> bool:
     return tool_name.startswith("mcp__")
 
 
+def normalized_mcp_tool_name(tool_name: str) -> str:
+    return tool_name.lower().replace(".", "_").replace("-", "_")
+
+
+def mcp_is_taskmaster_tool(tool_name: str) -> bool:
+    normalized = normalized_mcp_tool_name(tool_name)
+    return "taskmaster" in normalized or "task_master" in normalized
+
+
+def mcp_is_read_only_taskmaster_discovery(payload: Payload) -> bool:
+    if not is_mcp_tool(payload.tool_name) or not mcp_is_taskmaster_tool(payload.tool_name):
+        return False
+    normalized = normalized_mcp_tool_name(payload.tool_name)
+    return any(normalized.endswith(f"__{suffix}") for suffix in TASKMASTER_READ_ONLY_MCP_TOOL_SUFFIXES)
+
+
 def is_hookable_tool(tool_name: str) -> bool:
     return tool_name in HOOKABLE_TOOLS or is_mcp_tool(tool_name)
 
@@ -210,7 +232,7 @@ def mcp_path_values(value: Any) -> list[str]:
 def mcp_is_mutation(payload: Payload) -> bool:
     if not is_mcp_tool(payload.tool_name):
         return False
-    normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+    normalized = normalized_mcp_tool_name(payload.tool_name)
     if "aegis" in normalized and normalized.endswith("repair"):
         return payload.tool_input.get("apply") is True
     if "aegis" in normalized and normalized.endswith("handoff_repair"):
@@ -219,6 +241,8 @@ def mcp_is_mutation(payload: Payload) -> bool:
         normalized.endswith(suffix) for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES
     ):
         return False
+    if mcp_is_taskmaster_tool(payload.tool_name):
+        return not mcp_is_read_only_taskmaster_discovery(payload)
     if MCP_MUTATION_TOOL_RE.search(payload.tool_name):
         return True
     if MCP_READ_ONLY_TOOL_RE.search(payload.tool_name):
@@ -679,8 +703,8 @@ def bash_is_post_closeout_taskmaster_completion(command: str, task_id: str) -> b
 
 
 def mcp_is_post_closeout_taskmaster_completion(payload: Payload, task_id: str) -> bool:
-    normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
-    if "taskmaster" not in normalized and "task_master" not in normalized:
+    normalized = normalized_mcp_tool_name(payload.tool_name)
+    if not mcp_is_taskmaster_tool(payload.tool_name):
         return False
     if normalized.endswith("generate"):
         return True

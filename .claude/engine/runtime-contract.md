@@ -35,7 +35,7 @@ Claude may perform persistent mutations only when all required pointers align:
 - `.claude/scripts/tracking-stop-gate.sh` blocks session stop until pending S:W:H:E tracking is logged.
 - `.claude/scripts/codex-path-guard.sh` blocks direct file-tool writes to Codex-owned paths.
 - `.claude/scripts/bash-command-guard.sh` blocks tested Bash write-surface bypasses against Codex-owned paths.
-- `.claude/scripts/pretooluse-gate.sh` also classifies MCP tools. Known read-only MCP calls are allowed for inspection, known mutating MCP calls are blocked when readiness is `BLOCKED`, and unknown MCP tools are treated as persistent until proven otherwise.
+- `.claude/scripts/pretooluse-gate.sh` also classifies MCP tools. Known read-only MCP calls are allowed for inspection, known mutating MCP calls are blocked when readiness is `BLOCKED`, and unknown MCP tools are treated as persistent until proven otherwise. Taskmaster MCP uses an explicit discovery allowlist before kickoff: `help`, `get_tasks`, `next_task`, and `get_task` are read-only; Taskmaster MCP mutations and unknown Taskmaster MCP tools remain persistent by default.
 - `.claude/scripts/config-change-guard.sh` blocks project settings changes from applying to the running Claude session if they remove the required PreToolUse dispatcher or Stop handoff hook.
 - `tests/claude_adapter/` contains the focused readiness and PreToolUse test coverage that defines verified behavior.
 
