@@ -395,7 +395,7 @@ def _add_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute:
     )
     parser.add_argument(
         "--source-mode",
-        choices=("package", "pinned", "github", "wheel", "source"),
+        choices=("package", "pinned", "github", "private-github", "wheel", "source"),
         default="package",
         help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
     )
@@ -407,9 +407,9 @@ def _add_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute:
     parser.add_argument(
         "--github-url",
         default=mcp_registration.DEFAULT_GITHUB_URL,
-        help="GitHub repository URL for --source-mode github.",
+        help="GitHub repository URL for --source-mode github/private-github.",
     )
-    parser.add_argument("--github-ref", help="Optional ref for --source-mode github.")
+    parser.add_argument("--github-ref", help="Optional ref for --source-mode github/private-github.")
     parser.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
     parser.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
     parser.add_argument(
@@ -794,7 +794,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     mcp_register.add_argument(
         "--source-mode",
-        choices=("package", "pinned", "github", "wheel", "source"),
+        choices=("package", "pinned", "github", "private-github", "wheel", "source"),
         default="package",
         help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
     )
@@ -803,9 +803,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     mcp_register.add_argument(
         "--github-url",
         default=mcp_registration.DEFAULT_GITHUB_URL,
-        help="GitHub repository URL for --source-mode github.",
+        help="GitHub repository URL for --source-mode github/private-github.",
     )
-    mcp_register.add_argument("--github-ref", help="Optional ref for --source-mode github.")
+    mcp_register.add_argument("--github-ref", help="Optional ref for --source-mode github/private-github.")
     mcp_register.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
     mcp_register.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
     mcp_register.add_argument(

@@ -18,11 +18,12 @@ SERVER_COMMAND = "aegis-mcp-server"
 DEFAULT_TRANSPORT = "stdio"
 DEFAULT_TARGET_DIR = "."
 DEFAULT_GITHUB_URL = "https://github.com/loucmane/codex-starter-pack.git"
+DEFAULT_PRIVATE_GITHUB_URL = "ssh://git@github.com/loucmane/codex-starter-pack.git"
 DEFAULT_UV_CACHE_DIR = ".aegis/uv-cache"
 DEFAULT_UV_TOOL_DIR = ".aegis/uv-tools"
 
 ClientName = Literal["claude", "codex"]
-SourceMode = Literal["package", "pinned", "github", "wheel", "source"]
+SourceMode = Literal["package", "pinned", "github", "private-github", "wheel", "source"]
 
 
 @dataclass(frozen=True)
@@ -59,10 +60,11 @@ def source_spec(request: RegistrationRequest) -> str:
     if request.source_mode == "pinned":
         version = request.package_version or PACKAGE_VERSION
         return f"{DISTRIBUTION_NAME}=={version}"
-    if request.source_mode == "github":
+    if request.source_mode in {"github", "private-github"}:
         url = request.github_url
-        if not url.startswith("git+"):
-            url = f"git+{url}"
+        if request.source_mode == "private-github" and url == DEFAULT_GITHUB_URL:
+            url = DEFAULT_PRIVATE_GITHUB_URL
+        url = normalize_git_source_url(url)
         if request.github_ref:
             url = f"{url}@{request.github_ref}"
         return url
@@ -85,6 +87,28 @@ def source_spec(request: RegistrationRequest) -> str:
             raise ValueError(f"Source artifact must contain pyproject.toml: {artifact.as_posix()}")
         return artifact.as_posix()
     raise ValueError(f"Unsupported source mode: {request.source_mode}")
+
+
+def normalize_git_source_url(url: str) -> str:
+    """Normalize public/private Git repository inputs for ``uvx --from``.
+
+    ``uvx`` expects pip-style VCS specs such as ``git+https://...`` or
+    ``git+ssh://...``. Users commonly copy SSH remotes as
+    ``git@github.com:owner/repo.git``; normalize that form so private GitHub
+    registration commands are deterministic across machines.
+    """
+
+    candidate = url.strip()
+    if not candidate:
+        raise ValueError("GitHub URL must not be empty")
+    if candidate.startswith("git+"):
+        return candidate
+    if "://" not in candidate and "@" in candidate and ":" in candidate:
+        user_host, path = candidate.split(":", 1)
+        return f"git+ssh://{user_host}/{path}"
+    if candidate.startswith(("ssh://", "https://", "http://")):
+        return f"git+{candidate}"
+    return f"git+{candidate}"
 
 
 def mcp_server_argv(request: RegistrationRequest) -> list[str]:
@@ -159,6 +183,14 @@ def registration_payload(request: RegistrationRequest) -> dict[str, Any]:
 
     server_args = mcp_server_argv(request)
     native_args = client_argv(request)
+    safety_notes = [
+        "native-client-registration-is-primary",
+        "config-file-writes-are-fallback-only",
+        "package-mode-does-not-require-local-source-checkout",
+        "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+    ]
+    if request.source_mode == "private-github":
+        safety_notes.append("private-github-requires-native-git-auth")
     return {
         "status": "generated",
         "server": SERVER_NAME,
@@ -174,12 +206,7 @@ def registration_payload(request: RegistrationRequest) -> dict[str, Any]:
         "client_argv": native_args,
         "rendered_command": shell_join(native_args),
         "read_only": True,
-        "safety_notes": [
-            "native-client-registration-is-primary",
-            "config-file-writes-are-fallback-only",
-            "package-mode-does-not-require-local-source-checkout",
-            "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
-        ],
+        "safety_notes": safety_notes,
     }
 
 

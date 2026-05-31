@@ -120,6 +120,23 @@ def test_claude_project_and_codex_registration_commands_match_native_syntax() ->
             "git+https://github.com/loucmane/codex-starter-pack.git@v0.1.0",
         ),
         (
+            mcp_registration.RegistrationRequest(
+                client="claude",
+                source_mode="private-github",
+                github_ref="main",
+            ),
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main",
+        ),
+        (
+            mcp_registration.RegistrationRequest(
+                client="codex",
+                source_mode="private-github",
+                github_url="git@github.com:loucmane/codex-starter-pack.git",
+                github_ref="task-134",
+            ),
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@task-134",
+        ),
+        (
             mcp_registration.RegistrationRequest(client="claude", source_mode="package"),
             "aegis-foundation",
         ),
@@ -134,6 +151,25 @@ def test_package_registration_source_modes_resolve_uvx_from_spec(
     assert payload["package_spec"] == expected
     assert payload["mcp_server_argv"][0:3] == ["uvx", "--from", expected]
     assert "aegis-mcp-server" in payload["mcp_server_argv"]
+
+
+def test_private_github_registration_command_uses_native_auth_source() -> None:
+    payload = mcp_registration.registration_payload(
+        mcp_registration.RegistrationRequest(
+            client="codex",
+            source_mode="private-github",
+            github_ref="main",
+        )
+    )
+
+    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main"
+    assert payload["rendered_command"] == (
+        "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache "
+        "--env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from "
+        "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main "
+        "aegis-mcp-server --default-target-dir . --transport stdio"
+    )
+    assert "private-github-requires-native-git-auth" in payload["safety_notes"]
 
 
 def test_local_wheel_and_source_modes_resolve_absolute_uvx_from_spec(tmp_path: Path) -> None:
@@ -301,6 +337,38 @@ def test_verify_registration_output_fails_wrong_source_and_transport() -> None:
     assert {"source_spec", "transport"} <= failed_ids
 
 
+def test_verify_registration_output_passes_for_private_github_source() -> None:
+    request = mcp_registration.RegistrationRequest(
+        client="codex",
+        source_mode="private-github",
+        github_ref="main",
+    )
+    stdout = json.dumps(
+        {
+            "name": "aegis",
+            "command": "uvx",
+            "args": [
+                "--from",
+                "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main",
+                "aegis-mcp-server",
+                "--default-target-dir",
+                ".",
+                "--transport",
+                "stdio",
+            ],
+            "env": {
+                "UV_CACHE_DIR": ".aegis/uv-cache",
+                "UV_TOOL_DIR": ".aegis/uv-tools",
+            },
+        }
+    )
+
+    payload = mcp_registration.verify_registration_output(request, stdout=stdout)
+
+    assert payload["status"] == "passed"
+    assert payload["failed_required"] == 0
+
+
 def test_package_cli_generates_native_registration_json(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -321,6 +389,31 @@ def test_package_cli_generates_native_registration_json(
     payload = json.loads(capsys.readouterr().out)
     assert payload["package_spec"] == "aegis-foundation==0.1.0"
     assert payload["rendered_command"].startswith("claude mcp add --scope project aegis -e")
+
+
+def test_package_cli_generates_private_github_registration_json(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    result = aegis_cli.main(
+        [
+            "mcp",
+            "generate-registration",
+            "--client",
+            "claude",
+            "--scope",
+            "user",
+            "--source-mode",
+            "private-github",
+            "--github-ref",
+            "main",
+        ]
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main"
+    assert payload["rendered_command"].startswith("claude mcp add --scope user aegis -e")
+    assert "private-github-requires-native-git-auth" in payload["safety_notes"]
 
 
 def test_package_cli_public_register_delegates_to_native_registration(
@@ -402,6 +495,33 @@ def test_repo_wrapper_generates_native_registration_json() -> None:
         "--env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation "
         "aegis-mcp-server --default-target-dir . --transport stdio"
     )
+
+
+def test_repo_wrapper_generates_private_github_registration_json() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/codex-task",
+            "aegis",
+            "mcp",
+            "generate-registration",
+            "--client",
+            "codex",
+            "--source-mode",
+            "private-github",
+            "--github-ref",
+            "main",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["package_spec"] == "git+ssh://git@github.com/loucmane/codex-starter-pack.git@main"
 
 
 def _write_fake_native_client(bin_dir: Path, name: str) -> Path:

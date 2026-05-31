@@ -1,0 +1,7 @@
+# Task 134 Private GitHub Distribution and Cross-Machine Install Flow – Changelog
+
+- 2026-05-31 14:20 CEST — Initialized active work-tracking folder.
+- **2026-05-31 14:32 CEST** - [S:20260531|W:task134-private-github-distribution|H:apply_patch|E:aegis_foundation/mcp_registration.py] Added explicit private GitHub MCP registration source support with SSH normalization and native Git auth safety metadata.
+- **2026-05-31 14:32 CEST** - [S:20260531|W:task134-private-github-distribution|H:apply_patch|E:docs/aegis/mcp-client-setup.md] Added first-class private GitHub new-machine commands for Claude and Codex.
+- **2026-05-31 14:32 CEST** - [S:20260531|W:task134-private-github-distribution|H:pytest|E:cmd`env UV_CACHE_DIR=/tmp/uv-cache-task134 PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_native_mcp_registration.py tests/meta_workflow_guard/test_aegis_invocation_contract.py -q`] Focused native MCP registration and invocation-contract tests passed: 33 passed.
+- **2026-05-31 14:36 CEST** - [S:20260531|W:task134-private-github-distribution|H:pytest|E:cmd`env UV_CACHE_DIR=/tmp/uv-cache-task134 PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_server.py tests/meta_workflow_guard/test_aegis_schemas.py tests/meta_workflow_guard/test_aegis_installer.py tests/meta_workflow_guard/test_aegis_native_mcp_registration.py tests/meta_workflow_guard/test_aegis_invocation_contract.py -q`] Broader Aegis MCP/installer/schema/registration regression suite passed: 138 passed, 1 skipped.
