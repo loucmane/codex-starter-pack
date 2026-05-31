@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import asyncio
 from collections.abc import Callable
@@ -122,6 +123,36 @@ def _call_tool_payload(server, name: str, arguments: dict | None = None) -> dict
     payload = json.loads(content[0].text)
     assert structured_payload == payload
     return payload
+
+
+def _assert_client_reload_blocked(payload: dict, *, tool: str, report_status: str) -> dict:
+    assert payload["ok"] is False
+    assert payload["tool"] == tool
+    assert payload["error"]["code"] == "client_reload_required"
+    assert payload["error"]["status"] == "blocked"
+    assert payload["error"]["details"]["must_stop"] is True
+    report = payload["error"]["details"]["report"]
+    assert report["status"] == report_status
+    return report
+
+
+def _simulate_claude_reload(target: Path) -> None:
+    result = subprocess.run(
+        ["bash", str(target / ".claude" / "scripts" / "pretooluse-gate.sh")],
+        cwd=target,
+        input=json.dumps(
+            {
+                "tool_name": "mcp__aegis__aegis_next",
+                "tool_input": {"target_dir": target.as_posix()},
+            }
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "CLAUDE_PROJECT_DIR": target.as_posix()},
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def _read_resource_payload(server, uri: str) -> dict:
@@ -314,9 +345,13 @@ def test_aegis_mcp_tools_preserve_core_install_and_verify_contract(tmp_path: Pat
             "apply": True,
         },
     )
-    assert install_payload["ok"] is True
-    assert install_payload["read_only"] is False
-    assert install_payload["result"]["status"] == "applied"
+    install_report = _assert_client_reload_blocked(
+        install_payload,
+        tool="aegis.install",
+        report_status="applied",
+    )
+    _simulate_claude_reload(target)
+    assert install_report["status"] == "applied"
 
     verify_without_ack = _call_tool_payload(
         server,
@@ -386,8 +421,11 @@ def test_aegis_mcp_existing_claude_merge_preserves_core_report_shape(tmp_path: P
         apply=True,
     )
 
-    assert mcp_payload["ok"] is True
-    mcp_report = mcp_payload["result"]
+    mcp_report = _assert_client_reload_blocked(
+        mcp_payload,
+        tool="aegis.install",
+        report_status="applied",
+    )
     assert mcp_report["status"] == core_report["status"] == "applied"
     for target, report in ((mcp_target, mcp_report), (core_target, core_report)):
         claude_text = (target / "CLAUDE.md").read_text(encoding="utf-8")

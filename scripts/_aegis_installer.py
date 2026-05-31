@@ -44,8 +44,10 @@ AEGIS_REPORTS_REL = ".aegis/reports"
 AEGIS_STATE_REL = ".aegis/state"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
+AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_LOCAL_TASKS_REL = ".aegis/state/local-tasks.json"
+TASKMASTER_TASKS_REL = ".taskmaster/tasks/tasks.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
@@ -328,6 +330,7 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- The installed Aegis runtime, not the MCP session, is responsible for enforcement.",
             "- Installed hooks govern persistent mutations regardless of whether the attempted mutation comes from MCP, Bash, Edit, Write, or another supported tool surface.",
             "- MCP is the bootstrap and control-plane interface. It is not a replacement for the agent's editor, shell, test runner, or normal implementation workflow.",
+            "- Claude Code loads `.claude/settings.json` hooks at session start. If Aegis just created or changed Claude settings/hooks, restart Claude before source edits so enforcement is active.",
             "",
             "## Verification",
             "",
@@ -338,12 +341,15 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "## Work Kickoff",
             "",
-            "- Start local work with `aegis start \"<task title>\"` or `./.aegis/bin/aegis start ...` when the global command is unavailable.",
-            "- Use explicit `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` only when an external task id already exists.",
+            "- Start local work with `aegis start \"<task title>\"` or `./.aegis/bin/aegis start ...` only when no external task id exists.",
+            "- If `.taskmaster/tasks/tasks.json` contains available numeric work, run `task-master next` and `task-master show <id>` first, then use explicit `aegis kickoff --task <id> --slug <slug> --title \"<title>\"`.",
+            "- Taskmaster done only after Aegis closeout and doctor pass. Do not run `task-master set-status --status=done` before `aegis closeout` and read-only `aegis doctor` are both healthy.",
+            "- After Taskmaster status changes, refresh generated task files. Prefer the project's targeted helper when present (for example `python3 scripts/codex-task taskmaster generate-one --id <id>`); otherwise run `task-master generate` deliberately and report that broad generated-file refresh was used.",
+            "- Use explicit `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` when an external task id already exists.",
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; then run `aegis closeout --update-handoff` before declaring the work complete.",
+            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; run `aegis closeout --update-handoff`; run read-only `aegis doctor`; only then mark Taskmaster done if Taskmaster is in use.",
             "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
@@ -375,7 +381,20 @@ def _render_claude_entrypoint() -> bytes:
             "aegis init",
             "```",
             "",
-            "If readiness is BLOCKED because no current work exists, infer a short task title from the user's request and start tracked local work with:",
+            "If this `aegis init` created or changed `.claude/settings.json` or `.claude/scripts/*`, stop before source edits and restart Claude Code in this project. Claude loads hooks at session start; after restart, run `aegis next` and continue.",
+            "",
+            "If readiness is BLOCKED because no current work exists and `.taskmaster/` is present, use Taskmaster as the task authority first:",
+            "",
+            "```bash",
+            "task-master next",
+            "task-master show <id>",
+            "aegis kickoff --task <id> --slug <slug> --title \"<title>\"",
+            "```",
+            "",
+            "Taskmaster done only after Aegis closeout and doctor pass.",
+            "After marking Taskmaster done, refresh generated task files with the project helper when present; otherwise run `task-master generate` deliberately and mention that broad refresh in the final report.",
+            "",
+            "If no Taskmaster numeric task is available, infer a short task title from the user's request and start tracked local work with:",
             "",
             "```bash",
             "aegis start \"<task title>\"",
@@ -388,14 +407,16 @@ def _render_claude_entrypoint() -> bytes:
             "Tool routing:",
             "",
             "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready, closeout, and future reconciliation.",
-            "- Use `aegis init` for first-time project setup and `aegis start \"<task title>\"` for local task kickoff when no external task id exists.",
+            "- If Taskmaster is installed and has available work, run `task-master next` and `task-master show <id>` or the Taskmaster MCP equivalent before `aegis kickoff`.",
+            "- Use `aegis init` for first-time project setup and `aegis start \"<task title>\"` for local task kickoff only when no external task id exists.",
             "- Use `aegis ...` or `./.aegis/bin/aegis ...` for the same workflow operations when MCP is unavailable.",
             "- Use native Claude tools for normal implementation work: reading files, editing source, running tests, and inspecting git status or diffs.",
             "- Do not use MCP as a replacement for normal source editing. The installed hooks enforce the workflow around native tool use.",
+            "- If `aegis.init` or `aegis.install` reports `client_reload.required=true`, restart Claude before any source edits; then run `aegis next` after the reload.",
             "",
             "Normal feature-work loop:",
             "",
-            "1. Confirm readiness. If Aegis is missing, run `aegis init`. If no current work exists, infer a task title and run `aegis start \"<task title>\"`. Then run `aegis next` or `./.aegis/bin/aegis next`.",
+            "1. Confirm readiness. If Aegis is missing, run `aegis init`. If no current work exists, run `aegis next` or `./.aegis/bin/aegis next`; use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a task title and run `aegis start \"<task title>\"`.",
             "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --plan-step auto --plan-status completed`.",
             "3. Make the task-scoped source change requested by the user with native Edit/Write tools.",
             "4. After the hook records pending tracking, run `aegis log --pending-id current --note \"<past-tense note>\" --plan-step auto --plan-status completed`.",
@@ -404,6 +425,8 @@ def _render_claude_entrypoint() -> bytes:
             "7. Run `aegis closeout --dry-run --update-handoff` or call MCP `aegis.closeout_ready` before final closeout.",
             "8. If handoff semantic gates fail, run `aegis handoff repair` or call MCP `aegis.handoff_repair apply=true`, then re-run closeout readiness.",
             "9. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
+            "10. Run read-only `aegis doctor --target-dir .` or call MCP `aegis.doctor` once after closeout; include the health result in the final report.",
+            "11. If Taskmaster is in use, run `task-master set-status --id=<id> --status=done` only after closeout and doctor pass. Then refresh generated task files with `python3 scripts/codex-task taskmaster generate-one --id <id>` when that project helper exists; otherwise run `task-master generate` deliberately and report the broad refresh.",
             "",
             "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.",
             "Read `.aegis/contract.md` for the shared contract and access policy.",
@@ -434,6 +457,7 @@ def _render_claude_settings() -> bytes:
                 "Bash(aegis log:*)",
                 "Bash(aegis verify:*)",
                 "Bash(aegis closeout:*)",
+                "Bash(task-master *)",
                 "Bash(./.aegis/bin/aegis inspect:*)",
                 "Bash(./.aegis/bin/aegis init:*)",
                 "Bash(./.aegis/bin/aegis status:*)",
@@ -1003,6 +1027,106 @@ def _summary(operations: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     return counts
 
 
+def _client_reload_marker_path(target_root: Path) -> Path:
+    return target_root / AEGIS_CLIENT_RELOAD_REL
+
+
+def _client_reload_marker(target_root: Path) -> dict[str, Any] | None:
+    payload = _read_json(_client_reload_marker_path(target_root))
+    return payload if isinstance(payload, dict) else None
+
+
+def _write_client_reload_marker(target_root: Path, report: Mapping[str, Any]) -> None:
+    changed_paths = [
+        str(path)
+        for path in report.get("changed_paths", [])
+        if isinstance(path, str) and path
+    ]
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "required",
+        "agent": report.get("agent") or "claude",
+        "created_at": _iso_now(),
+        "changed_paths": changed_paths,
+        "reason": report.get("reason"),
+        "instructions": report.get("instructions"),
+        "clearance": {
+            "method": "installed_claude_pretooluse_hook",
+            "path": ".claude/scripts/pretooluse-gate.sh",
+            "description": "A restarted Claude session proves hook activation when PreToolUse runs and clears this marker.",
+        },
+    }
+    _write_text(target_root, AEGIS_CLIENT_RELOAD_REL, _dump_json(payload))
+
+
+def _client_reload_report(target_root: Path, plan: Mapping[str, Any], enabled_agents: Sequence[str]) -> dict[str, Any]:
+    changed_paths: list[str] = []
+    if "claude" in enabled_agents:
+        for operation in plan.get("operations", []):
+            if not isinstance(operation, Mapping):
+                continue
+            classification = str(operation.get("classification") or "")
+            rel_path = str(operation.get("path") or "")
+            if classification not in {"create", "modify"}:
+                continue
+            if rel_path == "CLAUDE.md" or rel_path.startswith(".claude/"):
+                changed_paths.append(rel_path)
+
+    unique_changed_paths = sorted(set(changed_paths))
+    marker = _client_reload_marker(target_root)
+    marker_paths = [
+        str(path)
+        for path in (marker or {}).get("changed_paths", [])
+        if isinstance(path, str) and path
+    ]
+    effective_paths = unique_changed_paths or sorted(set(marker_paths))
+    required = bool(unique_changed_paths) or marker is not None
+    return {
+        "required": required,
+        "agent": "claude" if "claude" in enabled_agents else None,
+        "severity": "hard_stop" if required else "none",
+        "must_stop": required,
+        "pending_marker": marker is not None,
+        "marker_path": AEGIS_CLIENT_RELOAD_REL if required else None,
+        "changed_paths": effective_paths,
+        "reason": (
+            "Claude Code loads project hook settings at session start; newly created or changed "
+            ".claude/settings.json and .claude/scripts/* hooks are not guaranteed to govern this already-running session."
+            if required
+            else "No Claude adapter settings or hook scripts changed in this install."
+        ),
+        "instructions": (
+            "HARD STOP: if this install ran inside Claude Code, do not edit source files, run project verification, "
+            "mutate Taskmaster, or call aegis.start/aegis.kickoff in this same session. restart Claude in this "
+            "project so newly installed hooks are active. After restart, run aegis.next and start or kickoff tracked "
+            "work before mutating files."
+            if required
+            else "No Claude restart is required by this install."
+        ),
+        "forbidden_until_reload": (
+            [
+                "source edits",
+                "project verification commands",
+                "Taskmaster mutations",
+                "aegis.start",
+                "aegis.kickoff",
+                "aegis.verify",
+                "aegis.closeout",
+            ]
+            if required
+            else []
+        ),
+        "allowed_until_reload": (
+            [
+                "read-only Aegis inspect/status/next/doctor",
+                "tell the user to restart Claude in this project",
+            ]
+            if required
+            else []
+        ),
+    }
+
+
 def _expected_manifest_summary(primary_agent: str, enabled_agents: Sequence[str]) -> dict[str, Any]:
     return {
         "path": AEGIS_MANIFEST_REL,
@@ -1031,10 +1155,16 @@ def _verification_requirements(enabled_agents: Sequence[str]) -> list[dict[str, 
     ]
 
 
-def inspect_project(target_dir: str | Path, *, profile: str = PROFILE_GENERIC) -> dict[str, Any]:
+def inspect_project(
+    target_dir: str | Path,
+    *,
+    profile: str = PROFILE_GENERIC,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
     if profile != PROFILE_GENERIC:
         raise AegisError(f"Unsupported Aegis profile in V1: {profile}")
     target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve() if source_root else Path(__file__).resolve().parents[1]
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -1057,6 +1187,7 @@ def inspect_project(target_dir: str | Path, *, profile: str = PROFILE_GENERIC) -
             "reports": str(target_root / AEGIS_REPORTS_REL),
             "state": str(target_root / AEGIS_STATE_REL),
         },
+        "workflow_guidance": next_action(target_root, source_root=source),
     }
 
 
@@ -1221,6 +1352,79 @@ def _closeout_passed(target_root: Path) -> bool:
     return isinstance(current_work, Mapping) and bool(current_work.get("closeout_passed_at"))
 
 
+def _numeric_task_id(value: Any) -> str | None:
+    text = str(value or "").strip()
+    return text if re.fullmatch(r"\d+", text) else None
+
+
+def _iter_taskmaster_tasks(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    task_lists: list[Any] = []
+    root_tasks = payload.get("tasks")
+    if isinstance(root_tasks, list):
+        task_lists.append(root_tasks)
+    for value in payload.values():
+        if isinstance(value, Mapping) and isinstance(value.get("tasks"), list):
+            task_lists.append(value["tasks"])
+
+    tasks: list[Mapping[str, Any]] = []
+    seen_ids: set[str] = set()
+    for task_list in task_lists:
+        for item in task_list:
+            if not isinstance(item, Mapping):
+                continue
+            task_id = _numeric_task_id(item.get("id"))
+            if task_id is None or task_id in seen_ids:
+                continue
+            seen_ids.add(task_id)
+            tasks.append(item)
+    return tasks
+
+
+def _taskmaster_available_task(target_root: Path) -> dict[str, str] | None:
+    payload = _read_json(target_root / TASKMASTER_TASKS_REL)
+    if not isinstance(payload, Mapping):
+        return None
+
+    tasks = _iter_taskmaster_tasks(payload)
+    if not tasks:
+        return None
+
+    status_by_id = {
+        task_id: str(task.get("status") or "").strip().lower()
+        for task in tasks
+        if (task_id := _numeric_task_id(task.get("id"))) is not None
+    }
+
+    def dependencies_satisfied(task: Mapping[str, Any]) -> bool:
+        raw_dependencies = task.get("dependencies")
+        if not isinstance(raw_dependencies, list):
+            return True
+        for dependency in raw_dependencies:
+            dependency_id = _numeric_task_id(dependency)
+            if dependency_id is None:
+                continue
+            if status_by_id.get(dependency_id) not in {"done", "completed"}:
+                return False
+        return True
+
+    for preferred_status in ("in-progress", "pending"):
+        for task in tasks:
+            task_id = _numeric_task_id(task.get("id"))
+            if task_id is None:
+                continue
+            status = str(task.get("status") or "").strip().lower()
+            if status != preferred_status or not dependencies_satisfied(task):
+                continue
+            title = str(task.get("title") or f"Task {task_id}").strip() or f"Task {task_id}"
+            return {
+                "id": task_id,
+                "title": title,
+                "slug": _slugify(title),
+                "status": status,
+            }
+    return None
+
+
 def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
     """Return read-only workflow guidance for the next Aegis action."""
 
@@ -1246,14 +1450,19 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
         return _workflow_guidance_payload(
             phase="bootstrap",
             state="not_installed",
-            next_required_action="run aegis init before starting work",
+            next_required_action=(
+                "HARD STOP before source edits: run aegis init before starting work, "
+                "project verification, Taskmaster mutation, or Aegis start/kickoff"
+            ),
             suggested_cli="aegis init",
-            suggested_mcp_tool="aegis.plan_install",
+            suggested_mcp_tool="aegis.init",
             suggested_mcp_arguments={
                 "target_dir": ".",
                 "profile": PROFILE_GENERIC,
                 "primary_agent": "claude",
                 "agents": ["claude"],
+                "apply": True,
+                "verify_after_install": True,
             },
             missing_gates=["aegis.manifest"],
             copyable_repairs=[
@@ -1261,10 +1470,103 @@ def next_action(target_dir: str | Path, *, source_root: str | Path) -> dict[str,
                 "aegis plan-install --target-dir . --primary-agent claude --agent claude",
                 "aegis install --target-dir . --primary-agent claude --agent claude --apply",
             ],
+            details={
+                "must_initialize_before_source_edits": True,
+                "forbidden_until_init": [
+                    "source edits",
+                    "project verification",
+                    "Taskmaster mutations",
+                    "aegis.start",
+                    "aegis.kickoff",
+                ],
+                "allowed_until_init": [
+                    "read-only project inspection",
+                    "Taskmaster next/show discovery",
+                    "aegis.inspect",
+                    "aegis.status",
+                    "aegis.next",
+                    "aegis.init",
+                ],
+            },
         )
 
     current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if not isinstance(current_work, Mapping):
+        reload_marker = _client_reload_marker(target_root)
+        if reload_marker is not None:
+            return _workflow_guidance_payload(
+                phase="bootstrap",
+                state="client_reload_required",
+                next_required_action=(
+                    "restart Claude before start/kickoff or source edits so newly installed hooks are active"
+                ),
+                suggested_cli="Restart Claude Code in this project, then run ./.aegis/bin/aegis next --target-dir .",
+                suggested_mcp_tool="aegis.next",
+                suggested_mcp_arguments={"target_dir": "."},
+                missing_gates=["claude.client_reload"],
+                copyable_repairs=[
+                    "Exit this Claude session.",
+                    "Start Claude again in this same project directory.",
+                    "./.aegis/bin/aegis next --target-dir .",
+                ],
+                details={
+                    "client_reload_required": True,
+                    "marker_path": AEGIS_CLIENT_RELOAD_REL,
+                    "changed_paths": reload_marker.get("changed_paths", []),
+                    "clearance": reload_marker.get("clearance", {}),
+                },
+            )
+        taskmaster_task = _taskmaster_available_task(target_root)
+        if taskmaster_task is not None:
+            task_id = taskmaster_task["id"]
+            title = taskmaster_task["title"]
+            slug = taskmaster_task["slug"]
+            kickoff_cli = (
+                "./.aegis/bin/aegis kickoff --target-dir . "
+                f"--task {task_id} --slug {shlex.quote(slug)} --title {shlex.quote(title)}"
+            )
+            return _workflow_guidance_payload(
+                phase="start",
+                state="installed_taskmaster_available",
+                next_required_action=(
+                    "use Taskmaster next/show as task authority, then start Aegis with the explicit "
+                    "Taskmaster numeric task id before mutating files"
+                ),
+                suggested_cli=kickoff_cli,
+                suggested_mcp_tool="aegis.kickoff",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "task": task_id,
+                    "slug": slug,
+                    "title": title,
+                    "apply": True,
+                },
+                missing_gates=["aegis.current_work"],
+                copyable_repairs=[
+                    "task-master next",
+                    f"task-master show {task_id}",
+                    kickoff_cli,
+                    (
+                        f"task-master set-status --id={task_id} --status=done "
+                        "only after aegis closeout and aegis doctor pass"
+                    ),
+                ],
+                details={
+                    "taskmaster": {
+                        "source": TASKMASTER_TASKS_REL,
+                        "task": taskmaster_task,
+                        "ordering": [
+                            "task-master next/show",
+                            "aegis.kickoff",
+                            "native source edit",
+                            "aegis.verify",
+                            "aegis.closeout",
+                            "aegis.doctor",
+                            "task-master set-status --status=done",
+                        ],
+                    }
+                },
+            )
         return _workflow_guidance_payload(
             phase="start",
             state="installed_no_current_work",
@@ -1830,6 +2132,46 @@ def _workflow_next_action(
     return payload
 
 
+def _post_init_next_action(install_report: Mapping[str, Any]) -> dict[str, Any]:
+    client_reload = install_report.get("client_reload")
+    if isinstance(client_reload, Mapping) and bool(client_reload.get("required")):
+        changed_paths = [
+            str(path)
+            for path in client_reload.get("changed_paths", [])
+            if isinstance(path, str) and path
+        ]
+        return _workflow_next_action(
+            "restart_claude_before_mutation",
+            "HARD STOP: Aegis installed or changed Claude hooks/settings. Do not edit source, run project tests, mutate Taskmaster, or call start/kickoff in this same Claude session. restart Claude before any mutation so .claude/settings.json enforcement is active.",
+            suggested_cli="Restart Claude Code in this project, then run ./.aegis/bin/aegis next --target-dir .",
+            suggested_mcp_tool="aegis.next",
+            suggested_mcp_arguments={"target_dir": "."},
+            details={
+                "client_reload_required": True,
+                "must_stop": True,
+                "agent": client_reload.get("agent"),
+                "changed_paths": changed_paths,
+                "reload_reason": client_reload.get("reason"),
+                "forbidden_until_reload": client_reload.get("forbidden_until_reload", []),
+                "allowed_until_reload": client_reload.get("allowed_until_reload", []),
+                "post_reload": "Run aegis.next, then start/kickoff tracked work before source edits.",
+            },
+        )
+
+    return _workflow_next_action(
+        "start_tracked_work",
+        "Aegis is installed. Start local tracked work before mutating source files.",
+        suggested_cli='./.aegis/bin/aegis start "<task title>"',
+        suggested_mcp_tool="aegis.start",
+        suggested_mcp_arguments={
+            "target_dir": ".",
+            "title": "<task title>",
+            "apply": True,
+        },
+        details={"public_flow": "aegis init -> aegis start -> native edit -> aegis log/verify/closeout"},
+    )
+
+
 def _update_manifest_after_kickoff(target_root: Path) -> None:
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest = _read_json(manifest_path)
@@ -1839,6 +2181,17 @@ def _update_manifest_after_kickoff(target_root: Path) -> None:
     if isinstance(capabilities, dict):
         capabilities["work_tracking"] = True
     manifest_path.write_text(_dump_json(manifest), encoding="utf-8")
+
+
+def _ensure_client_reload_cleared(target_root: Path, operation: str) -> None:
+    marker = _client_reload_marker(target_root)
+    if marker is None:
+        return
+    raise AegisError(
+        f"Aegis {operation} is blocked because Claude must restart before workflow mutations. "
+        f"Marker: {AEGIS_CLIENT_RELOAD_REL}. Please restart Claude in this project so the installed "
+        ".claude/settings.json hooks run, then call aegis.next and retry."
+    )
 
 
 def kickoff(
@@ -1857,6 +2210,7 @@ def kickoff(
     resolved_source = Path(source_root).resolve() if source_root is not None else None
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
         raise AegisError("Aegis kickoff requires an installed .aegis/foundation-manifest.json")
+    _ensure_client_reload_cleared(target_root, "kickoff")
     _ensure_git_work_tree(target_root)
 
     normalized_task_id = _normalize_task_id(task_id)
@@ -2072,6 +2426,7 @@ def start_local_work(
     target_root = _resolve_target_root(target_dir)
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
         raise AegisError("Aegis start requires an installed .aegis/foundation-manifest.json; run aegis init first")
+    _ensure_client_reload_cleared(target_root, "start")
     _ensure_git_work_tree(target_root)
     clean_title = title.strip()
     if not clean_title:
@@ -2090,6 +2445,15 @@ def start_local_work(
                 "Aegis current work is already in progress: "
                 f"task {existing_task.get('id')} {existing_slug}. Close it out before starting {normalized_slug}."
             )
+    taskmaster_task = _taskmaster_available_task(target_root)
+    if taskmaster_task is not None:
+        raise AegisError(
+            "Taskmaster task "
+            f"{taskmaster_task['id']} is available; run task-master next/show and use "
+            "./.aegis/bin/aegis kickoff --target-dir . "
+            f"--task {taskmaster_task['id']} --slug {taskmaster_task['slug']} "
+            f"--title {shlex.quote(taskmaster_task['title'])} instead of aegis start."
+        )
     local_task = _allocate_local_task(target_root, clean_title, normalized_slug)
     report = kickoff(
         target_root,
@@ -2955,6 +3319,10 @@ def install(
         reports_dir = target_root / AEGIS_REPORTS_REL
         reports_dir.mkdir(parents=True, exist_ok=True)
         (target_root / AEGIS_PLAN_REPORT_REL).write_text(_dump_json(plan), encoding="utf-8")
+        client_reload = _client_reload_report(target_root, plan, enabled_agents)
+        if client_reload.get("required") and not client_reload.get("pending_marker"):
+            _write_client_reload_marker(target_root, client_reload)
+            client_reload = _client_reload_report(target_root, plan, enabled_agents)
         report = {
             "schema_version": SCHEMA_VERSION,
             "status": "applied",
@@ -2962,6 +3330,7 @@ def install(
             "target_root": str(target_root),
             "plan": plan,
             "manifest_path": AEGIS_MANIFEST_REL,
+            "client_reload": client_reload,
         }
         (target_root / AEGIS_INSTALL_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
         return report
@@ -3045,12 +3414,7 @@ def initialize_project(
             "install_json": AEGIS_INSTALL_REPORT_REL,
             "verification_json": AEGIS_VERIFY_REPORT_REL if verification is not None else None,
         },
-        "next_action": _workflow_next_action(
-            "start_tracked_work",
-            "Aegis is installed. Start local tracked work before mutating source files.",
-            suggested_cli='./.aegis/bin/aegis start "<task title>"',
-            details={"public_flow": "aegis init -> aegis start -> native edit -> aegis log/verify/closeout"},
-        ),
+        "next_action": _post_init_next_action(install_report),
     }
     return payload
 
@@ -4743,6 +5107,17 @@ def _build_closeout_repair_guidance(
     }
 
 
+def _handoff_repairable_closeout_failure(gate_ids: Sequence[str]) -> bool:
+    """Return true when deterministic handoff repair is the right next action."""
+
+    if not gate_ids:
+        return False
+    return all(
+        gate_id.startswith("closeout.handoff.") or gate_id == "closeout.evidence.handoff"
+        for gate_id in gate_ids
+    )
+
+
 def _closeout_failed_required_gate_ids(report: Mapping[str, Any]) -> list[str]:
     return [
         str(check.get("gate_id") or check.get("id") or "unknown")
@@ -5205,6 +5580,7 @@ def closeout(
     checks.extend(git_checks)
 
     failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
+    failed_required_gate_ids = [str(check.get("gate_id")) for check in failed_required]
     status_value = "failed" if failed_required else "passed"
     repair_guidance = _build_closeout_repair_guidance(
         surface_texts=surface_texts,
@@ -5272,12 +5648,37 @@ def closeout(
             )
             else
             _workflow_next_action(
+                "run_post_closeout_doctor",
+                "Closeout passed and wrote the report. Run read-only doctor once before the final user report.",
+                suggested_cli="./.aegis/bin/aegis doctor --target-dir .",
+                suggested_mcp_tool="aegis.doctor",
+                suggested_mcp_arguments={"target_dir": "."},
+                details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+            )
+            if status_value == "passed" and not dry_run
+            else _workflow_next_action(
                 "task_complete",
                 "Closeout passed. It is now valid to report the task complete and proceed with normal git/GitHub commands.",
                 suggested_cli="git status --short",
                 details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
             )
             if status_value == "passed"
+            else _workflow_next_action(
+                "apply_handoff_repair_before_retry",
+                "Closeout failed only on handoff gates. Run deterministic handoff repair, then re-run closeout readiness.",
+                suggested_cli="./.aegis/bin/aegis handoff repair --target-dir .",
+                suggested_mcp_tool="aegis.handoff_repair",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "apply": True,
+                },
+                details={
+                    "failed_required_gates": failed_required_gate_ids,
+                    "repair_items": repair_guidance["summary"]["items"],
+                    "after_repair": "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                },
+            )
+            if _handoff_repairable_closeout_failure(failed_required_gate_ids)
             else _workflow_next_action(
                 "repair_closeout_gates_before_retry",
                 "Closeout failed. Do not report the task complete; apply repair_guidance and retry closeout.",
@@ -5293,10 +5694,7 @@ def closeout(
                     **({} if dry_run else {"acknowledge_report_write": True}),
                 },
                 details={
-                    "failed_required_gates": [
-                        str(check.get("gate_id"))
-                        for check in failed_required
-                    ],
+                    "failed_required_gates": failed_required_gate_ids,
                     "repair_items": repair_guidance["summary"]["items"],
                 },
             )

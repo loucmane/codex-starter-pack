@@ -17,6 +17,8 @@ __pycache__/
 .codex/config.toml.bak*
 .codex/installation_id
 .codex/logs_*.sqlite*
+.codex/goals_*.sqlite*
+.codex/memories_*.sqlite*
 .codex/models_cache.json
 .codex/plugins/
 .codex/rules/

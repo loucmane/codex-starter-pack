@@ -21,6 +21,8 @@ from scripts import _aegis_installer as aegis_installer
 from scripts._aegis_installer import (
     AEGIS_MANIFEST_REL,
     AEGIS_CLOSEOUT_REPORT_REL,
+    AEGIS_CURRENT_WORK_REL,
+    AEGIS_CLIENT_RELOAD_REL,
     AEGIS_LOCAL_TASKS_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
@@ -99,6 +101,19 @@ def run_target_pretooluse(target: Path, payload: dict) -> subprocess.CompletedPr
         env={**os.environ, "CLAUDE_PROJECT_DIR": target.as_posix()},
         check=False,
     )
+
+
+def simulate_claude_reload(target: Path) -> None:
+    """Run an installed PreToolUse hook once to prove Claude hooks are active."""
+    result = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_next",
+            "tool_input": {"target_dir": target.as_posix()},
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
 
 
 def run_target_posttooluse(target: Path, payload: dict) -> subprocess.CompletedProcess[str]:
@@ -338,6 +353,7 @@ def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_fold
     target.mkdir()
     subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pointer-repair", title="Pointer Repair")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     stale = target / "docs/ai/work-tracking/active/20990101-task99-stale-ACTIVE"
@@ -366,6 +382,7 @@ def test_repair_apply_is_blocked_while_pending_tracking_exists(tmp_path: Path) -
     target.mkdir()
     subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pending-repair", title="Pending Repair")
     pending_path = target / AEGIS_PENDING_TRACKING_REL
     pending_path.parent.mkdir(parents=True, exist_ok=True)
@@ -401,6 +418,10 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     target.mkdir()
     subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     initialize_project(target, source_root=REPO_ROOT)
+    next_before_start = next_action(target, source_root=REPO_ROOT)
+    assert next_before_start["state"] == "client_reload_required"
+    assert next_before_start["suggested_mcp_call"]["tool"] == "aegis.next"
+    simulate_claude_reload(target)
     next_before_start = next_action(target, source_root=REPO_ROOT)
     assert next_before_start["state"] == "installed_no_current_work"
     assert next_before_start["suggested_mcp_call"]["tool"] == "aegis.start"
@@ -452,6 +473,7 @@ def test_start_local_work_replay_is_noop_and_different_work_is_refused(tmp_path:
     target.mkdir()
     subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
 
     first = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
     replay = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
@@ -548,7 +570,12 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     assert initial["read_only"] is True
     assert initial["phase"] == "bootstrap"
     assert initial["state"] == "not_installed"
-    assert initial["suggested_mcp_call"]["tool"] == "aegis.plan_install"
+    assert initial["suggested_mcp_call"]["tool"] == "aegis.init"
+    assert initial["suggested_mcp_call"]["arguments"]["apply"] is True
+    assert initial["details"]["must_initialize_before_source_edits"] is True
+    assert "source edits" in initial["details"]["forbidden_until_init"]
+    assert "Taskmaster mutations" in initial["details"]["forbidden_until_init"]
+    assert "aegis.inspect" in initial["details"]["allowed_until_init"]
 
     install_report = install(
         target,
@@ -560,10 +587,340 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     assert install_report["status"] == "applied"
 
     installed = next_action(target, source_root=REPO_ROOT)
+    assert installed["phase"] == "bootstrap"
+    assert installed["state"] == "client_reload_required"
+    assert installed["suggested_mcp_call"]["tool"] == "aegis.next"
+
+    simulate_claude_reload(target)
+    installed = next_action(target, source_root=REPO_ROOT)
     assert installed["phase"] == "start"
     assert installed["state"] == "installed_no_current_work"
     assert installed["suggested_mcp_call"]["tool"] == "aegis.start"
     assert installed["suggested_mcp_call"]["arguments"]["apply"] is True
+
+
+def test_next_action_prefers_taskmaster_kickoff_when_numeric_task_is_available(tmp_path: Path) -> None:
+    target = tmp_path / "guided-taskmaster-repo"
+    target.mkdir()
+    taskmaster_tasks = target / ".taskmaster" / "tasks"
+    taskmaster_tasks.mkdir(parents=True)
+    (taskmaster_tasks / "tasks.json").write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 42,
+                            "title": "Add visible Add to cart button",
+                            "description": "Use the project workflow and add the button.",
+                            "status": "pending",
+                            "priority": "medium",
+                            "dependencies": [],
+                            "subtasks": [],
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+
+    guided = next_action(target, source_root=REPO_ROOT)
+
+    assert guided["phase"] == "start"
+    assert guided["state"] == "installed_taskmaster_available"
+    assert "Taskmaster" in guided["next_required_action"]
+    assert guided["suggested_mcp_call"] == {
+        "tool": "aegis.kickoff",
+        "arguments": {
+            "target_dir": ".",
+            "task": "42",
+            "slug": "add-visible-add-to-cart-button",
+            "title": "Add visible Add to cart button",
+            "apply": True,
+        },
+    }
+    assert "./.aegis/bin/aegis kickoff --target-dir . --task 42" in guided["suggested_cli"]
+    repairs = "\n".join(guided["copyable_repairs"])
+    assert "task-master next" in repairs
+    assert "task-master show 42" in repairs
+    assert "aegis kickoff --target-dir . --task 42" in repairs
+    assert "aegis start '<task title>'" not in repairs
+    assert guided["details"]["taskmaster"]["task"] == {
+        "id": "42",
+        "title": "Add visible Add to cart button",
+        "slug": "add-visible-add-to-cart-button",
+        "status": "pending",
+    }
+    assert guided["details"]["taskmaster"]["ordering"] == [
+        "task-master next/show",
+        "aegis.kickoff",
+        "native source edit",
+        "aegis.verify",
+        "aegis.closeout",
+        "aegis.doctor",
+        "task-master set-status --status=done",
+    ]
+    claude_entry = (target / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "task-master next" in claude_entry
+    assert "task-master show <id>" in claude_entry
+    assert "Taskmaster done only after Aegis closeout and doctor pass" in claude_entry
+    assert "task-master generate" in claude_entry
+    claude_settings = json.loads((target / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    allowed = claude_settings["permissions"]["allow"]
+    assert "Bash(task-master *)" in allowed
+
+
+def test_install_report_flags_claude_reload_when_adapter_hooks_change(tmp_path: Path) -> None:
+    target = tmp_path / "claude-reload-required"
+    target.mkdir()
+
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    assert install_report["status"] == "applied"
+    reload_guidance = install_report["client_reload"]
+    assert reload_guidance["required"] is True
+    assert reload_guidance["agent"] == "claude"
+    assert ".claude/settings.json" in reload_guidance["changed_paths"]
+    assert any(path.startswith(".claude/scripts/") for path in reload_guidance["changed_paths"])
+    assert "restart Claude" in reload_guidance["instructions"]
+    assert (target / AEGIS_CLIENT_RELOAD_REL).is_file()
+
+    second = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    assert second["status"] == "applied"
+    assert second["client_reload"]["required"] is True
+    assert second["client_reload"]["pending_marker"] is True
+    assert second["client_reload"]["changed_paths"] == reload_guidance["changed_paths"]
+
+    hook_probe = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_next",
+            "tool_input": {"target_dir": target.as_posix()},
+        },
+    )
+    assert hook_probe.returncode == 0, hook_probe.stderr
+    assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
+
+    third = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    assert third["status"] == "applied"
+    assert third["client_reload"]["required"] is False
+    assert third["client_reload"]["changed_paths"] == []
+
+
+def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: Path) -> None:
+    target = tmp_path / "reload-barrier"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    assert install_report["client_reload"]["required"] is True
+    assert (target / AEGIS_CLIENT_RELOAD_REL).is_file()
+    guided = next_action(target, source_root=REPO_ROOT)
+    assert guided["state"] == "client_reload_required"
+    assert guided["suggested_mcp_call"]["tool"] == "aegis.next"
+
+    with pytest.raises(AegisError, match="restart Claude"):
+        start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
+    with pytest.raises(AegisError, match="restart Claude"):
+        kickoff(
+            target,
+            task_id="42",
+            slug="add-to-cart-button",
+            title="Add visible Add to cart button",
+            source_root=REPO_ROOT,
+        )
+
+    hook_probe = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_next",
+            "tool_input": {"target_dir": target.as_posix()},
+        },
+    )
+    assert hook_probe.returncode == 0, hook_probe.stderr
+    assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
+
+    kickoff_report = kickoff(
+        target,
+        task_id="42",
+        slug="add-to-cart-button",
+        title="Add visible Add to cart button",
+        source_root=REPO_ROOT,
+    )
+
+    assert kickoff_report["status"] == "started"
+    assert kickoff_report["task"]["id"] == "42"
+
+
+def test_start_local_work_refuses_to_bypass_available_taskmaster_task(tmp_path: Path) -> None:
+    target = tmp_path / "taskmaster-start-refusal"
+    target.mkdir()
+    taskmaster_tasks = target / ".taskmaster" / "tasks"
+    taskmaster_tasks.mkdir(parents=True)
+    (taskmaster_tasks / "tasks.json").write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 42,
+                            "title": "Add visible Add to cart button",
+                            "status": "pending",
+                            "dependencies": [],
+                            "subtasks": [],
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+
+    with pytest.raises(AegisError, match="Taskmaster task 42 is available"):
+        start_local_work(target, title="Add visible Add to cart button", source_root=REPO_ROOT)
+
+    assert not (target / AEGIS_LOCAL_TASKS_REL).exists()
+    assert not (target / AEGIS_CURRENT_WORK_REL).exists()
+
+
+def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Path) -> None:
+    target = tmp_path / "post-closeout-taskmaster"
+    target.mkdir()
+    taskmaster_tasks = target / ".taskmaster" / "tasks"
+    taskmaster_tasks.mkdir(parents=True)
+    (taskmaster_tasks / "tasks.json").write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 42,
+                            "title": "Add visible Add to cart button",
+                            "status": "pending",
+                            "dependencies": [],
+                            "subtasks": [],
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+    kickoff(
+        target,
+        task_id="42",
+        slug="add-visible-add-to-cart-button",
+        title="Add visible Add to cart button",
+        source_root=REPO_ROOT,
+    )
+    current_work_path = target / AEGIS_CURRENT_WORK_REL
+    current_work = json.loads(current_work_path.read_text(encoding="utf-8"))
+    current_work["status"] = "completed"
+    current_work["closeout_passed_at"] = "2026-05-30T15:48:41Z"
+    current_work["task"]["status"] = "completed"
+    current_work_path.write_text(json.dumps(current_work, indent=2) + "\n", encoding="utf-8")
+
+    done_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=42 --status=done"}},
+    )
+    assert done_gate.returncode == 0, done_gate.stderr
+    done_posttool = run_target_posttooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=42 --status=done"}},
+    )
+    assert done_posttool.returncode == 0, done_posttool.stderr
+    assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+    generate_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "test -f scripts/codex-task; task-master generate"}},
+    )
+    assert generate_gate.returncode == 0, generate_gate.stderr
+
+    wrong_task_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=99 --status=done"}},
+    )
+    assert wrong_task_gate.returncode == 2
+    assert "readiness is BLOCKED" in wrong_task_gate.stderr
+
+    source_edit_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Write", "tool_input": {"file_path": "src/main.ts"}},
+    )
+    assert source_edit_gate.returncode == 2
+    assert "readiness is BLOCKED" in source_edit_gate.stderr
+
+
+def test_public_init_requires_claude_reload_before_start_as_next_action(tmp_path: Path) -> None:
+    target = tmp_path / "public-init-guided-repo"
+    target.mkdir()
+
+    initialized = initialize_project(target, source_root=REPO_ROOT)
+
+    assert initialized["status"] == "initialized"
+    assert initialized["install"]["client_reload"]["required"] is True
+    assert initialized["next_action"]["action"] == "restart_claude_before_mutation"
+    assert "restart Claude" in initialized["next_action"]["message"]
+    assert initialized["next_action"]["suggested_mcp"]["tool"] == "aegis.next"
+    assert initialized["next_action"]["details"]["client_reload_required"] is True
+    assert ".claude/settings.json" in initialized["next_action"]["details"]["changed_paths"]
+    assert initialized["next_action"]["details"]["post_reload"] == "Run aegis.next, then start/kickoff tracked work before source edits."
 
 
 def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
@@ -577,6 +934,7 @@ def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
         agents=["claude"],
         apply=True,
     )
+    simulate_claude_reload(target)
     kickoff_report = kickoff(
         target,
         task_id="42",
@@ -660,6 +1018,7 @@ def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path
         agents=["claude"],
         apply=True,
     )
+    simulate_claude_reload(target)
     kickoff(
         target,
         task_id="42",
@@ -727,6 +1086,7 @@ def test_log_work_replay_does_not_duplicate_swhe_entries(tmp_path: Path) -> None
         agents=["claude"],
         apply=True,
     )
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="log-replay", title="Log Replay")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     evidence_rel = f"{current_work['paths']['work_tracking']}/FINDINGS.md"
@@ -771,6 +1131,7 @@ def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_en
         agents=["claude"],
         apply=True,
     )
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="log-backfill", title="Log Backfill")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     evidence_rel = f"{current_work['paths']['reports']}/implementation.txt"
@@ -824,6 +1185,7 @@ def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> 
         agents=["claude"],
         apply=True,
     )
+    simulate_claude_reload(target)
     kickoff(
         target,
         task_id="42",
@@ -1083,6 +1445,7 @@ def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     started = kickoff(target, task_id="42", slug="surface-defaults", title="Surface Defaults")
     assert started["next_action"]["action"] == "log_scope_before_edit"
     assert started["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
@@ -1160,6 +1523,7 @@ def test_log_work_consumes_pending_event_by_id(tmp_path: Path) -> None:
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pending-id", title="Pending Id")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     evidence_rel = f"{current_work['paths']['reports']}/pending-id.txt"
@@ -1228,6 +1592,7 @@ def test_mcp_verify_pending_event_uses_strict_report_evidence(tmp_path: Path) ->
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="mcp-verify", title="MCP Verify")
     (target / AEGIS_VERIFY_REPORT_REL).parent.mkdir(parents=True, exist_ok=True)
     (target / AEGIS_VERIFY_REPORT_REL).write_text("{}\n", encoding="utf-8")
@@ -1265,6 +1630,7 @@ def test_read_only_aegis_mcp_tools_do_not_create_pending_tracking(tmp_path: Path
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="mcp-read-only", title="MCP Read Only")
 
     for tool_name in (
@@ -1300,6 +1666,7 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="repair-guidance", title="Repair Guidance")
     current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
     work_rel = current_work["paths"]["work_tracking"]
@@ -1336,6 +1703,8 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
     failed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
 
     assert failed["status"] == "failed"
+    assert failed["next_action"]["action"] == "repair_closeout_gates_before_retry"
+    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.closeout"
     repair_items = failed["repair_guidance"]["items"]
     changelog_repairs = [
         item
@@ -1370,6 +1739,7 @@ def test_kickoff_ready_state_does_not_depend_on_optional_stale_taskmaster(tmp_pa
         apply=True,
     )
     assert report["status"] == "applied"
+    simulate_claude_reload(target)
 
     kickoff_report = kickoff(
         target,
@@ -1443,6 +1813,7 @@ def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_
         check=False,
     )
     assert git_init.returncode == 0, git_init.stderr
+    simulate_claude_reload(target)
 
     kickoff_report = kickoff(
         target,
@@ -1530,6 +1901,7 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
         apply=True,
     )
     assert install_report["status"] == "applied"
+    simulate_claude_reload(target)
 
     kickoff(
         target,
@@ -1624,7 +1996,9 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
 
     failed = closeout(target, source_root=REPO_ROOT)
     assert failed["status"] == "failed"
-    assert failed["next_action"]["action"] == "repair_closeout_gates_before_retry"
+    assert failed["next_action"]["action"] == "apply_handoff_repair_before_retry"
+    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.handoff_repair"
+    assert failed["next_action"]["suggested_mcp"]["arguments"]["apply"] is True
     assert "closeout.handoff.current_state" in failed["next_action"]["details"]["failed_required_gates"]
     assert any(
         check["gate_id"] == "closeout.handoff.current_state" and check["status"] == "fail"
@@ -1633,7 +2007,8 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
 
     passed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
     assert passed["status"] == "passed"
-    assert passed["next_action"]["action"] == "task_complete"
+    assert passed["next_action"]["action"] == "run_post_closeout_doctor"
+    assert passed["next_action"]["suggested_mcp"]["tool"] == "aegis.doctor"
     assert passed["summary"]["failed_required"] == 0
     assert passed["git"]["legacy_manual_only"] == ["gac"]
     assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]
@@ -1679,6 +2054,7 @@ def test_handoff_repair_fixes_placeholder_handoff_before_closeout(tmp_path: Path
         apply=True,
     )
     assert install_report["status"] == "applied"
+    simulate_claude_reload(target)
 
     kickoff(
         target,
@@ -1787,6 +2163,7 @@ def test_strict_verify_fails_when_workflow_template_is_missing(tmp_path: Path) -
         apply=True,
     )
     assert install_report["status"] == "applied"
+    simulate_claude_reload(target)
     kickoff(
         target,
         task_id="42",
@@ -2039,6 +2416,12 @@ def test_inspect_reports_installed_aegis_state(tmp_path: Path) -> None:
     before = inspect_project(target)
     assert before["aegis"]["installed"] is False
     assert before["detected_agents"]["claude"] is False
+    assert before["workflow_guidance"]["phase"] == "bootstrap"
+    assert before["workflow_guidance"]["state"] == "not_installed"
+    assert before["workflow_guidance"]["suggested_mcp_call"]["tool"] == "aegis.init"
+    assert before["workflow_guidance"]["details"]["must_initialize_before_source_edits"] is True
+    assert "source edits" in before["workflow_guidance"]["details"]["forbidden_until_init"]
+    assert "Taskmaster mutations" in before["workflow_guidance"]["details"]["forbidden_until_init"]
 
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
     after = inspect_project(target)
@@ -2046,6 +2429,7 @@ def test_inspect_reports_installed_aegis_state(tmp_path: Path) -> None:
     assert after["aegis"]["installed"] is True
     assert after["aegis"]["primary_agent"] == "claude"
     assert after["detected_agents"]["claude"] is True
+    assert after["workflow_guidance"]["state"] == "client_reload_required"
 
 
 def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: Path) -> None:

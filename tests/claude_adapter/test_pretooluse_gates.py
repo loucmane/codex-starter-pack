@@ -87,6 +87,28 @@ task_ids: [103]
     return repo
 
 
+def make_completed_closeout_repo(tmp_path: Path) -> Path:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "current-work.json",
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "status": "completed",
+                "closeout_passed_at": "2026-05-30T15:48:41Z",
+                "task": {
+                    "id": "103",
+                    "slug": "claude-runtime-adapter",
+                    "status": "completed",
+                    "title": "Claude Runtime Adapter",
+                },
+                "paths": {},
+            }
+        ),
+    )
+    return repo
+
+
 def gate_env(repo: Path) -> dict[str, str]:
     import os
 
@@ -246,6 +268,60 @@ def test_pretooluse_blocks_unknown_mcp_when_readiness_blocked(tmp_path: Path) ->
 
     assert result.returncode == 2
     assert "readiness is BLOCKED" in result.stderr
+
+
+def test_pretooluse_allows_matching_taskmaster_done_after_closeout(tmp_path: Path) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command="task-master set-status --id=103 --status=done"))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_allows_taskmaster_generate_after_closeout(tmp_path: Path) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command="test -f scripts/codex-task; task-master generate"))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_allows_matching_taskmaster_mcp_done_after_closeout(tmp_path: Path) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+
+    result = run_gate(PRETOOLUSE, repo, payload("mcp__taskmaster_ai__set_task_status", id="103", status="done"))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_nonmatching_taskmaster_done_after_closeout(tmp_path: Path) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command="task-master set-status --id=999 --status=done"))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
+def test_pretooluse_blocks_source_mutation_after_closeout(tmp_path: Path) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path="src/main.ts"))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
+def test_posttooluse_does_not_track_post_closeout_taskmaster_done(tmp_path: Path) -> None:
+    repo = make_completed_closeout_repo(tmp_path)
+
+    result = run_gate(POSTTOOLUSE, repo, payload("Bash", command="task-master set-status --id=103 --status=done"))
+
+    assert result.returncode == 0, result.stderr
+    assert not (repo / ".aegis" / "state" / "pending-tracking.json").exists()
 
 
 def test_pretooluse_blocks_mcp_protected_path_when_ready(tmp_path: Path) -> None:
