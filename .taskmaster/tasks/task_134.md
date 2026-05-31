@@ -2,7 +2,7 @@
 
 **Title:** Private GitHub Distribution and Cross-Machine Install Flow
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 133 ✓
 

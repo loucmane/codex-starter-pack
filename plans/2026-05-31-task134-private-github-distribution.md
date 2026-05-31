@@ -30,7 +30,7 @@ emergency_bypass: false
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Define the private GitHub distribution contract, command shape, and acceptance matrix for Claude/Codex across machines | docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/designs/private-github-install-flow.md | completed |
 | plan-step-implement | Add first-class private GitHub registration support while preserving package, pinned, wheel, source, and public GitHub modes | aegis_foundation/mcp_registration.py; aegis_foundation/cli.py; docs/aegis/ | completed |
-| plan-step-verify | Exercise command generation, fake native MCP registration, source-mode regression tests, and private-repo acceptance evidence | tests/meta_workflow_guard/test_aegis_native_mcp_registration.py; docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/reports/private-github-distribution/ | in-progress |
+| plan-step-verify | Exercise command generation, fake native MCP registration, source-mode regression tests, and private-repo acceptance evidence | tests/meta_workflow_guard/test_aegis_native_mcp_registration.py; docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/reports/private-github-distribution/ | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
