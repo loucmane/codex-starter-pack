@@ -25,3 +25,4 @@
 - `/tmp/aegis-task133-codex-live-full4-R8DoDU/shop-webapp/.aegis/reports/verification-report.json`
 - Focused pytest suite: 105 passed, 1 skipped.
 - Final repository guards passed: `python3 scripts/codex-guard validate --include-untracked`, `git diff --check`, `python3 scripts/codex-guard drift-check --strict --report-dir ""`, and `python3 scripts/codex-task taskmaster health`.
+- Archived on 2026-05-31 14:32 CEST — Folder moved to archive and tracker marked COMPLETED.

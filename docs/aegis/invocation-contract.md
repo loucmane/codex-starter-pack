@@ -15,6 +15,25 @@ aegis start "Improve BrandMark accessibility"
 
 `aegis init` is the task-master-init style setup command. `aegis start "<title>"` is the local-task path for projects without an external task id. In projects that already use Taskmaster, the public path is `task-master next`, `task-master show <id>`, then `aegis kickoff --task <id> --slug <slug> --title "<title>"` so Aegis uses Taskmaster's numeric task id instead of allocating a local one. The lower-level `inspect`, `plan-install`, and `install --apply` commands remain supported for advanced use and debugging.
 
+The private GitHub adoption commands are the pre-publication/private counterpart to the public package path:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis mcp register claude --source-mode private-github --github-ref main
+
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis mcp register codex --source-mode private-github --github-ref main
+```
+
+Those commands register a native MCP server that also runs from the private GitHub source:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis-mcp-server --default-target-dir . --transport stdio
+```
+
+Private GitHub mode requires the target machine to have GitHub auth, and `--github-ref` should be pinned to a tag or commit SHA for reproducible installs.
+
 Task 112 deliberately separates two modes:
 
 - **Package-style mode**: use the `aegis` and `aegis-mcp-server` console commands. This is the canonical portable surface.

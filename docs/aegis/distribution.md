@@ -18,6 +18,38 @@ aegis start "Improve BrandMark accessibility"
 
 `aegis init` installs the runtime with Claude defaults and verifies it. `aegis start` allocates a local Aegis task id and creates branch/session/plan/work-tracking state without requiring Taskmaster or Serena.
 
+## Private GitHub Quick Start
+
+Before PyPI/TestPyPI publication, or for private-only installs, use the private GitHub source mode. These commands do not require a local checkout on the target machine; they do require GitHub access to the private repository.
+
+Claude:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis mcp register claude --source-mode private-github --github-ref main
+```
+
+Codex:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis mcp register codex --source-mode private-github --github-ref main
+```
+
+Then open the target project in the client and use the discovered Aegis MCP tools:
+
+```text
+aegis.status
+aegis.init
+aegis.start or aegis.kickoff
+aegis.log
+aegis.verify
+aegis.closeout
+aegis.doctor
+```
+
+Pin `main` to a tag or commit SHA when the target machine should keep a stable Aegis runtime. PyPI/TestPyPI publication remains out of scope for the private path.
+
 ## Package Identity
 
 - Distribution package: `aegis-foundation`
@@ -134,6 +166,8 @@ Generate, execute, and verify those commands through Aegis:
 ```bash
 aegis mcp generate-registration --client claude --scope user
 aegis mcp generate-registration --client codex
+aegis mcp generate-registration --client claude --scope user --source-mode private-github --github-ref main
+aegis mcp generate-registration --client codex --source-mode private-github --github-ref main
 aegis mcp execute-registration --client claude --scope user
 aegis mcp verify-registration --client claude --scope user
 ```

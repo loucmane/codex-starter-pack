@@ -425,6 +425,9 @@ def test_invocation_contract_documents_external_mcp_startup_commands() -> None:
 
     required_snippets = [
         "python3 /path/to/codex/scripts/aegis-mcp-server",
+        "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main",
+        "aegis mcp register claude --source-mode private-github --github-ref main",
+        "aegis mcp register codex --source-mode private-github --github-ref main",
         "--source-root /path/to/codex",
         "--default-target-dir /path/to/project",
         "--describe-config",

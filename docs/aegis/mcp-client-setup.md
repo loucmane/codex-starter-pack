@@ -12,6 +12,33 @@ aegis mcp register claude
 
 This delegates to Claude's native MCP registration command and defaults to user scope, package mode, project-local uv cache/tool dirs, and `--default-target-dir .`. Use `aegis mcp generate-registration`, `aegis mcp execute-registration`, and `aegis mcp verify-registration` for advanced debugging, pinned versions, local wheels, or source checkouts.
 
+## Private GitHub Registration
+
+When Aegis is distributed from the private GitHub repository instead of PyPI/TestPyPI, use `uvx` to run the CLI directly from the private repo, then register the MCP server with the same private repo source. This requires normal GitHub auth on the machine, preferably SSH.
+
+Claude:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis mcp register claude --source-mode private-github --github-ref main
+```
+
+Codex:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis mcp register codex --source-mode private-github --github-ref main
+```
+
+The registered MCP server command is:
+
+```bash
+uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@main \
+  aegis-mcp-server --default-target-dir . --transport stdio
+```
+
+Pin `--github-ref` to a branch, tag, or commit SHA. Prefer a tag or commit SHA when installing on multiple machines that must behave identically.
+
 ## Default Install Model
 
 Native MCP client registration is the primary path. A user should not need to clone this repository, copy JSON snippets, or edit `.mcp.json` by hand.
@@ -118,6 +145,21 @@ GitHub URL/ref mode:
 
 ```bash
 aegis mcp generate-registration --client claude --scope user --source-mode github --github-ref v0.1.0
+```
+
+Private GitHub SSH mode:
+
+```bash
+aegis mcp generate-registration --client claude --scope user --source-mode private-github --github-ref main
+aegis mcp generate-registration --client codex --source-mode private-github --github-ref main
+```
+
+Private GitHub mode defaults to `git+ssh://git@github.com/loucmane/codex-starter-pack.git`. You can also pass an explicit SSH remote:
+
+```bash
+aegis mcp generate-registration --client claude --source-mode private-github \
+  --github-url git@github.com:loucmane/codex-starter-pack.git \
+  --github-ref main
 ```
 
 Local wheel mode:
