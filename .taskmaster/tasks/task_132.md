@@ -2,7 +2,7 @@
 
 **Title:** Allow Read-Only Taskmaster MCP Discovery During Aegis Bootstrap
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 131 ✓
 

@@ -371,6 +371,8 @@ def test_local_checkout_mcp_describe_config_works_from_external_cwd(tmp_path: Pa
         "schema_version": SCHEMA_VERSION,
         "source_root": REPO_ROOT.as_posix(),
         "default_target_dir": target.resolve().as_posix(),
+        "default_primary_agent": "claude",
+        "default_agents": ["claude"],
     }
     assert (Path(payload["source_root"]) / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
 
@@ -401,6 +403,8 @@ def test_editable_package_mcp_describe_config_works_from_external_cwd(tmp_path: 
         "schema_version": SCHEMA_VERSION,
         "source_root": (REPO_ROOT / "aegis_foundation" / "assets").as_posix(),
         "default_target_dir": target.resolve().as_posix(),
+        "default_primary_agent": "claude",
+        "default_agents": ["claude"],
     }
     assert (Path(payload["source_root"]) / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
 

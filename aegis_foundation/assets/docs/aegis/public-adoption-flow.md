@@ -18,6 +18,8 @@ task-master show <id>
 aegis kickoff --task <id> --slug <slug> --title "<title>"
 ```
 
+If the client has Taskmaster MCP available, the read-only discovery equivalents (`help`, `get_tasks`, `next_task`, `get_task`) may be used before kickoff even while readiness is `BLOCKED`. Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked until Aegis kickoff makes readiness `READY`.
+
 ## Command Roles
 
 | Command | Role |
@@ -32,7 +34,7 @@ aegis kickoff --task <id> --slug <slug> --title "<title>"
 After `aegis init`, a fresh Claude session should not need a large workflow prompt. The installed `CLAUDE.md`, `.aegis/contract.md`, and hooks tell Claude to:
 
 1. Run readiness/status/next.
-2. If no current work exists and `.taskmaster/` has available numeric work, run `task-master next` and `task-master show <id>`, then run `aegis kickoff --task <id> --slug <slug> --title "<title>"`.
+2. If no current work exists and `.taskmaster/` has available numeric work, run `task-master next` and `task-master show <id>` or the read-only Taskmaster MCP discovery equivalents, then run `aegis kickoff --task <id> --slug <slug> --title "<title>"`.
 3. If no Taskmaster numeric task is available, infer a short task title from the user request and run `aegis start "<task title>"`.
 4. Log scope before source edits.
 5. Use native tools for source reads, edits, tests, and git inspection.

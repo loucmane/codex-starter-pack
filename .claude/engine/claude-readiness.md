@@ -18,6 +18,8 @@ bash .claude/scripts/readiness.sh --quick
 - `WARN` exits `0`: soft issues are present but mutation can proceed. No soft warnings are currently emitted by the first implementation.
 - `BLOCKED` exits `2`: required workflow state is missing or inconsistent. Hookable persistent mutations must be refused.
 
+`BLOCKED` does not prohibit read-only discovery. Agents may inspect files and may use read-only Taskmaster CLI/MCP discovery to identify an external numeric task before Aegis kickoff. For Taskmaster MCP, the read-only discovery allowlist is intentionally narrow: `help`, `get_tasks`, `next_task`, and `get_task`. Taskmaster MCP mutations and unknown Taskmaster MCP tools remain blocked until readiness is `READY`, except for the separate post-closeout bookkeeping allowance for the matching task.
+
 ## Required Alignment
 Readiness blocks unless all of these are true:
 - the current branch contains a task ID, such as `feat/task-103-claude-runtime-adapter`;

@@ -162,6 +162,8 @@ def test_config_accepts_explicit_paths(tmp_path: Path) -> None:
         "schema_version": SCHEMA_VERSION,
         "source_root": source.resolve().as_posix(),
         "default_target_dir": target.resolve().as_posix(),
+        "default_primary_agent": "claude",
+        "default_agents": ["claude"],
     }
 
 
@@ -299,7 +301,8 @@ def test_public_init_and_start_schemas_require_apply_confirmation(tmp_path: Path
     init_schema = tool_by_name(server, "aegis.init").inputSchema
     assert set(init_schema["required"]) == {"target_dir", "apply"}
     assert init_schema["properties"]["apply"]["type"] == "boolean"
-    assert init_schema["properties"]["primary_agent"]["default"] == "claude"
+    assert init_schema["properties"]["primary_agent"]["default"] is None
+    assert init_schema["properties"]["agents"]["default"] is None
 
     start_schema = tool_by_name(server, "aegis.start").inputSchema
     assert set(start_schema["required"]) == {"target_dir", "title"}
@@ -939,6 +942,8 @@ def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
     assert payload["result"]["state"] == "not_installed"
     assert payload["result"]["suggested_mcp_call"]["tool"] == "aegis.init"
     assert payload["result"]["suggested_mcp_call"]["arguments"]["apply"] is True
+    assert payload["result"]["suggested_mcp_call"]["arguments"]["primary_agent"] == "claude"
+    assert payload["result"]["suggested_mcp_call"]["arguments"]["agents"] == ["claude"]
     assert payload["result"]["details"]["must_initialize_before_source_edits"] is True
     assert "source edits" in payload["result"]["details"]["forbidden_until_init"]
     assert "Taskmaster mutations" in payload["result"]["details"]["forbidden_until_init"]
@@ -973,6 +978,8 @@ def test_inspect_reports_not_installed_hard_stop_guidance_without_mutation(tmp_p
     assert guidance["state"] == "not_installed"
     assert guidance["suggested_mcp_call"]["tool"] == "aegis.init"
     assert guidance["suggested_mcp_call"]["arguments"]["apply"] is True
+    assert guidance["suggested_mcp_call"]["arguments"]["primary_agent"] == "claude"
+    assert guidance["suggested_mcp_call"]["arguments"]["agents"] == ["claude"]
     assert guidance["details"]["must_initialize_before_source_edits"] is True
     assert "source edits" in guidance["details"]["forbidden_until_init"]
     assert "project verification" in guidance["details"]["forbidden_until_init"]
@@ -1381,10 +1388,46 @@ def test_tool_descriptions_make_aegis_discoverable_from_normal_task_requests(tmp
     assert "normal coding task" in inspect_description
     assert "aegis.init" in inspect_description
     assert "before source edits" in inspect_description
+    assert "CLI fallback only when aegis is on PATH" in inspect_description
     assert "project workflow" in init_description
-    assert "restart Claude" in init_description
+    assert "default agent selection" in init_description
     assert "normal request" in next_description
     assert "Taskmaster" in kickoff_description
+
+
+def test_codex_mcp_config_drives_not_installed_guidance_defaults(tmp_path: Path) -> None:
+    target = tmp_path / "target"
+    target.mkdir()
+    config = AegisMCPConfig.from_paths(
+        source_root=REPO_ROOT,
+        default_target_dir=target,
+        default_primary_agent="codex",
+        default_agents=["codex"],
+    )
+    server = create_server(config)
+
+    payload = call_tool_payload(server, "aegis.next", {"target_dir": target.as_posix()})
+
+    guidance = payload["result"]
+    assert guidance["suggested_cli"] == "aegis init --primary-agent codex --agent codex"
+    assert "call suggested_mcp_call" in guidance["next_required_action"]
+    assert "Use suggested_cli only as a CLI fallback" in guidance["next_required_action"]
+    assert guidance["suggested_mcp_call"] == {
+        "tool": "aegis.init",
+        "arguments": {
+            "target_dir": ".",
+            "profile": "generic",
+            "primary_agent": "codex",
+            "agents": ["codex"],
+            "apply": True,
+            "verify_after_install": True,
+        },
+    }
+    assert guidance["details"]["default_primary_agent"] == "codex"
+    assert guidance["details"]["default_agents"] == ["codex"]
+    assert guidance["details"]["preferred_invocation"] == "mcp"
+    assert guidance["details"]["mcp_preferred_when_available"] is True
+    assert guidance["details"]["cli_requires_aegis_on_path"] is True
 
 
 def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> None:
@@ -1418,6 +1461,8 @@ def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> Non
         "schema_version": SCHEMA_VERSION,
         "source_root": REPO_ROOT.as_posix(),
         "default_target_dir": target.resolve().as_posix(),
+        "default_primary_agent": "claude",
+        "default_agents": ["claude"],
     }
 
 

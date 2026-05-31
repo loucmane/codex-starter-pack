@@ -788,6 +788,77 @@ def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: P
     assert kickoff_report["task"]["id"] == "42"
 
 
+def test_codex_primary_guidance_uses_explicit_agent_logs_and_normalized_task_slug(tmp_path: Path) -> None:
+    target = tmp_path / "codex-guided-workflow"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (target / "src").mkdir()
+    (target / "src" / "main.ts").write_text("export const ready = true;\n", encoding="utf-8")
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+
+    kickoff_report = kickoff(
+        target,
+        task_id="42",
+        slug="task-42-add-visible-add-to-cart-button",
+        title="Add visible Add to cart button",
+        source_root=REPO_ROOT,
+    )
+
+    assert kickoff_report["task"]["slug"] == "add-visible-add-to-cart-button"
+    assert kickoff_report["branch"]["current"] == "feat/task-42-add-visible-add-to-cart-button"
+    assert kickoff_report["next_action"]["suggested_mcp"]["arguments"]["handler"] == "codex:scope"
+
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    scope_required = next_action(target, source_root=REPO_ROOT)
+    assert scope_required["suggested_mcp_call"]["arguments"]["handler"] == "codex:scope"
+
+    scope_logged = log_work(
+        target,
+        handler="codex:scope",
+        evidence=f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+        note="Confirmed Codex scope before implementation",
+        event_class="scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    after_scope_args = scope_logged["next_action"]["suggested_mcp"]["arguments"]
+    assert after_scope_args["handler"] == "codex:implementation"
+    assert "pending_event_id" not in after_scope_args
+    assert scope_logged["next_action"]["details"]["pending_tracking_expected"] is False
+
+    implementation_logged = log_work(
+        target,
+        handler="codex:implementation",
+        evidence="src/main.ts",
+        note="Recorded Codex implementation evidence",
+        event_class="implementation",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    after_implementation_args = implementation_logged["next_action"]["suggested_mcp"]["arguments"]
+    assert after_implementation_args["handler"] == "codex:verification"
+    assert after_implementation_args["evidence"].endswith("/task-verification.md")
+    assert "pending_event_id" not in after_implementation_args
+
+    verify_required = next_action(target, source_root=REPO_ROOT)
+    assert verify_required["suggested_mcp_call"]["arguments"]["handler"] == "codex:verification"
+    assert "pending_event_id" not in verify_required["suggested_mcp_call"]["arguments"]
+    assert verify_required["details"]["pending_tracking_expected"] is False
+
+    strict_report = verify(target, source_root=REPO_ROOT, strict=True)
+    strict_args = strict_report["next_action"]["suggested_mcp"]["arguments"]
+    assert strict_args["handler"] == "codex:verification"
+    assert strict_args["evidence"] == AEGIS_VERIFY_REPORT_REL
+    assert "pending_event_id" not in strict_args
+    assert strict_report["next_action"]["details"]["pending_tracking_expected"] is False
+
+
 def test_start_local_work_refuses_to_bypass_available_taskmaster_task(tmp_path: Path) -> None:
     target = tmp_path / "taskmaster-start-refusal"
     target.mkdir()
@@ -2371,6 +2442,33 @@ def test_install_merges_existing_claude_entrypoint_without_losing_project_contex
     claude_operation = next(operation for operation in report["plan"]["operations"] if operation["path"] == "CLAUDE.md")
     assert claude_operation["classification"] == "modify"
     assert claude_operation["safe_to_apply"] is True
+    assert (target / AEGIS_MANIFEST_REL).exists()
+
+
+def test_install_merges_existing_agents_entrypoint_without_losing_project_context(tmp_path: Path) -> None:
+    target = tmp_path / "existing-agents-project"
+    target.mkdir()
+    agents = target / "AGENTS.md"
+    agents.write_text("# Existing agent instructions\n", encoding="utf-8")
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+
+    assert report["status"] == "applied"
+    text = agents.read_text(encoding="utf-8")
+    assert aegis_installer.AEGIS_AGENTS_BLOCK_BEGIN in text
+    assert aegis_installer.AEGIS_AGENTS_BLOCK_END in text
+    assert "Aegis Foundation" in text
+    assert "## Existing Agent Instructions" in text
+    assert "# Existing agent instructions" in text
+    agents_operation = next(operation for operation in report["plan"]["operations"] if operation["path"] == "AGENTS.md")
+    assert agents_operation["classification"] == "modify"
+    assert agents_operation["safe_to_apply"] is True
     assert (target / AEGIS_MANIFEST_REL).exists()
 
 

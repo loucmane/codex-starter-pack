@@ -44,3 +44,4 @@
 
 ## Compaction Checkpoints
 - 2026-05-30T21:44:50+02:00 — [S:20260530|W:task131-taskmaster-backed-aegis-acceptance|H:scripts/codex-task:compaction-checkpoint|E:docs/ai/work-tracking/active/20260530-task131-taskmaster-backed-aegis-acceptance-ACTIVE/reports/compaction-checkpoints/20260530-214450-task131-taskmaster-backed-aegis-acceptance.json] Resume at: Check PR #128 CI; if green, decide whether to mark ready/merge or start Task 132 for read-only Taskmaster MCP discovery hardening.
+- Archived on 2026-05-31 10:52 CEST — Folder moved to archive and tracker marked COMPLETED.
