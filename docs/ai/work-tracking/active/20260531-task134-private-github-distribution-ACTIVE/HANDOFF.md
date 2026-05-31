@@ -20,6 +20,7 @@
 - `docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/reports/private-github-distribution/hpfetcher-copy-private-github-install.md`
 - Focused tests: `33 passed`.
 - Broader Aegis MCP/installer/schema/registration tests: `138 passed, 1 skipped`.
+- Release distribution doc parity: `tests/meta_workflow_guard/test_aegis_release_distribution.py` passed (`14 passed, 2 skipped`) after syncing the packaged MCP setup doc asset.
 - Final guards: `python3 scripts/codex-guard validate --include-untracked`, `git diff --check`, and `python3 scripts/codex-task taskmaster health` passed.
 
 ## Next Steps

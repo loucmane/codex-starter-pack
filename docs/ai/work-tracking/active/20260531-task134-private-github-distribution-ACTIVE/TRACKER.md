@@ -23,6 +23,7 @@
 - **2026-05-31 14:43** — [S:20260531|W:task134-private-github-distribution|H:private-github-smoke|E:docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/reports/private-github-distribution/fresh-tmp-private-github-smoke.md] Fresh `/tmp` private GitHub smoke passed: private `uvx` source generated registration, described MCP config, initialized Codex runtime, started work, logged evidence, passed strict verify, closeout, and doctor
 - **2026-05-31 14:45** — [S:20260531|W:task134-private-github-distribution|H:private-github-smoke|E:docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/reports/private-github-distribution/hpfetcher-copy-private-github-install.md] Copied HPFetcher private GitHub install smoke passed: real checkout remained untouched, copied CLAUDE.md content was preserved under the Aegis runtime block, AGENTS.md was created, expected Claude reload barrier appeared, and doctor was healthy
 - **2026-05-31 14:47** — [S:20260531|W:task134-private-github-distribution|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 134 done and refreshed only `.taskmaster/tasks/task_134.md`
+- **2026-05-31 14:58** — [S:20260531|W:task134-private-github-distribution|H:ci-fix|E:aegis_foundation/assets/docs/aegis/mcp-client-setup.md] Synced the packaged MCP setup doc asset with `docs/aegis/mcp-client-setup.md` after PR CI caught release-distribution doc drift
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define private GitHub distribution contract and acceptance path
