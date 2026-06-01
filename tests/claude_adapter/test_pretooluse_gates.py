@@ -190,6 +190,49 @@ def test_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path, mo
     assert gate_lib.pretooluse_gate() == 0
 
 
+def test_pretooluse_degraded_allows_non_destructive_when_gate_infra_crashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    gate_lib = load_gate_lib_module()
+    raw = payload("Bash", command="git status --short")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+
+    def fail_classifier(_payload: object) -> bool:
+        raise RuntimeError("synthetic classifier crash")
+
+    monkeypatch.setattr(gate_lib, "payload_is_read_only", fail_classifier)
+
+    assert gate_lib.pretooluse_gate_with_degraded_fallback(raw) == 0
+    captured = capsys.readouterr()
+    assert "DEGRADED" in captured.err
+    degraded = json.loads((repo / ".aegis" / "state" / "degraded-events.json").read_text(encoding="utf-8"))
+    event = degraded["events"][0]
+    assert event["mode"] == "degraded_allow"
+    assert event["action_class"] == "non_destructive"
+    assert event["tool"] == "Bash"
+    assert event["event_hash"]
+
+
+def test_pretooluse_degraded_fails_closed_for_mutation_when_gate_infra_crashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    gate_lib = load_gate_lib_module()
+    raw = payload("Write", file_path="src/main.ts")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+
+    def fail_classifier(_payload: object) -> bool:
+        raise RuntimeError("synthetic classifier crash")
+
+    monkeypatch.setattr(gate_lib, "payload_is_read_only", fail_classifier)
+
+    assert gate_lib.pretooluse_gate_with_degraded_fallback(raw) == 2
+    captured = capsys.readouterr()
+    assert "fails closed" in captured.err
+    assert not (repo / ".aegis" / "state" / "degraded-events.json").exists()
+
+
 def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = make_repo(tmp_path, ready=False)
     gate_lib = load_gate_lib_module()
@@ -444,6 +487,39 @@ def test_pretooluse_allows_sanctioned_aegis_cli_workflow_mutations_when_ready(
     repo = make_repo(tmp_path, ready=True)
 
     result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_protected_mutation_after_sanctioned_aegis_cli_segment_when_ready(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    command = (
+        "./.aegis/bin/aegis log --target-dir . --handler test "
+        "--evidence docs/ai/work-tracking/active/t/FINDINGS.md --note ok && touch sessions/current"
+    )
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 2
+    assert "touch references workflow-owned path sessions/current" in result.stderr
+
+
+def test_pretooluse_does_not_treat_bare_aegis_as_sanctioned_mutation_when_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command='aegis kickoff --task 1 --slug x --title "X"'))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
+def test_pretooluse_allows_project_local_aegis_bootstrap_when_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command='./.aegis/bin/aegis kickoff --task 1 --slug x --title "X"'))
 
     assert result.returncode == 0
     assert result.stderr == ""

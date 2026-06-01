@@ -23,6 +23,7 @@ from scripts._aegis_installer import (
     AEGIS_CLOSEOUT_REPORT_REL,
     AEGIS_CURRENT_WORK_REL,
     AEGIS_CLIENT_RELOAD_REL,
+    AEGIS_DEGRADED_EVENTS_REL,
     AEGIS_LOCAL_TASKS_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
@@ -1467,7 +1468,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         {
             "tool_name": "Bash",
             "tool_input": {
-                "command": 'aegis kickoff --task 1 --slug portable-smoke --title "Portable Smoke"'
+                "command": './.aegis/bin/aegis kickoff --task 1 --slug portable-smoke --title "Portable Smoke"'
             },
         },
     )
@@ -2234,6 +2235,56 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert refreshed_work["status"] == "completed"
     assert refreshed_work["task"]["status"] == "completed"
     assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
+    degraded_event = {
+        "id": "degraded123",
+        "created_at": "2026-06-01T17:00:00Z",
+        "gate": "pretooluse",
+        "mode": "degraded_allow",
+        "action_class": "non_destructive",
+        "tool": "Bash",
+        "reason": "RuntimeError: synthetic gate failure",
+        "raw_preview": "{\"tool_name\":\"Bash\"}",
+        "previous_event_hash": "",
+        "event_hash": "synthetic",
+    }
+    (target / AEGIS_DEGRADED_EVENTS_REL).write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "updated_at": "2026-06-01T17:00:00Z",
+                "events": [degraded_event],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    degraded_doctor = doctor(target, source_root=REPO_ROOT)
+    assert degraded_doctor["status"] == "degraded"
+    degraded_check = next(
+        check for check in degraded_doctor["checks"] if check["id"] == "runtime.degraded_events_acknowledged"
+    )
+    assert degraded_check["status"] == "fail"
+    degraded_closeout = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
+    assert degraded_closeout["status"] == "failed"
+    assert "closeout.degraded_events_acknowledged" in [
+        check["gate_id"] for check in degraded_closeout["checks"] if check["status"] == "fail"
+    ]
+    degraded_event["acknowledged_at"] = "2026-06-01T17:05:00Z"
+    (target / AEGIS_DEGRADED_EVENTS_REL).write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "updated_at": "2026-06-01T17:05:00Z",
+                "events": [degraded_event],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    acknowledged_doctor = doctor(target, source_root=REPO_ROOT)
+    assert acknowledged_doctor["status"] == "healthy"
     idempotent_dry_run = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
     assert idempotent_dry_run["status"] == "passed"
     assert idempotent_dry_run["readiness"]["status"] == "passed"

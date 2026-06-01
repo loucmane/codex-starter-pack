@@ -4,11 +4,12 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from hashlib import sha1
+from hashlib import sha1, sha256
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +26,9 @@ REQUIRED_TOOL_INPUT_FIELDS = {
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
+AEGIS_DEGRADED_EVENTS_REL = ".aegis/state/degraded-events.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
+AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 
 PROTECTED_PREFIXES = ("templates/", ".codex/", ".aegis/", ".claude/")
 PROTECTED_EXACT = {"CODEX.md", "CLAUDE.md", "AGENTS.md"}
@@ -143,6 +146,24 @@ READ_ONLY_TEST_OUTPUT_OPTIONS = {
     "--reporter=json",
     "--reporter=json-summary",
 }
+DEGRADED_SAFE_SIMPLE_BASH_COMMANDS = {
+    "cat",
+    "date",
+    "echo",
+    "false",
+    "grep",
+    "head",
+    "ls",
+    "pwd",
+    "rg",
+    "sed",
+    "stat",
+    "tail",
+    "test",
+    "true",
+    "wc",
+    "which",
+}
 MCP_READ_ONLY_TOOL_RE = re.compile(
     r"^mcp__.*__(get|list|read|search|find|query|show|help|check|resolve|fetch|open|is_|has_)",
     re.IGNORECASE,
@@ -240,8 +261,8 @@ def parse_payload(raw: str) -> Payload | PayloadLoadError:
     return Payload(tool_name=str(data.get("tool_name") or ""), tool_input=tool_input)
 
 
-def load_payload_result() -> Payload | PayloadLoadError:
-    return parse_payload(sys.stdin.read())
+def load_payload_result(raw: str | None = None) -> Payload | PayloadLoadError:
+    return parse_payload(sys.stdin.read() if raw is None else raw)
 
 
 def load_payload() -> Payload | None:
@@ -501,17 +522,29 @@ def read_only_taskmaster_segment(tokens: list[str]) -> bool:
     return len(tokens) >= 2 and tokens[1] in READ_ONLY_TASKMASTER_SUBCOMMANDS
 
 
-def read_only_aegis_segment(tokens: list[str]) -> bool:
+def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_bare: bool = False) -> list[str] | None:
     if not tokens:
-        return False
-    if tokens[0] in {"aegis", "./.aegis/bin/aegis", ".aegis/bin/aegis"}:
-        remainder = tokens[1:]
-    elif len(tokens) >= 4 and command_name(tokens[0]) in {"python", "python3"} and tokens[1:3] == [
+        return None
+    root = root or project_root()
+    executable = tokens[0]
+    if normalize_path(executable, root) == AEGIS_LOCAL_BIN_REL:
+        return tokens[1:]
+    if executable == "aegis":
+        resolved = shutil.which("aegis")
+        if resolved and normalize_path(resolved, root) == AEGIS_LOCAL_BIN_REL:
+            return tokens[1:]
+        return tokens[1:] if allow_bare else None
+    if len(tokens) >= 4 and command_name(executable) in {"python", "python3"} and tokens[1:3] == [
         "-m",
         "aegis_foundation.cli",
     ]:
-        remainder = tokens[3:]
-    else:
+        return tokens[3:]
+    return None
+
+
+def read_only_aegis_segment(tokens: list[str]) -> bool:
+    remainder = aegis_cli_remainder(tokens, allow_bare=True)
+    if remainder is None:
         return False
     return bool(remainder) and (
         remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
@@ -583,16 +616,61 @@ def bash_is_read_only(command: str) -> bool:
     return bool(segments) and all(bash_segment_is_read_only(segment) for segment in segments)
 
 
+def degraded_bash_segment_is_non_destructive(segment: str) -> bool:
+    tokens = strip_shell_prefixes(shlex_tokens(segment))
+    if not tokens:
+        return True
+    name = command_name(tokens[0])
+    tokens[0] = name
+    if name == "cd":
+        return True
+    if name == "git":
+        return read_only_git_segment(tokens)
+    if name == "task-master":
+        return read_only_taskmaster_segment(tokens)
+    if read_only_aegis_segment(tokens):
+        return True
+    if name in DEGRADED_SAFE_SIMPLE_BASH_COMMANDS:
+        return name != "sed" or "-i" not in tokens
+    if read_only_find_segment(tokens):
+        return True
+    return False
+
+
+def degraded_bash_is_non_destructive(command: str) -> bool:
+    if not command.strip():
+        return True
+    if UNSUPPORTED_READ_ONLY_SHELL_RE.search(command):
+        return False
+    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
+        return False
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    return bool(segments) and all(degraded_bash_segment_is_non_destructive(segment) for segment in segments)
+
+
+def degraded_payload_is_non_destructive(payload: Payload) -> bool:
+    if payload.tool_name in FILE_MUTATION_TOOLS:
+        return False
+    if payload.tool_name == "Bash":
+        return degraded_bash_is_non_destructive(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = normalized_mcp_tool_name(payload.tool_name)
+        return any(normalized.endswith(f"__{suffix}") for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES) or bool(
+            MCP_READ_ONLY_TOOL_RE.search(payload.tool_name)
+        )
+    return not payload.tool_name
+
+
 def bash_is_aegis_bootstrap(command: str) -> bool:
-    return bool(AEGIS_BOOTSTRAP_RE.search(command))
+    return bash_has_trusted_aegis_subcommand(command, {"start", "kickoff"})
 
 
 def bash_is_aegis_log(command: str) -> bool:
-    return bool(AEGIS_LOG_RE.search(command))
+    return bash_has_trusted_aegis_subcommand(command, {"log"})
 
 
 def bash_is_aegis_verify(command: str) -> bool:
-    return bool(AEGIS_VERIFY_RE.search(command))
+    return bash_has_trusted_aegis_subcommand(command, {"verify"})
 
 
 def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
@@ -603,7 +681,32 @@ def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
 
 
 def bash_is_aegis_closeout(command: str) -> bool:
-    return bool(AEGIS_CLOSEOUT_RE.search(command))
+    return bash_has_trusted_aegis_subcommand(command, {"closeout"})
+
+
+def bash_has_trusted_aegis_subcommand(
+    command: str,
+    subcommands: set[str],
+    *,
+    require_apply: bool = False,
+    handoff_repair: bool = False,
+) -> bool:
+    root = project_root()
+    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+        tokens = strip_shell_prefixes(shlex_tokens(segment))
+        remainder = aegis_cli_remainder(tokens, root, allow_bare=False)
+        if not remainder:
+            continue
+        if handoff_repair:
+            if len(remainder) >= 2 and remainder[0] == "handoff" and remainder[1] == "repair":
+                return True
+            continue
+        if remainder[0] not in subcommands:
+            continue
+        if require_apply and "--apply" not in remainder[1:]:
+            continue
+        return True
+    return False
 
 
 def payload_is_sanctioned_aegis_workflow_mutation(payload: Payload) -> bool:
@@ -614,14 +717,8 @@ def payload_is_sanctioned_aegis_workflow_mutation(payload: Payload) -> bool:
             or bash_is_aegis_log(command)
             or bash_is_aegis_verify(command)
             or bash_is_aegis_closeout(command)
-            or bool(AEGIS_REPAIR_APPLY_RE.search(command))
-            or bool(
-                re.search(
-                    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+handoff\s+repair\b",
-                    command,
-                    re.IGNORECASE,
-                )
-            )
+            or bash_has_trusted_aegis_subcommand(command, {"repair"}, require_apply=True)
+            or bash_has_trusted_aegis_subcommand(command, set(), handoff_repair=True)
         )
     if is_mcp_tool(payload.tool_name):
         normalized = normalized_mcp_tool_name(payload.tool_name)
@@ -762,6 +859,52 @@ def read_json(path: Path) -> dict[str, Any] | None:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def degraded_events_path(root: Path) -> Path:
+    return root / AEGIS_DEGRADED_EVENTS_REL
+
+
+def degraded_events(root: Path) -> list[dict[str, Any]]:
+    payload = read_json(degraded_events_path(root))
+    if not payload:
+        return []
+    events = payload.get("events")
+    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+
+
+def degraded_event_hash(event: dict[str, Any]) -> str:
+    payload = {key: value for key, value in event.items() if key != "event_hash"}
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(encoded).hexdigest()
+
+
+def write_degraded_event(root: Path, payload: Payload, reason: str, raw_payload: str) -> dict[str, Any]:
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    existing_events = degraded_events(root)
+    previous_hash = str(existing_events[-1].get("event_hash") or "") if existing_events else ""
+    event = {
+        "id": sha1(f"{now}|{payload.tool_name}|{reason}|{raw_payload_preview(raw_payload)}".encode("utf-8")).hexdigest()[:12],
+        "created_at": now,
+        "gate": "pretooluse",
+        "mode": "degraded_allow",
+        "action_class": "non_destructive",
+        "tool": payload.tool_name,
+        "reason": reason,
+        "raw_preview": raw_payload_preview(raw_payload),
+        "previous_event_hash": previous_hash,
+    }
+    event["event_hash"] = degraded_event_hash(event)
+    existing_events.append(event)
+    write_json(
+        degraded_events_path(root),
+        {
+            "schema_version": "1.0.0",
+            "updated_at": now,
+            "events": existing_events,
+        },
+    )
+    return event
 
 
 def current_work(root: Path) -> dict[str, Any] | None:
@@ -1137,8 +1280,31 @@ def format_pending_tracking(events: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def pretooluse_gate() -> int:
-    loaded = load_payload_result()
+def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
+    loaded = parse_payload(raw_payload)
+    reason = f"{type(exc).__name__}: {exc}"
+    if isinstance(loaded, PayloadLoadError):
+        return block_unclassifiable_payload(f"gate infrastructure failed after an unclassifiable payload: {reason}", loaded.raw_preview)
+    root = project_root()
+    if degraded_payload_is_non_destructive(loaded):
+        event = write_degraded_event(root, loaded, reason, raw_payload)
+        print(
+            "DEGRADED | pretooluse gate infrastructure failed; allowed conservative non-destructive action "
+            f"and wrote {AEGIS_DEGRADED_EVENTS_REL} event {event['id']}",
+            file=sys.stderr,
+        )
+        return 0
+    return block(
+        "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+        f"Tool: {loaded.tool_name}\n"
+        "Reason: PreToolUse gate infrastructure failed while evaluating a mutation or unsafe action.\n\n"
+        f"Details: {reason}\n\n"
+        "Aegis fails closed for destructive, protected, workflow-state, and unclassified actions when the gate cannot render a verdict."
+    )
+
+
+def pretooluse_gate(raw_payload: str | None = None) -> int:
+    loaded = load_payload_result(raw_payload)
     if isinstance(loaded, PayloadLoadError):
         return block_unclassifiable_payload(loaded.reason, loaded.raw_preview)
     payload = loaded
@@ -1213,11 +1379,7 @@ def pretooluse_gate() -> int:
             )
 
     if payload.tool_name == "Bash":
-        violations = (
-            []
-            if payload_is_sanctioned_aegis_workflow_mutation(payload)
-            else protected_bash_violations(bash_command(payload), root)
-        )
+        violations = protected_bash_violations(bash_command(payload), root)
         if violations:
             details = "\n".join(f"  - {violation}" for violation in violations)
             return block(
@@ -1258,6 +1420,13 @@ def pretooluse_gate() -> int:
             )
 
     return 0
+
+
+def pretooluse_gate_with_degraded_fallback(raw_payload: str) -> int:
+    try:
+        return pretooluse_gate(raw_payload)
+    except Exception as exc:
+        return degraded_pretooluse_fallback(raw_payload, exc)
 
 
 def posttooluse_tracking() -> int:
@@ -1401,7 +1570,7 @@ def main() -> int:
         return 1
     command = sys.argv[1]
     if command == "pretooluse":
-        return pretooluse_gate()
+        return pretooluse_gate_with_degraded_fallback(sys.stdin.read())
     if command == "posttooluse":
         return posttooluse_tracking()
     if command == "stop":
