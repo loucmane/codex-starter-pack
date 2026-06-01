@@ -6176,13 +6176,92 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-01T09:34:02.530Z"
+      },
+      {
+        "id": "136",
+        "title": "Document agent-runtime-first workflow design and seed hardening backlog",
+        "description": "Import the corrected agent-runtime-first Aegis workflow design into this repo and seed the first implementation backlog tasks.",
+        "details": "Acceptance: docs/aegis/agent-runtime-first-workflow-design.md exists as the authoritative corrected design note; docs/aegis/hpfetcher-workflow-system-design.md is retained as superseded historical input; Taskmaster contains the first five agent-runtime hardening implementation tasks. Test strategy: run Taskmaster health and guard validation after task generation.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-01T14:15:02.303Z"
+      },
+      {
+        "id": "137",
+        "title": "Block unclassifiable mutating payloads",
+        "description": "Close the fail-open path where a non-empty hook payload that cannot be parsed/classified is allowed to proceed.",
+        "details": "Agent-runtime-first rationale: an agent must not be allowed to mutate a project when Aegis cannot render a verdict on the action. Acceptance: non-empty malformed/unknown PreToolUse payloads for mutating-capable tools fail closed; empty payloads or known read-only payloads keep existing behavior; structured denial includes a remediation message and does not crash the hook; tests cover malformed JSON, missing tool fields, unknown MCP mutation payloads, and known safe read-only cases.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "136"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-01T14:51:03.086Z"
+      },
+      {
+        "id": "138",
+        "title": "Short-circuit read-only commands before readiness",
+        "description": "Classify read-only inspection and test commands before running full readiness, allowing harmless observation and verification without task-state blocking.",
+        "details": "Agent-runtime-first rationale: blocking inspection makes agents blind and increases bad mutation risk; read-only commands do not need task attribution. Acceptance: known read-only Bash commands such as ls, cat, sed, rg, git diff/status/show, task-master next/show/list, and non-writing test commands bypass readiness; commands with redirects, writes, generated outputs, status changes, or unknown shell features remain mutation-gated; tests cover classifier positives/negatives and prove readiness is not invoked for read-only payloads.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "137"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-01T15:43:04.231Z"
+      },
+      {
+        "id": "139",
+        "title": "Protect workflow-owned surfaces from direct agent edits",
+        "description": "Prevent agents from forging Aegis readiness or evidence by directly editing workflow-owned state, while preserving sanctioned Aegis CLI/MCP mutation paths.",
+        "details": "Agent-runtime-first rationale: sessions, plans, work-tracking, and .aegis state are authority surfaces; direct Edit/Write can forge in-progress state. Acceptance: direct agent Edit/Write/Bash mutations to .aegis state, sessions, plans, and active work-tracking are blocked unless routed through sanctioned Aegis handlers; sanctioned commands including aegis kickoff, aegis log, handoff repair, closeout, and plan sync continue to work and write structured evidence; tests prove direct edits are denied and real Aegis-owned flows do not self-deadlock.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "137"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "140",
+        "title": "Add degraded-event breadcrumb and closeout enforcement",
+        "description": "Introduce a narrow audited degraded mode for gate infrastructure failure on non-destructive actions, with closeout and doctor visibility.",
+        "details": "Agent-runtime-first rationale: agents need a sanctioned recovery path when Aegis infrastructure itself fails, but unsafe actions must still fail closed. Acceptance: gate infrastructure crashes on non-destructive actions write tamper-evident degraded event evidence and allow only the permitted action class; protected/destructive/workflow-state actions still fail closed; doctor reports degraded events; closeout refuses completion until degraded events are acknowledged or resolved; tests cover breadcrumb schema, closeout failure, doctor reporting, and mandatory fail-closed classes.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "137"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "141",
+        "title": "Add read-only Aegis reconciliation report",
+        "description": "Add a read-only reconcile command that reports drift between Taskmaster status, branch/PR/git merge truth, active Aegis work, and local stubs without auto-mutating status.",
+        "details": "Agent-runtime-first rationale: final done truth should converge on merge/git reality, but first the system must prove it can detect drift safely. Acceptance: command reports merged-but-not-done, done-but-not-merged, abandoned in-progress branch, stale local/ad hoc stubs, and multi-PR epic ambiguity; gh is optional acceleration and git-only fallback works; command is read-only, emits JSON and human summaries, and has tests for branch ancestry, missing remotes, merged PR metadata, and ambiguous/multi-PR cases.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "136"
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-01T09:34:02.531Z",
-      "taskCount": 135,
-      "completedCount": 135,
+      "lastModified": "2026-06-01T15:43:04.231Z",
+      "taskCount": 141,
+      "completedCount": 138,
       "tags": [
         "master"
       ]

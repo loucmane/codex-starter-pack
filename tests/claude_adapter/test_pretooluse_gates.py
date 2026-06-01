@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
+import io
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -34,6 +37,16 @@ def write(path: Path, text: str) -> None:
 
 def payload(tool_name: str, **tool_input: str) -> str:
     return json.dumps({"tool_name": tool_name, "tool_input": tool_input})
+
+
+def load_gate_lib_module():
+    module_name = "gate_lib_under_test"
+    spec = importlib.util.spec_from_file_location(module_name, REPO_ROOT / ".claude" / "scripts" / "gate_lib.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def make_repo(tmp_path: Path, *, ready: bool) -> Path:
@@ -138,6 +151,83 @@ def test_pretooluse_allows_read_only_bash_when_readiness_blocked(tmp_path: Path)
     assert result.stderr == ""
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        "ls -la",
+        "cat sessions/state.json",
+        "sed -n '1,40p' README.md",
+        "rg task",
+        "git diff -- src/main.ts",
+        "git branch --show-current",
+        "task-master next",
+        "task-master show 138",
+        "npm run verify",
+        "PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/foo.py",
+        "npm run verify 2>&1 | tail -15",
+    ],
+)
+def test_pretooluse_allows_known_read_only_bash_before_readiness(tmp_path: Path, command: str) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    gate_lib = load_gate_lib_module()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+    monkeypatch.setattr(gate_lib.sys, "stdin", io.StringIO(payload("Bash", command="git status --short")))
+
+    def fail_readiness(root: Path) -> subprocess.CompletedProcess[str]:
+        raise AssertionError(f"readiness should not run for read-only payloads: {root}")
+
+    monkeypatch.setattr(gate_lib, "run_readiness", fail_readiness)
+
+    assert gate_lib.pretooluse_gate() == 0
+
+
+def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    gate_lib = load_gate_lib_module()
+    calls: list[Path] = []
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+    monkeypatch.setattr(gate_lib.sys, "stdin", io.StringIO(payload("Bash", command="unknown-tool --maybe-mutates")))
+
+    def fake_readiness(root: Path) -> subprocess.CompletedProcess[str]:
+        calls.append(root)
+        return subprocess.CompletedProcess(["readiness"], 2, "BLOCKED | synthetic\n", "")
+
+    monkeypatch.setattr(gate_lib, "run_readiness", fake_readiness)
+
+    assert gate_lib.pretooluse_gate() == 2
+    assert calls == [repo.resolve()]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python3 -c \"print('unknown')\"",
+        "npm run build",
+        "find . -delete",
+        "pytest --junitxml=reports/results.xml",
+        "cat README.md > out.txt",
+        "task-master generate",
+        "git commit -m test",
+    ],
+)
+def test_pretooluse_blocks_unknown_or_writing_bash_when_readiness_blocked(tmp_path: Path, command: str) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
 def test_pretooluse_blocks_bash_mutation_when_readiness_blocked(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, ready=False)
 
@@ -145,6 +235,66 @@ def test_pretooluse_blocks_bash_mutation_when_readiness_blocked(tmp_path: Path) 
 
     assert result.returncode == 2
     assert "readiness is BLOCKED" in result.stderr
+
+
+@pytest.mark.parametrize("hook_payload", ["", "{}"])
+def test_pretooluse_allows_empty_payload_when_readiness_blocked(tmp_path: Path, hook_payload: str) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, hook_payload)
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_malformed_nonempty_payload(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, '{"tool_name": "Write",')
+
+    assert result.returncode == 2
+    assert "could not be parsed or classified safely" in result.stderr
+    assert "invalid JSON" in result.stderr
+
+
+def test_pretooluse_blocks_non_object_payload(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, '["Write"]')
+
+    assert result.returncode == 2
+    assert "hook payload JSON must be an object" in result.stderr
+
+
+def test_pretooluse_blocks_payload_missing_tool_name(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, json.dumps({"tool_input": {"file_path": "src/main.ts"}}))
+
+    assert result.returncode == 2
+    assert "missing required field 'tool_name'" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "expected_field"),
+    [
+        ("Write", "file_path"),
+        ("Edit", "file_path"),
+        ("MultiEdit", "file_path"),
+        ("NotebookEdit", "notebook_path"),
+        ("Bash", "command"),
+    ],
+)
+def test_pretooluse_blocks_hookable_payload_missing_required_tool_input(
+    tmp_path: Path, tool_name: str, expected_field: str
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload(tool_name))
+
+    assert result.returncode == 2
+    assert "could not be parsed or classified safely" in result.stderr
+    assert expected_field in result.stderr
 
 
 def test_pretooluse_blocks_codex_owned_file_when_ready(tmp_path: Path) -> None:
