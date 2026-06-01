@@ -771,6 +771,38 @@ def test_installed_pretooluse_blocks_unclassifiable_payload(tmp_path: Path) -> N
     assert (target / AEGIS_CLIENT_RELOAD_REL).is_file()
 
 
+def test_installed_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path) -> None:
+    target = tmp_path / "read-only-without-readiness"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    (target / ".claude" / "scripts" / "readiness.sh").unlink()
+
+    read_only = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git status --short"},
+        },
+    )
+    mutating = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "npm run build"},
+        },
+    )
+
+    assert read_only.returncode == 0, read_only.stderr
+    assert mutating.returncode == 2
+    assert "readiness failed" in mutating.stderr
+
+
 def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: Path) -> None:
     target = tmp_path / "reload-barrier"
     target.mkdir()
@@ -1519,8 +1551,8 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         "tool_name": "Bash",
         "tool_input": {
             "command": (
-                f"EV={evidence_path}; "
-                'for f in sessions/current plans/current; do grep -q "$EV" "$f" 2>/dev/null; done'
+                f"grep -q '{evidence_path}' sessions/current 2>/dev/null && "
+                f"grep -q '{evidence_path}' plans/current 2>/dev/null"
             )
         },
     }

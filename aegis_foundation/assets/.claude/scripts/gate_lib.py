@@ -72,11 +72,66 @@ AEGIS_CLOSEOUT_RE = re.compile(
     re.IGNORECASE,
 )
 REDIRECT_RE = re.compile(r"(?<![<])(?:>>|>)(?![>&])\s*([\"']?)([^\"'\s;&|]+)\1")
+SHELL_CONTROL_SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
+UNSUPPORTED_READ_ONLY_SHELL_RE = re.compile(r"(`|\$\(|<<|<\(|>\(|\b(?:python|python3?)\s+-c\b)")
 PYTHON_WRITE_RE = re.compile(
     r"(?:open|Path)\(\s*['\"]([^'\"]+)['\"]\s*(?:,\s*['\"][^'\"]*[wa+][^'\"]*['\"])?"
     r"|write_text\(\s*['\"]",
     re.IGNORECASE,
 )
+READ_ONLY_SIMPLE_COMMANDS = {
+    "cat",
+    "date",
+    "echo",
+    "false",
+    "grep",
+    "head",
+    "ls",
+    "pwd",
+    "rg",
+    "sed",
+    "stat",
+    "tail",
+    "test",
+    "true",
+    "wc",
+    "which",
+}
+READ_ONLY_GIT_SUBCOMMANDS = {
+    "branch",
+    "diff",
+    "grep",
+    "log",
+    "ls-files",
+    "rev-parse",
+    "show",
+    "status",
+}
+READ_ONLY_TASKMASTER_SUBCOMMANDS = {
+    "complexity-report",
+    "list",
+    "next",
+    "show",
+    "validate-dependencies",
+}
+READ_ONLY_AEGIS_SUBCOMMANDS = {
+    "doctor",
+    "explain-profile",
+    "inspect",
+    "list-profiles",
+    "next",
+    "plan-install",
+    "status",
+}
+READ_ONLY_NPM_SCRIPTS = {"check", "lint", "test", "typecheck", "verify"}
+READ_ONLY_TEST_OUTPUT_OPTIONS = {
+    "--junitxml",
+    "--json-report-file",
+    "--outputFile",
+    "--output-file",
+    "--reporter=json",
+    "--reporter=json-summary",
+}
 MCP_READ_ONLY_TOOL_RE = re.compile(
     r"^mcp__.*__(get|list|read|search|find|query|show|help|check|resolve|fetch|open|is_|has_)",
     re.IGNORECASE,
@@ -337,6 +392,35 @@ def is_shell_assignment(token: str) -> bool:
     return bool(re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", token))
 
 
+def command_name(token: str) -> str:
+    return Path(token).name
+
+
+def strip_shell_prefixes(tokens: list[str]) -> list[str]:
+    stripped = list(tokens)
+    while stripped and is_shell_assignment(stripped[0]):
+        stripped = stripped[1:]
+    if stripped and stripped[0] == "env":
+        stripped = stripped[1:]
+        while stripped and (is_shell_assignment(stripped[0]) or stripped[0] in {"-i", "-u"}):
+            if stripped[0] == "-u" and len(stripped) >= 2:
+                stripped = stripped[2:]
+            else:
+                stripped = stripped[1:]
+    return stripped
+
+
+def has_read_only_test_output_option(tokens: list[str]) -> bool:
+    for token in tokens:
+        if token in READ_ONLY_TEST_OUTPUT_OPTIONS:
+            return True
+        if any(token.startswith(f"{option}=") for option in READ_ONLY_TEST_OUTPUT_OPTIONS):
+            return True
+        if token.startswith("--cov-report=") and token != "--cov-report=term":
+            return True
+    return False
+
+
 def redirect_targets(command: str) -> list[str]:
     return [match.group(2) for match in REDIRECT_RE.finditer(command)]
 
@@ -347,6 +431,8 @@ def is_persistent_redirect_target(target: str) -> bool:
 
 def bash_is_mutation(command: str) -> bool:
     if not command.strip():
+        return False
+    if bash_is_read_only(command):
         return False
     if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
         return True
@@ -365,7 +451,107 @@ def bash_is_mutation(command: str) -> bool:
         return True
     if re.search(r"python3?\s+-c\s+['\"][^'\"]*(open|write_text)", command):
         return True
+    return True
+
+
+def read_only_git_segment(tokens: list[str]) -> bool:
+    remainder = tokens[1:]
+    while remainder and remainder[0].startswith("-"):
+        if remainder[0] == "-C" and len(remainder) >= 2:
+            remainder = remainder[2:]
+        else:
+            remainder = remainder[1:]
+    if not remainder:
+        return False
+    if remainder[0] == "branch":
+        return "--show-current" in remainder[1:]
+    return remainder[0] in READ_ONLY_GIT_SUBCOMMANDS
+
+
+def read_only_taskmaster_segment(tokens: list[str]) -> bool:
+    return len(tokens) >= 2 and tokens[1] in READ_ONLY_TASKMASTER_SUBCOMMANDS
+
+
+def read_only_aegis_segment(tokens: list[str]) -> bool:
+    if not tokens:
+        return False
+    if tokens[0] in {"aegis", "./.aegis/bin/aegis", ".aegis/bin/aegis"}:
+        remainder = tokens[1:]
+    elif len(tokens) >= 4 and command_name(tokens[0]) in {"python", "python3"} and tokens[1:3] == [
+        "-m",
+        "aegis_foundation.cli",
+    ]:
+        remainder = tokens[3:]
+    else:
+        return False
+    return bool(remainder) and (
+        remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
+    )
+
+
+def read_only_node_segment(tokens: list[str]) -> bool:
+    if len(tokens) >= 2 and tokens[0] in {"npm", "pnpm", "yarn"}:
+        if tokens[1] in {"test", "verify"}:
+            return not has_read_only_test_output_option(tokens)
+        if len(tokens) >= 3 and tokens[1] == "run" and tokens[2] in READ_ONLY_NPM_SCRIPTS:
+            return not has_read_only_test_output_option(tokens)
+    if tokens[0] == "npx" and len(tokens) >= 2:
+        return read_only_node_segment(tokens[1:])
+    if tokens[0] == "vitest":
+        return not has_read_only_test_output_option(tokens)
+    if tokens[0] == "tsc":
+        return "--noEmit" in tokens and not has_read_only_test_output_option(tokens)
     return False
+
+
+def read_only_python_test_segment(tokens: list[str]) -> bool:
+    if tokens[0] == "pytest":
+        return not has_read_only_test_output_option(tokens)
+    if command_name(tokens[0]) in {"python", "python3"}:
+        return len(tokens) >= 3 and tokens[1:3] == ["-m", "pytest"] and not has_read_only_test_output_option(tokens)
+    if tokens[0] == "uv" and len(tokens) >= 3 and tokens[1] == "run":
+        return read_only_python_test_segment(tokens[2:])
+    return False
+
+
+def read_only_find_segment(tokens: list[str]) -> bool:
+    return tokens[0] == "find" and "-delete" not in tokens and "-exec" not in tokens and "-execdir" not in tokens
+
+
+def bash_segment_is_read_only(segment: str) -> bool:
+    tokens = strip_shell_prefixes(shlex_tokens(segment))
+    if not tokens:
+        return True
+    name = command_name(tokens[0])
+    tokens[0] = name
+    if name == "cd":
+        return True
+    if name == "git":
+        return read_only_git_segment(tokens)
+    if name == "task-master":
+        return read_only_taskmaster_segment(tokens)
+    if read_only_aegis_segment(tokens):
+        return True
+    if name in READ_ONLY_SIMPLE_COMMANDS:
+        return name != "sed" or "-i" not in tokens
+    if read_only_find_segment(tokens):
+        return True
+    if read_only_node_segment(tokens):
+        return True
+    if read_only_python_test_segment(tokens):
+        return True
+    return False
+
+
+def bash_is_read_only(command: str) -> bool:
+    if not command.strip():
+        return True
+    if UNSUPPORTED_READ_ONLY_SHELL_RE.search(command):
+        return False
+    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
+        return False
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    return bool(segments) and all(bash_segment_is_read_only(segment) for segment in segments)
 
 
 def bash_is_aegis_bootstrap(command: str) -> bool:
@@ -744,6 +930,14 @@ def payload_is_mutation(payload: Payload) -> bool:
     return False
 
 
+def payload_is_read_only(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_read_only(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        return not mcp_is_mutation(payload)
+    return False
+
+
 def payload_is_aegis_bootstrap(payload: Payload) -> bool:
     if payload.tool_name == "Bash":
         return bash_is_aegis_bootstrap(bash_command(payload))
@@ -887,6 +1081,8 @@ def pretooluse_gate() -> int:
 
     root = project_root()
     clear_client_reload_marker(root)
+    if payload_is_read_only(payload):
+        return 0
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
     post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(root, payload)

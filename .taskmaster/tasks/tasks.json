@@ -6209,12 +6209,13 @@
         "description": "Classify read-only inspection and test commands before running full readiness, allowing harmless observation and verification without task-state blocking.",
         "details": "Agent-runtime-first rationale: blocking inspection makes agents blind and increases bad mutation risk; read-only commands do not need task attribution. Acceptance: known read-only Bash commands such as ls, cat, sed, rg, git diff/status/show, task-master next/show/list, and non-writing test commands bypass readiness; commands with redirects, writes, generated outputs, status changes, or unknown shell features remain mutation-gated; tests cover classifier positives/negatives and prove readiness is not invoked for read-only payloads.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "137"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-01T15:43:04.231Z"
       },
       {
         "id": "139",
@@ -6258,9 +6259,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-01T14:51:03.087Z",
+      "lastModified": "2026-06-01T15:43:04.231Z",
       "taskCount": 141,
-      "completedCount": 137,
+      "completedCount": 138,
       "tags": [
         "master"
       ]

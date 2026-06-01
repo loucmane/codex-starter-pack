@@ -2,9 +2,9 @@
 
 **Title:** Short-circuit read-only commands before readiness
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 137
+**Dependencies:** 137 ✓
 
 **Priority:** high
 
