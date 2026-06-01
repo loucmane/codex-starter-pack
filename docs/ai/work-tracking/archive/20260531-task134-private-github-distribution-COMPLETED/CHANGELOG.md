@@ -9,3 +9,4 @@
 - **2026-05-31 14:45 CEST** - [S:20260531|W:task134-private-github-distribution|H:private-github-smoke|E:docs/ai/work-tracking/active/20260531-task134-private-github-distribution-ACTIVE/reports/private-github-distribution/hpfetcher-copy-private-github-install.md] Verified private GitHub install into a copied HPFetcher target, preserving existing `CLAUDE.md` content and reporting a healthy doctor state.
 - **2026-05-31 14:47 CEST** - [S:20260531|W:task134-private-github-distribution|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 134 done after private GitHub implementation and acceptance evidence passed.
 - **2026-05-31 14:58 CEST** - [S:20260531|W:task134-private-github-distribution|H:ci-fix|E:aegis_foundation/assets/docs/aegis/mcp-client-setup.md] Synced packaged MCP setup documentation asset after PR CI caught release-distribution parity drift.
+- 2026-06-01 11:32 CEST — Archived active work-tracking folder.

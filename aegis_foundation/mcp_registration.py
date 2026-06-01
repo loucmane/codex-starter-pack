@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import shlex
 import shutil
 import subprocess
-from typing import Any, Literal, Sequence
+import tempfile
+from dataclasses import dataclass, replace
+from typing import Any, Mapping, Literal, Sequence
 
 from aegis_foundation.version import DISTRIBUTION_NAME, PACKAGE_VERSION
 
@@ -24,6 +26,7 @@ DEFAULT_UV_TOOL_DIR = ".aegis/uv-tools"
 
 ClientName = Literal["claude", "codex"]
 SourceMode = Literal["package", "pinned", "github", "private-github", "wheel", "source"]
+SMOKE_CLIENTS: tuple[ClientName, ...] = ("claude", "codex")
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,18 @@ class RegistrationRequest:
     transport: str = DEFAULT_TRANSPORT
     uv_cache_dir: str | None = DEFAULT_UV_CACHE_DIR
     uv_tool_dir: str | None = DEFAULT_UV_TOOL_DIR
+
+
+@dataclass(frozen=True)
+class IsolatedClientEnvironment:
+    """Temporary environment used for one native MCP client smoke run."""
+
+    client: ClientName
+    root: Path
+    home: Path
+    work_dir: Path
+    env: dict[str, str]
+    precreated_paths: tuple[Path, ...]
 
 
 def shell_join(argv: Sequence[str]) -> str:
@@ -210,10 +225,15 @@ def registration_payload(request: RegistrationRequest) -> dict[str, Any]:
     }
 
 
-def run_native_client(argv: Sequence[str], *, cwd: str | Path = ".") -> dict[str, Any]:
+def run_native_client(
+    argv: Sequence[str],
+    *,
+    cwd: str | Path = ".",
+    env: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     """Run a native MCP client command with exact argv and structured output."""
 
-    executable = shutil.which(argv[0])
+    executable = shutil.which(argv[0], path=env.get("PATH") if env is not None else None)
     payload: dict[str, Any] = {
         "argv": list(argv),
         "rendered_command": shell_join(argv),
@@ -234,6 +254,7 @@ def run_native_client(argv: Sequence[str], *, cwd: str | Path = ".") -> dict[str
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
+        env=dict(env) if env is not None else None,
     )
     return {
         **payload,
@@ -244,11 +265,16 @@ def run_native_client(argv: Sequence[str], *, cwd: str | Path = ".") -> dict[str
     }
 
 
-def execute_registration(request: RegistrationRequest, *, cwd: str | Path | None = None) -> dict[str, Any]:
+def execute_registration(
+    request: RegistrationRequest,
+    *,
+    cwd: str | Path | None = None,
+    env: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     """Execute native client registration and return a structured report."""
 
     registration = registration_payload(request)
-    execution = run_native_client(registration["client_argv"], cwd=cwd or request.target_dir)
+    execution = run_native_client(registration["client_argv"], cwd=cwd or request.target_dir, env=env)
     return {
         **registration,
         "read_only": False,
@@ -335,11 +361,16 @@ def verify_registration_output(
     }
 
 
-def verify_registration(request: RegistrationRequest, *, cwd: str | Path | None = None) -> dict[str, Any]:
+def verify_registration(
+    request: RegistrationRequest,
+    *,
+    cwd: str | Path | None = None,
+    env: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     """Inspect a native MCP client registration and verify the Aegis command."""
 
     argv = inspect_argv(request.client)
-    execution = run_native_client(argv, cwd=cwd or request.target_dir)
+    execution = run_native_client(argv, cwd=cwd or request.target_dir, env=env)
     if execution["status"] == "missing_client":
         return {
             "status": "missing_client",
@@ -359,3 +390,230 @@ def verify_registration(request: RegistrationRequest, *, cwd: str | Path | None 
         "inspection": execution,
         "expected_registration": registration_payload(request),
     }
+
+
+def _path_payload(path: Path) -> str:
+    return path.as_posix()
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def isolated_client_environment(
+    client: ClientName,
+    smoke_root: str | Path,
+    *,
+    parent_env: Mapping[str, str] | None = None,
+) -> IsolatedClientEnvironment:
+    """Create an isolated home/config environment for one native client."""
+
+    root = Path(smoke_root).resolve() / client
+    home = root / "home"
+    work_dir = root / "work"
+    xdg_config = home / ".config"
+    xdg_data = home / ".local" / "share"
+    xdg_cache = home / ".cache"
+    precreated: list[Path] = [home, work_dir, xdg_config, xdg_data, xdg_cache]
+
+    env = dict(parent_env or os.environ)
+    env["HOME"] = home.as_posix()
+    env["XDG_CONFIG_HOME"] = xdg_config.as_posix()
+    env["XDG_DATA_HOME"] = xdg_data.as_posix()
+    env["XDG_CACHE_HOME"] = xdg_cache.as_posix()
+
+    if client == "codex":
+        codex_home = home / ".codex"
+        env["CODEX_HOME"] = codex_home.as_posix()
+        precreated.append(codex_home)
+    else:
+        env.pop("CODEX_HOME", None)
+        # Claude Code currently follows HOME for user config, but keep any
+        # future Claude-specific config root isolated if the CLI starts honoring
+        # this conventional variable.
+        claude_config = home / ".claude"
+        env["CLAUDE_CONFIG_DIR"] = claude_config.as_posix()
+        precreated.append(claude_config)
+
+    for path in precreated:
+        path.mkdir(parents=True, exist_ok=True)
+
+    return IsolatedClientEnvironment(
+        client=client,
+        root=root,
+        home=home,
+        work_dir=work_dir,
+        env=env,
+        precreated_paths=tuple(precreated),
+    )
+
+
+def _environment_metadata(isolated: IsolatedClientEnvironment, smoke_root: Path) -> dict[str, Any]:
+    exposed_env = {
+        key: isolated.env[key]
+        for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR")
+        if key in isolated.env
+    }
+    return {
+        "client": isolated.client,
+        "root": _path_payload(isolated.root),
+        "home": _path_payload(isolated.home),
+        "work_dir": _path_payload(isolated.work_dir),
+        "env": exposed_env,
+        "precreated_paths": [_path_payload(path) for path in isolated.precreated_paths],
+        "all_paths_under_smoke_root": all(_is_relative_to(path, smoke_root) for path in isolated.precreated_paths),
+    }
+
+
+def _client_smoke_status(execute: dict[str, Any], verify: dict[str, Any] | None) -> str:
+    if execute.get("status") == "missing_client":
+        return "missing_client"
+    if execute.get("status") != "passed":
+        return "failed"
+    if verify is None:
+        return "failed"
+    if verify.get("status") == "missing_client":
+        return "missing_client"
+    if verify.get("status") != "passed":
+        return "failed"
+    return "passed"
+
+
+def _aggregate_smoke_status(client_results: Sequence[dict[str, Any]]) -> str:
+    statuses = [result["status"] for result in client_results]
+    if statuses and all(status == "passed" for status in statuses):
+        return "passed"
+    if statuses and all(status == "missing_client" for status in statuses):
+        return "skipped"
+    if any(status == "failed" for status in statuses):
+        return "failed"
+    return "partial"
+
+
+def smoke_registration(
+    request: RegistrationRequest,
+    *,
+    clients: Sequence[ClientName] = SMOKE_CLIENTS,
+    smoke_root: str | Path | None = None,
+    keep_temp: bool = False,
+    parent_env: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Run native MCP register + verify in isolated temp client homes."""
+
+    if not clients:
+        raise ValueError("At least one smoke client is required")
+    invalid = sorted({client for client in clients if client not in SMOKE_CLIENTS})
+    if invalid:
+        raise ValueError(f"Unsupported smoke client(s): {', '.join(invalid)}")
+
+    cleanup_temp = smoke_root is None and not keep_temp
+    if smoke_root is None:
+        root = Path(tempfile.mkdtemp(prefix="aegis-mcp-registration-smoke-")).resolve()
+    else:
+        root = Path(smoke_root).expanduser().resolve()
+        root.mkdir(parents=True, exist_ok=True)
+
+    results: list[dict[str, Any]] = []
+    try:
+        for client in clients:
+            client_request = replace(
+                request,
+                client=client,
+                scope=request.scope if client == "claude" else None,
+            )
+            isolated = isolated_client_environment(client, root, parent_env=parent_env)
+            execute = execute_registration(client_request, cwd=isolated.work_dir, env=isolated.env)
+            verify: dict[str, Any] | None = None
+            if execute.get("status") == "passed":
+                verify = verify_registration(client_request, cwd=isolated.work_dir, env=isolated.env)
+            status = _client_smoke_status(execute, verify)
+            safety_notes = [
+                "isolated-client-home",
+                "real-user-config-not-touched",
+                "native-client-registration-path",
+            ]
+            if client == "codex":
+                safety_notes.append("codex-home-precreated")
+            results.append(
+                {
+                    "client": client,
+                    "status": status,
+                    "request": registration_payload(client_request),
+                    "environment": _environment_metadata(isolated, root),
+                    "registration": execute,
+                    "verification": verify,
+                    "safety_notes": safety_notes,
+                }
+            )
+    finally:
+        if cleanup_temp:
+            shutil.rmtree(root, ignore_errors=True)
+
+    aggregate = _aggregate_smoke_status(results)
+    return {
+        "status": aggregate,
+        "clients": results,
+        "source_mode": request.source_mode,
+        "package_spec": source_spec(request),
+        "smoke_root": _path_payload(root),
+        "temp_cleaned": cleanup_temp,
+        "read_only": False,
+        "safety_notes": [
+            "isolated-client-home",
+            "real-user-config-not-touched",
+            "no-fallback-config-file-writes",
+        ],
+    }
+
+
+def smoke_registration_markdown(payload: Mapping[str, Any]) -> str:
+    """Render a concise Markdown report for smoke-registration evidence."""
+
+    lines = [
+        "# Aegis Native MCP Registration Smoke",
+        "",
+        f"- **Status:** {payload.get('status')}",
+        f"- **Source mode:** {payload.get('source_mode')}",
+        f"- **Package spec:** `{payload.get('package_spec')}`",
+        f"- **Smoke root:** `{payload.get('smoke_root')}`",
+        f"- **Temp cleaned:** {payload.get('temp_cleaned')}",
+        "",
+        "## Clients",
+        "",
+    ]
+    for result in payload.get("clients", []):
+        lines.extend(
+            [
+                f"### {result.get('client')}",
+                "",
+                f"- Status: `{result.get('status')}`",
+                f"- Home: `{result.get('environment', {}).get('home')}`",
+                f"- Work dir: `{result.get('environment', {}).get('work_dir')}`",
+                f"- Registration: `{result.get('registration', {}).get('status')}`",
+                f"- Verification: `{(result.get('verification') or {}).get('status')}`",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def write_smoke_reports(
+    payload: Mapping[str, Any],
+    *,
+    report_file: str | Path | None = None,
+    markdown_report_file: str | Path | None = None,
+) -> None:
+    """Write optional JSON/Markdown smoke evidence files."""
+
+    if report_file:
+        path = Path(report_file)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if markdown_report_file:
+        path = Path(markdown_report_file)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(smoke_registration_markdown(payload), encoding="utf-8")

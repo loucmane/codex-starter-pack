@@ -314,9 +314,13 @@ def handle_explain_profile(args: argparse.Namespace) -> int:
     return 0
 
 
-def _mcp_registration_request_from_args(args: argparse.Namespace) -> mcp_registration.RegistrationRequest:
+def _mcp_registration_request_from_args(
+    args: argparse.Namespace,
+    *,
+    client: mcp_registration.ClientName | None = None,
+) -> mcp_registration.RegistrationRequest:
     return mcp_registration.RegistrationRequest(
-        client=args.client,
+        client=client or args.client,
         scope=getattr(args, "scope", None),
         source_mode=args.source_mode,
         package_spec=args.package_spec,
@@ -382,6 +386,36 @@ def handle_mcp_register(args: argparse.Namespace) -> int:
         return 1
     _dump_json(payload)
     if payload.get("status") in {"missing_client", "failed"}:
+        return 1
+    return 0
+
+
+def _normalize_smoke_clients(values: Sequence[str] | None) -> tuple[mcp_registration.ClientName, ...]:
+    requested = list(values or ["all"])
+    if "all" in requested:
+        return mcp_registration.SMOKE_CLIENTS
+    return tuple(dict.fromkeys(requested))  # type: ignore[return-value]
+
+
+def handle_mcp_smoke_registration(args: argparse.Namespace) -> int:
+    clients = _normalize_smoke_clients(args.client)
+    try:
+        payload = mcp_registration.smoke_registration(
+            _mcp_registration_request_from_args(args, client=clients[0]),
+            clients=clients,
+            smoke_root=args.smoke_root,
+            keep_temp=args.keep_temp,
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    mcp_registration.write_smoke_reports(
+        payload,
+        report_file=args.report_file,
+        markdown_report_file=args.markdown_report_file,
+    )
+    _dump_json(payload)
+    if payload.get("status") == "failed":
         return 1
     return 0
 
@@ -842,6 +876,55 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     _add_mcp_registration_arguments(mcp_verify, execute=True)
     mcp_verify.set_defaults(func=handle_mcp_verify_registration)
+
+    mcp_smoke = mcp_sub.add_parser(
+        "smoke-registration",
+        help="Run native MCP register and verify in isolated temporary client homes.",
+    )
+    mcp_smoke.add_argument(
+        "--client",
+        action="append",
+        choices=("all", "claude", "codex"),
+        help="Native MCP client to smoke test. Repeatable. Defaults to all.",
+    )
+    mcp_smoke.add_argument(
+        "--scope",
+        choices=("local", "user", "project"),
+        default="user",
+        help="Claude MCP scope. Defaults to user and is ignored for Codex.",
+    )
+    mcp_smoke.add_argument(
+        "--source-mode",
+        choices=("package", "pinned", "github", "private-github", "wheel", "source"),
+        default="package",
+        help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
+    )
+    mcp_smoke.add_argument("--package-spec", help="Explicit uvx --from package/artifact spec.")
+    mcp_smoke.add_argument("--package-version", help="Version for --source-mode pinned. Defaults to the package version.")
+    mcp_smoke.add_argument(
+        "--github-url",
+        default=mcp_registration.DEFAULT_GITHUB_URL,
+        help="GitHub repository URL for --source-mode github/private-github.",
+    )
+    mcp_smoke.add_argument("--github-ref", help="Optional ref for --source-mode github/private-github.")
+    mcp_smoke.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
+    mcp_smoke.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
+    mcp_smoke.add_argument(
+        "--uv-cache-dir",
+        default=mcp_registration.DEFAULT_UV_CACHE_DIR,
+        help="UV_CACHE_DIR value registered with the native client; use '' to omit.",
+    )
+    mcp_smoke.add_argument(
+        "--uv-tool-dir",
+        default=mcp_registration.DEFAULT_UV_TOOL_DIR,
+        help="UV_TOOL_DIR value registered with the native client; use '' to omit.",
+    )
+    mcp_smoke.add_argument("--transport", choices=("stdio",), default="stdio", help="MCP server transport to register.")
+    mcp_smoke.add_argument("--smoke-root", help="Directory for isolated client homes. Defaults to a temporary directory.")
+    mcp_smoke.add_argument("--keep-temp", action="store_true", help="Keep generated temporary homes after the smoke run.")
+    mcp_smoke.add_argument("--report-file", help="Optional JSON report path.")
+    mcp_smoke.add_argument("--markdown-report-file", help="Optional Markdown report path.")
+    mcp_smoke.set_defaults(func=handle_mcp_smoke_registration)
 
     return parser
 

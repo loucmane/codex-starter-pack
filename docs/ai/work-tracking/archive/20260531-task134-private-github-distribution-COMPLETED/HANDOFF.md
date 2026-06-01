@@ -27,3 +27,4 @@
 - Commit and push the final evidence update.
 - Open a PR for `feat/task-134-private-github-distribution`.
 - Review CI and merge after checks pass.
+- Archived on 2026-06-01 11:32 CEST — Folder moved to archive and tracker marked COMPLETED.
