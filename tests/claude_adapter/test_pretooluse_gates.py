@@ -316,6 +316,36 @@ def test_pretooluse_allows_task_source_file_when_ready(tmp_path: Path) -> None:
     assert result.stderr == ""
 
 
+def test_pretooluse_allows_task_report_file_when_ready(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    report_path = "docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/reports/verify.txt"
+
+    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path=report_path))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "workflow_path",
+    [
+        "sessions/current",
+        "plans/current",
+        "docs/ai/work-tracking/active/20260506-task103-claude-runtime-adapter-ACTIVE/HANDOFF.md",
+    ],
+)
+def test_pretooluse_blocks_direct_workflow_owned_file_edits_when_ready(
+    tmp_path: Path, workflow_path: str
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path=workflow_path))
+
+    assert result.returncode == 2
+    assert "Workflow-owned path" in result.stderr
+    assert workflow_path in result.stderr
+
+
 @pytest.mark.parametrize(
     "protected_path",
     [
@@ -360,6 +390,63 @@ def test_pretooluse_blocks_bash_sed_i_template_when_ready(tmp_path: Path) -> Non
 
     assert result.returncode == 2
     assert "sed -i targets protected path templates/foo.md" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("printf 'x' > sessions/current", "redirection targets workflow-owned path sessions/current"),
+        ("touch plans/current", "touch references workflow-owned path plans/current"),
+        (
+            "python3 -c \"open('docs/ai/work-tracking/active/t/HANDOFF.md','w').write('x')\"",
+            "python write targets workflow-owned path docs/ai/work-tracking/active/t/HANDOFF.md",
+        ),
+    ],
+)
+def test_pretooluse_blocks_bash_workflow_owned_mutations_when_ready(
+    tmp_path: Path, command: str, expected: str
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 2
+    assert expected in result.stderr
+
+
+def test_pretooluse_allows_bash_writes_to_task_reports_when_ready(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload(
+            "Bash",
+            command="printf 'ok\\n' > docs/ai/work-tracking/active/t/reports/task-verification.txt",
+        ),
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "./.aegis/bin/aegis log --target-dir . --handler test --evidence docs/ai/work-tracking/active/t/FINDINGS.md --note ok",
+        "./.aegis/bin/aegis handoff repair --target-dir .",
+        "./.aegis/bin/aegis closeout --target-dir . --update-handoff",
+    ],
+)
+def test_pretooluse_allows_sanctioned_aegis_cli_workflow_mutations_when_ready(
+    tmp_path: Path, command: str
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
 
 
 def test_posttooluse_tracks_aegis_verify_as_report_evidence(tmp_path: Path) -> None:
@@ -524,6 +611,38 @@ def test_pretooluse_blocks_mcp_protected_path_when_ready(tmp_path: Path) -> None
     assert result.returncode == 2
     assert "Protected path" in result.stderr
     assert "CODEX.md" in result.stderr
+
+
+def test_pretooluse_blocks_mcp_workflow_owned_path_when_ready(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("mcp__serena__create_text_file", relative_path="docs/ai/work-tracking/active/t/HANDOFF.md"),
+    )
+
+    assert result.returncode == 2
+    assert "Workflow-owned path" in result.stderr
+    assert "docs/ai/work-tracking/active/t/HANDOFF.md" in result.stderr
+
+
+def test_pretooluse_allows_sanctioned_aegis_mcp_workflow_mutation_when_ready(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload(
+            "mcp__aegis__aegis_log",
+            target_dir=repo.as_posix(),
+            path="docs/ai/work-tracking/active/t/FINDINGS.md",
+            note="Recorded structured evidence",
+        ),
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
 
 
 def test_path_guard_blocks_direct_protected_file_payload(tmp_path: Path) -> None:

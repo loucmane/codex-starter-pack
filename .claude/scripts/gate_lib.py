@@ -30,6 +30,17 @@ AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 PROTECTED_PREFIXES = ("templates/", ".codex/", ".aegis/", ".claude/")
 PROTECTED_EXACT = {"CODEX.md", "CLAUDE.md", "AGENTS.md"}
 PROTECTED_NAME_PREFIXES = ("scripts/codex-", "scripts/template-")
+WORKFLOW_LINK_PREFIXES = ("sessions/", "plans/")
+WORKFLOW_TRACKING_PREFIX = "docs/ai/work-tracking/"
+WORKFLOW_REPORT_SEGMENT = "/reports/"
+SANCTIONED_AEGIS_MCP_MUTATION_SUFFIXES = {
+    "kickoff",
+    "start",
+    "log",
+    "handoff_repair",
+    "closeout",
+    "repair",
+}
 
 MUTATING_GIT_RE = re.compile(
     r"(^|[;&|]\s*)git\s+("
@@ -291,6 +302,24 @@ def is_protected_path(path_text: str, root: Path | None = None) -> bool:
     if rel.startswith(PROTECTED_PREFIXES):
         return True
     return rel.startswith(PROTECTED_NAME_PREFIXES)
+
+
+def is_workflow_report_path(path_text: str, root: Path | None = None) -> bool:
+    rel = normalize_path(path_text, root)
+    return rel.startswith(WORKFLOW_TRACKING_PREFIX) and WORKFLOW_REPORT_SEGMENT in f"/{rel}/"
+
+
+def is_workflow_owned_path(path_text: str, root: Path | None = None) -> bool:
+    rel = normalize_path(path_text, root)
+    if rel.startswith(WORKFLOW_LINK_PREFIXES):
+        return True
+    if rel.startswith(WORKFLOW_TRACKING_PREFIX):
+        return not is_workflow_report_path(rel, root)
+    return False
+
+
+def is_guarded_mutation_path(path_text: str, root: Path | None = None) -> bool:
+    return is_protected_path(path_text, root) or is_workflow_owned_path(path_text, root)
 
 
 def is_mcp_tool(tool_name: str) -> bool:
@@ -577,6 +606,40 @@ def bash_is_aegis_closeout(command: str) -> bool:
     return bool(AEGIS_CLOSEOUT_RE.search(command))
 
 
+def payload_is_sanctioned_aegis_workflow_mutation(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        command = bash_command(payload)
+        return (
+            bash_is_aegis_bootstrap(command)
+            or bash_is_aegis_log(command)
+            or bash_is_aegis_verify(command)
+            or bash_is_aegis_closeout(command)
+            or bool(AEGIS_REPAIR_APPLY_RE.search(command))
+            or bool(
+                re.search(
+                    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+handoff\s+repair\b",
+                    command,
+                    re.IGNORECASE,
+                )
+            )
+        )
+    if is_mcp_tool(payload.tool_name):
+        normalized = normalized_mcp_tool_name(payload.tool_name)
+        return "aegis" in normalized and any(
+            normalized.endswith(suffix) for suffix in SANCTIONED_AEGIS_MCP_MUTATION_SUFFIXES
+        )
+    return False
+
+
+def guarded_bash_path_violation(action: str, target: str, root: Path) -> str | None:
+    normalized = normalize_path(target, root)
+    if is_protected_path(target, root):
+        return f"{action} protected path {normalized}"
+    if is_workflow_owned_path(target, root):
+        return f"{action} workflow-owned path {normalized}"
+    return None
+
+
 def protected_bash_violations(command: str, root: Path | None = None) -> list[str]:
     root = root or project_root()
     violations: list[str] = []
@@ -585,8 +648,9 @@ def protected_bash_violations(command: str, root: Path | None = None) -> list[st
         target = match.group(2)
         if not is_persistent_redirect_target(target):
             continue
-        if is_protected_path(target, root):
-            violations.append(f"redirection targets protected path {normalize_path(target, root)}")
+        violation = guarded_bash_path_violation("redirection targets", target, root)
+        if violation:
+            violations.append(violation)
 
     tokens = shlex_tokens(command)
     for index, token in enumerate(tokens):
@@ -595,25 +659,30 @@ def protected_bash_violations(command: str, root: Path | None = None) -> list[st
             for candidate in tokens[index + 1 :]:
                 if candidate.startswith("-") or candidate.startswith("s/"):
                     continue
-                if is_protected_path(candidate, root):
-                    violations.append(f"sed -i targets protected path {normalize_path(candidate, root)}")
+                violation = guarded_bash_path_violation("sed -i targets", candidate, root)
+                if violation:
+                    violations.append(violation)
         if lower == "tee":
             for candidate in tokens[index + 1 :]:
                 if candidate.startswith("-"):
                     continue
-                if is_protected_path(candidate, root):
-                    violations.append(f"tee targets protected path {normalize_path(candidate, root)}")
-        if lower in {"cp", "mv"}:
+                violation = guarded_bash_path_violation("tee targets", candidate, root)
+                if violation:
+                    violations.append(violation)
+        if lower in {"rm", "mv", "cp", "install", "touch", "chmod", "chown", "mkdir", "rmdir"}:
             for candidate in tokens[index + 1 :]:
                 if candidate.startswith("-"):
                     continue
-                if is_protected_path(candidate, root):
-                    violations.append(f"{lower} references protected path {normalize_path(candidate, root)}")
+                violation = guarded_bash_path_violation(f"{lower} references", candidate, root)
+                if violation:
+                    violations.append(violation)
 
     for match in PYTHON_WRITE_RE.finditer(command):
         target = match.group(1)
-        if target and is_protected_path(target, root):
-            violations.append(f"python write targets protected path {normalize_path(target, root)}")
+        if target:
+            violation = guarded_bash_path_violation("python write targets", target, root)
+            if violation:
+                violations.append(violation)
 
     return sorted(set(violations))
 
@@ -1130,9 +1199,25 @@ def pretooluse_gate() -> int:
                 f"Protected path(s):\n{paths}\n\n"
                 "Claude may not edit protected Aegis/Codex-owned paths from this task."
             )
+        workflow_owned = [
+            path for path in file_paths_from_payload(payload, root) if is_workflow_owned_path(path, root)
+        ]
+        if workflow_owned:
+            paths = "\n".join(f"  - {path}" for path in workflow_owned)
+            return block(
+                "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+                f"Tool: {payload.tool_name}\n"
+                f"Workflow-owned path(s):\n{paths}\n\n"
+                "Agents may not directly edit Aegis authority surfaces. Use sanctioned Aegis commands "
+                "such as kickoff, log, handoff repair, or closeout so workflow evidence stays structured."
+            )
 
     if payload.tool_name == "Bash":
-        violations = protected_bash_violations(bash_command(payload), root)
+        violations = (
+            []
+            if payload_is_sanctioned_aegis_workflow_mutation(payload)
+            else protected_bash_violations(bash_command(payload), root)
+        )
         if violations:
             details = "\n".join(f"  - {violation}" for violation in violations)
             return block(
@@ -1143,6 +1228,7 @@ def pretooluse_gate() -> int:
             )
 
     if is_mcp_tool(payload.tool_name):
+        sanctioned_aegis = payload_is_sanctioned_aegis_workflow_mutation(payload)
         protected = [
             normalize_path(path, root)
             for path in mcp_path_values(payload.tool_input)
@@ -1155,6 +1241,20 @@ def pretooluse_gate() -> int:
                 f"Tool: {payload.tool_name}\n"
                 f"Protected path(s):\n{paths}\n\n"
                 "MCP tools may not bypass protected Aegis/Codex-owned path boundaries."
+            )
+        workflow_owned = [
+            normalize_path(path, root)
+            for path in mcp_path_values(payload.tool_input)
+            if is_workflow_owned_path(path, root)
+        ]
+        if workflow_owned and not sanctioned_aegis:
+            paths = "\n".join(f"  - {path}" for path in sorted(set(workflow_owned)))
+            return block(
+                "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+                f"Tool: {payload.tool_name}\n"
+                f"Workflow-owned path(s):\n{paths}\n\n"
+                "MCP tools may not directly mutate Aegis authority surfaces. Use sanctioned Aegis MCP "
+                "handlers so workflow evidence stays structured."
             )
 
     return 0

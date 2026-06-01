@@ -2,9 +2,9 @@
 
 **Title:** Protect workflow-owned surfaces from direct agent edits
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 137
+**Dependencies:** 137 ✓
 
 **Priority:** high
 
