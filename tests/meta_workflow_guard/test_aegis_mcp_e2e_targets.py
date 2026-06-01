@@ -847,7 +847,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
         {
             "tool_name": "Bash",
             "tool_input": {
-                "command": 'aegis kickoff --target-dir . --task 1 --slug real-target-matrix --title "Real Target Matrix"'
+                "command": './.aegis/bin/aegis kickoff --target-dir . --task 1 --slug real-target-matrix --title "Real Target Matrix"'
             },
         },
     )

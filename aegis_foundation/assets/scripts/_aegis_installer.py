@@ -46,6 +46,7 @@ AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
+AEGIS_DEGRADED_EVENTS_REL = ".aegis/state/degraded-events.json"
 AEGIS_LOCAL_TASKS_REL = ".aegis/state/local-tasks.json"
 TASKMASTER_TASKS_REL = ".taskmaster/tasks/tasks.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
@@ -3030,6 +3031,14 @@ def _pending_tracking_events(target_root: Path) -> list[dict[str, Any]]:
     return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
 
 
+def _degraded_events(target_root: Path) -> list[dict[str, Any]]:
+    payload = _read_json(target_root / AEGIS_DEGRADED_EVENTS_REL)
+    if not payload:
+        return []
+    events = payload.get("events")
+    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+
+
 def _write_pending_tracking_events(target_root: Path, events: list[dict[str, Any]]) -> None:
     path = target_root / AEGIS_PENDING_TRACKING_REL
     if not events:
@@ -4472,7 +4481,9 @@ def _classify_doctor_state(
     status_value = str(current_work.get("status") or "")
     if status_value == "completed" and current_work.get("closeout_passed_at"):
         summary = _doctor_summary(checks)
-        return "completed_closeout", "healthy" if summary["failed_required"] == 0 else "repairable"
+        if summary["failed_required"]:
+            return "completed_closeout", "repairable"
+        return "completed_closeout", "degraded" if summary["warnings"] else "healthy"
     workflow_failed = any(
         check.get("category") == "workflow" and check.get("status") == "fail"
         for check in checks
@@ -4572,6 +4583,30 @@ def doctor(
                 details={"folders": stale_active, "current": current_work_rel},
             )
         )
+    degraded_events = _degraded_events(target_root)
+    unacknowledged_degraded = [
+        event
+        for event in degraded_events
+        if not event.get("acknowledged_at") and not event.get("resolved_at")
+    ]
+    checks.append(
+        _strict_check(
+            "runtime.degraded_events_acknowledged",
+            category="runtime",
+            required=False,
+            passed=not unacknowledged_degraded,
+            message=(
+                "no unacknowledged degraded gate events"
+                if not unacknowledged_degraded
+                else "unacknowledged degraded gate events require operator review"
+            ),
+            details={
+                "path": AEGIS_DEGRADED_EVENTS_REL,
+                "total": len(degraded_events),
+                "unacknowledged": unacknowledged_degraded,
+            },
+        )
+    )
 
     current_state, status_value = _classify_doctor_state(
         manifest=manifest,
@@ -5802,6 +5837,28 @@ def closeout(
             details={"path": AEGIS_PENDING_TRACKING_REL, "events": pending_events},
         )
     )
+    degraded_events = _degraded_events(target_root)
+    unacknowledged_degraded = [
+        event
+        for event in degraded_events
+        if not event.get("acknowledged_at") and not event.get("resolved_at")
+    ]
+    checks.append(
+        _closeout_check(
+            "closeout.degraded_events_acknowledged",
+            passed=not unacknowledged_degraded,
+            message=(
+                "degraded gate events are acknowledged or resolved"
+                if not unacknowledged_degraded
+                else "unacknowledged degraded gate events block closeout"
+            ),
+            details={
+                "path": AEGIS_DEGRADED_EVENTS_REL,
+                "total": len(degraded_events),
+                "unacknowledged": unacknowledged_degraded,
+            },
+        )
+    )
 
     strict_verify = verify(target_root, source_root=source, strict=True, dry_run=dry_run)
     checks.append(
@@ -5992,6 +6049,11 @@ def closeout(
         "pending_tracking": {
             "path": AEGIS_PENDING_TRACKING_REL,
             "events": pending_events,
+        },
+        "degraded_events": {
+            "path": AEGIS_DEGRADED_EVENTS_REL,
+            "events": degraded_events,
+            "unacknowledged": unacknowledged_degraded,
         },
         "evidence_matrix": evidence_matrix,
         "handoff": {

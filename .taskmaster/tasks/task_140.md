@@ -2,9 +2,9 @@
 
 **Title:** Add degraded-event breadcrumb and closeout enforcement
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 137
+**Dependencies:** 137 ✓
 
 **Priority:** high
 
