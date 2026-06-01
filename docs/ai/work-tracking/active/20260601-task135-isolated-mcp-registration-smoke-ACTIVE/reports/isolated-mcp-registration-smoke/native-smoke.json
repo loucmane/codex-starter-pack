@@ -1,0 +1,599 @@
+{
+  "clients": [
+    {
+      "client": "claude",
+      "environment": {
+        "all_paths_under_smoke_root": true,
+        "client": "claude",
+        "env": {
+          "CLAUDE_CONFIG_DIR": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.claude",
+          "HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home",
+          "XDG_CACHE_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.cache",
+          "XDG_CONFIG_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.config",
+          "XDG_DATA_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.local/share"
+        },
+        "home": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home",
+        "precreated_paths": [
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/work",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.config",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.local/share",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.cache",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.claude"
+        ],
+        "root": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude",
+        "work_dir": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/work"
+      },
+      "registration": {
+        "client": "claude",
+        "client_argv": [
+          "claude",
+          "mcp",
+          "add",
+          "--scope",
+          "user",
+          "aegis",
+          "-e",
+          "UV_CACHE_DIR=.aegis/uv-cache",
+          "-e",
+          "UV_TOOL_DIR=.aegis/uv-tools",
+          "--",
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "environment": {
+          "UV_CACHE_DIR": ".aegis/uv-cache",
+          "UV_TOOL_DIR": ".aegis/uv-tools"
+        },
+        "execution": {
+          "argv": [
+            "claude",
+            "mcp",
+            "add",
+            "--scope",
+            "user",
+            "aegis",
+            "-e",
+            "UV_CACHE_DIR=.aegis/uv-cache",
+            "-e",
+            "UV_TOOL_DIR=.aegis/uv-tools",
+            "--",
+            "uvx",
+            "--from",
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            ".",
+            "--transport",
+            "stdio"
+          ],
+          "cwd": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/work",
+          "rendered_command": "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+          "returncode": 0,
+          "status": "passed",
+          "stderr": "",
+          "stdout": "Added stdio MCP server aegis with command: uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio to user config\nFile modified: /tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/home/.claude/.claude.json\n"
+        },
+        "mcp_server_argv": [
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "mcp_server_command": "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+        "read_only": false,
+        "rendered_command": "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "safety_notes": [
+          "native-client-registration-is-primary",
+          "config-file-writes-are-fallback-only",
+          "package-mode-does-not-require-local-source-checkout",
+          "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+          "private-github-requires-native-git-auth"
+        ],
+        "scope": "user",
+        "server": "aegis",
+        "source_mode": "private-github",
+        "status": "passed",
+        "target_dir": ".",
+        "transport": "stdio"
+      },
+      "request": {
+        "client": "claude",
+        "client_argv": [
+          "claude",
+          "mcp",
+          "add",
+          "--scope",
+          "user",
+          "aegis",
+          "-e",
+          "UV_CACHE_DIR=.aegis/uv-cache",
+          "-e",
+          "UV_TOOL_DIR=.aegis/uv-tools",
+          "--",
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "environment": {
+          "UV_CACHE_DIR": ".aegis/uv-cache",
+          "UV_TOOL_DIR": ".aegis/uv-tools"
+        },
+        "mcp_server_argv": [
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "mcp_server_command": "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+        "read_only": true,
+        "rendered_command": "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "safety_notes": [
+          "native-client-registration-is-primary",
+          "config-file-writes-are-fallback-only",
+          "package-mode-does-not-require-local-source-checkout",
+          "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+          "private-github-requires-native-git-auth"
+        ],
+        "scope": "user",
+        "server": "aegis",
+        "source_mode": "private-github",
+        "status": "generated",
+        "target_dir": ".",
+        "transport": "stdio"
+      },
+      "safety_notes": [
+        "isolated-client-home",
+        "real-user-config-not-touched",
+        "native-client-registration-path"
+      ],
+      "status": "passed",
+      "verification": {
+        "checks": [
+          {
+            "expected": 0,
+            "id": "client_inspection_exit",
+            "observed": 0,
+            "status": "pass"
+          },
+          {
+            "expected": "aegis",
+            "id": "server_name",
+            "status": "pass"
+          },
+          {
+            "expected": "uvx",
+            "id": "uvx_command",
+            "status": "pass"
+          },
+          {
+            "expected": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "id": "source_spec",
+            "status": "pass"
+          },
+          {
+            "expected": "aegis-mcp-server",
+            "id": "server_command",
+            "status": "pass"
+          },
+          {
+            "expected": ".",
+            "id": "default_target_dir",
+            "status": "pass"
+          },
+          {
+            "expected": "stdio",
+            "id": "transport",
+            "status": "pass"
+          },
+          {
+            "expected": "UV_CACHE_DIR=.aegis/uv-cache",
+            "id": "env_uv_cache_dir",
+            "status": "pass"
+          },
+          {
+            "expected": "UV_TOOL_DIR=.aegis/uv-tools",
+            "id": "env_uv_tool_dir",
+            "status": "pass"
+          }
+        ],
+        "client": "claude",
+        "expected_registration": {
+          "client": "claude",
+          "client_argv": [
+            "claude",
+            "mcp",
+            "add",
+            "--scope",
+            "user",
+            "aegis",
+            "-e",
+            "UV_CACHE_DIR=.aegis/uv-cache",
+            "-e",
+            "UV_TOOL_DIR=.aegis/uv-tools",
+            "--",
+            "uvx",
+            "--from",
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            ".",
+            "--transport",
+            "stdio"
+          ],
+          "environment": {
+            "UV_CACHE_DIR": ".aegis/uv-cache",
+            "UV_TOOL_DIR": ".aegis/uv-tools"
+          },
+          "mcp_server_argv": [
+            "uvx",
+            "--from",
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            ".",
+            "--transport",
+            "stdio"
+          ],
+          "mcp_server_command": "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+          "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "read_only": true,
+          "rendered_command": "claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+          "safety_notes": [
+            "native-client-registration-is-primary",
+            "config-file-writes-are-fallback-only",
+            "package-mode-does-not-require-local-source-checkout",
+            "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+            "private-github-requires-native-git-auth"
+          ],
+          "scope": "user",
+          "server": "aegis",
+          "source_mode": "private-github",
+          "status": "generated",
+          "target_dir": ".",
+          "transport": "stdio"
+        },
+        "failed_required": 0,
+        "inspection": {
+          "argv": [
+            "claude",
+            "mcp",
+            "get",
+            "aegis"
+          ],
+          "cwd": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/claude/work",
+          "rendered_command": "claude mcp get aegis",
+          "returncode": 0,
+          "status": "passed",
+          "stderr": "",
+          "stdout": "aegis:\n  Scope: User config (available in all your projects)\n  Status: \u2713 Connected\n  Type: stdio\n  Command: uvx\n  Args: --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio\n  Environment:\n    UV_CACHE_DIR=.aegis/uv-cache\n    UV_TOOL_DIR=.aegis/uv-tools\n\nTo remove this server, run: claude mcp remove \"aegis\" -s user\n"
+        },
+        "inspection_output": "aegis:\n  Scope: User config (available in all your projects)\n  Status: \u2713 Connected\n  Type: stdio\n  Command: uvx\n  Args: --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio\n  Environment:\n    UV_CACHE_DIR=.aegis/uv-cache\n    UV_TOOL_DIR=.aegis/uv-tools\n\nTo remove this server, run: claude mcp remove \"aegis\" -s user\n",
+        "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+        "server": "aegis",
+        "status": "passed"
+      }
+    },
+    {
+      "client": "codex",
+      "environment": {
+        "all_paths_under_smoke_root": true,
+        "client": "codex",
+        "env": {
+          "CODEX_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.codex",
+          "HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home",
+          "XDG_CACHE_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.cache",
+          "XDG_CONFIG_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.config",
+          "XDG_DATA_HOME": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.local/share"
+        },
+        "home": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home",
+        "precreated_paths": [
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/work",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.config",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.local/share",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.cache",
+          "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.codex"
+        ],
+        "root": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex",
+        "work_dir": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/work"
+      },
+      "registration": {
+        "client": "codex",
+        "client_argv": [
+          "codex",
+          "mcp",
+          "add",
+          "--env",
+          "UV_CACHE_DIR=.aegis/uv-cache",
+          "--env",
+          "UV_TOOL_DIR=.aegis/uv-tools",
+          "aegis",
+          "--",
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "environment": {
+          "UV_CACHE_DIR": ".aegis/uv-cache",
+          "UV_TOOL_DIR": ".aegis/uv-tools"
+        },
+        "execution": {
+          "argv": [
+            "codex",
+            "mcp",
+            "add",
+            "--env",
+            "UV_CACHE_DIR=.aegis/uv-cache",
+            "--env",
+            "UV_TOOL_DIR=.aegis/uv-tools",
+            "aegis",
+            "--",
+            "uvx",
+            "--from",
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            ".",
+            "--transport",
+            "stdio"
+          ],
+          "cwd": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/work",
+          "rendered_command": "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+          "returncode": 0,
+          "status": "passed",
+          "stderr": "WARNING: proceeding, even though we could not update PATH: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.codex\"))\n",
+          "stdout": "Added global MCP server 'aegis'.\n"
+        },
+        "mcp_server_argv": [
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "mcp_server_command": "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+        "read_only": false,
+        "rendered_command": "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "safety_notes": [
+          "native-client-registration-is-primary",
+          "config-file-writes-are-fallback-only",
+          "package-mode-does-not-require-local-source-checkout",
+          "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+          "private-github-requires-native-git-auth"
+        ],
+        "scope": null,
+        "server": "aegis",
+        "source_mode": "private-github",
+        "status": "passed",
+        "target_dir": ".",
+        "transport": "stdio"
+      },
+      "request": {
+        "client": "codex",
+        "client_argv": [
+          "codex",
+          "mcp",
+          "add",
+          "--env",
+          "UV_CACHE_DIR=.aegis/uv-cache",
+          "--env",
+          "UV_TOOL_DIR=.aegis/uv-tools",
+          "aegis",
+          "--",
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "environment": {
+          "UV_CACHE_DIR": ".aegis/uv-cache",
+          "UV_TOOL_DIR": ".aegis/uv-tools"
+        },
+        "mcp_server_argv": [
+          "uvx",
+          "--from",
+          "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "aegis-mcp-server",
+          "--default-target-dir",
+          ".",
+          "--transport",
+          "stdio"
+        ],
+        "mcp_server_command": "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+        "read_only": true,
+        "rendered_command": "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+        "safety_notes": [
+          "native-client-registration-is-primary",
+          "config-file-writes-are-fallback-only",
+          "package-mode-does-not-require-local-source-checkout",
+          "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+          "private-github-requires-native-git-auth"
+        ],
+        "scope": null,
+        "server": "aegis",
+        "source_mode": "private-github",
+        "status": "generated",
+        "target_dir": ".",
+        "transport": "stdio"
+      },
+      "safety_notes": [
+        "isolated-client-home",
+        "real-user-config-not-touched",
+        "native-client-registration-path",
+        "codex-home-precreated"
+      ],
+      "status": "passed",
+      "verification": {
+        "checks": [
+          {
+            "expected": 0,
+            "id": "client_inspection_exit",
+            "observed": 0,
+            "status": "pass"
+          },
+          {
+            "expected": "aegis",
+            "id": "server_name",
+            "status": "pass"
+          },
+          {
+            "expected": "uvx",
+            "id": "uvx_command",
+            "status": "pass"
+          },
+          {
+            "expected": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "id": "source_spec",
+            "status": "pass"
+          },
+          {
+            "expected": "aegis-mcp-server",
+            "id": "server_command",
+            "status": "pass"
+          },
+          {
+            "expected": ".",
+            "id": "default_target_dir",
+            "status": "pass"
+          },
+          {
+            "expected": "stdio",
+            "id": "transport",
+            "status": "pass"
+          },
+          {
+            "expected": "UV_CACHE_DIR=.aegis/uv-cache",
+            "id": "env_uv_cache_dir",
+            "status": "pass"
+          },
+          {
+            "expected": "UV_TOOL_DIR=.aegis/uv-tools",
+            "id": "env_uv_tool_dir",
+            "status": "pass"
+          }
+        ],
+        "client": "codex",
+        "expected_registration": {
+          "client": "codex",
+          "client_argv": [
+            "codex",
+            "mcp",
+            "add",
+            "--env",
+            "UV_CACHE_DIR=.aegis/uv-cache",
+            "--env",
+            "UV_TOOL_DIR=.aegis/uv-tools",
+            "aegis",
+            "--",
+            "uvx",
+            "--from",
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            ".",
+            "--transport",
+            "stdio"
+          ],
+          "environment": {
+            "UV_CACHE_DIR": ".aegis/uv-cache",
+            "UV_TOOL_DIR": ".aegis/uv-tools"
+          },
+          "mcp_server_argv": [
+            "uvx",
+            "--from",
+            "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+            "aegis-mcp-server",
+            "--default-target-dir",
+            ".",
+            "--transport",
+            "stdio"
+          ],
+          "mcp_server_command": "uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+          "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+          "read_only": true,
+          "rendered_command": "codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531 aegis-mcp-server --default-target-dir . --transport stdio",
+          "safety_notes": [
+            "native-client-registration-is-primary",
+            "config-file-writes-are-fallback-only",
+            "package-mode-does-not-require-local-source-checkout",
+            "uv-cache-and-tool-dir-are-project-local-for-sandboxed-clients",
+            "private-github-requires-native-git-auth"
+          ],
+          "scope": null,
+          "server": "aegis",
+          "source_mode": "private-github",
+          "status": "generated",
+          "target_dir": ".",
+          "transport": "stdio"
+        },
+        "failed_required": 0,
+        "inspection": {
+          "argv": [
+            "codex",
+            "mcp",
+            "get",
+            "--json",
+            "aegis"
+          ],
+          "cwd": "/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/work",
+          "rendered_command": "codex mcp get --json aegis",
+          "returncode": 0,
+          "status": "passed",
+          "stderr": "WARNING: proceeding, even though we could not update PATH: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.codex\"))\n",
+          "stdout": "{\n  \"name\": \"aegis\",\n  \"enabled\": true,\n  \"disabled_reason\": null,\n  \"transport\": {\n    \"type\": \"stdio\",\n    \"command\": \"uvx\",\n    \"args\": [\n      \"--from\",\n      \"git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531\",\n      \"aegis-mcp-server\",\n      \"--default-target-dir\",\n      \".\",\n      \"--transport\",\n      \"stdio\"\n    ],\n    \"env\": {\n      \"UV_TOOL_DIR\": \".aegis/uv-tools\",\n      \"UV_CACHE_DIR\": \".aegis/uv-cache\"\n    },\n    \"env_vars\": [],\n    \"cwd\": null\n  },\n  \"enabled_tools\": null,\n  \"disabled_tools\": null,\n  \"startup_timeout_sec\": null,\n  \"tool_timeout_sec\": null\n}\n"
+        },
+        "inspection_output": "{\n  \"name\": \"aegis\",\n  \"enabled\": true,\n  \"disabled_reason\": null,\n  \"transport\": {\n    \"type\": \"stdio\",\n    \"command\": \"uvx\",\n    \"args\": [\n      \"--from\",\n      \"git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531\",\n      \"aegis-mcp-server\",\n      \"--default-target-dir\",\n      \".\",\n      \"--transport\",\n      \"stdio\"\n    ],\n    \"env\": {\n      \"UV_TOOL_DIR\": \".aegis/uv-tools\",\n      \"UV_CACHE_DIR\": \".aegis/uv-cache\"\n    },\n    \"env_vars\": [],\n    \"cwd\": null\n  },\n  \"enabled_tools\": null,\n  \"disabled_tools\": null,\n  \"startup_timeout_sec\": null,\n  \"tool_timeout_sec\": null\n}\n\nWARNING: proceeding, even though we could not update PATH: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/aegis-mcp-registration-smoke-ddgw68w7/codex/home/.codex\"))\n",
+        "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+        "server": "aegis",
+        "status": "passed"
+      }
+    }
+  ],
+  "package_spec": "git+ssh://git@github.com/loucmane/codex-starter-pack.git@aegis-private-github-20260531",
+  "read_only": false,
+  "safety_notes": [
+    "isolated-client-home",
+    "real-user-config-not-touched",
+    "no-fallback-config-file-writes"
+  ],
+  "smoke_root": "/tmp/aegis-mcp-registration-smoke-ddgw68w7",
+  "source_mode": "private-github",
+  "status": "passed",
+  "temp_cleaned": true
+}

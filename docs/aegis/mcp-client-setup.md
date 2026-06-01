@@ -127,6 +127,28 @@ Verification inspects the native client registration and checks that:
 - the command includes `--default-target-dir`
 - the command includes `--transport stdio`
 
+## Smoke Registration
+
+Use isolated smoke registration when you need to prove native Codex or Claude registration without touching the real user configuration:
+
+```bash
+aegis mcp smoke-registration --source-mode private-github --github-ref aegis-private-github-20260531
+```
+
+The smoke command creates temporary client homes, runs native `codex mcp add` and `claude mcp add`, then verifies each registration with the corresponding native `mcp get` command. It pre-creates temporary `CODEX_HOME` for Codex, points `HOME` and XDG config/data/cache variables at temporary directories, and returns structured JSON with per-client registration and verification results.
+
+Write evidence files when validating a release or a new machine:
+
+```bash
+aegis mcp smoke-registration \
+  --source-mode private-github \
+  --github-ref aegis-private-github-20260531 \
+  --report-file reports/aegis-native-mcp-smoke.json \
+  --markdown-report-file reports/aegis-native-mcp-smoke.md
+```
+
+If a native client is missing, the result for that client is reported as `missing_client` and the aggregate status is `skipped` or `partial`; Aegis does not write fallback `.mcp.json`, real Codex config, or real Claude config files.
+
 ## Source Modes
 
 Package mode is the default:
