@@ -147,6 +147,66 @@ def test_pretooluse_blocks_bash_mutation_when_readiness_blocked(tmp_path: Path) 
     assert "readiness is BLOCKED" in result.stderr
 
 
+@pytest.mark.parametrize("hook_payload", ["", "{}"])
+def test_pretooluse_allows_empty_payload_when_readiness_blocked(tmp_path: Path, hook_payload: str) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, hook_payload)
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_malformed_nonempty_payload(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, '{"tool_name": "Write",')
+
+    assert result.returncode == 2
+    assert "could not be parsed or classified safely" in result.stderr
+    assert "invalid JSON" in result.stderr
+
+
+def test_pretooluse_blocks_non_object_payload(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, '["Write"]')
+
+    assert result.returncode == 2
+    assert "hook payload JSON must be an object" in result.stderr
+
+
+def test_pretooluse_blocks_payload_missing_tool_name(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, json.dumps({"tool_input": {"file_path": "src/main.ts"}}))
+
+    assert result.returncode == 2
+    assert "missing required field 'tool_name'" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "expected_field"),
+    [
+        ("Write", "file_path"),
+        ("Edit", "file_path"),
+        ("MultiEdit", "file_path"),
+        ("NotebookEdit", "notebook_path"),
+        ("Bash", "command"),
+    ],
+)
+def test_pretooluse_blocks_hookable_payload_missing_required_tool_input(
+    tmp_path: Path, tool_name: str, expected_field: str
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload(tool_name))
+
+    assert result.returncode == 2
+    assert "could not be parsed or classified safely" in result.stderr
+    assert expected_field in result.stderr
+
+
 def test_pretooluse_blocks_codex_owned_file_when_ready(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, ready=True)
 

@@ -6195,12 +6195,13 @@
         "description": "Close the fail-open path where a non-empty hook payload that cannot be parsed/classified is allowed to proceed.",
         "details": "Agent-runtime-first rationale: an agent must not be allowed to mutate a project when Aegis cannot render a verdict on the action. Acceptance: non-empty malformed/unknown PreToolUse payloads for mutating-capable tools fail closed; empty payloads or known read-only payloads keep existing behavior; structured denial includes a remediation message and does not crash the hook; tests cover malformed JSON, missing tool fields, unknown MCP mutation payloads, and known safe read-only cases.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "136"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-01T14:51:03.086Z"
       },
       {
         "id": "138",
@@ -6257,9 +6258,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-01T14:15:02.303Z",
+      "lastModified": "2026-06-01T14:51:03.087Z",
       "taskCount": 141,
-      "completedCount": 136,
+      "completedCount": 137,
       "tags": [
         "master"
       ]

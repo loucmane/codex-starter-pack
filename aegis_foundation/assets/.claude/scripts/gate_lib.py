@@ -15,6 +15,13 @@ from typing import Any
 
 FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
+REQUIRED_TOOL_INPUT_FIELDS = {
+    "Edit": ("file_path",),
+    "Write": ("file_path",),
+    "MultiEdit": ("file_path",),
+    "NotebookEdit": ("notebook_path",),
+    "Bash": ("command",),
+}
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
@@ -120,18 +127,70 @@ class Payload:
     tool_input: dict[str, Any]
 
 
-def load_payload() -> Payload | None:
-    raw = sys.stdin.read()
+@dataclass
+class PayloadLoadError:
+    reason: str
+    raw_preview: str
+
+
+def raw_payload_preview(raw: str, *, limit: int = 160) -> str:
+    preview = raw.replace("\n", "\\n").replace("\r", "\\r")
+    if len(preview) > limit:
+        return f"{preview[:limit]}..."
+    return preview
+
+
+def parse_payload(raw: str) -> Payload | PayloadLoadError:
+    if not raw.strip():
+        return Payload(tool_name="", tool_input={})
     try:
-        data = json.loads(raw or "{}")
-    except json.JSONDecodeError:
-        return None
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        return PayloadLoadError(
+            reason=f"invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}",
+            raw_preview=raw_payload_preview(raw),
+        )
     if not isinstance(data, dict):
-        return None
-    tool_input = data.get("tool_input") or {}
-    if not isinstance(tool_input, dict):
-        tool_input = {}
+        return PayloadLoadError(
+            reason=f"hook payload JSON must be an object, got {type(data).__name__}",
+            raw_preview=raw_payload_preview(raw),
+        )
+    tool_name = str(data.get("tool_name") or "")
+    if not tool_name and data:
+        return PayloadLoadError(
+            reason="hook payload missing required field 'tool_name'",
+            raw_preview=raw_payload_preview(raw),
+        )
+    raw_tool_input = data.get("tool_input")
+    if raw_tool_input is None:
+        tool_input: dict[str, Any] = {}
+    elif isinstance(raw_tool_input, dict):
+        tool_input = raw_tool_input
+    else:
+        return PayloadLoadError(
+            reason=f"hook payload field 'tool_input' must be an object, got {type(raw_tool_input).__name__}",
+            raw_preview=raw_payload_preview(raw),
+        )
     return Payload(tool_name=str(data.get("tool_name") or ""), tool_input=tool_input)
+
+
+def load_payload_result() -> Payload | PayloadLoadError:
+    return parse_payload(sys.stdin.read())
+
+
+def load_payload() -> Payload | None:
+    result = load_payload_result()
+    return result if isinstance(result, Payload) else None
+
+
+def payload_required_field_issue(payload: Payload) -> str | None:
+    required_fields = REQUIRED_TOOL_INPUT_FIELDS.get(payload.tool_name)
+    if not required_fields:
+        return None
+    if any(isinstance(payload.tool_input.get(field), str) and payload.tool_input.get(field) for field in required_fields):
+        return None
+    fields = ", ".join(required_fields)
+    return f"{payload.tool_name} payload missing required input field(s): {fields}"
 
 
 def project_root() -> Path:
@@ -376,6 +435,19 @@ def protected_bash_violations(command: str, root: Path | None = None) -> list[st
 def block(message: str) -> int:
     print(message, file=sys.stderr)
     return 2
+
+
+def block_unclassifiable_payload(reason: str, raw_preview: str | None = None) -> int:
+    details = f"Details: {reason}"
+    if raw_preview:
+        details = f"{details}\nPayload preview: {raw_preview}"
+    return block(
+        "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+        "Reason: PreToolUse hook payload could not be parsed or classified safely.\n\n"
+        f"{details}\n\n"
+        "Aegis fails closed for non-empty or incomplete hook payloads so autonomous agents cannot mutate "
+        "a project when the gate cannot render a verdict."
+    )
 
 
 def path_guard() -> int:
@@ -803,11 +875,15 @@ def format_pending_tracking(events: list[dict[str, Any]]) -> str:
 
 
 def pretooluse_gate() -> int:
-    payload = load_payload()
-    if payload is None:
-        return 0
+    loaded = load_payload_result()
+    if isinstance(loaded, PayloadLoadError):
+        return block_unclassifiable_payload(loaded.reason, loaded.raw_preview)
+    payload = loaded
     if not is_hookable_tool(payload.tool_name):
         return 0
+    required_field_issue = payload_required_field_issue(payload)
+    if required_field_issue:
+        return block_unclassifiable_payload(required_field_issue)
 
     root = project_root()
     clear_client_reload_marker(root)

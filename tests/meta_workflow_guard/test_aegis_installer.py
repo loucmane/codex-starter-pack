@@ -103,6 +103,19 @@ def run_target_pretooluse(target: Path, payload: dict) -> subprocess.CompletedPr
     )
 
 
+def run_target_pretooluse_raw(target: Path, payload: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", str(target / ".claude" / "scripts" / "pretooluse-gate.sh")],
+        cwd=target,
+        input=payload,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "CLAUDE_PROJECT_DIR": target.as_posix()},
+        check=False,
+    )
+
+
 def simulate_claude_reload(target: Path) -> None:
     """Run an installed PreToolUse hook once to prove Claude hooks are active."""
     result = run_target_pretooluse(
@@ -734,6 +747,28 @@ def test_install_report_flags_claude_reload_when_adapter_hooks_change(tmp_path: 
     assert third["status"] == "applied"
     assert third["client_reload"]["required"] is False
     assert third["client_reload"]["changed_paths"] == []
+
+
+def test_installed_pretooluse_blocks_unclassifiable_payload(tmp_path: Path) -> None:
+    target = tmp_path / "unclassifiable-pretooluse"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    malformed = run_target_pretooluse_raw(target, '{"tool_name": "Write",')
+    missing_tool_name = run_target_pretooluse_raw(target, '{"tool_input": {"file_path": "src/main.ts"}}')
+
+    assert malformed.returncode == 2
+    assert "could not be parsed or classified safely" in malformed.stderr
+    assert "invalid JSON" in malformed.stderr
+    assert missing_tool_name.returncode == 2
+    assert "missing required field 'tool_name'" in missing_tool_name.stderr
+    assert (target / AEGIS_CLIENT_RELOAD_REL).is_file()
 
 
 def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: Path) -> None:
