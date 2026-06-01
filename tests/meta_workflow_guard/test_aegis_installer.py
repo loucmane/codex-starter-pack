@@ -803,6 +803,80 @@ def test_installed_pretooluse_short_circuits_read_only_before_readiness(tmp_path
     assert "readiness failed" in mutating.stderr
 
 
+def test_installed_pretooluse_blocks_direct_workflow_edits_but_allows_aegis_handlers(tmp_path: Path) -> None:
+    target = tmp_path / "workflow-surface-protection"
+    target.mkdir()
+    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+    kickoff(
+        target,
+        task_id="42",
+        slug="protect-workflow-surfaces",
+        title="Protect Workflow Surfaces",
+        source_root=REPO_ROOT,
+    )
+
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    handoff_rel = f"{current_work['paths']['work_tracking']}/HANDOFF.md"
+    findings_rel = f"{current_work['paths']['work_tracking']}/FINDINGS.md"
+
+    direct_write = run_target_pretooluse(
+        target,
+        {"tool_name": "Write", "tool_input": {"file_path": handoff_rel}},
+    )
+    bash_redirect = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "printf forged > sessions/current"}},
+    )
+    mcp_direct = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__serena__create_text_file",
+            "tool_input": {"relative_path": handoff_rel},
+        },
+    )
+    aegis_cli_log = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    f"./.aegis/bin/aegis log --target-dir . --handler test --evidence {findings_rel} "
+                    "--note 'structured evidence'"
+                )
+            },
+        },
+    )
+    aegis_mcp_log = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__aegis__aegis_log",
+            "tool_input": {
+                "target_dir": target.as_posix(),
+                "path": findings_rel,
+                "note": "structured evidence",
+            },
+        },
+    )
+
+    assert direct_write.returncode == 2
+    assert "Workflow-owned path" in direct_write.stderr
+    assert handoff_rel in direct_write.stderr
+    assert bash_redirect.returncode == 2
+    assert "redirection targets workflow-owned path sessions/current" in bash_redirect.stderr
+    assert mcp_direct.returncode == 2
+    assert "Workflow-owned path" in mcp_direct.stderr
+    assert aegis_cli_log.returncode == 0, aegis_cli_log.stderr
+    assert aegis_mcp_log.returncode == 0, aegis_mcp_log.stderr
+
+
 def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: Path) -> None:
     target = tmp_path / "reload-barrier"
     target.mkdir()
@@ -1449,18 +1523,17 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     assert os.access(target / ".aegis" / "bin" / "aegis", os.X_OK)
     assert (target / current_work["paths"]["work_tracking"] / "TRACKER.md").is_file()
 
+    evidence_path = "src/allowed-evidence.txt"
     allowed = run_target_pretooluse(
         target,
         {
             "tool_name": "Write",
-            "tool_input": {
-                "file_path": f"{current_work['paths']['reports']}/allowed-evidence.txt"
-            },
+            "tool_input": {"file_path": evidence_path},
         },
     )
     assert allowed.returncode == 0, allowed.stderr
 
-    evidence_path = f"{current_work['paths']['reports']}/allowed-evidence.txt"
+    (target / evidence_path).parent.mkdir(parents=True, exist_ok=True)
     (target / evidence_path).write_text("allowed evidence\n", encoding="utf-8")
     tracked = run_target_posttooluse(
         target,
@@ -1475,7 +1548,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         target,
         {
             "tool_name": "Write",
-            "tool_input": {"file_path": f"{current_work['paths']['reports']}/blocked-before-log.txt"},
+            "tool_input": {"file_path": "src/blocked-before-log.txt"},
         },
     )
     assert pending_next.returncode == 2
@@ -1485,7 +1558,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         log_work(
             target,
             handler="claude-installer-test",
-            evidence=f"{current_work['paths']['reports']}/wrong-evidence.txt",
+            evidence="src/wrong-evidence.txt",
             note="Tried to log the wrong evidence",
         )
     assert (target / AEGIS_PENDING_TRACKING_REL).is_file()

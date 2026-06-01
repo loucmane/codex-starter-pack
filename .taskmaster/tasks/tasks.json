@@ -6223,12 +6223,13 @@
         "description": "Prevent agents from forging Aegis readiness or evidence by directly editing workflow-owned state, while preserving sanctioned Aegis CLI/MCP mutation paths.",
         "details": "Agent-runtime-first rationale: sessions, plans, work-tracking, and .aegis state are authority surfaces; direct Edit/Write can forge in-progress state. Acceptance: direct agent Edit/Write/Bash mutations to .aegis state, sessions, plans, and active work-tracking are blocked unless routed through sanctioned Aegis handlers; sanctioned commands including aegis kickoff, aegis log, handoff repair, closeout, and plan sync continue to work and write structured evidence; tests prove direct edits are denied and real Aegis-owned flows do not self-deadlock.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "137"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-01T16:51:38.140Z"
       },
       {
         "id": "140",
@@ -6259,9 +6260,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-01T15:43:04.231Z",
+      "lastModified": "2026-06-01T16:51:38.141Z",
       "taskCount": 141,
-      "completedCount": 138,
+      "completedCount": 139,
       "tags": [
         "master"
       ]
