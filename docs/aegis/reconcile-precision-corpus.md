@@ -1,7 +1,7 @@
 # Aegis Reconcile Precision Corpus
 
-**Status:** active Task 146 contract.
-**Scope:** keep `aegis reconcile` report-only while measuring whether any finding class is precise enough to be considered by a separate future mutation task.
+**Status:** active Task 146/147 contract.
+**Scope:** keep `aegis reconcile` report-only while measuring whether any finding class is precise enough to be considered by a separate future mutation task. Task 147 adds a rollback/blast-radius proposal contract for the first candidate only; it still does not promote reconcile into mutation.
 
 ## Contract
 
@@ -28,6 +28,12 @@ Manual-only findings remain manual:
 
 Acceptance for future mutation remains stricter than report usefulness: auto-eligible classes must have zero false positives and zero auto/manual boundary leaks on the labeled corpus. Manual-only ambiguity must never be labelled as auto-eligible.
 
+Task 147 narrows the first proposal candidate further than this corpus: only
+`merged_but_not_done` with `git_ancestor` proof may enter the first rollback contract.
+Other auto-eligible labels, including `merged_but_not_done` with `github_pr_merged` and
+`done_but_not_merged`, remain outside the first proposal set until a later task defines
+their own blast-radius and rollback evidence.
+
 ## Enforcing Tests
 
 | Contract clause | Enforcing test |
@@ -37,10 +43,11 @@ Acceptance for future mutation remains stricter than report usefulness: auto-eli
 | Auto-eligible false positives fail | `tests/meta_workflow_guard/test_aegis_reconcile_precision_corpus.py::test_precision_gate_rejects_unlabelled_auto_false_positive` |
 | Non-finding labels must match observed merge-truth proof | `tests/meta_workflow_guard/test_aegis_reconcile_precision_corpus.py::test_precision_gate_requires_non_finding_proof_labels` |
 | Corpus fixture execution is read-only | Task 146 corpus test via `tests/meta_workflow_guard/reconcile_side_effect_oracle.py::snapshot_whole_tree` |
+| Task 147 first mutation proposal cannot admit non-first or manual-only labels | `tests/meta_workflow_guard/test_aegis_reconcile_mutation_rollback_contract.py::test_manual_ambiguous_and_non_first_auto_findings_cannot_enter_proposal_set` |
 
 ## Non-Goals
 
 - No `--apply`, `--auto`, `--fix`, `--set-status`, `--done`, `--closeout`, `--mutate`, `--write`, or `--push` reconcile flag.
 - No Taskmaster status mutation from reconcile.
 - No git ref, branch, PR, Aegis closeout, or workflow-state mutation from reconcile.
-- No auto-mutation implementation in Task 146.
+- No auto-mutation implementation in Task 146 or Task 147.
