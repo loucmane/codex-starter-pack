@@ -13,6 +13,7 @@ import sys
 import tarfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
@@ -40,6 +41,7 @@ from scripts._aegis_installer import (
     log_work,
     next_action,
     plan_install,
+    reconcile,
     repair,
     repair_handoff,
     start_local_work,
@@ -143,6 +145,43 @@ def run_target_posttooluse(target: Path, payload: dict) -> subprocess.CompletedP
     )
 
 
+def git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        ["git", "-C", repo.as_posix(), *args],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if check:
+        assert result.returncode == 0, result.stderr or result.stdout
+    return result
+
+
+def init_git_repo(repo: Path) -> None:
+    repo.mkdir(parents=True, exist_ok=True)
+    git(repo, "init", "-b", "main")
+    git(repo, "config", "user.email", "aegis@example.invalid")
+    git(repo, "config", "user.name", "Aegis Test")
+    (repo / "README.md").write_text("# target\n", encoding="utf-8")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-m", "initial")
+
+
+def write_taskmaster_tasks(repo: Path, tasks: list[dict[str, Any]]) -> None:
+    task_dir = repo / ".taskmaster" / "tasks"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "tasks.json").write_text(json.dumps({"master": {"tasks": tasks}}, indent=2) + "\n", encoding="utf-8")
+
+
+def commit_file(repo: Path, rel_path: str, content: str, message: str) -> None:
+    path = repo / rel_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    git(repo, "add", rel_path)
+    git(repo, "commit", "-m", message)
+
+
 def test_build_parser_accepts_aegis_commands() -> None:
     module = load_task_module()
     parser = module.build_parser()
@@ -202,6 +241,13 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert doctor_args.subcommand == "doctor"
     assert doctor_args.target_dir == "/tmp/example"
     assert doctor_args.json is True
+
+    reconcile_args = parser.parse_args(["aegis", "reconcile", "--target-dir", "/tmp/example", "--base-ref", "main", "--no-github", "--json"])
+    assert reconcile_args.subcommand == "reconcile"
+    assert reconcile_args.target_dir == "/tmp/example"
+    assert reconcile_args.base_ref == "main"
+    assert reconcile_args.no_github is True
+    assert reconcile_args.json is True
 
     repair_args = parser.parse_args(["aegis", "repair", "--target-dir", "/tmp/example", "--apply", "--json"])
     assert repair_args.subcommand == "repair"
@@ -295,6 +341,212 @@ def test_build_parser_accepts_aegis_commands() -> None:
 
     profile_args = parser.parse_args(["aegis", "explain-profile"])
     assert profile_args.profile == "generic"
+
+
+def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(tmp_path: Path) -> None:
+    target = tmp_path / "reconcile-merged-not-done"
+    init_git_repo(target)
+    write_taskmaster_tasks(target, [{"id": 42, "title": "Cart Button", "status": "pending", "dependencies": []}])
+    git(target, "switch", "-c", "feat/task-42-cart-button")
+    commit_file(target, "feature.txt", "cart\n", "task 42")
+    git(target, "switch", "main")
+    git(target, "merge", "--no-ff", "feat/task-42-cart-button", "-m", "merge task 42")
+    status_before = git(target, "status", "--short").stdout
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
+
+    assert report["read_only"] is True
+    assert git(target, "status", "--short").stdout == status_before
+    assert report["status"] == "drift"
+    assert report["summary"]["errors"] == 1
+    finding = report["findings"][0]
+    assert finding["kind"] == "merged_but_not_done"
+    assert finding["task_id"] == "42"
+    assert finding["evidence"]["merge_truth"]["proof"] == "git_ancestor"
+    assert "Aegis reconcile: DRIFT" in aegis_installer.format_reconcile_summary(report)
+
+
+def test_reconcile_uses_github_merged_pr_to_handle_squash_merge(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "reconcile-squash-gh"
+    init_git_repo(target)
+    write_taskmaster_tasks(target, [{"id": 43, "title": "Squashed Feature", "status": "pending", "dependencies": []}])
+    git(target, "switch", "-c", "feat/task-43-squashed-feature")
+    commit_file(target, "feature.txt", "squash\n", "task 43")
+    git(target, "switch", "main")
+    git(target, "merge", "--squash", "feat/task-43-squashed-feature")
+    git(target, "commit", "-m", "squash task 43")
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {
+            "available": True,
+            "reason": "",
+            "prs": [
+                {
+                    "number": 43,
+                    "state": "MERGED",
+                    "title": "Task 43 squashed feature",
+                    "headRefName": "feat/task-43-squashed-feature",
+                    "baseRefName": "main",
+                    "mergedAt": "2026-06-02T10:00:00Z",
+                    "url": "https://example.invalid/pr/43",
+                    "isDraft": False,
+                }
+            ],
+        },
+    )
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
+
+    finding = next(item for item in report["findings"] if item["kind"] == "merged_but_not_done")
+    assert finding["evidence"]["merge_truth"]["proof"] == "github_pr_merged"
+    task = next(item for item in report["tasks"] if item["task_id"] == "43")
+    assert task["merge_truth"]["branches"][0]["proof"] == "git_non_ancestor"
+
+
+def test_reconcile_keeps_squash_ambiguous_git_only_case_unknown(tmp_path: Path) -> None:
+    target = tmp_path / "reconcile-squash-offline"
+    init_git_repo(target)
+    write_taskmaster_tasks(target, [{"id": 44, "title": "Offline Squash", "status": "pending", "dependencies": []}])
+    git(target, "switch", "-c", "feat/task-44-offline-squash")
+    commit_file(target, "feature.txt", "offline\n", "task 44")
+    git(target, "switch", "main")
+    git(target, "merge", "--squash", "feat/task-44-offline-squash")
+    git(target, "commit", "-m", "squash task 44")
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
+
+    assert report["status"] == "clean"
+    assert not [finding for finding in report["findings"] if finding["kind"] == "merged_but_not_done"]
+    task = next(item for item in report["tasks"] if item["task_id"] == "44")
+    assert task["merge_truth"]["status"] == "unknown"
+    assert task["merge_truth"]["proof"] == "git_only_non_ancestor_or_missing_base"
+
+
+def test_reconcile_keeps_done_git_only_unknown_as_task_detail_not_finding(tmp_path: Path) -> None:
+    target = tmp_path / "reconcile-done-offline-unknown"
+    init_git_repo(target)
+    write_taskmaster_tasks(target, [{"id": 441, "title": "Done Offline", "status": "done", "dependencies": []}])
+    git(target, "switch", "-c", "feat/task-441-stale-local-branch")
+    commit_file(target, "feature.txt", "offline done\n", "task 441")
+    git(target, "switch", "main")
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
+
+    assert report["status"] == "clean"
+    assert not report["findings"]
+    task = next(item for item in report["tasks"] if item["task_id"] == "441")
+    assert task["merge_truth"]["status"] == "unknown"
+    assert task["merge_truth"]["proof"] == "git_only_non_ancestor_or_missing_base"
+
+
+def test_reconcile_reports_done_task_with_open_pr_as_not_merged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "reconcile-done-open-pr"
+    init_git_repo(target)
+    write_taskmaster_tasks(target, [{"id": 45, "title": "Open PR", "status": "done", "dependencies": []}])
+    git(target, "switch", "-c", "feat/task-45-open-pr")
+    commit_file(target, "feature.txt", "open\n", "task 45")
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {
+            "available": True,
+            "reason": "",
+            "prs": [
+                {
+                    "number": 45,
+                    "state": "OPEN",
+                    "title": "Task 45 open PR",
+                    "headRefName": "feat/task-45-open-pr",
+                    "baseRefName": "main",
+                    "mergedAt": None,
+                    "url": "https://example.invalid/pr/45",
+                    "isDraft": False,
+                }
+            ],
+        },
+    )
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
+
+    finding = next(item for item in report["findings"] if item["kind"] == "done_but_not_merged")
+    assert finding["task_id"] == "45"
+    assert finding["evidence"]["merge_truth"]["proof"] == "github_pr_open"
+
+
+def test_reconcile_reports_abandoned_branches_stubs_and_multi_pr_ambiguity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "reconcile-stubs"
+    init_git_repo(target)
+    write_taskmaster_tasks(
+        target,
+        [
+            {"id": 46, "title": "In Progress", "status": "in-progress", "dependencies": []},
+            {"id": 47, "title": "Ambiguous Epic", "status": "pending", "dependencies": []},
+        ],
+    )
+    git(target, "switch", "-c", "feat/task-46-abandoned")
+    commit_file(target, "task46.txt", "abandoned\n", "task 46")
+    git(target, "switch", "main")
+    git(target, "switch", "-c", "feat/task-999-local-stub")
+    commit_file(target, "stub.txt", "stub\n", "task 999")
+    git(target, "switch", "main")
+    (target / ".aegis" / "state").mkdir(parents=True)
+    (target / ".aegis" / "state" / "local-tasks.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "tasks": [
+                    {"id": "1000", "title": "Ad hoc local task", "status": "in-progress", "slug": "ad-hoc"}
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {
+            "available": True,
+            "reason": "",
+            "prs": [
+                {
+                    "number": 470,
+                    "state": "OPEN",
+                    "title": "Task 47 part A",
+                    "headRefName": "feat/task-47-part-a",
+                    "baseRefName": "main",
+                    "mergedAt": None,
+                    "url": "https://example.invalid/pr/470",
+                    "isDraft": False,
+                },
+                {
+                    "number": 471,
+                    "state": "OPEN",
+                    "title": "Task 47 part B",
+                    "headRefName": "feat/task-47-part-b",
+                    "baseRefName": "main",
+                    "mergedAt": None,
+                    "url": "https://example.invalid/pr/471",
+                    "isDraft": False,
+                },
+            ],
+        },
+    )
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
+    kinds = {finding["kind"] for finding in report["findings"]}
+
+    assert "abandoned_in_progress_branch" in kinds
+    assert "stale_local_stub" in kinds
+    assert "local_ad_hoc_stub" in kinds
+    assert "multi_pr_epic_ambiguity" in kinds
 
 
 def test_public_init_installs_with_default_claude_adapter(tmp_path: Path) -> None:

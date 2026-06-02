@@ -135,6 +135,21 @@ def handle_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_reconcile(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.reconcile(
+            args.target_dir,
+            source_root=source_root,
+            base_ref=args.base_ref,
+            use_github=not args.no_github,
+        )
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_reconcile_summary(payload), end="")
+    return 0
+
+
 def handle_repair(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.repair(
@@ -589,6 +604,28 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Print the full structured doctor report instead of a concise summary.",
     )
     doctor_parser.set_defaults(func=handle_doctor)
+
+    reconcile_parser = subparsers.add_parser(
+        "reconcile",
+        help="Read-only Taskmaster/Aegis/git/PR drift report; never mutates status.",
+    )
+    reconcile_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    reconcile_parser.add_argument(
+        "--base-ref",
+        default="origin/main",
+        help="Git ref that represents merge truth. Defaults to origin/main, falling back to main/master when local.",
+    )
+    reconcile_parser.add_argument(
+        "--no-github",
+        action="store_true",
+        help="Disable optional gh PR metadata; squash-ambiguous branches remain unknown.",
+    )
+    reconcile_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured reconcile report instead of a concise summary.",
+    )
+    reconcile_parser.set_defaults(func=handle_reconcile)
 
     repair_parser = subparsers.add_parser(
         "repair",

@@ -1,8 +1,8 @@
 # Task 135 Add Isolated Native MCP Registration Smoke Command for Aegis Tracker
 
 **Started**: 2026-06-01
-**Status**: COMPLETE
-**Last Updated**: 2026-06-01
+**Status**: COMPLETED
+**Last Updated**: 2026-06-02
 
 ## Goals
 - [x] Add repeatable isolated native MCP registration smoke command

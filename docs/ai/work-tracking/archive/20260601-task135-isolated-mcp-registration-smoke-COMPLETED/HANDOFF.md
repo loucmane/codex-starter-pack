@@ -12,3 +12,4 @@
 ## Next Steps
 - Commit and open a PR for `feat/task-135-isolated-mcp-registration-smoke`.
 - Keep unrelated local `.codex/` and `build/` changes out of the Task 135 commit.
+- Archived on 2026-06-02 11:22 CEST — Folder moved to archive and tracker marked COMPLETED.

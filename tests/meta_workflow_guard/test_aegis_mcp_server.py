@@ -189,6 +189,7 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.status",
         "aegis.next",
         "aegis.doctor",
+        "aegis.reconcile",
         "aegis.repair",
         "aegis.plan_install",
         "aegis.install",
@@ -217,6 +218,7 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     status_description = tool_by_name(server, "aegis.status").description or ""
     next_description = tool_by_name(server, "aegis.next").description or ""
     doctor_description = tool_by_name(server, "aegis.doctor").description or ""
+    reconcile_description = tool_by_name(server, "aegis.reconcile").description or ""
     repair_description = tool_by_name(server, "aegis.repair").description or ""
     init_description = tool_by_name(server, "aegis.init").description or ""
     start_description = tool_by_name(server, "aegis.start").description or ""
@@ -231,6 +233,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "next required Aegis workflow action" in next_description
     assert "read-only" in next_description
     assert "Read-only state diagnostic" in doctor_description
+    assert "Read-only Taskmaster/Aegis/git/PR drift report" in reconcile_description
+    assert "never auto-mutates status" in reconcile_description
     assert "Preview or apply safe Aegis state repairs" in repair_description
     assert "Public project setup" in init_description
     assert "Public local-task kickoff" in start_description

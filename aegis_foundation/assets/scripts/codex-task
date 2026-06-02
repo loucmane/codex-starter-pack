@@ -37,6 +37,7 @@ from _aegis_installer import (
     explain_profile as aegis_explain_profile,
     format_closeout_summary as aegis_format_closeout_summary,
     format_doctor_summary as aegis_format_doctor_summary,
+    format_reconcile_summary as aegis_format_reconcile_summary,
     format_repair_summary as aegis_format_repair_summary,
     initialize_project as aegis_initialize_project,
     inspect_project as aegis_inspect_project,
@@ -46,6 +47,7 @@ from _aegis_installer import (
     log_work as aegis_log_work,
     next_action as aegis_next_action,
     plan_install as aegis_plan_install,
+    reconcile as aegis_reconcile,
     repair as aegis_repair,
     repair_handoff as aegis_repair_handoff,
     start_local_work as aegis_start_local_work,
@@ -774,6 +776,22 @@ def handle_aegis_doctor(args: argparse.Namespace) -> None:
         print(aegis_format_doctor_summary(payload), end="")
     if payload.get("status") == "failed":
         raise TaskError("Aegis doctor found required failures")
+
+
+def handle_aegis_reconcile(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_reconcile(
+            args.target_dir,
+            source_root=REPO_ROOT,
+            base_ref=args.base_ref,
+            use_github=not args.no_github,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    if args.json:
+        _print_json(payload)
+    else:
+        print(aegis_format_reconcile_summary(payload), end="")
 
 
 def handle_aegis_repair(args: argparse.Namespace) -> None:
@@ -18293,6 +18311,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the full structured doctor report instead of the concise summary",
     )
     aegis_doctor_parser.set_defaults(func=handle_aegis_doctor)
+
+    aegis_reconcile_parser = aegis_sub.add_parser(
+        "reconcile",
+        help="Read-only Taskmaster/Aegis/git/PR drift report; never mutates status",
+    )
+    aegis_reconcile_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_reconcile_parser.add_argument(
+        "--base-ref",
+        default="origin/main",
+        help="Git ref representing merge truth; defaults to origin/main with local main/master fallback",
+    )
+    aegis_reconcile_parser.add_argument(
+        "--no-github",
+        action="store_true",
+        help="Disable optional gh PR metadata; squash-ambiguous branches remain unknown",
+    )
+    aegis_reconcile_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured reconcile report instead of the concise summary",
+    )
+    aegis_reconcile_parser.set_defaults(func=handle_aegis_reconcile)
 
     aegis_repair_parser = aegis_sub.add_parser("repair", help="Preview or apply safe Aegis workflow-state repairs")
     aegis_repair_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")

@@ -2,7 +2,7 @@
 
 **Title:** Add read-only Aegis reconciliation report
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 136 ✓
 

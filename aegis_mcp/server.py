@@ -34,6 +34,7 @@ V1_TOOL_NAMES = (
     "aegis.status",
     "aegis.next",
     "aegis.doctor",
+    "aegis.reconcile",
     "aegis.repair",
     "aegis.plan_install",
     "aegis.install",
@@ -452,6 +453,28 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         return run_tool(
             "aegis.doctor",
+            read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.reconcile")
+    def aegis_reconcile(
+        target_dir: str,
+        base_ref: str = "origin/main",
+        use_github: bool = True,
+    ) -> dict[str, Any]:
+        """Read-only Taskmaster/Aegis/git/PR drift report; report-first and never auto-mutates status."""
+
+        def call_core() -> dict[str, Any]:
+            return installer.reconcile(
+                target_dir,
+                source_root=config.source_root,
+                base_ref=base_ref,
+                use_github=use_github,
+            )
+
+        return run_tool(
+            "aegis.reconcile",
             read_only=True,
             callback=call_core,
         )

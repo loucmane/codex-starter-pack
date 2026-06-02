@@ -162,6 +162,7 @@ def test_pretooluse_allows_read_only_bash_when_readiness_blocked(tmp_path: Path)
         "git branch --show-current",
         "task-master next",
         "task-master show 138",
+        "./.aegis/bin/aegis reconcile --target-dir .",
         "npm run verify",
         "PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/foo.py",
         "npm run verify 2>&1 | tail -15",
@@ -575,6 +576,7 @@ def test_pretooluse_blocks_mutating_mcp_when_readiness_blocked(tmp_path: Path) -
         ("mcp__taskmaster-ai__help", {}),
         ("mcp__taskmaster-ai__next_task", {}),
         ("mcp__taskmaster-ai__get_task", {"id": "105"}),
+        ("mcp__aegis__aegis_reconcile", {"target_dir": "."}),
     ],
 )
 def test_pretooluse_allows_taskmaster_read_only_discovery_when_readiness_blocked(
