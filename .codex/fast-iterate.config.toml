@@ -1,0 +1,18 @@
+model = "gpt-5.4"
+model_provider = "openai"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+model_reasoning_effort = "medium"
+model_reasoning_summary = "concise"
+model_verbosity = "medium"
+personality = "pragmatic"
+
+[sandbox_workspace_write]
+network_access = true
+writable_roots = ["/home/loucmane/codex", "/tmp"]
+exclude_tmpdir_env_var = false
+exclude_slash_tmp = false
+
+[shell_environment_policy]
+inherit = "core"
+include_only = ["PATH", "HOME", "USER", "SHELL", "CODEX_HOME", "OPENAI_API_KEY"]
