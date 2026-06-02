@@ -1,0 +1,9 @@
+Aegis reconcile: NEEDS_REVIEW
+target: /tmp/codex-task141-reconcile
+base_ref: origin/main
+summary: 142 tasks, 3 findings (0 errors, 3 warnings, 0 info)
+github: available (136 PRs scanned)
+findings:
+- [warning] multi_pr_epic_ambiguity task 83: task 83 has 2 PR candidates; merge truth requires review
+- [warning] multi_pr_epic_ambiguity task 103: task 103 has 2 PR candidates; merge truth requires review
+- [warning] multi_pr_epic_ambiguity task 118: task 118 has 2 PR candidates; merge truth requires review

@@ -1,0 +1,6 @@
+Aegis reconcile: CLEAN
+target: /tmp/aegis-task142-hpfetcher-reconcile-YI0mF5/hpfetcher
+base_ref: origin/main
+summary: 61 tasks, 0 findings (0 errors, 0 warnings, 0 info)
+github: unavailable/disabled (none of the git remotes configured for this repository point to a known GitHub host. To tell gh about a new GitHub host, please use `gh auth login`)
+findings: none
