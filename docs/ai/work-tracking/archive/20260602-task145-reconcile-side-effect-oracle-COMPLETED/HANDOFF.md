@@ -12,3 +12,4 @@
 1. Commit the Task 145 branch.
 2. Push and open the Task 145 PR.
 3. Watch CI and merge when clean.
+- Archived on 2026-06-02 15:44 CEST — Folder moved to archive and tracker marked COMPLETED.

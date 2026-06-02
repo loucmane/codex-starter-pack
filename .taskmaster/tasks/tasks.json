@@ -6314,13 +6314,27 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-06-02T13:16:07.501Z"
+      },
+      {
+        "id": "146",
+        "title": "Add Reconcile Precision Corpus and Boundary-Leakage Gate",
+        "description": "Build a read-only, test-driven precision corpus for Aegis reconcile findings that recomputes labels from fixtures and gates auto/manual classification boundaries. The task adds tests and contract docs only, with no reconcile mutation path, Taskmaster status writes, git/PR writes, or new apply flag.",
+        "details": "Create a labeled reconcile corpus under the existing pytest surface, likely in `tests/meta_workflow_guard/` as data plus helpers such as `reconcile_precision_corpus.py` and `test_aegis_reconcile_precision_corpus.py`. Reuse the current Python stack and fixture helpers in `tests/meta_workflow_guard/test_aegis_installer.py` (`init_git_repo`, `write_taskmaster_tasks`, `commit_file`, and direct `scripts/_aegis_installer.py::reconcile` calls) rather than introducing a separate runner. Base the corpus on the current Task 142/143-style scenarios and synthetic reconcile fixtures already represented by tests for `merged_but_not_done`, `done_but_not_merged`, squash/offline unknown merge truth, `multi_pr_epic_ambiguity`, `abandoned_in_progress_branch`, `stale_local_stub`, and `local_ad_hoc_stub`. Store human-reviewed expected labels as structured test data, not prose assertions: each corpus case should define fixture setup, expected emitted findings, expected non-findings where important, expected class, eligibility bucket (`auto_eligible`, `manual_only`, or `not_a_finding`), and expected boundary behavior. The tests must rebuild each fixture, rerun `reconcile(target, source_root=REPO_ROOT, base_ref=..., use_github=...)`, normalize emitted findings by stable fields such as `kind`, `task_id`, severity, and proof source, then compute metrics from the observed output versus the expected labels. Pre-register the eligibility contract in code before measuring: auto-eligible classes require exactly zero false positives and zero auto/manual boundary leaks on the labeled corpus; ambiguous/manual-only classes must never be classified into an auto-eligible bucket. Treat known ambiguous classes from `docs/aegis/reconcile-promotion-contract.md` as manual-only, including `multi_pr_epic_ambiguity`, `abandoned_in_progress_branch`, `stale_local_stub`, `local_ad_hoc_stub`, and git-only squash/offline unknown merge truth represented by `git_only_non_ancestor_or_missing_base`. Keep all changes strictly test/report/documentation-only. Do not add `--apply`, `--auto`, `--fix`, status-setting, closeout, git write, PR write, or MCP mutation behavior to `scripts/_aegis_installer.py::reconcile`, `scripts/codex-task aegis reconcile`, `aegis_foundation/cli.py::handle_reconcile`, or the `aegis.reconcile` MCP tool. Reuse `tests/meta_workflow_guard/reconcile_side_effect_oracle.py` from Task 145 so every corpus fixture proves reconcile leaves the fixture unchanged except explicitly declared report output paths. Extend `docs/aegis/reconcile-promotion-contract.md` or add a focused companion doc such as `docs/aegis/reconcile-precision-corpus.md` mapping each precision contract clause to the exact enforcing pytest test name, including false-positive gating, manual-only ambiguity gating, boundary-leakage gating, label recomputation, and read-only side-effect proof.",
+        "testStrategy": "Add focused pytest coverage for the corpus helpers and gate, then run `uv run python -m pytest tests/meta_workflow_guard/test_aegis_reconcile_precision_corpus.py` or the final focused file name. Include negative/meta tests that intentionally feed a manual-only ambiguity into an auto-eligible bucket and assert the gate fails, feed an auto-eligible class with a false positive and assert failure, and remove or bypass generated label checks and assert failure. Run existing reconcile coverage with `uv run python -m pytest tests/meta_workflow_guard/test_aegis_installer.py -k reconcile` and MCP read-only coverage with `uv run python -m pytest tests/meta_workflow_guard/test_aegis_mcp_server.py -k reconcile`. Verify repo health with `python3 scripts/codex-task taskmaster health`, `python3 scripts/codex-guard validate`, and the project work-tracking audit command used by the current workflow. Acceptance requires the precision tests to recompute labels from fixture execution, report per-class precision and boundary-leak counts, fail on any false positive in an auto-eligible class, fail when manual-only ambiguity is classified as auto-eligible, and prove reconcile has no filesystem/control-plane side effects via the Task 145 oracle.",
+        "status": "done",
+        "dependencies": [
+          "145"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-06-02T14:16:04.219Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-02T13:16:07.502Z",
-      "taskCount": 145,
-      "completedCount": 145,
+      "lastModified": "2026-06-02T14:16:04.220Z",
+      "taskCount": 146,
+      "completedCount": 146,
       "tags": [
         "master"
       ]
