@@ -104,9 +104,7 @@ CLAUDE_REQUIRED_FILES = (
     ".claude/scripts/bash-command-guard.sh",
     ".claude/scripts/codex-path-guard.sh",
 )
-CLAUDE_SUPPORT_FILES = (
-    ".claude/scripts/gate_lib.py",
-)
+CLAUDE_SUPPORT_FILES = (".claude/scripts/gate_lib.py",)
 CLAUDE_GATE_IDS = (
     "claude.readiness",
     "claude.pretooluse",
@@ -218,7 +216,9 @@ def _enabled_agents(primary_agent: str, agents: Sequence[str] | None) -> tuple[s
     if primary_agent == "multi" and len(requested) < 2:
         raise AegisError("primary_agent=multi requires at least two enabled agents")
     if primary_agent in AGENT_CHOICES and primary_agent not in requested:
-        raise AegisError(f"primary_agent={primary_agent} must also be listed with --agent {primary_agent}")
+        raise AegisError(
+            f"primary_agent={primary_agent} must also be listed with --agent {primary_agent}"
+        )
     return requested
 
 
@@ -259,7 +259,7 @@ def profile_payload() -> dict[str, Any]:
                         "settings_path": ".claude/settings.json",
                         "event": "Stop",
                         "command": CLAUDE_STOP_TRACKING_COMMAND,
-                    }
+                    },
                 ],
             },
             "codex": {
@@ -344,16 +344,16 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "",
             "## Work Kickoff",
             "",
-            "- Start local work with `aegis start \"<task title>\"` or `./.aegis/bin/aegis start ...` only when no external task id exists.",
-            "- If `.taskmaster/tasks/tasks.json` contains available numeric work, run `task-master next` and `task-master show <id>` first, then use explicit `aegis kickoff --task <id> --slug <slug> --title \"<title>\"`.",
+            '- Start local work with `aegis start "<task title>"` or `./.aegis/bin/aegis start ...` only when no external task id exists.',
+            '- If `.taskmaster/tasks/tasks.json` contains available numeric work, run `task-master next` and `task-master show <id>` first, then use explicit `aegis kickoff --task <id> --slug <slug> --title "<title>"`.',
             "- Taskmaster done only after Aegis closeout and doctor pass. Do not run `task-master set-status --status=done` before `aegis closeout` and read-only `aegis doctor` are both healthy.",
             "- After Taskmaster status changes, refresh generated task files. Prefer the project's targeted helper when present (for example `python3 scripts/codex-task taskmaster generate-one --id <id>`); otherwise run `task-master generate` deliberately and report that broad generated-file refresh was used.",
-            "- Use explicit `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` when an external task id already exists.",
+            '- Use explicit `aegis kickoff --task <id> --slug <slug> --title "<title>"` when an external task id already exists.',
             "- Kickoff creates Aegis-native current work state, session, plan, and work-tracking files.",
             "- `.aegis/state/current-work.json` is the portable authority for READY.",
             "- Taskmaster is validated only when no Aegis current-work state exists or when current work explicitly marks Taskmaster required.",
-            "- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a short title from the user's request and run `aegis start \"<task title>\"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; run `aegis closeout --update-handoff`; run read-only `aegis doctor`; only then mark Taskmaster done if Taskmaster is in use.",
-            "- After every meaningful mutation, run `aegis log --pending-id <id> --note \"<past-tense note>\"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.",
+            '- Normal feature work is: confirm readiness and `aegis next`; if no current work exists, use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a short title from the user\'s request and run `aegis start "<task title>"`; mark scope complete with `aegis log --plan-step auto`; make the task-scoped code change with native tools; let PostToolUse create pending tracking; run `aegis log --pending-id current --plan-step auto` for the changed source file; run task-specific verification and log it with `--plan-step auto`; run `aegis verify --strict`; log the strict verification report with `--pending-id current --plan-step auto`; run `aegis closeout --dry-run --update-handoff` for preflight; if handoff semantic gates fail, run `aegis handoff repair`; run `aegis closeout --update-handoff`; run read-only `aegis doctor`; only then mark Taskmaster done if Taskmaster is in use.',
+            '- After every meaningful mutation, run `aegis log --pending-id <id> --note "<past-tense note>"` to write S:W:H:E entries to the active session, tracker, and event-aware canonical surfaces.',
             "- `aegis log` updates plan state only when `--plan-step` is supplied. This prevents generic evidence logs from accidentally changing an unrelated plan step.",
             "- The next persistent mutation is blocked until pending S:W:H:E tracking is logged; this is what makes the workflow mechanical rather than advisory.",
             "- Omit `--surface` for event-aware defaults. Scope logs update findings, decisions, and handoff; implementation and verification logs update implementation, changelog, and handoff. Use `--surface` only for targeted repairs.",
@@ -391,7 +391,7 @@ def _render_claude_entrypoint() -> bytes:
             "```bash",
             "task-master next",
             "task-master show <id>",
-            "aegis kickoff --task <id> --slug <slug> --title \"<title>\"",
+            'aegis kickoff --task <id> --slug <slug> --title "<title>"',
             "```",
             "",
             "Taskmaster done only after Aegis closeout and doctor pass.",
@@ -400,7 +400,7 @@ def _render_claude_entrypoint() -> bytes:
             "If no Taskmaster numeric task is available, infer a short task title from the user's request and start tracked local work with:",
             "",
             "```bash",
-            "aegis start \"<task title>\"",
+            'aegis start "<task title>"',
             "```",
             "",
             "If `aegis` is not on PATH, use the installed project-local shim: `./.aegis/bin/aegis ...`.",
@@ -411,7 +411,7 @@ def _render_claude_entrypoint() -> bytes:
             "",
             "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready, closeout, and future reconciliation.",
             "- If Taskmaster is installed and has available work, run `task-master next` and `task-master show <id>` or the Taskmaster MCP equivalent before `aegis kickoff`.",
-            "- Use `aegis init` for first-time project setup and `aegis start \"<task title>\"` for local task kickoff only when no external task id exists.",
+            '- Use `aegis init` for first-time project setup and `aegis start "<task title>"` for local task kickoff only when no external task id exists.',
             "- Use `aegis ...` or `./.aegis/bin/aegis ...` for the same workflow operations when MCP is unavailable.",
             "- Use native Claude tools for normal implementation work: reading files, editing source, running tests, and inspecting git status or diffs.",
             "- Do not use MCP as a replacement for normal source editing. The installed hooks enforce the workflow around native tool use.",
@@ -419,19 +419,19 @@ def _render_claude_entrypoint() -> bytes:
             "",
             "Normal feature-work loop:",
             "",
-            "1. Confirm readiness. If Aegis is missing, run `aegis init`. If no current work exists, run `aegis next` or `./.aegis/bin/aegis next`; use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a task title and run `aegis start \"<task title>\"`.",
-            "2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note \"Confirmed task scope\" --plan-step auto --plan-status completed`.",
+            '1. Confirm readiness. If Aegis is missing, run `aegis init`. If no current work exists, run `aegis next` or `./.aegis/bin/aegis next`; use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a task title and run `aegis start "<task title>"`.',
+            '2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note "Confirmed task scope" --plan-step auto --plan-status completed`.',
             "3. Make the task-scoped source change requested by the user with native Edit/Write tools.",
-            "4. After the hook records pending tracking, run `aegis log --pending-id current --note \"<past-tense note>\" --plan-step auto --plan-status completed`.",
+            '4. After the hook records pending tracking, run `aegis log --pending-id current --note "<past-tense note>" --plan-step auto --plan-status completed`.',
             "5. Run task-specific verification and log it with `--plan-step auto --plan-status completed`.",
-            "6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note \"Recorded strict verification evidence\" --plan-step auto --plan-status completed`.",
+            '6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note "Recorded strict verification evidence" --plan-step auto --plan-status completed`.',
             "7. Run `aegis closeout --dry-run --update-handoff` or call MCP `aegis.closeout_ready` before final closeout.",
             "8. If handoff semantic gates fail, run `aegis handoff repair` or call MCP `aegis.handoff_repair apply=true`, then re-run closeout readiness.",
             "9. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
             "10. Run read-only `aegis doctor --target-dir .` or call MCP `aegis.doctor` once after closeout; include the health result in the final report.",
             "11. If Taskmaster is in use, run `task-master set-status --id=<id> --status=done` only after closeout and doctor pass. Then refresh generated task files with `python3 scripts/codex-task taskmaster generate-one --id <id>` when that project helper exists; otherwise run `task-master generate` deliberately and report the broad refresh.",
             "",
-            "After any mutation, use `aegis log --pending-id <id> --note \"<past-tense note>\" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.",
+            'After any mutation, use `aegis log --pending-id <id> --note "<past-tense note>" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.',
             "Read `.aegis/contract.md` for the shared contract and access policy.",
             "",
         ]
@@ -517,7 +517,7 @@ def _render_claude_settings() -> bytes:
                         }
                     ],
                 }
-            ]
+            ],
         },
     }
     return _dump_json(payload).encode("utf-8")
@@ -530,34 +530,34 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             "#!/usr/bin/env bash",
             "set -euo pipefail",
             "",
-            "SELF=\"$0\"",
-            "SELF_RESOLVED=\"$(cd \"$(dirname \"$SELF\")\" && pwd -P)/$(basename \"$SELF\")\"",
+            'SELF="$0"',
+            'SELF_RESOLVED="$(cd "$(dirname "$SELF")" && pwd -P)/$(basename "$SELF")"',
             "if command -v aegis >/dev/null 2>&1; then",
-            "  RESOLVED=\"$(command -v aegis)\"",
-            "  RESOLVED_ABS=\"$(cd \"$(dirname \"$RESOLVED\")\" && pwd -P)/$(basename \"$RESOLVED\")\"",
-            "  if [ \"$RESOLVED_ABS\" != \"$SELF_RESOLVED\" ]; then",
-            "    exec \"$RESOLVED\" \"$@\"",
+            '  RESOLVED="$(command -v aegis)"',
+            '  RESOLVED_ABS="$(cd "$(dirname "$RESOLVED")" && pwd -P)/$(basename "$RESOLVED")"',
+            '  if [ "$RESOLVED_ABS" != "$SELF_RESOLVED" ]; then',
+            '    exec "$RESOLVED" "$@"',
             "  fi",
             "fi",
             "",
             "if python3 -c 'import aegis_foundation.cli' >/dev/null 2>&1; then",
-            "  exec python3 -m aegis_foundation.cli \"$@\"",
+            '  exec python3 -m aegis_foundation.cli "$@"',
             "fi",
             "",
-            f"AEGIS_SOURCE_FALLBACK=\"{source}\"",
-            "if [ -n \"${AEGIS_SOURCE_ROOT:-}\" ]; then",
-            "  AEGIS_SOURCE_FALLBACK=\"$AEGIS_SOURCE_ROOT\"",
+            f'AEGIS_SOURCE_FALLBACK="{source}"',
+            'if [ -n "${AEGIS_SOURCE_ROOT:-}" ]; then',
+            '  AEGIS_SOURCE_FALLBACK="$AEGIS_SOURCE_ROOT"',
             "fi",
-            "if [ -d \"$AEGIS_SOURCE_FALLBACK\" ]; then",
-            "  for AEGIS_PYTHONPATH_CANDIDATE in \"$AEGIS_SOURCE_FALLBACK\" \"$AEGIS_SOURCE_FALLBACK/..\" \"$AEGIS_SOURCE_FALLBACK/../..\"; do",
+            'if [ -d "$AEGIS_SOURCE_FALLBACK" ]; then',
+            '  for AEGIS_PYTHONPATH_CANDIDATE in "$AEGIS_SOURCE_FALLBACK" "$AEGIS_SOURCE_FALLBACK/.." "$AEGIS_SOURCE_FALLBACK/../.."; do',
             "    if PYTHONPATH=\"$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}\" python3 -c 'import aegis_foundation.cli' >/dev/null 2>&1; then",
-            "      export PYTHONPATH=\"$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}\"",
-            "      exec python3 -m aegis_foundation.cli --source-root \"$AEGIS_SOURCE_FALLBACK\" \"$@\"",
+            '      export PYTHONPATH="$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}"',
+            '      exec python3 -m aegis_foundation.cli --source-root "$AEGIS_SOURCE_FALLBACK" "$@"',
             "    fi",
             "  done",
             "fi",
             "",
-            "echo \"Aegis CLI is unavailable. Install aegis-foundation, add aegis to PATH, or set AEGIS_SOURCE_ROOT.\" >&2",
+            'echo "Aegis CLI is unavailable. Install aegis-foundation, add aegis to PATH, or set AEGIS_SOURCE_ROOT." >&2',
             "exit 127",
             "",
         ]
@@ -567,15 +567,29 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
 
 def _asset_from_source(source_root: Path, rel_path: str, *, kind: str = "managed") -> Asset:
     path = source_root / rel_path
-    return Asset(path=rel_path, content=_read_bytes(source_root, rel_path), executable=os.access(path, os.X_OK), kind=kind)
+    return Asset(
+        path=rel_path,
+        content=_read_bytes(source_root, rel_path),
+        executable=os.access(path, os.X_OK),
+        kind=kind,
+    )
 
 
-def _asset_from_source_as(source_root: Path, source_rel_path: str, target_rel_path: str, *, kind: str = "managed") -> Asset:
+def _asset_from_source_as(
+    source_root: Path, source_rel_path: str, target_rel_path: str, *, kind: str = "managed"
+) -> Asset:
     path = source_root / source_rel_path
-    return Asset(path=target_rel_path, content=_read_bytes(source_root, source_rel_path), executable=os.access(path, os.X_OK), kind=kind)
+    return Asset(
+        path=target_rel_path,
+        content=_read_bytes(source_root, source_rel_path),
+        executable=os.access(path, os.X_OK),
+        kind=kind,
+    )
 
 
-def _base_assets(source_root: Path, primary_agent: str, enabled_agents: Sequence[str]) -> list[Asset]:
+def _base_assets(
+    source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
+) -> list[Asset]:
     assets = [
         Asset("AGENTS.md", _render_agents_doc(primary_agent, enabled_agents)),
         Asset(AEGIS_CONTRACT_REL, _render_contract(primary_agent, enabled_agents)),
@@ -594,7 +608,9 @@ def _base_assets(source_root: Path, primary_agent: str, enabled_agents: Sequence
     return assets
 
 
-def _adapter_assets(source_root: Path, primary_agent: str, enabled_agents: Sequence[str]) -> list[Asset]:
+def _adapter_assets(
+    source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
+) -> list[Asset]:
     assets: list[Asset] = []
     if "claude" in enabled_agents:
         assets.extend(
@@ -615,8 +631,12 @@ def _adapter_assets(source_root: Path, primary_agent: str, enabled_agents: Seque
     return assets
 
 
-def _managed_assets(source_root: Path, primary_agent: str, enabled_agents: Sequence[str]) -> list[Asset]:
-    return _base_assets(source_root, primary_agent, enabled_agents) + _adapter_assets(source_root, primary_agent, enabled_agents)
+def _managed_assets(
+    source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
+) -> list[Asset]:
+    return _base_assets(source_root, primary_agent, enabled_agents) + _adapter_assets(
+        source_root, primary_agent, enabled_agents
+    )
 
 
 def _claude_runtime_block(aegis_entrypoint: bytes) -> str:
@@ -731,10 +751,20 @@ def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset
     return materialized
 
 
-def _agent_records(enabled_agents: Sequence[str], managed_assets: Sequence[Asset]) -> dict[str, dict[str, Any]]:
+def _agent_records(
+    enabled_agents: Sequence[str], managed_assets: Sequence[Asset]
+) -> dict[str, dict[str, Any]]:
     managed_by_agent: dict[str, list[str]] = {
-        "claude": [asset.path for asset in managed_assets if asset.path == "CLAUDE.md" or asset.path.startswith(".claude/")],
-        "codex": [asset.path for asset in managed_assets if asset.path == "CODEX.md" or asset.path.startswith("scripts/")],
+        "claude": [
+            asset.path
+            for asset in managed_assets
+            if asset.path == "CLAUDE.md" or asset.path.startswith(".claude/")
+        ],
+        "codex": [
+            asset.path
+            for asset in managed_assets
+            if asset.path == "CODEX.md" or asset.path.startswith("scripts/")
+        ],
         "gemini": [],
     }
     return {
@@ -997,7 +1027,9 @@ def _installed_at_for_plan(target_root: Path) -> str:
     return _iso_now()
 
 
-def _plan_operations(target_root: Path, assets: Sequence[Asset], manifest_bytes: bytes) -> list[dict[str, Any]]:
+def _plan_operations(
+    target_root: Path, assets: Sequence[Asset], manifest_bytes: bytes
+) -> list[dict[str, Any]]:
     all_assets = [*assets, Asset(AEGIS_MANIFEST_REL, manifest_bytes)]
     operations: list[dict[str, Any]] = []
     for asset in all_assets:
@@ -1103,9 +1135,7 @@ def _client_reload_marker(target_root: Path) -> dict[str, Any] | None:
 
 def _write_client_reload_marker(target_root: Path, report: Mapping[str, Any]) -> None:
     changed_paths = [
-        str(path)
-        for path in report.get("changed_paths", [])
-        if isinstance(path, str) and path
+        str(path) for path in report.get("changed_paths", []) if isinstance(path, str) and path
     ]
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1124,7 +1154,9 @@ def _write_client_reload_marker(target_root: Path, report: Mapping[str, Any]) ->
     _write_text(target_root, AEGIS_CLIENT_RELOAD_REL, _dump_json(payload))
 
 
-def _client_reload_report(target_root: Path, plan: Mapping[str, Any], enabled_agents: Sequence[str]) -> dict[str, Any]:
+def _client_reload_report(
+    target_root: Path, plan: Mapping[str, Any], enabled_agents: Sequence[str]
+) -> dict[str, Any]:
     changed_paths: list[str] = []
     if "claude" in enabled_agents:
         for operation in plan.get("operations", []):
@@ -1200,7 +1232,11 @@ def _expected_manifest_summary(primary_agent: str, enabled_agents: Sequence[str]
         "agents": {
             agent: {
                 "enabled": agent in enabled_agents,
-                "gate_ids": list(CLAUDE_GATE_IDS if agent == "claude" else CODEX_GATE_IDS if agent == "codex" else ()),
+                "gate_ids": list(
+                    CLAUDE_GATE_IDS
+                    if agent == "claude"
+                    else CODEX_GATE_IDS if agent == "codex" else ()
+                ),
             }
             for agent in ("claude", "codex", "gemini")
         },
@@ -1422,7 +1458,10 @@ def _workflow_guidance_payload(
 
 def _plan_step_completed(plan_rows: Mapping[str, Mapping[str, Any]], step: str) -> bool:
     row = plan_rows.get(step)
-    return isinstance(row, Mapping) and str(row.get("status") or "").lower() in {"completed", "done"}
+    return isinstance(row, Mapping) and str(row.get("status") or "").lower() in {
+        "completed",
+        "done",
+    }
 
 
 def _strict_verify_passed(target_root: Path) -> bool:
@@ -1556,7 +1595,9 @@ def _enabled_agents_from_manifest(manifest: Mapping[str, Any] | None) -> tuple[s
 
 def _workflow_handler_prefix(target_root: Path) -> str:
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
-    primary = str(manifest.get("primary_agent") or "").strip() if isinstance(manifest, Mapping) else ""
+    primary = (
+        str(manifest.get("primary_agent") or "").strip() if isinstance(manifest, Mapping) else ""
+    )
     if primary in AGENT_CHOICES:
         return primary
     enabled = _enabled_agents_from_manifest(manifest)
@@ -1602,12 +1643,8 @@ def next_action(
         if guidance_primary_agent == "claude" and guidance_agents == ("claude",)
         else f"aegis init {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)}"
     )
-    plan_install_cli = (
-        f"aegis plan-install --target-dir . {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)}"
-    )
-    install_cli = (
-        f"aegis install --target-dir . {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)} --apply"
-    )
+    plan_install_cli = f"aegis plan-install --target-dir . {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)}"
+    install_cli = f"aegis install --target-dir . {_agent_selection_cli_args(guidance_primary_agent, guidance_agents)} --apply"
     if manifest is None:
         if manifest_exists:
             return _workflow_guidance_payload(
@@ -1794,8 +1831,14 @@ def next_action(
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
     work_rel = str(paths.get("work_tracking") or "").strip()
     plan_rel = str(paths.get("plan") or "plans/current").strip()
-    tracker_rel = f"{work_rel}/TRACKER.md" if work_rel else "docs/ai/work-tracking/active/<folder>/TRACKER.md"
-    findings_rel = f"{work_rel}/FINDINGS.md" if work_rel else "docs/ai/work-tracking/active/<folder>/FINDINGS.md"
+    tracker_rel = (
+        f"{work_rel}/TRACKER.md" if work_rel else "docs/ai/work-tracking/active/<folder>/TRACKER.md"
+    )
+    findings_rel = (
+        f"{work_rel}/FINDINGS.md"
+        if work_rel
+        else "docs/ai/work-tracking/active/<folder>/FINDINGS.md"
+    )
     reports_rel = str(paths.get("reports") or f"{work_rel}/reports/<slug>").strip()
     plan_path = target_root / plan_rel
     tracker_path = target_root / tracker_rel
@@ -1870,7 +1913,9 @@ def next_action(
                 "Use native agent tools for the source edit.",
                 suggested_cli,
             ]
-            next_required_action = "make the task-scoped change with native tools, then log the pending mutation"
+            next_required_action = (
+                "make the task-scoped change with native tools, then log the pending mutation"
+            )
         else:
             suggested_cli = (
                 f"./.aegis/bin/aegis log --target-dir . --handler {implementation_handler} "
@@ -1891,9 +1936,7 @@ def next_action(
                 "Use native agent tools for the source edit.",
                 suggested_cli,
             ]
-            next_required_action = (
-                "make the task-scoped change with native tools, then log explicit implementation evidence"
-            )
+            next_required_action = "make the task-scoped change with native tools, then log explicit implementation evidence"
         return _workflow_guidance_payload(
             phase="implement",
             state="implementation_required",
@@ -2027,7 +2070,9 @@ def plan_install(
     target_root = _resolve_target_root(target_dir)
     installed_at = _installed_at_for_plan(target_root)
     assets = _assets_for_target(target_root, _managed_assets(source, primary_agent, enabled_agents))
-    manifest = _manifest_payload(source, target_root, primary_agent, enabled_agents, installed_at=installed_at)
+    manifest = _manifest_payload(
+        source, target_root, primary_agent, enabled_agents, installed_at=installed_at
+    )
     manifest_bytes = _dump_json(manifest).encode("utf-8")
     operations = _plan_operations(target_root, assets, manifest_bytes)
     payload = {
@@ -2060,7 +2105,9 @@ def plan_install(
 
 
 def _unsafe_operations(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    return [operation for operation in plan.get("operations", []) if not operation.get("safe_to_apply")]
+    return [
+        operation for operation in plan.get("operations", []) if not operation.get("safe_to_apply")
+    ]
 
 
 def _write_asset(target_root: Path, asset: Asset) -> None:
@@ -2175,7 +2222,7 @@ def _normalize_task_slug(slug: str, *, task_id: str | int) -> str:
     task_text = _normalize_task_id(task_id)
     for prefix in (f"task-{task_text}-", f"{task_text}-"):
         if normalized.startswith(prefix):
-            stripped = normalized[len(prefix):].strip("-")
+            stripped = normalized[len(prefix) :].strip("-")
             if stripped:
                 return stripped
     return normalized
@@ -2272,7 +2319,11 @@ def _git_commit_for_ref(target_root: Path, ref: str) -> str | None:
 
 
 def _reconcile_branch_kind(name: str) -> str:
-    return "remote" if "/" in name and not name.startswith(("feat/", "fix/", "docs/", "chore/", "task-")) else "local"
+    return (
+        "remote"
+        if "/" in name and not name.startswith(("feat/", "fix/", "docs/", "chore/", "task-"))
+        else "local"
+    )
 
 
 def _reconcile_branch_candidates(target_root: Path) -> list[dict[str, Any]]:
@@ -2306,7 +2357,9 @@ def _reconcile_branch_candidates(target_root: Path) -> list[dict[str, Any]]:
     return sorted(branches, key=lambda branch: (int(branch["task_id"]), branch["name"]))
 
 
-def _branch_merge_truth(target_root: Path, branch: Mapping[str, Any], base: Mapping[str, Any]) -> dict[str, Any]:
+def _branch_merge_truth(
+    target_root: Path, branch: Mapping[str, Any], base: Mapping[str, Any]
+) -> dict[str, Any]:
     if not base.get("available"):
         return {
             "status": "unknown",
@@ -2330,7 +2383,9 @@ def _branch_merge_truth(target_root: Path, branch: Mapping[str, Any], base: Mapp
             "confidence": "none",
             "reason": "branch points at the base ref; no task-specific merge proof exists yet",
         }
-    result = _run_target_git(target_root, "merge-base", "--is-ancestor", branch_name, str(base["selected"]))
+    result = _run_target_git(
+        target_root, "merge-base", "--is-ancestor", branch_name, str(base["selected"])
+    )
     if result.returncode == 0:
         return {
             "status": "merged",
@@ -2418,7 +2473,9 @@ def _prs_by_task_id(gh: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
 
 
 def _github_truth_for_prs(prs: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
-    merged = [pr for pr in prs if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")]
+    merged = [
+        pr for pr in prs if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")
+    ]
     if merged:
         pr = merged[0]
         return {
@@ -2539,12 +2596,137 @@ def _reconcile_finding(
     }
 
 
+RECONCILE_PREVIEW_BLOCKED_REASON = "report-only per Task 147 contract"
+RECONCILE_PREVIEW_ROLLBACK_CONTRACT_REL = "docs/aegis/reconcile-mutation-rollback-contract.md"
+RECONCILE_PREVIEW_ACTUAL_BLAST_RADIUS_AUTHORITY = (
+    "Task 145 side-effect oracle verifies actual blast radius at mutation time"
+)
+
+
+def _reconcile_finding_proof(finding: Mapping[str, Any]) -> str:
+    evidence = finding.get("evidence") if isinstance(finding.get("evidence"), Mapping) else {}
+    merge_truth = (
+        evidence.get("merge_truth") if isinstance(evidence.get("merge_truth"), Mapping) else {}
+    )
+    return str(merge_truth.get("proof") or "")
+
+
+def _taskmaster_generated_task_markdown_rel(task_id: str) -> str:
+    try:
+        suffix = f"{int(task_id):03d}"
+    except ValueError:
+        suffix = task_id
+    return f".taskmaster/tasks/task_{suffix}.md"
+
+
+def _reconcile_preview_exclusion(kind: str, proof: str) -> tuple[str, list[str]]:
+    if kind == "merged_but_not_done" and proof == "github_pr_merged":
+        return (
+            "excluded from first candidate preview because GitHub/squash proof needs a separate contract",
+            ["separate github_pr_merged precision, blast-radius, and rollback evidence"],
+        )
+    if kind == "done_but_not_merged":
+        return (
+            "excluded from first candidate preview because done-but-not-merged repair is a different mutation class",
+            ["separate not-merged status correction contract"],
+        )
+    if kind in {
+        "multi_pr_epic_ambiguity",
+        "abandoned_in_progress_branch",
+        "stale_local_stub",
+        "local_ad_hoc_stub",
+    }:
+        return (
+            "manual-only by reconcile precision contract",
+            ["operator review outside reconcile mutation preview"],
+        )
+    if proof == "git_only_non_ancestor_or_missing_base":
+        return (
+            "excluded because git-only non-ancestor merge truth is unknown, not drift",
+            ["positive merge proof from GitHub metadata or another separate proof contract"],
+        )
+    return (
+        "excluded from first candidate preview by Task 147 boundary",
+        ["separate precision, blast-radius, rollback, and inertness evidence"],
+    )
+
+
+def _reconcile_mutation_candidate_preview(findings: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    candidates: list[dict[str, Any]] = []
+    excluded: list[dict[str, Any]] = []
+    for finding in findings:
+        kind = str(finding.get("kind") or "")
+        task_id = str(finding.get("task_id") or "")
+        proof = _reconcile_finding_proof(finding)
+        if kind == "merged_but_not_done" and proof == "git_ancestor":
+            candidates.append(
+                {
+                    "record_type": "mutation_candidate",
+                    "task_id": task_id,
+                    "finding_kind": kind,
+                    "proof": proof,
+                    "executable": False,
+                    "apply_path_exists": False,
+                    "blocked_reason": RECONCILE_PREVIEW_BLOCKED_REASON,
+                    "operator_confirmation_required": True,
+                    "predicted_blast_radius_paths": [
+                        ".taskmaster/tasks/tasks.json",
+                        _taskmaster_generated_task_markdown_rel(task_id),
+                    ],
+                    "rollback_contract": {
+                        "path": RECONCILE_PREVIEW_ROLLBACK_CONTRACT_REL,
+                        "requires_before_snapshot": True,
+                        "requires_before_audit_breadcrumb": True,
+                        "requires_after_audit_breadcrumb": True,
+                        "requires_rollback_verification": True,
+                    },
+                    "actual_blast_radius_authority": RECONCILE_PREVIEW_ACTUAL_BLAST_RADIUS_AUTHORITY,
+                    "prediction_authority": "Task 147 isolated Taskmaster done-cascade inventory",
+                    "candidate_boundary": "only merged_but_not_done with git_ancestor proof",
+                }
+            )
+            continue
+
+        reason, would_require = _reconcile_preview_exclusion(kind, proof)
+        excluded.append(
+            {
+                "record_type": "contract_exclusion",
+                "task_id": task_id,
+                "class": kind,
+                "proof": proof or None,
+                "reason": reason,
+                "would_require": would_require,
+                "manual_only": kind
+                in {
+                    "multi_pr_epic_ambiguity",
+                    "abandoned_in_progress_branch",
+                    "stale_local_stub",
+                    "local_ad_hoc_stub",
+                },
+            }
+        )
+    return {
+        "enabled": True,
+        "read_only": True,
+        "executable": False,
+        "apply_path_exists": False,
+        "blocked_reason": RECONCILE_PREVIEW_BLOCKED_REASON,
+        "candidates": candidates,
+        "excluded": excluded,
+        "notes": [
+            "This opt-in preview is inert data for operator review, not an execution surface.",
+            "Actual blast radius must be verified by the Task 145 side-effect oracle before any future mutation task.",
+        ],
+    }
+
+
 def reconcile(
     target_dir: str | Path,
     *,
     source_root: str | Path | None = None,
     base_ref: str | None = None,
     use_github: bool = True,
+    preview_candidates: bool = False,
 ) -> dict[str, Any]:
     """Report Taskmaster/Aegis/git/PR drift without mutating any repository state."""
 
@@ -2555,11 +2737,19 @@ def reconcile(
     branches_by_task: dict[str, list[dict[str, Any]]] = {}
     for branch in branches:
         branches_by_task.setdefault(str(branch["task_id"]), []).append(branch)
-    gh = _run_gh_pr_list(target_root) if use_github else {"available": False, "reason": "disabled", "prs": []}
+    gh = (
+        _run_gh_pr_list(target_root)
+        if use_github
+        else {"available": False, "reason": "disabled", "prs": []}
+    )
     prs_by_task = _prs_by_task_id(gh)
     base = _resolve_reconcile_base_ref(target_root, base_ref)
     current_work = _current_aegis_work_summary(target_root)
-    active_task_id = current_work.get("task_id") if current_work and current_work.get("status") == "in-progress" else None
+    active_task_id = (
+        current_work.get("task_id")
+        if current_work and current_work.get("status") == "in-progress"
+        else None
+    )
     try:
         current_branch = _current_branch(target_root)
     except AegisError:
@@ -2567,7 +2757,10 @@ def reconcile(
     current_branch_task_id = _branch_task_id(current_branch)
     local_stubs = _local_aegis_task_stubs(target_root)
     all_task_ids = sorted(
-        set(tasks) | set(branches_by_task) | set(prs_by_task) | {stub["id"] for stub in local_stubs},
+        set(tasks)
+        | set(branches_by_task)
+        | set(prs_by_task)
+        | {stub["id"] for stub in local_stubs},
         key=lambda item: int(item),
     )
 
@@ -2664,8 +2857,12 @@ def reconcile(
         severity: sum(1 for finding in findings if finding["severity"] == severity)
         for severity in ("error", "warning", "info")
     }
-    status_value = "drift" if severity_counts["error"] else "needs_review" if severity_counts["warning"] else "clean"
-    return {
+    status_value = (
+        "drift"
+        if severity_counts["error"]
+        else "needs_review" if severity_counts["warning"] else "clean"
+    )
+    report = {
         "schema_version": SCHEMA_VERSION,
         "status": status_value,
         "read_only": True,
@@ -2700,6 +2897,12 @@ def reconcile(
             "GitHub PR state is optional acceleration; when unavailable, squash-ambiguous cases remain unknown instead of being reported as not merged.",
         ],
     }
+    if preview_candidates:
+        preview = _reconcile_mutation_candidate_preview(findings)
+        report["mutation_candidate_preview"] = preview
+        report["summary"]["mutation_candidates"] = len(preview["candidates"])
+        report["summary"]["mutation_candidate_exclusions"] = len(preview["excluded"])
+    return report
 
 
 def format_reconcile_summary(report: Mapping[str, Any]) -> str:
@@ -2735,14 +2938,29 @@ def format_reconcile_summary(report: Mapping[str, Any]) -> str:
                 f"{finding.get('message')}"
             )
         if len(findings) > 20:
-            lines.append(f"- ... {len(findings) - 20} more finding(s); rerun with --json for full detail")
+            lines.append(
+                f"- ... {len(findings) - 20} more finding(s); rerun with --json for full detail"
+            )
     else:
         lines.append("findings: none")
+    preview = (
+        report.get("mutation_candidate_preview")
+        if isinstance(report.get("mutation_candidate_preview"), Mapping)
+        else None
+    )
+    if preview:
+        lines.append(
+            "mutation_candidate_preview: "
+            f"report-only, executable=false, candidates={len(preview.get('candidates', []))}, "
+            f"excluded={len(preview.get('excluded', []))}"
+        )
     lines.append("")
     return "\n".join(lines)
 
 
-def _ensure_task_branch(target_root: Path, task_id: str, slug: str, *, create_branch: bool) -> dict[str, Any]:
+def _ensure_task_branch(
+    target_root: Path, task_id: str, slug: str, *, create_branch: bool
+) -> dict[str, Any]:
     before = _current_branch(target_root)
     if _branch_task_id(before) == task_id:
         return {
@@ -2835,7 +3053,9 @@ def _render_workflow_template(
         rendered = rendered.replace("{{" + key + "}}", value)
     unresolved = sorted(set(re.findall(r"{{\s*([a-zA-Z0-9_]+)\s*}}", rendered)))
     if unresolved:
-        raise AegisError(f"Workflow template {template_name} has unresolved variable(s): {', '.join(unresolved)}")
+        raise AegisError(
+            f"Workflow template {template_name} has unresolved variable(s): {', '.join(unresolved)}"
+        )
     return rendered.rstrip() + "\n"
 
 
@@ -2956,7 +3176,9 @@ def _post_init_next_action(install_report: Mapping[str, Any]) -> dict[str, Any]:
             "title": "<task title>",
             "apply": True,
         },
-        details={"public_flow": "aegis init -> aegis start -> native edit -> aegis log/verify/closeout"},
+        details={
+            "public_flow": "aegis init -> aegis start -> native edit -> aegis log/verify/closeout"
+        },
     )
 
 
@@ -3010,7 +3232,11 @@ def kickoff(
     existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if isinstance(existing_current_work, Mapping):
         existing_status = str(existing_current_work.get("status") or "")
-        existing_task = existing_current_work.get("task") if isinstance(existing_current_work.get("task"), Mapping) else {}
+        existing_task = (
+            existing_current_work.get("task")
+            if isinstance(existing_current_work.get("task"), Mapping)
+            else {}
+        )
         existing_id = str(existing_task.get("id") or "")
         existing_slug = str(existing_task.get("slug") or "")
         if existing_status == "in-progress":
@@ -3023,7 +3249,9 @@ def kickoff(
 
     now = datetime.now().astimezone().replace(microsecond=0)
     selected_goals = list(goals or _default_goals())
-    branch = _ensure_task_branch(target_root, normalized_task_id, normalized_slug, create_branch=create_branch)
+    branch = _ensure_task_branch(
+        target_root, normalized_task_id, normalized_slug, create_branch=create_branch
+    )
 
     session_rel = _next_session_rel(target_root, normalized_task_id, normalized_slug, now)
     plan_rel = _plan_rel(normalized_task_id, normalized_slug, now)
@@ -3042,8 +3270,14 @@ def kickoff(
         reports_rel=reports_rel,
     )
 
-    _write_text(target_root, session_rel, _render_workflow_template(target_root, resolved_source, "session.md", template_context))
-    _replace_symlink(target_root / "sessions" / "current", str(Path(session_rel).relative_to("sessions")))
+    _write_text(
+        target_root,
+        session_rel,
+        _render_workflow_template(target_root, resolved_source, "session.md", template_context),
+    )
+    _replace_symlink(
+        target_root / "sessions" / "current", str(Path(session_rel).relative_to("sessions"))
+    )
     state_payload = {
         "schema_version": SCHEMA_VERSION,
         "current": Path(session_rel).name,
@@ -3058,16 +3292,32 @@ def kickoff(
     }
     _write_text(target_root, "sessions/state.json", _dump_json(state_payload))
 
-    _write_text(target_root, plan_rel, _render_workflow_template(target_root, resolved_source, "plan.md", template_context))
+    _write_text(
+        target_root,
+        plan_rel,
+        _render_workflow_template(target_root, resolved_source, "plan.md", template_context),
+    )
     _replace_symlink(target_root / "plans" / "current", Path(plan_rel).name)
 
     work_files = {
-        f"{work_rel}/TRACKER.md": _render_workflow_template(target_root, resolved_source, "tracker.md", template_context),
-        f"{work_rel}/FINDINGS.md": _render_workflow_template(target_root, resolved_source, "findings.md", template_context),
-        f"{work_rel}/DECISIONS.md": _render_workflow_template(target_root, resolved_source, "decisions.md", template_context),
-        f"{work_rel}/HANDOFF.md": _render_workflow_template(target_root, resolved_source, "handoff.md", template_context),
-        f"{work_rel}/IMPLEMENTATION.md": _render_workflow_template(target_root, resolved_source, "implementation.md", template_context),
-        f"{work_rel}/CHANGELOG.md": _render_workflow_template(target_root, resolved_source, "changelog.md", template_context),
+        f"{work_rel}/TRACKER.md": _render_workflow_template(
+            target_root, resolved_source, "tracker.md", template_context
+        ),
+        f"{work_rel}/FINDINGS.md": _render_workflow_template(
+            target_root, resolved_source, "findings.md", template_context
+        ),
+        f"{work_rel}/DECISIONS.md": _render_workflow_template(
+            target_root, resolved_source, "decisions.md", template_context
+        ),
+        f"{work_rel}/HANDOFF.md": _render_workflow_template(
+            target_root, resolved_source, "handoff.md", template_context
+        ),
+        f"{work_rel}/IMPLEMENTATION.md": _render_workflow_template(
+            target_root, resolved_source, "implementation.md", template_context
+        ),
+        f"{work_rel}/CHANGELOG.md": _render_workflow_template(
+            target_root, resolved_source, "changelog.md", template_context
+        ),
     }
     for rel_path, content in work_files.items():
         _write_text(target_root, rel_path, content)
@@ -3173,26 +3423,30 @@ def _already_started_report(target_root: Path, current_work: Mapping[str, Any]) 
             "continue_existing_work",
             "Current work already exists; continue by logging scope, implementation, or verification evidence as appropriate.",
             suggested_cli=(
-                f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
-                f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
-                "--note 'Confirmed task scope before implementation' "
-                "--plan-step auto --plan-status completed"
-            )
-            if work_rel
-            else None,
+                (
+                    f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
+                    f"--evidence {_quote_cli(f'{work_rel}/FINDINGS.md')} "
+                    "--note 'Confirmed task scope before implementation' "
+                    "--plan-step auto --plan-status completed"
+                )
+                if work_rel
+                else None
+            ),
             suggested_mcp_tool="aegis.log",
-            suggested_mcp_arguments={
-                "target_dir": ".",
-                "handler": scope_handler,
-                "evidence": f"{work_rel}/FINDINGS.md",
-                "note": "Confirmed task scope before implementation",
-                "event_class": "scope",
-                "plan_step": "auto",
-                "plan_status": "completed",
-                "apply": True,
-            }
-            if work_rel
-            else None,
+            suggested_mcp_arguments=(
+                {
+                    "target_dir": ".",
+                    "handler": scope_handler,
+                    "evidence": f"{work_rel}/FINDINGS.md",
+                    "note": "Confirmed task scope before implementation",
+                    "event_class": "scope",
+                    "plan_step": "auto",
+                    "plan_status": "completed",
+                    "apply": True,
+                }
+                if work_rel
+                else None
+            ),
             details={"task": task_id, "slug": slug},
         ),
     }
@@ -3215,7 +3469,9 @@ def start_local_work(
 
     target_root = _resolve_target_root(target_dir)
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
-        raise AegisError("Aegis start requires an installed .aegis/foundation-manifest.json; run aegis init first")
+        raise AegisError(
+            "Aegis start requires an installed .aegis/foundation-manifest.json; run aegis init first"
+        )
     _ensure_client_reload_cleared(target_root, "start")
     _ensure_git_work_tree(target_root)
     clean_title = title.strip()
@@ -3225,7 +3481,11 @@ def start_local_work(
     existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if isinstance(existing_current_work, Mapping):
         existing_status = str(existing_current_work.get("status") or "")
-        existing_task = existing_current_work.get("task") if isinstance(existing_current_work.get("task"), Mapping) else {}
+        existing_task = (
+            existing_current_work.get("task")
+            if isinstance(existing_current_work.get("task"), Mapping)
+            else {}
+        )
         existing_slug = str(existing_task.get("slug") or "")
         existing_title = str(existing_task.get("title") or "")
         if existing_status == "in-progress":
@@ -3270,7 +3530,9 @@ def start_local_work(
 def _current_work_payload(target_root: Path) -> dict[str, Any]:
     current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if current_work is None:
-        raise AegisError("Aegis log requires .aegis/state/current-work.json; run aegis kickoff first")
+        raise AegisError(
+            "Aegis log requires .aegis/state/current-work.json; run aegis kickoff first"
+        )
     return current_work
 
 
@@ -3395,7 +3657,9 @@ def _normalize_log_surfaces(
             normalized.append(key)
     if unknown:
         choices = ", ".join(sorted(AEGIS_LOG_SURFACES))
-        raise AegisError(f"unknown log surface(s): {', '.join(unknown)}; expected one of: {choices}")
+        raise AegisError(
+            f"unknown log surface(s): {', '.join(unknown)}; expected one of: {choices}"
+        )
     return tuple(normalized)
 
 
@@ -3430,7 +3694,11 @@ def _infer_auto_plan_step(
     evidence_lower = evidence.lower()
     if "scope" in handler_lower:
         candidates.setdefault("plan-step-scope", "handler contains scope")
-    if evidence_lower == AEGIS_VERIFY_REPORT_REL.lower() or "verify" in handler_lower or "verification" in handler_lower:
+    if (
+        evidence_lower == AEGIS_VERIFY_REPORT_REL.lower()
+        or "verify" in handler_lower
+        or "verification" in handler_lower
+    ):
         candidates.setdefault("plan-step-verify", "verification handler/evidence")
     if any(token in handler_lower for token in ("write", "edit", "implement", "bash")):
         candidates.setdefault("plan-step-implement", "mutation handler")
@@ -3447,8 +3715,7 @@ def _infer_auto_plan_step(
     choices = ", ".join(AEGIS_PLAN_STEP_IDS)
     if not candidates:
         raise AegisError(
-            "plan-step auto could not infer a deterministic plan step; "
-            f"pass one of: {choices}"
+            "plan-step auto could not infer a deterministic plan step; " f"pass one of: {choices}"
         )
     observed = ", ".join(f"{step} ({reason})" for step, reason in candidates.items())
     raise AegisError(
@@ -3537,7 +3804,11 @@ def _update_plan_table(
     amendment = f"- {timestamp} - `aegis log` updated `{plan_step}` to `{plan_status}` with evidence `{evidence_rel}`."
     if amendment not in lines:
         try:
-            heading_index = next(index for index, value in enumerate(lines) if value.strip() == "## Amendments & Versioning")
+            heading_index = next(
+                index
+                for index, value in enumerate(lines)
+                if value.strip() == "## Amendments & Versioning"
+            )
         except StopIteration:
             lines.extend(["", "## Amendments & Versioning", amendment])
         else:
@@ -3559,7 +3830,9 @@ def _pending_tracking_events(target_root: Path) -> list[dict[str, Any]]:
     if not payload:
         return []
     events = payload.get("events")
-    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    return (
+        [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    )
 
 
 def _degraded_events(target_root: Path) -> list[dict[str, Any]]:
@@ -3567,7 +3840,9 @@ def _degraded_events(target_root: Path) -> list[dict[str, Any]]:
     if not payload:
         return []
     events = payload.get("events")
-    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    return (
+        [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    )
 
 
 def _write_pending_tracking_events(target_root: Path, events: list[dict[str, Any]]) -> None:
@@ -3605,13 +3880,13 @@ def _resolve_pending_tracking_event(
     if not clean:
         raise AegisError("pending event id cannot be empty")
     current_events = [
-        event
-        for event in events
-        if _event_matches_current_work(event, task_id=task_id, slug=slug)
+        event for event in events if _event_matches_current_work(event, task_id=task_id, slug=slug)
     ]
     if clean in AEGIS_PENDING_EVENT_SENTINELS:
         if len(current_events) != 1:
-            valid = ", ".join(str(event.get("id") or "unknown") for event in current_events) or "<none>"
+            valid = (
+                ", ".join(str(event.get("id") or "unknown") for event in current_events) or "<none>"
+            )
             raise AegisError(
                 f"pending event sentinel '{clean}' requires exactly one current-work event; valid ids: {valid}"
             )
@@ -3639,7 +3914,7 @@ def _format_pending_tracking_for_error(events: Sequence[Mapping[str, Any]]) -> s
             )
         lines.append(
             "  repair: aegis log --pending-id "
-            f"{event_id} --note \"<past-tense note>\" "
+            f'{event_id} --note "<past-tense note>" '
             "--plan-step <plan-step-id> --plan-status completed"
         )
     return "\n".join(lines)
@@ -3658,7 +3933,11 @@ def _evidence_file_location(target_root: Path, evidence_rel: str) -> dict[str, A
     line_end = line_count if line_count > 0 else None
     display = evidence_rel
     if line_start is not None:
-        display = f"{evidence_rel}:{line_start}" if line_end == line_start else f"{evidence_rel}:{line_start}-{line_end}"
+        display = (
+            f"{evidence_rel}:{line_start}"
+            if line_end == line_start
+            else f"{evidence_rel}:{line_start}-{line_end}"
+        )
     return {
         "path": evidence_rel,
         "line_start": line_start,
@@ -3920,16 +4199,10 @@ def log_work(
 
     if resolved_pending_event is not None:
         resolved_id = str(resolved_pending_event.get("id") or "")
-        cleared = [
-            event
-            for event in pending_before
-            if str(event.get("id") or "") == resolved_id
-        ]
+        cleared = [event for event in pending_before if str(event.get("id") or "") == resolved_id]
     else:
         cleared = [
-            event
-            for event in pending_before
-            if str(event.get("evidence") or "") == evidence_rel
+            event for event in pending_before if str(event.get("evidence") or "") == evidence_rel
         ]
     if pending_before and not cleared:
         pending_summary = _format_pending_tracking_for_error(pending_before)
@@ -3966,7 +4239,9 @@ def log_work(
                     evidence_rel=evidence_rel,
                     timestamp=date_value,
                 )
-                _update_tracker_plan_step(tracker_path, normalized_plan_step, normalized_plan_status)
+                _update_tracker_plan_step(
+                    tracker_path, normalized_plan_step, normalized_plan_status
+                )
 
         if updated_surfaces or plan_updated:
             _update_tracker_timestamp(tracker_path, date_value)
@@ -4004,7 +4279,8 @@ def log_work(
                 "inferred": plan_step_inferred,
                 "inference_reason": plan_inference_reason,
                 "strict_verification_evidence": (
-                    evidence_rel == AEGIS_VERIFY_REPORT_REL and normalized_plan_step == "plan-step-verify"
+                    evidence_rel == AEGIS_VERIFY_REPORT_REL
+                    and normalized_plan_step == "plan-step-verify"
                 ),
             },
             "pending": {
@@ -4049,16 +4325,10 @@ def log_work(
 
     if resolved_pending_event is not None:
         resolved_id = str(resolved_pending_event.get("id") or "")
-        remaining = [
-            event
-            for event in pending_before
-            if str(event.get("id") or "") != resolved_id
-        ]
+        remaining = [event for event in pending_before if str(event.get("id") or "") != resolved_id]
     else:
         remaining = [
-            event
-            for event in pending_before
-            if str(event.get("evidence") or "") != evidence_rel
+            event for event in pending_before if str(event.get("evidence") or "") != evidence_rel
         ]
     _write_pending_tracking_events(target_root, remaining)
 
@@ -4099,7 +4369,8 @@ def log_work(
             "inferred": plan_step_inferred,
             "inference_reason": plan_inference_reason,
             "strict_verification_evidence": (
-                evidence_rel == AEGIS_VERIFY_REPORT_REL and normalized_plan_step == "plan-step-verify"
+                evidence_rel == AEGIS_VERIFY_REPORT_REL
+                and normalized_plan_step == "plan-step-verify"
             ),
         },
         "pending": {
@@ -4164,7 +4435,9 @@ def install(
 
     installed_at = _installed_at_for_plan(target_root)
     assets = _assets_for_target(target_root, _managed_assets(source, primary_agent, enabled_agents))
-    manifest = _manifest_payload(source, target_root, primary_agent, enabled_agents, installed_at=installed_at)
+    manifest = _manifest_payload(
+        source, target_root, primary_agent, enabled_agents, installed_at=installed_at
+    )
     manifest_asset = Asset(AEGIS_MANIFEST_REL, _dump_json(manifest).encode("utf-8"))
     created_plan_paths = [
         str(operation["path"])
@@ -4465,7 +4738,11 @@ def _strict_managed_files_check(target_root: Path, manifest: Mapping[str, Any]) 
         elif target.is_dir():
             directories.append(rel_path)
     passed = not missing and not directories
-    message = "all manifest managed files exist" if passed else "manifest managed files missing or invalid"
+    message = (
+        "all manifest managed files exist"
+        if passed
+        else "manifest managed files missing or invalid"
+    )
     return _strict_check(
         "manifest.managed_files",
         category="manifest",
@@ -4499,7 +4776,9 @@ def _strict_workflow_template_check(target_root: Path) -> dict[str, Any]:
     )
 
 
-def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+def _strict_current_work_checks(
+    target_root: Path,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
     current_work_path = target_root / AEGIS_CURRENT_WORK_REL
     current_work = _read_json(current_work_path)
     if current_work is None:
@@ -4533,13 +4812,20 @@ def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]]
     work_status = str(current_work.get("status") or "").strip()
     active_payload = work_status == "in-progress"
     completed_payload = work_status == "completed" and bool(current_work.get("closeout_passed_at"))
-    valid_payload = (active_payload or completed_payload) and bool(task_id) and bool(task_slug) and not missing_path_keys
+    valid_payload = (
+        (active_payload or completed_payload)
+        and bool(task_id)
+        and bool(task_slug)
+        and not missing_path_keys
+    )
     status_message = (
         "current work payload is active and complete"
         if active_payload
-        else "current work payload is completed and closeout-passed"
-        if completed_payload
-        else "current work payload is incomplete"
+        else (
+            "current work payload is completed and closeout-passed"
+            if completed_payload
+            else "current work payload is incomplete"
+        )
     )
     checks = [
         _strict_check(
@@ -4567,7 +4853,11 @@ def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]]
                     category="workflow",
                     required=True,
                     passed=branch_matches,
-                    message="branch task id matches current work" if branch_matches else "branch task id does not match current work",
+                    message=(
+                        "branch task id matches current work"
+                        if branch_matches
+                        else "branch task id does not match current work"
+                    ),
                     details={
                         "branch": branch,
                         "branch_task_id": branch_task,
@@ -4627,7 +4917,11 @@ def _strict_current_work_checks(target_root: Path) -> tuple[list[dict[str, Any]]
                 category="workflow",
                 required=True,
                 passed=not missing_surfaces,
-                message="all work-tracking surfaces exist" if not missing_surfaces else "work-tracking surfaces missing",
+                message=(
+                    "all work-tracking surfaces exist"
+                    if not missing_surfaces
+                    else "work-tracking surfaces missing"
+                ),
                 details={
                     "work_tracking": work_rel,
                     "missing": missing_surfaces,
@@ -4665,7 +4959,11 @@ def _strict_pending_tracking_check(target_root: Path) -> dict[str, Any]:
         category="mutation",
         required=True,
         passed=event_count == 0,
-        message="pending tracking queue empty" if event_count == 0 else "pending tracking queue has unlogged mutation events",
+        message=(
+            "pending tracking queue empty"
+            if event_count == 0
+            else "pending tracking queue has unlogged mutation events"
+        ),
         details={"path": AEGIS_PENDING_TRACKING_REL, "events": event_count},
     )
 
@@ -4684,9 +4982,7 @@ def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> lis
         ]
 
     missing_required_files = [
-        rel_path
-        for rel_path in CLAUDE_REQUIRED_FILES
-        if not (target_root / rel_path).is_file()
+        rel_path for rel_path in CLAUDE_REQUIRED_FILES if not (target_root / rel_path).is_file()
     ]
     checks = [
         _strict_check(
@@ -4694,7 +4990,11 @@ def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> lis
             category="claude",
             required=True,
             passed=not missing_required_files,
-            message="all Claude required files exist" if not missing_required_files else "Claude required files missing",
+            message=(
+                "all Claude required files exist"
+                if not missing_required_files
+                else "Claude required files missing"
+            ),
             details={"missing": missing_required_files},
         )
     ]
@@ -4710,9 +5010,7 @@ def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> lis
         if isinstance(gate, Mapping) and gate.get("id") in hook_gate_ids
     ]
     failed_hooks = [
-        str(result.get("gate_id"))
-        for result in hook_results
-        if result.get("status") != "pass"
+        str(result.get("gate_id")) for result in hook_results if result.get("status") != "pass"
     ]
     checks.append(
         _strict_check(
@@ -4720,7 +5018,11 @@ def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> lis
             category="claude",
             required=True,
             passed=len(hook_results) == len(hook_gate_ids) and not failed_hooks,
-            message="Claude hook registrations are present" if not failed_hooks and len(hook_results) == len(hook_gate_ids) else "Claude hook registrations are missing or invalid",
+            message=(
+                "Claude hook registrations are present"
+                if not failed_hooks and len(hook_results) == len(hook_gate_ids)
+                else "Claude hook registrations are missing or invalid"
+            ),
             details={
                 "expected": sorted(hook_gate_ids),
                 "observed": [str(result.get("gate_id")) for result in hook_results],
@@ -4747,8 +5049,15 @@ def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> lis
     return checks
 
 
-def _strict_integration_checks(target_root: Path, current_work: Mapping[str, Any] | None) -> list[dict[str, Any]]:
-    integrations = current_work.get("integrations") if isinstance(current_work, Mapping) and isinstance(current_work.get("integrations"), Mapping) else {}
+def _strict_integration_checks(
+    target_root: Path, current_work: Mapping[str, Any] | None
+) -> list[dict[str, Any]]:
+    integrations = (
+        current_work.get("integrations")
+        if isinstance(current_work, Mapping)
+        and isinstance(current_work.get("integrations"), Mapping)
+        else {}
+    )
     checks: list[dict[str, Any]] = []
     for name, rel_path in (("taskmaster", ".taskmaster"), ("serena", ".serena")):
         integration = integrations.get(name) if isinstance(integrations, Mapping) else {}
@@ -4763,9 +5072,11 @@ def _strict_integration_checks(target_root: Path, current_work: Mapping[str, Any
                 message=(
                     f"{name} integration present"
                     if detected
-                    else f"{name} integration is optional and absent"
-                    if not required
-                    else f"{name} integration is required but absent"
+                    else (
+                        f"{name} integration is optional and absent"
+                        if not required
+                        else f"{name} integration is required but absent"
+                    )
                 ),
                 details={
                     "path": rel_path,
@@ -4777,7 +5088,9 @@ def _strict_integration_checks(target_root: Path, current_work: Mapping[str, Any
     return checks
 
 
-def _strict_verification_checks(target_root: Path, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _strict_verification_checks(
+    target_root: Path, manifest: Mapping[str, Any]
+) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = [
         _strict_managed_files_check(target_root, manifest),
         _strict_path_check(
@@ -5002,7 +5315,9 @@ def _classify_doctor_state(
     if manifest is None:
         return "not_installed", "failed"
     if not isinstance(current_work, Mapping):
-        return "installed_no_current_work", "healthy" if not _doctor_summary(checks)["failed_required"] else "repairable"
+        return "installed_no_current_work", (
+            "healthy" if not _doctor_summary(checks)["failed_required"] else "repairable"
+        )
     pending_check = next(
         (check for check in checks if check.get("id") == "mutation.pending_tracking_empty"),
         None,
@@ -5016,8 +5331,7 @@ def _classify_doctor_state(
             return "completed_closeout", "repairable"
         return "completed_closeout", "degraded" if summary["warnings"] else "healthy"
     workflow_failed = any(
-        check.get("category") == "workflow" and check.get("status") == "fail"
-        for check in checks
+        check.get("category") == "workflow" and check.get("status") == "fail" for check in checks
     )
     if workflow_failed:
         return "workflow_scaffold_incomplete", "repairable" if repair_actions else "failed"
@@ -5089,7 +5403,9 @@ def doctor(
                 if check.get("id") == "workflow.current_work":
                     check["required"] = False
                     check["status"] = "pass"
-                    check["message"] = "no active current work; run aegis start or aegis kickoff before source edits"
+                    check["message"] = (
+                        "no active current work; run aegis start or aegis kickoff before source edits"
+                    )
 
     repair_actions = _doctor_repair_actions(target_root, source, manifest, current_work)
     active_root = target_root / "docs/ai/work-tracking/active"
@@ -5188,7 +5504,11 @@ def _apply_repair_action(
             return {"id": action.get("id"), "status": "skipped", "reason": "manifest unavailable"}
         asset = _doctor_manifest_assets(target_root, source_root, manifest).get(rel_path)
         if asset is None:
-            return {"id": action.get("id"), "status": "skipped", "reason": "managed asset unavailable"}
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "managed asset unavailable",
+            }
         if target.exists():
             return {"id": action.get("id"), "status": "skipped", "reason": "path already exists"}
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -5211,27 +5531,49 @@ def _apply_repair_action(
         if not target_rel or not (target_root / target_rel).is_file():
             return {"id": action.get("id"), "status": "skipped", "reason": "target file missing"}
         if target.exists() and not target.is_symlink():
-            return {"id": action.get("id"), "status": "skipped", "reason": "non-symlink path exists"}
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "non-symlink path exists",
+            }
         if target.is_symlink():
             target.unlink()
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.symlink_to(link_target or os.path.relpath(target_root / target_rel, start=target.parent))
+        target.symlink_to(
+            link_target or os.path.relpath(target_root / target_rel, start=target.parent)
+        )
         return {"id": action.get("id"), "status": "applied", "path": rel_path}
     if kind == "normalize_completed_closeout":
         current_path = target_root / AEGIS_CURRENT_WORK_REL
         current_work = _read_json(current_path)
         closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
-        if current_work is None or closeout_report is None or closeout_report.get("status") != "passed":
-            return {"id": action.get("id"), "status": "skipped", "reason": "completed closeout evidence unavailable"}
+        if (
+            current_work is None
+            or closeout_report is None
+            or closeout_report.get("status") != "passed"
+        ):
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "completed closeout evidence unavailable",
+            }
         current_work["status"] = "completed"
-        task = current_work.get("task") if isinstance(current_work.get("task"), MutableMapping) else None
+        task = (
+            current_work.get("task")
+            if isinstance(current_work.get("task"), MutableMapping)
+            else None
+        )
         if task is not None:
             task["status"] = "completed"
         current_work["closeout_passed_at"] = str(closeout_report.get("checked_at") or _iso_now())
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         current_path.write_text(_dump_json(current_work), encoding="utf-8")
         return {"id": action.get("id"), "status": "applied", "path": rel_path}
-    return {"id": action.get("id"), "status": "skipped", "reason": f"unsupported repair kind: {kind}"}
+    return {
+        "id": action.get("id"),
+        "status": "skipped",
+        "reason": f"unsupported repair kind: {kind}",
+    }
 
 
 def repair(
@@ -5246,7 +5588,9 @@ def repair(
     source = Path(source_root).resolve()
     preflight = doctor(target_root, source_root=source)
     actions = list(preflight.get("repair_plan", {}).get("actions") or [])
-    safe_actions = [action for action in actions if isinstance(action, Mapping) and action.get("safe") is True]
+    safe_actions = [
+        action for action in actions if isinstance(action, Mapping) and action.get("safe") is True
+    ]
     if not apply:
         return {
             "schema_version": SCHEMA_VERSION,
@@ -5276,8 +5620,7 @@ def repair(
 
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
     applied = [
-        _apply_repair_action(target_root, source, manifest, action)
-        for action in safe_actions
+        _apply_repair_action(target_root, source, manifest, action) for action in safe_actions
     ]
     postflight = doctor(target_root, source_root=source)
     report = {
@@ -5308,7 +5651,9 @@ def repair(
 
 def format_doctor_summary(report: Mapping[str, Any]) -> str:
     summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
-    repair_plan = report.get("repair_plan") if isinstance(report.get("repair_plan"), Mapping) else {}
+    repair_plan = (
+        report.get("repair_plan") if isinstance(report.get("repair_plan"), Mapping) else {}
+    )
     return "\n".join(
         [
             f"Aegis doctor: {report.get('status')} ({report.get('current_state')})",
@@ -5424,7 +5769,9 @@ def verify(
     if strict:
         checks.extend(_strict_verification_checks(target_root, manifest))
 
-    failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
+    failed_required = [
+        check for check in checks if check.get("required") and check.get("status") == "fail"
+    ]
     pending_tracking_expected = _expects_pending_tracking(target_root)
     verification_handler = _workflow_log_handler(target_root, "verification")
     if pending_tracking_expected:
@@ -5488,27 +5835,28 @@ def verify(
                 },
             )
             if strict and not failed_required
-            else _workflow_next_action(
-                "repair_verify_failures",
-                "Verification failed. Fix failed required checks before closeout.",
-                details={
-                    "failed_required_gates": [
-                        str(check.get("gate_id"))
-                        for check in failed_required
-                    ]
-                },
-            )
-            if failed_required
-            else _workflow_next_action(
-                "standard_verify_complete",
-                "Standard verification report was written. Run strict verification before closeout.",
-                suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
-                suggested_mcp_tool="aegis.verify",
-                suggested_mcp_arguments={
-                    "target_dir": ".",
-                    "strict": True,
-                    "acknowledge_report_write": True,
-                },
+            else (
+                _workflow_next_action(
+                    "repair_verify_failures",
+                    "Verification failed. Fix failed required checks before closeout.",
+                    details={
+                        "failed_required_gates": [
+                            str(check.get("gate_id")) for check in failed_required
+                        ]
+                    },
+                )
+                if failed_required
+                else _workflow_next_action(
+                    "standard_verify_complete",
+                    "Standard verification report was written. Run strict verification before closeout.",
+                    suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
+                    suggested_mcp_tool="aegis.verify",
+                    suggested_mcp_arguments={
+                        "target_dir": ".",
+                        "strict": True,
+                        "acknowledge_report_write": True,
+                    },
+                )
             )
         ),
     }
@@ -5586,7 +5934,9 @@ def _parse_tracker_plan_steps(tracker_path: Path) -> dict[str, str]:
     for line in _read_text_or_empty(tracker_path).splitlines():
         match = pattern.match(line.strip())
         if match:
-            statuses[match.group("step")] = "completed" if match.group("mark").lower() == "x" else "pending"
+            statuses[match.group("step")] = (
+                "completed" if match.group("mark").lower() == "x" else "pending"
+            )
     return statuses
 
 
@@ -5706,10 +6056,16 @@ def _render_closeout_handoff(
     title = str(task.get("title") or f"Task {task_id}")
     branch = _current_work_branch_name(current_work, paths)
     work_label = f"task{task_id}-{slug}" if task_id or slug else "current-work"
-    semantic_title = _first_markdown_title(existing_text, f"# Task {task_id} {title} - Handoff Summary")
+    semantic_title = _first_markdown_title(
+        existing_text, f"# Task {task_id} {title} - Handoff Summary"
+    )
     progress_log = _markdown_tail_from_heading(existing_text, "## Progress Log")
-    all_evidence = list(dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel]))
-    evidence_summary = ", ".join(f"`{token}`" for token in all_evidence) if all_evidence else "none available"
+    all_evidence = list(
+        dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel])
+    )
+    evidence_summary = (
+        ", ".join(f"`{token}`" for token in all_evidence) if all_evidence else "none available"
+    )
 
     lines = [
         semantic_title,
@@ -5728,10 +6084,15 @@ def _render_closeout_handoff(
         "- Prepared closeout evidence so final closeout can write the report without ad hoc handoff edits.",
         "",
         "## Implementation Evidence",
-        *_bullet_lines(implementation_tokens, fallback="No implementation evidence tokens were available."),
+        *_bullet_lines(
+            implementation_tokens, fallback="No implementation evidence tokens were available."
+        ),
         "",
         "## Verification Evidence",
-        *_bullet_lines(verification_tokens, fallback="No task-specific verification evidence tokens were available."),
+        *_bullet_lines(
+            verification_tokens,
+            fallback="No task-specific verification evidence tokens were available.",
+        ),
         "",
         "## Strict Verification Evidence",
         f"- `{strict_verify_rel}`",
@@ -5758,7 +6119,9 @@ def _render_closeout_handoff(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _closeout_readiness(target_root: Path, current_work: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def _closeout_readiness(
+    target_root: Path, current_work: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     current_work_status = str((current_work or {}).get("status") or "").strip()
     if current_work_status == "completed" and bool((current_work or {}).get("closeout_passed_at")):
         return {
@@ -5790,12 +6153,20 @@ def _closeout_readiness(target_root: Path, current_work: Mapping[str, Any] | Non
         }
 
     workflow_checks, _current_work = _strict_current_work_checks(target_root)
-    failed = [check for check in workflow_checks if check.get("required") and check.get("status") == "fail"]
+    failed = [
+        check
+        for check in workflow_checks
+        if check.get("required") and check.get("status") == "fail"
+    ]
     return {
         "status": "passed" if not failed else "failed",
         "command": None,
         "returncode": 0 if not failed else 2,
-        "stdout": "READY from strict current-work checks" if not failed else "BLOCKED by strict current-work checks",
+        "stdout": (
+            "READY from strict current-work checks"
+            if not failed
+            else "BLOCKED by strict current-work checks"
+        ),
         "stderr": "",
         "checks": workflow_checks,
     }
@@ -5841,18 +6212,28 @@ def _closeout_handoff_checks(
         "has been kicked off through Aegis" in current_state
         and "ready for closeout validation" not in current_state
     )
-    next_steps_ok = bool(next_steps.strip()) and not any(phrase in next_steps for phrase in kickoff_only_phrases)
+    next_steps_ok = bool(next_steps.strip()) and not any(
+        phrase in next_steps for phrase in kickoff_only_phrases
+    )
 
     checks = [
         _closeout_check(
             "closeout.handoff.current_state",
             passed=current_state_ok,
-            message="handoff current state is semantic" if current_state_ok else "handoff current state is still placeholder/kickoff-oriented",
+            message=(
+                "handoff current state is semantic"
+                if current_state_ok
+                else "handoff current state is still placeholder/kickoff-oriented"
+            ),
         ),
         _closeout_check(
             "closeout.handoff.next_steps",
             passed=next_steps_ok,
-            message="handoff next steps are semantic" if next_steps_ok else "handoff next steps are still placeholder/kickoff-oriented",
+            message=(
+                "handoff next steps are semantic"
+                if next_steps_ok
+                else "handoff next steps are still placeholder/kickoff-oriented"
+            ),
         ),
     ]
 
@@ -5866,23 +6247,35 @@ def _closeout_handoff_checks(
             _closeout_check(
                 check_id,
                 passed=not missing,
-                message=f"handoff semantic sections reference {label} evidence" if not missing else f"handoff semantic sections missing {label} evidence",
+                message=(
+                    f"handoff semantic sections reference {label} evidence"
+                    if not missing
+                    else f"handoff semantic sections missing {label} evidence"
+                ),
                 details={"missing": missing},
             )
         )
     return checks
 
 
-def _closeout_git_report(target_root: Path, *, require_clean_git: bool, include_guidance: bool) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _closeout_git_report(
+    target_root: Path, *, require_clean_git: bool, include_guidance: bool
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     checks: list[dict[str, Any]] = []
     status_result = _run_target_git(target_root, "status", "--short")
-    status_short = status_result.stdout.strip().splitlines() if status_result.returncode == 0 else []
+    status_short = (
+        status_result.stdout.strip().splitlines() if status_result.returncode == 0 else []
+    )
     if require_clean_git:
         checks.append(
             _closeout_check(
                 "closeout.git.clean",
                 passed=status_result.returncode == 0 and not status_short,
-                message="git worktree is clean" if status_result.returncode == 0 and not status_short else "git worktree has uncommitted changes",
+                message=(
+                    "git worktree is clean"
+                    if status_result.returncode == 0 and not status_short
+                    else "git worktree has uncommitted changes"
+                ),
                 category="git",
                 details={"status_short": status_short, "stderr": status_result.stderr.strip()},
             )
@@ -5892,7 +6285,7 @@ def _closeout_git_report(target_root: Path, *, require_clean_git: bool, include_
         guidance = [
             "git status --short",
             "git add <paths>",
-            "git commit -m \"<type(scope): summary>\"",
+            'git commit -m "<type(scope): summary>"',
             "git push",
             "gh pr create",
         ]
@@ -6009,7 +6402,7 @@ def _build_closeout_repair_guidance(
             else:
                 command_template = (
                     "aegis log --handler <handler> --evidence "
-                    f"{_quote_cli(evidence)} --note \"<past-tense note>\""
+                    f'{_quote_cli(evidence)} --note "<past-tense note>"'
                 )
                 if surface in AEGIS_LOG_SURFACES:
                     command_template = f"{command_template} --surface {_quote_cli(surface)}"
@@ -6031,7 +6424,7 @@ def _build_closeout_repair_guidance(
                 "evidence": event.get("evidence"),
                 "command_template": (
                     "aegis log --pending-id "
-                    f"{_quote_cli(event_id)} --note \"<past-tense note>\" "
+                    f'{_quote_cli(event_id)} --note "<past-tense note>" '
                     "--plan-step <plan-step-id> --plan-status completed"
                 ),
             }
@@ -6077,17 +6470,25 @@ def format_closeout_summary(report: Mapping[str, Any]) -> str:
     label = "Aegis closeout readiness" if dry_run else "Aegis closeout"
     status = str(report.get("status") or "unknown").upper()
     summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
-    pending = report.get("pending_tracking") if isinstance(report.get("pending_tracking"), Mapping) else {}
+    pending = (
+        report.get("pending_tracking")
+        if isinstance(report.get("pending_tracking"), Mapping)
+        else {}
+    )
     pending_events = pending.get("events") if isinstance(pending.get("events"), list) else []
     failed_gates = _closeout_failed_required_gate_ids(report)
-    next_action = report.get("next_action") if isinstance(report.get("next_action"), Mapping) else {}
-    repair_guidance = report.get("repair_guidance") if isinstance(report.get("repair_guidance"), Mapping) else {}
-    repair_items = repair_guidance.get("items") if isinstance(repair_guidance.get("items"), list) else []
+    next_action = (
+        report.get("next_action") if isinstance(report.get("next_action"), Mapping) else {}
+    )
+    repair_guidance = (
+        report.get("repair_guidance") if isinstance(report.get("repair_guidance"), Mapping) else {}
+    )
+    repair_items = (
+        repair_guidance.get("items") if isinstance(repair_guidance.get("items"), list) else []
+    )
     first_repair = repair_items[0] if repair_items and isinstance(repair_items[0], Mapping) else {}
     first_repair_command = str(
-        first_repair.get("command")
-        or first_repair.get("command_template")
-        or ""
+        first_repair.get("command") or first_repair.get("command_template") or ""
     ).strip()
     report_written = bool(report.get("report_written"))
     closeout_report_state = "written" if report_written else "not written by this run"
@@ -6138,7 +6539,7 @@ def repair_handoff(
             "next_action": _workflow_next_action(
                 "kickoff_before_handoff_repair",
                 "Aegis handoff repair requires active current work state.",
-                suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title \"<title>\"",
+                suggested_cli='./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title "<title>"',
                 suggested_mcp_tool="aegis.kickoff",
             ),
         }
@@ -6147,7 +6548,11 @@ def repair_handoff(
     plan_rel = str(paths.get("plan") or "")
     work_rel = str(paths.get("work_tracking") or "")
     plan_path = target_root / plan_rel if plan_rel else target_root / "plans" / "current"
-    work_path = target_root / work_rel if work_rel else target_root / "docs" / "ai" / "work-tracking" / "active"
+    work_path = (
+        target_root / work_rel
+        if work_rel
+        else target_root / "docs" / "ai" / "work-tracking" / "active"
+    )
     handoff_path = work_path / "HANDOFF.md"
     if not handoff_path.is_file():
         return {
@@ -6169,7 +6574,7 @@ def repair_handoff(
             "next_action": _workflow_next_action(
                 "repair_missing_work_tracking_before_handoff_repair",
                 "Aegis handoff repair can only update an existing active HANDOFF.md.",
-                suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title \"<title>\"",
+                suggested_cli='./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title "<title>"',
             ),
         }
 
@@ -6182,12 +6587,16 @@ def repair_handoff(
     plan_rows = _parse_plan_rows(plan_path)
     implementation_tokens = [
         token
-        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-implement", {}).get("evidence") or ""))
+        for token in _split_evidence_tokens(
+            str(plan_rows.get("plan-step-implement", {}).get("evidence") or "")
+        )
         if _is_closeout_required_evidence(token)
     ]
     verification_tokens = [
         token
-        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-verify", {}).get("evidence") or ""))
+        for token in _split_evidence_tokens(
+            str(plan_rows.get("plan-step-verify", {}).get("evidence") or "")
+        )
         if _is_closeout_required_evidence(token)
     ]
     strict_verify_rel = _normalize_evidence(target_root, AEGIS_VERIFY_REPORT_REL)
@@ -6279,19 +6688,25 @@ def repair_handoff(
                 suggested_mcp_arguments={"target_dir": ".", "apply": True},
             )
             if dry_run and changed
-            else _workflow_next_action(
-                "rerun_closeout_ready",
-                "Handoff repair applied. Re-run closeout_ready; if it passes, run final closeout.",
-                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
-                suggested_mcp_tool="aegis.closeout_ready",
-                suggested_mcp_arguments={"target_dir": ".", "update_handoff": True},
-                details={"closeout_ready_status": after.get("status") if after else before.get("status")},
-            )
-            if not dry_run
-            else _workflow_next_action(
-                "no_handoff_repair_needed",
-                "The active handoff already matches the deterministic repair rendering.",
-                suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+            else (
+                _workflow_next_action(
+                    "rerun_closeout_ready",
+                    "Handoff repair applied. Re-run closeout_ready; if it passes, run final closeout.",
+                    suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                    suggested_mcp_tool="aegis.closeout_ready",
+                    suggested_mcp_arguments={"target_dir": ".", "update_handoff": True},
+                    details={
+                        "closeout_ready_status": (
+                            after.get("status") if after else before.get("status")
+                        )
+                    },
+                )
+                if not dry_run
+                else _workflow_next_action(
+                    "no_handoff_repair_needed",
+                    "The active handoff already matches the deterministic repair rendering.",
+                    suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                )
             )
         ),
     }
@@ -6314,7 +6729,9 @@ def closeout(
     checks: list[dict[str, Any]] = []
 
     current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
-    current_work_status = str(current_work.get("status") or "").strip() if isinstance(current_work, Mapping) else ""
+    current_work_status = (
+        str(current_work.get("status") or "").strip() if isinstance(current_work, Mapping) else ""
+    )
     current_work_ok = isinstance(current_work, dict) and (
         current_work_status == "in-progress"
         or (current_work_status == "completed" and bool(current_work.get("closeout_passed_at")))
@@ -6322,9 +6739,11 @@ def closeout(
     current_work_message = (
         "current work payload is active"
         if current_work_status == "in-progress"
-        else "current work payload is completed"
-        if current_work_ok
-        else f"{AEGIS_CURRENT_WORK_REL} missing, invalid, or not active/completed"
+        else (
+            "current work payload is completed"
+            if current_work_ok
+            else f"{AEGIS_CURRENT_WORK_REL} missing, invalid, or not active/completed"
+        )
     )
     checks.append(
         _closeout_check(
@@ -6341,9 +6760,15 @@ def closeout(
     session_rel = str(paths.get("session") or "")
     plan_rel = str(paths.get("plan") or "")
     work_rel = str(paths.get("work_tracking") or "")
-    session_path = target_root / session_rel if session_rel else target_root / "sessions" / "current"
+    session_path = (
+        target_root / session_rel if session_rel else target_root / "sessions" / "current"
+    )
     plan_path = target_root / plan_rel if plan_rel else target_root / "plans" / "current"
-    work_path = target_root / work_rel if work_rel else target_root / "docs" / "ai" / "work-tracking" / "active"
+    work_path = (
+        target_root / work_rel
+        if work_rel
+        else target_root / "docs" / "ai" / "work-tracking" / "active"
+    )
     tracker_path = work_path / "TRACKER.md"
     implementation_path = work_path / "IMPLEMENTATION.md"
     changelog_path = work_path / "CHANGELOG.md"
@@ -6354,7 +6779,11 @@ def closeout(
         _closeout_check(
             "closeout.readiness",
             passed=readiness.get("status") == "passed",
-            message="readiness is READY" if readiness.get("status") == "passed" else "readiness is not READY",
+            message=(
+                "readiness is READY"
+                if readiness.get("status") == "passed"
+                else "readiness is not READY"
+            ),
             details=readiness,
         )
     )
@@ -6364,7 +6793,11 @@ def closeout(
         _closeout_check(
             "closeout.pending_tracking",
             passed=not pending_events,
-            message="pending tracking queue is empty" if not pending_events else "pending tracking queue has unlogged mutation events",
+            message=(
+                "pending tracking queue is empty"
+                if not pending_events
+                else "pending tracking queue has unlogged mutation events"
+            ),
             details={"path": AEGIS_PENDING_TRACKING_REL, "events": pending_events},
         )
     )
@@ -6396,7 +6829,11 @@ def closeout(
         _closeout_check(
             "closeout.strict_verify",
             passed=strict_verify.get("status") == "passed",
-            message="strict verification passed" if strict_verify.get("status") == "passed" else "strict verification failed",
+            message=(
+                "strict verification passed"
+                if strict_verify.get("status") == "passed"
+                else "strict verification failed"
+            ),
             details={
                 "report": AEGIS_VERIFY_REPORT_REL,
                 "summary": strict_verify.get("summary", {}),
@@ -6414,7 +6851,11 @@ def closeout(
             _closeout_check(
                 f"closeout.plan.{step.removeprefix('plan-step-')}",
                 passed=plan_completed,
-                message=f"{step} completed in current plan" if plan_completed else f"{step} missing or not completed in current plan",
+                message=(
+                    f"{step} completed in current plan"
+                    if plan_completed
+                    else f"{step} missing or not completed in current plan"
+                ),
                 category="plan",
                 details={"row": row},
             )
@@ -6424,21 +6865,28 @@ def closeout(
             _closeout_check(
                 f"closeout.tracker.{step.removeprefix('plan-step-')}",
                 passed=tracker_completed,
-                message=f"{step} completed in tracker" if tracker_completed else f"{step} missing or unchecked in tracker",
+                message=(
+                    f"{step} completed in tracker"
+                    if tracker_completed
+                    else f"{step} missing or unchecked in tracker"
+                ),
                 category="tracker",
                 details={"tracker_status": tracker_steps.get(step)},
             )
         )
 
     ordered = all(step in plan_rows for step in required_steps) and [
-        int(plan_rows[step]["index"])
-        for step in required_steps
+        int(plan_rows[step]["index"]) for step in required_steps
     ] == sorted(int(plan_rows[step]["index"]) for step in required_steps)
     checks.append(
         _closeout_check(
             "closeout.plan.order",
             passed=ordered,
-            message="required plan steps are in scope -> implement -> verify order" if ordered else "required plan steps are missing or out of order",
+            message=(
+                "required plan steps are in scope -> implement -> verify order"
+                if ordered
+                else "required plan steps are missing or out of order"
+            ),
             category="plan",
             details={"order": [step for step in plan_rows if step in required_steps]},
         )
@@ -6446,16 +6894,22 @@ def closeout(
 
     implementation_tokens = [
         token
-        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-implement", {}).get("evidence") or ""))
+        for token in _split_evidence_tokens(
+            str(plan_rows.get("plan-step-implement", {}).get("evidence") or "")
+        )
         if _is_closeout_required_evidence(token)
     ]
     verification_tokens = [
         token
-        for token in _split_evidence_tokens(str(plan_rows.get("plan-step-verify", {}).get("evidence") or ""))
+        for token in _split_evidence_tokens(
+            str(plan_rows.get("plan-step-verify", {}).get("evidence") or "")
+        )
         if _is_closeout_required_evidence(token)
     ]
     strict_verify_rel = _normalize_evidence(target_root, AEGIS_VERIFY_REPORT_REL)
-    required_evidence = tuple(dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel]))
+    required_evidence = tuple(
+        dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel])
+    )
 
     surface_texts = {
         "session": _read_text_or_empty(session_path),
@@ -6466,10 +6920,7 @@ def closeout(
         "plan": _read_text_or_empty(plan_path),
     }
     evidence_matrix = {
-        token: {
-            surface: token in text
-            for surface, text in surface_texts.items()
-        }
+        token: {surface: token in text for surface, text in surface_texts.items()}
         for token in required_evidence
     }
     for surface, text in surface_texts.items():
@@ -6478,7 +6929,11 @@ def closeout(
             _closeout_check(
                 f"closeout.evidence.{surface}",
                 passed=not missing,
-                message=f"{surface} references all required evidence" if not missing else f"{surface} is missing required evidence",
+                message=(
+                    f"{surface} references all required evidence"
+                    if not missing
+                    else f"{surface} is missing required evidence"
+                ),
                 category="evidence",
                 details={"missing": missing},
             )
@@ -6495,23 +6950,20 @@ def closeout(
         )
         surface_texts["handoff"] = _read_text_or_empty(handoff_path)
         evidence_matrix = {
-            token: {
-                surface: (token in surface_texts[surface])
-                for surface in surface_texts
-            }
+            token: {surface: (token in surface_texts[surface]) for surface in surface_texts}
             for token in required_evidence
         }
-        checks = [
-            check
-            for check in checks
-            if check.get("gate_id") != "closeout.evidence.handoff"
-        ]
+        checks = [check for check in checks if check.get("gate_id") != "closeout.evidence.handoff"]
         missing = [token for token in required_evidence if token not in surface_texts["handoff"]]
         checks.append(
             _closeout_check(
                 "closeout.evidence.handoff",
                 passed=not missing,
-                message="handoff references all required evidence" if not missing else "handoff is missing required evidence",
+                message=(
+                    "handoff references all required evidence"
+                    if not missing
+                    else "handoff is missing required evidence"
+                ),
                 category="evidence",
                 details={"missing": missing, "updated": True},
             )
@@ -6526,7 +6978,11 @@ def closeout(
         )
     )
 
-    integrations = current_work.get("integrations") if isinstance(current_work.get("integrations"), Mapping) else {}
+    integrations = (
+        current_work.get("integrations")
+        if isinstance(current_work.get("integrations"), Mapping)
+        else {}
+    )
     integration_report: dict[str, Any] = {}
     for name, rel_path in (("taskmaster", ".taskmaster"), ("serena", ".serena")):
         integration = integrations.get(name) if isinstance(integrations, Mapping) else {}
@@ -6535,7 +6991,9 @@ def closeout(
         integration_report[name] = {
             "detected": detected,
             "required": required,
-            "status": "present" if detected else "optional_absent" if not required else "required_missing",
+            "status": (
+                "present" if detected else "optional_absent" if not required else "required_missing"
+            ),
         }
 
     git_report, git_checks = _closeout_git_report(
@@ -6545,7 +7003,9 @@ def closeout(
     )
     checks.extend(git_checks)
 
-    failed_required = [check for check in checks if check.get("required") and check.get("status") == "fail"]
+    failed_required = [
+        check for check in checks if check.get("required") and check.get("status") == "fail"
+    ]
     failed_required_gate_ids = [str(check.get("gate_id")) for check in failed_required]
     status_value = "failed" if failed_required else "passed"
     repair_guidance = _build_closeout_repair_guidance(
@@ -6614,60 +7074,69 @@ def closeout(
                 },
                 details={"dry_run": True, "closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
             )
-            if status_value == "passed" and dry_run and not (
+            if status_value == "passed"
+            and dry_run
+            and not (
                 current_work_status == "completed" and bool(current_work.get("closeout_passed_at"))
             )
-            else
-            _workflow_next_action(
-                "run_post_closeout_doctor",
-                "Closeout passed and wrote the report. Run read-only doctor once before the final user report.",
-                suggested_cli="./.aegis/bin/aegis doctor --target-dir .",
-                suggested_mcp_tool="aegis.doctor",
-                suggested_mcp_arguments={"target_dir": "."},
-                details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
-            )
-            if status_value == "passed" and not dry_run
-            else _workflow_next_action(
-                "task_complete",
-                "Closeout passed. It is now valid to report the task complete and proceed with normal git/GitHub commands.",
-                suggested_cli="git status --short",
-                details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
-            )
-            if status_value == "passed"
-            else _workflow_next_action(
-                "apply_handoff_repair_before_retry",
-                "Closeout failed only on handoff gates. Run deterministic handoff repair, then re-run closeout readiness.",
-                suggested_cli="./.aegis/bin/aegis handoff repair --target-dir .",
-                suggested_mcp_tool="aegis.handoff_repair",
-                suggested_mcp_arguments={
-                    "target_dir": ".",
-                    "apply": True,
-                },
-                details={
-                    "failed_required_gates": failed_required_gate_ids,
-                    "repair_items": repair_guidance["summary"]["items"],
-                    "after_repair": "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
-                },
-            )
-            if _handoff_repairable_closeout_failure(failed_required_gate_ids)
-            else _workflow_next_action(
-                "repair_closeout_gates_before_retry",
-                "Closeout failed. Do not report the task complete; apply repair_guidance and retry closeout.",
-                suggested_cli=(
-                    "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff"
-                    if dry_run
-                    else "./.aegis/bin/aegis closeout --target-dir . --update-handoff"
-                ),
-                suggested_mcp_tool="aegis.closeout_ready" if dry_run else "aegis.closeout",
-                suggested_mcp_arguments={
-                    "target_dir": ".",
-                    "update_handoff": True,
-                    **({} if dry_run else {"acknowledge_report_write": True}),
-                },
-                details={
-                    "failed_required_gates": failed_required_gate_ids,
-                    "repair_items": repair_guidance["summary"]["items"],
-                },
+            else (
+                _workflow_next_action(
+                    "run_post_closeout_doctor",
+                    "Closeout passed and wrote the report. Run read-only doctor once before the final user report.",
+                    suggested_cli="./.aegis/bin/aegis doctor --target-dir .",
+                    suggested_mcp_tool="aegis.doctor",
+                    suggested_mcp_arguments={"target_dir": "."},
+                    details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+                )
+                if status_value == "passed" and not dry_run
+                else (
+                    _workflow_next_action(
+                        "task_complete",
+                        "Closeout passed. It is now valid to report the task complete and proceed with normal git/GitHub commands.",
+                        suggested_cli="git status --short",
+                        details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+                    )
+                    if status_value == "passed"
+                    else (
+                        _workflow_next_action(
+                            "apply_handoff_repair_before_retry",
+                            "Closeout failed only on handoff gates. Run deterministic handoff repair, then re-run closeout readiness.",
+                            suggested_cli="./.aegis/bin/aegis handoff repair --target-dir .",
+                            suggested_mcp_tool="aegis.handoff_repair",
+                            suggested_mcp_arguments={
+                                "target_dir": ".",
+                                "apply": True,
+                            },
+                            details={
+                                "failed_required_gates": failed_required_gate_ids,
+                                "repair_items": repair_guidance["summary"]["items"],
+                                "after_repair": "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
+                            },
+                        )
+                        if _handoff_repairable_closeout_failure(failed_required_gate_ids)
+                        else _workflow_next_action(
+                            "repair_closeout_gates_before_retry",
+                            "Closeout failed. Do not report the task complete; apply repair_guidance and retry closeout.",
+                            suggested_cli=(
+                                "./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff"
+                                if dry_run
+                                else "./.aegis/bin/aegis closeout --target-dir . --update-handoff"
+                            ),
+                            suggested_mcp_tool=(
+                                "aegis.closeout_ready" if dry_run else "aegis.closeout"
+                            ),
+                            suggested_mcp_arguments={
+                                "target_dir": ".",
+                                "update_handoff": True,
+                                **({} if dry_run else {"acknowledge_report_write": True}),
+                            },
+                            details={
+                                "failed_required_gates": failed_required_gate_ids,
+                                "repair_items": repair_guidance["summary"]["items"],
+                            },
+                        )
+                    )
+                )
             )
         ),
     }
@@ -6800,9 +7269,7 @@ def _inspect_release_artifact(path: Path) -> dict[str, Any]:
     members = _artifact_members(path)
     required = _required_artifact_suffixes(kind)
     missing = [
-        suffix
-        for suffix in required
-        if not any(member.endswith(suffix) for member in members)
+        suffix for suffix in required if not any(member.endswith(suffix) for member in members)
     ]
     return {
         "path": path.as_posix(),
@@ -6848,13 +7315,31 @@ def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
         env.pop("AEGIS_SOURCE_ROOT", None)
         aegis_bin = venv_dir / "bin" / "aegis"
 
-        command_steps: list[tuple[str, list[str], Path, Sequence[int], str | None, Mapping[str, str] | None]] = [
+        command_steps: list[
+            tuple[str, list[str], Path, Sequence[int], str | None, Mapping[str, str] | None]
+        ] = [
             ("aegis_version", [aegis_bin.as_posix(), "--version"], target, (0,), None, env),
             ("git_init", ["git", "init", "-b", "main"], target, (0,), None, env),
-            ("aegis_inspect", [aegis_bin.as_posix(), "inspect", "--target-dir", "."], target, (0,), None, env),
+            (
+                "aegis_inspect",
+                [aegis_bin.as_posix(), "inspect", "--target-dir", "."],
+                target,
+                (0,),
+                None,
+                env,
+            ),
             (
                 "aegis_plan_install",
-                [aegis_bin.as_posix(), "plan-install", "--target-dir", ".", "--primary-agent", "claude", "--agent", "claude"],
+                [
+                    aegis_bin.as_posix(),
+                    "plan-install",
+                    "--target-dir",
+                    ".",
+                    "--primary-agent",
+                    "claude",
+                    "--agent",
+                    "claude",
+                ],
                 target,
                 (0,),
                 None,
@@ -6862,16 +7347,44 @@ def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
             ),
             (
                 "aegis_install",
-                [aegis_bin.as_posix(), "install", "--target-dir", ".", "--primary-agent", "claude", "--agent", "claude", "--apply"],
+                [
+                    aegis_bin.as_posix(),
+                    "install",
+                    "--target-dir",
+                    ".",
+                    "--primary-agent",
+                    "claude",
+                    "--agent",
+                    "claude",
+                    "--apply",
+                ],
                 target,
                 (0,),
                 None,
                 env,
             ),
-            ("aegis_status", [aegis_bin.as_posix(), "status", "--target-dir", "."], target, (0,), None, env),
+            (
+                "aegis_status",
+                [aegis_bin.as_posix(), "status", "--target-dir", "."],
+                target,
+                (0,),
+                None,
+                env,
+            ),
             (
                 "aegis_kickoff",
-                [aegis_bin.as_posix(), "kickoff", "--target-dir", ".", "--task", "42", "--slug", "release-cert", "--title", "Release Certification"],
+                [
+                    aegis_bin.as_posix(),
+                    "kickoff",
+                    "--target-dir",
+                    ".",
+                    "--task",
+                    "42",
+                    "--slug",
+                    "release-cert",
+                    "--title",
+                    "Release Certification",
+                ],
                 target,
                 (0,),
                 None,
@@ -6922,7 +7435,9 @@ def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
             return {"status": "failed", "steps": steps}
         evidence_rel = f"{reports_rel}/release-certification-evidence.txt"
         claude_env = {**env, "CLAUDE_PROJECT_DIR": target.as_posix()}
-        tracking_steps: list[tuple[str, list[str], Sequence[int], str | None, Mapping[str, str]]] = [
+        tracking_steps: list[
+            tuple[str, list[str], Sequence[int], str | None, Mapping[str, str]]
+        ] = [
             (
                 "pretooluse_allowed_evidence_write",
                 ["bash", ".claude/scripts/pretooluse-gate.sh"],
@@ -6941,7 +7456,12 @@ def _certify_clean_cli_smoke(wheel: Path) -> dict[str, Any]:
                 "pretooluse_blocks_before_log",
                 ["bash", ".claude/scripts/pretooluse-gate.sh"],
                 (2,),
-                json.dumps({"tool_name": "Write", "tool_input": {"file_path": f"{reports_rel}/blocked-before-log.txt"}}),
+                json.dumps(
+                    {
+                        "tool_name": "Write",
+                        "tool_input": {"file_path": f"{reports_rel}/blocked-before-log.txt"},
+                    }
+                ),
                 claude_env,
             ),
             (
@@ -7062,12 +7582,16 @@ def _certify_mcp_server_config_smoke(wheel: Path) -> dict[str, Any]:
             },
             {
                 "id": "distribution_name",
-                "status": "pass" if payload.get("distribution_name") == "aegis-foundation" else "fail",
+                "status": (
+                    "pass" if payload.get("distribution_name") == "aegis-foundation" else "fail"
+                ),
                 "observed": payload.get("distribution_name"),
             },
             {
                 "id": "default_target_dir",
-                "status": "pass" if payload.get("default_target_dir") == target.as_posix() else "fail",
+                "status": (
+                    "pass" if payload.get("default_target_dir") == target.as_posix() else "fail"
+                ),
                 "observed": payload.get("default_target_dir"),
             },
         ]
@@ -7104,7 +7628,15 @@ def certify_release_candidate(
         command = (
             [uv, "build", "--sdist", "--wheel", "--out-dir", dist_path.as_posix()]
             if uv
-            else [sys.executable, "-m", "build", "--sdist", "--wheel", "--outdir", dist_path.as_posix()]
+            else [
+                sys.executable,
+                "-m",
+                "build",
+                "--sdist",
+                "--wheel",
+                "--outdir",
+                dist_path.as_posix(),
+            ]
         )
         build_result, build_payload = _run_cert_command(command, cwd=source_root)
     else:
@@ -7130,17 +7662,32 @@ def certify_release_candidate(
         cli_smoke = _certify_clean_cli_smoke(wheel_paths[0])
         mcp_config_smoke = _certify_mcp_server_config_smoke(wheel_paths[0])
     elif run_smoke:
-        cli_smoke = {"status": "failed", "reason": "no wheel artifact available for clean CLI smoke"}
-        mcp_config_smoke = {"status": "failed", "reason": "no wheel artifact available for MCP server config smoke"}
+        cli_smoke = {
+            "status": "failed",
+            "reason": "no wheel artifact available for clean CLI smoke",
+        }
+        mcp_config_smoke = {
+            "status": "failed",
+            "reason": "no wheel artifact available for MCP server config smoke",
+        }
     else:
         cli_smoke = {"status": "skipped", "reason": "clean CLI smoke disabled by caller"}
-        mcp_config_smoke = {"status": "skipped", "reason": "MCP server config smoke disabled by caller"}
+        mcp_config_smoke = {
+            "status": "skipped",
+            "reason": "MCP server config smoke disabled by caller",
+        }
 
     failures: list[dict[str, Any]] = []
     if build_payload.get("status") == "failed":
         failures.append({"stage": "build", "message": "artifact build failed"})
     if missing_kinds:
-        failures.append({"stage": "artifacts", "message": "required artifact kind missing", "missing": missing_kinds})
+        failures.append(
+            {
+                "stage": "artifacts",
+                "message": "required artifact kind missing",
+                "missing": missing_kinds,
+            }
+        )
     for artifact in artifacts:
         if artifact.get("status") == "failed":
             failures.append(
@@ -7153,7 +7700,9 @@ def certify_release_candidate(
     if cli_smoke.get("status") == "failed":
         failures.append({"stage": "clean_cli_smoke", "message": "clean CLI smoke failed"})
     if mcp_config_smoke.get("status") == "failed":
-        failures.append({"stage": "mcp_server_config_smoke", "message": "MCP server config smoke failed"})
+        failures.append(
+            {"stage": "mcp_server_config_smoke", "message": "MCP server config smoke failed"}
+        )
 
     status_value = "failed" if failures else "passed"
     report = {
@@ -7183,7 +7732,8 @@ def certify_release_candidate(
         },
         "failures": failures,
         "publishing_handoff": {
-            "github_release_candidate_ready": status_value == "passed" and cli_smoke.get("status") == "passed",
+            "github_release_candidate_ready": status_value == "passed"
+            and cli_smoke.get("status") == "passed",
             "pypi_ready": False,
             "notes": [
                 "GitHub release-candidate artifacts remain the first recommended public channel.",

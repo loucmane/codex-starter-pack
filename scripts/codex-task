@@ -785,6 +785,7 @@ def handle_aegis_reconcile(args: argparse.Namespace) -> None:
             source_root=REPO_ROOT,
             base_ref=args.base_ref,
             use_github=not args.no_github,
+            preview_candidates=args.preview_candidates,
         )
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
@@ -18331,6 +18332,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="Print the full structured reconcile report instead of the concise summary",
+    )
+    aegis_reconcile_parser.add_argument(
+        "--preview-candidates",
+        action="store_true",
+        help=(
+            "Include inert, report-only mutation candidate preview data for operator review; "
+            "never executes or auto-mutates status"
+        ),
     )
     aegis_reconcile_parser.set_defaults(func=handle_aegis_reconcile)
 

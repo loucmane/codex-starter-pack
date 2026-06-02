@@ -142,6 +142,7 @@ def handle_reconcile(args: argparse.Namespace) -> int:
             source_root=source_root,
             base_ref=args.base_ref,
             use_github=not args.no_github,
+            preview_candidates=args.preview_candidates,
         )
     if args.json:
         _dump_json(payload)
@@ -267,7 +268,10 @@ def handle_kickoff(args: argparse.Namespace) -> int:
         else:
             missing = [name for name in ("task", "slug", "title") if not getattr(args, name)]
             if missing:
-                print(f"aegis kickoff requires: {', '.join('--' + name for name in missing)}", file=sys.stderr)
+                print(
+                    f"aegis kickoff requires: {', '.join('--' + name for name in missing)}",
+                    file=sys.stderr,
+                )
                 return 1
             payload = _aegis_installer.kickoff(
                 args.target_dir,
@@ -405,7 +409,9 @@ def handle_mcp_register(args: argparse.Namespace) -> int:
     return 0
 
 
-def _normalize_smoke_clients(values: Sequence[str] | None) -> tuple[mcp_registration.ClientName, ...]:
+def _normalize_smoke_clients(
+    values: Sequence[str] | None,
+) -> tuple[mcp_registration.ClientName, ...]:
     requested = list(values or ["all"])
     if "all" in requested:
         return mcp_registration.SMOKE_CLIENTS
@@ -435,8 +441,15 @@ def handle_mcp_smoke_registration(args: argparse.Namespace) -> int:
     return 0
 
 
-def _add_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute: bool = False) -> None:
-    parser.add_argument("--client", choices=("claude", "codex"), required=True, help="Native MCP client to configure.")
+def _add_mcp_registration_arguments(
+    parser: argparse.ArgumentParser, *, execute: bool = False
+) -> None:
+    parser.add_argument(
+        "--client",
+        choices=("claude", "codex"),
+        required=True,
+        help="Native MCP client to configure.",
+    )
     parser.add_argument(
         "--scope",
         choices=("local", "user", "project"),
@@ -452,15 +465,24 @@ def _add_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute:
         "--package-spec",
         help="Explicit uvx --from package/artifact spec. Overrides source-mode defaults.",
     )
-    parser.add_argument("--package-version", help="Version for --source-mode pinned. Defaults to the package version.")
+    parser.add_argument(
+        "--package-version",
+        help="Version for --source-mode pinned. Defaults to the package version.",
+    )
     parser.add_argument(
         "--github-url",
         default=mcp_registration.DEFAULT_GITHUB_URL,
         help="GitHub repository URL for --source-mode github/private-github.",
     )
-    parser.add_argument("--github-ref", help="Optional ref for --source-mode github/private-github.")
-    parser.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
-    parser.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
+    parser.add_argument(
+        "--github-ref", help="Optional ref for --source-mode github/private-github."
+    )
+    parser.add_argument(
+        "--artifact", help="Wheel path or source checkout path for wheel/source modes."
+    )
+    parser.add_argument(
+        "--target-dir", default=".", help="Default target directory passed to aegis-mcp-server."
+    )
     parser.add_argument(
         "--uv-cache-dir",
         default=mcp_registration.DEFAULT_UV_CACHE_DIR,
@@ -478,7 +500,10 @@ def _add_mcp_registration_arguments(parser: argparse.ArgumentParser, *, execute:
         help="MCP server transport to register.",
     )
     if execute:
-        parser.add_argument("--cwd", help="Working directory for the native client command. Defaults to --target-dir.")
+        parser.add_argument(
+            "--cwd",
+            help="Working directory for the native client command. Defaults to --target-dir.",
+        )
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -625,6 +650,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print the full structured reconcile report instead of a concise summary.",
     )
+    reconcile_parser.add_argument(
+        "--preview-candidates",
+        action="store_true",
+        help=(
+            "Include inert, report-only mutation candidate preview data for operator review; "
+            "never executes or auto-mutates status."
+        ),
+    )
     reconcile_parser.set_defaults(func=handle_reconcile)
 
     repair_parser = subparsers.add_parser(
@@ -746,8 +779,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=_aegis_installer.AEGIS_RELEASE_CERT_REPORT_REL,
         help="Certification report path.",
     )
-    certify_parser.add_argument("--skip-build", action="store_true", help="Inspect existing artifacts instead of building.")
-    certify_parser.add_argument("--skip-smoke", action="store_true", help="Skip clean installed-wheel CLI smoke.")
+    certify_parser.add_argument(
+        "--skip-build", action="store_true", help="Inspect existing artifacts instead of building."
+    )
+    certify_parser.add_argument(
+        "--skip-smoke", action="store_true", help="Skip clean installed-wheel CLI smoke."
+    )
     certify_parser.set_defaults(func=handle_certify_release)
 
     kickoff_parser = subparsers.add_parser(
@@ -782,7 +819,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     start_parser.add_argument("title", help="Normal-language task title.")
     start_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     start_parser.add_argument("--slug", help="Override the generated slug.")
-    start_parser.add_argument("--goal", action="append", help="Goal to write into the generated plan/tracker.")
+    start_parser.add_argument(
+        "--goal", action="append", help="Goal to write into the generated plan/tracker."
+    )
     start_parser.add_argument(
         "--no-create-branch",
         action="store_true",
@@ -795,9 +834,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Write required S:W:H:E progress entries for the current Aegis task.",
     )
     log_parser.add_argument("--target-dir", default=".", help="Target repository root.")
-    log_parser.add_argument("--handler", help="Handler identifier for the S:W:H:E H field. Optional with --pending-id.")
-    log_parser.add_argument("--evidence", help="Evidence path or command for the S:W:H:E E field. Optional with --pending-id.")
-    log_parser.add_argument("--note", required=True, help="Past-tense summary to append after the S:W:H:E token.")
+    log_parser.add_argument(
+        "--handler", help="Handler identifier for the S:W:H:E H field. Optional with --pending-id."
+    )
+    log_parser.add_argument(
+        "--evidence",
+        help="Evidence path or command for the S:W:H:E E field. Optional with --pending-id.",
+    )
+    log_parser.add_argument(
+        "--note", required=True, help="Past-tense summary to append after the S:W:H:E token."
+    )
     log_parser.add_argument(
         "--surface",
         action="append",
@@ -856,7 +902,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "register",
         help="Register Aegis with a native MCP client. Public Claude path: aegis mcp register claude.",
     )
-    mcp_register.add_argument("client", choices=("claude", "codex"), help="Native MCP client to configure.")
+    mcp_register.add_argument(
+        "client", choices=("claude", "codex"), help="Native MCP client to configure."
+    )
     mcp_register.add_argument(
         "--scope",
         choices=("local", "user", "project"),
@@ -870,15 +918,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
     )
     mcp_register.add_argument("--package-spec", help="Explicit uvx --from package/artifact spec.")
-    mcp_register.add_argument("--package-version", help="Version for --source-mode pinned. Defaults to the package version.")
+    mcp_register.add_argument(
+        "--package-version",
+        help="Version for --source-mode pinned. Defaults to the package version.",
+    )
     mcp_register.add_argument(
         "--github-url",
         default=mcp_registration.DEFAULT_GITHUB_URL,
         help="GitHub repository URL for --source-mode github/private-github.",
     )
-    mcp_register.add_argument("--github-ref", help="Optional ref for --source-mode github/private-github.")
-    mcp_register.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
-    mcp_register.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
+    mcp_register.add_argument(
+        "--github-ref", help="Optional ref for --source-mode github/private-github."
+    )
+    mcp_register.add_argument(
+        "--artifact", help="Wheel path or source checkout path for wheel/source modes."
+    )
+    mcp_register.add_argument(
+        "--target-dir", default=".", help="Default target directory passed to aegis-mcp-server."
+    )
     mcp_register.add_argument(
         "--uv-cache-dir",
         default=mcp_registration.DEFAULT_UV_CACHE_DIR,
@@ -889,8 +946,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=mcp_registration.DEFAULT_UV_TOOL_DIR,
         help="UV_TOOL_DIR value registered with the native client; use '' to omit.",
     )
-    mcp_register.add_argument("--transport", choices=("stdio",), default="stdio", help="MCP server transport to register.")
-    mcp_register.add_argument("--cwd", help="Working directory for the native client command. Defaults to --target-dir.")
+    mcp_register.add_argument(
+        "--transport", choices=("stdio",), default="stdio", help="MCP server transport to register."
+    )
+    mcp_register.add_argument(
+        "--cwd", help="Working directory for the native client command. Defaults to --target-dir."
+    )
     mcp_register.set_defaults(func=handle_mcp_register)
 
     mcp_generate = mcp_sub.add_parser(
@@ -937,15 +998,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="How uvx should resolve the Aegis package that provides aegis-mcp-server.",
     )
     mcp_smoke.add_argument("--package-spec", help="Explicit uvx --from package/artifact spec.")
-    mcp_smoke.add_argument("--package-version", help="Version for --source-mode pinned. Defaults to the package version.")
+    mcp_smoke.add_argument(
+        "--package-version",
+        help="Version for --source-mode pinned. Defaults to the package version.",
+    )
     mcp_smoke.add_argument(
         "--github-url",
         default=mcp_registration.DEFAULT_GITHUB_URL,
         help="GitHub repository URL for --source-mode github/private-github.",
     )
-    mcp_smoke.add_argument("--github-ref", help="Optional ref for --source-mode github/private-github.")
-    mcp_smoke.add_argument("--artifact", help="Wheel path or source checkout path for wheel/source modes.")
-    mcp_smoke.add_argument("--target-dir", default=".", help="Default target directory passed to aegis-mcp-server.")
+    mcp_smoke.add_argument(
+        "--github-ref", help="Optional ref for --source-mode github/private-github."
+    )
+    mcp_smoke.add_argument(
+        "--artifact", help="Wheel path or source checkout path for wheel/source modes."
+    )
+    mcp_smoke.add_argument(
+        "--target-dir", default=".", help="Default target directory passed to aegis-mcp-server."
+    )
     mcp_smoke.add_argument(
         "--uv-cache-dir",
         default=mcp_registration.DEFAULT_UV_CACHE_DIR,
@@ -956,9 +1026,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=mcp_registration.DEFAULT_UV_TOOL_DIR,
         help="UV_TOOL_DIR value registered with the native client; use '' to omit.",
     )
-    mcp_smoke.add_argument("--transport", choices=("stdio",), default="stdio", help="MCP server transport to register.")
-    mcp_smoke.add_argument("--smoke-root", help="Directory for isolated client homes. Defaults to a temporary directory.")
-    mcp_smoke.add_argument("--keep-temp", action="store_true", help="Keep generated temporary homes after the smoke run.")
+    mcp_smoke.add_argument(
+        "--transport", choices=("stdio",), default="stdio", help="MCP server transport to register."
+    )
+    mcp_smoke.add_argument(
+        "--smoke-root",
+        help="Directory for isolated client homes. Defaults to a temporary directory.",
+    )
+    mcp_smoke.add_argument(
+        "--keep-temp",
+        action="store_true",
+        help="Keep generated temporary homes after the smoke run.",
+    )
     mcp_smoke.add_argument("--report-file", help="Optional JSON report path.")
     mcp_smoke.add_argument("--markdown-report-file", help="Optional Markdown report path.")
     mcp_smoke.set_defaults(func=handle_mcp_smoke_registration)
