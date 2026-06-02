@@ -5,3 +5,4 @@
 - 2026-06-02 13:45 CEST — Added `docs/aegis/reconcile-promotion-contract.md`.
 - 2026-06-02 13:45 CEST — Added CLI parser tests rejecting reconcile mutation flags.
 - 2026-06-02 13:45 CEST — Added MCP schema/execution tests proving `aegis.reconcile` remains report-only/read-only.
+- 2026-06-02 14:43 CEST — Archived active work-tracking folder.
