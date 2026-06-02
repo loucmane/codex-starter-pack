@@ -1,6 +1,6 @@
 # Aegis Reconcile Promotion Contract
 
-**Status:** active contract for Tasks 144-146.
+**Status:** active contract for Tasks 144-147.
 **Scope:** `aegis reconcile` remains a read-only drift report. This document defines the
 minimum bar for any separate future task that proposes reconcile-driven mutation.
 
@@ -121,7 +121,24 @@ Task 146 adds the precision and boundary-leakage gate:
   labeled fixture corpus and recomputes precision from real reconcile execution rather than
   relying on prose-only labels.
 
+Task 147 adds the first rollback and blast-radius proposal contract, still without
+promoting reconcile into mutation:
+
+- `docs/aegis/reconcile-mutation-rollback-contract.md` defines the only first candidate as
+  `merged_but_not_done` with `git_ancestor` proof, subject to Task 146 precision plus
+  explicit operator confirmation.
+- `tests/meta_workflow_guard/reconcile_mutation_rollback_contract.py` models the proposal,
+  audit breadcrumb, exact blast-radius, and rollback handle as test-only contract data. It
+  does not import or change reconcile implementation behavior.
+- `tests/meta_workflow_guard/test_aegis_reconcile_mutation_rollback_contract.py` proves
+  non-first auto classes and manual-only classes cannot enter the first proposal set,
+  confirmation and before/after audit breadcrumbs are mandatory, the real Taskmaster done
+  cascade has an exact registered path inventory, unregistered path deltas fail, and
+  rollback restores the registered paths.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
 dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
 Task 145 proves read-only behavior at the filesystem side-effect boundary. Task 146 proves
-the auto/manual boundary stays precise until a future task earns mutation power explicitly.
+the auto/manual boundary stays precise. Task 147 defines the rollback and blast-radius
+proposal bar for the first possible mutation candidate while keeping reconcile itself
+strictly report-only.
