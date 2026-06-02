@@ -12,3 +12,4 @@
 - 2026-06-02 17:25 CEST — Verified focused reconcile contract suite, full
   `tests/meta_workflow_guard`, formatter check, new-test Ruff check, and
   packaged asset byte identity.
+- 2026-06-02 18:03 CEST — Archived active work-tracking folder.

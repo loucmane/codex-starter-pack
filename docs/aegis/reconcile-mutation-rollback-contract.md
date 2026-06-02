@@ -1,6 +1,6 @@
 # Aegis Reconcile Mutation Rollback Contract
 
-**Status:** active Task 147/148 proposal contract.
+**Status:** active Task 147-149 proposal contract.
 **Scope:** report/contract only. `aegis reconcile` remains read-only and does not gain
 mutation flags, Taskmaster writes, git writes, PR writes, or closeout automation. Task 148
 may surface this contract in an opt-in inert `mutation_candidate_preview`, but the preview
@@ -23,6 +23,10 @@ contract.
 Task 148 preview entries may predict the changed paths from this contract, but the
 prediction is non-authoritative. The Task 145 side-effect oracle remains the authority for
 actual blast-radius verification at mutation time.
+
+Task 149 may describe a future apply path that uses this rollback contract, but it does not
+add an execution path. Reconcile remains read-only until a separate implementation task
+proves the promotion, side-effect, precision, rollback, and inert-preview contracts.
 
 ## Required Proposal Shape
 

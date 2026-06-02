@@ -18,3 +18,4 @@
   health.
 - Mark Taskmaster Task 148 done after local workflow validation passes.
 - Commit, push, open the Task 148 PR, and merge after remote checks pass.
+- Archived on 2026-06-02 18:03 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -1,6 +1,6 @@
 # Aegis Reconcile Mutation-Candidate Preview Contract
 
-**Status:** active Task 148 contract.
+**Status:** active Task 148/149 contract.
 **Scope:** opt-in, report-only candidate preview for future reconcile mutation. This
 contract does not add mutation behavior and does not make reconcile an execution surface.
 
@@ -23,6 +23,10 @@ Task 148 admits exactly one candidate class:
 The preview is still non-mutating. It only says that a candidate is eligible for operator
 review under the existing Task 146 precision corpus and Task 147 rollback/blast-radius
 contract.
+
+Task 149 may reference this preview as input to a future apply-path proposal contract. That
+reference does not change this contract: preview records remain non-executable and are not
+consumed by writer functions in Task 149.
 
 Excluded classes remain contract-excluded or manual-only:
 
