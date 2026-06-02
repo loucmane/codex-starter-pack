@@ -12,3 +12,4 @@
 - Run workflow closeout checks (`plan sync`, work-tracking audit, guard validation, Taskmaster health).
 - Mark Taskmaster Task 150 done only after those checks pass and regenerate only `task_150.md`.
 - Commit, push, and open a PR for `feat/task-150-disabled-reconcile-apply-scaffold`.
+- Archived on 2026-06-02 20:39 CEST — Folder moved to archive and tracker marked COMPLETED.
