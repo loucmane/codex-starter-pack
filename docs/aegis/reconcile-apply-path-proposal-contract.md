@@ -256,10 +256,11 @@ The future implementation task must add tests proving:
 
 ## Proposed Next Tasks
 
-- **Task 150:** build a disabled apply orchestration scaffold only after this invocation
-  model is reviewed. The scaffold must wire the side-effect oracle, precision predicate,
-  rollback contract, audit breadcrumb, agent-context refusal, and kill-switch behind an
-  enable gate that is intentionally unsatisfiable.
+- **Task 150:** build a disabled apply orchestration scaffold after this invocation model
+  review. The scaffold must wire positive approved-context proof evaluation, an
+  apply-audit transaction model, and kill-switch semantics behind an enable gate that is
+  intentionally unsatisfiable. The enable gate that is intentionally unsatisfiable remains
+  the core disabled-scaffold invariant.
 - **Task 151:** enable a narrowly scoped apply path only after the disabled scaffold and
   external review prove the invocation, audit, kill-switch, precision, side-effect, and
   rollback contracts.

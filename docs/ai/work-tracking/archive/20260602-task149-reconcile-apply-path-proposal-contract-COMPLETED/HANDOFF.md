@@ -20,3 +20,4 @@
 - Mark Taskmaster Task 149 done after workflow validation.
 - Commit, push, open PR, and merge if checks pass.
 - After merge, discuss the embedded Claude prompt before creating Task 150.
+- Archived on 2026-06-02 18:35 CEST — Folder moved to archive and tracker marked COMPLETED.
