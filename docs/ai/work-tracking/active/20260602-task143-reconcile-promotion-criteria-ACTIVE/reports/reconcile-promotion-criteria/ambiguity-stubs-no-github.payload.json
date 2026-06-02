@@ -1,0 +1,196 @@
+{
+  "active_aegis_current_work": null,
+  "base_ref": {
+    "available": true,
+    "fallback_used": false,
+    "requested": "main",
+    "selected": "main"
+  },
+  "findings": [
+    {
+      "evidence": {
+        "active_aegis_task_id": null,
+        "branches": [
+          {
+            "commit": "84ffca279a4385fda4c6eeaedb804ca190500712",
+            "kind": "local",
+            "name": "feat/task-203-abandoned",
+            "task_id": "203"
+          }
+        ]
+      },
+      "kind": "abandoned_in_progress_branch",
+      "message": "task 203 is in-progress with task branches but no matching active Aegis current work",
+      "severity": "warning",
+      "task_id": "203"
+    },
+    {
+      "evidence": {
+        "branch": {
+          "commit": "b5a9dd9bd686858df1df26523232dca60a196662",
+          "kind": "local",
+          "name": "feat/task-999-local-stub",
+          "task_id": "999"
+        }
+      },
+      "kind": "stale_local_stub",
+      "message": "branch feat/task-999-local-stub references task 999, but Taskmaster has no such task",
+      "severity": "warning",
+      "task_id": "999"
+    },
+    {
+      "evidence": {
+        "local_task": {
+          "id": "1000",
+          "slug": "ad-hoc",
+          "source": "aegis-local",
+          "status": "in-progress",
+          "title": "Ad hoc local task"
+        }
+      },
+      "kind": "local_ad_hoc_stub",
+      "message": "Aegis local task 1000 exists without a Taskmaster task",
+      "severity": "warning",
+      "task_id": "1000"
+    }
+  ],
+  "generated_at": "2026-06-02T11:08:56Z",
+  "github": {
+    "available": false,
+    "enabled": false,
+    "pr_count": 0,
+    "reason": "disabled"
+  },
+  "notes": [
+    "This command is read-only and never mutates Taskmaster, Aegis state, git refs, or PRs.",
+    "Git ancestry proves true merges and fast-forwards; non-ancestor branches are reported as unknown without GitHub merge metadata because squash merges are possible.",
+    "GitHub PR state is optional acceleration; when unavailable, squash-ambiguous cases remain unknown instead of being reported as not merged."
+  ],
+  "read_only": true,
+  "schema_version": "1.0.0",
+  "source_root": "/home/loucmane/codex",
+  "status": "needs_review",
+  "summary": {
+    "errors": 0,
+    "findings": 3,
+    "info": 0,
+    "tasks_checked": 4,
+    "warnings": 3
+  },
+  "target_root": "/tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/ambiguity-stubs",
+  "taskmaster": {
+    "available": true,
+    "path": ".taskmaster/tasks/tasks.json",
+    "task_count": 2
+  },
+  "tasks": [
+    {
+      "active_aegis_current_work": false,
+      "branches": [
+        {
+          "commit": "84ffca279a4385fda4c6eeaedb804ca190500712",
+          "kind": "local",
+          "name": "feat/task-203-abandoned",
+          "task_id": "203"
+        }
+      ],
+      "merge_truth": {
+        "branches": [
+          {
+            "confidence": "low",
+            "proof": "git_non_ancestor",
+            "reason": "branch tip is not an ancestor; this may be unmerged work or a squash merge",
+            "status": "unknown"
+          }
+        ],
+        "confidence": "low",
+        "proof": "git_only_non_ancestor_or_missing_base",
+        "reason": "git ancestry did not prove merge; without GitHub metadata this may be squash-merged or unmerged",
+        "status": "unknown"
+      },
+      "pull_requests": [],
+      "task": {
+        "id": "203",
+        "raw": {
+          "dependencies": [],
+          "id": 203,
+          "status": "in-progress",
+          "title": "In Progress Branch"
+        },
+        "status": "in-progress",
+        "title": "In Progress Branch"
+      },
+      "task_id": "203",
+      "taskmaster_status": "in-progress"
+    },
+    {
+      "active_aegis_current_work": false,
+      "branches": [],
+      "merge_truth": {
+        "branches": [],
+        "confidence": "none",
+        "proof": "no_branch_or_pr",
+        "reason": "no task branch or PR metadata was found",
+        "status": "no_evidence"
+      },
+      "pull_requests": [],
+      "task": {
+        "id": "204",
+        "raw": {
+          "dependencies": [],
+          "id": 204,
+          "status": "pending",
+          "title": "Ambiguous Epic"
+        },
+        "status": "pending",
+        "title": "Ambiguous Epic"
+      },
+      "task_id": "204",
+      "taskmaster_status": "pending"
+    },
+    {
+      "active_aegis_current_work": false,
+      "branches": [
+        {
+          "commit": "b5a9dd9bd686858df1df26523232dca60a196662",
+          "kind": "local",
+          "name": "feat/task-999-local-stub",
+          "task_id": "999"
+        }
+      ],
+      "merge_truth": {
+        "branches": [
+          {
+            "confidence": "low",
+            "proof": "git_non_ancestor",
+            "reason": "branch tip is not an ancestor; this may be unmerged work or a squash merge",
+            "status": "unknown"
+          }
+        ],
+        "confidence": "low",
+        "proof": "git_only_non_ancestor_or_missing_base",
+        "reason": "git ancestry did not prove merge; without GitHub metadata this may be squash-merged or unmerged",
+        "status": "unknown"
+      },
+      "pull_requests": [],
+      "task": null,
+      "task_id": "999",
+      "taskmaster_status": "missing"
+    },
+    {
+      "active_aegis_current_work": false,
+      "branches": [],
+      "merge_truth": {
+        "branches": [],
+        "confidence": "none",
+        "proof": "no_branch_or_pr",
+        "reason": "no task branch or PR metadata was found",
+        "status": "no_evidence"
+      },
+      "pull_requests": [],
+      "task": null,
+      "task_id": "1000",
+      "taskmaster_status": "missing"
+    }
+  ]
+}

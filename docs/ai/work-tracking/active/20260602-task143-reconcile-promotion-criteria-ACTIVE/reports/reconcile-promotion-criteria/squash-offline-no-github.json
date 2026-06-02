@@ -1,0 +1,84 @@
+COMMAND: python3 /home/loucmane/codex/scripts/codex-task aegis reconcile --target-dir /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/squash-offline --base-ref main --no-github --json
+
+{
+  "active_aegis_current_work": null,
+  "base_ref": {
+    "available": true,
+    "fallback_used": false,
+    "requested": "main",
+    "selected": "main"
+  },
+  "findings": [],
+  "generated_at": "2026-06-02T11:08:12Z",
+  "github": {
+    "available": false,
+    "enabled": false,
+    "pr_count": 0,
+    "reason": "disabled"
+  },
+  "notes": [
+    "This command is read-only and never mutates Taskmaster, Aegis state, git refs, or PRs.",
+    "Git ancestry proves true merges and fast-forwards; non-ancestor branches are reported as unknown without GitHub merge metadata because squash merges are possible.",
+    "GitHub PR state is optional acceleration; when unavailable, squash-ambiguous cases remain unknown instead of being reported as not merged."
+  ],
+  "read_only": true,
+  "schema_version": "1.0.0",
+  "source_root": "/home/loucmane/codex",
+  "status": "clean",
+  "summary": {
+    "errors": 0,
+    "findings": 0,
+    "info": 0,
+    "tasks_checked": 1,
+    "warnings": 0
+  },
+  "target_root": "/tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/squash-offline",
+  "taskmaster": {
+    "available": true,
+    "path": ".taskmaster/tasks/tasks.json",
+    "task_count": 1
+  },
+  "tasks": [
+    {
+      "active_aegis_current_work": false,
+      "branches": [
+        {
+          "commit": "6163c5d9d8be2d12c3a395fe184f5f9313dd5504",
+          "kind": "local",
+          "name": "feat/task-201-squash-offline",
+          "task_id": "201"
+        }
+      ],
+      "merge_truth": {
+        "branches": [
+          {
+            "confidence": "low",
+            "proof": "git_non_ancestor",
+            "reason": "branch tip is not an ancestor; this may be unmerged work or a squash merge",
+            "status": "unknown"
+          }
+        ],
+        "confidence": "low",
+        "proof": "git_only_non_ancestor_or_missing_base",
+        "reason": "git ancestry did not prove merge; without GitHub metadata this may be squash-merged or unmerged",
+        "status": "unknown"
+      },
+      "pull_requests": [],
+      "task": {
+        "id": "201",
+        "raw": {
+          "dependencies": [],
+          "id": 201,
+          "status": "pending",
+          "title": "Squash Offline"
+        },
+        "status": "pending",
+        "title": "Squash Offline"
+      },
+      "task_id": "201",
+      "taskmaster_status": "pending"
+    }
+  ]
+}
+
+EXIT_CODE=0

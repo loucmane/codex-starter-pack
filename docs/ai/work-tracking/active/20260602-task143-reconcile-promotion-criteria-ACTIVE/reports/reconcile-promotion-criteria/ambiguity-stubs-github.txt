@@ -1,0 +1,14 @@
+COMMAND: python3 /home/loucmane/codex/scripts/codex-task aegis reconcile --target-dir /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/ambiguity-stubs --base-ref main
+
+Aegis reconcile: NEEDS_REVIEW
+target: /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/ambiguity-stubs
+base_ref: main
+summary: 4 tasks, 4 findings (0 errors, 4 warnings, 0 info)
+github: available (2 PRs scanned)
+findings:
+- [warning] abandoned_in_progress_branch task 203: task 203 is in-progress with task branches but no matching active Aegis current work
+- [warning] multi_pr_epic_ambiguity task 204: task 204 has 2 PR candidates; merge truth requires review
+- [warning] stale_local_stub task 999: branch feat/task-999-local-stub references task 999, but Taskmaster has no such task
+- [warning] local_ad_hoc_stub task 1000: Aegis local task 1000 exists without a Taskmaster task
+
+EXIT_CODE=0

@@ -1,0 +1,11 @@
+COMMAND: python3 /home/loucmane/codex/scripts/codex-task aegis reconcile --target-dir /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/drift-mixed --base-ref main --no-github
+
+Aegis reconcile: DRIFT
+target: /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/drift-mixed
+base_ref: main
+summary: 2 tasks, 1 findings (1 errors, 0 warnings, 0 info)
+github: unavailable/disabled (disabled)
+findings:
+- [error] merged_but_not_done task 202: task 202 is pending, but merge truth says merged
+
+EXIT_CODE=0
