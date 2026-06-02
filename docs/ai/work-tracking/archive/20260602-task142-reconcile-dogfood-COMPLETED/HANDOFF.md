@@ -20,3 +20,4 @@
 - `docs/ai/work-tracking/active/20260602-task142-reconcile-dogfood-ACTIVE/reports/reconcile-dogfood/hpfetcher-no-github.json`
 - `docs/ai/work-tracking/active/20260602-task142-reconcile-dogfood-ACTIVE/reports/reconcile-dogfood/hpfetcher-github.json`
 - Archived on 2026-06-02 12:18 CEST — Folder moved to archive and tracker marked COMPLETED.
+- Archived on 2026-06-02 13:05 CEST — Folder moved to archive and tracker marked COMPLETED.

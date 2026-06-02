@@ -6272,13 +6272,27 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-06-02T10:17:21.530Z"
+      },
+      {
+        "id": "143",
+        "title": "Dogfood Aegis Reconcile Promotion Criteria",
+        "description": "Validate the read-only Aegis reconcile report across additional safe real or fixture histories and define evidence-based criteria for any future auto-mutation work.",
+        "details": "Run this strictly as a report-first dogfood and evidence task. Do not implement or enable auto-status mutation, Taskmaster mutation, git ref mutation, PR mutation, closeout automation, or Aegis state mutation. Use the existing reconcile surface only: `python3 scripts/codex-task aegis reconcile`, package CLI `aegis_foundation/cli.py::handle_reconcile`, and core logic in `scripts/_aegis_installer.py` (`reconcile`, `_resolve_reconcile_base_ref`, `_reconcile_branch_candidates`, `_task_merge_truth`, `_reconcile_finding`, `format_reconcile_summary`). Select 2-3 additional safe isolated targets beyond the current repo and the prior hpfetcher sample from Task 142. Acceptable targets are disposable clones, temp worktrees, or purpose-built fixture repos under `/tmp` or test fixture space; every target must be a copy or fixture, never a production working repo. Include at least one squash-merge-shaped history where git ancestry alone produces `git_non_ancestor` or `git_only_non_ancestor_or_missing_base`, and at least one multi-PR, long-lived-branch, or epic ambiguity case if available. For each target, capture: target provenance and safety boundary, before/after `git status --short`, relevant Taskmaster status snapshot where present, Aegis state snapshot where present, exact reconcile command, raw stdout/stderr, JSON output when useful via `--json`, base-ref selection behavior, GitHub availability or `--no-github` caveats, and whether `gh` metadata changed the interpretation. Classify every reconcile finding and every notable non-finding as one of: true drift, explainable historical noise, false positive, false negative, or environment limitation. Pay special attention to current finding kinds already covered by tests: `merged_but_not_done`, `done_but_not_merged`, `abandoned_in_progress_branch`, `stale_local_stub`, `local_ad_hoc_stub`, and `multi_pr_epic_ambiguity`. Produce an operator signal-quality summary with per-target false-positive rate, false-negative risk, ambiguity handling quality, and recommended operator action for each finding. Define explicit promotion criteria for a later separate task to consider auto-mutation, such as required target count, acceptable false-positive rate, required handling for squash merges without GitHub metadata, minimum confidence levels, required operator confirmation points, required rollback/audit evidence, and cases that must remain manual-only. Final recommendations must remain report-first only and must not propose implementing mutation in this task.",
+        "testStrategy": "Verify repo safety and evidence quality with these commands and checks: run `git status --short` before and after all work and require the current repo to remain clean except intentional Taskmaster/work-tracking evidence generated through approved commands; run `python3 scripts/codex-task taskmaster health`; run `python3 scripts/codex-guard validate`; run `python3 scripts/codex-task work-tracking audit`; run targeted reconcile commands for every selected target, including both summary and JSON forms where needed, for example `python3 scripts/codex-task aegis reconcile --target-dir <safe-target> --base-ref <ref> --no-github` and `python3 scripts/codex-task aegis reconcile --target-dir <safe-target> --base-ref <ref> --json` when GitHub metadata is available. Confirm before/after snapshots prove no target-project mutation occurred. Confirm squash-shaped histories are documented as unknown without GitHub metadata unless PR metadata proves merge truth. Confirm multi-PR or long-lived-branch ambiguity is classified as manual review rather than auto-actionable. Acceptance requires raw command output, environment caveats, finding classification, false-positive/false-negative discussion, and explicit promotion criteria to be present in the task evidence.",
+        "status": "done",
+        "dependencies": [
+          "142"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-06-02T11:13:41.739Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-02T10:17:21.530Z",
-      "taskCount": 142,
-      "completedCount": 142,
+      "lastModified": "2026-06-02T11:13:41.739Z",
+      "taskCount": 143,
+      "completedCount": 143,
       "tags": [
         "master"
       ]

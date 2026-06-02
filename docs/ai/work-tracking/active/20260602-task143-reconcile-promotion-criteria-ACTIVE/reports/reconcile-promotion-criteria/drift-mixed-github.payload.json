@@ -1,0 +1,195 @@
+{
+  "active_aegis_current_work": null,
+  "base_ref": {
+    "available": true,
+    "fallback_used": false,
+    "requested": "main",
+    "selected": "main"
+  },
+  "findings": [
+    {
+      "evidence": {
+        "merge_truth": {
+          "branches": [
+            {
+              "confidence": "high",
+              "proof": "git_ancestor",
+              "reason": "feat/task-202-merged-pending is an ancestor of main",
+              "status": "merged"
+            }
+          ],
+          "confidence": "high",
+          "proof": "git_ancestor",
+          "reason": "feat/task-202-merged-pending is an ancestor of main",
+          "status": "merged"
+        }
+      },
+      "kind": "merged_but_not_done",
+      "message": "task 202 is pending, but merge truth says merged",
+      "severity": "error",
+      "task_id": "202"
+    },
+    {
+      "evidence": {
+        "merge_truth": {
+          "branches": [
+            {
+              "confidence": "low",
+              "proof": "git_non_ancestor",
+              "reason": "branch tip is not an ancestor; this may be unmerged work or a squash merge",
+              "status": "unknown"
+            }
+          ],
+          "confidence": "high",
+          "pr": {
+            "baseRefName": "main",
+            "headRefName": "feat/task-205-open-pr",
+            "isDraft": false,
+            "mergedAt": null,
+            "number": 205,
+            "state": "OPEN",
+            "title": "Task 205 open PR",
+            "url": "https://example.invalid/pr/205"
+          },
+          "proof": "github_pr_open",
+          "reason": "PR #205 is still open",
+          "status": "not_merged"
+        }
+      },
+      "kind": "done_but_not_merged",
+      "message": "task 205 is done, but PR metadata says it is not merged",
+      "severity": "error",
+      "task_id": "205"
+    }
+  ],
+  "generated_at": "2026-06-02T11:08:56Z",
+  "github": {
+    "available": true,
+    "enabled": true,
+    "pr_count": 1,
+    "reason": ""
+  },
+  "notes": [
+    "This command is read-only and never mutates Taskmaster, Aegis state, git refs, or PRs.",
+    "Git ancestry proves true merges and fast-forwards; non-ancestor branches are reported as unknown without GitHub merge metadata because squash merges are possible.",
+    "GitHub PR state is optional acceleration; when unavailable, squash-ambiguous cases remain unknown instead of being reported as not merged."
+  ],
+  "read_only": true,
+  "schema_version": "1.0.0",
+  "source_root": "/home/loucmane/codex",
+  "status": "drift",
+  "summary": {
+    "errors": 2,
+    "findings": 2,
+    "info": 0,
+    "tasks_checked": 2,
+    "warnings": 0
+  },
+  "target_root": "/tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/drift-mixed",
+  "taskmaster": {
+    "available": true,
+    "path": ".taskmaster/tasks/tasks.json",
+    "task_count": 2
+  },
+  "tasks": [
+    {
+      "active_aegis_current_work": false,
+      "branches": [
+        {
+          "commit": "e670ebfb453b292efb71b92f87e12823fe757f22",
+          "kind": "local",
+          "name": "feat/task-202-merged-pending",
+          "task_id": "202"
+        }
+      ],
+      "merge_truth": {
+        "branches": [
+          {
+            "confidence": "high",
+            "proof": "git_ancestor",
+            "reason": "feat/task-202-merged-pending is an ancestor of main",
+            "status": "merged"
+          }
+        ],
+        "confidence": "high",
+        "proof": "git_ancestor",
+        "reason": "feat/task-202-merged-pending is an ancestor of main",
+        "status": "merged"
+      },
+      "pull_requests": [],
+      "task": {
+        "id": "202",
+        "raw": {
+          "dependencies": [],
+          "id": 202,
+          "status": "pending",
+          "title": "Merged Pending"
+        },
+        "status": "pending",
+        "title": "Merged Pending"
+      },
+      "task_id": "202",
+      "taskmaster_status": "pending"
+    },
+    {
+      "active_aegis_current_work": false,
+      "branches": [
+        {
+          "commit": "5ce63efbe297f849721096eedcc145721b28557c",
+          "kind": "local",
+          "name": "feat/task-205-open-pr",
+          "task_id": "205"
+        }
+      ],
+      "merge_truth": {
+        "branches": [
+          {
+            "confidence": "low",
+            "proof": "git_non_ancestor",
+            "reason": "branch tip is not an ancestor; this may be unmerged work or a squash merge",
+            "status": "unknown"
+          }
+        ],
+        "confidence": "high",
+        "pr": {
+          "baseRefName": "main",
+          "headRefName": "feat/task-205-open-pr",
+          "isDraft": false,
+          "mergedAt": null,
+          "number": 205,
+          "state": "OPEN",
+          "title": "Task 205 open PR",
+          "url": "https://example.invalid/pr/205"
+        },
+        "proof": "github_pr_open",
+        "reason": "PR #205 is still open",
+        "status": "not_merged"
+      },
+      "pull_requests": [
+        {
+          "baseRefName": "main",
+          "headRefName": "feat/task-205-open-pr",
+          "isDraft": false,
+          "mergedAt": null,
+          "number": 205,
+          "state": "OPEN",
+          "title": "Task 205 open PR",
+          "url": "https://example.invalid/pr/205"
+        }
+      ],
+      "task": {
+        "id": "205",
+        "raw": {
+          "dependencies": [],
+          "id": 205,
+          "status": "done",
+          "title": "Done Open PR"
+        },
+        "status": "done",
+        "title": "Done Open PR"
+      },
+      "task_id": "205",
+      "taskmaster_status": "done"
+    }
+  ]
+}

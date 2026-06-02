@@ -1,0 +1,10 @@
+COMMAND: python3 /home/loucmane/codex/scripts/codex-task aegis reconcile --target-dir /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/squash-offline --base-ref main --no-github
+
+Aegis reconcile: CLEAN
+target: /tmp/aegis-task143-reconcile-promotion-fixtures-1780398438/squash-offline
+base_ref: main
+summary: 1 tasks, 0 findings (0 errors, 0 warnings, 0 info)
+github: unavailable/disabled (disabled)
+findings: none
+
+EXIT_CODE=0
