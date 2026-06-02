@@ -15,7 +15,12 @@ from mcp.client.stdio import stdio_client
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
-from aegis_foundation import DISTRIBUTION_NAME, FOUNDATION_VERSION, INSTALLER_VERSION, SCHEMA_VERSION
+from aegis_foundation import (
+    DISTRIBUTION_NAME,
+    FOUNDATION_VERSION,
+    INSTALLER_VERSION,
+    SCHEMA_VERSION,
+)
 from aegis_mcp.server import (
     AegisMCPConfig,
     PROMPT_NAMES,
@@ -37,7 +42,6 @@ from scripts._aegis_installer import (
     log_work,
     verify,
 )
-
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RECONCILE_MUTATION_PARAMETER_NAMES = {
@@ -267,10 +271,15 @@ def test_reconcile_mcp_schema_keeps_report_only_contract(tmp_path: Path) -> None
     description = tool.description or ""
 
     assert set(schema["required"]) == {"target_dir"}
-    assert set(schema["properties"]) == {"target_dir", "base_ref", "use_github"}
+    assert set(schema["properties"]) == {
+        "target_dir",
+        "base_ref",
+        "use_github",
+        "preview_candidates",
+    }
     assert set(schema["properties"]).isdisjoint(RECONCILE_MUTATION_PARAMETER_NAMES)
     assert "Read-only Taskmaster/Aegis/git/PR drift report" in description
-    assert "report-first" in description
+    assert "optional inert preview" in description
     assert "never auto-mutates status" in description
 
 
@@ -303,6 +312,7 @@ def test_reconcile_mcp_execution_is_report_only(tmp_path: Path) -> None:
             "target_dir": target.as_posix(),
             "base_ref": "main",
             "use_github": False,
+            "preview_candidates": False,
         },
     )
 
@@ -444,7 +454,9 @@ def test_log_tool_consumes_pending_event_id(tmp_path: Path) -> None:
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="mcp-pending-id", title="MCP Pending Id")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     evidence_rel = f"{current_work['paths']['reports']}/mcp-pending-id.txt"
     (target / evidence_rel).write_text("pending\n", encoding="utf-8")
     pending_path = target / AEGIS_PENDING_TRACKING_REL
@@ -572,8 +584,16 @@ def test_missing_required_fields_are_rejected_by_schema(tmp_path: Path) -> None:
     server = create_server(config)
 
     missing_required_calls = [
-        ("aegis.plan_install", {"target_dir": tmp_path.as_posix(), "agents": ["claude"]}, "primary_agent"),
-        ("aegis.plan_install", {"target_dir": tmp_path.as_posix(), "primary_agent": "claude"}, "agents"),
+        (
+            "aegis.plan_install",
+            {"target_dir": tmp_path.as_posix(), "agents": ["claude"]},
+            "primary_agent",
+        ),
+        (
+            "aegis.plan_install",
+            {"target_dir": tmp_path.as_posix(), "primary_agent": "claude"},
+            "agents",
+        ),
         (
             "aegis.install",
             {
@@ -592,7 +612,11 @@ def test_missing_required_fields_are_rejected_by_schema(tmp_path: Path) -> None:
         ),
         (
             "aegis.log",
-            {"target_dir": tmp_path.as_posix(), "handler": "claude-test", "evidence": "reports/example.txt"},
+            {
+                "target_dir": tmp_path.as_posix(),
+                "handler": "claude-test",
+                "evidence": "reports/example.txt",
+            },
             "note",
         ),
     ]
@@ -804,7 +828,9 @@ def test_install_refused_conflict_is_structured_error(tmp_path: Path) -> None:
     server = create_server(config)
     target = tmp_path / "target"
     (target / ".aegis").mkdir(parents=True)
-    (target / AEGIS_MANIFEST_REL).write_text('{"foundation_name": "Other Foundation"}\n', encoding="utf-8")
+    (target / AEGIS_MANIFEST_REL).write_text(
+        '{"foundation_name": "Other Foundation"}\n', encoding="utf-8"
+    )
 
     payload = call_tool_payload(
         server,
@@ -822,7 +848,9 @@ def test_install_refused_conflict_is_structured_error(tmp_path: Path) -> None:
     assert payload["error"]["code"] == "install_refused"
     assert payload["error"]["status"] == "refused"
     assert payload["error"]["details"]["report"]["status"] == "refused"
-    assert (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8") == '{"foundation_name": "Other Foundation"}\n'
+    assert (target / AEGIS_MANIFEST_REL).read_text(
+        encoding="utf-8"
+    ) == '{"foundation_name": "Other Foundation"}\n'
 
 
 def test_verify_requires_acknowledgement_true_before_report_write(tmp_path: Path) -> None:
@@ -947,10 +975,12 @@ def test_verify_strict_flag_passes_through_to_core_report(tmp_path: Path) -> Non
     assert verify_payload["ok"] is True
     assert verify_payload["result"]["mode"] == "strict"
     assert verify_payload["result"]["status"] == "passed"
-    assert verify_payload["result"]["next_action"]["action"] == "log_strict_verification_before_closeout"
+    assert (
+        verify_payload["result"]["next_action"]["action"]
+        == "log_strict_verification_before_closeout"
+    )
     assert any(
-        check["gate_id"] == "workflow.current_work"
-        for check in verify_payload["result"]["checks"]
+        check["gate_id"] == "workflow.current_work" for check in verify_payload["result"]["checks"]
     )
 
 
@@ -1111,7 +1141,9 @@ def test_handoff_repair_tool_previews_and_applies_without_closeout_report(tmp_pa
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="handoff-repair", title="Handoff Repair")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     work_rel = current_work["paths"]["work_tracking"]
     evidence_rel = f"{current_work['paths']['reports']}/repair-evidence.txt"
     (target / evidence_rel).write_text("evidence\n", encoding="utf-8")
@@ -1190,7 +1222,9 @@ def test_profile_tools_call_core_and_validate_payloads(tmp_path: Path) -> None:
     assert explain_payload["result"]["name"] == "generic"
 
 
-def test_core_aegis_error_maps_to_structured_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_core_aegis_error_maps_to_structured_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
 
@@ -1395,13 +1429,12 @@ def test_limitations_resource_includes_policy_and_deferred_tool_notes(tmp_path: 
     payload = read_resource_payload(server, "aegis://limitations")
 
     assert payload["ok"] is True
-    assert any(
-        gate["id"] == "mcp.memory_write"
-        for gate in payload["result"]["policy_only_gates"]
-    )
+    assert any(gate["id"] == "mcp.memory_write" for gate in payload["result"]["policy_only_gates"])
     assert "aegis.status" not in payload["result"]["deferred_tools"]
     assert "aegis.update" in payload["result"]["deferred_tools"]
-    assert any("Prompts are guidance only" in note for note in payload["result"]["prompt_limitations"])
+    assert any(
+        "Prompts are guidance only" in note for note in payload["result"]["prompt_limitations"]
+    )
 
 
 def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> None:
@@ -1452,10 +1485,15 @@ def test_prompts_preserve_workflow_and_evidence_invariants(tmp_path: Path) -> No
     assert "aegis.verify" in closeout_task
     assert "aegis.doctor" in closeout_task
     assert "task-master generate" in closeout_task
-    assert "Only report completion after closeout passes and doctor reports the completed state" in closeout_task
+    assert (
+        "Only report completion after closeout passes and doctor reports the completed state"
+        in closeout_task
+    )
 
 
-def test_tool_descriptions_make_aegis_discoverable_from_normal_task_requests(tmp_path: Path) -> None:
+def test_tool_descriptions_make_aegis_discoverable_from_normal_task_requests(
+    tmp_path: Path,
+) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
 

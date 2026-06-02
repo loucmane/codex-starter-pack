@@ -1,8 +1,10 @@
 # Aegis Reconcile Mutation Rollback Contract
 
-**Status:** active Task 147 proposal contract.
+**Status:** active Task 147/148 proposal contract.
 **Scope:** report/contract only. `aegis reconcile` remains read-only and does not gain
-mutation flags, Taskmaster writes, git writes, PR writes, or closeout automation.
+mutation flags, Taskmaster writes, git writes, PR writes, or closeout automation. Task 148
+may surface this contract in an opt-in inert `mutation_candidate_preview`, but the preview
+is not an execution surface.
 
 ## First Candidate Boundary
 
@@ -17,6 +19,10 @@ corpus and an explicit operator confirmation. `github_pr_merged`,
 `done_but_not_merged`, multi-PR ambiguity, abandoned branches, stale local stubs, ad hoc
 local stubs, and squash/offline unknown merge truth are non-goals for this first mutation
 contract.
+
+Task 148 preview entries may predict the changed paths from this contract, but the
+prediction is non-authoritative. The Task 145 side-effect oracle remains the authority for
+actual blast-radius verification at mutation time.
 
 ## Required Proposal Shape
 

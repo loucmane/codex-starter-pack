@@ -21,7 +21,6 @@ from pydantic import Field
 from aegis_foundation.resources import packaged_asset_root_path
 from scripts import _aegis_installer
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SERVER_NAME = "Aegis Foundation"
 COMPATIBILITY_MATRIX_REL = "templates/registry/agent-compatibility-matrix.json"
@@ -109,11 +108,11 @@ class AegisMCPConfig:
             else packaged_asset_root_path()
         )
         asset_origin = "source" if configured_source else "package"
-        resolved_target = Path(
-            default_target_dir
-            or os.environ.get("AEGIS_DEFAULT_TARGET_DIR")
-            or "."
-        ).expanduser().resolve()
+        resolved_target = (
+            Path(default_target_dir or os.environ.get("AEGIS_DEFAULT_TARGET_DIR") or ".")
+            .expanduser()
+            .resolve()
+        )
         primary = (
             default_primary_agent
             or os.environ.get("AEGIS_DEFAULT_PRIMARY_AGENT")
@@ -205,9 +204,7 @@ def _validate_agent_selection(
     if primary_agent == "multi" and len(selected) < 2:
         raise AegisMCPInputError("primary_agent=multi requires at least two enabled agents")
     if primary_agent in _aegis_installer.AGENT_CHOICES and primary_agent not in selected:
-        raise AegisMCPInputError(
-            f"primary_agent={primary_agent} must also be listed in agents"
-        )
+        raise AegisMCPInputError(f"primary_agent={primary_agent} must also be listed in agents")
     return selected
 
 
@@ -257,7 +254,9 @@ def _client_reload_required_response(tool_name: str, report: dict[str, Any]) -> 
             else {}
         )
     else:
-        client_reload = report.get("client_reload", {}) if isinstance(report.get("client_reload"), dict) else {}
+        client_reload = (
+            report.get("client_reload", {}) if isinstance(report.get("client_reload"), dict) else {}
+        )
     return _error_tool_response(
         tool_name,
         code="client_reload_required",
@@ -462,8 +461,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         target_dir: str,
         base_ref: str = "origin/main",
         use_github: bool = True,
+        preview_candidates: bool = False,
     ) -> dict[str, Any]:
-        """Read-only Taskmaster/Aegis/git/PR drift report; report-first and never auto-mutates status."""
+        """Read-only Taskmaster/Aegis/git/PR drift report; optional inert preview never auto-mutates status."""
 
         def call_core() -> dict[str, Any]:
             return installer.reconcile(
@@ -471,6 +471,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
                 source_root=config.source_root,
                 base_ref=base_ref,
                 use_github=use_github,
+                preview_candidates=preview_candidates,
             )
 
         return run_tool(
@@ -1179,7 +1180,9 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
         )
 
     @server.prompt(name="aegis.start_task")
-    def start_task(target_dir: str = ".", title: str = "<task title>", task: str = "", slug: str = "") -> str:
+    def start_task(
+        target_dir: str = ".", title: str = "<task title>", task: str = "", slug: str = ""
+    ) -> str:
         return workflow_prompt(
             "Start Aegis Task",
             "\n".join(
@@ -1288,7 +1291,9 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
         )
 
     @server.prompt(name="aegis.prepare_agent_session")
-    def prepare_agent_session(agent: str = config.default_primary_agent, target_dir: str = ".") -> str:
+    def prepare_agent_session(
+        agent: str = config.default_primary_agent, target_dir: str = "."
+    ) -> str:
         return workflow_prompt(
             "Prepare Agent Session",
             "\n".join(

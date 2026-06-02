@@ -16,3 +16,4 @@
 
 ## Next Steps
 - Commit, push, open PR, wait for CI, then merge cleanly.
+- Archived on 2026-06-02 17:09 CEST — Folder moved to archive and tracker marked COMPLETED.

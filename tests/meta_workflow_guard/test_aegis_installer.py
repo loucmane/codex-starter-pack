@@ -50,7 +50,6 @@ from scripts._aegis_installer import (
 )
 from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_ROOT = REPO_ROOT / "schemas" / "aegis"
 RECONCILE_MUTATION_FLAGS = (
@@ -99,7 +98,13 @@ def run_cli(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 def run_target_readiness(target: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", str(target / ".claude" / "scripts" / "readiness.sh"), "--quick", "--root", str(target)],
+        [
+            "bash",
+            str(target / ".claude" / "scripts" / "readiness.sh"),
+            "--quick",
+            "--root",
+            str(target),
+        ],
         cwd=target,
         text=True,
         stdout=subprocess.PIPE,
@@ -187,7 +192,9 @@ def init_git_repo(repo: Path) -> None:
 def write_taskmaster_tasks(repo: Path, tasks: list[dict[str, Any]]) -> None:
     task_dir = repo / ".taskmaster" / "tasks"
     task_dir.mkdir(parents=True, exist_ok=True)
-    (task_dir / "tasks.json").write_text(json.dumps({"master": {"tasks": tasks}}, indent=2) + "\n", encoding="utf-8")
+    (task_dir / "tasks.json").write_text(
+        json.dumps({"master": {"tasks": tasks}}, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def commit_file(repo: Path, rel_path: str, content: str, message: str) -> None:
@@ -211,16 +218,18 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert inspect_args.subcommand == "inspect"
     assert inspect_args.target_dir == "/tmp/example"
 
-    plan_args = parser.parse_args([
-        "aegis",
-        "plan-install",
-        "--target-dir",
-        "/tmp/example",
-        "--primary-agent",
-        "claude",
-        "--agent",
-        "claude",
-    ])
+    plan_args = parser.parse_args(
+        [
+            "aegis",
+            "plan-install",
+            "--target-dir",
+            "/tmp/example",
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+        ]
+    )
     assert plan_args.primary_agent == "claude"
     assert plan_args.agent == ["claude"]
 
@@ -233,19 +242,21 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert start_args.subcommand == "start"
     assert start_args.title == "Improve BrandMark accessibility"
 
-    install_args = parser.parse_args([
-        "aegis",
-        "install",
-        "--target-dir",
-        "/tmp/example",
-        "--primary-agent",
-        "multi",
-        "--agent",
-        "claude",
-        "--agent",
-        "codex",
-        "--apply",
-    ])
+    install_args = parser.parse_args(
+        [
+            "aegis",
+            "install",
+            "--target-dir",
+            "/tmp/example",
+            "--primary-agent",
+            "multi",
+            "--agent",
+            "claude",
+            "--agent",
+            "codex",
+            "--apply",
+        ]
+    )
     assert install_args.apply is True
     assert install_args.agent == ["claude", "codex"]
 
@@ -262,99 +273,126 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert doctor_args.target_dir == "/tmp/example"
     assert doctor_args.json is True
 
-    reconcile_args = parser.parse_args(["aegis", "reconcile", "--target-dir", "/tmp/example", "--base-ref", "main", "--no-github", "--json"])
+    reconcile_args = parser.parse_args(
+        [
+            "aegis",
+            "reconcile",
+            "--target-dir",
+            "/tmp/example",
+            "--base-ref",
+            "main",
+            "--no-github",
+            "--json",
+            "--preview-candidates",
+        ]
+    )
     assert reconcile_args.subcommand == "reconcile"
     assert reconcile_args.target_dir == "/tmp/example"
     assert reconcile_args.base_ref == "main"
     assert reconcile_args.no_github is True
     assert reconcile_args.json is True
+    assert reconcile_args.preview_candidates is True
 
-    repair_args = parser.parse_args(["aegis", "repair", "--target-dir", "/tmp/example", "--apply", "--json"])
+    repair_args = parser.parse_args(
+        ["aegis", "repair", "--target-dir", "/tmp/example", "--apply", "--json"]
+    )
     assert repair_args.subcommand == "repair"
     assert repair_args.target_dir == "/tmp/example"
     assert repair_args.apply is True
     assert repair_args.json is True
 
-    closeout_args = parser.parse_args([
-        "aegis",
-        "closeout",
-        "--target-dir",
-        "/tmp/example",
-        "--update-handoff",
-        "--dry-run",
-        "--json",
-    ])
+    closeout_args = parser.parse_args(
+        [
+            "aegis",
+            "closeout",
+            "--target-dir",
+            "/tmp/example",
+            "--update-handoff",
+            "--dry-run",
+            "--json",
+        ]
+    )
     assert closeout_args.subcommand == "closeout"
     assert closeout_args.update_handoff is True
     assert closeout_args.dry_run is True
     assert closeout_args.json is True
 
-    handoff_repair_args = parser.parse_args([
-        "aegis",
-        "handoff",
-        "repair",
-        "--target-dir",
-        "/tmp/example",
-        "--dry-run",
-    ])
+    handoff_repair_args = parser.parse_args(
+        [
+            "aegis",
+            "handoff",
+            "repair",
+            "--target-dir",
+            "/tmp/example",
+            "--dry-run",
+        ]
+    )
     assert handoff_repair_args.subcommand == "handoff"
     assert handoff_repair_args.handoff_subcommand == "repair"
     assert handoff_repair_args.target_dir == "/tmp/example"
     assert handoff_repair_args.dry_run is True
 
-    certify_args = parser.parse_args([
-        "aegis",
-        "certify-release",
-        "--source-dir",
-        "/tmp/source",
-        "--dist-dir",
-        "/tmp/dist",
-        "--skip-build",
-        "--skip-smoke",
-    ])
+    certify_args = parser.parse_args(
+        [
+            "aegis",
+            "certify-release",
+            "--source-dir",
+            "/tmp/source",
+            "--dist-dir",
+            "/tmp/dist",
+            "--skip-build",
+            "--skip-smoke",
+        ]
+    )
     assert certify_args.subcommand == "certify-release"
     assert certify_args.skip_build is True
     assert certify_args.skip_smoke is True
 
-    kickoff_args = parser.parse_args([
-        "aegis",
-        "kickoff",
-        "--target-dir",
-        "/tmp/example",
-        "--task",
-        "1",
-        "--slug",
-        "portable-smoke",
-        "--title",
-        "Portable Smoke",
-    ])
+    kickoff_args = parser.parse_args(
+        [
+            "aegis",
+            "kickoff",
+            "--target-dir",
+            "/tmp/example",
+            "--task",
+            "1",
+            "--slug",
+            "portable-smoke",
+            "--title",
+            "Portable Smoke",
+        ]
+    )
     assert kickoff_args.subcommand == "kickoff"
     assert kickoff_args.task == "1"
 
-    kickoff_local_args = parser.parse_args([
-        "aegis",
-        "kickoff",
-        "--target-dir",
-        "/tmp/example",
-        "--local",
-        "--title",
-        "Improve BrandMark accessibility",
-    ])
+    kickoff_local_args = parser.parse_args(
+        [
+            "aegis",
+            "kickoff",
+            "--target-dir",
+            "/tmp/example",
+            "--local",
+            "--title",
+            "Improve BrandMark accessibility",
+        ]
+    )
     assert kickoff_local_args.local is True
     assert kickoff_local_args.title == "Improve BrandMark accessibility"
 
-    log_args = parser.parse_args([
-        "aegis",
-        "log",
-        "--target-dir",
-        "/tmp/example",
-        "--handler",
-        "claude-test",
-        "--evidence",
-        "reports/example.txt",
-        "--note",
-        "Recorded example evidence",
-    ])
+    log_args = parser.parse_args(
+        [
+            "aegis",
+            "log",
+            "--target-dir",
+            "/tmp/example",
+            "--handler",
+            "claude-test",
+            "--evidence",
+            "reports/example.txt",
+            "--note",
+            "Recorded example evidence",
+        ]
+    )
     assert log_args.subcommand == "log"
     assert log_args.handler == "claude-test"
     assert log_args.plan_step == ""
@@ -368,36 +406,44 @@ def test_reconcile_cli_parsers_reject_mutation_flags() -> None:
     codex_parser = module.build_parser()
     package_parser = aegis_cli.build_arg_parser()
 
-    codex_allowed = codex_parser.parse_args([
-        "aegis",
-        "reconcile",
-        "--target-dir",
-        "/tmp/example",
-        "--base-ref",
-        "main",
-        "--no-github",
-        "--json",
-    ])
+    codex_allowed = codex_parser.parse_args(
+        [
+            "aegis",
+            "reconcile",
+            "--target-dir",
+            "/tmp/example",
+            "--base-ref",
+            "main",
+            "--no-github",
+            "--json",
+            "--preview-candidates",
+        ]
+    )
     assert codex_allowed.subcommand == "reconcile"
     assert codex_allowed.target_dir == "/tmp/example"
     assert codex_allowed.base_ref == "main"
     assert codex_allowed.no_github is True
     assert codex_allowed.json is True
+    assert codex_allowed.preview_candidates is True
 
-    package_allowed = package_parser.parse_args([
-        "reconcile",
-        "--target-dir",
-        "/tmp/example",
-        "--base-ref",
-        "main",
-        "--no-github",
-        "--json",
-    ])
+    package_allowed = package_parser.parse_args(
+        [
+            "reconcile",
+            "--target-dir",
+            "/tmp/example",
+            "--base-ref",
+            "main",
+            "--no-github",
+            "--json",
+            "--preview-candidates",
+        ]
+    )
     assert package_allowed.subcommand == "reconcile"
     assert package_allowed.target_dir == "/tmp/example"
     assert package_allowed.base_ref == "main"
     assert package_allowed.no_github is True
     assert package_allowed.json is True
+    assert package_allowed.preview_candidates is True
 
     for flag in RECONCILE_MUTATION_FLAGS:
         with pytest.raises(SystemExit):
@@ -406,10 +452,14 @@ def test_reconcile_cli_parsers_reject_mutation_flags() -> None:
             package_parser.parse_args(["reconcile", flag])
 
 
-def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(tmp_path: Path) -> None:
+def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "reconcile-merged-not-done"
     init_git_repo(target)
-    write_taskmaster_tasks(target, [{"id": 42, "title": "Cart Button", "status": "pending", "dependencies": []}])
+    write_taskmaster_tasks(
+        target, [{"id": 42, "title": "Cart Button", "status": "pending", "dependencies": []}]
+    )
     git(target, "switch", "-c", "feat/task-42-cart-button")
     commit_file(target, "feature.txt", "cart\n", "task 42")
     git(target, "switch", "main")
@@ -436,7 +486,9 @@ def test_reconcile_uses_github_merged_pr_to_handle_squash_merge(
 ) -> None:
     target = tmp_path / "reconcile-squash-gh"
     init_git_repo(target)
-    write_taskmaster_tasks(target, [{"id": 43, "title": "Squashed Feature", "status": "pending", "dependencies": []}])
+    write_taskmaster_tasks(
+        target, [{"id": 43, "title": "Squashed Feature", "status": "pending", "dependencies": []}]
+    )
     git(target, "switch", "-c", "feat/task-43-squashed-feature")
     commit_file(target, "feature.txt", "squash\n", "task 43")
     git(target, "switch", "main")
@@ -476,7 +528,9 @@ def test_reconcile_uses_github_merged_pr_to_handle_squash_merge(
 def test_reconcile_keeps_squash_ambiguous_git_only_case_unknown(tmp_path: Path) -> None:
     target = tmp_path / "reconcile-squash-offline"
     init_git_repo(target)
-    write_taskmaster_tasks(target, [{"id": 44, "title": "Offline Squash", "status": "pending", "dependencies": []}])
+    write_taskmaster_tasks(
+        target, [{"id": 44, "title": "Offline Squash", "status": "pending", "dependencies": []}]
+    )
     git(target, "switch", "-c", "feat/task-44-offline-squash")
     commit_file(target, "feature.txt", "offline\n", "task 44")
     git(target, "switch", "main")
@@ -488,7 +542,9 @@ def test_reconcile_keeps_squash_ambiguous_git_only_case_unknown(tmp_path: Path) 
 
     assert_reconcile_preserved_whole_tree(target, tree_before)
     assert report["status"] == "clean"
-    assert not [finding for finding in report["findings"] if finding["kind"] == "merged_but_not_done"]
+    assert not [
+        finding for finding in report["findings"] if finding["kind"] == "merged_but_not_done"
+    ]
     task = next(item for item in report["tasks"] if item["task_id"] == "44")
     assert task["merge_truth"]["status"] == "unknown"
     assert task["merge_truth"]["proof"] == "git_only_non_ancestor_or_missing_base"
@@ -497,7 +553,9 @@ def test_reconcile_keeps_squash_ambiguous_git_only_case_unknown(tmp_path: Path) 
 def test_reconcile_keeps_done_git_only_unknown_as_task_detail_not_finding(tmp_path: Path) -> None:
     target = tmp_path / "reconcile-done-offline-unknown"
     init_git_repo(target)
-    write_taskmaster_tasks(target, [{"id": 441, "title": "Done Offline", "status": "done", "dependencies": []}])
+    write_taskmaster_tasks(
+        target, [{"id": 441, "title": "Done Offline", "status": "done", "dependencies": []}]
+    )
     git(target, "switch", "-c", "feat/task-441-stale-local-branch")
     commit_file(target, "feature.txt", "offline done\n", "task 441")
     git(target, "switch", "main")
@@ -518,7 +576,9 @@ def test_reconcile_reports_done_task_with_open_pr_as_not_merged(
 ) -> None:
     target = tmp_path / "reconcile-done-open-pr"
     init_git_repo(target)
-    write_taskmaster_tasks(target, [{"id": 45, "title": "Open PR", "status": "done", "dependencies": []}])
+    write_taskmaster_tasks(
+        target, [{"id": 45, "title": "Open PR", "status": "done", "dependencies": []}]
+    )
     git(target, "switch", "-c", "feat/task-45-open-pr")
     commit_file(target, "feature.txt", "open\n", "task 45")
     monkeypatch.setattr(
@@ -575,7 +635,12 @@ def test_reconcile_reports_abandoned_branches_stubs_and_multi_pr_ambiguity(
             {
                 "schema_version": "1.0.0",
                 "tasks": [
-                    {"id": "1000", "title": "Ad hoc local task", "status": "in-progress", "slug": "ad-hoc"}
+                    {
+                        "id": "1000",
+                        "title": "Ad hoc local task",
+                        "status": "in-progress",
+                        "slug": "ad-hoc",
+                    }
                 ],
             }
         )
@@ -648,7 +713,9 @@ def test_reconcile_preserves_whole_tree_when_github_metadata_unavailable(
 ) -> None:
     target = tmp_path / "reconcile-github-unavailable"
     init_git_repo(target)
-    write_taskmaster_tasks(target, [{"id": 78, "title": "GitHub Unavailable", "status": "pending", "dependencies": []}])
+    write_taskmaster_tasks(
+        target, [{"id": 78, "title": "GitHub Unavailable", "status": "pending", "dependencies": []}]
+    )
     git(target, "switch", "-c", "feat/task-78-github-unavailable")
     commit_file(target, "feature.txt", "github unavailable\n", "task 78")
     git(target, "switch", "main")
@@ -735,14 +802,24 @@ def test_repair_preview_is_read_only_and_apply_restores_safe_managed_file(tmp_pa
     assert applied["postflight"]["summary"]["failed_required"] == 0
 
 
-def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_folders(tmp_path: Path) -> None:
+def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_folders(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "repair-current-links"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     initialize_project(target, source_root=REPO_ROOT)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pointer-repair", title="Pointer Repair")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     stale = target / "docs/ai/work-tracking/active/20990101-task99-stale-ACTIVE"
     stale.mkdir(parents=True)
     (target / "sessions/current").unlink()
@@ -767,7 +844,13 @@ def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_fold
 def test_repair_apply_is_blocked_while_pending_tracking_exists(tmp_path: Path) -> None:
     target = tmp_path / "repair-pending"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     initialize_project(target, source_root=REPO_ROOT)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pending-repair", title="Pending Repair")
@@ -803,7 +886,13 @@ def test_repair_apply_is_blocked_while_pending_tracking_exists(tmp_path: Path) -
 def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path: Path) -> None:
     target = tmp_path / "local-start"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     initialize_project(target, source_root=REPO_ROOT)
     next_before_start = next_action(target, source_root=REPO_ROOT)
     assert next_before_start["state"] == "client_reload_required"
@@ -831,7 +920,9 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     mcp_start_gate = run_target_pretooluse(target, mcp_start_payload)
     assert mcp_start_gate.returncode == 0, mcp_start_gate.stderr
 
-    payload = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
+    payload = start_local_work(
+        target, title="Improve BrandMark accessibility", source_root=REPO_ROOT
+    )
 
     assert payload["status"] == "started"
     assert payload["local_task"]["id"] == "1"
@@ -841,7 +932,9 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     local_tasks = json.loads((target / AEGIS_LOCAL_TASKS_REL).read_text(encoding="utf-8"))
     assert local_tasks["next_id"] == 2
     assert local_tasks["tasks"][0]["source"] == "aegis-local"
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     assert current_work["task"]["source"] == "aegis-local"
     assert current_work["integrations"]["taskmaster"]["required"] is False
     assert current_work["integrations"]["taskmaster"]["detected"] is False
@@ -858,12 +951,20 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
 def test_start_local_work_replay_is_noop_and_different_work_is_refused(tmp_path: Path) -> None:
     target = tmp_path / "local-start-replay"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     initialize_project(target, source_root=REPO_ROOT)
     simulate_claude_reload(target)
 
     first = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
-    replay = start_local_work(target, title="Improve BrandMark accessibility", source_root=REPO_ROOT)
+    replay = start_local_work(
+        target, title="Improve BrandMark accessibility", source_root=REPO_ROOT
+    )
 
     assert replay["status"] == "already_started"
     assert replay["idempotent"] is True
@@ -986,7 +1087,9 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     assert installed["suggested_mcp_call"]["arguments"]["apply"] is True
 
 
-def test_next_action_prefers_taskmaster_kickoff_when_numeric_task_is_available(tmp_path: Path) -> None:
+def test_next_action_prefers_taskmaster_kickoff_when_numeric_task_is_available(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "guided-taskmaster-repo"
     target.mkdir()
     taskmaster_tasks = target / ".taskmaster" / "tasks"
@@ -1135,7 +1238,9 @@ def test_installed_pretooluse_blocks_unclassifiable_payload(tmp_path: Path) -> N
     )
 
     malformed = run_target_pretooluse_raw(target, '{"tool_name": "Write",')
-    missing_tool_name = run_target_pretooluse_raw(target, '{"tool_input": {"file_path": "src/main.ts"}}')
+    missing_tool_name = run_target_pretooluse_raw(
+        target, '{"tool_input": {"file_path": "src/main.ts"}}'
+    )
 
     assert malformed.returncode == 2
     assert "could not be parsed or classified safely" in malformed.stderr
@@ -1177,10 +1282,18 @@ def test_installed_pretooluse_short_circuits_read_only_before_readiness(tmp_path
     assert "readiness failed" in mutating.stderr
 
 
-def test_installed_pretooluse_blocks_direct_workflow_edits_but_allows_aegis_handlers(tmp_path: Path) -> None:
+def test_installed_pretooluse_blocks_direct_workflow_edits_but_allows_aegis_handlers(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "workflow-surface-protection"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1254,7 +1367,13 @@ def test_installed_pretooluse_blocks_direct_workflow_edits_but_allows_aegis_hand
 def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: Path) -> None:
     target = tmp_path / "reload-barrier"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
 
     install_report = install(
         target,
@@ -1303,10 +1422,18 @@ def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: P
     assert kickoff_report["task"]["id"] == "42"
 
 
-def test_codex_primary_guidance_uses_explicit_agent_logs_and_normalized_task_slug(tmp_path: Path) -> None:
+def test_codex_primary_guidance_uses_explicit_agent_logs_and_normalized_task_slug(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "codex-guided-workflow"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     (target / "src").mkdir()
     (target / "src" / "main.ts").write_text("export const ready = true;\n", encoding="utf-8")
     install(
@@ -1397,7 +1524,13 @@ def test_start_local_work_refuses_to_bypass_available_taskmaster_task(tmp_path: 
         ),
         encoding="utf-8",
     )
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1437,7 +1570,13 @@ def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Pa
         ),
         encoding="utf-8",
     )
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1462,25 +1601,37 @@ def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Pa
 
     done_gate = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=42 --status=done"}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "task-master set-status --id=42 --status=done"},
+        },
     )
     assert done_gate.returncode == 0, done_gate.stderr
     done_posttool = run_target_posttooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=42 --status=done"}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "task-master set-status --id=42 --status=done"},
+        },
     )
     assert done_posttool.returncode == 0, done_posttool.stderr
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
     generate_gate = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": "test -f scripts/codex-task; task-master generate"}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "test -f scripts/codex-task; task-master generate"},
+        },
     )
     assert generate_gate.returncode == 0, generate_gate.stderr
 
     wrong_task_gate = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=99 --status=done"}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "task-master set-status --id=99 --status=done"},
+        },
     )
     assert wrong_task_gate.returncode == 2
     assert "readiness is BLOCKED" in wrong_task_gate.stderr
@@ -1506,13 +1657,22 @@ def test_public_init_requires_claude_reload_before_start_as_next_action(tmp_path
     assert initialized["next_action"]["suggested_mcp"]["tool"] == "aegis.next"
     assert initialized["next_action"]["details"]["client_reload_required"] is True
     assert ".claude/settings.json" in initialized["next_action"]["details"]["changed_paths"]
-    assert initialized["next_action"]["details"]["post_reload"] == "Run aegis.next, then start/kickoff tracked work before source edits."
+    assert (
+        initialized["next_action"]["details"]["post_reload"]
+        == "Run aegis.next, then start/kickoff tracked work before source edits."
+    )
 
 
 def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
     target = tmp_path / "guided-workflow"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1528,7 +1688,9 @@ def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
         title="Guided Task",
         goals=["Exercise next action guidance"],
     )
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
 
     scope_required = next_action(target, source_root=REPO_ROOT)
     assert scope_required["phase"] == "scope"
@@ -1552,7 +1714,10 @@ def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
     assert implement_required["state"] == "implementation_required"
     assert "native" in implement_required["architecture_notes"].lower()
 
-    pending_payload = {"tool_name": "Write", "tool_input": {"file_path": f"{current_work['paths']['reports']}/evidence.txt"}}
+    pending_payload = {
+        "tool_name": "Write",
+        "tool_input": {"file_path": f"{current_work['paths']['reports']}/evidence.txt"},
+    }
     evidence_file = target / current_work["paths"]["reports"] / "evidence.txt"
     evidence_file.parent.mkdir(parents=True, exist_ok=True)
     evidence_file.write_text("implementation evidence\n", encoding="utf-8")
@@ -1596,7 +1761,13 @@ def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
 def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path: Path) -> None:
     target = tmp_path / "auto-plan-step"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1612,7 +1783,9 @@ def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path
         title="Auto Step",
         goals=["Exercise deterministic plan step inference"],
     )
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
 
     scope = log_work(
         target,
@@ -1664,7 +1837,13 @@ def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path
 def test_log_work_replay_does_not_duplicate_swhe_entries(tmp_path: Path) -> None:
     target = tmp_path / "log-replay"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1674,7 +1853,9 @@ def test_log_work_replay_does_not_duplicate_swhe_entries(tmp_path: Path) -> None
     )
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="log-replay", title="Log Replay")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     evidence_rel = f"{current_work['paths']['work_tracking']}/FINDINGS.md"
 
     first = log_work(
@@ -1701,15 +1882,25 @@ def test_log_work_replay_does_not_duplicate_swhe_entries(tmp_path: Path) -> None
     assert replay["idempotent"] is True
     swhe = f"[S:{first['entry']['s']}|W:{first['entry']['w']}|H:claude:scope|E:{evidence_rel}]"
     session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
-    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
+    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(
+        encoding="utf-8"
+    )
     assert session_text.count(swhe) == 1
     assert tracker_text.count(swhe) == 1
 
 
-def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_entries(tmp_path: Path) -> None:
+def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_entries(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "log-replay-backfill"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1719,7 +1910,9 @@ def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_en
     )
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="log-backfill", title="Log Backfill")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     evidence_rel = f"{current_work['paths']['reports']}/implementation.txt"
     (target / evidence_rel).parent.mkdir(parents=True, exist_ok=True)
     (target / evidence_rel).write_text("implementation\n", encoding="utf-8")
@@ -1751,9 +1944,15 @@ def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_en
     }
     swhe = f"[S:{first['entry']['s']}|W:{first['entry']['w']}|H:claude:Write|E:{evidence_rel}]"
     session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
-    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
-    implementation_text = (target / current_work["paths"]["work_tracking"] / "IMPLEMENTATION.md").read_text(encoding="utf-8")
-    changelog_text = (target / current_work["paths"]["work_tracking"] / "CHANGELOG.md").read_text(encoding="utf-8")
+    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(
+        encoding="utf-8"
+    )
+    implementation_text = (
+        target / current_work["paths"]["work_tracking"] / "IMPLEMENTATION.md"
+    ).read_text(encoding="utf-8")
+    changelog_text = (target / current_work["paths"]["work_tracking"] / "CHANGELOG.md").read_text(
+        encoding="utf-8"
+    )
     assert session_text.count(swhe) == 1
     assert tracker_text.count(swhe) == 1
     assert implementation_text.count(swhe) == 1
@@ -1763,7 +1962,13 @@ def test_log_work_replay_can_backfill_missing_surfaces_without_duplicate_core_en
 def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> None:
     target = tmp_path / "ambiguous-auto-plan-step"
     target.mkdir()
-    subprocess.run(["git", "init", "-b", "main"], cwd=target, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     install(
         target,
         source_root=REPO_ROOT,
@@ -1779,7 +1984,9 @@ def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> 
         title="Ambiguous Auto",
         goals=["Exercise ambiguous plan step inference"],
     )
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
 
     with pytest.raises(AegisError, match="plan-step auto is ambiguous"):
         log_work(
@@ -1860,7 +2067,11 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         target,
         {
             "tool_name": "mcp__aegis__aegis_start",
-            "tool_input": {"target_dir": target.as_posix(), "title": "Portable Smoke", "apply": True},
+            "tool_input": {
+                "target_dir": target.as_posix(),
+                "title": "Portable Smoke",
+                "apply": True,
+            },
         },
     )
     assert mcp_start_bootstrap.returncode == 0, mcp_start_bootstrap.stderr
@@ -1878,16 +2089,21 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     ready = run_target_readiness(target)
     assert ready.returncode == 0, ready.stdout + ready.stderr
     assert ready.stdout.strip().startswith("READY | task=1")
-    assert "Aegis current work Task 1 is in-progress" in subprocess.run(
-        ["bash", str(target / ".claude" / "scripts" / "readiness.sh"), "--root", str(target)],
-        cwd=target,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    ).stdout
+    assert (
+        "Aegis current work Task 1 is in-progress"
+        in subprocess.run(
+            ["bash", str(target / ".claude" / "scripts" / "readiness.sh"), "--root", str(target)],
+            cwd=target,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        ).stdout
+    )
 
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     assert current_work["task"]["id"] == "1"
     assert current_work["integrations"]["taskmaster"] == {"detected": False, "required": False}
     assert current_work["integrations"]["serena"] == {"detected": False, "required": False}
@@ -1949,17 +2165,28 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     assert logged["pending"]["cleared"] == 1
     assert logged["entry"]["evidence_location"]["display"] == f"{evidence_path}:1"
     session_text = (target / current_work["paths"]["session"]).read_text(encoding="utf-8")
-    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(encoding="utf-8")
+    tracker_text = (target / current_work["paths"]["work_tracking"] / "TRACKER.md").read_text(
+        encoding="utf-8"
+    )
     plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
-    implementation_text = (target / current_work["paths"]["work_tracking"] / "IMPLEMENTATION.md").read_text(encoding="utf-8")
-    changelog_text = (target / current_work["paths"]["work_tracking"] / "CHANGELOG.md").read_text(encoding="utf-8")
-    handoff_text = (target / current_work["paths"]["work_tracking"] / "HANDOFF.md").read_text(encoding="utf-8")
+    implementation_text = (
+        target / current_work["paths"]["work_tracking"] / "IMPLEMENTATION.md"
+    ).read_text(encoding="utf-8")
+    changelog_text = (target / current_work["paths"]["work_tracking"] / "CHANGELOG.md").read_text(
+        encoding="utf-8"
+    )
+    handoff_text = (target / current_work["paths"]["work_tracking"] / "HANDOFF.md").read_text(
+        encoding="utf-8"
+    )
     assert "|W:task1-portable-smoke|H:claude-installer-test|E:" in session_text
     assert "|W:task1-portable-smoke|H:claude-installer-test|E:" in tracker_text
     assert "|W:task1-portable-smoke|H:claude-installer-test|E:" in implementation_text
     assert "|W:task1-portable-smoke|H:claude-installer-test|E:" in changelog_text
     assert "|W:task1-portable-smoke|H:claude-installer-test|E:" in handoff_text
-    assert "| plan-step-implement | Make only task-scoped changes and record implementation notes |" in plan_text
+    assert (
+        "| plan-step-implement | Make only task-scoped changes and record implementation notes |"
+        in plan_text
+    )
     assert f"; {evidence_path} | in-progress |" in plan_text
     assert logged["paths"]["surfaces"] == {
         "implementation": f"{current_work['paths']['work_tracking']}/IMPLEMENTATION.md",
@@ -2035,14 +2262,18 @@ def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
     assert started["next_action"]["action"] == "log_scope_before_edit"
     assert started["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
     assert started["next_action"]["suggested_mcp"]["arguments"]["plan_step"] == "auto"
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     current_work["branch"] = {
         "action": "created_branch",
         "before": "main",
         "created": True,
         "current": "feat/task-42-handoff-repair",
     }
-    (target / ".aegis" / "state" / "current-work.json").write_text(json.dumps(current_work, indent=2) + "\n", encoding="utf-8")
+    (target / ".aegis" / "state" / "current-work.json").write_text(
+        json.dumps(current_work, indent=2) + "\n", encoding="utf-8"
+    )
     work_rel = current_work["paths"]["work_tracking"]
     reports_rel = current_work["paths"]["reports"]
     implementation_evidence = f"{reports_rel}/implementation.txt"
@@ -2110,7 +2341,9 @@ def test_log_work_consumes_pending_event_by_id(tmp_path: Path) -> None:
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pending-id", title="Pending Id")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     evidence_rel = f"{current_work['paths']['reports']}/pending-id.txt"
     (target / evidence_rel).write_text("pending\n", encoding="utf-8")
     pending_path = target / AEGIS_PENDING_TRACKING_REL
@@ -2253,7 +2486,9 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="repair-guidance", title="Repair Guidance")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     work_rel = current_work["paths"]["work_tracking"]
     implementation_evidence = f"{current_work['paths']['reports']}/implementation.txt"
     (target / implementation_evidence).write_text("implementation\n", encoding="utf-8")
@@ -2431,7 +2666,9 @@ def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_
     assert strict_report["summary"]["failed_required"] == 0
     assert strict_report["next_action"]["action"] == "log_strict_verification_before_closeout"
     assert strict_report["next_action"]["suggested_mcp"]["tool"] == "aegis.log"
-    assert strict_report["next_action"]["suggested_mcp"]["arguments"]["pending_event_id"] == "current"
+    assert (
+        strict_report["next_action"]["suggested_mcp"]["arguments"]["pending_event_id"] == "current"
+    )
 
 
 def test_local_cli_shim_resolves_packaged_asset_source_root(tmp_path: Path) -> None:
@@ -2495,7 +2732,9 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
         title="Closeout Gate",
         goals=["Prove closeout validates semantic workflow completion"],
     )
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     work_rel = current_work["paths"]["work_tracking"]
     report_rel = f"{current_work['paths']['reports']}/closeout-evidence.txt"
     (target / report_rel).write_text("closeout evidence\n", encoding="utf-8")
@@ -2553,29 +2792,33 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
     assert (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8") == manifest_before_dry_run
     assert (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8") == handoff_before_dry_run
-    concise_failed = run_cli([
-        "aegis",
-        "closeout",
-        "--target-dir",
-        str(target),
-        "--dry-run",
-        "--update-handoff",
-    ])
+    concise_failed = run_cli(
+        [
+            "aegis",
+            "closeout",
+            "--target-dir",
+            str(target),
+            "--dry-run",
+            "--update-handoff",
+        ]
+    )
     assert concise_failed.returncode == 1
     assert "Aegis closeout readiness: FAILED" in concise_failed.stdout
     assert "failed_required:" in concise_failed.stdout
     assert "failed_gates:" in concise_failed.stdout
     assert "closeout.handoff.current_state" in concise_failed.stdout
     assert not concise_failed.stdout.lstrip().startswith("{")
-    json_failed = run_cli([
-        "aegis",
-        "closeout",
-        "--target-dir",
-        str(target),
-        "--dry-run",
-        "--update-handoff",
-        "--json",
-    ])
+    json_failed = run_cli(
+        [
+            "aegis",
+            "closeout",
+            "--target-dir",
+            str(target),
+            "--dry-run",
+            "--update-handoff",
+            "--json",
+        ]
+    )
     assert json_failed.returncode == 1
     assert json.loads(json_failed.stdout)["status"] == "failed"
 
@@ -2584,7 +2827,10 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert failed["next_action"]["action"] == "apply_handoff_repair_before_retry"
     assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.handoff_repair"
     assert failed["next_action"]["suggested_mcp"]["arguments"]["apply"] is True
-    assert "closeout.handoff.current_state" in failed["next_action"]["details"]["failed_required_gates"]
+    assert (
+        "closeout.handoff.current_state"
+        in failed["next_action"]["details"]["failed_required_gates"]
+    )
     assert any(
         check["gate_id"] == "closeout.handoff.current_state" and check["status"] == "fail"
         for check in failed["checks"]
@@ -2596,7 +2842,7 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert passed["next_action"]["suggested_mcp"]["tool"] == "aegis.doctor"
     assert passed["summary"]["failed_required"] == 0
     assert passed["git"]["legacy_manual_only"] == ["gac"]
-    assert "git commit -m \"<type(scope): summary>\"" in passed["git"]["guidance"]
+    assert 'git commit -m "<type(scope): summary>"' in passed["git"]["guidance"]
     concise_passed = aegis_installer.format_closeout_summary(passed)
     assert "Aegis closeout: PASSED" in concise_passed
     assert "closeout_report: .aegis/reports/closeout-report.json (written)" in concise_passed
@@ -2604,7 +2850,9 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     closeout_report = json.loads((target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8"))
     assert closeout_report["report_written"] is True
     assert closeout_report["state_updated"] is True
-    refreshed_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    refreshed_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     assert refreshed_work["status"] == "completed"
     assert refreshed_work["task"]["status"] == "completed"
     assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
@@ -2616,7 +2864,7 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
         "action_class": "non_destructive",
         "tool": "Bash",
         "reason": "RuntimeError: synthetic gate failure",
-        "raw_preview": "{\"tool_name\":\"Bash\"}",
+        "raw_preview": '{"tool_name":"Bash"}',
         "previous_event_hash": "",
         "event_hash": "synthetic",
     }
@@ -2635,7 +2883,9 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     degraded_doctor = doctor(target, source_root=REPO_ROOT)
     assert degraded_doctor["status"] == "degraded"
     degraded_check = next(
-        check for check in degraded_doctor["checks"] if check["id"] == "runtime.degraded_events_acknowledged"
+        check
+        for check in degraded_doctor["checks"]
+        if check["id"] == "runtime.degraded_events_acknowledged"
     )
     assert degraded_check["status"] == "fail"
     degraded_closeout = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
@@ -2698,7 +2948,9 @@ def test_handoff_repair_fixes_placeholder_handoff_before_closeout(tmp_path: Path
         title="Handoff Repair",
         goals=["Repair placeholder handoff before final closeout"],
     )
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     work_rel = current_work["paths"]["work_tracking"]
     report_rel = f"{current_work['paths']['reports']}/handoff-repair-evidence.txt"
     (target / report_rel).write_text("handoff repair evidence\n", encoding="utf-8")
@@ -2747,7 +2999,10 @@ def test_handoff_repair_fixes_placeholder_handoff_before_closeout(tmp_path: Path
     assert dry_run["status"] == "planned"
     assert dry_run["dry_run"] is True
     assert dry_run["handoff"]["would_update"] is True
-    assert "closeout.handoff.current_state" in dry_run["closeout_ready_before"]["failed_required_gates"]
+    assert (
+        "closeout.handoff.current_state"
+        in dry_run["closeout_ready_before"]["failed_required_gates"]
+    )
     assert "## Implementation Evidence" in dry_run["preview"]
     assert handoff_path.read_text(encoding="utf-8") == handoff_before
     assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
@@ -2909,7 +3164,10 @@ def test_release_certification_fails_on_missing_required_artifact_member(tmp_pat
     assert report["status"] == "failed"
     assert any(failure["stage"] == "artifact_inspection" for failure in report["failures"])
     wheel = next(artifact for artifact in report["artifacts"] if artifact["kind"] == "wheel")
-    assert "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh" in wheel["missing_required_suffixes"]
+    assert (
+        "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh"
+        in wheel["missing_required_suffixes"]
+    )
 
 
 def test_release_certification_runs_clean_smoke_when_enabled(
@@ -2960,7 +3218,9 @@ def test_release_certification_runs_clean_smoke_when_enabled(
 
 def test_release_certification_full_clean_smoke_when_enabled(tmp_path: Path) -> None:
     if os.environ.get("AEGIS_RUN_CERTIFICATION_SMOKE") != "1":
-        pytest.skip("Set AEGIS_RUN_CERTIFICATION_SMOKE=1 to run the full release certification smoke.")
+        pytest.skip(
+            "Set AEGIS_RUN_CERTIFICATION_SMOKE=1 to run the full release certification smoke."
+        )
     if shutil.which("uv") is None or shutil.which("uvx") is None:
         pytest.skip("uv and uvx are required for the full release certification smoke.")
 
@@ -2982,7 +3242,9 @@ def test_release_certification_full_clean_smoke_when_enabled(tmp_path: Path) -> 
     )
 
 
-def test_install_merges_existing_claude_entrypoint_without_losing_project_context(tmp_path: Path) -> None:
+def test_install_merges_existing_claude_entrypoint_without_losing_project_context(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "existing-claude-project"
     target.mkdir()
     claude = target / "CLAUDE.md"
@@ -3003,13 +3265,17 @@ def test_install_merges_existing_claude_entrypoint_without_losing_project_contex
     assert "Before persistent mutation, Claude must be in a READY state" in text
     assert "## Existing Project Instructions" in text
     assert "# Existing Claude instructions" in text
-    claude_operation = next(operation for operation in report["plan"]["operations"] if operation["path"] == "CLAUDE.md")
+    claude_operation = next(
+        operation for operation in report["plan"]["operations"] if operation["path"] == "CLAUDE.md"
+    )
     assert claude_operation["classification"] == "modify"
     assert claude_operation["safe_to_apply"] is True
     assert (target / AEGIS_MANIFEST_REL).exists()
 
 
-def test_install_merges_existing_agents_entrypoint_without_losing_project_context(tmp_path: Path) -> None:
+def test_install_merges_existing_agents_entrypoint_without_losing_project_context(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "existing-agents-project"
     target.mkdir()
     agents = target / "AGENTS.md"
@@ -3030,7 +3296,9 @@ def test_install_merges_existing_agents_entrypoint_without_losing_project_contex
     assert "Aegis Foundation" in text
     assert "## Existing Agent Instructions" in text
     assert "# Existing agent instructions" in text
-    agents_operation = next(operation for operation in report["plan"]["operations"] if operation["path"] == "AGENTS.md")
+    agents_operation = next(
+        operation for operation in report["plan"]["operations"] if operation["path"] == "AGENTS.md"
+    )
     assert agents_operation["classification"] == "modify"
     assert agents_operation["safe_to_apply"] is True
     assert (target / AEGIS_MANIFEST_REL).exists()
@@ -3098,32 +3366,36 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     target = tmp_path / "cli-repo"
     target.mkdir()
 
-    plan_result = run_cli([
-        "aegis",
-        "plan-install",
-        "--target-dir",
-        str(target),
-        "--primary-agent",
-        "claude",
-        "--agent",
-        "claude",
-    ])
+    plan_result = run_cli(
+        [
+            "aegis",
+            "plan-install",
+            "--target-dir",
+            str(target),
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+        ]
+    )
     assert plan_result.returncode == 0, plan_result.stderr
     plan = json.loads(plan_result.stdout)
     assert plan["mode"] == "dry_run"
     assert plan["summary"]["creates"] > 0
 
-    install_result = run_cli([
-        "aegis",
-        "install",
-        "--target-dir",
-        str(target),
-        "--primary-agent",
-        "claude",
-        "--agent",
-        "claude",
-        "--apply",
-    ])
+    install_result = run_cli(
+        [
+            "aegis",
+            "install",
+            "--target-dir",
+            str(target),
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+            "--apply",
+        ]
+    )
     assert install_result.returncode == 0, install_result.stderr
     install_report = json.loads(install_result.stdout)
     assert install_report["status"] == "applied"
@@ -3133,16 +3405,18 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     verify_report = json.loads(verify_result.stdout)
     assert verify_report["status"] == "passed"
 
-    second_plan_result = run_cli([
-        "aegis",
-        "plan-install",
-        "--target-dir",
-        str(target),
-        "--primary-agent",
-        "claude",
-        "--agent",
-        "claude",
-    ])
+    second_plan_result = run_cli(
+        [
+            "aegis",
+            "plan-install",
+            "--target-dir",
+            str(target),
+            "--primary-agent",
+            "claude",
+            "--agent",
+            "claude",
+        ]
+    )
     assert second_plan_result.returncode == 0, second_plan_result.stderr
     second_plan = json.loads(second_plan_result.stdout)
     assert second_plan["summary"]["creates"] == 0
