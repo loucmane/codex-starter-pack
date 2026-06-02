@@ -11,3 +11,4 @@
   parameters, no writer preview consumption, and no enabled apply path.
 - 2026-06-02 17:59 CEST — Updated Taskmaster Task 149 to reflect the sharpened
   design-review scope from Claude's feedback.
+- 2026-06-02 18:35 CEST — Archived active work-tracking folder.
