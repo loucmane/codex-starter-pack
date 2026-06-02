@@ -18,6 +18,7 @@ from typing import Any
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
+from aegis_foundation import cli as aegis_cli
 from scripts import _aegis_installer as aegis_installer
 from scripts._aegis_installer import (
     AEGIS_MANIFEST_REL,
@@ -51,6 +52,19 @@ from scripts._aegis_installer import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_ROOT = REPO_ROOT / "schemas" / "aegis"
+RECONCILE_MUTATION_FLAGS = (
+    "--apply",
+    "--auto",
+    "--auto-fix",
+    "--fix",
+    "--set-status",
+    "--status",
+    "--done",
+    "--closeout",
+    "--mutate",
+    "--write",
+    "--push",
+)
 
 
 def load_task_module():
@@ -341,6 +355,49 @@ def test_build_parser_accepts_aegis_commands() -> None:
 
     profile_args = parser.parse_args(["aegis", "explain-profile"])
     assert profile_args.profile == "generic"
+
+
+def test_reconcile_cli_parsers_reject_mutation_flags() -> None:
+    module = load_task_module()
+    codex_parser = module.build_parser()
+    package_parser = aegis_cli.build_arg_parser()
+
+    codex_allowed = codex_parser.parse_args([
+        "aegis",
+        "reconcile",
+        "--target-dir",
+        "/tmp/example",
+        "--base-ref",
+        "main",
+        "--no-github",
+        "--json",
+    ])
+    assert codex_allowed.subcommand == "reconcile"
+    assert codex_allowed.target_dir == "/tmp/example"
+    assert codex_allowed.base_ref == "main"
+    assert codex_allowed.no_github is True
+    assert codex_allowed.json is True
+
+    package_allowed = package_parser.parse_args([
+        "reconcile",
+        "--target-dir",
+        "/tmp/example",
+        "--base-ref",
+        "main",
+        "--no-github",
+        "--json",
+    ])
+    assert package_allowed.subcommand == "reconcile"
+    assert package_allowed.target_dir == "/tmp/example"
+    assert package_allowed.base_ref == "main"
+    assert package_allowed.no_github is True
+    assert package_allowed.json is True
+
+    for flag in RECONCILE_MUTATION_FLAGS:
+        with pytest.raises(SystemExit):
+            codex_parser.parse_args(["aegis", "reconcile", flag])
+        with pytest.raises(SystemExit):
+            package_parser.parse_args(["reconcile", flag])
 
 
 def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(tmp_path: Path) -> None:

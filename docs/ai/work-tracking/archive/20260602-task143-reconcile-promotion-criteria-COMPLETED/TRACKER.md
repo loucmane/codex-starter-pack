@@ -1,7 +1,7 @@
 # Task 143 Dogfood reconcile promotion criteria Tracker
 
 **Started**: 2026-06-02
-**Status**: DONE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-02
 
 ## Goals
