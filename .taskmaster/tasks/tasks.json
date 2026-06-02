@@ -6251,19 +6251,20 @@
         "description": "Add a read-only reconcile command that reports drift between Taskmaster status, branch/PR/git merge truth, active Aegis work, and local stubs without auto-mutating status.",
         "details": "Agent-runtime-first rationale: final done truth should converge on merge/git reality, but first the system must prove it can detect drift safely. Acceptance: command reports merged-but-not-done, done-but-not-merged, abandoned in-progress branch, stale local/ad hoc stubs, and multi-PR epic ambiguity; gh is optional acceleration and git-only fallback works; command is read-only, emits JSON and human summaries, and has tests for branch ancestry, missing remotes, merged PR metadata, and ambiguous/multi-PR cases.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "136"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-02T09:23:18.840Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-01T18:20:12.088Z",
+      "lastModified": "2026-06-02T09:23:18.841Z",
       "taskCount": 141,
-      "completedCount": 140,
+      "completedCount": 141,
       "tags": [
         "master"
       ]

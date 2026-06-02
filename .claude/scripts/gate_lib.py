@@ -135,6 +135,7 @@ READ_ONLY_AEGIS_SUBCOMMANDS = {
     "list-profiles",
     "next",
     "plan-install",
+    "reconcile",
     "status",
 }
 READ_ONLY_NPM_SCRIPTS = {"check", "lint", "test", "typecheck", "verify"}
@@ -182,6 +183,7 @@ AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "status",
     "next",
     "doctor",
+    "reconcile",
     "plan_install",
     "closeout_ready",
     "list_profiles",

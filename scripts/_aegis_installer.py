@@ -2211,6 +2211,537 @@ def _branch_task_id(branch: str) -> str | None:
     return match.group(1) if match else None
 
 
+def _task_ids_from_text(value: str) -> list[str]:
+    """Extract probable task ids from branch/title text for reconciliation only."""
+
+    ids = {
+        match.group(1)
+        for match in re.finditer(r"(?:^|[^a-z0-9])task[-_\s#]*(\d+)(?:[^a-z0-9]|$)", value.lower())
+    }
+    return sorted(ids, key=lambda item: int(item))
+
+
+def _taskmaster_tasks_by_id(target_root: Path) -> dict[str, dict[str, Any]]:
+    payload = _read_json(target_root / TASKMASTER_TASKS_REL)
+    if not isinstance(payload, Mapping):
+        return {}
+    tasks: dict[str, dict[str, Any]] = {}
+    for task in _iter_taskmaster_tasks(payload):
+        task_id = _numeric_task_id(task.get("id"))
+        if task_id is None:
+            continue
+        tasks[task_id] = {
+            "id": task_id,
+            "title": str(task.get("title") or f"Task {task_id}").strip() or f"Task {task_id}",
+            "status": str(task.get("status") or "").strip().lower() or "unknown",
+            "raw": dict(task),
+        }
+    return tasks
+
+
+def _git_ref_exists(target_root: Path, ref: str) -> bool:
+    return _run_target_git(target_root, "rev-parse", "--verify", "--quiet", ref).returncode == 0
+
+
+def _resolve_reconcile_base_ref(target_root: Path, base_ref: str | None) -> dict[str, Any]:
+    requested = (base_ref or "origin/main").strip() or "origin/main"
+    candidates = [requested]
+    if requested == "origin/main":
+        candidates.extend(["main", "master"])
+    for candidate in dict.fromkeys(candidates):
+        if _git_ref_exists(target_root, candidate):
+            return {
+                "requested": requested,
+                "selected": candidate,
+                "available": True,
+                "fallback_used": candidate != requested,
+            }
+    return {
+        "requested": requested,
+        "selected": requested,
+        "available": False,
+        "fallback_used": False,
+    }
+
+
+def _git_commit_for_ref(target_root: Path, ref: str) -> str | None:
+    result = _run_target_git(target_root, "rev-parse", "--verify", ref)
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _reconcile_branch_kind(name: str) -> str:
+    return "remote" if "/" in name and not name.startswith(("feat/", "fix/", "docs/", "chore/", "task-")) else "local"
+
+
+def _reconcile_branch_candidates(target_root: Path) -> list[dict[str, Any]]:
+    result = _run_target_git(
+        target_root,
+        "for-each-ref",
+        "--format=%(refname:short)",
+        "refs/heads",
+        "refs/remotes",
+    )
+    if result.returncode != 0:
+        return []
+    branches: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in result.stdout.splitlines():
+        name = raw.strip()
+        if not name or name.endswith("/HEAD") or name in seen:
+            continue
+        seen.add(name)
+        task_id = _branch_task_id(name)
+        if task_id is None:
+            continue
+        branches.append(
+            {
+                "name": name,
+                "kind": _reconcile_branch_kind(name),
+                "task_id": task_id,
+                "commit": _git_commit_for_ref(target_root, name),
+            }
+        )
+    return sorted(branches, key=lambda branch: (int(branch["task_id"]), branch["name"]))
+
+
+def _branch_merge_truth(target_root: Path, branch: Mapping[str, Any], base: Mapping[str, Any]) -> dict[str, Any]:
+    if not base.get("available"):
+        return {
+            "status": "unknown",
+            "proof": "base_ref_missing",
+            "confidence": "none",
+            "reason": "base ref is unavailable; cannot prove ancestry",
+        }
+    branch_name = str(branch.get("name") or "")
+    if not branch.get("commit"):
+        return {
+            "status": "unknown",
+            "proof": "branch_ref_unresolved",
+            "confidence": "none",
+            "reason": "branch ref could not be resolved",
+        }
+    base_commit = _git_commit_for_ref(target_root, str(base["selected"]))
+    if base_commit and str(branch.get("commit")) == base_commit:
+        return {
+            "status": "unknown",
+            "proof": "branch_at_base",
+            "confidence": "none",
+            "reason": "branch points at the base ref; no task-specific merge proof exists yet",
+        }
+    result = _run_target_git(target_root, "merge-base", "--is-ancestor", branch_name, str(base["selected"]))
+    if result.returncode == 0:
+        return {
+            "status": "merged",
+            "proof": "git_ancestor",
+            "confidence": "high",
+            "reason": f"{branch_name} is an ancestor of {base['selected']}",
+        }
+    if result.returncode == 1:
+        return {
+            "status": "unknown",
+            "proof": "git_non_ancestor",
+            "confidence": "low",
+            "reason": "branch tip is not an ancestor; this may be unmerged work or a squash merge",
+        }
+    return {
+        "status": "unknown",
+        "proof": "git_merge_base_error",
+        "confidence": "none",
+        "reason": (result.stderr or result.stdout or "git merge-base failed").strip(),
+    }
+
+
+def _run_gh_pr_list(target_root: Path) -> dict[str, Any]:
+    gh = shutil.which("gh")
+    if gh is None:
+        return {"available": False, "reason": "gh executable not found", "prs": []}
+    result = subprocess.run(
+        [
+            gh,
+            "pr",
+            "list",
+            "--state",
+            "all",
+            "--limit",
+            "200",
+            "--json",
+            "number,state,title,headRefName,baseRefName,mergedAt,url,isDraft",
+        ],
+        cwd=target_root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        return {
+            "available": False,
+            "reason": (result.stderr or result.stdout or "gh pr list failed").strip(),
+            "prs": [],
+        }
+    try:
+        raw_prs = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"available": False, "reason": "gh pr list returned invalid JSON", "prs": []}
+    if not isinstance(raw_prs, list):
+        return {"available": False, "reason": "gh pr list returned non-list JSON", "prs": []}
+    prs = [dict(pr) for pr in raw_prs if isinstance(pr, Mapping)]
+    return {"available": True, "reason": "", "prs": prs}
+
+
+def _task_ids_for_pr(pr: Mapping[str, Any]) -> list[str]:
+    ids = set(_task_ids_from_text(str(pr.get("headRefName") or "")))
+    ids.update(_task_ids_from_text(str(pr.get("title") or "")))
+    return sorted(ids, key=lambda item: int(item))
+
+
+def _prs_by_task_id(gh: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for pr in gh.get("prs", []):
+        if not isinstance(pr, Mapping):
+            continue
+        clean = {
+            "number": pr.get("number"),
+            "state": str(pr.get("state") or "").upper(),
+            "title": str(pr.get("title") or ""),
+            "headRefName": str(pr.get("headRefName") or ""),
+            "baseRefName": str(pr.get("baseRefName") or ""),
+            "mergedAt": pr.get("mergedAt"),
+            "url": pr.get("url"),
+            "isDraft": bool(pr.get("isDraft")),
+        }
+        for task_id in _task_ids_for_pr(clean):
+            grouped.setdefault(task_id, []).append(clean)
+    return grouped
+
+
+def _github_truth_for_prs(prs: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+    merged = [pr for pr in prs if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")]
+    if merged:
+        pr = merged[0]
+        return {
+            "status": "merged",
+            "proof": "github_pr_merged",
+            "confidence": "high",
+            "reason": f"PR #{pr.get('number')} is merged",
+            "pr": dict(pr),
+        }
+    open_prs = [pr for pr in prs if str(pr.get("state") or "").upper() == "OPEN"]
+    if open_prs:
+        pr = open_prs[0]
+        return {
+            "status": "not_merged",
+            "proof": "github_pr_open",
+            "confidence": "high",
+            "reason": f"PR #{pr.get('number')} is still open",
+            "pr": dict(pr),
+        }
+    closed = [pr for pr in prs if str(pr.get("state") or "").upper() == "CLOSED"]
+    if closed:
+        pr = closed[0]
+        return {
+            "status": "not_merged",
+            "proof": "github_pr_closed_unmerged",
+            "confidence": "high",
+            "reason": f"PR #{pr.get('number')} is closed without merge metadata",
+            "pr": dict(pr),
+        }
+    return None
+
+
+def _task_merge_truth(
+    target_root: Path,
+    branches: Sequence[Mapping[str, Any]],
+    prs: Sequence[Mapping[str, Any]],
+    base: Mapping[str, Any],
+) -> dict[str, Any]:
+    github_truth = _github_truth_for_prs(prs)
+    branch_truths = [_branch_merge_truth(target_root, branch, base) for branch in branches]
+    if github_truth is not None and github_truth["status"] == "merged":
+        return {**github_truth, "branches": branch_truths}
+    for truth in branch_truths:
+        if truth["status"] == "merged":
+            return {**truth, "branches": branch_truths}
+    if github_truth is not None:
+        return {**github_truth, "branches": branch_truths}
+    if branch_truths:
+        return {
+            "status": "unknown",
+            "proof": "git_only_non_ancestor_or_missing_base",
+            "confidence": "low",
+            "reason": "git ancestry did not prove merge; without GitHub metadata this may be squash-merged or unmerged",
+            "branches": branch_truths,
+        }
+    return {
+        "status": "no_evidence",
+        "proof": "no_branch_or_pr",
+        "confidence": "none",
+        "reason": "no task branch or PR metadata was found",
+        "branches": [],
+    }
+
+
+def _current_aegis_work_summary(target_root: Path) -> dict[str, Any] | None:
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if not isinstance(current_work, Mapping):
+        return None
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    branch = current_work.get("branch") if isinstance(current_work.get("branch"), Mapping) else {}
+    return {
+        "status": str(current_work.get("status") or ""),
+        "task_id": _numeric_task_id(task.get("id")),
+        "task_status": str(task.get("status") or ""),
+        "task_slug": str(task.get("slug") or ""),
+        "branch": str(branch.get("current") or branch.get("name") or ""),
+        "closeout_passed_at": current_work.get("closeout_passed_at"),
+    }
+
+
+def _local_aegis_task_stubs(target_root: Path) -> list[dict[str, Any]]:
+    payload = _read_json(target_root / AEGIS_LOCAL_TASKS_REL)
+    if not isinstance(payload, Mapping):
+        return []
+    stubs: list[dict[str, Any]] = []
+    for task in payload.get("tasks", []):
+        if not isinstance(task, Mapping):
+            continue
+        task_id = _numeric_task_id(task.get("id"))
+        if task_id is None:
+            continue
+        stubs.append(
+            {
+                "id": task_id,
+                "title": str(task.get("title") or f"Local task {task_id}"),
+                "status": str(task.get("status") or "").lower(),
+                "slug": str(task.get("slug") or ""),
+                "source": str(task.get("source") or "aegis-local"),
+            }
+        )
+    return stubs
+
+
+def _reconcile_finding(
+    kind: str,
+    *,
+    severity: str,
+    task_id: str,
+    message: str,
+    evidence: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "severity": severity,
+        "task_id": task_id,
+        "message": message,
+        "evidence": dict(evidence or {}),
+    }
+
+
+def reconcile(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path | None = None,
+    base_ref: str | None = None,
+    use_github: bool = True,
+) -> dict[str, Any]:
+    """Report Taskmaster/Aegis/git/PR drift without mutating any repository state."""
+
+    target_root = _resolve_target_root(target_dir)
+    _ensure_git_work_tree(target_root)
+    tasks = _taskmaster_tasks_by_id(target_root)
+    branches = _reconcile_branch_candidates(target_root)
+    branches_by_task: dict[str, list[dict[str, Any]]] = {}
+    for branch in branches:
+        branches_by_task.setdefault(str(branch["task_id"]), []).append(branch)
+    gh = _run_gh_pr_list(target_root) if use_github else {"available": False, "reason": "disabled", "prs": []}
+    prs_by_task = _prs_by_task_id(gh)
+    base = _resolve_reconcile_base_ref(target_root, base_ref)
+    current_work = _current_aegis_work_summary(target_root)
+    active_task_id = current_work.get("task_id") if current_work and current_work.get("status") == "in-progress" else None
+    try:
+        current_branch = _current_branch(target_root)
+    except AegisError:
+        current_branch = ""
+    current_branch_task_id = _branch_task_id(current_branch)
+    local_stubs = _local_aegis_task_stubs(target_root)
+    all_task_ids = sorted(
+        set(tasks) | set(branches_by_task) | set(prs_by_task) | {stub["id"] for stub in local_stubs},
+        key=lambda item: int(item),
+    )
+
+    task_reports: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
+    done_statuses = {"done", "completed"}
+    for task_id in all_task_ids:
+        task = tasks.get(task_id)
+        task_status = str(task.get("status") if task else "missing")
+        task_branches = branches_by_task.get(task_id, [])
+        task_prs = prs_by_task.get(task_id, [])
+        merge_truth = _task_merge_truth(target_root, task_branches, task_prs, base)
+        report = {
+            "task_id": task_id,
+            "task": task,
+            "taskmaster_status": task_status,
+            "branches": task_branches,
+            "pull_requests": task_prs,
+            "merge_truth": merge_truth,
+            "active_aegis_current_work": active_task_id == task_id,
+        }
+        task_reports.append(report)
+
+        if task is None:
+            for branch in task_branches:
+                findings.append(
+                    _reconcile_finding(
+                        "stale_local_stub",
+                        severity="warning",
+                        task_id=task_id,
+                        message=f"branch {branch['name']} references task {task_id}, but Taskmaster has no such task",
+                        evidence={"branch": branch},
+                    )
+                )
+            for stub in [stub for stub in local_stubs if stub["id"] == task_id]:
+                findings.append(
+                    _reconcile_finding(
+                        "local_ad_hoc_stub",
+                        severity="warning",
+                        task_id=task_id,
+                        message=f"Aegis local task {task_id} exists without a Taskmaster task",
+                        evidence={"local_task": stub},
+                    )
+                )
+            continue
+
+        if len(task_prs) > 1:
+            findings.append(
+                _reconcile_finding(
+                    "multi_pr_epic_ambiguity",
+                    severity="warning",
+                    task_id=task_id,
+                    message=f"task {task_id} has {len(task_prs)} PR candidates; merge truth requires review",
+                    evidence={"pull_requests": task_prs},
+                )
+            )
+        if task_status not in done_statuses and merge_truth["status"] == "merged":
+            findings.append(
+                _reconcile_finding(
+                    "merged_but_not_done",
+                    severity="error",
+                    task_id=task_id,
+                    message=f"task {task_id} is {task_status}, but merge truth says merged",
+                    evidence={"merge_truth": merge_truth},
+                )
+            )
+        if task_status in done_statuses and merge_truth["status"] == "not_merged":
+            findings.append(
+                _reconcile_finding(
+                    "done_but_not_merged",
+                    severity="error",
+                    task_id=task_id,
+                    message=f"task {task_id} is {task_status}, but PR metadata says it is not merged",
+                    evidence={"merge_truth": merge_truth},
+                )
+            )
+        if (
+            task_status == "in-progress"
+            and task_branches
+            and active_task_id != task_id
+            and current_branch_task_id != task_id
+        ):
+            findings.append(
+                _reconcile_finding(
+                    "abandoned_in_progress_branch",
+                    severity="warning",
+                    task_id=task_id,
+                    message=f"task {task_id} is in-progress with task branches but no matching active Aegis current work",
+                    evidence={"branches": task_branches, "active_aegis_task_id": active_task_id},
+                )
+            )
+
+    severity_counts = {
+        severity: sum(1 for finding in findings if finding["severity"] == severity)
+        for severity in ("error", "warning", "info")
+    }
+    status_value = "drift" if severity_counts["error"] else "needs_review" if severity_counts["warning"] else "clean"
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": status_value,
+        "read_only": True,
+        "generated_at": _iso_now(),
+        "target_root": target_root.as_posix(),
+        "source_root": Path(source_root).resolve().as_posix() if source_root is not None else None,
+        "base_ref": base,
+        "github": {
+            "enabled": bool(use_github),
+            "available": bool(gh.get("available")),
+            "reason": gh.get("reason") or "",
+            "pr_count": len(gh.get("prs", [])),
+        },
+        "taskmaster": {
+            "path": TASKMASTER_TASKS_REL,
+            "available": bool(tasks),
+            "task_count": len(tasks),
+        },
+        "active_aegis_current_work": current_work,
+        "tasks": task_reports,
+        "findings": findings,
+        "summary": {
+            "tasks_checked": len(task_reports),
+            "findings": len(findings),
+            "errors": severity_counts["error"],
+            "warnings": severity_counts["warning"],
+            "info": severity_counts["info"],
+        },
+        "notes": [
+            "This command is read-only and never mutates Taskmaster, Aegis state, git refs, or PRs.",
+            "Git ancestry proves true merges and fast-forwards; non-ancestor branches are reported as unknown without GitHub merge metadata because squash merges are possible.",
+            "GitHub PR state is optional acceleration; when unavailable, squash-ambiguous cases remain unknown instead of being reported as not merged.",
+        ],
+    }
+
+
+def format_reconcile_summary(report: Mapping[str, Any]) -> str:
+    summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    lines = [
+        f"Aegis reconcile: {str(report.get('status') or 'unknown').upper()}",
+        f"target: {report.get('target_root')}",
+        f"base_ref: {report.get('base_ref', {}).get('selected') if isinstance(report.get('base_ref'), Mapping) else None}",
+        (
+            "summary: "
+            f"{summary.get('tasks_checked', 0)} tasks, "
+            f"{summary.get('findings', 0)} findings "
+            f"({summary.get('errors', 0)} errors, {summary.get('warnings', 0)} warnings, {summary.get('info', 0)} info)"
+        ),
+    ]
+    github = report.get("github") if isinstance(report.get("github"), Mapping) else {}
+    lines.append(
+        "github: "
+        + (
+            f"available ({github.get('pr_count', 0)} PRs scanned)"
+            if github.get("available")
+            else f"unavailable/disabled ({github.get('reason') or 'no reason reported'})"
+        )
+    )
+    findings = report.get("findings") if isinstance(report.get("findings"), list) else []
+    if findings:
+        lines.append("findings:")
+        for finding in findings[:20]:
+            if not isinstance(finding, Mapping):
+                continue
+            lines.append(
+                f"- [{finding.get('severity')}] {finding.get('kind')} task {finding.get('task_id')}: "
+                f"{finding.get('message')}"
+            )
+        if len(findings) > 20:
+            lines.append(f"- ... {len(findings) - 20} more finding(s); rerun with --json for full detail")
+    else:
+        lines.append("findings: none")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def _ensure_task_branch(target_root: Path, task_id: str, slug: str, *, create_branch: bool) -> dict[str, Any]:
     before = _current_branch(target_root)
     if _branch_task_id(before) == task_id:
