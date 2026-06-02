@@ -1,0 +1,6 @@
+Aegis reconcile: CLEAN
+target: /tmp/codex-task141-reconcile
+base_ref: origin/main
+summary: 142 tasks, 0 findings (0 errors, 0 warnings, 0 info)
+github: unavailable/disabled (disabled)
+findings: none
