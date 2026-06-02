@@ -40,6 +40,19 @@ from scripts._aegis_installer import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+RECONCILE_MUTATION_PARAMETER_NAMES = {
+    "apply",
+    "auto",
+    "auto_fix",
+    "fix",
+    "set_status",
+    "status",
+    "done",
+    "closeout",
+    "mutate",
+    "write",
+    "push",
+}
 
 
 def list_tools(server: FastMCP):
@@ -244,6 +257,69 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "Read-only pre-closeout gate check" in closeout_ready_description
     assert "scope, implement, verify" in closeout_description
     assert "HANDOFF.md semantic-section repair" in handoff_repair_description
+
+
+def test_reconcile_mcp_schema_keeps_report_only_contract(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    tool = tool_by_name(server, "aegis.reconcile")
+    schema = tool.inputSchema
+    description = tool.description or ""
+
+    assert set(schema["required"]) == {"target_dir"}
+    assert set(schema["properties"]) == {"target_dir", "base_ref", "use_github"}
+    assert set(schema["properties"]).isdisjoint(RECONCILE_MUTATION_PARAMETER_NAMES)
+    assert "Read-only Taskmaster/Aegis/git/PR drift report" in description
+    assert "report-first" in description
+    assert "never auto-mutates status" in description
+
+
+def test_reconcile_mcp_execution_is_report_only(tmp_path: Path) -> None:
+    target = tmp_path / "reconcile-mcp-read-only"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    status_before = subprocess.run(
+        ["git", "status", "--short"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    ).stdout
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=target)
+    server = create_server(config)
+
+    payload = call_tool_payload(
+        server,
+        "aegis.reconcile",
+        {
+            "target_dir": target.as_posix(),
+            "base_ref": "main",
+            "use_github": False,
+        },
+    )
+
+    assert payload["ok"] is True
+    assert payload["read_only"] is True
+    assert payload["result"]["read_only"] is True
+    assert payload["result"]["status"] == "clean"
+    assert "never mutates Taskmaster" in "\n".join(payload["result"]["notes"])
+    status_after = subprocess.run(
+        ["git", "status", "--short"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    ).stdout
+    assert status_after == status_before
 
 
 def test_server_registers_expected_resources_and_prompts(tmp_path: Path) -> None:

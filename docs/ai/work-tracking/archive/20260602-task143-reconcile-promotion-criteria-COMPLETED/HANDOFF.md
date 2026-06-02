@@ -20,3 +20,4 @@
 - `docs/ai/work-tracking/active/20260602-task143-reconcile-promotion-criteria-ACTIVE/reports/reconcile-promotion-criteria/*-before-status.txt`
 - `docs/ai/work-tracking/active/20260602-task143-reconcile-promotion-criteria-ACTIVE/reports/reconcile-promotion-criteria/*-after-status.txt`
 - `memories/2026-06-02_task143_reconcile_promotion_criteria_completion`
+- Archived on 2026-06-02 13:35 CEST — Folder moved to archive and tracker marked COMPLETED.
