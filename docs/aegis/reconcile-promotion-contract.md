@@ -1,6 +1,6 @@
 # Aegis Reconcile Promotion Contract
 
-**Status:** active contract for Tasks 144-145.
+**Status:** active contract for Tasks 144-146.
 **Scope:** `aegis reconcile` remains a read-only drift report. This document defines the
 minimum bar for any separate future task that proposes reconcile-driven mutation.
 
@@ -110,7 +110,18 @@ Task 145 strengthens the behavioral side-effect proof:
   noisy: `.aegis/**`, `.taskmaster/**`, `docs/ai/work-tracking/**`, `sessions/**`,
   `plans/**`, `.git/HEAD`, `.git/refs/**`, and `.git/packed-refs`.
 
+Task 146 adds the precision and boundary-leakage gate:
+
+- `docs/aegis/reconcile-precision-corpus.md` defines the pre-registered auto-eligible
+  proof classes and manual-only classes.
+- `tests/meta_workflow_guard/reconcile_precision_corpus.py` normalizes observed reconcile
+  findings and fails on unlabelled findings, false positives, non-finding proof drift, or
+  auto/manual boundary leaks.
+- `tests/meta_workflow_guard/test_aegis_reconcile_precision_corpus.py` rebuilds the
+  labeled fixture corpus and recomputes precision from real reconcile execution rather than
+  relying on prose-only labels.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
 dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
-Task 145 proves read-only behavior at the filesystem side-effect boundary until a future
-task earns mutation power explicitly.
+Task 145 proves read-only behavior at the filesystem side-effect boundary. Task 146 proves
+the auto/manual boundary stays precise until a future task earns mutation power explicitly.

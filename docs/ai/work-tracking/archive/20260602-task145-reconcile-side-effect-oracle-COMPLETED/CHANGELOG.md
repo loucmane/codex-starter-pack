@@ -6,3 +6,4 @@
 - 2026-06-02 15:13 CEST — Updated the reconcile promotion contract with Task 145 read-only side-effect proof.
 - 2026-06-02 15:13 CEST — Verified relevant tests: `117 passed, 1 skipped`.
 - 2026-06-02 15:16 CEST — Passed Taskmaster health, guard validation, and work-tracking audit; marked Taskmaster Task 145 done.
+- 2026-06-02 15:44 CEST — Archived active work-tracking folder.
