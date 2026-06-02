@@ -16,3 +16,4 @@
 - Mark Taskmaster Task 144 done and refresh the generated task file.
 - Commit, push, open PR, wait for CI, merge cleanly, then return to `main`.
 - After merge, run final Taskmaster health and git status checks.
+- Archived on 2026-06-02 14:43 CEST — Folder moved to archive and tracker marked COMPLETED.

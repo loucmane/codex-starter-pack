@@ -1,6 +1,6 @@
 # Aegis Reconcile Promotion Contract
 
-**Status:** active contract for Task 144.
+**Status:** active contract for Tasks 144-145.
 **Scope:** `aegis reconcile` remains a read-only drift report. This document defines the
 minimum bar for any separate future task that proposes reconcile-driven mutation.
 
@@ -95,6 +95,22 @@ Task 144 encodes the contract in tests:
 - Reconcile smoke checks compare git status before and after execution to guard the
   report-only behavior.
 
+Task 145 strengthens the behavioral side-effect proof:
+
+- `tests/meta_workflow_guard/reconcile_side_effect_oracle.py` snapshots path existence,
+  path type, mode, symlink target, regular-file content hash, and recursive membership.
+- `tests/meta_workflow_guard/test_reconcile_side_effect_oracle.py` proves the oracle catches
+  content edits, creation, deletion, mode changes, symlink target changes, type swaps,
+  missing-path creation, and unauthorized deltas while allowing only exact declared output
+  paths.
+- Whole-tree isolated fixture checks in `tests/meta_workflow_guard/test_aegis_installer.py`
+  assert reconcile changes nothing anywhere in the temp fixture, aside from narrowly
+  tolerated git discovery churn such as `.git/FETCH_HEAD` and `.git/logs/**`.
+- Focused control-plane checks cover larger-repo surfaces where whole-tree snapshots are
+  noisy: `.aegis/**`, `.taskmaster/**`, `docs/ai/work-tracking/**`, `sessions/**`,
+  `plans/**`, `.git/HEAD`, `.git/refs/**`, and `.git/packed-refs`.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
-dogfooded its signal quality. Task 144 prevents accidental promotion to mutation until a
-future task earns that power explicitly.
+dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
+Task 145 proves read-only behavior at the filesystem side-effect boundary until a future
+task earns mutation power explicitly.

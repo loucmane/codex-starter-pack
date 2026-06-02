@@ -48,6 +48,7 @@ from scripts._aegis_installer import (
     start_local_work,
     verify,
 )
+from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -177,6 +178,7 @@ def init_git_repo(repo: Path) -> None:
     git(repo, "init", "-b", "main")
     git(repo, "config", "user.email", "aegis@example.invalid")
     git(repo, "config", "user.name", "Aegis Test")
+    git(repo, "config", "commit.gpgsign", "false")
     (repo / "README.md").write_text("# target\n", encoding="utf-8")
     git(repo, "add", "README.md")
     git(repo, "commit", "-m", "initial")
@@ -194,6 +196,10 @@ def commit_file(repo: Path, rel_path: str, content: str, message: str) -> None:
     path.write_text(content, encoding="utf-8")
     git(repo, "add", rel_path)
     git(repo, "commit", "-m", message)
+
+
+def assert_reconcile_preserved_whole_tree(target: Path, before) -> None:
+    before.assert_matches(snapshot_whole_tree(target))
 
 
 def test_build_parser_accepts_aegis_commands() -> None:
@@ -409,11 +415,13 @@ def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(t
     git(target, "switch", "main")
     git(target, "merge", "--no-ff", "feat/task-42-cart-button", "-m", "merge task 42")
     status_before = git(target, "status", "--short").stdout
+    tree_before = snapshot_whole_tree(target)
 
     report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
 
     assert report["read_only"] is True
     assert git(target, "status", "--short").stdout == status_before
+    assert_reconcile_preserved_whole_tree(target, tree_before)
     assert report["status"] == "drift"
     assert report["summary"]["errors"] == 1
     finding = report["findings"][0]
@@ -454,9 +462,11 @@ def test_reconcile_uses_github_merged_pr_to_handle_squash_merge(
             ],
         },
     )
+    tree_before = snapshot_whole_tree(target)
 
     report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
 
+    assert_reconcile_preserved_whole_tree(target, tree_before)
     finding = next(item for item in report["findings"] if item["kind"] == "merged_but_not_done")
     assert finding["evidence"]["merge_truth"]["proof"] == "github_pr_merged"
     task = next(item for item in report["tasks"] if item["task_id"] == "43")
@@ -472,9 +482,11 @@ def test_reconcile_keeps_squash_ambiguous_git_only_case_unknown(tmp_path: Path) 
     git(target, "switch", "main")
     git(target, "merge", "--squash", "feat/task-44-offline-squash")
     git(target, "commit", "-m", "squash task 44")
+    tree_before = snapshot_whole_tree(target)
 
     report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
 
+    assert_reconcile_preserved_whole_tree(target, tree_before)
     assert report["status"] == "clean"
     assert not [finding for finding in report["findings"] if finding["kind"] == "merged_but_not_done"]
     task = next(item for item in report["tasks"] if item["task_id"] == "44")
@@ -489,9 +501,11 @@ def test_reconcile_keeps_done_git_only_unknown_as_task_detail_not_finding(tmp_pa
     git(target, "switch", "-c", "feat/task-441-stale-local-branch")
     commit_file(target, "feature.txt", "offline done\n", "task 441")
     git(target, "switch", "main")
+    tree_before = snapshot_whole_tree(target)
 
     report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
 
+    assert_reconcile_preserved_whole_tree(target, tree_before)
     assert report["status"] == "clean"
     assert not report["findings"]
     task = next(item for item in report["tasks"] if item["task_id"] == "441")
@@ -527,9 +541,11 @@ def test_reconcile_reports_done_task_with_open_pr_as_not_merged(
             ],
         },
     )
+    tree_before = snapshot_whole_tree(target)
 
     report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
 
+    assert_reconcile_preserved_whole_tree(target, tree_before)
     finding = next(item for item in report["findings"] if item["kind"] == "done_but_not_merged")
     assert finding["task_id"] == "45"
     assert finding["evidence"]["merge_truth"]["proof"] == "github_pr_open"
@@ -596,14 +612,62 @@ def test_reconcile_reports_abandoned_branches_stubs_and_multi_pr_ambiguity(
             ],
         },
     )
+    tree_before = snapshot_whole_tree(target)
 
     report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
+    assert_reconcile_preserved_whole_tree(target, tree_before)
     kinds = {finding["kind"] for finding in report["findings"]}
 
     assert "abandoned_in_progress_branch" in kinds
     assert "stale_local_stub" in kinds
     assert "local_ad_hoc_stub" in kinds
     assert "multi_pr_epic_ambiguity" in kinds
+
+
+def test_reconcile_preserves_whole_tree_with_malformed_taskmaster_state(tmp_path: Path) -> None:
+    target = tmp_path / "reconcile-malformed-taskmaster"
+    init_git_repo(target)
+    task_dir = target / ".taskmaster" / "tasks"
+    task_dir.mkdir(parents=True)
+    (task_dir / "tasks.json").write_text("{not json\n", encoding="utf-8")
+    git(target, "switch", "-c", "feat/task-77-malformed-taskmaster")
+    commit_file(target, "task77.txt", "malformed taskmaster\n", "task 77")
+    git(target, "switch", "main")
+    tree_before = snapshot_whole_tree(target)
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
+
+    assert_reconcile_preserved_whole_tree(target, tree_before)
+    assert report["read_only"] is True
+    assert report["taskmaster"]["available"] is False
+    assert {finding["kind"] for finding in report["findings"]} == {"stale_local_stub"}
+
+
+def test_reconcile_preserves_whole_tree_when_github_metadata_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "reconcile-github-unavailable"
+    init_git_repo(target)
+    write_taskmaster_tasks(target, [{"id": 78, "title": "GitHub Unavailable", "status": "pending", "dependencies": []}])
+    git(target, "switch", "-c", "feat/task-78-github-unavailable")
+    commit_file(target, "feature.txt", "github unavailable\n", "task 78")
+    git(target, "switch", "main")
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": False, "reason": "gh unavailable", "prs": []},
+    )
+    tree_before = snapshot_whole_tree(target)
+
+    report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=True)
+
+    assert_reconcile_preserved_whole_tree(target, tree_before)
+    assert report["read_only"] is True
+    assert report["github"]["enabled"] is True
+    assert report["github"]["available"] is False
+    assert report["github"]["reason"] == "gh unavailable"
+    task = next(item for item in report["tasks"] if item["task_id"] == "78")
+    assert task["merge_truth"]["status"] == "unknown"
 
 
 def test_public_init_installs_with_default_claude_adapter(tmp_path: Path) -> None:
