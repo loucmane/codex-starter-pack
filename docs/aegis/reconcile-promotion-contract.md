@@ -1,6 +1,6 @@
 # Aegis Reconcile Promotion Contract
 
-**Status:** active contract for Tasks 144-148.
+**Status:** active contract for Tasks 144-149.
 **Scope:** `aegis reconcile` remains a read-only drift report. This document defines the
 minimum bar for any separate future task that proposes reconcile-driven mutation.
 
@@ -149,10 +149,23 @@ Task 148 adds the inert, opt-in candidate preview contract:
   installed gate coverage asserts out-of-band Taskmaster completion for a non-active
   previewed task remains blocked.
 
+Task 149 defines the first apply-path proposal contract without enabling mutation:
+
+- `docs/aegis/reconcile-apply-path-proposal-contract.md` defines the first future apply
+  boundary as `merged_but_not_done` with `git_ancestor` proof only.
+- The contract is design-only: no `--apply` flag, no writer path, and no default preview
+  behavior are added.
+- The future implementation bar explicitly requires the Task 144 promotion contract, Task
+  145 side-effect oracle, Task 146 precision corpus, Task 147 rollback contract, and Task
+  148 inert preview contract before any write can exist.
+- The contract embeds a Claude discussion prompt so external review happens before any
+  operator-confirmed execution path is implemented.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
 dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
 Task 145 proves read-only behavior at the filesystem side-effect boundary. Task 146 proves
 the auto/manual boundary stays precise. Task 147 defines the rollback and blast-radius
 proposal bar for the first possible mutation candidate while keeping reconcile itself
 strictly report-only. Task 148 makes the first candidate visible only as inert, opt-in
-preview data.
+preview data. Task 149 writes the apply-path proposal contract and review prompt while
+still keeping reconcile read-only.
