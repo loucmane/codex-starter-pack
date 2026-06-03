@@ -2,9 +2,9 @@
 
 **Title:** Make Taskmaster the single task authority for Aegis surfaces
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 155
+**Dependencies:** 155 ✓
 
 **Priority:** high
 
