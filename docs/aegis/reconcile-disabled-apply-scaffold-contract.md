@@ -1,6 +1,6 @@
 # Aegis Reconcile Disabled Apply Scaffold Contract
 
-**Status:** active Task 150 contract.
+**Status:** active Task 150 contract, extended by Task 153 runtime tests.
 **Scope:** disabled scaffold only. This task does not enable reconcile mutation and does
 not expose apply through governed-agent surfaces.
 
@@ -27,9 +27,9 @@ Future acceptable context families are:
 - `post_merge_ci`
 - `operator_controlled_local`
 
-Task 150 deliberately makes the enable gate unsatisfiable. Even a well-formed future
-context proof returns refusal until a later task explicitly creates and verifies an enable
-path.
+Task 150 deliberately makes the default enable gate unsatisfiable. Even a well-formed
+future context proof returns refusal unless a later internal runtime explicitly opens the
+gate inside an isolated test-enabled context.
 
 ## Apply-Audit Transaction Record
 
@@ -52,6 +52,10 @@ The audit model is transaction-shaped, not event-shaped. It records:
 Task 150 validates and serializes the model but does not write audit breadcrumbs to
 governed workflow surfaces.
 
+Task 153 extends the audit payload with runtime fields for the isolated write apparatus:
+toolchain evidence, predicted and actual delta paths, before/after hashes, outcome, and
+rollback state. These fields are still not exposed through governed-agent surfaces.
+
 ## Kill-Switch Semantics
 
 Kill-switch evaluation is fail-closed:
@@ -64,6 +68,10 @@ Kill-switch evaluation is fail-closed:
 - explicit per-class disable overrides matching class enable/proof/confirmation inputs
 - global and per-class enables remain insufficient because the Task 150 enable gate is
   intentionally unsatisfiable
+
+Task 153 keeps the default behavior fail-closed while allowing the internal runtime tests to
+open the gate explicitly. That test-only gate is not a CLI flag, MCP parameter, environment
+variable, or report consumer path.
 
 ## Agent Surface Boundary
 
@@ -96,6 +104,9 @@ All other classes are refused before mutation.
 | Explicit global and per-class disables override enable-shaped input | `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_kill_switch_disable_precedence` |
 | Apply-audit records validate required transaction fields and bindings | `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_apply_audit_record_requires_transaction_fields_and_binding` |
 | Audit idempotency and hash-chain fields are stable and task/proof-bound | `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_apply_audit_record_idempotency_and_chain_are_stable` |
+| Default-off write apparatus proves zero live-repo deltas | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_default_config_full_apply_path_has_zero_live_delta` |
+| Runtime write apparatus remains unreachable from agent surfaces | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_apply_write_apparatus_is_not_reachable_from_agent_surfaces` |
+| Rollback and terminal rollback failure are tested under isolated write execution | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_partial_apply_failure_rolls_back_snapshot_restore`; `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_rollback_failure_is_terminal_and_engages_kill_switch` |
 
 ## Non-Goals
 

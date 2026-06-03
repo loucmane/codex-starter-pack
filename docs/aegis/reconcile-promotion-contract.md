@@ -1,6 +1,6 @@
 # Aegis Reconcile Promotion Contract
 
-**Status:** active contract for Tasks 144-152.
+**Status:** active contract for Tasks 144-153.
 **Scope:** `aegis reconcile` remains a read-only drift report. This document defines the
 minimum bar for any separate future task that proposes reconcile-driven mutation.
 
@@ -206,6 +206,25 @@ without enabling mutation:
   any Taskmaster/toolchain mismatch as stale evidence that requires fresh CI cascade
   validation before apply can proceed.
 
+Task 153 adds the first real write apparatus while keeping it default-off and
+agent-inaccessible:
+
+- `aegis_foundation/reconcile_apply_runtime.py` contains the only Taskmaster write function
+  for the first apply class, and that function is reachable only through the gated internal
+  orchestrator.
+- The default configuration still refuses before fresh validation, idempotency, audit, or
+  Taskmaster writes and proves zero live-repo deltas through the side-effect oracle.
+- A write can run only in isolated test-enabled contexts, never through CLI, MCP,
+  `scripts/codex-task`, preview/report consumers, or production/default CI.
+- The write apparatus re-runs fresh apply-time sacrificial validation; Task 152 evidence is
+  not a license to apply.
+- Successful-path delta divergence, partial write failure, and stale toolchain evidence all
+  refuse or roll back. Rollback is snapshot-restore rather than inverse `set-status`.
+- Rollback failure becomes terminal and fail-closed: durable audit/breadcrumb, kill-switch
+  engagement, and operator resolution required.
+- File-backed idempotency claims prevent duplicate application and are tested for atomic
+  single-claim behavior.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
 dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
 Task 145 proves read-only behavior at the filesystem side-effect boundary. Task 146 proves
@@ -217,6 +236,7 @@ still keeping reconcile read-only. Task 150 adds the disabled, behaviorally zero
 scaffold that can be reviewed before any future enable path exists. Task 151 runs the
 future apply pipeline in shadow mode with prediction-validated would-apply artifacts while
 the final write remains absent. Task 152 proves the Taskmaster cascade under the pinned CI
-toolchain where a future apply path would run. Task 153 is the earliest task that may
-introduce real write code, and it remains default-off until the loaded write path re-proves
-all prior inertness guarantees plus partial-apply rollback behavior.
+toolchain where a future apply path would run. Task 153 introduces the loaded write
+apparatus only after re-proving default-off inertness, no agent reachability, fresh
+validation, snapshot rollback, terminal rollback failure handling, and idempotency. Future
+enablement remains a separate task and must not be collapsed into Task 153.

@@ -2,7 +2,7 @@
 
 **Title:** Add default-off reconcile apply write apparatus
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 152 ✓
 

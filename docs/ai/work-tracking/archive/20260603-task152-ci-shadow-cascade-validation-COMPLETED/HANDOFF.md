@@ -12,3 +12,4 @@
 - Mark Taskmaster Task 152 done and regenerate only `task_152.md`.
 - Commit, push, open PR, and let CI prove the pinned Taskmaster cascade path executes in GitHub Actions.
 - Task 153 remains the future default-off write scaffold and must include partial-apply rollback tests before any live write can be enabled.
+- Archived on 2026-06-03 14:56 CEST — Folder moved to archive and tracker marked COMPLETED.

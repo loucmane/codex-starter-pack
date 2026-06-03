@@ -121,11 +121,14 @@ def evaluate_approved_context(
     proof: Mapping[str, Any] | None,
     *,
     candidate: ApplyCandidate | None = None,
+    enable_gate_open: bool = False,
 ) -> ApprovedContextDecision:
     """Evaluate a future approved-context proof.
 
-    Task 150 intentionally has no satisfiable enable gate. Even well-formed future
-    context proofs are refused until a later task creates and verifies an enable path.
+    The public Task 150 scaffold intentionally has no satisfiable enable gate.
+    Task 153's internal runtime may pass ``enable_gate_open=True`` in isolated
+    test contexts to prove write, rollback, audit, and idempotency machinery
+    while keeping the default scaffold refused.
     """
 
     if proof is None:
@@ -145,7 +148,9 @@ def evaluate_approved_context(
             return ApprovedContextDecision(
                 False, "approved_context_binding_mismatch", context_type, proof_id
             )
-    return ApprovedContextDecision(False, "enable_gate_unsatisfiable", context_type, proof_id)
+    if not enable_gate_open:
+        return ApprovedContextDecision(False, "enable_gate_unsatisfiable", context_type, proof_id)
+    return ApprovedContextDecision(True, "approved_context_verified", context_type, proof_id)
 
 
 def load_kill_switch_state(path: Path | None) -> LoadedKillSwitchState:
@@ -171,6 +176,7 @@ def evaluate_kill_switch(
     state: Mapping[str, Any] | LoadedKillSwitchState | None,
     *,
     class_key: str = FIRST_APPLY_CLASS_KEY,
+    enable_gate_open: bool = False,
 ) -> KillSwitchDecision:
     if isinstance(state, LoadedKillSwitchState):
         if not state.usable:
@@ -199,7 +205,9 @@ def evaluate_kill_switch(
         return KillSwitchDecision(False, "kill_switch_default_disabled", class_key)
     if class_state.get("enabled") is not True:
         return KillSwitchDecision(False, "kill_switch_class_default_disabled", class_key)
-    return KillSwitchDecision(False, "enable_gate_unsatisfiable", class_key)
+    if not enable_gate_open:
+        return KillSwitchDecision(False, "enable_gate_unsatisfiable", class_key)
+    return KillSwitchDecision(True, "kill_switch_enabled", class_key)
 
 
 def authorization_binding_for(
@@ -250,6 +258,13 @@ def build_apply_audit_record(
     eligibility_corpus_version: str,
     previous_hash: str = ZERO_HASH,
     external_anchor: str = "",
+    toolchain_evidence: Mapping[str, Any] | None = None,
+    predicted_delta_paths: list[str] | tuple[str, ...] = (),
+    actual_delta_paths: list[str] | tuple[str, ...] = (),
+    before_hashes: Mapping[str, str] | None = None,
+    after_hashes: Mapping[str, str] | None = None,
+    outcome: str = "",
+    rollback_state: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if phase not in {"before", "after"}:
         raise ApplyScaffoldError("audit phase must be before or after")
@@ -297,6 +312,13 @@ def build_apply_audit_record(
         "idempotency_key": idempotency_key,
         "previous_hash": previous_hash or ZERO_HASH,
         "external_anchor": external_anchor,
+        "toolchain_evidence": dict(toolchain_evidence or {}),
+        "predicted_delta_paths": list(predicted_delta_paths),
+        "actual_delta_paths": list(actual_delta_paths),
+        "before_hashes": dict(before_hashes or {}),
+        "after_hashes": dict(after_hashes or {}),
+        "outcome": outcome,
+        "rollback_state": dict(rollback_state or {}),
     }
     payload["chain_hash"] = _digest(payload)
     return payload
