@@ -1,6 +1,6 @@
 # Aegis Reconcile Shadow Apply Contract
 
-**Status:** active Task 151/152 contract.
+**Status:** active Task 151/152 contract; consumed by Task 153 fresh validation.
 **Scope:** shadow evidence only. This task does not enable reconcile mutation and does not
 expose apply through governed-agent surfaces.
 
@@ -98,6 +98,10 @@ toolchain matches the validated toolchain binding. A Taskmaster version/source,
 provisioning-lock, Node/Python, or relevant runner identity mismatch invalidates prior
 cascade evidence and requires fresh CI sacrificial validation before apply can proceed.
 
+Task 153 does not treat Task 152 evidence as permission to mutate. The write apparatus must
+run fresh apply-time sacrificial validation under the current toolchain and refuse on stale
+toolchain evidence or mismatched actual deltas.
+
 The CI validation artifact must cover both known Taskmaster state branches:
 
 - `.taskmaster/state.json` absent before mutation: Taskmaster may create it, so the dynamic
@@ -149,3 +153,4 @@ Task 151 must not add:
 - No workflow-state write.
 - No agent-facing apply entrypoint.
 - No default-on future apply behavior.
+- No use of shadow evidence as a substitute for fresh apply-time validation.
