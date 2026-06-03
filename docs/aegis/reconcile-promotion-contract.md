@@ -1,6 +1,6 @@
 # Aegis Reconcile Promotion Contract
 
-**Status:** active contract for Tasks 144-150.
+**Status:** active contract for Tasks 144-152.
 **Scope:** `aegis reconcile` remains a read-only drift report. This document defines the
 minimum bar for any separate future task that proposes reconcile-driven mutation.
 
@@ -187,6 +187,25 @@ Task 151 adds shadow apply artifacts, still without enabling mutation:
 - Tests prove shadow mode has no live side effects, no agent-facing apply surface, no
   executable command strings, and no writer consumption.
 
+Task 152 validates the shadow cascade in the future apply toolchain environment, still
+without enabling mutation:
+
+- `aegis_foundation/taskmaster_toolchain.py` defines the pinned Taskmaster provisioning
+  source and comparable toolchain evidence.
+- GitHub Actions provisions the pinned Taskmaster CLI before pytest so the real
+  sacrificial cascade tests execute in CI rather than skip.
+- CI captures `reconcile-shadow-cascade-validation.json`, including Taskmaster
+  version/source, provisioning lock id, runner/toolchain identity, approved CI context
+  proof, predicted blast-radius paths, actual sacrificial delta paths, and
+  `executed=false` / `mutated_live_repo=false`.
+- The artifact covers both `.taskmaster/state.json` baseline branches under the same pinned
+  toolchain: absent-before-mutation and already-present-before-mutation. Under the current
+  pinned Taskmaster cascade, both branches include `.taskmaster/state.json` in the validated
+  dynamic delta because the status cascade creates or rewrites that file.
+- Future Task 153+ apply code must use the same shared provisioning source and must treat
+  any Taskmaster/toolchain mismatch as stale evidence that requires fresh CI cascade
+  validation before apply can proceed.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
 dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
 Task 145 proves read-only behavior at the filesystem side-effect boundary. Task 146 proves
@@ -197,4 +216,7 @@ preview data. Task 149 writes the apply-path proposal contract and review prompt
 still keeping reconcile read-only. Task 150 adds the disabled, behaviorally zero-side-effect
 scaffold that can be reviewed before any future enable path exists. Task 151 runs the
 future apply pipeline in shadow mode with prediction-validated would-apply artifacts while
-the final write remains absent.
+the final write remains absent. Task 152 proves the Taskmaster cascade under the pinned CI
+toolchain where a future apply path would run. Task 153 is the earliest task that may
+introduce real write code, and it remains default-off until the loaded write path re-proves
+all prior inertness guarantees plus partial-apply rollback behavior.

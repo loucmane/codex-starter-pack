@@ -6,7 +6,6 @@ from pathlib import Path
 
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 CODEX_GUARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "codex-guard.yml"
@@ -39,6 +38,32 @@ def test_python_test_workflow_installs_runtime_and_dev_dependencies() -> None:
     assert 'data["project"]["dependencies"]' in text
     assert 'data.get("dependency-groups", {}).get("dev", [])' in text
     assert "python3 -m pip install -r /tmp/codex-ci-dependencies.txt" in text
+
+
+def test_python_test_workflow_provisions_pinned_taskmaster_before_pytest() -> None:
+    workflow = _load_workflow()
+    steps = workflow["jobs"]["python-tests"]["steps"]
+    step_names = [step.get("name") for step in steps]
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "Set up Node for Taskmaster CLI" in step_names
+    assert "Provision pinned Taskmaster CLI" in step_names
+    assert "Run pytest" in step_names
+    assert step_names.index("Provision pinned Taskmaster CLI") < step_names.index("Run pytest")
+    assert "python3 -m aegis_foundation.taskmaster_toolchain install-spec" in text
+    assert 'npm install -g "$TASKMASTER_INSTALL_SPEC"' in text
+    assert "taskmaster-toolchain.json" in text
+
+
+def test_python_test_workflow_captures_shadow_cascade_validation_artifact() -> None:
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "Capture reconcile shadow cascade validation" in text
+    assert "build_ci_shadow_cascade_validation_report" in text
+    assert "capture_taskmaster_toolchain_evidence" in text
+    assert "reconcile-shadow-cascade-validation.json" in text
+    assert "task-master set-status" not in text
+    assert "--apply" not in text
 
 
 def test_python_test_workflow_uploads_matrix_artifacts() -> None:

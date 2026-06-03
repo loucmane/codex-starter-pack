@@ -26,6 +26,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      - name: Set up Node for Taskmaster CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Install project and test dependencies
         run: |
           python3 -m pip install --upgrade pip
@@ -40,6 +45,14 @@ jobs:
           PY
           python3 -m pip install -r /tmp/codex-ci-dependencies.txt
           python3 -m pip install -e .
+
+      - name: Provision pinned Taskmaster CLI
+        run: |
+          mkdir -p reports/ci
+          TASKMASTER_INSTALL_SPEC="$(python3 -m aegis_foundation.taskmaster_toolchain install-spec)"
+          npm install -g "$TASKMASTER_INSTALL_SPEC"
+          python3 -m aegis_foundation.taskmaster_toolchain capture --output reports/ci/taskmaster-toolchain.json
+          task-master --version
 
       - name: Run Taskmaster health
         run: python3 scripts/codex-task taskmaster health
@@ -64,6 +77,31 @@ jobs:
                   proof="git_ancestor",
               ),
           }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+
+      - name: Capture reconcile shadow cascade validation
+        run: |
+          mkdir -p reports/ci
+          python3 - <<'PY' > reports/ci/reconcile-shadow-cascade-validation.json
+          import json
+          import os
+          import tempfile
+          from pathlib import Path
+
+          from aegis_foundation.reconcile_shadow_apply import (
+              build_ci_shadow_cascade_validation_report,
+          )
+          from aegis_foundation.taskmaster_toolchain import (
+              capture_taskmaster_toolchain_evidence,
+          )
+
+          with tempfile.TemporaryDirectory(prefix="aegis-ci-shadow-cascade-") as work_dir:
+              payload = build_ci_shadow_cascade_validation_report(
+                  os.environ,
+                  work_root=Path(work_dir),
+                  toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
+              )
           print(json.dumps(payload, indent=2, sort_keys=True))
           PY
 
