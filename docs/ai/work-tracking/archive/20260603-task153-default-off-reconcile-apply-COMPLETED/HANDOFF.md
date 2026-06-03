@@ -10,3 +10,4 @@
 ## Next Steps
 - Commit the Task 153 branch, push it, and open a PR.
 - Do not enable apply in this task; future enablement remains a separate Taskmaster task.
+- Archived on 2026-06-03 17:37 CEST — Folder moved to archive and tracker marked COMPLETED.

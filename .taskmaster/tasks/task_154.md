@@ -2,7 +2,7 @@
 
 **Title:** Add semantic blast-radius validation for reconcile apply
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 153 ✓
 

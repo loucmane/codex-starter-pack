@@ -35,7 +35,9 @@ from aegis_foundation.reconcile_shadow_apply import (
     _normalize_rel_path,
     _predicted_paths,
     _proof_artifact,
+    _taskmaster_generated_task_markdown_rel,
     validate_sacrificial_taskmaster_done_cascade,
+    validate_taskmaster_apply_semantic_delta,
 )
 from aegis_foundation.taskmaster_toolchain import (
     capture_taskmaster_toolchain_evidence,
@@ -142,6 +144,7 @@ class ReconcileApplyResult:
     audit_records: tuple[dict[str, Any], ...] = ()
     rollback_state: Mapping[str, Any] | None = None
     toolchain_comparison: Mapping[str, Any] | None = None
+    semantic_validation: Mapping[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -164,6 +167,7 @@ class ReconcileApplyResult:
             "audit_records": list(self.audit_records),
             "rollback_state": dict(self.rollback_state or {}),
             "toolchain_comparison": dict(self.toolchain_comparison or {}),
+            "semantic_validation": dict(self.semantic_validation or {}),
         }
 
 
@@ -221,6 +225,14 @@ def run_reconcile_apply_write_apparatus(
             enabled=False,
             mutated=False,
             reason=context.reason,
+            **base_kwargs,
+        )
+    if _terminal_rollback_failure_present(kill_switch_state):
+        return ReconcileApplyResult(
+            status="refused",
+            enabled=False,
+            mutated=False,
+            reason="terminal_rollback_failure_present",
             **base_kwargs,
         )
     if not kill_switch.enabled:
@@ -291,7 +303,19 @@ def run_reconcile_apply_write_apparatus(
             toolchain_comparison=toolchain_comparison,
             **base_kwargs,
         )
-    if not validation.matches_prediction:
+    path_delta_matches_prediction = bool(
+        getattr(validation, "path_delta_matches_prediction", validation.matches_prediction)
+    )
+    semantic_delta = getattr(validation, "semantic_delta", None)
+    semantic_validation = (
+        semantic_delta.to_dict()
+        if hasattr(semantic_delta, "to_dict")
+        else dict(getattr(validation, "semantic_validation", {}) or {})
+    )
+    semantic_delta_matches_prediction = bool(
+        getattr(validation, "semantic_delta_matches_prediction", True)
+    )
+    if not path_delta_matches_prediction:
         return ReconcileApplyResult(
             status="refused",
             enabled=True,
@@ -300,6 +324,19 @@ def run_reconcile_apply_write_apparatus(
             predicted_delta_paths=predicted_paths,
             actual_delta_paths=tuple(validation.actual_delta_paths),
             toolchain_comparison=toolchain_comparison,
+            semantic_validation=semantic_validation,
+            **base_kwargs,
+        )
+    if not semantic_delta_matches_prediction:
+        return ReconcileApplyResult(
+            status="refused",
+            enabled=True,
+            mutated=False,
+            reason="fresh_validation_semantic_mismatch",
+            predicted_delta_paths=predicted_paths,
+            actual_delta_paths=tuple(validation.actual_delta_paths),
+            toolchain_comparison=toolchain_comparison,
+            semantic_validation=semantic_validation,
             **base_kwargs,
         )
 
@@ -346,6 +383,7 @@ def run_reconcile_apply_write_apparatus(
         before_hashes=rollback_handle.hashes_for(predicted_paths),
         after_hashes={},
         outcome="started",
+        semantic_validation=semantic_validation,
     )
     audit_records.append(before_audit)
     _append_audit(audit_log_path, before_audit)
@@ -404,6 +442,39 @@ def run_reconcile_apply_write_apparatus(
             kill_switch_path=kill_switch_path,
             toolchain_comparison=toolchain_comparison,
         )
+    live_semantic_validation = validate_taskmaster_apply_semantic_delta(
+        before=_semantic_inputs_from_snapshot(
+            before, task_id=candidate.task_id, predicted_paths=predicted_paths
+        ),
+        after=_semantic_inputs_from_snapshot(
+            after, task_id=candidate.task_id, predicted_paths=predicted_paths
+        ),
+        task_id=candidate.task_id,
+        expected_status=candidate.proposed_status,
+    ).to_dict()
+    if live_semantic_validation.get("passed") is not True:
+        return _rollback_after_failure(
+            target_root=target_root,
+            changed_paths=actual_paths,
+            rollback_handle=rollback_handle,
+            rollback_restore=rollback_restore,
+            reason="live_semantic_delta_mismatch",
+            error=str(live_semantic_validation.get("reason") or "semantic validation failed"),
+            candidate=candidate,
+            approved_context=context,
+            kill_switch=kill_switch,
+            proof_artifact=proof_artifact,
+            authorization_binding=authorization_binding,
+            approved_context_proof=approved_context_proof,
+            toolchain_evidence=current_toolchain_evidence,
+            predicted_paths=predicted_paths,
+            idempotency_key=idempotency_key,
+            audit_log_path=audit_log_path,
+            audit_records=audit_records,
+            kill_switch_path=kill_switch_path,
+            toolchain_comparison=toolchain_comparison,
+            semantic_validation=live_semantic_validation,
+        )
 
     after_audit = _build_runtime_audit(
         phase="after",
@@ -419,6 +490,7 @@ def run_reconcile_apply_write_apparatus(
         before_hashes=rollback_handle.hashes_for(actual_paths),
         after_hashes={path: after[path].fingerprint() for path in actual_paths},
         outcome="applied",
+        semantic_validation=live_semantic_validation,
         previous_hash=before_audit["chain_hash"],
     )
     audit_records.append(after_audit)
@@ -434,6 +506,7 @@ def run_reconcile_apply_write_apparatus(
         audit_records=tuple(audit_records),
         rollback_state={"rolled_back": False},
         toolchain_comparison=toolchain_comparison,
+        semantic_validation=live_semantic_validation,
         **base_kwargs,
     )
 
@@ -459,6 +532,7 @@ def _rollback_after_failure(
     audit_records: list[dict[str, Any]],
     kill_switch_path: Path | None,
     toolchain_comparison: Mapping[str, Any],
+    semantic_validation: Mapping[str, Any] | None = None,
 ) -> ReconcileApplyResult:
     actual_paths = tuple(sorted({_normalize_rel_path(path) for path in changed_paths}))
     before_hashes = rollback_handle.hashes_for(actual_paths)
@@ -493,6 +567,7 @@ def _rollback_after_failure(
             audit_records=tuple([*audit_records, terminal]),
             rollback_state={"rolled_back": False, "terminal_failure": True},
             toolchain_comparison=toolchain_comparison,
+            semantic_validation=semantic_validation,
         )
 
     after = _capture_tree_snapshot(target_root)
@@ -515,6 +590,7 @@ def _rollback_after_failure(
         after_hashes=after_hashes,
         outcome=reason,
         rollback_state={"rolled_back": rolled_back, "error": error},
+        semantic_validation=semantic_validation,
         previous_hash=audit_records[-1]["chain_hash"] if audit_records else "",
     )
     audit_records.append(audit)
@@ -533,6 +609,7 @@ def _rollback_after_failure(
         audit_records=tuple(audit_records),
         rollback_state={"rolled_back": rolled_back, "error": error},
         toolchain_comparison=toolchain_comparison,
+        semantic_validation=semantic_validation,
     )
 
 
@@ -552,6 +629,7 @@ def _build_runtime_audit(
     after_hashes: Mapping[str, str],
     outcome: str,
     rollback_state: Mapping[str, Any] | None = None,
+    semantic_validation: Mapping[str, Any] | None = None,
     previous_hash: str = "",
 ) -> dict[str, Any]:
     return build_apply_audit_record(
@@ -573,6 +651,7 @@ def _build_runtime_audit(
         after_hashes=after_hashes,
         outcome=outcome,
         rollback_state=rollback_state or {},
+        semantic_validation=semantic_validation or {},
     )
 
 
@@ -654,6 +733,49 @@ def _delta_paths(
     return [
         path for path in sorted(set(before) | set(after)) if before.get(path) != after.get(path)
     ]
+
+
+def _semantic_inputs_from_snapshot(
+    snapshot: Mapping[str, SnapshotEntry],
+    *,
+    task_id: str,
+    predicted_paths: Iterable[str],
+) -> dict[str, Any]:
+    tasks_json_text = _text_from_snapshot(snapshot, ".taskmaster/tasks/tasks.json")
+    payload: dict[str, Any] = {"tasks_json": json.loads(tasks_json_text)}
+    generated_rel = _taskmaster_generated_task_markdown_rel(task_id)
+    if generated_rel in {_normalize_rel_path(path) for path in predicted_paths}:
+        payload["generated_task_markdown"] = _text_from_snapshot(
+            snapshot, generated_rel, missing_ok=True
+        )
+    return payload
+
+
+def _text_from_snapshot(
+    snapshot: Mapping[str, SnapshotEntry],
+    rel_path: str,
+    *,
+    missing_ok: bool = False,
+) -> str | None:
+    entry = snapshot.get(_normalize_rel_path(rel_path))
+    if entry is None or entry.kind == "missing":
+        if missing_ok:
+            return None
+        raise ReconcileApplyRuntimeError(f"semantic snapshot path is missing: {rel_path}")
+    if entry.kind != "file" or entry.content is None:
+        raise ReconcileApplyRuntimeError(f"semantic snapshot path is not a file: {rel_path}")
+    return entry.content.decode("utf-8")
+
+
+def _terminal_rollback_failure_present(state: Mapping[str, Any] | None) -> bool:
+    if not isinstance(state, Mapping):
+        return False
+    terminal = state.get("terminal_failure")
+    return (
+        isinstance(terminal, Mapping)
+        and terminal.get("record_type") == TERMINAL_ROLLBACK_RECORD_TYPE
+        and terminal.get("auto_clear_allowed") is False
+    )
 
 
 def _iter_paths(root: Path) -> list[tuple[str, Path]]:

@@ -8,9 +8,11 @@ governed repository.
 
 from __future__ import annotations
 
+import copy
 import fnmatch
 import hashlib
 import json
+import re
 import shutil
 import stat
 import subprocess
@@ -42,6 +44,7 @@ SHADOW_ELIGIBILITY_VERSION = "task146-v1"
 SHADOW_ALLOWED_DECISION_REASON = "enable_gate_unsatisfiable"
 SHADOW_CI_VALIDATION_REPORT_TYPE = "reconcile_shadow_ci_cascade_validation"
 SHADOW_CI_VALIDATION_TASK_ID = "42"
+TASKMASTER_SEMANTIC_CANONICALIZATION_VERSION = "taskmaster-0.43.1-v1"
 SHADOW_CI_VALIDATION_KILL_SWITCH = {
     "global": {"enabled": True},
     "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True}},
@@ -88,10 +91,19 @@ class SacrificialValidation:
     actual_delta_paths: tuple[str, ...]
     baseline_metadata: dict[str, PathMetadata]
     clone_fidelity: dict[str, Any]
+    semantic_delta: "TaskmasterSemanticDelta"
+
+    @property
+    def path_delta_matches_prediction(self) -> bool:
+        return self.actual_delta_paths == self.predicted_paths
+
+    @property
+    def semantic_delta_matches_prediction(self) -> bool:
+        return self.semantic_delta.passed
 
     @property
     def matches_prediction(self) -> bool:
-        return self.actual_delta_paths == self.predicted_paths
+        return self.path_delta_matches_prediction and self.semantic_delta_matches_prediction
 
     @property
     def rollback_baseline_metadata(self) -> dict[str, dict[str, Any]]:
@@ -105,9 +117,31 @@ class SacrificialValidation:
             "clone_root": self.clone_root.as_posix(),
             "predicted_blast_radius_paths": list(self.predicted_paths),
             "actual_sacrificial_delta_paths": list(self.actual_delta_paths),
-            "sacrificial_delta_matches_prediction": self.matches_prediction,
+            "sacrificial_delta_matches_prediction": self.path_delta_matches_prediction,
+            "semantic_delta_matches_prediction": self.semantic_delta_matches_prediction,
+            "taskmaster_semantic_delta": self.semantic_delta.to_dict(),
             "rollback_baseline_metadata": self.rollback_baseline_metadata,
             "clone_fidelity": self.clone_fidelity,
+        }
+
+
+@dataclass(frozen=True)
+class TaskmasterSemanticDelta:
+    target_task_id: str
+    expected_status: str
+    canonicalization_version: str
+    passed: bool
+    reason: str
+    details: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "target_task_id": self.target_task_id,
+            "expected_status": self.expected_status,
+            "canonicalization_version": self.canonicalization_version,
+            "passed": self.passed,
+            "reason": self.reason,
+            "details": self.details,
         }
 
 
@@ -310,9 +344,13 @@ def build_shadow_record(
         clone_parent=clone_parent,
     )
     base.update(validation.to_dict())
-    if not validation.matches_prediction:
+    if not validation.path_delta_matches_prediction:
         base["decision"] = "shadow_refused"
         base["reason"] = "sacrificial_delta_mismatch"
+        return base
+    if not validation.semantic_delta_matches_prediction:
+        base["decision"] = "shadow_refused"
+        base["reason"] = "sacrificial_semantic_delta_mismatch"
         return base
 
     proof_artifact = _proof_artifact(candidate_payload, approved_context_proof)
@@ -398,6 +436,9 @@ def validate_sacrificial_taskmaster_done_cascade(
             raise ShadowApplyError("sacrificial clone does not match target baseline paths")
 
         before = _snapshot_tree(clone_root)
+        semantic_before = _read_taskmaster_semantic_inputs(
+            clone_root, task_id=task_id, predicted_paths=predicted
+        )
         _run_clone_command(
             clone_root, "task-master", "set-status", f"--id={task_id}", "--status=done"
         )
@@ -414,6 +455,9 @@ def validate_sacrificial_taskmaster_done_cascade(
         else:
             _run_clone_command(clone_root, "task-master", "generate")
         after = _snapshot_tree(clone_root)
+        semantic_after = _read_taskmaster_semantic_inputs(
+            clone_root, task_id=task_id, predicted_paths=predicted
+        )
         actual = tuple(sorted(_tree_delta_paths(before, after)))
         return SacrificialValidation(
             clone_root=clone_root,
@@ -421,10 +465,289 @@ def validate_sacrificial_taskmaster_done_cascade(
             actual_delta_paths=actual,
             baseline_metadata=target_baseline,
             clone_fidelity=clone_fidelity,
+            semantic_delta=validate_taskmaster_apply_semantic_delta(
+                before=semantic_before,
+                after=semantic_after,
+                task_id=task_id,
+                expected_status="done",
+            ),
         )
     finally:
         if clone_context is not None:
             clone_context.cleanup()
+
+
+def validate_taskmaster_apply_semantic_delta(
+    *,
+    before: Mapping[str, Any],
+    after: Mapping[str, Any],
+    task_id: str,
+    expected_status: str = "done",
+) -> TaskmasterSemanticDelta:
+    """Validate expected Taskmaster apply content changes inside allowed paths."""
+
+    task_id = str(task_id)
+    expected_status = str(expected_status)
+    try:
+        before_tasks = _canonicalize_taskmaster_document(before["tasks_json"])
+        after_tasks = _canonicalize_taskmaster_document(after["tasks_json"])
+    except KeyError as exc:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="tasks_json_missing",
+            details={"missing": str(exc)},
+        )
+
+    before_match = _find_task_record(before_tasks, task_id)
+    after_match = _find_task_record(after_tasks, task_id)
+    if before_match is None:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="target_task_missing_before",
+            details={},
+        )
+    if after_match is None:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="target_task_missing_after",
+            details={},
+        )
+
+    before_status = str(before_match["record"].get("status") or "")
+    after_status = str(after_match["record"].get("status") or "")
+    if after_status != expected_status:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="target_status_not_done",
+            details={"before_status": before_status, "after_status": after_status},
+        )
+
+    expected_after = copy.deepcopy(before_tasks)
+    expected_match = _find_task_record(expected_after, task_id)
+    if expected_match is None:  # pragma: no cover - guarded by before_match.
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="target_task_missing_expected",
+            details={},
+        )
+    expected_match["record"]["status"] = expected_status
+    if expected_after != after_tasks:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="tasks_json_semantic_mismatch",
+            details={
+                "before_status": before_status,
+                "after_status": after_status,
+                "diff_summary": _semantic_diff_summary(expected_after, after_tasks),
+            },
+        )
+
+    markdown = _validate_generated_task_markdown(
+        before_text=before.get("generated_task_markdown"),
+        after_text=after.get("generated_task_markdown"),
+        task_id=task_id,
+        expected_status=expected_status,
+    )
+    if not markdown["passed"]:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason=str(markdown["reason"]),
+            details={"markdown": markdown},
+        )
+
+    return TaskmasterSemanticDelta(
+        target_task_id=task_id,
+        expected_status=expected_status,
+        canonicalization_version=TASKMASTER_SEMANTIC_CANONICALIZATION_VERSION,
+        passed=True,
+        reason="semantic_delta_matches_prediction",
+        details={
+            "tasks_json": {
+                "before_status": before_status,
+                "after_status": after_status,
+                "target_path": before_match["path"],
+            },
+            "markdown": markdown,
+        },
+    )
+
+
+def _semantic_failure(
+    *,
+    task_id: str,
+    expected_status: str,
+    reason: str,
+    details: Mapping[str, Any],
+) -> TaskmasterSemanticDelta:
+    return TaskmasterSemanticDelta(
+        target_task_id=task_id,
+        expected_status=expected_status,
+        canonicalization_version=TASKMASTER_SEMANTIC_CANONICALIZATION_VERSION,
+        passed=False,
+        reason=reason,
+        details=dict(details),
+    )
+
+
+def _read_taskmaster_semantic_inputs(
+    root: Path,
+    *,
+    task_id: str,
+    predicted_paths: Iterable[str],
+) -> dict[str, Any]:
+    predicted = {_normalize_rel_path(path) for path in predicted_paths}
+    tasks_json_path = root / ".taskmaster" / "tasks" / "tasks.json"
+    generated_rel = _taskmaster_generated_task_markdown_rel(task_id)
+    payload: dict[str, Any] = {
+        "tasks_json": json.loads(tasks_json_path.read_text(encoding="utf-8")),
+    }
+    if generated_rel in predicted:
+        generated_path = root / generated_rel
+        payload["generated_task_markdown"] = (
+            generated_path.read_text(encoding="utf-8")
+            if generated_path.exists()
+            else None
+        )
+    return payload
+
+
+def _canonicalize_taskmaster_document(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        normalized = dict(value)
+        if "id" in normalized and "status" in normalized and "subtasks" not in normalized:
+            normalized["subtasks"] = []
+        return {
+            str(key): _canonicalize_taskmaster_value(str(key), child)
+            for key, child in sorted(normalized.items(), key=lambda item: str(item[0]))
+            if _taskmaster_key_is_semantic(str(key), parent=normalized)
+        }
+    if isinstance(value, list):
+        return [_canonicalize_taskmaster_document(item) for item in value]
+    return value
+
+
+def _canonicalize_taskmaster_value(key: str, value: Any) -> Any:
+    if key == "id":
+        return _canonical_task_id(value)
+    if key == "dependencies" and isinstance(value, list):
+        return [_canonical_task_id(item) for item in value]
+    return _canonicalize_taskmaster_document(value)
+
+
+def _taskmaster_key_is_semantic(key: str, *, parent: Mapping[str, Any]) -> bool:
+    if key == "updatedAt":
+        return False
+    if key == "metadata" and "tasks" in parent:
+        return False
+    return True
+
+
+def _canonical_task_id(value: Any) -> str:
+    if isinstance(value, float) and value.is_integer():
+        value = int(value)
+    return str(value)
+
+
+def _find_task_record(document: Any, task_id: str) -> dict[str, Any] | None:
+    matches: list[dict[str, Any]] = []
+
+    def visit(value: Any, path: str) -> None:
+        if isinstance(value, Mapping):
+            if str(value.get("id") or "") == task_id:
+                matches.append({"path": path, "record": value})
+            for key, child in value.items():
+                visit(child, f"{path}.{key}" if path else str(key))
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                visit(child, f"{path}[{index}]")
+
+    visit(document, "")
+    return matches[0] if len(matches) == 1 else None
+
+
+def _semantic_diff_summary(expected: Any, actual: Any, *, limit: int = 20) -> list[str]:
+    diffs: list[str] = []
+
+    def visit(left: Any, right: Any, path: str) -> None:
+        if len(diffs) >= limit:
+            return
+        if type(left) is not type(right):
+            diffs.append(f"{path or '<root>'}: type {type(left).__name__} -> {type(right).__name__}")
+            return
+        if isinstance(left, Mapping):
+            keys = sorted(set(left) | set(right), key=str)
+            for key in keys:
+                if key not in left:
+                    diffs.append(f"{path}.{key}: added")
+                elif key not in right:
+                    diffs.append(f"{path}.{key}: removed")
+                else:
+                    visit(left[key], right[key], f"{path}.{key}" if path else str(key))
+                if len(diffs) >= limit:
+                    return
+        elif isinstance(left, list):
+            if len(left) != len(right):
+                diffs.append(f"{path or '<root>'}: length {len(left)} -> {len(right)}")
+                return
+            for index, (left_item, right_item) in enumerate(zip(left, right)):
+                visit(left_item, right_item, f"{path}[{index}]")
+                if len(diffs) >= limit:
+                    return
+        elif left != right:
+            diffs.append(f"{path or '<root>'}: {left!r} -> {right!r}")
+
+    visit(expected, actual, "")
+    return diffs
+
+
+def _validate_generated_task_markdown(
+    *,
+    before_text: Any,
+    after_text: Any,
+    task_id: str,
+    expected_status: str,
+) -> dict[str, Any]:
+    if after_text is None:
+        return {"passed": False, "reason": "generated_markdown_missing_after"}
+    if not isinstance(after_text, str) or not after_text.strip():
+        return {"passed": False, "reason": "generated_markdown_empty_after"}
+    status_match = re.search(
+        r"(?im)^\s*(?:[-*]\s*)?(?:\*\*)?status\s*:\s*(?:\*\*)?\s*`?([A-Za-z0-9_-]+)`?\s*$",
+        after_text,
+    )
+    if status_match is None:
+        return {"passed": False, "reason": "generated_markdown_status_missing"}
+    if status_match.group(1) != expected_status:
+        return {
+            "passed": False,
+            "reason": "generated_markdown_status_mismatch",
+            "after_status": status_match.group(1),
+        }
+    task_id_pattern = re.compile(
+        rf"(?im)^\s*#?\s*Task(?:\s+ID)?(?:\s*:\s*|\s+){re.escape(task_id)}\b"
+    )
+    if task_id_pattern.search(after_text) is None:
+        return {"passed": False, "reason": "generated_markdown_task_id_missing"}
+    before_status = ""
+    if isinstance(before_text, str):
+        before_match = re.search(
+            r"(?im)^\s*(?:[-*]\s*)?(?:\*\*)?status\s*:\s*(?:\*\*)?\s*`?([A-Za-z0-9_-]+)`?\s*$",
+            before_text,
+        )
+        before_status = before_match.group(1) if before_match else ""
+    return {
+        "passed": True,
+        "reason": "generated_markdown_matches_prediction",
+        "before_status": before_status,
+        "after_status": status_match.group(1),
+    }
 
 
 def _base_record(candidate: ApplyCandidate, *, artifact_mode: str) -> dict[str, Any]:
