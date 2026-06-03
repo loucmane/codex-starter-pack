@@ -44,6 +44,29 @@ jobs:
       - name: Run Taskmaster health
         run: python3 scripts/codex-task taskmaster health
 
+      - name: Capture reconcile shadow context proof
+        run: |
+          mkdir -p reports/ci
+          python3 - <<'PY' > reports/ci/reconcile-shadow-context-proof.json
+          import json
+          import os
+
+          from aegis_foundation.reconcile_shadow_apply import build_ci_shadow_context_proof
+
+          payload = {
+              "record_type": "reconcile_shadow_context_proof",
+              "mode": "shadow",
+              "executed": False,
+              "mutated_live_repo": False,
+              "proof": build_ci_shadow_context_proof(
+                  os.environ,
+                  task_id="ci-context-proof",
+                  proof="git_ancestor",
+              ),
+          }
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+
       - name: Run pytest
         run: |
           mkdir -p reports/ci

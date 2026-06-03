@@ -174,6 +174,19 @@ Task 150 adds a disabled scaffold, still without enabling mutation:
 - Tests prove the scaffold has zero filesystem side effects across the reconcile corpus and
   that the enable gate is unsatisfiable under current inputs.
 
+Task 151 adds shadow apply artifacts, still without enabling mutation:
+
+- `docs/aegis/reconcile-shadow-apply-contract.md` defines shadow-mode evidence for the
+  first candidate class.
+- `aegis_foundation/reconcile_shadow_apply.py` builds would-apply artifacts for
+  `merged_but_not_done` with `git_ancestor` proof only.
+- The shadow path validates predicted Taskmaster blast radius in a detached sacrificial
+  clone and records actual deltas without mutating the governed repo.
+- CI mode returns artifact-ready JSON and the CI workflow captures a real GitHub Actions
+  context proof artifact; local/test mode may write exactly one declared report path.
+- Tests prove shadow mode has no live side effects, no agent-facing apply surface, no
+  executable command strings, and no writer consumption.
+
 The intended sequence is observe, prove, then automate. Task 141 added the report. Task 143
 dogfooded its signal quality. Task 144 prevents accidental promotion to mutation flags.
 Task 145 proves read-only behavior at the filesystem side-effect boundary. Task 146 proves
@@ -182,4 +195,6 @@ proposal bar for the first possible mutation candidate while keeping reconcile i
 strictly report-only. Task 148 makes the first candidate visible only as inert, opt-in
 preview data. Task 149 writes the apply-path proposal contract and review prompt while
 still keeping reconcile read-only. Task 150 adds the disabled, behaviorally zero-side-effect
-scaffold that can be reviewed before any future enable path exists.
+scaffold that can be reviewed before any future enable path exists. Task 151 runs the
+future apply pipeline in shadow mode with prediction-validated would-apply artifacts while
+the final write remains absent.
