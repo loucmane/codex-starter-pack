@@ -148,6 +148,41 @@ class Asset:
     kind: str = "managed"
 
 
+@dataclass(frozen=True)
+class TaskmasterState:
+    """Taskmaster task authority state for a target repository."""
+
+    state: str
+    source: str
+    reason: str = ""
+    message: str = ""
+    tasks: tuple[Mapping[str, Any], ...] = ()
+
+    @property
+    def present(self) -> bool:
+        return self.state != "absent"
+
+    @property
+    def valid(self) -> bool:
+        return self.state == "valid"
+
+    def details(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "source": self.source,
+            "state": self.state,
+            "present": self.present,
+            "valid": self.valid,
+            "task_count": len(self.tasks) if self.valid else 0,
+        }
+        if self.reason:
+            payload["reason"] = self.reason
+        if self.message:
+            payload["message"] = self.message
+        if self.state == "invalid":
+            payload["repair_guidance"] = _taskmaster_repair_guidance()
+        return payload
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -1484,6 +1519,34 @@ def _numeric_task_id(value: Any) -> str | None:
     return text if re.fullmatch(r"\d+", text) else None
 
 
+TASKMASTER_STATUS_CHOICES = {
+    "pending",
+    "in-progress",
+    "done",
+    "completed",
+    "deferred",
+    "cancelled",
+    "blocked",
+}
+
+
+def _taskmaster_repair_guidance() -> list[str]:
+    return [
+        f"Inspect and repair {TASKMASTER_TASKS_REL}.",
+        "Run task-master validate-dependencies after repairing Taskmaster state.",
+        "Run python3 scripts/codex-task taskmaster health when the project helper exists.",
+    ]
+
+
+def _invalid_taskmaster_state(reason: str, message: str) -> TaskmasterState:
+    return TaskmasterState(
+        state="invalid",
+        source=TASKMASTER_TASKS_REL,
+        reason=reason,
+        message=message,
+    )
+
+
 def _iter_taskmaster_tasks(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     task_lists: list[Any] = []
     root_tasks = payload.get("tasks")
@@ -1507,49 +1570,117 @@ def _iter_taskmaster_tasks(payload: Mapping[str, Any]) -> list[Mapping[str, Any]
     return tasks
 
 
-def _taskmaster_available_task(target_root: Path) -> dict[str, str] | None:
-    payload = _read_json(target_root / TASKMASTER_TASKS_REL)
-    if not isinstance(payload, Mapping):
-        return None
+def _taskmaster_task_lists(payload: Mapping[str, Any]) -> tuple[list[Any], TaskmasterState | None]:
+    task_lists: list[Any] = []
+    if "tasks" in payload:
+        root_tasks = payload.get("tasks")
+        if not isinstance(root_tasks, list):
+            return [], _invalid_taskmaster_state(
+                "malformed_task_container",
+                "root tasks field must be a list",
+            )
+        task_lists.append(root_tasks)
+    for tag, value in payload.items():
+        if not isinstance(value, Mapping) or "tasks" not in value:
+            continue
+        tagged_tasks = value.get("tasks")
+        if not isinstance(tagged_tasks, list):
+            return [], _invalid_taskmaster_state(
+                "malformed_task_container",
+                f"tag {tag!s} tasks field must be a list",
+            )
+        task_lists.append(tagged_tasks)
+    if not task_lists:
+        return [], _invalid_taskmaster_state(
+            "missing_task_container",
+            "Taskmaster payload must contain at least one tasks list",
+        )
+    return task_lists, None
 
-    tasks = _iter_taskmaster_tasks(payload)
-    if not tasks:
-        return None
 
-    status_by_id = {
-        task_id: str(task.get("status") or "").strip().lower()
-        for task in tasks
-        if (task_id := _numeric_task_id(task.get("id"))) is not None
-    }
-
-    def dependencies_satisfied(task: Mapping[str, Any]) -> bool:
-        raw_dependencies = task.get("dependencies")
-        if not isinstance(raw_dependencies, list):
-            return True
-        for dependency in raw_dependencies:
-            dependency_id = _numeric_task_id(dependency)
-            if dependency_id is None:
-                continue
-            if status_by_id.get(dependency_id) not in {"done", "completed"}:
-                return False
-        return True
-
-    for preferred_status in ("in-progress", "pending"):
-        for task in tasks:
-            task_id = _numeric_task_id(task.get("id"))
+def _validate_taskmaster_tasks(task_lists: Sequence[Sequence[Any]]) -> TaskmasterState | None:
+    seen_ids: set[str] = set()
+    for list_index, task_list in enumerate(task_lists):
+        for item_index, item in enumerate(task_list):
+            location = f"tasks list {list_index} item {item_index}"
+            if not isinstance(item, Mapping):
+                return _invalid_taskmaster_state(
+                    "malformed_task",
+                    f"{location} must be an object",
+                )
+            task_id = _numeric_task_id(item.get("id"))
             if task_id is None:
+                return _invalid_taskmaster_state(
+                    "invalid_task_id",
+                    f"{location} must have a numeric id",
+                )
+            if task_id in seen_ids:
+                return _invalid_taskmaster_state(
+                    "duplicate_task_id",
+                    f"Taskmaster task id {task_id} appears more than once",
+                )
+            seen_ids.add(task_id)
+            raw_status = item.get("status")
+            if not isinstance(raw_status, str) or not raw_status.strip():
+                return _invalid_taskmaster_state(
+                    "invalid_task_status",
+                    f"task {task_id} must have a non-empty string status",
+                )
+            status = raw_status.strip().lower()
+            if status not in TASKMASTER_STATUS_CHOICES:
+                return _invalid_taskmaster_state(
+                    "invalid_task_status",
+                    f"task {task_id} has unsupported status {raw_status!r}",
+                )
+            raw_dependencies = item.get("dependencies")
+            if raw_dependencies is None:
                 continue
-            status = str(task.get("status") or "").strip().lower()
-            if status != preferred_status or not dependencies_satisfied(task):
-                continue
-            title = str(task.get("title") or f"Task {task_id}").strip() or f"Task {task_id}"
-            return {
-                "id": task_id,
-                "title": title,
-                "slug": _slugify(title),
-                "status": status,
-            }
+            if not isinstance(raw_dependencies, list):
+                return _invalid_taskmaster_state(
+                    "invalid_task_dependencies",
+                    f"task {task_id} dependencies must be a list when present",
+                )
+            for dependency in raw_dependencies:
+                if _numeric_task_id(dependency) is None:
+                    return _invalid_taskmaster_state(
+                        "invalid_task_dependency",
+                        f"task {task_id} dependency {dependency!r} is not a numeric task id",
+                    )
     return None
+
+
+def _taskmaster_state(target_root: Path) -> TaskmasterState:
+    path = target_root / TASKMASTER_TASKS_REL
+    if not path.exists():
+        return TaskmasterState(state="absent", source=TASKMASTER_TASKS_REL)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return _invalid_taskmaster_state(
+            "json_decode_error",
+            f"{TASKMASTER_TASKS_REL} is not valid JSON: {exc.msg}",
+        )
+    except OSError as exc:
+        return _invalid_taskmaster_state(
+            "unreadable",
+            f"{TASKMASTER_TASKS_REL} could not be read: {exc}",
+        )
+    if not isinstance(payload, Mapping):
+        return _invalid_taskmaster_state(
+            "non_object_payload",
+            "Taskmaster payload root must be a JSON object",
+        )
+    task_lists, invalid = _taskmaster_task_lists(payload)
+    if invalid is not None:
+        return invalid
+    invalid = _validate_taskmaster_tasks(task_lists)
+    if invalid is not None:
+        return invalid
+    return TaskmasterState(
+        state="valid",
+        source=TASKMASTER_TASKS_REL,
+        tasks=tuple(_iter_taskmaster_tasks(payload)),
+    )
 
 
 def _normalise_default_agent_selection(
@@ -1630,7 +1761,6 @@ def next_action(
     """Return read-only workflow guidance for the next Aegis action."""
 
     target_root = _resolve_target_root(target_dir)
-    source = Path(source_root).resolve()
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest_exists = manifest_path.exists()
     manifest = _read_json(manifest_path)
@@ -1735,45 +1865,55 @@ def next_action(
                     "clearance": reload_marker.get("clearance", {}),
                 },
             )
-        taskmaster_task = _taskmaster_available_task(target_root)
-        if taskmaster_task is not None:
-            task_id = taskmaster_task["id"]
-            title = taskmaster_task["title"]
-            slug = taskmaster_task["slug"]
-            kickoff_cli = (
-                "./.aegis/bin/aegis kickoff --target-dir . "
-                f"--task {task_id} --slug {shlex.quote(slug)} --title {shlex.quote(title)}"
-            )
+        taskmaster = _taskmaster_state(target_root)
+        if taskmaster.state == "invalid":
             return _workflow_guidance_payload(
                 phase="start",
-                state="installed_taskmaster_available",
+                state="installed_taskmaster_invalid",
                 next_required_action=(
-                    "use Taskmaster next/show as task authority, then start Aegis with the explicit "
+                    "repair Taskmaster task state before Aegis can start or select work"
+                ),
+                suggested_cli="python3 scripts/codex-task taskmaster health",
+                missing_gates=["aegis.current_work", "taskmaster.tasks_json_valid"],
+                copyable_repairs=_taskmaster_repair_guidance(),
+                details={
+                    "taskmaster": {
+                        **taskmaster.details(),
+                        "task_selection_authority": "taskmaster",
+                        "aegis_task_selection": "suppressed",
+                        "local_fallback_allowed": False,
+                    }
+                },
+            )
+        if taskmaster.state == "valid":
+            return _workflow_guidance_payload(
+                phase="start",
+                state="installed_taskmaster_present",
+                next_required_action=(
+                    "use Taskmaster next/show as task authority, then start Aegis with an explicit "
                     "Taskmaster numeric task id before mutating files"
                 ),
-                suggested_cli=kickoff_cli,
-                suggested_mcp_tool="aegis.kickoff",
-                suggested_mcp_arguments={
-                    "target_dir": ".",
-                    "task": task_id,
-                    "slug": slug,
-                    "title": title,
-                    "apply": True,
-                },
+                suggested_cli=(
+                    "task-master next && task-master show <id> && "
+                    "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'"
+                ),
                 missing_gates=["aegis.current_work"],
                 copyable_repairs=[
                     "task-master next",
-                    f"task-master show {task_id}",
-                    kickoff_cli,
+                    "task-master show <id>",
+                    "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
                     (
-                        f"task-master set-status --id={task_id} --status=done "
+                        "task-master set-status --id=<id> --status=done "
                         "only after aegis closeout and aegis doctor pass"
                     ),
                 ],
                 details={
                     "taskmaster": {
-                        "source": TASKMASTER_TASKS_REL,
-                        "task": taskmaster_task,
+                        **taskmaster.details(),
+                        "task_selection_authority": "taskmaster",
+                        "aegis_task_selection": "suppressed",
+                        "kickoff_requires_explicit_taskmaster_id": True,
+                        "local_fallback_allowed": False,
                         "ordering": [
                             "task-master next/show",
                             "aegis.kickoff",
@@ -2268,12 +2408,13 @@ def _task_ids_from_text(value: str) -> list[str]:
     return sorted(ids, key=lambda item: int(item))
 
 
-def _taskmaster_tasks_by_id(target_root: Path) -> dict[str, dict[str, Any]]:
-    payload = _read_json(target_root / TASKMASTER_TASKS_REL)
-    if not isinstance(payload, Mapping):
+def _taskmaster_tasks_by_id_from_state(
+    taskmaster: TaskmasterState,
+) -> dict[str, dict[str, Any]]:
+    if taskmaster.state != "valid":
         return {}
     tasks: dict[str, dict[str, Any]] = {}
-    for task in _iter_taskmaster_tasks(payload):
+    for task in taskmaster.tasks:
         task_id = _numeric_task_id(task.get("id"))
         if task_id is None:
             continue
@@ -2284,6 +2425,10 @@ def _taskmaster_tasks_by_id(target_root: Path) -> dict[str, dict[str, Any]]:
             "raw": dict(task),
         }
     return tasks
+
+
+def _taskmaster_tasks_by_id(target_root: Path) -> dict[str, dict[str, Any]]:
+    return _taskmaster_tasks_by_id_from_state(_taskmaster_state(target_root))
 
 
 def _git_ref_exists(target_root: Path, ref: str) -> bool:
@@ -2732,7 +2877,8 @@ def reconcile(
 
     target_root = _resolve_target_root(target_dir)
     _ensure_git_work_tree(target_root)
-    tasks = _taskmaster_tasks_by_id(target_root)
+    taskmaster = _taskmaster_state(target_root)
+    tasks = _taskmaster_tasks_by_id_from_state(taskmaster)
     branches = _reconcile_branch_candidates(target_root)
     branches_by_task: dict[str, list[dict[str, Any]]] = {}
     for branch in branches:
@@ -2756,16 +2902,32 @@ def reconcile(
         current_branch = ""
     current_branch_task_id = _branch_task_id(current_branch)
     local_stubs = _local_aegis_task_stubs(target_root)
-    all_task_ids = sorted(
-        set(tasks)
-        | set(branches_by_task)
-        | set(prs_by_task)
-        | {stub["id"] for stub in local_stubs},
-        key=lambda item: int(item),
-    )
+    if taskmaster.state == "invalid":
+        all_task_ids: list[str] = []
+    else:
+        all_task_ids = sorted(
+            set(tasks)
+            | set(branches_by_task)
+            | set(prs_by_task)
+            | {stub["id"] for stub in local_stubs},
+            key=lambda item: int(item),
+        )
 
     task_reports: list[dict[str, Any]] = []
     findings: list[dict[str, Any]] = []
+    if taskmaster.state == "invalid":
+        findings.append(
+            _reconcile_finding(
+                "taskmaster_invalid",
+                severity="warning",
+                task_id="",
+                message=(
+                    f"{TASKMASTER_TASKS_REL} is present but invalid; repair Taskmaster "
+                    "before deriving task/branch drift"
+                ),
+                evidence=taskmaster.details(),
+            )
+        )
     done_statuses = {"done", "completed"}
     for task_id in all_task_ids:
         task = tasks.get(task_id)
@@ -2877,8 +3039,9 @@ def reconcile(
             "pr_count": len(gh.get("prs", [])),
         },
         "taskmaster": {
+            **taskmaster.details(),
             "path": TASKMASTER_TASKS_REL,
-            "available": bool(tasks),
+            "available": taskmaster.state == "valid",
             "task_count": len(tasks),
         },
         "active_aegis_current_work": current_work,
@@ -3495,14 +3658,21 @@ def start_local_work(
                 "Aegis current work is already in progress: "
                 f"task {existing_task.get('id')} {existing_slug}. Close it out before starting {normalized_slug}."
             )
-    taskmaster_task = _taskmaster_available_task(target_root)
-    if taskmaster_task is not None:
+    taskmaster = _taskmaster_state(target_root)
+    if taskmaster.state == "invalid":
         raise AegisError(
-            "Taskmaster task "
-            f"{taskmaster_task['id']} is available; run task-master next/show and use "
-            "./.aegis/bin/aegis kickoff --target-dir . "
-            f"--task {taskmaster_task['id']} --slug {taskmaster_task['slug']} "
-            f"--title {shlex.quote(taskmaster_task['title'])} instead of aegis start."
+            "Taskmaster task state is present but invalid at "
+            f"{TASKMASTER_TASKS_REL}; repair it before starting Aegis work. "
+            f"Reason: {taskmaster.reason}. "
+            "Run task-master validate-dependencies or python3 scripts/codex-task taskmaster health."
+        )
+    if taskmaster.state == "valid":
+        raise AegisError(
+            "Taskmaster is present at "
+            f"{TASKMASTER_TASKS_REL}; use task-master next/show and then "
+            "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> "
+            "--title '<title>' instead of aegis start. Aegis local task allocation is only "
+            "available when Taskmaster is absent."
         )
     local_task = _allocate_local_task(target_root, clean_title, normalized_slug)
     report = kickoff(
@@ -4032,7 +4202,7 @@ def _next_action_after_log(
         verification_rel = f"{reports_rel}/task-verification.md"
         if pending_tracking_expected:
             suggested_cli = (
-                f"# write verification evidence, then:\n"
+                "# write verification evidence, then:\n"
                 "./.aegis/bin/aegis log --target-dir . --pending-id current "
                 "--note 'Recorded task-specific verification evidence' "
                 "--plan-step plan-step-verify --plan-status completed"

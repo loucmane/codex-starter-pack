@@ -45,6 +45,7 @@ from scripts._aegis_installer import (
     reconcile,
     repair,
     repair_handoff,
+    status,
     start_local_work,
     verify,
 )
@@ -195,6 +196,13 @@ def write_taskmaster_tasks(repo: Path, tasks: list[dict[str, Any]]) -> None:
     (task_dir / "tasks.json").write_text(
         json.dumps({"master": {"tasks": tasks}}, indent=2) + "\n", encoding="utf-8"
     )
+
+
+def write_taskmaster_payload(repo: Path, payload: object | str) -> None:
+    task_dir = repo / ".taskmaster" / "tasks"
+    task_dir.mkdir(parents=True, exist_ok=True)
+    text = payload if isinstance(payload, str) else json.dumps(payload, indent=2) + "\n"
+    (task_dir / "tasks.json").write_text(text, encoding="utf-8")
 
 
 def commit_file(repo: Path, rel_path: str, content: str, message: str) -> None:
@@ -704,8 +712,11 @@ def test_reconcile_preserves_whole_tree_with_malformed_taskmaster_state(tmp_path
 
     assert_reconcile_preserved_whole_tree(target, tree_before)
     assert report["read_only"] is True
-    assert report["taskmaster"]["available"] is False
-    assert {finding["kind"] for finding in report["findings"]} == {"stale_local_stub"}
+    assert report["taskmaster"]["state"] == "invalid"
+    assert report["taskmaster"]["present"] is True
+    assert report["taskmaster"]["valid"] is False
+    assert report["taskmaster"]["reason"] == "json_decode_error"
+    assert {finding["kind"] for finding in report["findings"]} == {"taskmaster_invalid"}
 
 
 def test_reconcile_preserves_whole_tree_when_github_metadata_unavailable(
@@ -817,9 +828,6 @@ def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_fold
     initialize_project(target, source_root=REPO_ROOT)
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="pointer-repair", title="Pointer Repair")
-    current_work = json.loads(
-        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
-    )
     stale = target / "docs/ai/work-tracking/active/20990101-task99-stale-ACTIVE"
     stale.mkdir(parents=True)
     (target / "sessions/current").unlink()
@@ -1087,32 +1095,40 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     assert installed["suggested_mcp_call"]["arguments"]["apply"] is True
 
 
-def test_next_action_prefers_taskmaster_kickoff_when_numeric_task_is_available(
+def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_present(
     tmp_path: Path,
 ) -> None:
     target = tmp_path / "guided-taskmaster-repo"
     target.mkdir()
-    taskmaster_tasks = target / ".taskmaster" / "tasks"
-    taskmaster_tasks.mkdir(parents=True)
-    (taskmaster_tasks / "tasks.json").write_text(
-        json.dumps(
+    write_taskmaster_tasks(
+        target,
+        [
             {
-                "master": {
-                    "tasks": [
-                        {
-                            "id": 42,
-                            "title": "Add visible Add to cart button",
-                            "description": "Use the project workflow and add the button.",
-                            "status": "pending",
-                            "priority": "medium",
-                            "dependencies": [],
-                            "subtasks": [],
-                        }
-                    ]
-                }
-            }
-        ),
-        encoding="utf-8",
+                "id": 6,
+                "title": "Heuristic would pick this first",
+                "description": "Aegis must not present this as the next task.",
+                "status": "pending",
+                "priority": "medium",
+                "dependencies": [],
+                "subtasks": [],
+            },
+            {
+                "id": 31,
+                "title": "Prerequisite",
+                "status": "done",
+                "dependencies": [],
+                "subtasks": [],
+            },
+            {
+                "id": 32,
+                "title": "Taskmaster CLI may choose this instead",
+                "description": "Only Taskmaster is allowed to decide that.",
+                "status": "pending",
+                "priority": "high",
+                "dependencies": [31],
+                "subtasks": [],
+            },
+        ],
     )
     install(
         target,
@@ -1126,30 +1142,29 @@ def test_next_action_prefers_taskmaster_kickoff_when_numeric_task_is_available(
     guided = next_action(target, source_root=REPO_ROOT)
 
     assert guided["phase"] == "start"
-    assert guided["state"] == "installed_taskmaster_available"
+    assert guided["state"] == "installed_taskmaster_present"
     assert "Taskmaster" in guided["next_required_action"]
-    assert guided["suggested_mcp_call"] == {
-        "tool": "aegis.kickoff",
-        "arguments": {
-            "target_dir": ".",
-            "task": "42",
-            "slug": "add-visible-add-to-cart-button",
-            "title": "Add visible Add to cart button",
-            "apply": True,
-        },
-    }
-    assert "./.aegis/bin/aegis kickoff --target-dir . --task 42" in guided["suggested_cli"]
+    assert guided["suggested_mcp_call"] is None
+    assert "task-master next" in guided["suggested_cli"]
+    assert "--task <id>" in guided["suggested_cli"]
+    assert "--task 6" not in guided["suggested_cli"]
+    assert "--task 32" not in guided["suggested_cli"]
     repairs = "\n".join(guided["copyable_repairs"])
     assert "task-master next" in repairs
-    assert "task-master show 42" in repairs
-    assert "aegis kickoff --target-dir . --task 42" in repairs
+    assert "task-master show <id>" in repairs
+    assert "aegis kickoff --target-dir . --task <id>" in repairs
     assert "aegis start '<task title>'" not in repairs
-    assert guided["details"]["taskmaster"]["task"] == {
-        "id": "42",
-        "title": "Add visible Add to cart button",
-        "slug": "add-visible-add-to-cart-button",
-        "status": "pending",
-    }
+    taskmaster = guided["details"]["taskmaster"]
+    assert taskmaster["source"] == ".taskmaster/tasks/tasks.json"
+    assert taskmaster["state"] == "valid"
+    assert taskmaster["present"] is True
+    assert taskmaster["valid"] is True
+    assert taskmaster["task_count"] == 3
+    assert taskmaster["task_selection_authority"] == "taskmaster"
+    assert taskmaster["aegis_task_selection"] == "suppressed"
+    assert taskmaster["kickoff_requires_explicit_taskmaster_id"] is True
+    assert taskmaster["local_fallback_allowed"] is False
+    assert "task" not in taskmaster
     assert guided["details"]["taskmaster"]["ordering"] == [
         "task-master next/show",
         "aegis.kickoff",
@@ -1163,10 +1178,167 @@ def test_next_action_prefers_taskmaster_kickoff_when_numeric_task_is_available(
     assert "task-master next" in claude_entry
     assert "task-master show <id>" in claude_entry
     assert "Taskmaster done only after Aegis closeout and doctor pass" in claude_entry
+
+    for report in (
+        inspect_project(target, source_root=REPO_ROOT),
+        status(target, source_root=REPO_ROOT),
+        doctor(target, source_root=REPO_ROOT),
+    ):
+        guidance = report["workflow_guidance"] if "workflow_guidance" in report else report["next_action"]
+        assert guidance["state"] == "installed_taskmaster_present"
+        assert guidance["details"]["taskmaster"]["aegis_task_selection"] == "suppressed"
+        assert "task" not in guidance["details"]["taskmaster"]
     assert "task-master generate" in claude_entry
     claude_settings = json.loads((target / ".claude" / "settings.json").read_text(encoding="utf-8"))
     allowed = claude_settings["permissions"]["allow"]
     assert "Bash(task-master *)" in allowed
+
+
+@pytest.mark.parametrize(
+    ("payload", "reason"),
+    [
+        ("{not json\n", "json_decode_error"),
+        ([], "non_object_payload"),
+        ({}, "missing_task_container"),
+        ({"master": {"tasks": {}}}, "malformed_task_container"),
+        ({"master": {"tasks": ["not-an-object"]}}, "malformed_task"),
+        (
+            {"master": {"tasks": [{"id": "abc", "title": "Bad", "status": "pending"}]}},
+            "invalid_task_id",
+        ),
+        (
+            {"master": {"tasks": [{"id": 42, "title": "Bad", "status": 7}]}},
+            "invalid_task_status",
+        ),
+        (
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 42,
+                            "title": "Bad",
+                            "status": "pending",
+                            "dependencies": "1",
+                        }
+                    ]
+                }
+            },
+            "invalid_task_dependencies",
+        ),
+        (
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 42,
+                            "title": "Bad",
+                            "status": "pending",
+                            "dependencies": ["x"],
+                        }
+                    ]
+                }
+            },
+            "invalid_task_dependency",
+        ),
+    ],
+)
+def test_taskmaster_present_invalid_blocks_task_selection_across_surfaces(
+    tmp_path: Path, payload: object | str, reason: str
+) -> None:
+    target = tmp_path / f"invalid-taskmaster-{reason}"
+    init_git_repo(target)
+    write_taskmaster_payload(target, payload)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+
+    guided = next_action(target, source_root=REPO_ROOT)
+
+    assert guided["phase"] == "start"
+    assert guided["state"] == "installed_taskmaster_invalid"
+    assert guided["suggested_mcp_call"] is None
+    assert "aegis start" not in guided["suggested_cli"]
+    assert "aegis kickoff" not in guided["suggested_cli"]
+    assert "taskmaster.tasks_json_valid" in guided["missing_gates"]
+    taskmaster = guided["details"]["taskmaster"]
+    assert taskmaster["source"] == ".taskmaster/tasks/tasks.json"
+    assert taskmaster["state"] == "invalid"
+    assert taskmaster["present"] is True
+    assert taskmaster["valid"] is False
+    assert taskmaster["reason"] == reason
+    assert taskmaster["task_selection_authority"] == "taskmaster"
+    assert taskmaster["aegis_task_selection"] == "suppressed"
+    assert taskmaster["local_fallback_allowed"] is False
+    assert "task" not in taskmaster
+    repairs = "\n".join(guided["copyable_repairs"])
+    assert "taskmaster health" in repairs
+    assert "task-master validate-dependencies" in repairs
+
+    for report in (
+        inspect_project(target, source_root=REPO_ROOT),
+        status(target, source_root=REPO_ROOT),
+        doctor(target, source_root=REPO_ROOT),
+    ):
+        guidance = report["workflow_guidance"] if "workflow_guidance" in report else report["next_action"]
+        assert guidance["state"] == "installed_taskmaster_invalid"
+        assert guidance["details"]["taskmaster"]["reason"] == reason
+        assert "task" not in guidance["details"]["taskmaster"]
+
+    with pytest.raises(AegisError, match="Taskmaster task state is present but invalid"):
+        start_local_work(target, title="Local fallback must not happen", source_root=REPO_ROOT)
+
+    tree_before = snapshot_whole_tree(target)
+    reconcile_report = reconcile(target, source_root=REPO_ROOT, base_ref="main", use_github=False)
+
+    assert_reconcile_preserved_whole_tree(target, tree_before)
+    assert reconcile_report["read_only"] is True
+    assert reconcile_report["taskmaster"]["state"] == "invalid"
+    assert reconcile_report["taskmaster"]["present"] is True
+    assert reconcile_report["taskmaster"]["valid"] is False
+    assert reconcile_report["taskmaster"]["reason"] == reason
+    assert reconcile_report["taskmaster"]["available"] is False
+    assert reconcile_report["summary"]["findings"] == 1
+    assert reconcile_report["findings"][0]["kind"] == "taskmaster_invalid"
+    assert reconcile_report["findings"][0]["evidence"]["reason"] == reason
+    assert not (target / AEGIS_LOCAL_TASKS_REL).exists()
+    assert not (target / AEGIS_CURRENT_WORK_REL).exists()
+
+
+@pytest.mark.skipif(
+    hasattr(os, "geteuid") and os.geteuid() == 0,
+    reason="root can read chmod 000 files, so unreadable-file behavior is not observable",
+)
+def test_taskmaster_present_unreadable_blocks_task_selection(tmp_path: Path) -> None:
+    target = tmp_path / "unreadable-taskmaster"
+    init_git_repo(target)
+    write_taskmaster_tasks(
+        target,
+        [{"id": 42, "title": "Unreadable", "status": "pending", "dependencies": []}],
+    )
+    tasks_path = target / ".taskmaster" / "tasks" / "tasks.json"
+    tasks_path.chmod(0)
+    try:
+        install(
+            target,
+            source_root=REPO_ROOT,
+            primary_agent="claude",
+            agents=["claude"],
+            apply=True,
+        )
+        simulate_claude_reload(target)
+
+        guided = next_action(target, source_root=REPO_ROOT)
+
+        assert guided["state"] == "installed_taskmaster_invalid"
+        assert guided["details"]["taskmaster"]["reason"] == "unreadable"
+        assert "task" not in guided["details"]["taskmaster"]
+    finally:
+        tasks_path.chmod(0o644)
 
 
 def test_install_report_flags_claude_reload_when_adapter_hooks_change(tmp_path: Path) -> None:
@@ -1501,7 +1673,7 @@ def test_codex_primary_guidance_uses_explicit_agent_logs_and_normalized_task_slu
     assert strict_report["next_action"]["details"]["pending_tracking_expected"] is False
 
 
-def test_start_local_work_refuses_to_bypass_available_taskmaster_task(tmp_path: Path) -> None:
+def test_start_local_work_refuses_to_bypass_present_taskmaster(tmp_path: Path) -> None:
     target = tmp_path / "taskmaster-start-refusal"
     target.mkdir()
     taskmaster_tasks = target / ".taskmaster" / "tasks"
@@ -1540,7 +1712,7 @@ def test_start_local_work_refuses_to_bypass_available_taskmaster_task(tmp_path: 
     )
     simulate_claude_reload(target)
 
-    with pytest.raises(AegisError, match="Taskmaster task 42 is available"):
+    with pytest.raises(AegisError, match="Taskmaster is present"):
         start_local_work(target, title="Add visible Add to cart button", source_root=REPO_ROOT)
 
     assert not (target / AEGIS_LOCAL_TASKS_REL).exists()
@@ -1681,7 +1853,7 @@ def test_next_action_guides_active_workflow_states(tmp_path: Path) -> None:
         apply=True,
     )
     simulate_claude_reload(target)
-    kickoff_report = kickoff(
+    kickoff(
         target,
         task_id="42",
         slug="guided-task",
