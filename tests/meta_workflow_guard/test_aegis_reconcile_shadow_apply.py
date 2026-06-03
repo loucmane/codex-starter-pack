@@ -15,11 +15,18 @@ from aegis_foundation import cli as aegis_cli
 from aegis_foundation.reconcile_apply_scaffold import FIRST_APPLY_CLASS_KEY
 from aegis_foundation.reconcile_shadow_apply import (
     SHADOW_ARTIFACT_NAME,
+    build_ci_shadow_cascade_validation_report,
     build_ci_shadow_context_proof,
     build_shadow_record,
     build_shadow_report,
     validate_sacrificial_taskmaster_done_cascade,
     write_local_shadow_report,
+)
+from aegis_foundation.taskmaster_toolchain import (
+    TASKMASTER_PACKAGE_VERSION,
+    build_taskmaster_toolchain_evidence,
+    compare_taskmaster_toolchain_evidence,
+    taskmaster_install_spec,
 )
 from aegis_mcp.server import AegisMCPConfig, create_server
 from scripts import _aegis_installer as aegis_installer
@@ -276,6 +283,81 @@ def test_sacrificial_clone_validation_is_faithful_detached_and_does_not_mutate_l
     assert clone_tasks["master"]["tasks"][0]["status"] == "done"
 
 
+def test_shadow_prediction_includes_preexisting_state_json_delta(tmp_path: Path) -> None:
+    _require_taskmaster_cli()
+    target = _setup_merged_git_ancestor(tmp_path / "shadow-state-present")
+    state_path = target / ".taskmaster" / "state.json"
+    state_path.write_text(json.dumps({"tag": "master"}, sort_keys=True) + "\n", encoding="utf-8")
+    candidate = _first_preview_candidate(target)
+    context = _ci_context(candidate)
+
+    report = build_shadow_report(
+        [candidate],
+        target_root=target,
+        approved_context_proof=context,
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+        external_anchor=context["external_anchor"],
+        clone_parent=tmp_path / "clones",
+    )
+
+    record = report["would_apply"][0]
+    assert record["sacrificial_delta_matches_prediction"] is True
+    assert ".taskmaster/state.json" in record["predicted_blast_radius_paths"]
+    assert ".taskmaster/state.json" in record["actual_sacrificial_delta_paths"]
+
+
+def test_ci_shadow_cascade_validation_report_covers_both_state_json_branches(
+    tmp_path: Path,
+) -> None:
+    _require_taskmaster_cli()
+    toolchain = _toolchain_evidence()
+
+    report = build_ci_shadow_cascade_validation_report(
+        _github_env(),
+        work_root=tmp_path / "ci-work",
+        toolchain_evidence=toolchain,
+        clone_parent=tmp_path / "clones",
+    )
+
+    assert report["record_type"] == "reconcile_shadow_ci_cascade_validation"
+    assert report["executed"] is False
+    assert report["mutated_live_repo"] is False
+    assert report["task_master_toolchain"] == toolchain
+    assert report["toolchain_binding"]["comparison"]["matches"] is True
+    assert report["summary"]["would_apply_records"] == 2
+    assert report["summary"]["all_sacrificial_deltas_match_prediction"] is True
+    cases = {case["case"]: case for case in report["cases"]}
+    absent_record = cases["state_json_absent"]["shadow_report"]["would_apply"][0]
+    present_record = cases["state_json_present"]["shadow_report"]["would_apply"][0]
+
+    assert cases["state_json_absent"]["state_json_initially_present"] is False
+    assert ".taskmaster/state.json" in absent_record["predicted_blast_radius_paths"]
+    assert ".taskmaster/state.json" in absent_record["actual_sacrificial_delta_paths"]
+    assert cases["state_json_present"]["state_json_initially_present"] is True
+    assert ".taskmaster/state.json" in present_record["predicted_blast_radius_paths"]
+    assert ".taskmaster/state.json" in present_record["actual_sacrificial_delta_paths"]
+    assert absent_record["executed"] is False
+    assert absent_record["mutated_live_repo"] is False
+    assert present_record["executed"] is False
+    assert present_record["mutated_live_repo"] is False
+
+
+def test_taskmaster_toolchain_mismatch_invalidates_prior_cascade_evidence() -> None:
+    validated = _toolchain_evidence()
+    current = _toolchain_evidence(task_master_version="99.0.0")
+    lock_changed = _toolchain_evidence(lock_id="different-lock")
+
+    version_comparison = compare_taskmaster_toolchain_evidence(validated, current)
+    lock_comparison = compare_taskmaster_toolchain_evidence(validated, lock_changed)
+
+    assert version_comparison["matches"] is False
+    assert {item["field"] for item in version_comparison["mismatches"]} == {"task_master.version"}
+    assert lock_comparison["matches"] is False
+    assert {item["field"] for item in lock_comparison["mismatches"]} == {"provisioning.lock_id"}
+    assert compare_taskmaster_toolchain_evidence(validated, dict(validated))["matches"] is True
+
+
 def test_build_ci_shadow_context_proof_uses_stable_github_run_fields() -> None:
     env = {
         "GITHUB_RUN_ID": "123",
@@ -385,10 +467,42 @@ def _ci_context(candidate: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _github_env() -> dict[str, str]:
+    return {
+        "GITHUB_ACTIONS": "true",
+        "GITHUB_RUN_ID": "123",
+        "GITHUB_RUN_ATTEMPT": "1",
+        "GITHUB_WORKFLOW": "CI",
+        "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+        "GITHUB_SHA": "abc",
+        "RUNNER_OS": "Linux",
+        "RUNNER_ARCH": "X64",
+        "ImageOS": "ubuntu22",
+        "ImageVersion": "20260603.1",
+    }
+
+
+def _toolchain_evidence(
+    *,
+    task_master_version: str = TASKMASTER_PACKAGE_VERSION,
+    lock_id: str | None = None,
+) -> dict[str, Any]:
+    evidence = build_taskmaster_toolchain_evidence(
+        _github_env(),
+        task_master_version=task_master_version,
+        node_version="v22.16.0",
+        npm_version="10.9.2",
+        python_version="3.12.3",
+    )
+    if lock_id is not None:
+        evidence["provisioning"]["lock_id"] = lock_id
+    assert evidence["task_master"]["install_spec"] == taskmaster_install_spec()
+    return evidence
+
+
 def _dynamic_shadow_prediction(target: Path, candidate: Mapping[str, Any]) -> tuple[str, ...]:
     paths = {str(path) for path in candidate["predicted_blast_radius_paths"]}
-    if not (target / ".taskmaster" / "state.json").exists():
-        paths.add(".taskmaster/state.json")
+    paths.add(".taskmaster/state.json")
     return tuple(sorted(paths))
 
 

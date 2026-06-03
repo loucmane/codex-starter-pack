@@ -12,3 +12,4 @@
 - Capture Serena memory and log it in the tracker.
 - Mark Taskmaster Task 151 done only after checks pass and regenerate only `task_151.md`.
 - Commit, push, and open a PR for `feat/task-151-reconcile-shadow-apply-artifacts`.
+- Archived on 2026-06-03 12:24 CEST — Folder moved to archive and tracker marked COMPLETED.

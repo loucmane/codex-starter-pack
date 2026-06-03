@@ -20,12 +20,17 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 from aegis_foundation.reconcile_apply_scaffold import (
+    FIRST_APPLY_CLASS_KEY,
     FIRST_APPLY_PROOF,
     ApplyCandidate,
     authorization_binding_for,
     build_apply_audit_record,
     evaluate_approved_context,
     evaluate_kill_switch,
+)
+from aegis_foundation.taskmaster_toolchain import (
+    compare_taskmaster_toolchain_evidence,
+    capture_taskmaster_toolchain_evidence,
 )
 
 SHADOW_MODE = "shadow"
@@ -35,6 +40,12 @@ SHADOW_CI_CONTEXT_TYPE = "post_merge_ci"
 SHADOW_ARTIFACT_NAME = "reconcile-shadow-apply"
 SHADOW_ELIGIBILITY_VERSION = "task146-v1"
 SHADOW_ALLOWED_DECISION_REASON = "enable_gate_unsatisfiable"
+SHADOW_CI_VALIDATION_REPORT_TYPE = "reconcile_shadow_ci_cascade_validation"
+SHADOW_CI_VALIDATION_TASK_ID = "42"
+SHADOW_CI_VALIDATION_KILL_SWITCH = {
+    "global": {"enabled": True},
+    "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True}},
+}
 SACRIFICIAL_CLONE_IGNORE_PATTERNS = (
     ".git",
     ".git/**",
@@ -127,6 +138,76 @@ def build_ci_shadow_context_proof(
             "workflow": workflow,
             "repository": repository,
             "sha": sha,
+        },
+    }
+
+
+def build_ci_shadow_cascade_validation_report(
+    env: Mapping[str, str],
+    *,
+    work_root: Path,
+    toolchain_evidence: Mapping[str, Any] | None = None,
+    clone_parent: Path | None = None,
+) -> dict[str, Any]:
+    """Build CI artifact evidence for both Taskmaster cascade state branches."""
+
+    toolchain = dict(toolchain_evidence or capture_taskmaster_toolchain_evidence(env))
+    context = build_ci_shadow_context_proof(
+        env,
+        task_id=SHADOW_CI_VALIDATION_TASK_ID,
+        proof=FIRST_APPLY_PROOF,
+    )
+    cases = []
+    for case_name, state_json_present in (
+        ("state_json_absent", False),
+        ("state_json_present", True),
+    ):
+        target_root = work_root / case_name
+        _write_ci_validation_taskmaster_fixture(
+            target_root,
+            task_id=SHADOW_CI_VALIDATION_TASK_ID,
+            state_json_present=state_json_present,
+        )
+        candidate = _ci_validation_candidate(task_id=SHADOW_CI_VALIDATION_TASK_ID)
+        report = build_shadow_report(
+            [candidate],
+            target_root=target_root,
+            approved_context_proof=context,
+            kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
+            artifact_mode="ci",
+            external_anchor=context["external_anchor"],
+            clone_parent=(clone_parent / case_name) if clone_parent else None,
+        )
+        cases.append(
+            {
+                "case": case_name,
+                "state_json_initially_present": state_json_present,
+                "shadow_report": report,
+            }
+        )
+
+    would_apply_records = [
+        record for case in cases for record in case["shadow_report"]["would_apply"]
+    ]
+    return {
+        "record_type": SHADOW_CI_VALIDATION_REPORT_TYPE,
+        "mode": SHADOW_MODE,
+        "executed": False,
+        "mutated_live_repo": False,
+        "task_master_toolchain": toolchain,
+        "toolchain_binding": {
+            "comparison": compare_taskmaster_toolchain_evidence(toolchain, toolchain),
+            "stale_if_toolchain_mismatch": True,
+        },
+        "approved_context_proof": context,
+        "cases": cases,
+        "summary": {
+            "cases": len(cases),
+            "would_apply_records": len(would_apply_records),
+            "all_sacrificial_deltas_match_prediction": len(would_apply_records) == len(cases)
+            and all(
+                record["sacrificial_delta_matches_prediction"] for record in would_apply_records
+            ),
         },
     }
 
@@ -391,8 +472,7 @@ def _predicted_paths(
             _taskmaster_generated_task_markdown_rel(task_id),
         )
     normalized = {_normalize_rel_path(str(path)) for path in paths if str(path)}
-    if not (target_root / ".taskmaster" / "state.json").exists():
-        normalized.add(".taskmaster/state.json")
+    normalized.add(".taskmaster/state.json")
     return tuple(sorted(normalized))
 
 
@@ -510,3 +590,65 @@ def _matches_any(path: str, patterns: Iterable[str]) -> bool:
 
 def _normalize_rel_path(path: str) -> str:
     return path.replace("\\", "/").strip("/")
+
+
+def _ci_validation_candidate(*, task_id: str) -> dict[str, Any]:
+    return {
+        "task_id": str(task_id),
+        "finding_kind": "merged_but_not_done",
+        "proof": FIRST_APPLY_PROOF,
+        "proposed_status": "done",
+        "class_key": "merged_but_not_done:git_ancestor",
+        "predicted_blast_radius_paths": [
+            ".taskmaster/tasks/tasks.json",
+            _taskmaster_generated_task_markdown_rel(task_id),
+        ],
+    }
+
+
+def _write_ci_validation_taskmaster_fixture(
+    root: Path,
+    *,
+    task_id: str,
+    state_json_present: bool,
+) -> None:
+    tasks_dir = root / ".taskmaster" / "tasks"
+    tasks_dir.mkdir(parents=True, exist_ok=True)
+    task_number = int(task_id)
+    tasks_payload = {
+        "master": {
+            "tasks": [
+                {
+                    "id": task_number,
+                    "title": "Shadow CI Cascade Validation",
+                    "description": "Fixture task for validating Taskmaster done cascade.",
+                    "details": "Used only inside a detached sacrificial clone.",
+                    "testStrategy": "No live repository mutation.",
+                    "status": "pending",
+                    "dependencies": [],
+                    "priority": "medium",
+                    "subtasks": [],
+                }
+            ],
+            "metadata": {
+                "created": "2026-06-03T00:00:00.000Z",
+                "updated": "2026-06-03T00:00:00.000Z",
+                "description": "Shadow CI cascade validation fixture",
+            },
+        }
+    }
+    (tasks_dir / "tasks.json").write_text(
+        json.dumps(tasks_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (tasks_dir / _taskmaster_generated_task_markdown_rel(task_id).rsplit("/", 1)[-1]).write_text(
+        "# Task 42: Shadow CI Cascade Validation\n\n"
+        "- Status: pending\n"
+        "- Scope: fixture task for sacrificial cascade validation.\n",
+        encoding="utf-8",
+    )
+    if state_json_present:
+        (root / ".taskmaster" / "state.json").write_text(
+            json.dumps({"tag": "master"}, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
