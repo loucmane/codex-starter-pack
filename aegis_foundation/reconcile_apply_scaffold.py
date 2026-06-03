@@ -265,6 +265,7 @@ def build_apply_audit_record(
     after_hashes: Mapping[str, str] | None = None,
     outcome: str = "",
     rollback_state: Mapping[str, Any] | None = None,
+    semantic_validation: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if phase not in {"before", "after"}:
         raise ApplyScaffoldError("audit phase must be before or after")
@@ -319,6 +320,7 @@ def build_apply_audit_record(
         "after_hashes": dict(after_hashes or {}),
         "outcome": outcome,
         "rollback_state": dict(rollback_state or {}),
+        "semantic_validation": dict(semantic_validation or {}),
     }
     payload["chain_hash"] = _digest(payload)
     return payload

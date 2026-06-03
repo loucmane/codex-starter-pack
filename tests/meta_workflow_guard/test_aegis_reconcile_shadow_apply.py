@@ -20,6 +20,7 @@ from aegis_foundation.reconcile_shadow_apply import (
     build_shadow_record,
     build_shadow_report,
     validate_sacrificial_taskmaster_done_cascade,
+    validate_taskmaster_apply_semantic_delta,
     write_local_shadow_report,
 )
 from aegis_foundation.taskmaster_toolchain import (
@@ -272,6 +273,9 @@ def test_sacrificial_clone_validation_is_faithful_detached_and_does_not_mutate_l
 
     before.assert_matches(snapshot_whole_tree(target))
     assert validation.matches_prediction is True
+    assert validation.path_delta_matches_prediction is True
+    assert validation.semantic_delta_matches_prediction is True
+    assert validation.semantic_delta.reason == "semantic_delta_matches_prediction"
     assert validation.actual_delta_paths == _dynamic_shadow_prediction(target, candidate)
     assert validation.clone_root != target
     assert str(validation.clone_root).startswith(str(tmp_path))
@@ -281,6 +285,124 @@ def test_sacrificial_clone_validation_is_faithful_detached_and_does_not_mutate_l
     )
     assert live_tasks["master"]["tasks"][0]["status"] == "pending"
     assert clone_tasks["master"]["tasks"][0]["status"] == "done"
+
+
+def test_semantic_delta_allows_id_normalization_but_only_target_status_change() -> None:
+    before = {
+        "tasks_json": {
+            "master": {
+                "tasks": [
+                    {"id": 42, "status": "pending", "dependencies": [41], "subtasks": []},
+                    {"id": 41, "status": "done", "dependencies": [], "subtasks": []},
+                ]
+            }
+        },
+        "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+    }
+    after = {
+        "tasks_json": {
+            "master": {
+                "tasks": [
+                    {"id": "42", "status": "done", "dependencies": ["41"], "subtasks": []},
+                    {"id": "41", "status": "done", "dependencies": [], "subtasks": []},
+                ]
+            }
+        },
+        "generated_task_markdown": "# Task 42: Target\n\n- Status: done\n",
+    }
+
+    result = validate_taskmaster_apply_semantic_delta(
+        before=before,
+        after=after,
+        task_id="42",
+        expected_status="done",
+    )
+
+    assert result.passed is True
+    assert result.reason == "semantic_delta_matches_prediction"
+
+
+@pytest.mark.parametrize(
+    ("mutator", "reason"),
+    [
+        (
+            lambda payload: payload["master"]["tasks"][1].__setitem__("status", "pending"),
+            "tasks_json_semantic_mismatch",
+        ),
+        (
+            lambda payload: payload["master"]["tasks"][1].__setitem__("dependencies", ["42"]),
+            "tasks_json_semantic_mismatch",
+        ),
+        (
+            lambda payload: payload["master"]["tasks"].append(
+                {"id": "99", "status": "pending", "dependencies": [], "subtasks": []}
+            ),
+            "tasks_json_semantic_mismatch",
+        ),
+        (
+            lambda payload: payload["master"]["tasks"][0]["subtasks"].append(
+                {"id": "1", "status": "pending", "dependencies": []}
+            ),
+            "tasks_json_semantic_mismatch",
+        ),
+    ],
+)
+def test_semantic_delta_rejects_unrelated_task_and_subtask_drift(
+    mutator: Any, reason: str
+) -> None:
+    before_tasks = {
+        "master": {
+            "tasks": [
+                {"id": 42, "status": "pending", "dependencies": [], "subtasks": []},
+                {"id": 41, "status": "done", "dependencies": [], "subtasks": []},
+            ]
+        }
+    }
+    after_tasks = json.loads(json.dumps(before_tasks))
+    after_tasks["master"]["tasks"][0]["status"] = "done"
+    mutator(after_tasks)
+
+    result = validate_taskmaster_apply_semantic_delta(
+        before={
+            "tasks_json": before_tasks,
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+        },
+        after={
+            "tasks_json": after_tasks,
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: done\n",
+        },
+        task_id="42",
+        expected_status="done",
+    )
+
+    assert result.passed is False
+    assert result.reason == reason
+
+
+def test_semantic_delta_rejects_target_generated_markdown_without_done_status() -> None:
+    result = validate_taskmaster_apply_semantic_delta(
+        before={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": 42, "status": "pending", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+        },
+        after={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": "42", "status": "done", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+        },
+        task_id="42",
+        expected_status="done",
+    )
+
+    assert result.passed is False
+    assert result.reason == "generated_markdown_status_mismatch"
 
 
 def test_shadow_prediction_includes_preexisting_state_json_delta(tmp_path: Path) -> None:

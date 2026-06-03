@@ -67,6 +67,11 @@ class FakeValidation:
         return self.actual_delta_paths == self.predicted_paths
 
 
+class SemanticMismatchValidation(FakeValidation):
+    semantic_delta_matches_prediction = False
+    semantic_validation = {"passed": False, "reason": "tasks_json_semantic_mismatch"}
+
+
 def test_default_config_full_apply_path_has_zero_live_delta(tmp_path: Path) -> None:
     target = _target(tmp_path / "default-off")
     before = snapshot_whole_tree(target)
@@ -196,6 +201,30 @@ def test_fresh_validation_is_required_and_recorded_validation_is_not_a_license(
     before.assert_matches(snapshot_whole_tree(target))
 
 
+def test_fresh_validation_semantic_mismatch_refuses_before_write(tmp_path: Path) -> None:
+    target = _target(tmp_path / "fresh-semantic")
+    before = snapshot_whole_tree(target)
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=lambda **kwargs: SemanticMismatchValidation(
+            kwargs["predicted_paths"], kwargs["predicted_paths"]
+        ),
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "fresh_validation_semantic_mismatch"
+    assert result.semantic_validation["reason"] == "tasks_json_semantic_mismatch"
+    before.assert_matches(snapshot_whole_tree(target))
+
+
 def test_successful_apply_uses_real_taskmaster_cascade_and_audit(tmp_path: Path) -> None:
     _require_taskmaster_cli()
     target = _target(tmp_path / "apply-success", state_json_present=True)
@@ -224,6 +253,7 @@ def test_successful_apply_uses_real_taskmaster_cascade_and_audit(tmp_path: Path)
     assert len(audit_lines) == 2
     after_audit = json.loads(audit_lines[-1])
     assert after_audit["outcome"] == "applied"
+    assert after_audit["semantic_validation"]["passed"] is True
     assert after_audit["actual_delta_paths"] == list(result.actual_delta_paths)
     assert after_audit["toolchain_evidence"]["task_master"]["version"] == TASKMASTER_PACKAGE_VERSION
 
@@ -300,6 +330,66 @@ def test_successful_path_delta_divergence_rolls_back(tmp_path: Path) -> None:
     before.assert_matches(snapshot_whole_tree(target))
     audit_lines = (tmp_path / "audit" / "apply.jsonl").read_text(encoding="utf-8").splitlines()
     assert json.loads(audit_lines[-1])["outcome"] == "live_delta_mismatch"
+
+
+def test_successful_path_with_semantic_divergence_rolls_back(tmp_path: Path) -> None:
+    target = _target(tmp_path / "semantic-divergence")
+    tasks_json_path = target / ".taskmaster" / "tasks" / "tasks.json"
+    tasks_payload = json.loads(tasks_json_path.read_text(encoding="utf-8"))
+    tasks_payload["master"]["tasks"].append(
+        {
+            "id": 41,
+            "title": "Unrelated",
+            "status": "pending",
+            "dependencies": [],
+            "subtasks": [],
+        }
+    )
+    tasks_json_path.write_text(
+        json.dumps(tasks_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    before = snapshot_whole_tree(target)
+
+    def writer(*, target_root: Path, **_: Any) -> None:
+        payload = json.loads(
+            (target_root / ".taskmaster" / "tasks" / "tasks.json").read_text(encoding="utf-8")
+        )
+        payload["master"]["tasks"][0]["status"] = "done"
+        payload["master"]["tasks"][1]["status"] = "done"
+        (target_root / ".taskmaster" / "tasks" / "tasks.json").write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        (target_root / ".taskmaster" / "tasks" / "task_042.md").write_text(
+            "# Task 42: Shadow CI Cascade Validation\n\n- Status: done\n",
+            encoding="utf-8",
+        )
+        (target_root / ".taskmaster" / "state.json").write_text(
+            json.dumps({"tag": "master", "currentTask": "42"}, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        audit_log_path=tmp_path / "audit" / "apply.jsonl",
+        enable_write_path=True,
+        validation_runner=lambda **kwargs: FakeValidation(
+            kwargs["predicted_paths"], kwargs["predicted_paths"]
+        ),
+        write_runner=writer,
+    )
+
+    assert result.status == "rolled_back"
+    assert result.reason == "live_semantic_delta_mismatch"
+    assert result.semantic_validation["reason"] == "tasks_json_semantic_mismatch"
+    before.assert_matches(snapshot_whole_tree(target))
 
 
 def test_partial_apply_failure_rolls_back_snapshot_restore(tmp_path: Path) -> None:
@@ -379,6 +469,51 @@ def test_rollback_failure_is_terminal_and_engages_kill_switch(tmp_path: Path) ->
     assert terminal["record_type"] == "reconcile_apply_terminal_rollback_failure"
     assert terminal["operator_resolution_required"] is True
     assert terminal["auto_clear_allowed"] is False
+
+    before = snapshot_whole_tree(target)
+    terminal_kill_switch = json.loads(kill_switch_path.read_text(encoding="utf-8"))
+    result_after_terminal = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=terminal_kill_switch,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state-2",
+        enable_write_path=True,
+        validation_runner=lambda **_: (_ for _ in ()).throw(
+            AssertionError("terminal state must refuse before validation")
+        ),
+    )
+
+    assert result_after_terminal.status == "refused"
+    assert result_after_terminal.reason == "terminal_rollback_failure_present"
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+def test_test_enabled_apply_refuses_governed_repo_target_before_validation(tmp_path: Path) -> None:
+    validation_calls = 0
+
+    def validation_runner(**_: Any) -> FakeValidation:
+        nonlocal validation_calls
+        validation_calls += 1
+        raise AssertionError("governed repo target must refuse before validation")
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=REPO_ROOT,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=validation_runner,
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "target_not_isolated_temp"
+    assert validation_calls == 0
 
 
 def test_enable_path_requires_agent_excluded_switch_state(tmp_path: Path) -> None:
