@@ -2,7 +2,7 @@
 
 **Title:** Harden semantic canonicalization negative tests
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 154 ✓
 

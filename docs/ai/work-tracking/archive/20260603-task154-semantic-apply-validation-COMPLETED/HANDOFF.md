@@ -12,3 +12,4 @@
 
 ## Next Steps
 - Commit and open the Task 154 PR.
+- Archived on 2026-06-03 19:28 CEST — Folder moved to archive and tracker marked COMPLETED.
