@@ -12,6 +12,8 @@ jobs:
   python-tests:
     name: Python tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -107,8 +109,7 @@ jobs:
 
       - name: Capture post-merge reconcile shadow accumulation
         run: |
-          mkdir -p reports/ci
-          python3 - <<'PY'
+          PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
           import json
           import os
           import tempfile
@@ -123,7 +124,9 @@ jobs:
           from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
 
           repo = Path(".").resolve()
-          report_path = Path("reports/ci/reconcile-shadow-accumulation.json")
+          report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"
+          report_dir.mkdir(parents=True, exist_ok=True)
+          report_path = report_dir / "reconcile-shadow-accumulation.json"
           before = snapshot_whole_tree(repo, require_tmp_root=False)
           context = build_ci_shadow_context_proof(
               os.environ,
@@ -203,10 +206,7 @@ jobs:
               },
           }
           report_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-          before.assert_matches(
-              snapshot_whole_tree(repo, require_tmp_root=False),
-              allowed_deltas=[report_path.as_posix()],
-          )
+          before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))
           PY
 
       - name: Run pytest
@@ -220,4 +220,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ci-pytest-python-${{ matrix.python-version }}
-          path: reports/ci/
+          path: |
+            reports/ci/
+            ${{ runner.temp }}/aegis-shadow/

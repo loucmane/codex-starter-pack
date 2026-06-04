@@ -1,7 +1,7 @@
 # Task 158 Add post-merge shadow accumulation with mismatch triage Tracker
 
 **Started**: 2026-06-04
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-04
 
 ## Goals

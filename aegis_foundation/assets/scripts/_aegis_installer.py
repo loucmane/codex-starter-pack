@@ -1646,6 +1646,11 @@ def _validate_taskmaster_tasks(task_lists: Sequence[Sequence[Any]]) -> Taskmaste
                         "invalid_task_dependency",
                         f"task {task_id} dependency {dependency!r} is not a numeric task id",
                     )
+    if not seen_ids:
+        return _invalid_taskmaster_state(
+            "empty_taskmaster_tasks",
+            "Taskmaster payload must contain at least one task",
+        )
     return None
 
 

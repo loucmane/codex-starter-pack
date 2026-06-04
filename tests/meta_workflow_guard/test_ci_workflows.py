@@ -73,15 +73,23 @@ def test_python_test_workflow_captures_shadow_accumulation_with_side_effect_orac
     step_names = [step.get("name") for step in steps]
 
     assert workflow["permissions"] == {"contents": "read"}
+    assert workflow["jobs"]["python-tests"]["permissions"] == {"contents": "read"}
+    assert all(
+        job.get("permissions", {"contents": "read"}).get("contents") != "write"
+        for job in workflow["jobs"].values()
+    )
     assert "Capture post-merge reconcile shadow accumulation" in step_names
     assert "build_shadow_accumulation_report" in text
     assert "reconcile-shadow-accumulation.json" in text
+    assert "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'" in text
     assert "snapshot_whole_tree(repo, require_tmp_root=False)" in text
     assert "before.assert_matches" in text
-    assert 'allowed_deltas=[report_path.as_posix()]' in text
+    assert 'report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"' in text
+    assert "before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))" in text
     assert '"valid_for_shadow": context["valid_for_shadow"]' in text
     assert "if context[\"valid_for_shadow\"]:" in text
     assert "reports/ci/" in text
+    assert "${{ runner.temp }}/aegis-shadow/" in text
     assert "task-master set-status" not in text
     assert "--apply" not in text
 

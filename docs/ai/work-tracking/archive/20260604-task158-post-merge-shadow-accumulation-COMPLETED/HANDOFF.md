@@ -11,3 +11,4 @@
 - Run final guard/audit checks and commit the Task 158 implementation.
 - Open a PR for review.
 - The next task after merge should be determined by `task-master next`; do not start enablement work from this branch.
+- Archived on 2026-06-04 15:00 CEST — Folder moved to archive and tracker marked COMPLETED.

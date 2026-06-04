@@ -42,6 +42,7 @@ scripts/template-ssot-scanner/output/scripts/
 .DS_Store
 
 # Logs
+reports/
 logs
 *.log
 npm-debug.log*

@@ -1211,6 +1211,7 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
         ("{not json\n", "json_decode_error"),
         ([], "non_object_payload"),
         ({}, "missing_task_container"),
+        ({"master": {"tasks": []}}, "empty_taskmaster_tasks"),
         ({"master": {"tasks": {}}}, "malformed_task_container"),
         ({"master": {"tasks": ["not-an-object"]}}, "malformed_task"),
         (

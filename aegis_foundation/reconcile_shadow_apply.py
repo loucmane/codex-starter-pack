@@ -34,6 +34,7 @@ from aegis_foundation.taskmaster_toolchain import (
     compare_taskmaster_toolchain_evidence,
     capture_taskmaster_toolchain_evidence,
 )
+from scripts._aegis_installer import _taskmaster_state
 
 SHADOW_MODE = "shadow"
 SHADOW_REPORT_TYPE = "reconcile_shadow_apply_report"
@@ -49,6 +50,9 @@ SHADOW_CI_VALIDATION_REPORT_TYPE = "reconcile_shadow_ci_cascade_validation"
 SHADOW_CI_VALIDATION_TASK_ID = "42"
 TASKMASTER_SEMANTIC_CANONICALIZATION_VERSION = "taskmaster-0.43.1-v1"
 OPTIONAL_STATE_JSON_DELTA_PATH = ".taskmaster/state.json"
+TASKMASTER_STATE_JSON_BOOKKEEPING_KEYS = frozenset(
+    {"tag", "currentTag", "lastSwitched", "branchTagMapping", "migrationNoticeShown"}
+)
 SHADOW_CI_VALIDATION_KILL_SWITCH = {
     "global": {"enabled": True},
     "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True}},
@@ -335,24 +339,33 @@ def build_shadow_accumulation_report(
 ) -> dict[str, Any]:
     """Build post-merge shadow accumulation evidence without writing repo state."""
 
-    shadow_report = build_shadow_report(
-        candidates,
-        target_root=target_root,
-        approved_context_proof=approved_context_proof,
-        kill_switch_state=kill_switch_state,
-        artifact_mode=artifact_mode,
-        external_anchor=external_anchor,
-        clone_parent=clone_parent,
-    )
     context = approved_context_proof if isinstance(approved_context_proof, Mapping) else {}
     valid_for_shadow = bool(context.get("valid_for_shadow")) and (
         str(context.get("context_type") or "") == SHADOW_CI_CONTEXT_TYPE
     )
+    if valid_for_shadow:
+        shadow_report = build_shadow_report(
+            candidates,
+            target_root=target_root,
+            approved_context_proof=approved_context_proof,
+            kill_switch_state=kill_switch_state,
+            artifact_mode=artifact_mode,
+            external_anchor=external_anchor,
+            clone_parent=clone_parent,
+        )
+    else:
+        shadow_report = _invalid_accumulation_context_report(
+            candidates,
+            approved_context_proof=approved_context_proof,
+            kill_switch_state=kill_switch_state,
+            artifact_mode=artifact_mode,
+        )
     refused_records = list(shadow_report["shadow_refused"])
     semantic_mismatches = [
         record
         for record in refused_records
-        if record.get("reason") == "sacrificial_semantic_delta_mismatch"
+        if record.get("reason")
+        in {"sacrificial_semantic_delta_mismatch", "state_json_unexpected_mutation"}
     ]
     path_mismatches = [
         record for record in refused_records if record.get("reason") == "sacrificial_delta_mismatch"
@@ -366,7 +379,8 @@ def build_shadow_accumulation_report(
         "accepted_context_type": SHADOW_CI_CONTEXT_TYPE,
         "approved_context_proof": dict(context),
         "repo_file_write_policy": (
-            "CI may write declared upload artifacts only; no in-repo ledger or workflow state"
+            "CI writes shadow accumulation artifacts outside the governed repo; no in-repo ledger "
+            "or workflow state"
         ),
         "shadow_report": shadow_report,
         "triage": {
@@ -387,6 +401,47 @@ def build_shadow_accumulation_report(
             "zero_unexplained_divergences": len(path_mismatches) == 0,
             "triage_required": bool(path_mismatches or semantic_mismatches),
         },
+    }
+
+
+def _invalid_accumulation_context_report(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    approved_context_proof: Mapping[str, Any] | None,
+    kill_switch_state: Mapping[str, Any] | None,
+    artifact_mode: str,
+) -> dict[str, Any]:
+    """Build refused-only accumulation output for non-post-merge shadow contexts."""
+
+    records: list[dict[str, Any]] = []
+    for candidate_payload in candidates:
+        candidate = ApplyCandidate.from_mapping(candidate_payload)
+        base = _base_record(candidate, artifact_mode=artifact_mode)
+        context = evaluate_approved_context(approved_context_proof, candidate=candidate)
+        kill_switch = evaluate_kill_switch(kill_switch_state, class_key=candidate.class_key)
+        base.update(
+            {
+                "approved_context": {**context.to_dict(), "valid_for_shadow": False},
+                "kill_switch": {
+                    **kill_switch.to_dict(),
+                    "valid_for_shadow": _decision_is_valid_for_shadow(kill_switch.reason),
+                },
+                "decision": "shadow_refused",
+                "reason": "shadow_context_not_valid_for_accumulation",
+            }
+        )
+        records.append(base)
+    return {
+        "record_type": SHADOW_REPORT_TYPE,
+        "mode": SHADOW_MODE,
+        "artifact_mode": artifact_mode,
+        "artifact_name": SHADOW_ARTIFACT_NAME if artifact_mode == "ci" else "",
+        "repo_file_write_policy": (
+            "ci writes zero repo files; local mode may write exactly one declared report path"
+        ),
+        "would_apply": [],
+        "shadow_refused": records,
+        "summary": {"would_apply": 0, "shadow_refused": len(records)},
     }
 
 
@@ -453,7 +508,11 @@ def build_shadow_record(
         return base
     if not validation.semantic_delta_matches_prediction:
         base["decision"] = "shadow_refused"
-        base["reason"] = "sacrificial_semantic_delta_mismatch"
+        base["reason"] = (
+            "state_json_unexpected_mutation"
+            if validation.semantic_delta.reason == "state_json_unexpected_mutation"
+            else "sacrificial_semantic_delta_mismatch"
+        )
         return base
 
     proof_artifact = _proof_artifact(candidate_payload, approved_context_proof)
@@ -676,6 +735,18 @@ def validate_taskmaster_apply_semantic_delta(
             details={"markdown": markdown},
         )
 
+    state_json = _validate_taskmaster_state_json_delta(
+        before.get("state_json"),
+        after.get("state_json"),
+    )
+    if not state_json["passed"]:
+        return _semantic_failure(
+            task_id=task_id,
+            expected_status=expected_status,
+            reason="state_json_unexpected_mutation",
+            details={"state_json": state_json},
+        )
+
     return TaskmasterSemanticDelta(
         target_task_id=task_id,
         expected_status=expected_status,
@@ -689,6 +760,7 @@ def validate_taskmaster_apply_semantic_delta(
                 "target_path": before_match["path"],
             },
             "markdown": markdown,
+            "state_json": state_json,
         },
     )
 
@@ -722,6 +794,14 @@ def _read_taskmaster_semantic_inputs(
     payload: dict[str, Any] = {
         "tasks_json": json.loads(tasks_json_path.read_text(encoding="utf-8")),
     }
+    state_json_path = root / OPTIONAL_STATE_JSON_DELTA_PATH
+    if state_json_path.exists():
+        try:
+            payload["state_json"] = json.loads(state_json_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            payload["state_json"] = {"__invalid_json__": exc.msg}
+    else:
+        payload["state_json"] = None
     if generated_rel in predicted:
         generated_path = root / generated_rel
         payload["generated_task_markdown"] = (
@@ -864,6 +944,139 @@ def _validate_generated_task_markdown(
     }
 
 
+def _validate_taskmaster_state_json_delta(before_state: Any, after_state: Any) -> dict[str, Any]:
+    before = _normalize_taskmaster_state_json(before_state, "before")
+    after = _normalize_taskmaster_state_json(after_state, "after")
+    if not before["passed"]:
+        return before
+    if not after["passed"]:
+        return after
+
+    before_active_tag = before["active_tag"]
+    after_active_tag = after["active_tag"]
+    if bool(before_active_tag) != bool(after_active_tag):
+        return {
+            "passed": False,
+            "reason": "state_json_active_tag_presence_changed",
+            "before_active_tag": before_active_tag,
+            "after_active_tag": after_active_tag,
+        }
+    if before_active_tag != after_active_tag:
+        return {
+            "passed": False,
+            "reason": "state_json_active_tag_changed",
+            "before_active_tag": before_active_tag,
+            "after_active_tag": after_active_tag,
+        }
+
+    before_mapping = before["branch_tag_mapping"]
+    after_mapping = after["branch_tag_mapping"]
+    if before_mapping is None:
+        if after_mapping not in (None, {}):
+            return {
+                "passed": False,
+                "reason": "state_json_branch_mapping_created_non_empty",
+                "after_branch_tag_mapping": after_mapping,
+            }
+    elif after_mapping is None:
+        return {
+            "passed": False,
+            "reason": "state_json_branch_mapping_removed",
+            "before_branch_tag_mapping": before_mapping,
+        }
+    elif before_mapping != after_mapping:
+        return {
+            "passed": False,
+            "reason": "state_json_branch_mapping_changed",
+            "before_branch_tag_mapping": before_mapping,
+            "after_branch_tag_mapping": after_mapping,
+        }
+
+    return {
+        "passed": True,
+        "reason": "state_json_matches_bookkeeping_contract",
+        "before_present": before_state is not None,
+        "after_present": after_state is not None,
+        "before_keys": before["keys"],
+        "after_keys": after["keys"],
+        "before_active_tag": before_active_tag,
+        "after_active_tag": after_active_tag,
+    }
+
+
+def _normalize_taskmaster_state_json(value: Any, phase: str) -> dict[str, Any]:
+    if value is None:
+        return {
+            "passed": True,
+            "keys": [],
+            "active_tag": "",
+            "branch_tag_mapping": None,
+        }
+    if not isinstance(value, Mapping):
+        return {
+            "passed": False,
+            "reason": "state_json_not_object",
+            "phase": phase,
+        }
+
+    keys = set(value)
+    unknown_keys = sorted(str(key) for key in keys - TASKMASTER_STATE_JSON_BOOKKEEPING_KEYS)
+    if unknown_keys:
+        return {
+            "passed": False,
+            "reason": "state_json_unknown_keys",
+            "phase": phase,
+            "unknown_keys": unknown_keys,
+        }
+
+    legacy_tag = value.get("tag")
+    current_tag = value.get("currentTag")
+    if legacy_tag is not None and not isinstance(legacy_tag, str):
+        return {"passed": False, "reason": "state_json_tag_not_string", "phase": phase}
+    if current_tag is not None and not isinstance(current_tag, str):
+        return {"passed": False, "reason": "state_json_current_tag_not_string", "phase": phase}
+    if legacy_tag and current_tag and legacy_tag != current_tag:
+        return {
+            "passed": False,
+            "reason": "state_json_tag_alias_mismatch",
+            "phase": phase,
+            "tag": legacy_tag,
+            "currentTag": current_tag,
+        }
+
+    branch_mapping = value.get("branchTagMapping")
+    if branch_mapping is not None and not isinstance(branch_mapping, Mapping):
+        return {
+            "passed": False,
+            "reason": "state_json_branch_mapping_not_object",
+            "phase": phase,
+        }
+
+    migration_notice = value.get("migrationNoticeShown")
+    if migration_notice is not None and not isinstance(migration_notice, bool):
+        return {
+            "passed": False,
+            "reason": "state_json_migration_notice_not_bool",
+            "phase": phase,
+        }
+
+    last_switched = value.get("lastSwitched")
+    if last_switched is not None and not isinstance(last_switched, str):
+        return {
+            "passed": False,
+            "reason": "state_json_last_switched_not_string",
+            "phase": phase,
+        }
+
+    active_tag = str(current_tag or legacy_tag or "")
+    return {
+        "passed": True,
+        "keys": sorted(str(key) for key in keys),
+        "active_tag": active_tag,
+        "branch_tag_mapping": dict(branch_mapping) if branch_mapping is not None else None,
+    }
+
+
 def _base_record(candidate: ApplyCandidate, *, artifact_mode: str) -> dict[str, Any]:
     return {
         "record_type": SHADOW_RECORD_TYPE,
@@ -922,29 +1135,11 @@ def _predicted_paths(
 
 
 def _taskmaster_authority_refusal_reason(target_root: Path) -> str | None:
-    tasks_path = target_root / ".taskmaster" / "tasks" / "tasks.json"
-    try:
-        payload = json.loads(tasks_path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
+    state = _taskmaster_state(target_root)
+    if state.state == "absent":
         return "taskmaster_authority_missing"
-    except json.JSONDecodeError:
+    if state.state != "valid":
         return "taskmaster_authority_invalid"
-    if not isinstance(payload, Mapping):
-        return "taskmaster_authority_invalid"
-    task_lists = []
-    for tag_payload in payload.values():
-        if not isinstance(tag_payload, Mapping):
-            return "taskmaster_authority_invalid"
-        tasks = tag_payload.get("tasks")
-        if not isinstance(tasks, list):
-            return "taskmaster_authority_invalid"
-        task_lists.append(tasks)
-    if not task_lists:
-        return "taskmaster_authority_invalid"
-    for task_list in task_lists:
-        for task in task_list:
-            if not isinstance(task, Mapping):
-                return "taskmaster_authority_invalid"
     return None
 
 
