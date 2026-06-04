@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import io
 import json
 import subprocess
@@ -362,8 +363,29 @@ def test_degraded_gate_has_no_dead_safe_command_allowlist() -> None:
         REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "gate_lib.py"
     ).read_text(encoding="utf-8")
 
+    assert live_hook == packaged_hook
     assert "DEGRADED_SAFE_SIMPLE_BASH_COMMANDS" not in live_hook
     assert "DEGRADED_SAFE_SIMPLE_BASH_COMMANDS" not in packaged_hook
+
+
+def test_degraded_classifier_structurally_delegates_to_main_classifier() -> None:
+    gate_lib = load_gate_lib_module()
+    degraded_bash_segment_source = inspect.getsource(
+        gate_lib.degraded_bash_segment_is_non_destructive
+    )
+    degraded_bash_source = inspect.getsource(gate_lib.degraded_bash_is_non_destructive)
+    degraded_payload_source = inspect.getsource(gate_lib.degraded_payload_is_non_destructive)
+    degraded_source = "\n".join(
+        [degraded_bash_segment_source, degraded_bash_source, degraded_payload_source]
+    )
+
+    assert "return bash_segment_is_read_only(segment)" in degraded_bash_segment_source
+    assert "return bash_is_read_only(command)" in degraded_bash_source
+    assert "return not mcp_is_mutation(payload)" in degraded_payload_source
+    assert "DEGRADED_SAFE_SIMPLE_BASH_COMMANDS" not in degraded_source
+    assert "READ_ONLY_GIT_SUBCOMMANDS" not in degraded_source
+    assert "READ_ONLY_AEGIS_SUBCOMMANDS" not in degraded_source
+    assert "READ_ONLY_TASKMASTER_SUBCOMMANDS" not in degraded_source
 
 
 def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
