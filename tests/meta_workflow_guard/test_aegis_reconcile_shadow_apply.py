@@ -11,6 +11,7 @@ from typing import Any, Mapping
 import pytest
 import yaml
 
+from aegis_foundation import reconcile_shadow_apply as shadow_apply
 from aegis_foundation import cli as aegis_cli
 from aegis_foundation.reconcile_apply_scaffold import FIRST_APPLY_CLASS_KEY
 from aegis_foundation.reconcile_shadow_apply import (
@@ -170,6 +171,35 @@ def test_shadow_accumulation_marks_pr_ci_invalid_for_shadow(tmp_path: Path) -> N
     assert report["summary"]["would_apply"] == 0
     assert report["summary"]["shadow_refused"] == 1
     assert report["shadow_report"]["shadow_refused"][0]["approved_context"]["valid_for_shadow"] is False
+    assert report["shadow_report"]["shadow_refused"][0]["reason"] == (
+        "shadow_context_not_valid_for_accumulation"
+    )
+    assert "validation_context" not in report["shadow_report"]["shadow_refused"][0]
+
+
+def test_shadow_accumulation_forces_no_would_apply_when_context_marks_invalid(
+    tmp_path: Path,
+) -> None:
+    target = _setup_merged_git_ancestor(tmp_path / "shadow-invalid-context-flag")
+    candidate = _first_preview_candidate(target)
+    context = {**_ci_context(candidate), "valid_for_shadow": False}
+
+    report = build_shadow_accumulation_report(
+        [candidate],
+        target_root=target,
+        approved_context_proof=context,
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+        external_anchor=context["external_anchor"],
+        clone_parent=tmp_path / "clones",
+    )
+
+    assert report["valid_for_shadow"] is False
+    assert report["summary"]["would_apply"] == 0
+    assert report["shadow_report"]["would_apply"] == []
+    refused = report["shadow_report"]["shadow_refused"][0]
+    assert refused["reason"] == "shadow_context_not_valid_for_accumulation"
+    assert "validation_context" not in refused
 
 
 def test_shadow_accumulation_triage_is_reporting_only(tmp_path: Path) -> None:
@@ -318,10 +348,32 @@ def test_shadow_refuses_kill_switch_disabled_after_valid_context(tmp_path: Path)
     assert record["reason"] == "kill_switch_class_disabled"
 
 
-def test_shadow_refuses_invalid_taskmaster_authority_before_validation(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "{not json\n",
+        {"master": {"tasks": [{"id": 42, "status": "frobnicate", "dependencies": []}]}},
+        {
+            "master": {
+                "tasks": [
+                    {"id": 42, "status": "pending", "dependencies": []},
+                    {"id": "42", "status": "pending", "dependencies": []},
+                ]
+            }
+        },
+        {"master": {"tasks": []}},
+    ],
+)
+def test_shadow_refuses_invalid_taskmaster_authority_before_validation(
+    tmp_path: Path, payload: str | dict[str, Any]
+) -> None:
     target = _setup_merged_git_ancestor(tmp_path / "shadow-invalid-taskmaster")
     candidate = _first_preview_candidate(target)
-    (target / ".taskmaster" / "tasks" / "tasks.json").write_text("{not json\n", encoding="utf-8")
+    tasks_path = target / ".taskmaster" / "tasks" / "tasks.json"
+    if isinstance(payload, str):
+        tasks_path.write_text(payload, encoding="utf-8")
+    else:
+        tasks_path.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
 
     report = build_shadow_report(
         [candidate],
@@ -334,6 +386,62 @@ def test_shadow_refuses_invalid_taskmaster_authority_before_validation(tmp_path:
     assert report["would_apply"] == []
     assert report["shadow_refused"][0]["reason"] == "taskmaster_authority_invalid"
     assert "validation_context" not in report["shadow_refused"][0]
+
+
+def test_shadow_refuses_state_json_meaningful_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _require_taskmaster_cli()
+    target = _setup_merged_git_ancestor(tmp_path / "shadow-state-json-mutation")
+    state_path = target / ".taskmaster" / "state.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "currentTag": "master",
+                "lastSwitched": "2025-09-22T11:42:16.191Z",
+                "branchTagMapping": {},
+                "migrationNoticeShown": True,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    candidate = _first_preview_candidate(target)
+    original_read = shadow_apply._read_taskmaster_semantic_inputs
+    read_count = 0
+
+    def mutating_read(root: Path, *, task_id: str, predicted_paths: Any) -> dict[str, Any]:
+        nonlocal read_count
+        read_count += 1
+        payload = original_read(root, task_id=task_id, predicted_paths=predicted_paths)
+        if read_count == 2:
+            payload["state_json"] = {
+                "currentTag": "other",
+                "lastSwitched": "2025-09-22T11:42:16.191Z",
+                "branchTagMapping": {},
+                "migrationNoticeShown": True,
+            }
+        return payload
+
+    monkeypatch.setattr(shadow_apply, "_read_taskmaster_semantic_inputs", mutating_read)
+
+    report = build_shadow_report(
+        [candidate],
+        target_root=target,
+        approved_context_proof=_ci_context(candidate),
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+        clone_parent=tmp_path / "clones",
+    )
+
+    assert report["would_apply"] == []
+    refused = report["shadow_refused"][0]
+    assert refused["reason"] == "state_json_unexpected_mutation"
+    assert refused["taskmaster_semantic_delta"]["reason"] == "state_json_unexpected_mutation"
+    assert refused["taskmaster_semantic_delta"]["details"]["state_json"]["reason"] == (
+        "state_json_active_tag_changed"
+    )
 
 
 def test_sacrificial_clone_validation_is_faithful_detached_and_does_not_mutate_live_repo(
@@ -707,6 +815,43 @@ def test_semantic_delta_rejects_target_generated_markdown_without_done_status() 
     assert result.reason == "generated_markdown_status_mismatch"
 
 
+def test_semantic_delta_rejects_state_json_branch_mapping_rewrite() -> None:
+    result = validate_taskmaster_apply_semantic_delta(
+        before={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": 42, "status": "pending", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+            "state_json": {
+                "currentTag": "master",
+                "branchTagMapping": {"main": "master"},
+                "migrationNoticeShown": True,
+            },
+        },
+        after={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": "42", "status": "done", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: done\n",
+            "state_json": {
+                "currentTag": "master",
+                "branchTagMapping": {"main": "other"},
+                "migrationNoticeShown": True,
+            },
+        },
+        task_id="42",
+        expected_status="done",
+    )
+
+    assert result.passed is False
+    assert result.reason == "state_json_unexpected_mutation"
+    assert result.details["state_json"]["reason"] == "state_json_branch_mapping_changed"
+
+
 def test_shadow_prediction_accepts_steady_state_json_without_required_delta(tmp_path: Path) -> None:
     _require_taskmaster_cli()
     target = _setup_merged_git_ancestor(tmp_path / "shadow-state-present")
@@ -871,6 +1016,7 @@ def test_existing_writers_do_not_consume_shadow_apply() -> None:
     for function in writer_functions:
         source = inspect.getsource(function)
         assert "reconcile_shadow_apply" not in source
+        assert "build_shadow_accumulation_report" not in source
         assert "build_shadow_report" not in source
 
 

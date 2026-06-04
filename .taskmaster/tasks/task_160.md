@@ -2,7 +2,7 @@
 
 **Title:** Harden shadow accumulation evidence validation
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 158 ✓, 159 ✓
 
