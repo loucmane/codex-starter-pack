@@ -20,6 +20,12 @@
 - **2026-06-04 15:20** — [S:20260604|W:task160-shadow-evidence-hardening|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 160 done and regenerated only `.taskmaster/tasks/task_160.md`
 - **2026-06-04 15:20** — [S:20260604|W:task160-shadow-evidence-hardening|H:serena:write-memory|E:memory:2026-06-04_task160_shadow_evidence_hardening_completion] Wrote durable completion memory for Task 160
 - **2026-06-04 15:20** — [S:20260604|W:task160-shadow-evidence-hardening|H:serena/memory|E:serena/memory:2026-06-04_task160_shadow_evidence_hardening_completion] Recorded the Task 160 Serena memory reference required for continuation audit
+- **2026-06-04 15:57** — [S:20260604|W:task160-shadow-evidence-hardening|H:aegis_foundation/reconcile_shadow_apply.py|E:tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py] Closed the external-review state.json presence-transition gap: active-tag inject/clear/remove and branch-mapping removal now refuse as semantic mutations
+- **2026-06-04 15:57** — [S:20260604|W:task160-shadow-evidence-hardening|H:tests/meta_workflow_guard/test_aegis_installer.py|E:tests/meta_workflow_guard/test_ci_workflows.py] Added empty-Taskmaster cross-surface coverage and pinned the CI shadow accumulation step to `PYTHONDONTWRITEBYTECODE=1`
+- **2026-06-04 15:57** — [S:20260604|W:task160-shadow-evidence-hardening|H:pytest|E:cmd`PYTHONDONTWRITEBYTECODE=1 python3 -m pytest tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py tests/meta_workflow_guard/test_aegis_installer.py tests/meta_workflow_guard/test_ci_workflows.py`] Verified the follow-up patch: 126 passed, 1 skipped
+- **2026-06-04 16:01** — [S:20260604|W:task160-shadow-evidence-hardening|H:pytest|E:cmd`PYTHONDONTWRITEBYTECODE=1 python3 -m pytest`] Verified the final full suite after the follow-up patch: 1092 passed, 4 skipped
+- **2026-06-04 16:01** — [S:20260604|W:task160-shadow-evidence-hardening|H:scripts/codex-task:plan-sync|E:.plan_state/sync.log] Synced the active Task 160 plan/tracker state after follow-up tracking updates
+- **2026-06-04 16:01** — [S:20260604|W:task160-shadow-evidence-hardening|H:verification:final|E:cmd`python3 scripts/codex-task work-tracking audit && python3 scripts/codex-guard validate --include-untracked && python3 scripts/codex-task taskmaster health && git diff --check`] Final governance checks passed: work-tracking audit, guard validation, Taskmaster health, and diff check
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

@@ -954,7 +954,14 @@ def _validate_taskmaster_state_json_delta(before_state: Any, after_state: Any) -
 
     before_active_tag = before["active_tag"]
     after_active_tag = after["active_tag"]
-    if before_active_tag and after_active_tag and before_active_tag != after_active_tag:
+    if bool(before_active_tag) != bool(after_active_tag):
+        return {
+            "passed": False,
+            "reason": "state_json_active_tag_presence_changed",
+            "before_active_tag": before_active_tag,
+            "after_active_tag": after_active_tag,
+        }
+    if before_active_tag != after_active_tag:
         return {
             "passed": False,
             "reason": "state_json_active_tag_changed",
@@ -971,7 +978,13 @@ def _validate_taskmaster_state_json_delta(before_state: Any, after_state: Any) -
                 "reason": "state_json_branch_mapping_created_non_empty",
                 "after_branch_tag_mapping": after_mapping,
             }
-    elif after_mapping is not None and before_mapping != after_mapping:
+    elif after_mapping is None:
+        return {
+            "passed": False,
+            "reason": "state_json_branch_mapping_removed",
+            "before_branch_tag_mapping": before_mapping,
+        }
+    elif before_mapping != after_mapping:
         return {
             "passed": False,
             "reason": "state_json_branch_mapping_changed",

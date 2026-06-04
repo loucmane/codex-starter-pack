@@ -815,6 +815,66 @@ def test_semantic_delta_rejects_target_generated_markdown_without_done_status() 
     assert result.reason == "generated_markdown_status_mismatch"
 
 
+@pytest.mark.parametrize(
+    ("before_state", "after_state"),
+    [
+        (
+            None,
+            {
+                "currentTag": "master",
+                "migrationNoticeShown": True,
+            },
+        ),
+        (
+            {
+                "currentTag": "master",
+                "migrationNoticeShown": True,
+            },
+            {
+                "currentTag": "",
+                "migrationNoticeShown": True,
+            },
+        ),
+        (
+            {
+                "currentTag": "master",
+                "migrationNoticeShown": True,
+            },
+            None,
+        ),
+    ],
+)
+def test_semantic_delta_rejects_state_json_active_tag_presence_transitions(
+    before_state: object | None, after_state: object | None
+) -> None:
+    result = validate_taskmaster_apply_semantic_delta(
+        before={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": 42, "status": "pending", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+            "state_json": before_state,
+        },
+        after={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": "42", "status": "done", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: done\n",
+            "state_json": after_state,
+        },
+        task_id="42",
+        expected_status="done",
+    )
+
+    assert result.passed is False
+    assert result.reason == "state_json_unexpected_mutation"
+    assert result.details["state_json"]["reason"] == "state_json_active_tag_presence_changed"
+
+
 def test_semantic_delta_rejects_state_json_branch_mapping_rewrite() -> None:
     result = validate_taskmaster_apply_semantic_delta(
         before={
@@ -850,6 +910,42 @@ def test_semantic_delta_rejects_state_json_branch_mapping_rewrite() -> None:
     assert result.passed is False
     assert result.reason == "state_json_unexpected_mutation"
     assert result.details["state_json"]["reason"] == "state_json_branch_mapping_changed"
+
+
+def test_semantic_delta_rejects_state_json_branch_mapping_removal() -> None:
+    result = validate_taskmaster_apply_semantic_delta(
+        before={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": 42, "status": "pending", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: pending\n",
+            "state_json": {
+                "currentTag": "master",
+                "branchTagMapping": {"main": "master"},
+                "migrationNoticeShown": True,
+            },
+        },
+        after={
+            "tasks_json": {
+                "master": {
+                    "tasks": [{"id": "42", "status": "done", "dependencies": [], "subtasks": []}]
+                }
+            },
+            "generated_task_markdown": "# Task 42: Target\n\n- Status: done\n",
+            "state_json": {
+                "currentTag": "master",
+                "migrationNoticeShown": True,
+            },
+        },
+        task_id="42",
+        expected_status="done",
+    )
+
+    assert result.passed is False
+    assert result.reason == "state_json_unexpected_mutation"
+    assert result.details["state_json"]["reason"] == "state_json_branch_mapping_removed"
 
 
 def test_shadow_prediction_accepts_steady_state_json_without_required_delta(tmp_path: Path) -> None:
