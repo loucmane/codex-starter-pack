@@ -21,3 +21,4 @@ Task 156 is implemented and verified.
 - `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py`: passed
 - `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py`: passed
 - Ruff on touched files: passed with the existing installer `E402` bootstrap ignored
+- Archived on 2026-06-04 11:02 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -1,8 +1,8 @@
 # Task 156 Make Taskmaster the single task authority for Aegis surfaces Tracker
 
 **Started**: 2026-06-03
-**Status**: ACTIVE
-**Last Updated**: 2026-06-03
+**Status**: COMPLETED
+**Last Updated**: 2026-06-04
 
 ## Goals
 - [x] Make Taskmaster-present projects use Taskmaster as the only task-selection authority across Aegis surfaces, including present-but-invalid tasks.json handling

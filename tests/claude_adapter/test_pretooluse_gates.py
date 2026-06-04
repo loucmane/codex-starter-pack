@@ -177,6 +177,42 @@ def test_pretooluse_allows_known_read_only_bash_before_readiness(tmp_path: Path,
     assert result.stderr == ""
 
 
+def test_pretooluse_blocks_read_only_aegis_cli_target_outside_project_before_readiness(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command=f"./.aegis/bin/aegis reconcile --target-dir {outside.as_posix()}"),
+    )
+
+    assert result.returncode == 2
+    assert "target_dir escapes governed project root" in result.stderr
+    assert "readiness is BLOCKED" not in result.stderr
+
+
+def test_pretooluse_blocks_read_only_aegis_mcp_target_outside_project_before_readiness(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("mcp__aegis__aegis_reconcile", target_dir=outside.as_posix()),
+    )
+
+    assert result.returncode == 2
+    assert "target_dir escapes governed project root" in result.stderr
+    assert "readiness is BLOCKED" not in result.stderr
+
+
 def test_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = make_repo(tmp_path, ready=False)
     gate_lib = load_gate_lib_module()
@@ -234,6 +270,33 @@ def test_pretooluse_degraded_fails_closed_for_mutation_when_gate_infra_crashes(
     assert not (repo / ".aegis" / "state" / "degraded-events.json").exists()
 
 
+def test_degraded_classifier_matches_main_classifier_for_read_only_and_write_sinks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+    gate_lib = load_gate_lib_module()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+
+    safe_bash = gate_lib.Payload("Bash", {"command": "git status --short"})
+    writing_bash = gate_lib.Payload("Bash", {"command": "git status --short > status.txt"})
+    safe_mcp = gate_lib.Payload("mcp__aegis__aegis_reconcile", {"target_dir": "."})
+    outside_mcp = gate_lib.Payload(
+        "mcp__aegis__aegis_reconcile",
+        {"target_dir": outside.as_posix()},
+    )
+
+    assert gate_lib.payload_is_read_only(safe_bash) is True
+    assert gate_lib.degraded_payload_is_non_destructive(safe_bash) is True
+    assert gate_lib.payload_is_read_only(writing_bash) is False
+    assert gate_lib.degraded_payload_is_non_destructive(writing_bash) is False
+    assert gate_lib.payload_is_read_only(safe_mcp) is True
+    assert gate_lib.degraded_payload_is_non_destructive(safe_mcp) is True
+    assert gate_lib.payload_is_read_only(outside_mcp) is False
+    assert gate_lib.degraded_payload_is_non_destructive(outside_mcp) is False
+
+
 def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = make_repo(tmp_path, ready=False)
     gate_lib = load_gate_lib_module()
@@ -259,6 +322,7 @@ def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch
         "find . -delete",
         "pytest --junitxml=reports/results.xml",
         "cat README.md > out.txt",
+        "jq -c . .aegis/reports/reconcile.json",
         "task-master generate",
         "git commit -m test",
     ],

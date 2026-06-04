@@ -460,6 +460,17 @@ def test_reconcile_cli_parsers_reject_mutation_flags() -> None:
             package_parser.parse_args(["reconcile", flag])
 
 
+def test_reconcile_rejects_option_shaped_base_ref(tmp_path: Path) -> None:
+    target = tmp_path / "reconcile-invalid-base-ref"
+    init_git_repo(target)
+    write_taskmaster_tasks(
+        target, [{"id": 42, "title": "Cart Button", "status": "pending", "dependencies": []}]
+    )
+
+    with pytest.raises(AegisError, match="invalid reconcile base_ref"):
+        reconcile(target, source_root=REPO_ROOT, base_ref="--git-dir=/tmp/other", use_github=False)
+
+
 def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(
     tmp_path: Path,
 ) -> None:
@@ -2006,6 +2017,44 @@ def test_log_work_plan_step_auto_infers_scope_implementation_and_verify(tmp_path
     assert strict_log["plan"]["strict_verification_evidence"] is True
 
 
+def test_log_work_plan_step_auto_does_not_infer_implementation_from_handler_text(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "auto-plan-step-no-handler-substring"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+    kickoff(
+        target,
+        task_id="42",
+        slug="auto-step-neutral",
+        title="Auto Step Neutral",
+    )
+
+    with pytest.raises(AegisError, match="plan-step auto could not infer"):
+        log_work(
+            target,
+            handler="bash:jq-edit-output",
+            evidence="docs/ai/work-tracking/active/example/reports/read-output.json",
+            note="Read reconcile output without mutating source",
+            plan_step="auto",
+            plan_status="completed",
+        )
+
+
 def test_log_work_replay_does_not_duplicate_swhe_entries(tmp_path: Path) -> None:
     target = tmp_path / "log-replay"
     target.mkdir()
@@ -2156,15 +2205,11 @@ def test_log_work_plan_step_auto_rejects_ambiguous_inference(tmp_path: Path) -> 
         title="Ambiguous Auto",
         goals=["Exercise ambiguous plan step inference"],
     )
-    current_work = json.loads(
-        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
-    )
-
     with pytest.raises(AegisError, match="plan-step auto is ambiguous"):
         log_work(
             target,
-            handler="claude:scope-write",
-            evidence=f"{current_work['paths']['work_tracking']}/FINDINGS.md",
+            handler="claude:scope",
+            evidence=AEGIS_VERIFY_REPORT_REL,
             note="Attempted ambiguous auto plan step",
             plan_step="auto",
         )
@@ -2641,6 +2686,61 @@ def test_read_only_aegis_mcp_tools_do_not_create_pending_tracking(tmp_path: Path
         posttool = run_target_posttooluse(target, payload)
         assert posttool.returncode == 0, posttool.stderr
         assert not (target / AEGIS_PENDING_TRACKING_REL).exists(), tool_name
+
+
+def test_read_only_aegis_cli_does_not_create_pending_tracking(tmp_path: Path) -> None:
+    target = tmp_path / "cli-read-only-pending"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="cli-read-only", title="CLI Read Only")
+
+    payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": "./.aegis/bin/aegis reconcile --target-dir . --preview-candidates"},
+    }
+
+    pretool = run_target_pretooluse(target, payload)
+    assert pretool.returncode == 0, pretool.stderr
+    posttool = run_target_posttooluse(target, payload)
+    assert posttool.returncode == 0, posttool.stderr
+    assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+
+def test_installed_pretooluse_blocks_aegis_read_only_target_dir_outside_project(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "confined-target"
+    target.mkdir()
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+
+    cli_payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": f"./.aegis/bin/aegis status --target-dir {outside.as_posix()}"},
+    }
+    mcp_payload = {
+        "tool_name": "mcp__aegis__aegis_status",
+        "tool_input": {"target_dir": outside.as_posix()},
+    }
+
+    cli_result = run_target_pretooluse(target, cli_payload)
+    mcp_result = run_target_pretooluse(target, mcp_payload)
+
+    assert cli_result.returncode == 2
+    assert "target_dir escapes governed project root" in cli_result.stderr
+    assert mcp_result.returncode == 2
+    assert "target_dir escapes governed project root" in mcp_result.stderr
 
 
 def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> None:

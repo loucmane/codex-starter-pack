@@ -406,7 +406,7 @@ def mcp_is_mutation(payload: Payload) -> bool:
     if "aegis" in normalized and any(
         normalized.endswith(suffix) for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES
     ):
-        return False
+        return mcp_aegis_target_dir_violation(payload) is not None
     if mcp_is_taskmaster_tool(payload.tool_name):
         return not mcp_is_read_only_taskmaster_discovery(payload)
     if MCP_MUTATION_TOOL_RE.search(payload.tool_name):
@@ -438,6 +438,35 @@ def option_value(tokens: list[str], option: str) -> str | None:
         if token.startswith(prefix):
             return token[len(prefix) :]
     return None
+
+
+def target_dir_confinement_violation(target_dir: str | None, root: Path | None = None) -> str | None:
+    if not target_dir:
+        return None
+    root = (root or project_root()).resolve()
+    raw = Path(target_dir).expanduser()
+    try:
+        resolved = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
+    except OSError as exc:
+        return f"target_dir {target_dir!r} could not be resolved safely: {exc}"
+    if resolved == root or root in resolved.parents:
+        return None
+    return (
+        "target_dir escapes governed project root "
+        f"(target_dir={target_dir!r}, resolved={resolved.as_posix()}, root={root.as_posix()})"
+    )
+
+
+def mcp_aegis_target_dir_violation(payload: Payload, root: Path | None = None) -> str | None:
+    if not is_mcp_tool(payload.tool_name):
+        return None
+    normalized = normalized_mcp_tool_name(payload.tool_name)
+    if "aegis" not in normalized:
+        return None
+    if not any(normalized.endswith(suffix) for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES):
+        return None
+    target_dir = payload.tool_input.get("target_dir")
+    return target_dir_confinement_violation(target_dir if isinstance(target_dir, str) else None, root)
 
 
 def is_shell_assignment(token: str) -> bool:
@@ -544,13 +573,39 @@ def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_ba
     return None
 
 
+def read_only_aegis_remainder(remainder: list[str]) -> bool:
+    return bool(remainder) and (
+        remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
+    )
+
+
+def aegis_cli_target_dir_violation_from_remainder(
+    remainder: list[str],
+    root: Path | None = None,
+) -> str | None:
+    target_dir = option_value(remainder, "--target-dir")
+    return target_dir_confinement_violation(target_dir, root)
+
+
+def aegis_cli_target_dir_violations(command: str, root: Path | None = None) -> list[str]:
+    root = root or project_root()
+    violations: list[str] = []
+    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+        tokens = strip_shell_prefixes(shlex_tokens(segment))
+        remainder = aegis_cli_remainder(tokens, root, allow_bare=True)
+        if remainder is None:
+            continue
+        violation = aegis_cli_target_dir_violation_from_remainder(remainder, root)
+        if violation:
+            violations.append(violation)
+    return sorted(set(violations))
+
+
 def read_only_aegis_segment(tokens: list[str]) -> bool:
     remainder = aegis_cli_remainder(tokens, allow_bare=True)
     if remainder is None:
         return False
-    return bool(remainder) and (
-        remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
-    )
+    return read_only_aegis_remainder(remainder) and not aegis_cli_target_dir_violation_from_remainder(remainder)
 
 
 def read_only_node_segment(tokens: list[str]) -> bool:
@@ -619,48 +674,24 @@ def bash_is_read_only(command: str) -> bool:
 
 
 def degraded_bash_segment_is_non_destructive(segment: str) -> bool:
-    tokens = strip_shell_prefixes(shlex_tokens(segment))
-    if not tokens:
-        return True
-    name = command_name(tokens[0])
-    tokens[0] = name
-    if name == "cd":
-        return True
-    if name == "git":
-        return read_only_git_segment(tokens)
-    if name == "task-master":
-        return read_only_taskmaster_segment(tokens)
-    if read_only_aegis_segment(tokens):
-        return True
-    if name in DEGRADED_SAFE_SIMPLE_BASH_COMMANDS:
-        return name != "sed" or "-i" not in tokens
-    if read_only_find_segment(tokens):
-        return True
-    return False
+    return bash_segment_is_read_only(segment)
 
 
 def degraded_bash_is_non_destructive(command: str) -> bool:
-    if not command.strip():
-        return True
-    if UNSUPPORTED_READ_ONLY_SHELL_RE.search(command):
-        return False
-    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
-        return False
-    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
-    return bool(segments) and all(degraded_bash_segment_is_non_destructive(segment) for segment in segments)
+    return bash_is_read_only(command)
 
 
 def degraded_payload_is_non_destructive(payload: Payload) -> bool:
-    if payload.tool_name in FILE_MUTATION_TOOLS:
+    try:
+        if payload.tool_name in FILE_MUTATION_TOOLS:
+            return False
+        if payload.tool_name == "Bash":
+            return degraded_bash_is_non_destructive(bash_command(payload))
+        if is_mcp_tool(payload.tool_name):
+            return not mcp_is_mutation(payload)
+        return not payload.tool_name
+    except Exception:  # noqa: BLE001 - degraded mode must fail closed on classifier faults.
         return False
-    if payload.tool_name == "Bash":
-        return degraded_bash_is_non_destructive(bash_command(payload))
-    if is_mcp_tool(payload.tool_name):
-        normalized = normalized_mcp_tool_name(payload.tool_name)
-        return any(normalized.endswith(f"__{suffix}") for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES) or bool(
-            MCP_READ_ONLY_TOOL_RE.search(payload.tool_name)
-        )
-    return not payload.tool_name
 
 
 def bash_is_aegis_bootstrap(command: str) -> bool:
@@ -742,6 +773,7 @@ def guarded_bash_path_violation(action: str, target: str, root: Path) -> str | N
 def protected_bash_violations(command: str, root: Path | None = None) -> list[str]:
     root = root or project_root()
     violations: list[str] = []
+    violations.extend(aegis_cli_target_dir_violations(command, root))
 
     for match in REDIRECT_RE.finditer(command):
         target = match.group(2)
@@ -1318,6 +1350,21 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
 
     root = project_root()
     clear_client_reload_marker(root)
+    aegis_target_violations: list[str] = []
+    if payload.tool_name == "Bash":
+        aegis_target_violations = aegis_cli_target_dir_violations(bash_command(payload), root)
+    elif is_mcp_tool(payload.tool_name):
+        violation = mcp_aegis_target_dir_violation(payload, root)
+        if violation:
+            aegis_target_violations = [violation]
+    if aegis_target_violations:
+        details = "\n".join(f"  - {violation}" for violation in aegis_target_violations)
+        return block(
+            "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+            f"Tool: {payload.tool_name}\n"
+            f"Violation(s):\n{details}\n\n"
+            "Aegis read-only target selection is confined to the governed project root."
+        )
     if payload_is_read_only(payload):
         return 0
     is_mutation = payload_is_mutation(payload)

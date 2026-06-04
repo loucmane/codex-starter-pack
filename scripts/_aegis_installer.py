@@ -2435,8 +2435,17 @@ def _git_ref_exists(target_root: Path, ref: str) -> bool:
     return _run_target_git(target_root, "rev-parse", "--verify", "--quiet", ref).returncode == 0
 
 
-def _resolve_reconcile_base_ref(target_root: Path, base_ref: str | None) -> dict[str, Any]:
+def _validate_reconcile_base_ref(base_ref: str | None) -> str:
     requested = (base_ref or "origin/main").strip() or "origin/main"
+    if requested.startswith("-") or any(ch.isspace() for ch in requested) or "\0" in requested:
+        raise AegisError(
+            "invalid reconcile base_ref: expected a ref-like value without whitespace, NUL bytes, or leading '-'"
+        )
+    return requested
+
+
+def _resolve_reconcile_base_ref(target_root: Path, base_ref: str | None) -> dict[str, Any]:
+    requested = _validate_reconcile_base_ref(base_ref)
     candidates = [requested]
     if requested == "origin/main":
         candidates.extend(["main", "master"])
@@ -3792,13 +3801,6 @@ def _infer_log_event_class(
         or evidence_lower.endswith("verification-report.json")
     ):
         return "verification"
-    if (
-        "write" in handler_lower
-        or "edit" in handler_lower
-        or "implement" in handler_lower
-        or "bash" in handler_lower
-    ):
-        return "implementation"
     return "note"
 
 
@@ -3844,6 +3846,16 @@ def _normalize_plan_status(status: str | None) -> str:
 AEGIS_PLAN_STEP_IDS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
 
 
+def _pending_event_is_confident_implementation(pending_event: Mapping[str, Any] | None) -> bool:
+    if not isinstance(pending_event, Mapping):
+        return False
+    event_class_value = str(pending_event.get("event_class") or pending_event.get("classification") or "")
+    if event_class_value.strip().lower().replace("-", "_") == "implementation":
+        return True
+    tool_name = str(pending_event.get("tool") or pending_event.get("tool_name") or "")
+    return tool_name in {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+
+
 def _infer_auto_plan_step(
     *,
     event_class: str,
@@ -3870,13 +3882,9 @@ def _infer_auto_plan_step(
         or "verification" in handler_lower
     ):
         candidates.setdefault("plan-step-verify", "verification handler/evidence")
-    if any(token in handler_lower for token in ("write", "edit", "implement", "bash")):
-        candidates.setdefault("plan-step-implement", "mutation handler")
 
-    if isinstance(pending_event, Mapping):
-        tool_name = str(pending_event.get("tool") or pending_event.get("tool_name") or "")
-        if tool_name in {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"}:
-            candidates.setdefault("plan-step-implement", "pending mutation event")
+    if _pending_event_is_confident_implementation(pending_event):
+        candidates.setdefault("plan-step-implement", "pending file mutation event")
 
     if len(candidates) == 1:
         step, reason = next(iter(candidates.items()))
@@ -4342,6 +4350,8 @@ def log_work(
         evidence=evidence_rel,
         explicit_event_class=event_class,
     )
+    if normalized_event_class == "note" and _pending_event_is_confident_implementation(resolved_pending_event):
+        normalized_event_class = "implementation"
     normalized_plan_step, plan_step_inferred, plan_inference_reason = _resolve_plan_step_argument(
         plan_step,
         event_class=normalized_event_class,
