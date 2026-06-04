@@ -2,7 +2,7 @@
 
 **Title:** Review post-merge shadow evidence and pin Taskmaster state initialization contract
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 160 ✓
 
