@@ -147,24 +147,6 @@ READ_ONLY_TEST_OUTPUT_OPTIONS = {
     "--reporter=json",
     "--reporter=json-summary",
 }
-DEGRADED_SAFE_SIMPLE_BASH_COMMANDS = {
-    "cat",
-    "date",
-    "echo",
-    "false",
-    "grep",
-    "head",
-    "ls",
-    "pwd",
-    "rg",
-    "sed",
-    "stat",
-    "tail",
-    "test",
-    "true",
-    "wc",
-    "which",
-}
 MCP_READ_ONLY_TOOL_RE = re.compile(
     r"^mcp__.*__(get|list|read|search|find|query|show|help|check|resolve|fetch|open|is_|has_)",
     re.IGNORECASE,
@@ -447,7 +429,7 @@ def target_dir_confinement_violation(target_dir: str | None, root: Path | None =
     raw = Path(target_dir).expanduser()
     try:
         resolved = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         return f"target_dir {target_dir!r} could not be resolved safely: {exc}"
     if resolved == root or root in resolved.parents:
         return None
@@ -463,10 +445,10 @@ def mcp_aegis_target_dir_violation(payload: Payload, root: Path | None = None) -
     normalized = normalized_mcp_tool_name(payload.tool_name)
     if "aegis" not in normalized:
         return None
-    if not any(normalized.endswith(suffix) for suffix in AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES):
-        return None
     target_dir = payload.tool_input.get("target_dir")
-    return target_dir_confinement_violation(target_dir if isinstance(target_dir, str) else None, root)
+    if not isinstance(target_dir, str):
+        return None
+    return target_dir_confinement_violation(target_dir, root)
 
 
 def is_shell_assignment(token: str) -> bool:
