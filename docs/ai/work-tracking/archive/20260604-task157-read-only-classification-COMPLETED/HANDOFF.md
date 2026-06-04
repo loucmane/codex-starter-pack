@@ -17,3 +17,4 @@
 - Commit and push the PR #153 follow-up patch.
 - Monitor CI on PR #153.
 - After merge, proceed to Task 158 shadow accumulation only after this authority/classification hardening is on main.
+- Archived on 2026-06-04 13:26 CEST — Folder moved to archive and tracker marked COMPLETED.

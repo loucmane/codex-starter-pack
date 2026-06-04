@@ -9,3 +9,4 @@
 - 2026-06-04 11:20 CEST — Verified focused and broader Aegis distribution/reconcile guard suites.
 - 2026-06-04 11:20 CEST — Captured Serena memory `2026-06-04_task157_read_only_classification`.
 - 2026-06-04 12:03 CEST — Addressed Claude adversarial residual by broadening hook-level MCP `target_dir` confinement to all Aegis target-bearing MCP tools, adding repair/bootstrap regression tests, removing the stale degraded safe-command allowlist, and re-verifying focused gate/Aegis suites.
+- 2026-06-04 13:26 CEST — Archived active work-tracking folder.

@@ -2,7 +2,7 @@
 
 **Title:** Add post-merge shadow accumulation with mismatch triage
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 157 ✓, 159 ✓
 
@@ -42,7 +42,7 @@ Add focused pytest coverage beside `tests/meta_workflow_guard/test_aegis_reconci
 
 ### 158.1. Bind post-merge shadow context and artifact-only accumulation
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Implement the post-merge accumulation path against the real push/main trigger while marking PR-CI evidence invalid for shadow accumulation.
@@ -53,7 +53,7 @@ Update `build_ci_shadow_context_proof`/related accumulation plumbing in `aegis_f
 
 ### 158.2. Make state.json prediction dynamic
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Amend sacrificial cascade validation so `.taskmaster/state.json` is derived from the actual sacrificial delta or treated as allowed-but-not-required.
@@ -64,7 +64,7 @@ Adjust prediction/validation around `validate_sacrificial_taskmaster_done_cascad
 
 ### 158.3. Key precision evidence by finding/proof pair
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Update precision reporting so evidence and promotion figures are keyed by `(finding_kind, proof_source)` and never by finding kind alone.
@@ -75,7 +75,7 @@ Revise `tests/meta_workflow_guard/reconcile_precision_corpus.py` and any accumul
 
 ### 158.4. Wrap real accumulation in CI side-effect oracle
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Add process-level side-effect oracle coverage around the actual post-merge accumulation step.
@@ -86,7 +86,7 @@ Reuse `snapshot_whole_tree`/`assert_matches` from `tests/meta_workflow_guard/rec
 
 ### 158.5. Keep mismatch triage reporting-only
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Ensure semantic mismatch triage can fail or pause accumulation but cannot modify canonicalization behavior or exemption lists.
@@ -97,7 +97,7 @@ The accumulation artifact should classify mismatches as unexplained divergence o
 
 ### 158.6. Re-run Task 157 and 159 standing gates
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Verify new post-merge shadow accumulation does not weaken read-only classification, target selection, classifier delegation, or apply/write isolation invariants.
@@ -108,7 +108,7 @@ Name and run the standing gates covering agent-facing apply/write path isolation
 
 ### 158.7. Refuse shadow evidence on invalid Taskmaster authority
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Ensure shadow accumulation refuses or marks valid_for_shadow=false when Taskmaster authority is malformed or invalid, so invalid tasks.json cannot be normalized into a false would_apply ledger entry.

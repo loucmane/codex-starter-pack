@@ -105,6 +105,110 @@ jobs:
           print(json.dumps(payload, indent=2, sort_keys=True))
           PY
 
+      - name: Capture post-merge reconcile shadow accumulation
+        run: |
+          mkdir -p reports/ci
+          python3 - <<'PY'
+          import json
+          import os
+          import tempfile
+          from pathlib import Path
+
+          from aegis_foundation.reconcile_shadow_apply import (
+              SHADOW_CI_VALIDATION_KILL_SWITCH,
+              build_ci_shadow_context_proof,
+              build_shadow_accumulation_report,
+          )
+          from scripts._aegis_installer import reconcile
+          from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
+
+          repo = Path(".").resolve()
+          report_path = Path("reports/ci/reconcile-shadow-accumulation.json")
+          before = snapshot_whole_tree(repo, require_tmp_root=False)
+          context = build_ci_shadow_context_proof(
+              os.environ,
+              task_id="post-merge-shadow-accumulation",
+              proof="git_ancestor",
+          )
+          candidates = []
+          candidate_source = {
+              "ran_reconcile": False,
+              "valid_for_shadow": context["valid_for_shadow"],
+          }
+          if context["valid_for_shadow"]:
+              reconcile_report = reconcile(
+                  repo,
+                  source_root=repo,
+                  base_ref="main",
+                  use_github=False,
+                  preview_candidates=True,
+              )
+              preview = reconcile_report.get("mutation_candidate_preview")
+              if isinstance(preview, dict):
+                  raw_candidates = preview.get("candidates")
+                  if isinstance(raw_candidates, list):
+                      candidates = [candidate for candidate in raw_candidates if isinstance(candidate, dict)]
+              candidate_source["ran_reconcile"] = True
+              candidate_source["candidate_count"] = len(candidates)
+
+          accumulations = []
+          with tempfile.TemporaryDirectory(prefix="aegis-shadow-accumulation-") as clone_dir:
+              if candidates:
+                  for index, candidate in enumerate(candidates):
+                      candidate_context = build_ci_shadow_context_proof(
+                          os.environ,
+                          task_id=str(candidate.get("task_id") or ""),
+                          proof=str(candidate.get("proof") or ""),
+                      )
+                      accumulations.append(
+                          build_shadow_accumulation_report(
+                              [candidate],
+                              target_root=repo,
+                              approved_context_proof=candidate_context,
+                              kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
+                              artifact_mode="ci",
+                              external_anchor=candidate_context["external_anchor"],
+                              clone_parent=Path(clone_dir) / str(index),
+                          )
+                      )
+              else:
+                  accumulations.append(
+                      build_shadow_accumulation_report(
+                          [],
+                          target_root=repo,
+                          approved_context_proof=context,
+                          kill_switch_state=SHADOW_CI_VALIDATION_KILL_SWITCH,
+                          artifact_mode="ci",
+                          external_anchor=context["external_anchor"],
+                          clone_parent=Path(clone_dir),
+                      )
+                  )
+
+          payload = {
+              "record_type": "reconcile_shadow_accumulation_artifact",
+              "mode": "shadow",
+              "executed": False,
+              "mutated_live_repo": False,
+              "candidate_source": candidate_source,
+              "accumulations": accumulations,
+              "summary": {
+                  "candidate_count": len(candidates),
+                  "valid_for_shadow": context["valid_for_shadow"],
+                  "report_count": len(accumulations),
+                  "would_apply": sum(item["summary"]["would_apply"] for item in accumulations),
+                  "shadow_refused": sum(item["summary"]["shadow_refused"] for item in accumulations),
+                  "triage_required": any(
+                      item["summary"]["triage_required"] for item in accumulations
+                  ),
+              },
+          }
+          report_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          before.assert_matches(
+              snapshot_whole_tree(repo, require_tmp_root=False),
+              allowed_deltas=[report_path.as_posix()],
+          )
+          PY
+
       - name: Run pytest
         run: |
           mkdir -p reports/ci
