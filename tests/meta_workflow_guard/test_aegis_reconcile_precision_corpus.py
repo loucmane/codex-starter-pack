@@ -232,7 +232,7 @@ def test_reconcile_precision_corpus_recomputes_labels_and_blocks_boundary_leaks(
     )
     assert metrics.boundary_leak_count == 0
     assert metrics.false_positive_count == 0
-    assert all(value == 1.0 for value in metrics.precision_by_kind.values())
+    assert all(value == 1.0 for value in metrics.precision_by_finding_proof.values())
 
 
 def test_precision_gate_rejects_manual_only_labelled_auto_eligible() -> None:
@@ -297,3 +297,28 @@ def test_precision_gate_requires_non_finding_proof_labels() -> None:
             expected_findings=(),
             expected_non_findings=(ExpectedNonFinding("44", "git_only_non_ancestor_or_missing_base"),),
         )
+
+
+def test_precision_metrics_do_not_aggregate_across_proof_sources() -> None:
+    report = {
+        "findings": [
+            {
+                "kind": "merged_but_not_done",
+                "task_id": "42",
+                "severity": "error",
+                "evidence": {"merge_truth": {"proof": "git_ancestor"}},
+            }
+        ],
+        "tasks": [],
+    }
+
+    metrics = assert_precision_contract(
+        report,
+        expected_findings=(
+            ExpectedFinding(FindingKey("merged_but_not_done", "42", "git_ancestor"), "auto_eligible"),
+        ),
+    )
+
+    assert metrics.precision_by_finding_proof == {"merged_but_not_done/git_ancestor": 1.0}
+    assert "merged_but_not_done/github_pr_merged" not in metrics.precision_by_finding_proof
+    assert "merged_but_not_done" not in metrics.precision_by_finding_proof

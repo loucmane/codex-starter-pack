@@ -55,15 +55,15 @@ class ObservedFinding:
 
 @dataclass(frozen=True)
 class PrecisionMetrics:
-    true_positive_by_kind: dict[str, int]
-    false_positive_by_kind: dict[str, int]
-    precision_by_kind: dict[str, float]
+    true_positive_by_finding_proof: dict[str, int]
+    false_positive_by_finding_proof: dict[str, int]
+    precision_by_finding_proof: dict[str, float]
     boundary_leak_count: int
     expected_non_finding_count: int
 
     @property
     def false_positive_count(self) -> int:
-        return sum(self.false_positive_by_kind.values())
+        return sum(self.false_positive_by_finding_proof.values())
 
 
 def normalize_findings(report: Mapping[str, Any]) -> list[ObservedFinding]:
@@ -142,16 +142,16 @@ def assert_precision_contract(
 
     _assert_expected_non_findings(report, expected_non_findings)
 
-    true_positive_by_kind = Counter(expected.key.kind for expected in expected_findings)
-    false_positive_by_kind = Counter(finding.key.kind for finding in unexpected)
-    precision_by_kind = {
-        kind: true_positive_by_kind[kind] / (true_positive_by_kind[kind] + false_positive_by_kind[kind])
-        for kind in sorted(set(true_positive_by_kind) | set(false_positive_by_kind))
+    true_positive_by_pair = Counter(_finding_proof_metric_key(expected.key) for expected in expected_findings)
+    false_positive_by_pair = Counter(_finding_proof_metric_key(finding.key) for finding in unexpected)
+    precision_by_pair = {
+        pair: true_positive_by_pair[pair] / (true_positive_by_pair[pair] + false_positive_by_pair[pair])
+        for pair in sorted(set(true_positive_by_pair) | set(false_positive_by_pair))
     }
     return PrecisionMetrics(
-        true_positive_by_kind=dict(true_positive_by_kind),
-        false_positive_by_kind=dict(false_positive_by_kind),
-        precision_by_kind=precision_by_kind,
+        true_positive_by_finding_proof=dict(true_positive_by_pair),
+        false_positive_by_finding_proof=dict(false_positive_by_pair),
+        precision_by_finding_proof=precision_by_pair,
         boundary_leak_count=0,
         expected_non_finding_count=len(expected_non_findings),
     )
@@ -188,6 +188,11 @@ def _assert_expected_non_findings(report: Mapping[str, Any], expected_non_findin
         raise AssertionError(f"expected non-finding proof mismatch: {wrong_proof!r}")
     if unexpected_findings:
         raise AssertionError(f"expected non-finding tasks emitted findings: {unexpected_findings!r}")
+
+
+def _finding_proof_metric_key(key: FindingKey) -> str:
+    proof = key.proof or "none"
+    return f"{key.kind}/{proof}"
 
 
 def _finding_proof(finding: Mapping[str, Any]) -> str | None:

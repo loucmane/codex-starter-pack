@@ -38,13 +38,17 @@ from aegis_foundation.taskmaster_toolchain import (
 SHADOW_MODE = "shadow"
 SHADOW_REPORT_TYPE = "reconcile_shadow_apply_report"
 SHADOW_RECORD_TYPE = "reconcile_shadow_apply"
+SHADOW_ACCUMULATION_REPORT_TYPE = "reconcile_shadow_accumulation"
 SHADOW_CI_CONTEXT_TYPE = "post_merge_ci"
+SHADOW_PR_CI_CONTEXT_TYPE = "pull_request_ci"
+SHADOW_OTHER_CI_CONTEXT_TYPE = "non_post_merge_ci"
 SHADOW_ARTIFACT_NAME = "reconcile-shadow-apply"
-SHADOW_ELIGIBILITY_VERSION = "task146-v1"
+SHADOW_ELIGIBILITY_VERSION = "merged_but_not_done/git_ancestor-v1"
 SHADOW_ALLOWED_DECISION_REASON = "enable_gate_unsatisfiable"
 SHADOW_CI_VALIDATION_REPORT_TYPE = "reconcile_shadow_ci_cascade_validation"
 SHADOW_CI_VALIDATION_TASK_ID = "42"
 TASKMASTER_SEMANTIC_CANONICALIZATION_VERSION = "taskmaster-0.43.1-v1"
+OPTIONAL_STATE_JSON_DELTA_PATH = ".taskmaster/state.json"
 SHADOW_CI_VALIDATION_KILL_SWITCH = {
     "global": {"enabled": True},
     "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True}},
@@ -158,13 +162,28 @@ def build_ci_shadow_context_proof(
     workflow = str(env.get("GITHUB_WORKFLOW") or "")
     repository = str(env.get("GITHUB_REPOSITORY") or "")
     sha = str(env.get("GITHUB_SHA") or "")
+    event_name = str(env.get("GITHUB_EVENT_NAME") or "")
+    ref = str(env.get("GITHUB_REF") or "")
+    ref_name = str(env.get("GITHUB_REF_NAME") or "")
     proof_id = f"github-actions:{run_id}:{run_attempt}" if run_id else ""
+    valid_for_shadow = event_name == "push" and ref == "refs/heads/main"
+    if valid_for_shadow:
+        context_type = SHADOW_CI_CONTEXT_TYPE
+        context_reason = "post_merge_push_main"
+    elif event_name == "pull_request":
+        context_type = SHADOW_PR_CI_CONTEXT_TYPE
+        context_reason = "pull_request_not_post_merge"
+    else:
+        context_type = SHADOW_OTHER_CI_CONTEXT_TYPE
+        context_reason = "not_push_main_post_merge"
     return {
-        "context_type": SHADOW_CI_CONTEXT_TYPE,
+        "context_type": context_type,
         "proof_id": proof_id,
         "task_id": str(task_id),
         "proof": str(proof),
         "external_anchor": proof_id,
+        "valid_for_shadow": valid_for_shadow,
+        "shadow_context_reason": context_reason,
         "ci": {
             "provider": "github_actions",
             "run_id": run_id,
@@ -172,6 +191,9 @@ def build_ci_shadow_context_proof(
             "workflow": workflow,
             "repository": repository,
             "sha": sha,
+            "event_name": event_name,
+            "ref": ref,
+            "ref_name": ref_name,
         },
     }
 
@@ -192,15 +214,24 @@ def build_ci_shadow_cascade_validation_report(
         proof=FIRST_APPLY_PROOF,
     )
     cases = []
-    for case_name, state_json_present in (
-        ("state_json_absent", False),
-        ("state_json_present", True),
+    for case_name, state_json_payload in (
+        ("state_json_absent", None),
+        ("state_json_legacy_tag", {"tag": "master"}),
+        (
+            "state_json_steady_state",
+            {
+                "currentTag": "master",
+                "lastSwitched": "2025-09-22T11:42:16.191Z",
+                "branchTagMapping": {},
+                "migrationNoticeShown": True,
+            },
+        ),
     ):
         target_root = work_root / case_name
         _write_ci_validation_taskmaster_fixture(
             target_root,
             task_id=SHADOW_CI_VALIDATION_TASK_ID,
-            state_json_present=state_json_present,
+            state_json_payload=state_json_payload,
         )
         candidate = _ci_validation_candidate(task_id=SHADOW_CI_VALIDATION_TASK_ID)
         report = build_shadow_report(
@@ -215,7 +246,8 @@ def build_ci_shadow_cascade_validation_report(
         cases.append(
             {
                 "case": case_name,
-                "state_json_initially_present": state_json_present,
+                "state_json_initially_present": state_json_payload is not None,
+                "state_json_initial_payload": state_json_payload,
                 "shadow_report": report,
             }
         )
@@ -291,6 +323,73 @@ def build_shadow_report(
     }
 
 
+def build_shadow_accumulation_report(
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    target_root: Path,
+    approved_context_proof: Mapping[str, Any] | None,
+    kill_switch_state: Mapping[str, Any] | None,
+    artifact_mode: str = "ci",
+    external_anchor: str = "",
+    clone_parent: Path | None = None,
+) -> dict[str, Any]:
+    """Build post-merge shadow accumulation evidence without writing repo state."""
+
+    shadow_report = build_shadow_report(
+        candidates,
+        target_root=target_root,
+        approved_context_proof=approved_context_proof,
+        kill_switch_state=kill_switch_state,
+        artifact_mode=artifact_mode,
+        external_anchor=external_anchor,
+        clone_parent=clone_parent,
+    )
+    context = approved_context_proof if isinstance(approved_context_proof, Mapping) else {}
+    valid_for_shadow = bool(context.get("valid_for_shadow")) and (
+        str(context.get("context_type") or "") == SHADOW_CI_CONTEXT_TYPE
+    )
+    refused_records = list(shadow_report["shadow_refused"])
+    semantic_mismatches = [
+        record
+        for record in refused_records
+        if record.get("reason") == "sacrificial_semantic_delta_mismatch"
+    ]
+    path_mismatches = [
+        record for record in refused_records if record.get("reason") == "sacrificial_delta_mismatch"
+    ]
+    return {
+        "record_type": SHADOW_ACCUMULATION_REPORT_TYPE,
+        "mode": SHADOW_MODE,
+        "artifact_mode": artifact_mode,
+        "artifact_name": SHADOW_ARTIFACT_NAME if artifact_mode == "ci" else "",
+        "valid_for_shadow": valid_for_shadow,
+        "accepted_context_type": SHADOW_CI_CONTEXT_TYPE,
+        "approved_context_proof": dict(context),
+        "repo_file_write_policy": (
+            "CI may write declared upload artifacts only; no in-repo ledger or workflow state"
+        ),
+        "shadow_report": shadow_report,
+        "triage": {
+            "reporting_only": True,
+            "auto_extend_canonicalization": False,
+            "auto_write_exemptions": False,
+            "unexplained_divergence_count": len(path_mismatches),
+            "canonicalization_completeness_count": len(semantic_mismatches),
+            "benign_normalizations_accepted": 0,
+            "path_delta_mismatches": path_mismatches,
+            "semantic_delta_mismatches": semantic_mismatches,
+        },
+        "summary": {
+            "candidate_count": len(candidates),
+            "would_apply": shadow_report["summary"]["would_apply"],
+            "shadow_refused": shadow_report["summary"]["shadow_refused"],
+            "valid_for_shadow": valid_for_shadow,
+            "zero_unexplained_divergences": len(path_mismatches) == 0,
+            "triage_required": bool(path_mismatches or semantic_mismatches),
+        },
+    }
+
+
 def write_local_shadow_report(report: Mapping[str, Any], report_path: Path) -> Path:
     """Write the caller-declared local report artifact."""
 
@@ -312,10 +411,12 @@ def build_shadow_record(
     """Build one would-apply or shadow-refused record for a candidate payload."""
 
     candidate = ApplyCandidate.from_mapping(candidate_payload)
+    authority_refusal = _taskmaster_authority_refusal_reason(target_root)
     predicted_paths = _predicted_paths(
         candidate_payload,
         task_id=candidate.task_id,
         target_root=target_root,
+        include_optional_state_json=False,
     )
     base = _base_record(candidate, artifact_mode=artifact_mode)
     context = evaluate_approved_context(approved_context_proof, candidate=candidate)
@@ -332,6 +433,8 @@ def build_shadow_record(
     refusal = _shadow_refusal_reason(
         candidate, context_reason=context.reason, kill_reason=kill_switch.reason
     )
+    if authority_refusal:
+        refusal = authority_refusal
     if refusal:
         base["decision"] = "shadow_refused"
         base["reason"] = refusal
@@ -402,11 +505,12 @@ def validate_sacrificial_taskmaster_done_cascade(
     """Validate Taskmaster's real done cascade inside a detached temp copy."""
 
     target_root = target_root.resolve()
-    predicted = tuple(sorted({_normalize_rel_path(path) for path in predicted_paths}))
-    if not predicted:
+    required_predicted = tuple(sorted({_normalize_rel_path(path) for path in predicted_paths}))
+    if not required_predicted:
         raise ShadowApplyError("predicted blast-radius paths are required")
     if not (target_root / ".taskmaster" / "tasks" / "tasks.json").exists():
         raise ShadowApplyError("target root does not contain Taskmaster tasks.json")
+    metadata_paths = tuple(sorted(set(required_predicted) | {OPTIONAL_STATE_JSON_DELTA_PATH}))
 
     if clone_parent is None:
         clone_context = tempfile.TemporaryDirectory(prefix="aegis-shadow-apply-")
@@ -423,13 +527,13 @@ def validate_sacrificial_taskmaster_done_cascade(
         if clone_root.resolve() == target_root:
             raise ShadowApplyError("sacrificial clone resolved to the governed target root")
 
-        target_baseline = _metadata_for_paths(target_root, predicted)
-        clone_baseline = _metadata_for_paths(clone_root, predicted)
+        target_baseline = _metadata_for_paths(target_root, metadata_paths)
+        clone_baseline = _metadata_for_paths(clone_root, metadata_paths)
         clone_fidelity = {
             "detached": clone_root.resolve() != target_root,
             "relevant_paths_match": {
                 path: target_baseline[path].to_dict() == clone_baseline[path].to_dict()
-                for path in predicted
+                for path in metadata_paths
             },
         }
         if not all(clone_fidelity["relevant_paths_match"].values()):
@@ -437,7 +541,7 @@ def validate_sacrificial_taskmaster_done_cascade(
 
         before = _snapshot_tree(clone_root)
         semantic_before = _read_taskmaster_semantic_inputs(
-            clone_root, task_id=task_id, predicted_paths=predicted
+            clone_root, task_id=task_id, predicted_paths=required_predicted
         )
         _run_clone_command(
             clone_root, "task-master", "set-status", f"--id={task_id}", "--status=done"
@@ -456,14 +560,24 @@ def validate_sacrificial_taskmaster_done_cascade(
             _run_clone_command(clone_root, "task-master", "generate")
         after = _snapshot_tree(clone_root)
         semantic_after = _read_taskmaster_semantic_inputs(
-            clone_root, task_id=task_id, predicted_paths=predicted
+            clone_root, task_id=task_id, predicted_paths=required_predicted
         )
         actual = tuple(sorted(_tree_delta_paths(before, after)))
+        effective_predicted = tuple(
+            sorted(
+                set(required_predicted)
+                | ({OPTIONAL_STATE_JSON_DELTA_PATH} if OPTIONAL_STATE_JSON_DELTA_PATH in actual else set())
+            )
+        )
+        effective_baseline = {
+            path: target_baseline[path]
+            for path in effective_predicted
+        }
         return SacrificialValidation(
             clone_root=clone_root,
-            predicted_paths=predicted,
+            predicted_paths=effective_predicted,
             actual_delta_paths=actual,
-            baseline_metadata=target_baseline,
+            baseline_metadata=effective_baseline,
             clone_fidelity=clone_fidelity,
             semantic_delta=validate_taskmaster_apply_semantic_delta(
                 before=semantic_before,
@@ -762,6 +876,12 @@ def _base_record(candidate: ApplyCandidate, *, artifact_mode: str) -> dict[str, 
         "proof": candidate.proof,
         "candidate_boundary": "only merged_but_not_done with git_ancestor proof",
         "eligibility_version": SHADOW_ELIGIBILITY_VERSION,
+        "eligibility": {
+            "finding_kind": candidate.finding_kind,
+            "proof_source": candidate.proof,
+            "class_key": candidate.class_key,
+            "version": SHADOW_ELIGIBILITY_VERSION,
+        },
     }
 
 
@@ -786,6 +906,7 @@ def _predicted_paths(
     *,
     task_id: str,
     target_root: Path,
+    include_optional_state_json: bool = True,
 ) -> tuple[str, ...]:
     raw_paths = candidate_payload.get("predicted_blast_radius_paths")
     paths = raw_paths if isinstance(raw_paths, Sequence) and not isinstance(raw_paths, str) else ()
@@ -795,8 +916,36 @@ def _predicted_paths(
             _taskmaster_generated_task_markdown_rel(task_id),
         )
     normalized = {_normalize_rel_path(str(path)) for path in paths if str(path)}
-    normalized.add(".taskmaster/state.json")
+    if include_optional_state_json:
+        normalized.add(OPTIONAL_STATE_JSON_DELTA_PATH)
     return tuple(sorted(normalized))
+
+
+def _taskmaster_authority_refusal_reason(target_root: Path) -> str | None:
+    tasks_path = target_root / ".taskmaster" / "tasks" / "tasks.json"
+    try:
+        payload = json.loads(tasks_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return "taskmaster_authority_missing"
+    except json.JSONDecodeError:
+        return "taskmaster_authority_invalid"
+    if not isinstance(payload, Mapping):
+        return "taskmaster_authority_invalid"
+    task_lists = []
+    for tag_payload in payload.values():
+        if not isinstance(tag_payload, Mapping):
+            return "taskmaster_authority_invalid"
+        tasks = tag_payload.get("tasks")
+        if not isinstance(tasks, list):
+            return "taskmaster_authority_invalid"
+        task_lists.append(tasks)
+    if not task_lists:
+        return "taskmaster_authority_invalid"
+    for task_list in task_lists:
+        for task in task_list:
+            if not isinstance(task, Mapping):
+                return "taskmaster_authority_invalid"
+    return None
 
 
 def _proof_artifact(
@@ -933,8 +1082,11 @@ def _write_ci_validation_taskmaster_fixture(
     root: Path,
     *,
     task_id: str,
-    state_json_present: bool,
+    state_json_payload: Mapping[str, Any] | None = None,
+    state_json_present: bool | None = None,
 ) -> None:
+    if state_json_present is not None and state_json_payload is None:
+        state_json_payload = {"tag": "master"} if state_json_present else None
     tasks_dir = root / ".taskmaster" / "tasks"
     tasks_dir.mkdir(parents=True, exist_ok=True)
     task_number = int(task_id)
@@ -970,8 +1122,8 @@ def _write_ci_validation_taskmaster_fixture(
         "- Scope: fixture task for sacrificial cascade validation.\n",
         encoding="utf-8",
     )
-    if state_json_present:
+    if state_json_payload is not None:
         (root / ".taskmaster" / "state.json").write_text(
-            json.dumps({"tag": "master"}, indent=2, sort_keys=True) + "\n",
+            json.dumps(dict(state_json_payload), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )

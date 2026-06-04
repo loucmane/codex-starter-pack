@@ -17,6 +17,7 @@ from aegis_foundation.reconcile_shadow_apply import (
     SHADOW_ARTIFACT_NAME,
     build_ci_shadow_cascade_validation_report,
     build_ci_shadow_context_proof,
+    build_shadow_accumulation_report,
     build_shadow_record,
     build_shadow_report,
     validate_sacrificial_taskmaster_done_cascade,
@@ -140,6 +141,67 @@ def test_shadow_ci_mode_emits_prediction_validated_would_apply_without_live_delt
     )
 
 
+def test_shadow_accumulation_marks_pr_ci_invalid_for_shadow(tmp_path: Path) -> None:
+    target = _setup_merged_git_ancestor(tmp_path / "shadow-pr-ci")
+    candidate = _first_preview_candidate(target)
+    context = build_ci_shadow_context_proof(
+        {
+            **_github_env(),
+            "GITHUB_EVENT_NAME": "pull_request",
+            "GITHUB_REF": "refs/pull/155/merge",
+            "GITHUB_REF_NAME": "155/merge",
+        },
+        task_id=str(candidate["task_id"]),
+        proof=str(candidate["proof"]),
+    )
+
+    report = build_shadow_accumulation_report(
+        [candidate],
+        target_root=target,
+        approved_context_proof=context,
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+        external_anchor=context["external_anchor"],
+        clone_parent=tmp_path / "clones",
+    )
+
+    assert report["record_type"] == "reconcile_shadow_accumulation"
+    assert report["valid_for_shadow"] is False
+    assert report["summary"]["would_apply"] == 0
+    assert report["summary"]["shadow_refused"] == 1
+    assert report["shadow_report"]["shadow_refused"][0]["approved_context"]["valid_for_shadow"] is False
+
+
+def test_shadow_accumulation_triage_is_reporting_only(tmp_path: Path) -> None:
+    _require_taskmaster_cli()
+    target = _setup_merged_git_ancestor(tmp_path / "shadow-accumulation")
+    candidate = _first_preview_candidate(target)
+    context = build_ci_shadow_context_proof(
+        _github_env(),
+        task_id=str(candidate["task_id"]),
+        proof=str(candidate["proof"]),
+    )
+    before = snapshot_whole_tree(target)
+
+    report = build_shadow_accumulation_report(
+        [candidate],
+        target_root=target,
+        approved_context_proof=context,
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+        external_anchor=context["external_anchor"],
+        clone_parent=tmp_path / "clones",
+    )
+
+    before.assert_matches(snapshot_whole_tree(target))
+    assert report["valid_for_shadow"] is True
+    assert report["triage"]["reporting_only"] is True
+    assert report["triage"]["auto_extend_canonicalization"] is False
+    assert report["triage"]["auto_write_exemptions"] is False
+    assert report["triage"]["benign_normalizations_accepted"] == 0
+    assert report["summary"]["zero_unexplained_divergences"] is True
+
+
 def test_shadow_local_mode_writes_only_declared_report_path(tmp_path: Path) -> None:
     _require_taskmaster_cli()
     target = _setup_merged_git_ancestor(tmp_path / "shadow-local")
@@ -256,6 +318,24 @@ def test_shadow_refuses_kill_switch_disabled_after_valid_context(tmp_path: Path)
     assert record["reason"] == "kill_switch_class_disabled"
 
 
+def test_shadow_refuses_invalid_taskmaster_authority_before_validation(tmp_path: Path) -> None:
+    target = _setup_merged_git_ancestor(tmp_path / "shadow-invalid-taskmaster")
+    candidate = _first_preview_candidate(target)
+    (target / ".taskmaster" / "tasks" / "tasks.json").write_text("{not json\n", encoding="utf-8")
+
+    report = build_shadow_report(
+        [candidate],
+        target_root=target,
+        approved_context_proof=_ci_context(candidate),
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+    )
+
+    assert report["would_apply"] == []
+    assert report["shadow_refused"][0]["reason"] == "taskmaster_authority_invalid"
+    assert "validation_context" not in report["shadow_refused"][0]
+
+
 def test_sacrificial_clone_validation_is_faithful_detached_and_does_not_mutate_live_repo(
     tmp_path: Path,
 ) -> None:
@@ -276,7 +356,7 @@ def test_sacrificial_clone_validation_is_faithful_detached_and_does_not_mutate_l
     assert validation.path_delta_matches_prediction is True
     assert validation.semantic_delta_matches_prediction is True
     assert validation.semantic_delta.reason == "semantic_delta_matches_prediction"
-    assert validation.actual_delta_paths == _dynamic_shadow_prediction(target, candidate)
+    assert validation.actual_delta_paths == validation.predicted_paths
     assert validation.clone_root != target
     assert str(validation.clone_root).startswith(str(tmp_path))
     live_tasks = json.loads((target / ".taskmaster" / "tasks" / "tasks.json").read_text())
@@ -627,11 +707,23 @@ def test_semantic_delta_rejects_target_generated_markdown_without_done_status() 
     assert result.reason == "generated_markdown_status_mismatch"
 
 
-def test_shadow_prediction_includes_preexisting_state_json_delta(tmp_path: Path) -> None:
+def test_shadow_prediction_accepts_steady_state_json_without_required_delta(tmp_path: Path) -> None:
     _require_taskmaster_cli()
     target = _setup_merged_git_ancestor(tmp_path / "shadow-state-present")
     state_path = target / ".taskmaster" / "state.json"
-    state_path.write_text(json.dumps({"tag": "master"}, sort_keys=True) + "\n", encoding="utf-8")
+    state_path.write_text(
+        json.dumps(
+            {
+                "currentTag": "master",
+                "lastSwitched": "2025-09-22T11:42:16.191Z",
+                "branchTagMapping": {},
+                "migrationNoticeShown": True,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     candidate = _first_preview_candidate(target)
     context = _ci_context(candidate)
 
@@ -647,8 +739,7 @@ def test_shadow_prediction_includes_preexisting_state_json_delta(tmp_path: Path)
 
     record = report["would_apply"][0]
     assert record["sacrificial_delta_matches_prediction"] is True
-    assert ".taskmaster/state.json" in record["predicted_blast_radius_paths"]
-    assert ".taskmaster/state.json" in record["actual_sacrificial_delta_paths"]
+    assert record["predicted_blast_radius_paths"] == record["actual_sacrificial_delta_paths"]
 
 
 def test_ci_shadow_cascade_validation_report_covers_both_state_json_branches(
@@ -669,22 +760,20 @@ def test_ci_shadow_cascade_validation_report_covers_both_state_json_branches(
     assert report["mutated_live_repo"] is False
     assert report["task_master_toolchain"] == toolchain
     assert report["toolchain_binding"]["comparison"]["matches"] is True
-    assert report["summary"]["would_apply_records"] == 2
+    assert report["summary"]["would_apply_records"] == 3
     assert report["summary"]["all_sacrificial_deltas_match_prediction"] is True
     cases = {case["case"]: case for case in report["cases"]}
     absent_record = cases["state_json_absent"]["shadow_report"]["would_apply"][0]
-    present_record = cases["state_json_present"]["shadow_report"]["would_apply"][0]
+    legacy_record = cases["state_json_legacy_tag"]["shadow_report"]["would_apply"][0]
+    steady_record = cases["state_json_steady_state"]["shadow_report"]["would_apply"][0]
 
     assert cases["state_json_absent"]["state_json_initially_present"] is False
-    assert ".taskmaster/state.json" in absent_record["predicted_blast_radius_paths"]
-    assert ".taskmaster/state.json" in absent_record["actual_sacrificial_delta_paths"]
-    assert cases["state_json_present"]["state_json_initially_present"] is True
-    assert ".taskmaster/state.json" in present_record["predicted_blast_radius_paths"]
-    assert ".taskmaster/state.json" in present_record["actual_sacrificial_delta_paths"]
-    assert absent_record["executed"] is False
-    assert absent_record["mutated_live_repo"] is False
-    assert present_record["executed"] is False
-    assert present_record["mutated_live_repo"] is False
+    assert cases["state_json_legacy_tag"]["state_json_initially_present"] is True
+    assert cases["state_json_steady_state"]["state_json_initially_present"] is True
+    for record in (absent_record, legacy_record, steady_record):
+        assert record["predicted_blast_radius_paths"] == record["actual_sacrificial_delta_paths"]
+        assert record["executed"] is False
+        assert record["mutated_live_repo"] is False
 
 
 def test_taskmaster_toolchain_mismatch_invalidates_prior_cascade_evidence() -> None:
@@ -704,6 +793,9 @@ def test_taskmaster_toolchain_mismatch_invalidates_prior_cascade_evidence() -> N
 
 def test_build_ci_shadow_context_proof_uses_stable_github_run_fields() -> None:
     env = {
+        "GITHUB_EVENT_NAME": "push",
+        "GITHUB_REF": "refs/heads/main",
+        "GITHUB_REF_NAME": "main",
         "GITHUB_RUN_ID": "123",
         "GITHUB_RUN_ATTEMPT": "2",
         "GITHUB_WORKFLOW": "CI",
@@ -719,6 +811,23 @@ def test_build_ci_shadow_context_proof_uses_stable_github_run_fields() -> None:
     assert first["proof_id"] == "github-actions:123:2"
     assert first["task_id"] == "42"
     assert first["proof"] == "git_ancestor"
+    assert first["valid_for_shadow"] is True
+    assert first["shadow_context_reason"] == "post_merge_push_main"
+    assert first["ci"]["event_name"] == "push"
+    assert first["ci"]["ref"] == "refs/heads/main"
+
+    pr = build_ci_shadow_context_proof(
+        {
+            **env,
+            "GITHUB_EVENT_NAME": "pull_request",
+            "GITHUB_REF": "refs/pull/155/merge",
+            "GITHUB_REF_NAME": "155/merge",
+        },
+        task_id="42",
+    )
+    assert pr["context_type"] == "pull_request_ci"
+    assert pr["valid_for_shadow"] is False
+    assert pr["shadow_context_reason"] == "pull_request_not_post_merge"
 
 
 def test_shadow_apply_is_not_reachable_from_agent_surfaces(tmp_path: Path) -> None:
@@ -814,6 +923,9 @@ def _ci_context(candidate: Mapping[str, Any]) -> dict[str, Any]:
 def _github_env() -> dict[str, str]:
     return {
         "GITHUB_ACTIONS": "true",
+        "GITHUB_EVENT_NAME": "push",
+        "GITHUB_REF": "refs/heads/main",
+        "GITHUB_REF_NAME": "main",
         "GITHUB_RUN_ID": "123",
         "GITHUB_RUN_ATTEMPT": "1",
         "GITHUB_WORKFLOW": "CI",
@@ -846,7 +958,6 @@ def _toolchain_evidence(
 
 def _dynamic_shadow_prediction(target: Path, candidate: Mapping[str, Any]) -> tuple[str, ...]:
     paths = {str(path) for path in candidate["predicted_blast_radius_paths"]}
-    paths.add(".taskmaster/state.json")
     return tuple(sorted(paths))
 
 
