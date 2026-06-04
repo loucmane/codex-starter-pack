@@ -79,6 +79,23 @@ class AegisMCPInputError(ValueError):
     """Raised when MCP inputs fail Aegis V1 safety constraints."""
 
 
+class AegisMCPToolError(ValueError):
+    """Raised when an MCP tool should return a structured error response."""
+
+    def __init__(
+        self,
+        *,
+        code: str,
+        message: str,
+        status: str = "invalid_request",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.status = status
+        self.details = details or {}
+
+
 @dataclass(frozen=True)
 class AegisMCPConfig:
     """Runtime configuration for the Aegis MCP server."""
@@ -293,6 +310,26 @@ def _read_json_file(path: Path) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _resolve_confined_target_dir(target_dir: str | Path, allowed_root: Path) -> Path:
+    """Resolve an MCP target under the configured target root."""
+
+    base = allowed_root.expanduser().resolve()
+    raw = Path(target_dir or ".").expanduser()
+    candidate = raw.resolve() if raw.is_absolute() else (base / raw).resolve()
+    if candidate == base or base in candidate.parents:
+        return candidate
+    raise AegisMCPToolError(
+        code="invalid_target",
+        status="invalid_request",
+        message="target_dir must resolve inside this Aegis MCP server's configured target root",
+        details={
+            "target_dir": str(target_dir),
+            "resolved_target_dir": candidate.as_posix(),
+            "allowed_root": base.as_posix(),
+        },
+    )
+
+
 def _resource_ok(
     uri: str,
     *,
@@ -350,6 +387,14 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     ) -> dict[str, Any]:
         try:
             result = callback()
+        except AegisMCPToolError as exc:
+            return _error_tool_response(
+                tool_name,
+                code=exc.code,
+                message=str(exc),
+                status=exc.status,
+                details=exc.details,
+            )
         except AegisMCPInputError as exc:
             return _error_tool_response(
                 tool_name,
@@ -388,8 +433,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         def call_core() -> dict[str, Any]:
             profile_value = _validate_profile(profile)
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.inspect_project(
-                target_dir,
+                target,
                 profile=profile_value,
                 source_root=config.source_root,
                 default_primary_agent=config.default_primary_agent,
@@ -407,8 +453,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Report installed Aegis release state and embedded next workflow guidance without mutating the target."""
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.status(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 default_primary_agent=config.default_primary_agent,
                 default_agents=config.default_agents,
@@ -425,8 +472,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Tell the agent the next required Aegis workflow action for a normal request; read-only, no source edits, no .aegis writes."""
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.next_action(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 default_primary_agent=config.default_primary_agent,
                 default_agents=config.default_agents,
@@ -443,8 +491,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Read-only state diagnostic with a safe repair plan for installed Aegis projects."""
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.doctor(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 default_primary_agent=config.default_primary_agent,
                 default_agents=config.default_agents,
@@ -466,8 +515,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Read-only Taskmaster/Aegis/git/PR drift report; optional inert preview never auto-mutates status."""
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.reconcile(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 base_ref=base_ref,
                 use_github=use_github,
@@ -488,7 +538,8 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Preview or apply safe Aegis state repairs; preview mode is read-only."""
 
         def call_core() -> dict[str, Any]:
-            return installer.repair(target_dir, source_root=config.source_root, apply=apply)
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            return installer.repair(target, source_root=config.source_root, apply=apply)
 
         return run_tool(
             "aegis.repair",
@@ -508,8 +559,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         def call_core() -> dict[str, Any]:
             profile_value = _validate_profile(profile)
             selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             payload = installer.plan_install(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 profile=profile_value,
                 primary_agent=primary_agent,
@@ -547,8 +599,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         def call_core() -> dict[str, Any]:
             profile_value = _validate_profile(profile)
             selected = _validate_agent_selection(primary_agent=primary_agent, agents=agents)
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             report = installer.install(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 profile=profile_value,
                 primary_agent=primary_agent,
@@ -609,8 +662,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
                 primary_agent=primary,
                 agents=agents or list(config.default_agents),
             )
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             report = installer.initialize_project(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 profile=profile_value,
                 primary_agent=primary,
@@ -666,8 +720,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             report = installer.verify(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 strict=strict,
                 default_primary_agent=config.default_primary_agent,
@@ -709,8 +764,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             report = installer.closeout(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 update_handoff=update_handoff,
                 require_clean_git=require_clean_git,
@@ -742,8 +798,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Read-only pre-closeout gate check; reports whether closeout would pass without writing state."""
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.closeout(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 update_handoff=update_handoff,
                 require_clean_git=require_clean_git,
@@ -765,8 +822,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         """Preview or apply deterministic HANDOFF.md semantic-section repair after closeout_ready reports gaps."""
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             report = installer.repair_handoff(
-                target_dir,
+                target,
                 source_root=config.source_root,
                 dry_run=not apply,
             )
@@ -808,8 +866,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.kickoff(
-                target_dir,
+                target,
                 task_id=task,
                 slug=slug,
                 title=title,
@@ -845,8 +904,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.start_local_work(
-                target_dir,
+                target,
                 title=title,
                 slug=slug or None,
                 goals=goals or [],
@@ -885,8 +945,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
 
         def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
             return installer.log_work(
-                target_dir,
+                target,
                 handler=handler,
                 evidence=evidence,
                 note=note,

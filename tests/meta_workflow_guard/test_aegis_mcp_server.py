@@ -332,6 +332,39 @@ def test_reconcile_mcp_execution_is_report_only(tmp_path: Path) -> None:
     assert status_after == status_before
 
 
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "aegis.inspect",
+        "aegis.status",
+        "aegis.doctor",
+        "aegis.reconcile",
+    ],
+)
+def test_read_only_mcp_tools_reject_target_dir_outside_configured_root(
+    tmp_path: Path,
+    tool_name: str,
+) -> None:
+    allowed = tmp_path / "allowed-target"
+    outside = tmp_path / "outside-target"
+    allowed.mkdir()
+    outside.mkdir()
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=allowed)
+    server = create_server(config)
+    arguments: dict[str, object] = {"target_dir": outside.as_posix()}
+    if tool_name == "aegis.reconcile":
+        arguments.update({"base_ref": "main", "use_github": False})
+
+    payload = call_tool_payload(server, tool_name, arguments)
+
+    assert payload["ok"] is False
+    assert payload["tool"] == tool_name
+    assert payload["error"]["code"] == "invalid_target"
+    assert payload["error"]["status"] == "invalid_request"
+    assert payload["error"]["details"]["allowed_root"] == allowed.resolve().as_posix()
+    assert payload["error"]["details"]["resolved_target_dir"] == outside.resolve().as_posix()
+
+
 def test_server_registers_expected_resources_and_prompts(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)

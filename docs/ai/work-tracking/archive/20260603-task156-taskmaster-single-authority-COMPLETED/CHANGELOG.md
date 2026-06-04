@@ -6,3 +6,4 @@
 - Added Taskmaster-present valid/invalid authority handling to Aegis guidance.
 - Added tests proving Aegis no longer surfaces a competing task id when Taskmaster is present.
 - Added tests proving malformed/unreadable Taskmaster state blocks local fallback and remains read-only in reconcile.
+- 2026-06-04 11:02 CEST — Archived active work-tracking folder.

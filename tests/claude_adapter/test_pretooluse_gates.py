@@ -35,7 +35,7 @@ def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def payload(tool_name: str, **tool_input: str) -> str:
+def payload(tool_name: str, **tool_input: object) -> str:
     return json.dumps({"tool_name": tool_name, "tool_input": tool_input})
 
 
@@ -177,6 +177,77 @@ def test_pretooluse_allows_known_read_only_bash_before_readiness(tmp_path: Path,
     assert result.stderr == ""
 
 
+def test_pretooluse_blocks_read_only_aegis_cli_target_outside_project_before_readiness(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command=f"./.aegis/bin/aegis reconcile --target-dir {outside.as_posix()}"),
+    )
+
+    assert result.returncode == 2
+    assert "target_dir escapes governed project root" in result.stderr
+    assert "readiness is BLOCKED" not in result.stderr
+
+
+def test_pretooluse_blocks_read_only_aegis_mcp_target_outside_project_before_readiness(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("mcp__aegis__aegis_reconcile", target_dir=outside.as_posix()),
+    )
+
+    assert result.returncode == 2
+    assert "target_dir escapes governed project root" in result.stderr
+    assert "readiness is BLOCKED" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("mcp__aegis__aegis_repair", {"apply": False}),
+        ("mcp__aegis__aegis_handoff_repair", {"apply": False}),
+        (
+            "mcp__aegis__aegis_kickoff",
+            {
+                "task": "157",
+                "slug": "read-only-classification",
+                "title": "Task 157",
+                "apply": True,
+            },
+        ),
+        ("mcp__aegis__aegis_start", {"title": "Task 157", "apply": True}),
+    ],
+)
+def test_pretooluse_confines_every_aegis_mcp_target_dir_before_readiness(
+    tmp_path: Path, tool_name: str, tool_input: dict[str, object]
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload(tool_name, **{**tool_input, "target_dir": outside.as_posix()}),
+    )
+
+    assert result.returncode == 2
+    assert "target_dir escapes governed project root" in result.stderr
+    assert "readiness is BLOCKED" not in result.stderr
+
+
 def test_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = make_repo(tmp_path, ready=False)
     gate_lib = load_gate_lib_module()
@@ -234,6 +305,67 @@ def test_pretooluse_degraded_fails_closed_for_mutation_when_gate_infra_crashes(
     assert not (repo / ".aegis" / "state" / "degraded-events.json").exists()
 
 
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("Bash", {"command": "git status --short"}),
+        ("Bash", {"command": "./.aegis/bin/aegis reconcile --target-dir ."}),
+        ("Bash", {"command": "jq -c . .aegis/reports/reconcile.json"}),
+        ("Bash", {"command": "git status --short > status.txt"}),
+        ("Bash", {"command": "git status --short | tee status.txt"}),
+        ("Bash", {"command": "sed -i 's/a/b/' README.md"}),
+        ("Bash", {"command": "python3 -c \"open('state.txt','w').write('x')\""}),
+        ("mcp__aegis__aegis_reconcile", {"target_dir": "."}),
+        ("mcp__aegis__aegis_repair", {"target_dir": ".", "apply": False}),
+        (
+            "mcp__aegis__aegis_kickoff",
+            {
+                "target_dir": "__OUTSIDE__",
+                "task": "157",
+                "slug": "x",
+                "title": "X",
+                "apply": True,
+            },
+        ),
+        ("mcp__unknown__write_state", {"path": "state.txt"}),
+        ("mcp__taskmaster_ai__next_task", {}),
+        ("mcp__taskmaster_ai__set_task_status", {"id": "157", "status": "done"}),
+        ("Write", {"file_path": "src/main.py"}),
+    ],
+)
+def test_degraded_classifier_matches_main_classifier_for_accessors_and_write_sinks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tool_name: str,
+    tool_input: dict[str, object],
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    outside = tmp_path / "outside-project"
+    outside.mkdir()
+    gate_lib = load_gate_lib_module()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+
+    resolved_input = {
+        key: (outside.as_posix() if value == "__OUTSIDE__" else value)
+        for key, value in tool_input.items()
+    }
+    classified = gate_lib.Payload(tool_name, resolved_input)
+
+    assert gate_lib.payload_is_read_only(classified) is gate_lib.degraded_payload_is_non_destructive(
+        classified
+    )
+
+
+def test_degraded_gate_has_no_dead_safe_command_allowlist() -> None:
+    live_hook = (REPO_ROOT / ".claude" / "scripts" / "gate_lib.py").read_text(encoding="utf-8")
+    packaged_hook = (
+        REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "gate_lib.py"
+    ).read_text(encoding="utf-8")
+
+    assert "DEGRADED_SAFE_SIMPLE_BASH_COMMANDS" not in live_hook
+    assert "DEGRADED_SAFE_SIMPLE_BASH_COMMANDS" not in packaged_hook
+
+
 def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = make_repo(tmp_path, ready=False)
     gate_lib = load_gate_lib_module()
@@ -259,6 +391,7 @@ def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch
         "find . -delete",
         "pytest --junitxml=reports/results.xml",
         "cat README.md > out.txt",
+        "jq -c . .aegis/reports/reconcile.json",
         "task-master generate",
         "git commit -m test",
     ],
