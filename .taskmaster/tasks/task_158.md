@@ -105,3 +105,14 @@ Verify new post-merge shadow accumulation does not weaken read-only classificati
 **Details:**
 
 Name and run the standing gates covering agent-facing apply/write path isolation, `target_dir` as the sole Aegis MCP target selector, degraded classification delegated to the main classifier, single-gated-caller invariants, and read-only classifier invariants.
+
+### 158.7. Refuse shadow evidence on invalid Taskmaster authority
+
+**Status:** pending
+**Dependencies:** None
+
+Ensure shadow accumulation refuses or marks valid_for_shadow=false when Taskmaster authority is malformed or invalid, so invalid tasks.json cannot be normalized into a false would_apply ledger entry.
+
+**Details:**
+
+Scope: compose the Task 156 single-authority invariant into the Task 158 shadow path. Add malformed-tasks.json coverage proving validate_sacrificial_taskmaster_done_cascade or the accumulation entry point does not emit would_apply when TaskmasterState would be invalid/unreadable. The result must be refused, triage-required, or valid_for_shadow=false, and no candidate may enter the accumulation ledger from invalid authority. Keep this shadow-only; live apply TaskmasterState gating remains an enablement prerequisite outside Task 158.

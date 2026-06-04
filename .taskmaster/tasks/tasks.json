@@ -6484,7 +6484,7 @@
         "updatedAt": "2026-06-04T10:37:51.327Z"
       },
       {
-        "id": "158",
+        "id": 158,
         "title": "Add post-merge shadow accumulation with mismatch triage",
         "description": "Run post-merge shadow/would-apply accumulation on the hardened validator, with explicit mismatch triage for semantic canonicalization coverage and measurement/trigger correctness fixes from the integrated adversarial retrospective before any enablement work.",
         "status": "pending",
@@ -6549,6 +6549,15 @@
             "details": "Name and run the standing gates covering agent-facing apply/write path isolation, `target_dir` as the sole Aegis MCP target selector, degraded classification delegated to the main classifier, single-gated-caller invariants, and read-only classifier invariants.",
             "status": "pending",
             "testStrategy": "Run the relevant Task 157/159 pytest suites plus focused CI workflow tests after adding the post-merge job."
+          },
+          {
+            "id": 7,
+            "title": "Refuse shadow evidence on invalid Taskmaster authority",
+            "description": "Ensure shadow accumulation refuses or marks valid_for_shadow=false when Taskmaster authority is malformed or invalid, so invalid tasks.json cannot be normalized into a false would_apply ledger entry.",
+            "details": "Scope: compose the Task 156 single-authority invariant into the Task 158 shadow path. Add malformed-tasks.json coverage proving validate_sacrificial_taskmaster_done_cascade or the accumulation entry point does not emit would_apply when TaskmasterState would be invalid/unreadable. The result must be refused, triage-required, or valid_for_shadow=false, and no candidate may enter the accumulation ledger from invalid authority. Keep this shadow-only; live apply TaskmasterState gating remains an enablement prerequisite outside Task 158.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 158
           }
         ]
       },
