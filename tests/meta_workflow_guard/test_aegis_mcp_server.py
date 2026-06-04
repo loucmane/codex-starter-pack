@@ -57,6 +57,26 @@ RECONCILE_MUTATION_PARAMETER_NAMES = {
     "write",
     "push",
 }
+FORBIDDEN_AGENT_TARGET_SELECTOR_NAMES = {
+    "cwd",
+    "dir",
+    "directory",
+    "file_path",
+    "path",
+    "project_dir",
+    "project_root",
+    "relative_path",
+    "repo_dir",
+    "repo_root",
+    "repository_dir",
+    "root",
+    "source_root",
+    "target_root",
+    "work_dir",
+    "workdir",
+    "worktree",
+    "worktree_dir",
+}
 
 
 def list_tools(server: FastMCP):
@@ -66,6 +86,12 @@ def list_tools(server: FastMCP):
 def tool_by_name(server: FastMCP, name: str):
     tools = {tool.name: tool for tool in list_tools(server)}
     return tools[name]
+
+
+def forbidden_target_selector_names(schema: dict) -> list[str]:
+    properties = schema.get("properties", {})
+    assert isinstance(properties, dict)
+    return sorted(name for name in properties if name in FORBIDDEN_AGENT_TARGET_SELECTOR_NAMES)
 
 
 def call_tool_payload(server: FastMCP, name: str, arguments: dict | None = None) -> dict:
@@ -226,6 +252,27 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.update",
         "aegis.rollback",
     }.isdisjoint({tool.name for tool in tools})
+
+
+def test_mcp_tool_schemas_use_target_dir_as_sole_agent_target_selector(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    for tool in list_tools(server):
+        schema = tool.inputSchema
+        assert forbidden_target_selector_names(schema) == [], tool.name
+        properties = schema.get("properties", {})
+        assert isinstance(properties, dict)
+        if "target_dir" in properties:
+            assert properties["target_dir"]["type"] == "string"
+
+
+def test_mcp_tool_schema_target_selector_scan_rejects_aliases() -> None:
+    project_dir_schema = {"properties": {"project_dir": {"type": "string"}}}
+
+    assert forbidden_target_selector_names(project_dir_schema) == ["project_dir"]
+    assert forbidden_target_selector_names({"properties": {"cwd": {"type": "string"}}}) == ["cwd"]
+    assert forbidden_target_selector_names({"properties": {"target_dir": {"type": "string"}}}) == []
 
 
 def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
