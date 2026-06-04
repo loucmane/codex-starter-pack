@@ -14,3 +14,4 @@
 ## Next Steps
 - Run guard/audit closeout commands, commit, push, and update PR #158.
 - Keep enablement out of scope. This task only hardens the measurement/evidence layer.
+- Archived on 2026-06-04 18:50 CEST — Folder moved to archive and tracker marked COMPLETED.

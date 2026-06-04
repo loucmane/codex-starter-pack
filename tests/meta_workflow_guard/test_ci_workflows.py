@@ -80,6 +80,11 @@ def test_python_test_workflow_captures_shadow_accumulation_with_side_effect_orac
     )
     assert "Capture post-merge reconcile shadow accumulation" in step_names
     assert "build_shadow_accumulation_report" in text
+    assert "classify_shadow_accumulation_evidence" in text
+    assert (
+        'payload["evidence_classification"] = classify_shadow_accumulation_evidence(payload)'
+        in text
+    )
     assert "reconcile-shadow-accumulation.json" in text
     assert "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'" in text
     assert "snapshot_whole_tree(repo, require_tmp_root=False)" in text

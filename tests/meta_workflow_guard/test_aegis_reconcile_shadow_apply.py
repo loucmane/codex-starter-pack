@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -21,6 +22,7 @@ from aegis_foundation.reconcile_shadow_apply import (
     build_shadow_accumulation_report,
     build_shadow_record,
     build_shadow_report,
+    classify_shadow_accumulation_evidence,
     validate_sacrificial_taskmaster_done_cascade,
     validate_taskmaster_apply_semantic_delta,
     write_local_shadow_report,
@@ -84,6 +86,9 @@ ACTION_SHAPED_VALUES = (
     "--auto",
     "--fix",
     "--set-status",
+)
+OPERATIONAL_EVIDENCE_0001 = (
+    REPO_ROOT / "docs" / "aegis" / "evidence" / "reconcile-shadow-operational-0001.json"
 )
 
 
@@ -230,6 +235,79 @@ def test_shadow_accumulation_triage_is_reporting_only(tmp_path: Path) -> None:
     assert report["triage"]["auto_write_exemptions"] is False
     assert report["triage"]["benign_normalizations_accepted"] == 0
     assert report["summary"]["zero_unexplained_divergences"] is True
+
+
+def test_shadow_accumulation_classifies_empty_candidate_run_operational_not_precision(
+    tmp_path: Path,
+) -> None:
+    context = build_ci_shadow_context_proof(
+        _github_env(),
+        task_id="post-merge-shadow-accumulation",
+        proof="git_ancestor",
+    )
+
+    report = build_shadow_accumulation_report(
+        [],
+        target_root=tmp_path,
+        approved_context_proof=context,
+        kill_switch_state=ENABLE_SHAPED_KILL_SWITCH,
+        artifact_mode="ci",
+        external_anchor=context["external_anchor"],
+        clone_parent=tmp_path / "clones",
+    )
+
+    assert report["executed"] is False
+    assert report["mutated_live_repo"] is False
+    assert report["summary"]["candidate_count"] == 0
+    assert report["summary"]["would_apply"] == 0
+    assert report["summary"]["shadow_refused"] == 0
+    assert report["summary"]["triage_required"] is False
+    classification = report["evidence_classification"]
+    assert classification == classify_shadow_accumulation_evidence(report)
+    assert classification["operational_entry"] is True
+    assert classification["precision_observation"] is False
+    assert classification["no_precision_signal"] is True
+    assert classification["reason"] == "empty_candidate_set_operational_only"
+    assert classification["empty_real_accumulation_counts_as_zero_divergence_precision"] is False
+
+
+def test_run_26959807056_operational_evidence_is_not_precision_signal() -> None:
+    payload = json.loads(OPERATIONAL_EVIDENCE_0001.read_text(encoding="utf-8"))
+
+    assert payload["evidence_entry_id"] == "reconcile-shadow-operational-0001"
+    assert payload["source_run"]["run_id"] == "26959807056"
+    assert payload["source_run"]["head_sha"] == (
+        "ac2a8f13fc5aed9e9a30ebffbee12372fa47a6f8"
+    )
+    assert payload["source_run"]["event_name"] == "push"
+    assert payload["source_run"]["ref"] == "refs/heads/main"
+    assert payload["candidate_source"] == {
+        "candidate_count": 0,
+        "ran_reconcile": True,
+        "valid_for_shadow": True,
+    }
+    assert payload["summary"] == {
+        "candidate_count": 0,
+        "report_count": 1,
+        "shadow_refused": 0,
+        "triage_required": False,
+        "valid_for_shadow": True,
+        "would_apply": 0,
+    }
+    assert payload["accumulations"][0]["summary"] == {
+        "candidate_count": 0,
+        "shadow_refused": 0,
+        "triage_required": False,
+        "valid_for_shadow": True,
+        "would_apply": 0,
+        "zero_unexplained_divergences": True,
+    }
+    classification = payload["evidence_classification"]
+    assert classification == classify_shadow_accumulation_evidence(payload)
+    assert classification["operational_entry"] is True
+    assert classification["precision_observation"] is False
+    assert classification["no_precision_signal"] is True
+    assert classification["empty_real_accumulation_counts_as_zero_divergence_precision"] is False
 
 
 def test_shadow_local_mode_writes_only_declared_report_path(tmp_path: Path) -> None:
@@ -1030,6 +1108,59 @@ def test_taskmaster_toolchain_mismatch_invalidates_prior_cascade_evidence() -> N
     assert lock_comparison["matches"] is False
     assert {item["field"] for item in lock_comparison["mismatches"]} == {"provisioning.lock_id"}
     assert compare_taskmaster_toolchain_evidence(validated, dict(validated))["matches"] is True
+
+
+def test_pinned_taskmaster_cli_state_initialization_writes_no_active_tag_keys(
+    tmp_path: Path,
+) -> None:
+    _require_taskmaster_cli()
+    version = subprocess.run(
+        ["task-master", "--version"],
+        cwd=tmp_path,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert version.returncode == 0, version.stderr or version.stdout
+    assert version.stdout.strip() == TASKMASTER_PACKAGE_VERSION
+
+    target = tmp_path / "taskmaster-state-init"
+    init_git_repo(target)
+    write_taskmaster_tasks(
+        target,
+        [
+            {
+                "id": 42,
+                "title": "Target",
+                "description": "Target task",
+                "details": "Details",
+                "testStrategy": "Manual",
+                "status": "pending",
+                "priority": "high",
+                "dependencies": [],
+                "subtasks": [],
+            }
+        ],
+    )
+    state_path = target / ".taskmaster" / "state.json"
+    state_path.unlink(missing_ok=True)
+
+    result = subprocess.run(
+        ["task-master", "next"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    payload = json.loads(state_path.read_text(encoding="utf-8"))
+    assert "tag" not in payload
+    assert "currentTag" not in payload
+    assert "branchTagMapping" not in payload
+    assert payload.get("migrationNoticeShown") is True
 
 
 def test_build_ci_shadow_context_proof_uses_stable_github_run_fields() -> None:

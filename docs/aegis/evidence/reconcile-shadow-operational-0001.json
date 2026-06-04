@@ -1,0 +1,114 @@
+{
+  "record_type": "reconcile_shadow_accumulation_artifact",
+  "evidence_entry_id": "reconcile-shadow-operational-0001",
+  "source_run": {
+    "artifact_path": "$RUNNER_TEMP/aegis-shadow/reconcile-shadow-accumulation.json",
+    "event_name": "push",
+    "head_sha": "ac2a8f13fc5aed9e9a30ebffbee12372fa47a6f8",
+    "ref": "refs/heads/main",
+    "repository": "loucmane/codex-starter-pack",
+    "run_attempt": "1",
+    "run_id": "26959807056",
+    "workflow": "CI"
+  },
+  "mode": "shadow",
+  "executed": false,
+  "mutated_live_repo": false,
+  "candidate_source": {
+    "candidate_count": 0,
+    "ran_reconcile": true,
+    "valid_for_shadow": true
+  },
+  "accumulations": [
+    {
+      "accepted_context_type": "post_merge_ci",
+      "artifact_mode": "ci",
+      "artifact_name": "reconcile-shadow-apply",
+      "mode": "shadow",
+      "record_type": "reconcile_shadow_accumulation",
+      "repo_file_write_policy": "CI writes shadow accumulation artifacts outside the governed repo; no in-repo ledger or workflow state",
+      "valid_for_shadow": true,
+      "approved_context_proof": {
+        "ci": {
+          "event_name": "push",
+          "provider": "github_actions",
+          "ref": "refs/heads/main",
+          "ref_name": "main",
+          "repository": "loucmane/codex-starter-pack",
+          "run_attempt": "1",
+          "run_id": "26959807056",
+          "sha": "ac2a8f13fc5aed9e9a30ebffbee12372fa47a6f8",
+          "workflow": "CI"
+        },
+        "context_type": "post_merge_ci",
+        "external_anchor": "github-actions:26959807056:1",
+        "proof": "git_ancestor",
+        "proof_id": "github-actions:26959807056:1",
+        "shadow_context_reason": "post_merge_push_main",
+        "task_id": "post-merge-shadow-accumulation",
+        "valid_for_shadow": true
+      },
+      "shadow_report": {
+        "artifact_mode": "ci",
+        "artifact_name": "reconcile-shadow-apply",
+        "mode": "shadow",
+        "record_type": "reconcile_shadow_apply_report",
+        "repo_file_write_policy": "ci writes zero repo files; local mode may write exactly one declared report path",
+        "would_apply": [],
+        "shadow_refused": [],
+        "summary": {
+          "would_apply": 0,
+          "shadow_refused": 0
+        }
+      },
+      "summary": {
+        "candidate_count": 0,
+        "shadow_refused": 0,
+        "triage_required": false,
+        "valid_for_shadow": true,
+        "would_apply": 0,
+        "zero_unexplained_divergences": true
+      },
+      "triage": {
+        "auto_extend_canonicalization": false,
+        "auto_write_exemptions": false,
+        "benign_normalizations_accepted": 0,
+        "canonicalization_completeness_count": 0,
+        "path_delta_mismatches": [],
+        "reporting_only": true,
+        "semantic_delta_mismatches": [],
+        "unexplained_divergence_count": 0
+      }
+    }
+  ],
+  "summary": {
+    "candidate_count": 0,
+    "report_count": 1,
+    "shadow_refused": 0,
+    "triage_required": false,
+    "valid_for_shadow": true,
+    "would_apply": 0
+  },
+  "evidence_classification": {
+    "candidate_count": 0,
+    "empty_real_accumulation_counts_as_zero_divergence_precision": false,
+    "no_precision_signal": true,
+    "operational_entry": true,
+    "precision_evidence_basis": "labeled_precision_corpus_and_cascade_fixtures",
+    "precision_observation": false,
+    "reason": "empty_candidate_set_operational_only",
+    "record_type": "reconcile_shadow_evidence_classification",
+    "shadow_refused": 0,
+    "triage_required": false,
+    "would_apply": 0
+  },
+  "non_goals": [
+    "no apply",
+    "no enable",
+    "no MCP apply tool",
+    "no operator-local apply",
+    "no Taskmaster status mutation",
+    "no live write path",
+    "no in-repo shadow ledger"
+  ]
+}

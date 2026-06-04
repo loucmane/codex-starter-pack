@@ -1,6 +1,6 @@
 # Aegis Reconcile Shadow Apply Contract
 
-**Status:** active Task 151/152 contract; consumed by Task 153 fresh validation.
+**Status:** active Task 151/152/161 contract; consumed by Task 153 fresh validation.
 **Scope:** shadow evidence only. This task does not enable reconcile mutation and does not
 expose apply through governed-agent surfaces.
 
@@ -77,6 +77,36 @@ path. The side-effect oracle is the authority for this boundary.
 Shadow artifacts must not contain executable command strings or action-shaped fields that
 an agent could treat as an instruction.
 
+## Evidence Classification
+
+Shadow accumulation artifacts have two distinct evidence uses:
+
+- **Operational evidence** proves the post-merge shadow pipeline ran in the approved CI
+  context, wrote only artifacts, kept `executed: false`, kept `mutated_live_repo: false`,
+  and preserved the governed repository.
+- **Precision evidence** requires at least one live candidate partition for the narrowed
+  `(merged_but_not_done, git_ancestor)` class, or the pre-registered labeled precision
+  corpus and cascade fixtures.
+
+An empty real-repo accumulation is operational evidence only. It must not be cited as
+`0 divergences`, `100% precision`, or evidence that enablement criteria are met. Codex main
+is expected to be candidate-free when Taskmaster tasks are marked done before merge, so
+`candidate_count: 0` carries no precision signal.
+
+Every shadow accumulation artifact must include or be classifiable into
+`reconcile_shadow_evidence_classification` with:
+
+- `operational_entry: true` only for valid post-merge shadow artifacts that did not execute
+  or mutate the live repository.
+- `precision_observation: false` when `candidate_count` is zero.
+- `empty_real_accumulation_counts_as_zero_divergence_precision: false`.
+
+The first operational entry is recorded in
+`docs/aegis/evidence/reconcile-shadow-operational-0001.json` from GitHub Actions run
+`26959807056` at merge commit `ac2a8f13fc5aed9e9a30ebffbee12372fa47a6f8`. Its partition is
+`candidate_count: 0`, `would_apply: 0`, `shadow_refused: 0`, and `triage_required: false`,
+so it is a clean operational milestone with no precision signal.
+
 ## CI Cascade Validation
 
 Task 152 promotes the shadow evidence from locally validated cascade behavior to
@@ -143,6 +173,9 @@ Task 151 must not add:
 | CI workflow captures a shadow context proof artifact without adding apply | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_ci_workflow_captures_shadow_context_artifact_without_apply_surface` |
 | CI provisions the pinned Taskmaster CLI before pytest | `tests/meta_workflow_guard/test_ci_workflows.py::test_python_test_workflow_provisions_pinned_taskmaster_before_pytest` |
 | CI captures the full shadow cascade validation artifact without an apply surface | `tests/meta_workflow_guard/test_ci_workflows.py::test_python_test_workflow_captures_shadow_cascade_validation_artifact` |
+| Empty post-merge accumulation is operational evidence, not precision evidence | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_run_26959807056_operational_evidence_is_not_precision_signal` |
+| Future accumulation artifacts carry the operational/precision split inline | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_shadow_accumulation_classifies_empty_candidate_run_operational_not_precision` |
+| Pinned Taskmaster CLI state initialization writes no active tag keys | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_pinned_taskmaster_cli_state_initialization_writes_no_active_tag_keys` |
 
 ## Non-Goals
 

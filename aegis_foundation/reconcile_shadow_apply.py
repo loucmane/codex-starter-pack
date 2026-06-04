@@ -370,9 +370,11 @@ def build_shadow_accumulation_report(
     path_mismatches = [
         record for record in refused_records if record.get("reason") == "sacrificial_delta_mismatch"
     ]
-    return {
+    report = {
         "record_type": SHADOW_ACCUMULATION_REPORT_TYPE,
         "mode": SHADOW_MODE,
+        "executed": False,
+        "mutated_live_repo": False,
         "artifact_mode": artifact_mode,
         "artifact_name": SHADOW_ARTIFACT_NAME if artifact_mode == "ci" else "",
         "valid_for_shadow": valid_for_shadow,
@@ -402,6 +404,59 @@ def build_shadow_accumulation_report(
             "triage_required": bool(path_mismatches or semantic_mismatches),
         },
     }
+    report["evidence_classification"] = classify_shadow_accumulation_evidence(report)
+    return report
+
+
+def classify_shadow_accumulation_evidence(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Classify shadow accumulation evidence without treating empty runs as precision."""
+
+    summary = payload.get("summary") if isinstance(payload.get("summary"), Mapping) else {}
+    candidate_count = _summary_count(summary, "candidate_count")
+    would_apply = _summary_count(summary, "would_apply")
+    shadow_refused = _summary_count(summary, "shadow_refused")
+    valid_for_shadow = bool(summary.get("valid_for_shadow", payload.get("valid_for_shadow")))
+    executed = bool(payload.get("executed", False))
+    mutated_live_repo = bool(payload.get("mutated_live_repo", False))
+    triage_required = bool(summary.get("triage_required", False))
+    operational_entry = valid_for_shadow and not executed and not mutated_live_repo
+    precision_observation = operational_entry and candidate_count > 0
+
+    if not operational_entry:
+        reason = "invalid_or_mutating_shadow_context"
+    elif candidate_count == 0:
+        reason = "empty_candidate_set_operational_only"
+    else:
+        reason = "candidate_partition_observed"
+
+    return {
+        "record_type": "reconcile_shadow_evidence_classification",
+        "operational_entry": operational_entry,
+        "precision_observation": precision_observation,
+        "no_precision_signal": operational_entry and candidate_count == 0,
+        "reason": reason,
+        "candidate_count": candidate_count,
+        "would_apply": would_apply,
+        "shadow_refused": shadow_refused,
+        "triage_required": triage_required,
+        "empty_real_accumulation_counts_as_zero_divergence_precision": False,
+        "precision_evidence_basis": (
+            "live_shadow_candidate_partition"
+            if precision_observation
+            else "labeled_precision_corpus_and_cascade_fixtures"
+        ),
+    }
+
+
+def _summary_count(summary: Mapping[str, Any], key: str) -> int:
+    value = summary.get(key, 0)
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return 0
 
 
 def _invalid_accumulation_context_report(

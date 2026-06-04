@@ -119,6 +119,7 @@ jobs:
               SHADOW_CI_VALIDATION_KILL_SWITCH,
               build_ci_shadow_context_proof,
               build_shadow_accumulation_report,
+              classify_shadow_accumulation_evidence,
           )
           from scripts._aegis_installer import reconcile
           from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
@@ -205,6 +206,7 @@ jobs:
                   ),
               },
           }
+          payload["evidence_classification"] = classify_shadow_accumulation_evidence(payload)
           report_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))
           PY
