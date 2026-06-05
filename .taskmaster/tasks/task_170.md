@@ -2,7 +2,7 @@
 
 **Title:** Define reconcile apply audit storage, retention, and review boundary
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 169 ✓
 
