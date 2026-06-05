@@ -75,9 +75,8 @@ Governed-agent origins are always refused, including:
 
 Emergency disable may be authorized only from an approved non-agent origin. Enable remains
 stricter: an approved non-agent origin and operator approval are still insufficient while
-the enable gate is unsatisfiable. Clearing terminal rollback state remains gated by the
-future G6 terminal-resolution mechanism and is not opened here.
-Clearing terminal rollback state remains gated by the future G6 terminal-resolution mechanism.
+the enable gate is unsatisfiable. Task 174 later closed G6 by defining the terminal
+resolution proof model; Task 173 itself opened no clearing writer.
 
 ## Surface Boundary
 
@@ -109,7 +108,6 @@ Task 173 is pinned by:
 ## Remaining Open Gates
 
 - G5: Enablement Evidence Decision Packet
-- G6: Terminal Rollback Failure Operator Resolution
 - G8: Final Agent-Surface Regression With The Selected Channel Present
 
 ## Non-Goals

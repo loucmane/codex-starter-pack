@@ -44,6 +44,8 @@ KILL_SWITCH_AGENT_ORIGINS = frozenset(
         "report",
     }
 )
+TERMINAL_ROLLBACK_FAILURE_RECORD_TYPE = "reconcile_apply_terminal_rollback_failure"
+TERMINAL_ROLLBACK_RESOLUTION_RECORD_TYPE = "reconcile_apply_terminal_rollback_resolution"
 
 
 @dataclass(frozen=True)
@@ -147,6 +149,26 @@ class KillSwitchControlActionDecision:
             "action": self.action,
             "class_key": self.class_key,
             "origin": self.origin,
+        }
+
+
+@dataclass(frozen=True)
+class TerminalRollbackResolutionDecision:
+    approved: bool
+    reason: str
+    proof_id: str = ""
+    audit_destination: str = ""
+    operator_identity: str = ""
+    terminal_chain_hash: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "approved": self.approved,
+            "reason": self.reason,
+            "proof_id": self.proof_id,
+            "audit_destination": self.audit_destination,
+            "operator_identity": self.operator_identity,
+            "terminal_chain_hash": self.terminal_chain_hash,
         }
 
 
@@ -513,6 +535,22 @@ def evaluate_kill_switch_control_action(
                 class_key=class_key,
                 origin=origin,
             )
+        if not payload.get("operator_approval_id"):
+            return KillSwitchControlActionDecision(
+                False,
+                "terminal_resolution_operator_approval_missing",
+                action=action,
+                class_key=class_key,
+                origin=origin,
+            )
+        if "terminal-resolution" not in str(payload.get("audit_destination") or ""):
+            return KillSwitchControlActionDecision(
+                False,
+                "terminal_resolution_audit_destination_mismatch",
+                action=action,
+                class_key=class_key,
+                origin=origin,
+            )
         return KillSwitchControlActionDecision(
             True,
             "terminal_state_clear_authorized",
@@ -535,6 +573,140 @@ def evaluate_kill_switch_control_action(
     return KillSwitchControlActionDecision(
         True, "kill_switch_enable_authorized", action=action, class_key=class_key, origin=origin
     )
+
+
+def evaluate_terminal_rollback_resolution(
+    proof: Mapping[str, Any] | None,
+    *,
+    terminal_record: Mapping[str, Any] | None,
+    class_key: str = FIRST_APPLY_CLASS_KEY,
+    now: datetime | str | None = None,
+    claimed_resolution_ids: Iterable[str] = (),
+    terminal_resolution_gate_open: bool = False,
+) -> TerminalRollbackResolutionDecision:
+    if not isinstance(terminal_record, Mapping):
+        return TerminalRollbackResolutionDecision(False, "terminal_resolution_missing_terminal")
+    terminal_chain_hash = str(terminal_record.get("chain_hash") or "")
+    if (
+        terminal_record.get("record_type") != TERMINAL_ROLLBACK_FAILURE_RECORD_TYPE
+        or terminal_record.get("operator_resolution_required") is not True
+        or terminal_record.get("auto_clear_allowed") is not False
+        or not terminal_chain_hash
+    ):
+        return TerminalRollbackResolutionDecision(False, "terminal_resolution_invalid_terminal")
+    if proof is None:
+        return TerminalRollbackResolutionDecision(False, "terminal_resolution_proof_missing")
+    if not isinstance(proof, Mapping):
+        return TerminalRollbackResolutionDecision(False, "terminal_resolution_proof_malformed")
+
+    proof_id = str(proof.get("proof_id") or "")
+    audit_destination = str(proof.get("audit_destination") or "")
+    operator_identity = str(proof.get("operator_identity") or "")
+    base = {
+        "proof_id": proof_id,
+        "audit_destination": audit_destination,
+        "operator_identity": operator_identity,
+        "terminal_chain_hash": terminal_chain_hash,
+    }
+    origin = str(proof.get("origin") or proof.get("surface") or "")
+    if proof.get("agent_originated") is True or origin in KILL_SWITCH_AGENT_ORIGINS:
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_agent_originated_refused", **base
+        )
+    if origin not in KILL_SWITCH_APPROVED_NON_AGENT_ORIGINS:
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_origin_unapproved", **base
+        )
+    if proof.get("record_type") != TERMINAL_ROLLBACK_RESOLUTION_RECORD_TYPE:
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_proof_malformed", **base
+        )
+    if str(proof.get("action") or "") != "clear_terminal":
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_action_mismatch", **base
+        )
+    if str(proof.get("class_key") or "") != class_key:
+        return TerminalRollbackResolutionDecision(False, "terminal_resolution_wrong_class", **base)
+    if str(proof.get("task_id") or "") != str(terminal_record.get("task_id") or ""):
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_terminal_mismatch", **base
+        )
+    if str(proof.get("idempotency_key") or "") != str(terminal_record.get("idempotency_key") or ""):
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_terminal_mismatch", **base
+        )
+    if str(proof.get("terminal_chain_hash") or "") != terminal_chain_hash:
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_terminal_mismatch", **base
+        )
+    if not proof_id or proof_id in {str(key) for key in claimed_resolution_ids}:
+        reason = (
+            "terminal_resolution_replay_refused"
+            if proof_id
+            else "terminal_resolution_proof_malformed"
+        )
+        return TerminalRollbackResolutionDecision(False, reason, **base)
+    if not operator_identity or not proof.get("operator_approval_id"):
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_operator_approval_missing", **base
+        )
+    if (
+        "aegis-apply-audit" not in audit_destination
+        or "terminal-resolution" not in audit_destination
+    ):
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_audit_destination_mismatch", **base
+        )
+    expires_at = _parse_datetime(proof.get("expires_at"))
+    current_time = _parse_datetime(now) if now is not None else datetime.now(timezone.utc)
+    if expires_at is None:
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_proof_malformed", **base
+        )
+    if expires_at <= current_time:
+        return TerminalRollbackResolutionDecision(False, "terminal_resolution_stale", **base)
+    if not terminal_resolution_gate_open:
+        return TerminalRollbackResolutionDecision(
+            False, "terminal_resolution_gate_unsatisfiable", **base
+        )
+    return TerminalRollbackResolutionDecision(True, "terminal_resolution_authorized", **base)
+
+
+def build_terminal_rollback_resolution_audit_record(
+    *,
+    terminal_record: Mapping[str, Any],
+    resolution_proof: Mapping[str, Any],
+    outcome: str,
+    previous_hash: str = ZERO_HASH,
+) -> dict[str, Any]:
+    decision = evaluate_terminal_rollback_resolution(
+        resolution_proof,
+        terminal_record=terminal_record,
+        terminal_resolution_gate_open=True,
+    )
+    if not decision.approved:
+        raise ApplyScaffoldError(f"terminal resolution proof refused: {decision.reason}")
+    payload: dict[str, Any] = {
+        "record_type": TERMINAL_ROLLBACK_RESOLUTION_RECORD_TYPE,
+        "task_id": str(terminal_record.get("task_id") or ""),
+        "finding_kind": str(terminal_record.get("finding_kind") or ""),
+        "proof": str(terminal_record.get("proof") or ""),
+        "idempotency_key": str(terminal_record.get("idempotency_key") or ""),
+        "terminal_record_type": TERMINAL_ROLLBACK_FAILURE_RECORD_TYPE,
+        "terminal_chain_hash": decision.terminal_chain_hash,
+        "proof_id": decision.proof_id,
+        "operator_identity": decision.operator_identity,
+        "operator_approval_id": str(resolution_proof.get("operator_approval_id") or ""),
+        "audit_destination": decision.audit_destination,
+        "manual_resolution_summary": str(resolution_proof.get("manual_resolution_summary") or ""),
+        "outcome": str(outcome),
+        "auto_clear_allowed": False,
+        "auto_retry_allowed": False,
+        "agent_originated": False,
+        "previous_hash": str(previous_hash),
+    }
+    payload["chain_hash"] = _digest(payload)
+    return payload
 
 
 def _kill_switch_control_plane_refusal_reason(

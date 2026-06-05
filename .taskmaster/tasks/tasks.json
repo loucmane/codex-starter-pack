@@ -6791,12 +6791,13 @@
         "description": "Define and test the production operator procedure for terminal rollback failures without adding automatic repair or agent clearing.",
         "details": "Scope: implement the fifth gate-closing task from .taskmaster/docs/reconcile-enablement-gate-backlog-amendment.md. Document the manual resolution procedure for dirty governed repositories after rollback failure. Prove terminal breadcrumbs are durable, audit-linked, and checked before any future apply attempt. Prove terminal state never retries or auto-clears. Prove clearing terminal state requires approved non-agent operator action and is audited. Prove governed agents cannot clear terminal state, delete the breadcrumb, or re-enable the class through normal governed surfaces. Integrate with the Task 170 audit destination and Task 173 kill-switch semantics. Non-goals: no live apply, no automatic repair, no agent-cleared terminal state.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "173"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-05T17:42:23.993Z"
       },
       {
         "id": "175",
@@ -6827,9 +6828,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-05T16:57:15.847Z",
+      "lastModified": "2026-06-05T17:42:23.993Z",
       "taskCount": 176,
-      "completedCount": 173,
+      "completedCount": 174,
       "tags": [
         "master"
       ]

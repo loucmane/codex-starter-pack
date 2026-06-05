@@ -64,7 +64,6 @@ def test_live_oracle_contract_lists_only_remaining_open_gates() -> None:
 
     for gate in (
         "G5: Enablement Evidence Decision Packet",
-        "G6: Terminal Rollback Failure Operator Resolution",
         "G8: Final Agent-Surface Regression With The Selected Channel Present",
     ):
         assert gate in contract
@@ -72,3 +71,4 @@ def test_live_oracle_contract_lists_only_remaining_open_gates() -> None:
     assert "G2: Agent-Excluded Enablement Mechanism" not in remaining
     assert "G3: Kill-Switch Enablement And Disable Semantics" not in remaining
     assert "G4: Live Apply-Time Side-Effect Oracle Gate" not in remaining
+    assert "G6: Terminal Rollback Failure Operator Resolution" not in remaining

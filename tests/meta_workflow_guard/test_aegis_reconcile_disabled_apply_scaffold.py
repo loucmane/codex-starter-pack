@@ -11,11 +11,14 @@ from aegis_foundation import cli as aegis_cli
 from aegis_foundation.reconcile_apply_scaffold import (
     FIRST_APPLY_CLASS_KEY,
     KILL_SWITCH_AGENT_ORIGINS,
+    TERMINAL_ROLLBACK_FAILURE_RECORD_TYPE,
+    TERMINAL_ROLLBACK_RESOLUTION_RECORD_TYPE,
     SELECTED_APPLY_CHANNEL,
     SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY,
     ApplyCandidate,
     ApplyScaffoldError,
     authorization_binding_for,
+    build_terminal_rollback_resolution_audit_record,
     build_kill_switch_control_plane_state,
     build_apply_audit_record,
     build_post_merge_ci_apply_confirmation,
@@ -23,6 +26,7 @@ from aegis_foundation.reconcile_apply_scaffold import (
     evaluate_kill_switch,
     evaluate_kill_switch_control_action,
     evaluate_selected_apply_channel_confirmation,
+    evaluate_terminal_rollback_resolution,
     idempotency_key_for,
     load_kill_switch_state,
     run_disabled_apply_scaffold,
@@ -69,11 +73,46 @@ ENABLE_SHAPED_KILL_SWITCH = {
     "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True}},
 }
 FUTURE_KILL_SWITCH_EXPIRY = "2026-06-05T13:00:00Z"
+FAR_FUTURE_TERMINAL_RESOLUTION_EXPIRY = "2999-01-01T00:00:00Z"
 PAST_KILL_SWITCH_EXPIRY = "2026-06-05T11:00:00Z"
 PROOF_ARTIFACT = {"merge_commit": "abc123", "ancestor": True}
 ALLOWED_DELTA_HASHES = {
     ".taskmaster/tasks/tasks.json": "before:aaa after:bbb",
     ".taskmaster/tasks/task_042.md": "before:ccc after:ddd",
+}
+TERMINAL_RECORD = {
+    "record_type": TERMINAL_ROLLBACK_FAILURE_RECORD_TYPE,
+    "task_id": "42",
+    "finding_kind": "merged_but_not_done",
+    "proof": "git_ancestor",
+    "idempotency_key": "terminal-idempotency",
+    "reason": "write_failed",
+    "write_error": "set-status failed",
+    "rollback_error": "disk refused rollback",
+    "changed_paths": [".taskmaster/tasks/tasks.json"],
+    "kill_switch_engaged": "$RUNNER_TEMP/aegis/state/kill-switch.json",
+    "audit_log_path": "$RUNNER_TEMP/aegis-apply-audit/123/42/terminal/apply-audit.jsonl",
+    "audit_linked": True,
+    "operator_resolution_required": True,
+    "auto_clear_allowed": False,
+    "auto_retry_allowed": False,
+    "chain_hash": "terminal-chain-hash",
+}
+TERMINAL_RESOLUTION_PROOF = {
+    "record_type": TERMINAL_ROLLBACK_RESOLUTION_RECORD_TYPE,
+    "action": "clear_terminal",
+    "class_key": FIRST_APPLY_CLASS_KEY,
+    "task_id": "42",
+    "idempotency_key": "terminal-idempotency",
+    "terminal_chain_hash": "terminal-chain-hash",
+    "proof_id": "operator-resolution-174",
+    "origin": "approved_non_agent_channel",
+    "operator_identity": "security_operator",
+    "operator_approval_id": "approval-174",
+    "audit_destination": "$RUNNER_TEMP/aegis-apply-audit/123/42/terminal/terminal-resolution.json",
+    "manual_resolution_summary": "Operator restored the governed repository and reviewed audit.",
+    "agent_originated": False,
+    "expires_at": FAR_FUTURE_TERMINAL_RESOLUTION_EXPIRY,
 }
 
 
@@ -171,12 +210,16 @@ def test_apply_scaffold_is_not_reachable_from_agent_surfaces(tmp_path: Path) -> 
         assert "run_selected_channel_apply_with_process_oracle" not in source
         assert "build_kill_switch_control_plane_state" not in source
         assert "evaluate_kill_switch_control_action" not in source
+        assert "evaluate_terminal_rollback_resolution" not in source
+        assert "build_terminal_rollback_resolution_audit_record" not in source
 
 
 def test_kill_switch_control_plane_is_absent_from_agent_writable_surfaces() -> None:
     forbidden_helpers = (
         "build_kill_switch_control_plane_state",
         "evaluate_kill_switch_control_action",
+        "evaluate_terminal_rollback_resolution",
+        "build_terminal_rollback_resolution_audit_record",
     )
     surfaces = [
         REPO_ROOT / "aegis_foundation" / "cli.py",
@@ -342,6 +385,149 @@ def test_emergency_disable_is_the_only_default_authorized_control_action() -> No
 
     assert decision.allowed is True
     assert decision.reason == "kill_switch_disable_authorized"
+
+
+def test_terminal_clear_control_action_requires_operator_approval_and_audit_destination() -> None:
+    missing_approval = evaluate_kill_switch_control_action(
+        {
+            "action": "clear_terminal",
+            "class_key": FIRST_APPLY_CLASS_KEY,
+            "origin": "approved_non_agent_channel",
+            "audit_destination": "$RUNNER_TEMP/aegis-apply-audit/terminal-resolution.json",
+        },
+        terminal_resolution_gate_open=True,
+    )
+    missing_audit = evaluate_kill_switch_control_action(
+        {
+            "action": "clear_terminal",
+            "class_key": FIRST_APPLY_CLASS_KEY,
+            "origin": "approved_non_agent_channel",
+            "operator_approval_id": "approval-174",
+        },
+        terminal_resolution_gate_open=True,
+    )
+    approved = evaluate_kill_switch_control_action(
+        {
+            "action": "clear_terminal",
+            "class_key": FIRST_APPLY_CLASS_KEY,
+            "origin": "approved_non_agent_channel",
+            "operator_approval_id": "approval-174",
+            "audit_destination": "$RUNNER_TEMP/aegis-apply-audit/terminal-resolution.json",
+        },
+        terminal_resolution_gate_open=True,
+    )
+
+    assert missing_approval.allowed is False
+    assert missing_approval.reason == "terminal_resolution_operator_approval_missing"
+    assert missing_audit.allowed is False
+    assert missing_audit.reason == "terminal_resolution_audit_destination_mismatch"
+    assert approved.allowed is True
+    assert approved.reason == "terminal_state_clear_authorized"
+
+
+def test_terminal_resolution_requires_approved_non_agent_action_but_is_unsatisfiable_by_default() -> (
+    None
+):
+    decision = evaluate_terminal_rollback_resolution(
+        TERMINAL_RESOLUTION_PROOF,
+        terminal_record=TERMINAL_RECORD,
+        now="2026-06-05T12:00:00Z",
+    )
+
+    assert decision.approved is False
+    assert decision.reason == "terminal_resolution_gate_unsatisfiable"
+    assert decision.terminal_chain_hash == TERMINAL_RECORD["chain_hash"]
+
+
+def test_terminal_resolution_can_be_verified_only_in_isolated_gate_open_model() -> None:
+    decision = evaluate_terminal_rollback_resolution(
+        TERMINAL_RESOLUTION_PROOF,
+        terminal_record=TERMINAL_RECORD,
+        now="2026-06-05T12:00:00Z",
+        terminal_resolution_gate_open=True,
+    )
+
+    assert decision.approved is True
+    assert decision.reason == "terminal_resolution_authorized"
+    assert decision.audit_destination.endswith("terminal-resolution.json")
+
+
+@pytest.mark.parametrize("origin", sorted(KILL_SWITCH_AGENT_ORIGINS))
+def test_agent_originated_terminal_resolution_is_refused(origin: str) -> None:
+    decision = evaluate_terminal_rollback_resolution(
+        {**TERMINAL_RESOLUTION_PROOF, "origin": origin},
+        terminal_record=TERMINAL_RECORD,
+        now="2026-06-05T12:00:00Z",
+        terminal_resolution_gate_open=True,
+    )
+
+    assert decision.approved is False
+    assert decision.reason == "terminal_resolution_agent_originated_refused"
+
+
+@pytest.mark.parametrize(
+    ("mutator", "reason"),
+    [
+        (
+            lambda proof: {**proof, "terminal_chain_hash": "wrong"},
+            "terminal_resolution_terminal_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "expires_at": PAST_KILL_SWITCH_EXPIRY},
+            "terminal_resolution_stale",
+        ),
+        (
+            lambda proof: {**proof, "audit_destination": "$RUNNER_TEMP/other.json"},
+            "terminal_resolution_audit_destination_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "operator_approval_id": ""},
+            "terminal_resolution_operator_approval_missing",
+        ),
+    ],
+)
+def test_terminal_resolution_rejects_forged_shapes(mutator, reason: str) -> None:
+    decision = evaluate_terminal_rollback_resolution(
+        mutator(TERMINAL_RESOLUTION_PROOF),
+        terminal_record=TERMINAL_RECORD,
+        now="2026-06-05T12:00:00Z",
+        terminal_resolution_gate_open=True,
+    )
+
+    assert decision.approved is False
+    assert decision.reason == reason
+
+
+def test_terminal_resolution_replay_is_refused() -> None:
+    decision = evaluate_terminal_rollback_resolution(
+        TERMINAL_RESOLUTION_PROOF,
+        terminal_record=TERMINAL_RECORD,
+        now="2026-06-05T12:00:00Z",
+        terminal_resolution_gate_open=True,
+        claimed_resolution_ids={TERMINAL_RESOLUTION_PROOF["proof_id"]},
+    )
+
+    assert decision.approved is False
+    assert decision.reason == "terminal_resolution_replay_refused"
+
+
+def test_terminal_resolution_audit_record_binds_terminal_and_operator_proof() -> None:
+    record = build_terminal_rollback_resolution_audit_record(
+        terminal_record=TERMINAL_RECORD,
+        resolution_proof=TERMINAL_RESOLUTION_PROOF,
+        outcome="operator_resolved_dirty_repo",
+    )
+
+    assert record["record_type"] == TERMINAL_ROLLBACK_RESOLUTION_RECORD_TYPE
+    assert record["terminal_record_type"] == TERMINAL_ROLLBACK_FAILURE_RECORD_TYPE
+    assert record["terminal_chain_hash"] == TERMINAL_RECORD["chain_hash"]
+    assert record["proof_id"] == TERMINAL_RESOLUTION_PROOF["proof_id"]
+    assert record["operator_identity"] == "security_operator"
+    assert record["operator_approval_id"] == "approval-174"
+    assert record["auto_clear_allowed"] is False
+    assert record["auto_retry_allowed"] is False
+    assert record["agent_originated"] is False
+    assert record["chain_hash"]
 
 
 def test_approved_context_uses_positive_proof_and_defaults_denied() -> None:

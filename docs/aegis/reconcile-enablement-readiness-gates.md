@@ -16,10 +16,11 @@ hardening, corrected operator-facing claims, and Node24-compatible CI artifact t
 
 Task 169 re-derived the readiness list after those changes. Task 170 closed the G7
 audit-storage boundary, Task 171 closed the G1 approved-channel proof model, Task 172
-closed the G4 selected-channel process-level oracle gate, and Task 173 closed the G2/G3
-agent-excluded enablement and kill-switch control-plane gates. The machine-readable gate
-marker is `docs/aegis/reconcile-enablement-gate-status.json`. The result remains
-intentionally conservative:
+closed the G4 selected-channel process-level oracle gate, Task 173 closed the G2/G3
+agent-excluded enablement and kill-switch control-plane gates, and Task 174 closed the G6
+terminal rollback failure operator-resolution gate. The machine-readable gate marker is
+`docs/aegis/reconcile-enablement-gate-status.json`. The result remains intentionally
+conservative:
 
 - the safety spine is strong enough to keep the current system inert;
 - the evidence streams are separated enough to avoid false precision claims;
@@ -71,6 +72,7 @@ They must remain standing gates in every later task.
 | Live apply-time side-effect oracle gate | Closed by Task 172 | `docs/aegis/reconcile-apply-live-oracle-contract.md`; selected-channel wrapper snapshots before/after the internal attempt, persists channel/process-oracle artifacts, rolls back process-level unexpected deltas, and refuses non-baseline validated toolchain evidence. |
 | Agent-excluded enablement mechanism | Closed by Task 173 | `docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md`; agent-originated enable/clear actions from MCP, CLI, hooks, environment, config, workflow-state, reports, and `scripts/codex-task` refuse; approved non-agent enable remains unsatisfiable by default. |
 | Kill-switch enablement and disable semantics | Closed by Task 173 | Durable global/per-class state fails closed for missing, corrupt, unreadable, stale, wrong-class, global-disabled, and class-disabled states before clone/write work; emergency disable is the only default-authorized control action. |
+| Terminal rollback failure operator resolution | Closed by Task 174 | `docs/aegis/reconcile-terminal-rollback-resolution-contract.md`; terminal breadcrumbs are audit-linked, never auto-clear or auto-retry, later attempts refuse before clone/write work, and resolution proof requires approved non-agent operator action plus audit binding. |
 
 ## Open Gates Still Blocking Any First Guarded Apply Task
 
@@ -98,23 +100,6 @@ Required evidence before this gate can close:
 - the decision packet states whether the evidence is sufficient for a first apply task, not
   for broad enablement.
 
-### G6: Terminal Rollback Failure Operator Resolution
-
-**Status:** open for production operations.
-
-The runtime can enter `terminal_rollback_failed`, write a terminal breadcrumb, engage a
-kill-switch state, and refuse subsequent attempts. The operator-resolution path for a real
-terminal state is not defined.
-
-Required evidence before this gate can close:
-
-- a documented manual resolution procedure for dirty governed repos after rollback failure;
-- proof that terminal breadcrumbs are durable and checked before any future apply attempt;
-- clearing terminal state requires approved non-agent operator action and is audited;
-- tests prove an agent cannot clear terminal state, delete the breadcrumb, or re-enable the
-  class through normal governed surfaces;
-- the system never retries or auto-clears a terminal rollback failure.
-
 ### G8: Final Agent-Surface Regression With The Selected Channel Present
 
 **Status:** open.
@@ -135,21 +120,20 @@ Required evidence before this gate can close:
 ## Gate Closure Rule
 
 Task 169's go/no-go answer, updated by Task 170's G7 closure, Task 171's G1 closure,
-Task 172's G4 closure, and Task 173's G2/G3 closure, is:
+Task 172's G4 closure, Task 173's G2/G3 closure, and Task 174's G6 closure, is:
 
 > No first guarded apply task may be scoped until G1-G8 are closed by reviewed code,
 > tests, and evidence artifacts. Closing a gate may add refusals, audits, or
 > documentation, but must not enable mutation or broaden the candidate class unless a
 > later, separately reviewed enablement task explicitly owns that change.
 
-G1, G2, G3, G4, and G7 are now closed; G5, G6, and G8 remain open. The future task
-immediately after Task 173 should be another gate-closing task, not an enablement task.
+G1, G2, G3, G4, G6, and G7 are now closed; G5 and G8 remain open. The future task
+immediately after Task 174 should be another gate-closing task, not an enablement task.
 Candidate sequencing:
 
-1. terminal rollback operator-resolution procedure;
-2. final agent-surface regression with the selected channel present;
-3. final enablement evidence decision packet;
-4. only then scope a first guarded apply task, if the packet says GO.
+1. final agent-surface regression with the selected channel present;
+2. final enablement evidence decision packet;
+3. only then scope a first guarded apply task, if the packet says GO.
 
 ## Non-Goals
 
