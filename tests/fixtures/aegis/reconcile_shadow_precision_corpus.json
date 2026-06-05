@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0.0",
+  "corpus_version": "shadow-precision-corpus-v1",
+  "pre_registered_bar": {
+    "record_type": "reconcile_shadow_precision_pre_registered_bar",
+    "registered_before_measurement": true,
+    "auto_eligible_pairs": [
+      "merged_but_not_done/git_ancestor"
+    ],
+    "max_false_positives_per_pair": 0,
+    "max_false_negatives_per_pair": 0,
+    "max_boundary_leaks": 0,
+    "max_label_mismatches": 0,
+    "min_true_positives_per_pair": 3
+  },
+  "labels": [
+    {
+      "case_id": "git_ancestor_ff_state_absent",
+      "task_id": "4201",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_ancestor",
+      "bucket": "auto_eligible",
+      "expected_decision": "would_apply",
+      "merge_topology": "fast_forward",
+      "state_json_branch": "absent",
+      "proof_source": "git_ancestor"
+    },
+    {
+      "case_id": "git_ancestor_ff_state_legacy",
+      "task_id": "4202",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_ancestor",
+      "bucket": "auto_eligible",
+      "expected_decision": "would_apply",
+      "merge_topology": "fast_forward",
+      "state_json_branch": "legacy_tag",
+      "proof_source": "git_ancestor"
+    },
+    {
+      "case_id": "git_ancestor_ff_state_steady",
+      "task_id": "4203",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_ancestor",
+      "bucket": "auto_eligible",
+      "expected_decision": "would_apply",
+      "merge_topology": "fast_forward",
+      "state_json_branch": "steady_state",
+      "proof_source": "git_ancestor"
+    },
+    {
+      "case_id": "git_ancestor_true_merge_state_absent",
+      "task_id": "4211",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_ancestor",
+      "bucket": "auto_eligible",
+      "expected_decision": "would_apply",
+      "merge_topology": "true_merge",
+      "state_json_branch": "absent",
+      "proof_source": "git_ancestor"
+    },
+    {
+      "case_id": "git_ancestor_true_merge_state_legacy",
+      "task_id": "4212",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_ancestor",
+      "bucket": "auto_eligible",
+      "expected_decision": "would_apply",
+      "merge_topology": "true_merge",
+      "state_json_branch": "legacy_tag",
+      "proof_source": "git_ancestor"
+    },
+    {
+      "case_id": "git_ancestor_true_merge_state_steady",
+      "task_id": "4213",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_ancestor",
+      "bucket": "auto_eligible",
+      "expected_decision": "would_apply",
+      "merge_topology": "true_merge",
+      "state_json_branch": "steady_state",
+      "proof_source": "git_ancestor"
+    },
+    {
+      "case_id": "squash_github_pr_merged_state_absent",
+      "task_id": "4301",
+      "finding_kind": "merged_but_not_done",
+      "proof": "github_pr_merged",
+      "bucket": "manual_only",
+      "expected_decision": "no_candidate",
+      "expected_refusal_reason": "preview_excluded",
+      "merge_topology": "squash",
+      "state_json_branch": "absent",
+      "proof_source": "github_pr_merged"
+    },
+    {
+      "case_id": "squash_deleted_branch_unknown_state_steady",
+      "task_id": "4401",
+      "finding_kind": "merged_but_not_done",
+      "proof": "git_only_non_ancestor_or_missing_base",
+      "bucket": "not_a_finding",
+      "expected_decision": "no_candidate",
+      "expected_refusal_reason": "unknown_merge_truth",
+      "merge_topology": "deleted_branch_unknown",
+      "state_json_branch": "steady_state",
+      "proof_source": "git_only_non_ancestor_or_missing_base"
+    }
+  ]
+}

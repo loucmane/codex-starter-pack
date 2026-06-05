@@ -15,3 +15,4 @@
   PR.
 - Strict Aegis verify is not runnable until this repo has an installed
   `.aegis/foundation-manifest.json`; Task 161 intentionally did not install Aegis.
+- Archived on 2026-06-05 11:20 CEST — Folder moved to archive and tracker marked COMPLETED.

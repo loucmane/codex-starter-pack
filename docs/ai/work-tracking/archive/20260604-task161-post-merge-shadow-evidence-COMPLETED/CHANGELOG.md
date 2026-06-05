@@ -4,3 +4,4 @@
 - 2026-06-04 19:00 CEST — Added shadow evidence classification, committed operational
   evidence for run `26959807056`, pinned Taskmaster state-init behavior, and passed focused
   shadow/CI workflow validation.
+- 2026-06-05 11:20 CEST — Archived active work-tracking folder.
