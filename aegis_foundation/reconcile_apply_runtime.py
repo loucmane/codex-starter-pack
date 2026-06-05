@@ -47,6 +47,7 @@ from aegis_foundation.taskmaster_toolchain import (
 APPLY_ELIGIBILITY_VERSION = "task146-v1"
 APPLY_AUDIT_RECORD_TYPE = "reconcile_apply_audit"
 TERMINAL_ROLLBACK_RECORD_TYPE = "reconcile_apply_terminal_rollback_failure"
+_MISSING = object()
 
 
 class ReconcileApplyRuntimeError(RuntimeError):
@@ -303,18 +304,20 @@ def run_reconcile_apply_write_apparatus(
             toolchain_comparison=toolchain_comparison,
             **base_kwargs,
         )
-    path_delta_matches_prediction = bool(
-        getattr(validation, "path_delta_matches_prediction", validation.matches_prediction)
-    )
+    path_delta_result = getattr(validation, "path_delta_matches_prediction", _MISSING)
+    if path_delta_result is _MISSING:
+        path_delta_result = getattr(validation, "matches_prediction", _MISSING)
+    path_delta_matches_prediction = path_delta_result is True
     semantic_delta = getattr(validation, "semantic_delta", None)
     semantic_validation = (
         semantic_delta.to_dict()
         if hasattr(semantic_delta, "to_dict")
         else dict(getattr(validation, "semantic_validation", {}) or {})
     )
-    semantic_delta_matches_prediction = bool(
-        getattr(validation, "semantic_delta_matches_prediction", True)
+    semantic_delta_result = getattr(
+        validation, "semantic_delta_matches_prediction", _MISSING
     )
+    semantic_delta_matches_prediction = semantic_delta_result is True
     if not path_delta_matches_prediction:
         return ReconcileApplyResult(
             status="refused",

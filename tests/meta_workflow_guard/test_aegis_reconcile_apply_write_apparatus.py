@@ -58,6 +58,9 @@ DISABLED_KILL_SWITCH = {
 
 
 class FakeValidation:
+    semantic_delta_matches_prediction = True
+    semantic_validation = {"passed": True, "reason": "semantic_delta_matches_prediction"}
+
     def __init__(self, predicted_paths: Iterable[str], actual_paths: Iterable[str] | None = None):
         self.predicted_paths = tuple(sorted(predicted_paths))
         self.actual_delta_paths = tuple(sorted(actual_paths or predicted_paths))
@@ -70,6 +73,30 @@ class FakeValidation:
 class SemanticMismatchValidation(FakeValidation):
     semantic_delta_matches_prediction = False
     semantic_validation = {"passed": False, "reason": "tasks_json_semantic_mismatch"}
+
+
+class SemanticNoneValidation(FakeValidation):
+    semantic_delta_matches_prediction = None
+    semantic_validation = {"passed": None, "reason": "semantic_delta_missing"}
+
+
+class MissingSemanticValidation:
+    def __init__(self, predicted_paths: Iterable[str], actual_paths: Iterable[str] | None = None):
+        self.predicted_paths = tuple(sorted(predicted_paths))
+        self.actual_delta_paths = tuple(sorted(actual_paths or predicted_paths))
+
+    @property
+    def matches_prediction(self) -> bool:
+        return self.actual_delta_paths == self.predicted_paths
+
+
+class MissingPathPredictionValidation:
+    semantic_delta_matches_prediction = True
+    semantic_validation = {"passed": True, "reason": "semantic_delta_matches_prediction"}
+
+    def __init__(self, predicted_paths: Iterable[str], actual_paths: Iterable[str] | None = None):
+        self.predicted_paths = tuple(sorted(predicted_paths))
+        self.actual_delta_paths = tuple(sorted(actual_paths or predicted_paths))
 
 
 def test_default_config_full_apply_path_has_zero_live_delta(tmp_path: Path) -> None:
@@ -222,6 +249,64 @@ def test_fresh_validation_semantic_mismatch_refuses_before_write(tmp_path: Path)
     assert result.status == "refused"
     assert result.reason == "fresh_validation_semantic_mismatch"
     assert result.semantic_validation["reason"] == "tasks_json_semantic_mismatch"
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+@pytest.mark.parametrize(
+    ("validation_factory", "expected_semantic_validation"),
+    [
+        (MissingSemanticValidation, {}),
+        (SemanticNoneValidation, {"passed": None, "reason": "semantic_delta_missing"}),
+    ],
+)
+def test_fresh_validation_semantic_evidence_must_be_present_and_true(
+    tmp_path: Path,
+    validation_factory: type,
+    expected_semantic_validation: dict[str, Any],
+) -> None:
+    target = _target(tmp_path / "fresh-semantic-missing")
+    before = snapshot_whole_tree(target)
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=lambda **kwargs: validation_factory(
+            kwargs["predicted_paths"], kwargs["predicted_paths"]
+        ),
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "fresh_validation_semantic_mismatch"
+    assert result.semantic_validation == expected_semantic_validation
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+def test_fresh_validation_path_delta_does_not_default_allow(tmp_path: Path) -> None:
+    target = _target(tmp_path / "fresh-path-missing")
+    before = snapshot_whole_tree(target)
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=lambda **kwargs: MissingPathPredictionValidation(
+            kwargs["predicted_paths"], kwargs["predicted_paths"]
+        ),
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "fresh_validation_delta_mismatch"
     before.assert_matches(snapshot_whole_tree(target))
 
 

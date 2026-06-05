@@ -2,7 +2,7 @@
 
 **Title:** Fail-close live apply semantic validation
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 164 ✓
 
