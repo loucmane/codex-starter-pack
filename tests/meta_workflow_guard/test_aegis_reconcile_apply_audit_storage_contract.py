@@ -9,7 +9,7 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-apply-audit-storage-contract.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-REMAINING_OPEN_GATES = {"G1", "G2", "G3", "G4", "G5", "G6", "G8"}
+REMAINING_OPEN_GATES = {"G2", "G3", "G4", "G5", "G6", "G8"}
 
 
 def _contract() -> str:
@@ -32,10 +32,12 @@ def test_audit_storage_contract_closes_only_g7_and_remains_no_go() -> None:
     assert status["record_type"] == "reconcile_enablement_gate_status"
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["updated_by_task"] == "170"
+    assert status["updated_by_task"] == "171"
 
     gates = status["gates"]
-    assert set(gates) == {*REMAINING_OPEN_GATES, "G7"}
+    assert set(gates) == {*REMAINING_OPEN_GATES, "G1", "G7"}
+    assert gates["G1"]["status"] == "closed"
+    assert gates["G1"]["closed_by_task"] == "171"
     assert gates["G7"]["status"] == "closed"
     assert gates["G7"]["closed_by_task"] == "170"
     for gate in REMAINING_OPEN_GATES:

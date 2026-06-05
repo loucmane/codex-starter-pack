@@ -10,7 +10,6 @@ CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-readiness-gates.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
 OPEN_GATES = (
-    "G1: Approved Invocation And Confirmation Channel",
     "G2: Agent-Excluded Enablement Mechanism",
     "G3: Kill-Switch Enablement And Disable Semantics",
     "G4: Live Apply-Time Side-Effect Oracle Gate",
@@ -26,7 +25,8 @@ def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
     assert "**Status:** active Task 169 audit." in contract
     assert "**Verdict:** NO-GO for creating any first guarded apply task." in contract
     assert "This task does not enable apply" in contract
-    assert "Task 170 then closed the G7" in contract
+    assert "Task 170 closed the G7" in contract
+    assert "Task 171 closed the G1" in contract
     assert "No first guarded apply task may be scoped until G1-G8 are closed" in contract
     assert "No Taskmaster status mutation against the governed repository" in contract
 
@@ -46,6 +46,7 @@ def test_enablement_readiness_contract_lists_closed_standing_gates() -> None:
         "Replayable precision corpus",
         "CI artifact transport under Node24 actions",
         "Audit storage, retention, and review boundary",
+        "Approved invocation and confirmation channel",
     ):
         assert closed_gate in contract
 
@@ -56,12 +57,13 @@ def test_enablement_readiness_contract_lists_all_open_blocking_gates() -> None:
     assert "## Open Gates Still Blocking Any First Guarded Apply Task" in contract
     for gate in OPEN_GATES:
         assert gate in contract
+    assert "G1: Approved Invocation And Confirmation Channel" not in contract
     assert "G7: Audit Storage, Retention, And Review Boundary" not in contract
     assert "approved non-agent channel" in contract
-    assert "agent cannot create, forge, or replay the confirmation" in contract
     assert "emergency disable outranks every other input" in contract
     assert "process-level oracle" in contract
     assert "terminal breadcrumbs are durable" in contract
+    assert "malformed/stale/PR-shaped/wrong/ref-task-proof/replayed/agent-originated" in contract
 
 
 def test_enablement_readiness_contract_keeps_evidence_streams_non_interchangeable() -> None:
@@ -78,8 +80,9 @@ def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
 
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
+    assert status["gates"]["G1"]["status"] == "closed"
     assert status["gates"]["G7"]["status"] == "closed"
-    for gate in ("G1", "G2", "G3", "G4", "G5", "G6", "G8"):
+    for gate in ("G2", "G3", "G4", "G5", "G6", "G8"):
         assert status["gates"][gate]["status"] == "open"
 
 

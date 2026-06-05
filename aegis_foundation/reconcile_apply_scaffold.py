@@ -10,14 +10,19 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 FIRST_APPLY_KIND = "merged_but_not_done"
 FIRST_APPLY_PROOF = "git_ancestor"
 FIRST_APPLY_CLASS_KEY = f"{FIRST_APPLY_KIND}/{FIRST_APPLY_PROOF}"
 APPROVED_CONTEXT_TYPES = frozenset({"post_merge_ci", "operator_controlled_local"})
+SELECTED_APPLY_CHANNEL = "post_merge_ci"
+SELECTED_APPLY_CHANNEL_REF = "refs/heads/main"
+SELECTED_APPLY_CHANNEL_EVENT = "push"
+SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY = "github_actions_protected_main"
 ZERO_HASH = "0" * 64
 
 
@@ -61,6 +66,28 @@ class ApprovedContextDecision:
             "reason": self.reason,
             "context_type": self.context_type,
             "proof_id": self.proof_id,
+        }
+
+
+@dataclass(frozen=True)
+class SelectedChannelConfirmationDecision:
+    approved: bool
+    reason: str
+    channel: str = ""
+    proof_id: str = ""
+    idempotency_key: str = ""
+    audit_destination: str = ""
+    external_anchor: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "approved": self.approved,
+            "reason": self.reason,
+            "channel": self.channel,
+            "proof_id": self.proof_id,
+            "idempotency_key": self.idempotency_key,
+            "audit_destination": self.audit_destination,
+            "external_anchor": self.external_anchor,
         }
 
 
@@ -151,6 +178,193 @@ def evaluate_approved_context(
     if not enable_gate_open:
         return ApprovedContextDecision(False, "enable_gate_unsatisfiable", context_type, proof_id)
     return ApprovedContextDecision(True, "approved_context_verified", context_type, proof_id)
+
+
+def build_post_merge_ci_apply_confirmation(
+    env: Mapping[str, str],
+    *,
+    candidate: ApplyCandidate,
+    proof_artifact: Mapping[str, Any],
+    audit_destination: str,
+    expires_at: str,
+) -> dict[str, Any]:
+    """Build the selected future apply-channel confirmation proof shape.
+
+    This is a data model only. It is not a runnable channel and cannot make the
+    default enable gate satisfiable.
+    """
+
+    run_id = str(env.get("GITHUB_RUN_ID") or "")
+    run_attempt = str(env.get("GITHUB_RUN_ATTEMPT") or "1")
+    repository = str(env.get("GITHUB_REPOSITORY") or "")
+    proof_id = f"github-actions:{repository}:{run_id}:{run_attempt}" if run_id else ""
+    idempotency_key = idempotency_key_for(
+        task_id=candidate.task_id,
+        finding_kind=candidate.finding_kind,
+        proof=candidate.proof,
+        proof_artifact=proof_artifact,
+    )
+    return {
+        "context_type": SELECTED_APPLY_CHANNEL,
+        "selected_channel": SELECTED_APPLY_CHANNEL,
+        "proof_id": proof_id,
+        "task_id": candidate.task_id,
+        "finding_kind": candidate.finding_kind,
+        "proof": candidate.proof,
+        "candidate_class": candidate.class_key,
+        "proof_artifact": dict(proof_artifact),
+        "idempotency_key": idempotency_key,
+        "audit_destination": str(audit_destination),
+        "operator_identity": SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY,
+        "external_anchor": proof_id,
+        "expires_at": str(expires_at),
+        "agent_originated": False,
+        "ci": {
+            "provider": "github_actions",
+            "run_id": run_id,
+            "run_attempt": run_attempt,
+            "workflow": str(env.get("GITHUB_WORKFLOW") or ""),
+            "repository": repository,
+            "sha": str(env.get("GITHUB_SHA") or ""),
+            "event_name": str(env.get("GITHUB_EVENT_NAME") or ""),
+            "ref": str(env.get("GITHUB_REF") or ""),
+            "ref_name": str(env.get("GITHUB_REF_NAME") or ""),
+        },
+    }
+
+
+def evaluate_selected_apply_channel_confirmation(
+    confirmation: Mapping[str, Any] | None,
+    *,
+    candidate: ApplyCandidate,
+    now: datetime | str | None = None,
+    claimed_idempotency_keys: Iterable[str] = (),
+    enable_gate_open: bool = False,
+) -> SelectedChannelConfirmationDecision:
+    """Evaluate the selected future post-merge-CI confirmation proof.
+
+    The selected channel proof can be structurally valid, but it still refuses
+    while the enable gate is unsatisfiable. This keeps Task 171 as a gate
+    closure, not an apply implementation.
+    """
+
+    if confirmation is None:
+        return SelectedChannelConfirmationDecision(False, "selected_channel_confirmation_missing")
+    if not isinstance(confirmation, Mapping):
+        return SelectedChannelConfirmationDecision(False, "selected_channel_confirmation_malformed")
+
+    channel = str(
+        confirmation.get("selected_channel") or confirmation.get("context_type") or ""
+    )
+    proof_id = str(confirmation.get("proof_id") or "")
+    audit_destination = str(confirmation.get("audit_destination") or "")
+    external_anchor = str(confirmation.get("external_anchor") or "")
+    proof_artifact = confirmation.get("proof_artifact")
+    idempotency_key = str(confirmation.get("idempotency_key") or "")
+
+    base = {
+        "channel": channel,
+        "proof_id": proof_id,
+        "idempotency_key": idempotency_key,
+        "audit_destination": audit_destination,
+        "external_anchor": external_anchor,
+    }
+
+    if confirmation.get("agent_originated") is True or str(
+        confirmation.get("origin") or confirmation.get("actor_kind") or ""
+    ) in {"agent", "governed_agent", "mcp", "claude"}:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_agent_originated_refused", **base
+        )
+    if channel != SELECTED_APPLY_CHANNEL:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_unselected_context", **base
+        )
+    if not proof_id:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_confirmation_malformed", **base
+        )
+
+    context_decision = evaluate_approved_context(
+        confirmation, candidate=candidate, enable_gate_open=True
+    )
+    if not context_decision.approved:
+        return SelectedChannelConfirmationDecision(False, context_decision.reason, **base)
+
+    if str(confirmation.get("finding_kind") or "") != candidate.finding_kind:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_binding_mismatch", **base
+        )
+    if str(confirmation.get("candidate_class") or "") != candidate.class_key:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_candidate_class_mismatch", **base
+        )
+    if confirmation.get("operator_identity") != SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_operator_identity_mismatch", **base
+        )
+    if not isinstance(proof_artifact, Mapping) or not proof_artifact:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_confirmation_malformed", **base
+        )
+
+    expected_idempotency_key = idempotency_key_for(
+        task_id=candidate.task_id,
+        finding_kind=candidate.finding_kind,
+        proof=candidate.proof,
+        proof_artifact=proof_artifact,
+    )
+    if idempotency_key != expected_idempotency_key:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_idempotency_mismatch", **base
+        )
+    if idempotency_key in {str(key) for key in claimed_idempotency_keys}:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_replay_refused", **base
+        )
+    if "aegis-apply-audit" not in audit_destination or candidate.task_id not in audit_destination:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_audit_destination_mismatch", **base
+        )
+    if idempotency_key not in audit_destination:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_audit_destination_mismatch", **base
+        )
+
+    ci = confirmation.get("ci")
+    if not isinstance(ci, Mapping):
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_confirmation_malformed", **base
+        )
+    if str(ci.get("event_name") or "") == "pull_request":
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_pr_shaped_refused", **base
+        )
+    if str(ci.get("event_name") or "") != SELECTED_APPLY_CHANNEL_EVENT:
+        return SelectedChannelConfirmationDecision(False, "selected_channel_wrong_event", **base)
+    if str(ci.get("ref") or "") != SELECTED_APPLY_CHANNEL_REF:
+        return SelectedChannelConfirmationDecision(False, "selected_channel_wrong_ref", **base)
+    for required in ("run_id", "run_attempt", "workflow", "repository", "sha"):
+        if not str(ci.get(required) or ""):
+            return SelectedChannelConfirmationDecision(
+                False, "selected_channel_confirmation_malformed", **base
+            )
+
+    expires_at = _parse_datetime(confirmation.get("expires_at"))
+    current_time = _parse_datetime(now) if now is not None else datetime.now(timezone.utc)
+    if expires_at is None:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_confirmation_malformed", **base
+        )
+    if expires_at <= current_time:
+        return SelectedChannelConfirmationDecision(
+            False, "selected_channel_confirmation_stale", **base
+        )
+    if not enable_gate_open:
+        return SelectedChannelConfirmationDecision(False, "enable_gate_unsatisfiable", **base)
+    return SelectedChannelConfirmationDecision(
+        True, "selected_channel_confirmation_verified", **base
+    )
 
 
 def load_kill_switch_state(path: Path | None) -> LoadedKillSwitchState:
@@ -266,6 +480,8 @@ def build_apply_audit_record(
     outcome: str = "",
     rollback_state: Mapping[str, Any] | None = None,
     semantic_validation: Mapping[str, Any] | None = None,
+    channel_identity: Mapping[str, Any] | None = None,
+    audit_destination: str = "",
 ) -> dict[str, Any]:
     if phase not in {"before", "after"}:
         raise ApplyScaffoldError("audit phase must be before or after")
@@ -321,6 +537,8 @@ def build_apply_audit_record(
         "outcome": outcome,
         "rollback_state": dict(rollback_state or {}),
         "semantic_validation": dict(semantic_validation or {}),
+        "channel_identity": dict(channel_identity or {}),
+        "audit_destination": str(audit_destination or ""),
     }
     payload["chain_hash"] = _digest(payload)
     return payload
@@ -357,3 +575,19 @@ def run_disabled_apply_scaffold(
 def _digest(payload: Mapping[str, Any]) -> str:
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value:
+        text = value.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(text)
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)

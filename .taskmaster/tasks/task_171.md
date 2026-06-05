@@ -2,9 +2,9 @@
 
 **Title:** Define approved reconcile apply invocation and confirmation channel
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 170
+**Dependencies:** 170 ✓
 
 **Priority:** high
 

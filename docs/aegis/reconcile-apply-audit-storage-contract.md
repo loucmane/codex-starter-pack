@@ -15,9 +15,10 @@ operator reviews them. This closes only the storage/review boundary. It intentio
 not select the approved invocation channel, build the channel, or make the enable
 conjunction satisfiable.
 
-Task 170 does not select the approved invocation channel. The current machine-readable gate marker is
-`docs/aegis/reconcile-enablement-gate-status.json`. It records G7 as closed by this task
-and leaves G1, G2, G3, G4, G5, G6, and G8 open.
+Task 170 does not select the approved invocation channel. Task 170 introduced the
+machine-readable gate marker at `docs/aegis/reconcile-enablement-gate-status.json`,
+recording G7 as closed by this task. Later gate-closing tasks may update that current
+marker while preserving the G7 `closed_by_task: 170` evidence.
 
 ## Audit Destinations
 
@@ -110,9 +111,7 @@ kind, proof, and proof artifact. In other words, they bind the exact task id, fi
 kind, proof, and proof artifact. A record that omits any binding field is not valid
 enablement evidence.
 
-Audit identity binding covers the exact task id, finding kind, proof, and proof artifact.
-
-Any record that omits any binding field is not valid enablement evidence.
+Binding rule: exact task id, finding kind, proof, and proof artifact; record that omits any binding field is not valid enablement evidence.
 
 ## Retention And Review Procedure
 
@@ -122,7 +121,7 @@ retention task explicitly permits archival. Terminal rollback failure artifacts 
 retained until operator review completes. CI artifact retention may be longer, but it must
 not be shorter.
 
-Terminal rollback failure artifacts must be retained until operator review completes.
+Retention rule: Terminal rollback failure artifacts must be retained until operator review completes.
 
 Review procedure:
 
@@ -169,7 +168,8 @@ alert must point to the same immutable audit bundle defined here.
 
 ## Remaining Open Gates
 
-Task 170 closes G7 only. These gates remain open and block any first guarded apply task:
+Task 170 closes G7 only. At the Task 170 boundary, these gates remained open and blocked
+any first guarded apply task:
 
 - G1: Approved Invocation And Confirmation Channel
 - G2: Agent-Excluded Enablement Mechanism
