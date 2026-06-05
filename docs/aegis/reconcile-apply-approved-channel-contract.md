@@ -17,7 +17,8 @@ left G2, G3, G4, G5, G6, and G8 open.
 
 Task 172 later closed G4 with the selected-channel process-level oracle. Task 173 later
 closed G2/G3 with the agent-excluded kill-switch control plane. Task 174 later closed G6
-with terminal rollback operator resolution. G5 and G8 remain open.
+with terminal rollback operator resolution. Task 175 later closed G8 with the final
+agent-surface regression. G5 remains open.
 
 The selected first channel is **post-merge CI**:
 
@@ -148,10 +149,10 @@ Taskmaster, do not write git state, and do not write Taskmaster status.
 ## Remaining Open Gates
 
 Task 171 closed G1. Task 172 later closed G4. Task 173 later closed G2/G3. Task 174 later
-closed G6. These gates remain open and block any first guarded apply task:
+closed G6. Task 175 later closed G8. This gate remains open and blocks any first guarded
+apply task:
 
 - G5: Enablement Evidence Decision Packet
-- G8: Final Agent-Surface Regression With The Selected Channel Present
 
 ## Non-Goals
 

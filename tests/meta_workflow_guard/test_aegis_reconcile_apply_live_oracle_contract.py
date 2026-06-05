@@ -62,13 +62,10 @@ def test_live_oracle_contract_requires_precision_validated_toolchain_baseline() 
 def test_live_oracle_contract_lists_only_remaining_open_gates() -> None:
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
 
-    for gate in (
-        "G5: Enablement Evidence Decision Packet",
-        "G8: Final Agent-Surface Regression With The Selected Channel Present",
-    ):
-        assert gate in contract
+    assert "G5: Enablement Evidence Decision Packet" in contract
     remaining = contract.split("## Remaining Open Gates", 1)[1]
     assert "G2: Agent-Excluded Enablement Mechanism" not in remaining
     assert "G3: Kill-Switch Enablement And Disable Semantics" not in remaining
     assert "G4: Live Apply-Time Side-Effect Oracle Gate" not in remaining
     assert "G6: Terminal Rollback Failure Operator Resolution" not in remaining
+    assert "G8: Final Agent-Surface Regression With The Selected Channel Present" not in remaining

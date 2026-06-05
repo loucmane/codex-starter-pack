@@ -9,7 +9,7 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-terminal-rollback-resolution-contract.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-REMAINING_OPEN_GATES = {"G5", "G8"}
+REMAINING_OPEN_GATES = {"G5"}
 
 
 def _contract() -> str:
@@ -29,12 +29,14 @@ def test_terminal_resolution_contract_closes_g6_and_keeps_no_go() -> None:
     assert "**Verdict:** G6 closed; NO-GO remains" in contract
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["updated_by_task"] == "174"
+    assert status["updated_by_task"] == "175"
     assert status["gates"]["G6"]["status"] == "closed"
     assert status["gates"]["G6"]["closed_by_task"] == "174"
     assert status["gates"]["G6"]["contract"] == (
         "docs/aegis/reconcile-terminal-rollback-resolution-contract.md"
     )
+    assert status["gates"]["G8"]["status"] == "closed"
+    assert status["gates"]["G8"]["closed_by_task"] == "175"
     for gate in REMAINING_OPEN_GATES:
         assert status["gates"][gate]["status"] == "open"
         assert status["gates"][gate]["blocking"] is True

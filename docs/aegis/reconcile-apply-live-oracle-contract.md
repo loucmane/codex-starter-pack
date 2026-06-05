@@ -17,8 +17,8 @@ cascade, persists operator-readable oracle evidence, and rolls back unexpected d
 
 This closes only G4. The selected channel is still internal, test-enabled only, and
 unreachable from CLI, MCP, `scripts/codex-task`, hooks, preview, report, repair, kickoff,
-or start surfaces. Task 173 later closed G2/G3, and Task 174 later closed G6. G5 and G8
-remain open.
+or start surfaces. Task 173 later closed G2/G3, Task 174 later closed G6, and Task 175
+later closed G8. G5 remains open.
 
 ## Process Oracle
 
@@ -107,11 +107,10 @@ or stale toolchain record refuses before fresh validation, idempotency claim, au
 
 ## Remaining Open Gates
 
-Task 172 closed G4 only. Task 173 later closed G2/G3, and Task 174 later closed G6. These
-gates remain open and block any first guarded apply task:
+Task 172 closed G4 only. Task 173 later closed G2/G3, Task 174 later closed G6, and Task
+175 later closed G8. This gate remains open and blocks any first guarded apply task:
 
 - G5: Enablement Evidence Decision Packet
-- G8: Final Agent-Surface Regression With The Selected Channel Present
 
 ## Non-Goals
 

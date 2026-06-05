@@ -9,7 +9,7 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-apply-audit-storage-contract.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-REMAINING_OPEN_GATES = {"G5", "G8"}
+REMAINING_OPEN_GATES = {"G5"}
 
 
 def _contract() -> str:
@@ -32,10 +32,10 @@ def test_audit_storage_contract_closes_only_g7_and_remains_no_go() -> None:
     assert status["record_type"] == "reconcile_enablement_gate_status"
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["updated_by_task"] == "174"
+    assert status["updated_by_task"] == "175"
 
     gates = status["gates"]
-    assert set(gates) == {*REMAINING_OPEN_GATES, "G1", "G2", "G3", "G4", "G6", "G7"}
+    assert set(gates) == {*REMAINING_OPEN_GATES, "G1", "G2", "G3", "G4", "G6", "G7", "G8"}
     assert gates["G1"]["status"] == "closed"
     assert gates["G1"]["closed_by_task"] == "171"
     assert gates["G2"]["status"] == "closed"
@@ -48,6 +48,8 @@ def test_audit_storage_contract_closes_only_g7_and_remains_no_go() -> None:
     assert gates["G6"]["closed_by_task"] == "174"
     assert gates["G7"]["status"] == "closed"
     assert gates["G7"]["closed_by_task"] == "170"
+    assert gates["G8"]["status"] == "closed"
+    assert gates["G8"]["closed_by_task"] == "175"
     for gate in REMAINING_OPEN_GATES:
         assert gates[gate]["status"] == "open"
         assert gates[gate]["blocking"] is True

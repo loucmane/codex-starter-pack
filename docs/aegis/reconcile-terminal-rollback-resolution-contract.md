@@ -137,7 +137,6 @@ Task 174 is pinned by:
 ## Remaining Open Gates
 
 - G5: Enablement Evidence Decision Packet
-- G8: Final Agent-Surface Regression With The Selected Channel Present
 
 ## Non-Goals
 
