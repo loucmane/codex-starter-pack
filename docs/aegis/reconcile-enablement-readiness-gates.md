@@ -18,9 +18,10 @@ Task 169 re-derived the readiness list after those changes. Task 170 closed the 
 audit-storage boundary, Task 171 closed the G1 approved-channel proof model, Task 172
 closed the G4 selected-channel process-level oracle gate, Task 173 closed the G2/G3
 agent-excluded enablement and kill-switch control-plane gates, and Task 174 closed the G6
-terminal rollback failure operator-resolution gate. The machine-readable gate marker is
-`docs/aegis/reconcile-enablement-gate-status.json`. The result remains intentionally
-conservative:
+terminal rollback failure operator-resolution gate. Task 175 closed the G8 final
+agent-surface regression with the selected channel present. The machine-readable gate
+marker is `docs/aegis/reconcile-enablement-gate-status.json`. The result remains
+intentionally conservative:
 
 - the safety spine is strong enough to keep the current system inert;
 - the evidence streams are separated enough to avoid false precision claims;
@@ -73,6 +74,7 @@ They must remain standing gates in every later task.
 | Agent-excluded enablement mechanism | Closed by Task 173 | `docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md`; agent-originated enable/clear actions from MCP, CLI, hooks, environment, config, workflow-state, reports, and `scripts/codex-task` refuse; approved non-agent enable remains unsatisfiable by default. |
 | Kill-switch enablement and disable semantics | Closed by Task 173 | Durable global/per-class state fails closed for missing, corrupt, unreadable, stale, wrong-class, global-disabled, and class-disabled states before clone/write work; emergency disable is the only default-authorized control action. |
 | Terminal rollback failure operator resolution | Closed by Task 174 | `docs/aegis/reconcile-terminal-rollback-resolution-contract.md`; terminal breadcrumbs are audit-linked, never auto-clear or auto-retry, later attempts refuse before clone/write work, and resolution proof requires approved non-agent operator action plus audit binding. |
+| Final agent-surface regression with the selected channel present | Closed by Task 175 | `docs/aegis/reconcile-final-agent-surface-regression-contract.md`; real MCP schemas, package CLI parser targets, `scripts/codex-task` parser targets, hooks, workflows, preview/report consumers, repair/start/kickoff flows, and source surfaces do not reach the apply runtime or selected-channel helpers. |
 
 ## Open Gates Still Blocking Any First Guarded Apply Task
 
@@ -100,40 +102,23 @@ Required evidence before this gate can close:
 - the decision packet states whether the evidence is sufficient for a first apply task, not
   for broad enablement.
 
-### G8: Final Agent-Surface Regression With The Selected Channel Present
-
-**Status:** open.
-
-Existing static tests prove no current agent surface reaches the runtime. Once a future
-task adds any approved channel, that proof must be rerun with the new code present.
-
-Required evidence before this gate can close:
-
-- single-gated-caller audit still holds;
-- no MCP tool, package CLI command, `scripts/codex-task` path, preview/report consumer,
-  repair/start/kickoff flow, or hook can transitively reach apply;
-- no agent-writable input can satisfy the selected approved context or kill-switch enable
-  path;
-- behavioral dispatch tests try the real MCP/CLI/codex-task surfaces and fail to reach the
-  write function.
-
 ## Gate Closure Rule
 
 Task 169's go/no-go answer, updated by Task 170's G7 closure, Task 171's G1 closure,
-Task 172's G4 closure, Task 173's G2/G3 closure, and Task 174's G6 closure, is:
+Task 172's G4 closure, Task 173's G2/G3 closure, Task 174's G6 closure, and Task 175's G8
+closure, is:
 
 > No first guarded apply task may be scoped until G1-G8 are closed by reviewed code,
 > tests, and evidence artifacts. Closing a gate may add refusals, audits, or
 > documentation, but must not enable mutation or broaden the candidate class unless a
 > later, separately reviewed enablement task explicitly owns that change.
 
-G1, G2, G3, G4, G6, and G7 are now closed; G5 and G8 remain open. The future task
-immediately after Task 174 should be another gate-closing task, not an enablement task.
+G1, G2, G3, G4, G6, G7, and G8 are now closed; G5 remains open. The future task
+immediately after Task 175 should be the final decision-packet task, not an enablement task.
 Candidate sequencing:
 
-1. final agent-surface regression with the selected channel present;
-2. final enablement evidence decision packet;
-3. only then scope a first guarded apply task, if the packet says GO.
+1. final enablement evidence decision packet;
+2. only then scope a first guarded apply task, if the packet says GO.
 
 ## Non-Goals
 

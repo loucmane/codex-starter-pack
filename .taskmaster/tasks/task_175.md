@@ -2,9 +2,9 @@
 
 **Title:** Re-run final agent-surface regression with selected channel present
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 174
+**Dependencies:** 174 ✓
 
 **Priority:** high
 

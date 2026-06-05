@@ -9,10 +9,7 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-readiness-gates.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-OPEN_GATES = (
-    "G5: Enablement Evidence Decision Packet",
-    "G8: Final Agent-Surface Regression With The Selected Channel Present",
-)
+OPEN_GATES = ("G5: Enablement Evidence Decision Packet",)
 
 
 def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
@@ -26,6 +23,7 @@ def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
     assert "Task 172" in contract
     assert "Task 173 closed the G2/G3" in contract
     assert "Task 174 closed the G6" in contract
+    assert "Task 175 closed the G8" in contract
     assert "No first guarded apply task may be scoped until G1-G8 are closed" in contract
     assert "No Taskmaster status mutation against the governed repository" in contract
 
@@ -50,6 +48,7 @@ def test_enablement_readiness_contract_lists_closed_standing_gates() -> None:
         "Agent-excluded enablement mechanism",
         "Kill-switch enablement and disable semantics",
         "Terminal rollback failure operator resolution",
+        "Final agent-surface regression with the selected channel present",
     ):
         assert closed_gate in contract
 
@@ -64,6 +63,7 @@ def test_enablement_readiness_contract_lists_all_open_blocking_gates() -> None:
     assert "G2: Agent-Excluded Enablement Mechanism" not in remaining
     assert "G3: Kill-Switch Enablement And Disable Semantics" not in remaining
     assert "G6: Terminal Rollback Failure Operator Resolution" not in remaining
+    assert "G8: Final Agent-Surface Regression With The Selected Channel Present" not in remaining
     assert "G1: Approved Invocation And Confirmation Channel" not in contract
     assert "G4: Live Apply-Time Side-Effect Oracle Gate" not in contract
     assert "G7: Audit Storage, Retention, And Review Boundary" not in contract
@@ -95,8 +95,8 @@ def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
     assert status["gates"]["G4"]["status"] == "closed"
     assert status["gates"]["G6"]["status"] == "closed"
     assert status["gates"]["G7"]["status"] == "closed"
-    for gate in ("G5", "G8"):
-        assert status["gates"][gate]["status"] == "open"
+    assert status["gates"]["G8"]["status"] == "closed"
+    assert status["gates"]["G5"]["status"] == "open"
 
 
 def test_enablement_readiness_contract_preserves_future_non_goals() -> None:
