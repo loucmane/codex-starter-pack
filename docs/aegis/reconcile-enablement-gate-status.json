@@ -3,7 +3,7 @@
   "version": 1,
   "status": "NO-GO",
   "first_guarded_apply_task_allowed": false,
-  "updated_by_task": "175",
+  "updated_by_task": "176",
   "gate_source": "docs/aegis/reconcile-enablement-readiness-gates.md",
   "closed_gate_markers": {
     "G1": {
@@ -60,6 +60,19 @@
         "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_rolls_back_validation_side_effect",
         "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_terminal_on_process_rollback_failure",
         "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_live_runtime_refuses_non_precision_validated_toolchain_baseline"
+      ]
+    },
+    "G5": {
+      "title": "Enablement Evidence Decision Packet",
+      "status": "closed",
+      "closed_by_task": "176",
+      "marker": "enablement_evidence_decision_packet_closed",
+      "decision": "NO-GO",
+      "first_guarded_apply_task_allowed": false,
+      "evidence": [
+        "docs/aegis/reconcile-apply-enablement-decision-packet.md",
+        "docs/aegis/reconcile-apply-enablement-decision-packet.json",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_enablement_decision_packet.py"
       ]
     },
     "G6": {
@@ -137,9 +150,12 @@
     },
     "G5": {
       "title": "Enablement Evidence Decision Packet",
-      "status": "open",
-      "blocking": true,
-      "planned_task": "176"
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "176",
+      "contract": "docs/aegis/reconcile-apply-enablement-decision-packet.md",
+      "decision_packet": "docs/aegis/reconcile-apply-enablement-decision-packet.json",
+      "decision": "NO-GO"
     },
     "G6": {
       "title": "Terminal Rollback Failure Operator Resolution",

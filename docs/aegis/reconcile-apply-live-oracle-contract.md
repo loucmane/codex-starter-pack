@@ -18,7 +18,7 @@ cascade, persists operator-readable oracle evidence, and rolls back unexpected d
 This closes only G4. The selected channel is still internal, test-enabled only, and
 unreachable from CLI, MCP, `scripts/codex-task`, hooks, preview, report, repair, kickoff,
 or start surfaces. Task 173 later closed G2/G3, Task 174 later closed G6, and Task 175
-later closed G8. G5 remains open.
+later closed G8. Task 176 later closed G5 with a NO-GO enablement decision packet.
 
 ## Process Oracle
 
@@ -105,12 +105,11 @@ or stale toolchain record refuses before fresh validation, idempotency claim, au
 | Process-level rollback failure enters terminal fail-closed state | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_terminal_on_process_rollback_failure` |
 | Live runtime refuses non-baseline validated toolchain evidence | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_live_runtime_refuses_non_precision_validated_toolchain_baseline` |
 
-## Remaining Open Gates
+## Later Gate Status
 
-Task 172 closed G4 only. Task 173 later closed G2/G3, Task 174 later closed G6, and Task
-175 later closed G8. This gate remains open and blocks any first guarded apply task:
-
-- G5: Enablement Evidence Decision Packet
+Task 172 closed G4 only. Task 173 later closed G2/G3, Task 174 later closed G6, Task 175
+later closed G8, and Task 176 later closed G5. The current machine-readable status remains
+`NO-GO` because the Task 176 packet lacks an explicit operator GO decision.
 
 ## Non-Goals
 

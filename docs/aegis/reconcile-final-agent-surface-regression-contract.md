@@ -34,10 +34,11 @@ through governed-agent surfaces.
 - The default configuration still produces zero governed-repo delta and returns
   `enable_gate_unsatisfiable`.
 
-## Standing Open-Gate Rule
+## Standing No-Go Rule
 
-While any G1-G8 marker remains open, production apply entrypoints are forbidden. At the
-end of Task 175, only G5 remains open. The standing regression therefore asserts:
+While any G1-G8 marker remains open, production apply entrypoints are forbidden. Task 176
+later closed G5 with a decision packet, but the packet records `NO-GO` because no explicit
+operator GO decision exists. The standing regression therefore asserts:
 
 - `docs/aegis/reconcile-enablement-gate-status.json` remains `NO-GO`;
 - `first_guarded_apply_task_allowed` remains `false`;
@@ -54,9 +55,10 @@ end of Task 175, only G5 remains open. The standing regression therefore asserts
 - `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_kill_switch_control_plane_is_absent_from_agent_writable_surfaces`
 - `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_apply_write_apparatus_is_not_reachable_from_agent_surfaces`
 
-## Remaining Open Gate
+## Later Gate Status
 
-- G5: Enablement Evidence Decision Packet
+Task 176 later closed G5 with a decision packet. The current machine-readable status
+remains `NO-GO` because that packet lacks an explicit operator GO decision.
 
 ## Non-Goals
 

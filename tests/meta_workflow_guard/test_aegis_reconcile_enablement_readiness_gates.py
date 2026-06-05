@@ -9,8 +9,6 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-readiness-gates.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-OPEN_GATES = ("G5: Enablement Evidence Decision Packet",)
-
 
 def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
@@ -24,7 +22,9 @@ def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
     assert "Task 173 closed the G2/G3" in contract
     assert "Task 174 closed the G6" in contract
     assert "Task 175 closed the G8" in contract
-    assert "No first guarded apply task may be scoped until G1-G8 are closed" in contract
+    assert "Task 176 produced the G5" in contract
+    assert "No first guarded apply task may be scoped unless G1-G8 are closed" in contract
+    assert "explicit signed operator decision" in contract
     assert "No Taskmaster status mutation against the governed repository" in contract
 
 
@@ -53,13 +53,17 @@ def test_enablement_readiness_contract_lists_closed_standing_gates() -> None:
         assert closed_gate in contract
 
 
-def test_enablement_readiness_contract_lists_all_open_blocking_gates() -> None:
+def test_enablement_readiness_contract_lists_no_open_gates_but_keeps_packet_no_go() -> None:
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
 
-    assert "## Open Gates Still Blocking Any First Guarded Apply Task" in contract
-    for gate in OPEN_GATES:
-        assert gate in contract
-    remaining = contract.split("## Open Gates Still Blocking Any First Guarded Apply Task", 1)[1]
+    assert "## Gate Packet Outcome Still Blocking Any First Guarded Apply Task" in contract
+    assert "All G1-G8 markers are now closed" in contract
+    assert "records `NO-GO`, not `GO`" in contract
+    remaining = contract.split(
+        "## Gate Packet Outcome Still Blocking Any First Guarded Apply Task", 1
+    )[1]
+    assert "G5: Enablement Evidence Decision Packet" in remaining
+    assert "**Status:** closed by Task 176." in remaining
     assert "G2: Agent-Excluded Enablement Mechanism" not in remaining
     assert "G3: Kill-Switch Enablement And Disable Semantics" not in remaining
     assert "G6: Terminal Rollback Failure Operator Resolution" not in remaining
@@ -78,10 +82,7 @@ def test_enablement_readiness_contract_keeps_evidence_streams_non_interchangeabl
     assert "precision corpus artifact as the precision basis" in contract
     assert "empty operational ledgers or cascade smoke as precision" in contract
     assert "operational post-merge runs are listed as inertness/context evidence only" in contract
-    assert (
-        "the decision packet states whether the evidence is sufficient for a first apply task"
-        in contract
-    )
+    assert "the decision packet states that the evidence is not sufficient" in contract
 
 
 def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
@@ -89,14 +90,11 @@ def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
 
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["gates"]["G1"]["status"] == "closed"
-    assert status["gates"]["G2"]["status"] == "closed"
-    assert status["gates"]["G3"]["status"] == "closed"
-    assert status["gates"]["G4"]["status"] == "closed"
-    assert status["gates"]["G6"]["status"] == "closed"
-    assert status["gates"]["G7"]["status"] == "closed"
-    assert status["gates"]["G8"]["status"] == "closed"
-    assert status["gates"]["G5"]["status"] == "open"
+    assert status["updated_by_task"] == "176"
+    for gate_id in ("G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"):
+        assert status["gates"][gate_id]["status"] == "closed"
+        assert status["gates"][gate_id]["blocking"] is False
+    assert status["gates"]["G5"]["decision"] == "NO-GO"
 
 
 def test_enablement_readiness_contract_preserves_future_non_goals() -> None:
