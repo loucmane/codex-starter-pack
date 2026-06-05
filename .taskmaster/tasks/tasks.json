@@ -6707,12 +6707,13 @@
         "description": "Replace the temporary Node 24 JavaScript-actions runtime force path with compatible action major versions, while proving shadow evidence artifact transport/layout remains unchanged.",
         "details": "Scope: update GitHub Actions action versions away from the temporary FORCE_JAVASCRIPT_ACTIONS_TO_NODE24 dependency when compatible majors are selected. Preserve Taskmaster runtime Node 22. Preserve permissions: contents read. Verify downloaded artifact internal layout, especially /aegis-shadow precision and accumulation artifacts, before/after migration. Confirm JSON record_type/classification/schema fields are unchanged. Non-goals: no shadow/apply Python logic changes, no toolchain pin changes, no apply enablement, no candidate-class broadening.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "167"
         ],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-05T13:46:05.360Z"
       },
       {
         "id": "169",
@@ -6730,9 +6731,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-05T13:27:30.314Z",
+      "lastModified": "2026-06-05T13:46:05.361Z",
       "taskCount": 169,
-      "completedCount": 167,
+      "completedCount": 168,
       "tags": [
         "master"
       ]

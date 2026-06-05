@@ -29,21 +29,27 @@ def test_python_test_workflow_has_version_matrix() -> None:
     assert workflow["jobs"]["python-tests"]["strategy"]["fail-fast"] is False
 
 
-def test_github_actions_use_node24_javascript_runtime_without_action_major_bumps() -> None:
+def test_github_actions_use_node24_action_majors_without_force_runtime_flag() -> None:
     for path in WORKFLOW_PATHS:
         workflow = _load_workflow_path(path)
         text = path.read_text(encoding="utf-8")
 
-        assert workflow["env"]["FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"] == "true"
-        assert "actions/checkout@v4" in text
-        assert "actions/upload-artifact@v4" in text
-        assert "actions/upload-artifact@v5" not in text
+        assert "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24" not in workflow.get("env", {})
+        assert "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24" not in text
+        assert "actions/checkout@v6" in text
+        assert "actions/setup-python@v6" in text
+        assert "actions/upload-artifact@v7" in text
+        assert "actions/checkout@v4" not in text
+        assert "actions/setup-python@v4" not in text
+        assert "actions/setup-python@v5" not in text
+        assert "actions/upload-artifact@v4" not in text
 
     ci_workflow = _load_workflow()
     steps = ci_workflow["jobs"]["python-tests"]["steps"]
     taskmaster_node_step = next(step for step in steps if step.get("name") == "Set up Node for Taskmaster CLI")
-    assert taskmaster_node_step["uses"] == "actions/setup-node@v4"
+    assert taskmaster_node_step["uses"] == "actions/setup-node@v6"
     assert taskmaster_node_step["with"]["node-version"] == "22"
+    assert "actions/setup-node@v4" not in CI_WORKFLOW.read_text(encoding="utf-8")
 
 
 def test_python_test_workflow_runs_full_pytest_and_taskmaster_health() -> None:
@@ -165,9 +171,28 @@ def test_python_test_workflow_captures_shadow_precision_corpus_artifact() -> Non
 def test_python_test_workflow_uploads_matrix_artifacts() -> None:
     workflow = _load_workflow()
     steps = workflow["jobs"]["python-tests"]["steps"]
+    upload_step = next(step for step in steps if step.get("name") == "Upload pytest artifacts")
 
-    assert any(step.get("uses") == "actions/upload-artifact@v4" for step in steps)
+    assert upload_step["uses"] == "actions/upload-artifact@v7"
     assert "reports/ci/" in CI_WORKFLOW.read_text(encoding="utf-8")
+    assert "${{ runner.temp }}/aegis-shadow/" in CI_WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_python_test_workflow_pins_shadow_artifact_upload_roots() -> None:
+    workflow = _load_workflow()
+    steps = workflow["jobs"]["python-tests"]["steps"]
+    upload_step = next(step for step in steps if step.get("name") == "Upload pytest artifacts")
+    upload_paths = [
+        line.strip()
+        for line in str(upload_step["with"]["path"]).splitlines()
+        if line.strip()
+    ]
+
+    assert upload_step["uses"] == "actions/upload-artifact@v7"
+    assert upload_paths == [
+        "reports/ci/",
+        "${{ runner.temp }}/aegis-shadow/",
+    ]
 
 
 def test_guard_workflows_fail_when_automatic_reference_fixes_are_pending() -> None:
