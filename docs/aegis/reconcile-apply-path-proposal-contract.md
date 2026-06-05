@@ -92,10 +92,10 @@ of the existing gates:
   cannot smuggle mutation in through existing report-only surfaces.
 - **Task 145 side-effect oracle:**
   `tests/meta_workflow_guard/reconcile_side_effect_oracle.py` remains the authority for
-  test-side read-only and isolated-fixture changed-path proof. It is not currently wired
-  into live mutation-time verification. A future live apply path must add a separate
-  apply-time side-effect oracle before operator-facing text may claim actual
-  mutation-time blast-radius verification.
+  test-side read-only and isolated-fixture changed-path proof. At the Task 149 boundary it
+  was not wired into live mutation-time verification. Task 172 later added the selected
+  channel process-level oracle; operator-facing text must cite that Task 172 evidence
+  before claiming actual mutation-time blast-radius verification.
 - **Task 146 precision corpus:**
   `docs/aegis/reconcile-precision-corpus.md` remains the auto/manual boundary authority.
   The future apply path must show zero auto/manual boundary leaks and zero false positives
@@ -302,9 +302,12 @@ The future implementation would have to satisfy:
 
 ## Future Enablement Gate: Live Apply-Time Oracle
 
-Task 145 proves side-effect behavior in tests and isolated fixtures. It does not currently
-wrap the live apply mutation. Before any enablement task may claim actual blast-radius
-verification at mutation time, a separate future task must either:
+At the Task 149 boundary, Task 145 proved side-effect behavior in tests and isolated
+fixtures but did not wrap any live apply mutation. Task 172 later added the selected-channel
+process-level oracle contract in `docs/aegis/reconcile-apply-live-oracle-contract.md`.
+Before any enablement task may claim actual blast-radius verification at mutation time, it
+must cite that Task 172 process-oracle evidence rather than the Task 145 test-side oracle.
+A task without that evidence must either:
 
 - wire a live apply-time side-effect oracle around the mutation path; or
 - leave that claim absent from operator-facing preview, contract, and audit text.

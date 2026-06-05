@@ -3,7 +3,7 @@
   "version": 1,
   "status": "NO-GO",
   "first_guarded_apply_task_allowed": false,
-  "updated_by_task": "171",
+  "updated_by_task": "172",
   "gate_source": "docs/aegis/reconcile-enablement-readiness-gates.md",
   "closed_gate_markers": {
     "G1": {
@@ -18,6 +18,21 @@
         "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_is_bound_but_unsatisfiable_by_default",
         "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_rejects_forged_shapes",
         "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_replay_refuses_by_idempotency_key"
+      ]
+    },
+    "G4": {
+      "title": "Live Apply-Time Side-Effect Oracle Gate",
+      "status": "closed",
+      "closed_by_task": "172",
+      "marker": "live_apply_time_side_effect_oracle_gate_closed",
+      "selected_channel": "post_merge_ci",
+      "evidence": [
+        "docs/aegis/reconcile-apply-live-oracle-contract.md",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_live_oracle_contract.py",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_wraps_success_and_persists_artifacts",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_rolls_back_validation_side_effect",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_terminal_on_process_rollback_failure",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_live_runtime_refuses_non_precision_validated_toolchain_baseline"
       ]
     },
     "G7": {
@@ -55,9 +70,11 @@
     },
     "G4": {
       "title": "Live Apply-Time Side-Effect Oracle Gate",
-      "status": "open",
-      "blocking": true,
-      "planned_task": "172"
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "172",
+      "contract": "docs/aegis/reconcile-apply-live-oracle-contract.md",
+      "selected_channel": "post_merge_ci"
     },
     "G5": {
       "title": "Enablement Evidence Decision Packet",

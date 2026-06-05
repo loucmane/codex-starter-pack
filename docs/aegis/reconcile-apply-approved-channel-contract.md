@@ -12,8 +12,11 @@ kill-switch, or mutate Taskmaster status.
 
 Task 170 defined where future apply audit records live. Task 171 selects the first future
 approved invocation channel and defines the proof that the channel must present before any
-future apply can even be considered. This closes G1 only. It intentionally keeps the
-enable conjunction unsatisfiable and leaves G2, G3, G4, G5, G6, and G8 open.
+future apply can even be considered. At the Task 171 boundary this closed G1 only and
+left G2, G3, G4, G5, G6, and G8 open.
+
+Task 172 later closed G4 with the selected-channel process-level oracle. G2, G3, G5, G6,
+and G8 remain open.
 
 The selected first channel is **post-merge CI**:
 
@@ -30,8 +33,10 @@ but it is not the selected first channel.
 
 ## Confirmation Proof Shape
 
-The selected channel confirmation is a data artifact, not an apply entrypoint. It must
-bind the exact candidate and run identity:
+The selected channel confirmation is a data artifact, not an apply entrypoint. Task 172
+later added the process-level oracle wrapper that any selected-channel attempt must use,
+but the enable conjunction remains unsatisfiable. The confirmation must bind the exact
+candidate and run identity:
 
 - `context_type: post_merge_ci`
 - `selected_channel: post_merge_ci`
@@ -141,11 +146,11 @@ Taskmaster, do not write git state, and do not write Taskmaster status.
 
 ## Remaining Open Gates
 
-Task 171 closes G1 only. These gates remain open and block any first guarded apply task:
+Task 171 closed G1. Task 172 later closed G4. These gates remain open and block any first
+guarded apply task:
 
 - G2: Agent-Excluded Enablement Mechanism
 - G3: Kill-Switch Enablement And Disable Semantics
-- G4: Live Apply-Time Side-Effect Oracle Gate
 - G5: Enablement Evidence Decision Packet
 - G6: Terminal Rollback Failure Operator Resolution
 - G8: Final Agent-Surface Regression With The Selected Channel Present

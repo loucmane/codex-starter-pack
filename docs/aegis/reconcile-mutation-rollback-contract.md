@@ -21,10 +21,12 @@ local stubs, and squash/offline unknown merge truth are non-goals for this first
 contract.
 
 Task 148 preview entries may predict the changed paths from this contract, but the
-prediction is non-authoritative. The Task 145 side-effect oracle remains test-side proof
-for read-only and isolated-fixture side-effect boundaries; it is not wired into live
-mutation-time verification. Any future live apply task must add a separate apply-time
-side-effect oracle, or keep operator-facing text from claiming mutation-time blast-radius
+prediction is non-authoritative. At this contract boundary, the Task 145 side-effect oracle
+remained test-side proof for read-only and isolated-fixture side-effect boundaries; it was
+not wired into live mutation-time verification. Task 172 later added the selected-channel
+process-level oracle contract in `docs/aegis/reconcile-apply-live-oracle-contract.md`.
+Any future live apply task must cite that process-oracle evidence, not the Task 145
+test-side oracle alone, before operator-facing text may claim mutation-time blast-radius
 verification exists.
 
 Task 149 may describe a future apply path that uses this rollback contract, but it does not

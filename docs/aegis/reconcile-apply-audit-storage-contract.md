@@ -132,8 +132,8 @@ Review procedure:
 3. verify the `apply-audit.jsonl` hash chain from the first `before` record to the final
    outcome record;
 4. verify `predicted_delta_paths`, `actual_delta_paths`, `semantic_validation`,
-   `toolchain_evidence`, and rollback hashes match the process-level oracle report when
-   G4 is later closed;
+   `toolchain_evidence`, and rollback hashes match the Task 172 process-level oracle
+   report;
 5. verify no out-of-Taskmaster artifact path appears outside the allowed roots in this
    contract;
 6. record the operator review decision in the later decision packet; empty operational
@@ -174,7 +174,6 @@ any first guarded apply task:
 - G1: Approved Invocation And Confirmation Channel
 - G2: Agent-Excluded Enablement Mechanism
 - G3: Kill-Switch Enablement And Disable Semantics
-- G4: Live Apply-Time Side-Effect Oracle Gate
 - G5: Enablement Evidence Decision Packet
 - G6: Terminal Rollback Failure Operator Resolution
 - G8: Final Agent-Surface Regression With The Selected Channel Present

@@ -2,9 +2,9 @@
 
 **Title:** Wire live apply-time side-effect oracle for selected channel
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 171
+**Dependencies:** 171 ✓
 
 **Priority:** high
 
