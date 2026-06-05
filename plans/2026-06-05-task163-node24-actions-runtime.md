@@ -32,7 +32,7 @@ emergency_bypass: false
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Define the minimal Node 24 JavaScript-action runtime opt-in while preserving action versions, Taskmaster Node 22, and read-only Aegis evidence boundaries | docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/FINDINGS.md; docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/DECISIONS.md | completed |
 | plan-step-implement | Add the Node 24 runtime opt-in to GitHub Actions workflows and pin the contract with workflow tests without changing artifact-producing Python logic | .github/workflows/ci.yml; .github/workflows/codex-guard.yml; .github/workflows/meta-workflow-guard.yml; tests/meta_workflow_guard/test_ci_workflows.py; docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Prove workflow parsing and runtime contract locally, then verify real PR artifacts after CI runs | tests/meta_workflow_guard/test_ci_workflows.py; docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/TRACKER.md | pending |
+| plan-step-verify | Prove workflow parsing and runtime contract locally, then verify real PR artifacts after CI runs | tests/meta_workflow_guard/test_ci_workflows.py; docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260605-task163-node24-actions-runtime-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
