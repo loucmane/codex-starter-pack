@@ -2,7 +2,7 @@
 
 **Title:** Wire shadow precision CI toolchain staleness to frozen baseline
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 162 ✓
 

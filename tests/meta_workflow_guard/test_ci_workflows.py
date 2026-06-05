@@ -126,17 +126,37 @@ def test_python_test_workflow_captures_shadow_precision_corpus_artifact() -> Non
     text = CI_WORKFLOW.read_text(encoding="utf-8")
     steps = workflow["jobs"]["python-tests"]["steps"]
     step_names = [step.get("name") for step in steps]
+    precision_step = next(
+        step for step in steps if step.get("name") == "Capture reconcile shadow precision corpus"
+    )
+    precision_run = precision_step["run"]
 
     assert "Capture reconcile shadow precision corpus" in step_names
-    assert "build_replayable_shadow_precision_corpus_artifact" in text
+    assert "build_replayable_shadow_precision_corpus_artifact" in precision_run
     assert "reconcile_shadow_precision_corpus.json" in text
     assert "reconcile-shadow-precision-corpus.json" in text
-    assert 'report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"' in text
-    assert "snapshot_whole_tree(repo, require_tmp_root=False)" in text
-    assert "before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))" in text
-    assert 'if not payload["precision_gate"]["passed"]' in text
-    assert "capture_taskmaster_toolchain_evidence" in text
-    assert "tests\" / \"fixtures\" / \"aegis\" / \"reconcile_shadow_precision_corpus.json" in text
+    assert 'report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"' in precision_run
+    assert "snapshot_whole_tree(repo, require_tmp_root=False)" in precision_run
+    assert "before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))" in precision_run
+    assert 'if not payload["precision_gate"]["passed"]' in precision_run
+    assert "build_validated_taskmaster_ci_toolchain_baseline" in precision_run
+    assert "capture_taskmaster_toolchain_evidence" in precision_run
+    assert (
+        "validated_toolchain_evidence=build_validated_taskmaster_ci_toolchain_baseline(os.environ)"
+        in precision_run
+    )
+    assert (
+        "current_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)"
+        in precision_run
+    )
+    assert (
+        "validated_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)"
+        not in precision_run
+    )
+    assert (
+        "tests\" / \"fixtures\" / \"aegis\" / \"reconcile_shadow_precision_corpus.json"
+        in precision_run
+    )
     assert "${{ runner.temp }}/aegis-shadow/" in text
     assert "task-master set-status" not in text
     assert "--apply" not in text

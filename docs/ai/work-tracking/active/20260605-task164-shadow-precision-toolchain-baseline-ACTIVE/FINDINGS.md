@@ -1,0 +1,5 @@
+# Findings
+
+- 2026-06-05 — CI precision corpus staleness gate was structurally present but dormant at the integration point. The artifact builder accepted distinct `validated_toolchain_evidence` and `current_toolchain_evidence`, but `.github/workflows/ci.yml` supplied only `validated_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)`, causing the builder to compare the live capture to itself. Task 164 fixes the CI caller by making the validated side a source-controlled baseline and the current side a live capture.
+- 2026-06-05 — Runner identity needs to be part of the baseline rather than inherited from the live capture. The new helper pins `RUNNER_OS=Linux` and `RUNNER_ARCH=X64` for the CI baseline while still preserving live runner metadata in the current capture.
+- 2026-06-05 — PR #164 CI caught a misplaced import: the baseline helper appeared in the cascade step import block but not in the precision corpus step import block. The workflow test originally searched the whole YAML text, which was too broad. The test now inspects the precision step body directly.
