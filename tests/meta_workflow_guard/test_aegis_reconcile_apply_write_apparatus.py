@@ -807,6 +807,9 @@ def test_rollback_failure_is_terminal_and_engages_kill_switch(tmp_path: Path) ->
     assert terminal["record_type"] == "reconcile_apply_terminal_rollback_failure"
     assert terminal["operator_resolution_required"] is True
     assert terminal["auto_clear_allowed"] is False
+    assert terminal["auto_retry_allowed"] is False
+    assert terminal["audit_linked"] is True
+    assert terminal["audit_log_path"].endswith("apply.jsonl")
 
     before = snapshot_whole_tree(target)
     terminal_kill_switch = json.loads(kill_switch_path.read_text(encoding="utf-8"))
@@ -947,6 +950,9 @@ def test_selected_channel_process_oracle_terminal_on_process_rollback_failure(
     )
     assert terminal["record_type"] == "reconcile_apply_terminal_rollback_failure"
     assert terminal["operator_resolution_required"] is True
+    assert terminal["auto_clear_allowed"] is False
+    assert terminal["auto_retry_allowed"] is False
+    assert terminal["audit_linked"] is True
 
 
 def test_live_runtime_refuses_non_precision_validated_toolchain_baseline(

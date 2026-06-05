@@ -3,7 +3,7 @@
   "version": 1,
   "status": "NO-GO",
   "first_guarded_apply_task_allowed": false,
-  "updated_by_task": "173",
+  "updated_by_task": "174",
   "gate_source": "docs/aegis/reconcile-enablement-readiness-gates.md",
   "closed_gate_markers": {
     "G1": {
@@ -62,6 +62,22 @@
         "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_live_runtime_refuses_non_precision_validated_toolchain_baseline"
       ]
     },
+    "G6": {
+      "title": "Terminal Rollback Failure Operator Resolution",
+      "status": "closed",
+      "closed_by_task": "174",
+      "marker": "terminal_rollback_failure_operator_resolution_closed",
+      "evidence": [
+        "docs/aegis/reconcile-terminal-rollback-resolution-contract.md",
+        "tests/meta_workflow_guard/test_aegis_reconcile_terminal_rollback_resolution_contract.py",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_terminal_resolution_requires_approved_non_agent_action_but_is_unsatisfiable_by_default",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_terminal_resolution_can_be_verified_only_in_isolated_gate_open_model",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_agent_originated_terminal_resolution_is_refused",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_terminal_resolution_audit_record_binds_terminal_and_operator_proof",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_rollback_failure_is_terminal_and_engages_kill_switch",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_selected_channel_process_oracle_terminal_on_process_rollback_failure"
+      ]
+    },
     "G7": {
       "title": "Audit Storage, Retention, And Review Boundary",
       "status": "closed",
@@ -113,9 +129,10 @@
     },
     "G6": {
       "title": "Terminal Rollback Failure Operator Resolution",
-      "status": "open",
-      "blocking": true,
-      "planned_task": "174"
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "174",
+      "contract": "docs/aegis/reconcile-terminal-rollback-resolution-contract.md"
     },
     "G7": {
       "title": "Audit Storage, Retention, And Review Boundary",

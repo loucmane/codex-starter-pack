@@ -9,7 +9,7 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-apply-approved-channel-contract.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-REMAINING_OPEN_GATES = {"G5", "G6", "G8"}
+REMAINING_OPEN_GATES = {"G5", "G8"}
 
 
 def _contract() -> str:
@@ -31,7 +31,7 @@ def test_approved_channel_contract_closes_only_g1_and_remains_no_go() -> None:
     assert "This task does not add a post-merge apply workflow" in contract
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["updated_by_task"] == "173"
+    assert status["updated_by_task"] == "174"
     assert status["gates"]["G1"]["status"] == "closed"
     assert status["gates"]["G1"]["closed_by_task"] == "171"
     assert status["gates"]["G1"]["selected_channel"] == "post_merge_ci"
@@ -41,6 +41,8 @@ def test_approved_channel_contract_closes_only_g1_and_remains_no_go() -> None:
     assert status["gates"]["G3"]["closed_by_task"] == "173"
     assert status["gates"]["G4"]["status"] == "closed"
     assert status["gates"]["G4"]["closed_by_task"] == "172"
+    assert status["gates"]["G6"]["status"] == "closed"
+    assert status["gates"]["G6"]["closed_by_task"] == "174"
     assert status["gates"]["G7"]["status"] == "closed"
     for gate in REMAINING_OPEN_GATES:
         assert status["gates"][gate]["status"] == "open"

@@ -327,9 +327,7 @@ def run_reconcile_apply_write_apparatus(
             reason="validated_toolchain_evidence_missing",
             **base_kwargs,
         )
-    baseline_reason = _validated_toolchain_baseline_refusal_reason(
-        validated_toolchain_evidence
-    )
+    baseline_reason = _validated_toolchain_baseline_refusal_reason(validated_toolchain_evidence)
     if baseline_reason:
         return ReconcileApplyResult(
             status="refused",
@@ -424,9 +422,7 @@ def run_reconcile_apply_write_apparatus(
         if hasattr(semantic_delta, "to_dict")
         else dict(getattr(validation, "semantic_validation", {}) or {})
     )
-    semantic_delta_result = getattr(
-        validation, "semantic_delta_matches_prediction", _MISSING
-    )
+    semantic_delta_result = getattr(validation, "semantic_delta_matches_prediction", _MISSING)
     semantic_delta_matches_prediction = semantic_delta_result is True
     if not path_delta_matches_prediction:
         return ReconcileApplyResult(
@@ -638,8 +634,7 @@ def run_selected_channel_apply_with_process_oracle(
     enable_write_path: bool = False,
     validation_runner: Callable[..., Any] | None = None,
     write_runner: Callable[..., None] | None = None,
-    rollback_restore: Callable[[SnapshotRollbackHandle, Path, Iterable[str]], None]
-    | None = None,
+    rollback_restore: Callable[[SnapshotRollbackHandle, Path, Iterable[str]], None] | None = None,
     inject_failure_after: str = "",
 ) -> SelectedChannelApplyOracleResult:
     """Run the selected-channel internal apply attempt under a process oracle.
@@ -939,8 +934,7 @@ def _candidate_freshness_decision(
             continue
         if (
             str(item.get("task_id") or "") == candidate.task_id
-            and str(item.get("finding_kind") or item.get("kind") or "")
-            == candidate.finding_kind
+            and str(item.get("finding_kind") or item.get("kind") or "") == candidate.finding_kind
             and str(item.get("proof") or "") == candidate.proof
         ):
             return {
@@ -952,7 +946,9 @@ def _candidate_freshness_decision(
 
     task_report = _reconcile_task_report(report, candidate.task_id)
     merge_truth = (
-        task_report.get("merge_truth") if isinstance(task_report.get("merge_truth"), Mapping) else {}
+        task_report.get("merge_truth")
+        if isinstance(task_report.get("merge_truth"), Mapping)
+        else {}
     )
     merge_status = str(merge_truth.get("status") or "")
     merge_proof = str(merge_truth.get("proof") or "")
@@ -1023,6 +1019,7 @@ def _rollback_after_failure(
             rollback_error=str(exc),
             changed_paths=actual_paths,
             kill_switch_path=kill_switch_path,
+            audit_log_path=audit_log_path,
         )
         _engage_terminal_kill_switch(kill_switch_path, terminal)
         _append_audit(audit_log_path, terminal)
@@ -1252,6 +1249,7 @@ def _rollback_process_oracle_delta(
             rollback_error=str(exc),
             changed_paths=changed_paths,
             kill_switch_path=kill_switch_path,
+            audit_log_path=audit_log_path,
         )
         _engage_terminal_kill_switch(kill_switch_path, terminal)
         _append_audit(audit_log_path, terminal)
@@ -1465,6 +1463,7 @@ def _terminal_rollback_failure_record(
     rollback_error: str,
     changed_paths: Iterable[str],
     kill_switch_path: Path | None,
+    audit_log_path: Path | None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "record_type": TERMINAL_ROLLBACK_RECORD_TYPE,
@@ -1477,8 +1476,11 @@ def _terminal_rollback_failure_record(
         "rollback_error": rollback_error,
         "changed_paths": list(changed_paths),
         "kill_switch_engaged": kill_switch_path.as_posix() if kill_switch_path else "",
+        "audit_log_path": audit_log_path.as_posix() if audit_log_path else "",
+        "audit_linked": audit_log_path is not None,
         "operator_resolution_required": True,
         "auto_clear_allowed": False,
+        "auto_retry_allowed": False,
     }
     payload["chain_hash"] = _digest(payload)
     return payload

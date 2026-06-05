@@ -2,9 +2,9 @@
 
 **Title:** Define terminal rollback failure operator resolution
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 173
+**Dependencies:** 173 ✓
 
 **Priority:** high
 
