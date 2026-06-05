@@ -10,3 +10,4 @@
 ## Next Steps
 - Merge PR #163 after review.
 - Keep the later action-version bump and Task 164 toolchain-staleness baseline work separate.
+- Archived on 2026-06-05 12:55 CEST — Folder moved to archive and tracker marked COMPLETED.

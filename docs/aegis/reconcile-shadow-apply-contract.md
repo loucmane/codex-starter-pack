@@ -140,6 +140,16 @@ Shadow evidence streams are intentionally non-interchangeable:
 A Taskmaster, Node, Python, runner, or provisioning-lock mismatch makes the corpus
 precision artifact stale; in that state no precision metrics may be emitted.
 
+CI must compare two distinct toolchain records for the precision corpus:
+
+- validated baseline: source-controlled pinned Taskmaster constants, provisioning lock,
+  Python matrix version, and expected CI runner OS/arch
+- current evidence: live `task-master`, Node, npm, Python, and runner values captured from
+  the job after provisioning
+
+The validated side must not be another live capture. A self-comparison would make the
+staleness gate dormant and may not emit precision metrics.
+
 CI writes the corpus artifact to `$RUNNER_TEMP/aegis-shadow/reconcile-shadow-precision-corpus.json`.
 That write is outside the governed repository and is wrapped in the same whole-tree
 side-effect oracle used by post-merge accumulation. CI must fail if the replay does not meet

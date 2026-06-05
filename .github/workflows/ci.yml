@@ -98,6 +98,7 @@ jobs:
               build_ci_shadow_cascade_validation_report,
           )
           from aegis_foundation.taskmaster_toolchain import (
+              build_validated_taskmaster_ci_toolchain_baseline,
               capture_taskmaster_toolchain_evidence,
           )
 
@@ -240,7 +241,8 @@ jobs:
                   labels_path=repo / "tests" / "fixtures" / "aegis" / "reconcile_shadow_precision_corpus.json",
                   work_root=Path(work_dir),
                   source_root=repo,
-                  validated_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
+                  validated_toolchain_evidence=build_validated_taskmaster_ci_toolchain_baseline(os.environ),
+                  current_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ),
               )
           if not payload["precision_gate"]["passed"]:
               raise SystemExit(json.dumps(payload["precision_gate"], sort_keys=True))

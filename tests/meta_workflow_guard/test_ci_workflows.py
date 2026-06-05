@@ -135,7 +135,20 @@ def test_python_test_workflow_captures_shadow_precision_corpus_artifact() -> Non
     assert "snapshot_whole_tree(repo, require_tmp_root=False)" in text
     assert "before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))" in text
     assert 'if not payload["precision_gate"]["passed"]' in text
+    assert "build_validated_taskmaster_ci_toolchain_baseline" in text
     assert "capture_taskmaster_toolchain_evidence" in text
+    assert (
+        "validated_toolchain_evidence=build_validated_taskmaster_ci_toolchain_baseline(os.environ)"
+        in text
+    )
+    assert (
+        "current_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)"
+        in text
+    )
+    assert (
+        "validated_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)"
+        not in text
+    )
     assert "tests\" / \"fixtures\" / \"aegis\" / \"reconcile_shadow_precision_corpus.json" in text
     assert "${{ runner.temp }}/aegis-shadow/" in text
     assert "task-master set-status" not in text

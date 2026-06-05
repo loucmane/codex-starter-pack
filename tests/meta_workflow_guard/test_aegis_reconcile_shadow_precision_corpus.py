@@ -22,8 +22,11 @@ from aegis_foundation.reconcile_shadow_precision import (
     evidence_stream_boundaries,
 )
 from aegis_foundation.taskmaster_toolchain import (
+    TASKMASTER_CI_RUNNER_ARCH,
+    TASKMASTER_CI_RUNNER_OS,
     TASKMASTER_PACKAGE_VERSION,
     build_taskmaster_toolchain_evidence,
+    build_validated_taskmaster_ci_toolchain_baseline,
 )
 from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 
@@ -253,6 +256,38 @@ def test_shadow_precision_toolchain_mismatch_marks_corpus_stale_and_emits_no_met
     assert artifact["precision_gate"]["reason"] == "toolchain_mismatch"
 
 
+def test_shadow_precision_ci_baseline_is_frozen_and_compared_to_current_toolchain() -> None:
+    env = _toolchain_env()
+    baseline = build_validated_taskmaster_ci_toolchain_baseline(env, python_version="3.12.3")
+    current = _toolchain_evidence(task_master_version=TASKMASTER_PACKAGE_VERSION)
+
+    assert baseline["evidence_role"] == "validated_ci_baseline"
+    assert baseline["baseline_source"]["type"] == "source_controlled_constants"
+    assert baseline["task_master"]["version"] == TASKMASTER_PACKAGE_VERSION
+    assert baseline["runtime"]["node_version"] == "22"
+    assert baseline["runtime"]["node_major"] == "22"
+    assert baseline["runner"]["os"] == TASKMASTER_CI_RUNNER_OS
+    assert baseline["runner"]["arch"] == TASKMASTER_CI_RUNNER_ARCH
+
+    artifact = build_shadow_precision_corpus_artifact(
+        [],
+        validated_toolchain_evidence=baseline,
+        current_toolchain_evidence=current,
+    )
+
+    assert artifact["toolchain_binding"]["comparison"]["matches"] is True
+
+    drifted = build_shadow_precision_corpus_artifact(
+        [],
+        validated_toolchain_evidence=baseline,
+        current_toolchain_evidence=_toolchain_evidence(task_master_version="0.99.0"),
+    )
+
+    assert drifted["toolchain_binding"]["comparison"]["matches"] is False
+    assert drifted["precision_metrics"]["emitted"] is False
+    assert drifted["precision_gate"]["reason"] == "toolchain_mismatch"
+
+
 def test_shadow_evidence_streams_are_not_interchangeable() -> None:
     boundaries = evidence_stream_boundaries()
 
@@ -274,21 +309,25 @@ def test_shadow_evidence_streams_are_not_interchangeable() -> None:
 
 def _toolchain_evidence(*, task_master_version: str = TASKMASTER_PACKAGE_VERSION) -> dict[str, Any]:
     return build_taskmaster_toolchain_evidence(
-        {
-            "GITHUB_ACTIONS": "true",
-            "GITHUB_WORKFLOW": "Precision Corpus",
-            "GITHUB_RUN_ID": "162",
-            "GITHUB_RUN_ATTEMPT": "1",
-            "RUNNER_OS": "Linux",
-            "RUNNER_ARCH": "X64",
-            "ImageOS": "ubuntu24",
-            "ImageVersion": "20260605.1",
-        },
+        _toolchain_env(),
         task_master_version=task_master_version,
         node_version="v22.22.3",
         npm_version="10.9.2",
         python_version="3.12.3",
     )
+
+
+def _toolchain_env() -> dict[str, str]:
+    return {
+        "GITHUB_ACTIONS": "true",
+        "GITHUB_WORKFLOW": "Precision Corpus",
+        "GITHUB_RUN_ID": "162",
+        "GITHUB_RUN_ATTEMPT": "1",
+        "RUNNER_OS": "Linux",
+        "RUNNER_ARCH": "X64",
+        "ImageOS": "ubuntu24",
+        "ImageVersion": "20260605.1",
+    }
 
 
 def _load_label_fixture() -> dict[str, Any]:

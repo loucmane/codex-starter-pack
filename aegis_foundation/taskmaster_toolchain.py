@@ -16,6 +16,8 @@ TASKMASTER_PACKAGE_NAME = "task-master-ai"
 TASKMASTER_PACKAGE_VERSION = "0.43.1"
 TASKMASTER_INSTALL_SOURCE = "npm"
 TASKMASTER_NODE_VERSION = "22"
+TASKMASTER_CI_RUNNER_OS = "Linux"
+TASKMASTER_CI_RUNNER_ARCH = "X64"
 TASKMASTER_TOOLCHAIN_LOCK_VERSION = 1
 
 _LOCK_PAYLOAD = {
@@ -113,6 +115,36 @@ def capture_taskmaster_toolchain_evidence(
         npm_version=_run_version("npm", "--version"),
         python_version=platform.python_version(),
     )
+
+
+def build_validated_taskmaster_ci_toolchain_baseline(
+    env: Mapping[str, str] | None = None,
+    *,
+    python_version: str = "",
+) -> dict[str, Any]:
+    """Build the source-controlled CI baseline used to detect toolchain drift."""
+
+    baseline_env = dict(env or os.environ)
+    baseline_env["RUNNER_OS"] = TASKMASTER_CI_RUNNER_OS
+    baseline_env["RUNNER_ARCH"] = TASKMASTER_CI_RUNNER_ARCH
+    evidence = build_taskmaster_toolchain_evidence(
+        baseline_env,
+        task_master_version=TASKMASTER_PACKAGE_VERSION,
+        node_version=TASKMASTER_NODE_VERSION,
+        python_version=python_version or platform.python_version(),
+    )
+    evidence["evidence_role"] = "validated_ci_baseline"
+    evidence["baseline_source"] = {
+        "type": "source_controlled_constants",
+        "task_master_package_version": TASKMASTER_PACKAGE_VERSION,
+        "task_master_install_spec": taskmaster_install_spec(),
+        "task_master_node_version": TASKMASTER_NODE_VERSION,
+        "runner_os": TASKMASTER_CI_RUNNER_OS,
+        "runner_arch": TASKMASTER_CI_RUNNER_ARCH,
+        "lock_id": TASKMASTER_PROVISIONING_LOCK_ID,
+        "lock_version": TASKMASTER_TOOLCHAIN_LOCK_VERSION,
+    }
+    return evidence
 
 
 def compare_taskmaster_toolchain_evidence(
