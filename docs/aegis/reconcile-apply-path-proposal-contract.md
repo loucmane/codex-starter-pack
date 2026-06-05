@@ -92,8 +92,10 @@ of the existing gates:
   cannot smuggle mutation in through existing report-only surfaces.
 - **Task 145 side-effect oracle:**
   `tests/meta_workflow_guard/reconcile_side_effect_oracle.py` remains the authority for
-  actual changed-path proof. The future apply path must prove the exact allowed delta
-  before and after mutation in an isolated fixture.
+  test-side read-only and isolated-fixture changed-path proof. It is not currently wired
+  into live mutation-time verification. A future live apply path must add a separate
+  apply-time side-effect oracle before operator-facing text may claim actual
+  mutation-time blast-radius verification.
 - **Task 146 precision corpus:**
   `docs/aegis/reconcile-precision-corpus.md` remains the auto/manual boundary authority.
   The future apply path must show zero auto/manual boundary leaks and zero false positives
@@ -186,8 +188,10 @@ The first future apply path may only change:
 - `.taskmaster/tasks/tasks.json`
 - `.taskmaster/tasks/task_<id>.md`
 
-Task 145's side-effect oracle is the authority. The path prediction in Task 148 preview
-records is informational and non-authoritative.
+Task 145's side-effect oracle is test-side proof only. The path prediction in Task 148
+preview records is informational and non-authoritative; the live apply path still needs a
+separate apply-time side-effect oracle before this contract can claim mutation-time
+blast-radius verification.
 
 The following surfaces must remain unchanged:
 
@@ -247,7 +251,8 @@ The future implementation task must add tests proving:
 - post-merge CI or operator-channel identity is recorded
 - before audit exists before the first write
 - apply audit is separate from degraded-event logging
-- exact allowed-delta proof uses the Task 145 oracle
+- any operator-facing exact allowed-delta claim is backed by a live apply-time
+  side-effect oracle, not only the Task 145 test-side oracle
 - rollback restores registered paths and detects unregistered deltas
 - a global kill-switch disables apply across all invocation channels
 - out-of-band agent attempts to mutate Taskmaster status remain blocked by the tool gate
@@ -288,6 +293,15 @@ The future implementation would have to satisfy:
 - Task 147 rollback contract
 - Task 148 inert preview contract
 - Task 149 apply-path proposal contract
+
+## Future Enablement Gate: Live Apply-Time Oracle
+
+Task 145 proves side-effect behavior in tests and isolated fixtures. It does not currently
+wrap the live apply mutation. Before any enablement task may claim actual blast-radius
+verification at mutation time, a separate future task must either:
+
+- wire a live apply-time side-effect oracle around the mutation path; or
+- leave that claim absent from operator-facing preview, contract, and audit text.
 
 Please critique this as an agent-runtime-first workflow system:
 1. Is merged_but_not_done with git_ancestor proof narrow enough for the first apply path?

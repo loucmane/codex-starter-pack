@@ -104,7 +104,13 @@ def test_reconcile_preview_candidate_is_opt_in_inert_data(tmp_path: Path) -> Non
         candidate["rollback_contract"]["path"]
         == "docs/aegis/reconcile-mutation-rollback-contract.md"
     )
-    assert "Task 145 side-effect oracle" in candidate["actual_blast_radius_authority"]
+    assert candidate["actual_blast_radius_authority"] == (
+        "No live apply-time blast-radius oracle is wired; Task 145 is test-side proof only"
+    )
+    assert "separate apply-time side-effect oracle" in " ".join(preview["notes"])
+    assert "verifies actual blast radius at mutation time" not in candidate[
+        "actual_blast_radius_authority"
+    ]
     _assert_no_action_shape(preview)
 
 
