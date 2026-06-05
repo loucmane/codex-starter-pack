@@ -514,6 +514,41 @@ def test_successful_apply_uses_real_taskmaster_cascade_and_audit(tmp_path: Path)
     assert after_audit["toolchain_evidence"]["task_master"]["version"] == TASKMASTER_PACKAGE_VERSION
 
 
+def test_before_audit_write_failure_blocks_taskmaster_status_write(tmp_path: Path) -> None:
+    target = _target(tmp_path / "audit-write-failure", state_json_present=True)
+    before = snapshot_whole_tree(target)
+    audit_parent = tmp_path / "audit-parent-is-file"
+    audit_parent.write_text("not a directory\n", encoding="utf-8")
+    writer_calls = 0
+
+    def writer(*, target_root: Path, **_: Any) -> None:
+        nonlocal writer_calls
+        writer_calls += 1
+        (target_root / ".taskmaster" / "tasks" / "tasks.json").write_text(
+            "writer should not run\n", encoding="utf-8"
+        )
+
+    with pytest.raises(OSError):
+        run_reconcile_apply_write_apparatus(
+            FIRST_CANDIDATE,
+            target_root=target,
+            approved_context_proof=APPROVED_CONTEXT,
+            kill_switch_state=ENABLED_KILL_SWITCH,
+            validated_toolchain_evidence=_toolchain(),
+            current_toolchain_evidence=_toolchain(),
+            state_root=tmp_path / "state",
+            audit_log_path=audit_parent / "apply.jsonl",
+            enable_write_path=True,
+            validation_runner=lambda **kwargs: FakeValidation(
+                kwargs["predicted_paths"], kwargs["predicted_paths"]
+            ),
+            write_runner=writer,
+        )
+
+    assert writer_calls == 0
+    before.assert_matches(snapshot_whole_tree(target))
+
+
 def test_idempotency_claim_makes_second_apply_noop(tmp_path: Path) -> None:
     _require_taskmaster_cli()
     target = _target(tmp_path / "idempotency")

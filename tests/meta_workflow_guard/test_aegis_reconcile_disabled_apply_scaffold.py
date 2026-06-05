@@ -230,12 +230,41 @@ def test_apply_audit_record_requires_transaction_fields_and_binding() -> None:
         rolled_back=False,
         eligibility_corpus_version="task146-v1",
         external_anchor="github-actions://run/123",
+        toolchain_evidence={"task_master": {"version": "0.43.1"}},
+        predicted_delta_paths=(".taskmaster/tasks/tasks.json", ".taskmaster/tasks/task_042.md"),
+        actual_delta_paths=(),
+        before_hashes={".taskmaster/tasks/tasks.json": "before-hash"},
+        after_hashes={},
+        outcome="started",
+        rollback_state={"rolled_back": False},
+        semantic_validation={"passed": True, "reason": "matches_prediction"},
     )
 
     assert record["record_type"] == "reconcile_apply_audit"
     assert record["authorization_binding"] == binding
     assert record["approved_context_proof_id"] == "run-123"
     assert record["external_anchor"] == "github-actions://run/123"
+    assert record["task_id"] == "42"
+    assert record["finding_kind"] == "merged_but_not_done"
+    assert record["proof"] == "git_ancestor"
+    assert record["proof_artifact"] == PROOF_ARTIFACT
+    assert record["toolchain_evidence"]["task_master"]["version"] == "0.43.1"
+    assert record["predicted_delta_paths"] == [
+        ".taskmaster/tasks/tasks.json",
+        ".taskmaster/tasks/task_042.md",
+    ]
+    assert record["actual_delta_paths"] == []
+    assert record["allowed_delta_hashes"] == ALLOWED_DELTA_HASHES
+    assert record["before_hashes"] == {".taskmaster/tasks/tasks.json": "before-hash"}
+    assert record["after_hashes"] == {}
+    assert record["semantic_validation"] == {"passed": True, "reason": "matches_prediction"}
+    assert record["rollback_handle_ref"] == "rollback://task-42"
+    assert record["rollback_state"] == {"rolled_back": False}
+    assert record["rolled_back"] is False
+    assert record["idempotency_key"]
+    assert record["previous_hash"]
+    assert record["chain_hash"]
+    assert record["outcome"] == "started"
 
     with pytest.raises(ApplyScaffoldError, match="authorization binding"):
         build_apply_audit_record(

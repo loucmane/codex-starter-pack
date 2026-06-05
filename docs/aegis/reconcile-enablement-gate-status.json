@@ -1,0 +1,72 @@
+{
+  "record_type": "reconcile_enablement_gate_status",
+  "version": 1,
+  "status": "NO-GO",
+  "first_guarded_apply_task_allowed": false,
+  "updated_by_task": "170",
+  "gate_source": "docs/aegis/reconcile-enablement-readiness-gates.md",
+  "closed_gate_markers": {
+    "G7": {
+      "title": "Audit Storage, Retention, And Review Boundary",
+      "status": "closed",
+      "closed_by_task": "170",
+      "marker": "audit_storage_retention_review_boundary_closed",
+      "evidence": [
+        "docs/aegis/reconcile-apply-audit-storage-contract.md",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_audit_storage_contract.py",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_before_audit_write_failure_blocks_taskmaster_status_write"
+      ]
+    }
+  },
+  "gates": {
+    "G1": {
+      "title": "Approved Invocation And Confirmation Channel",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "171"
+    },
+    "G2": {
+      "title": "Agent-Excluded Enablement Mechanism",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "173"
+    },
+    "G3": {
+      "title": "Kill-Switch Enablement And Disable Semantics",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "173"
+    },
+    "G4": {
+      "title": "Live Apply-Time Side-Effect Oracle Gate",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "172"
+    },
+    "G5": {
+      "title": "Enablement Evidence Decision Packet",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "176"
+    },
+    "G6": {
+      "title": "Terminal Rollback Failure Operator Resolution",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "174"
+    },
+    "G7": {
+      "title": "Audit Storage, Retention, And Review Boundary",
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "170",
+      "contract": "docs/aegis/reconcile-apply-audit-storage-contract.md"
+    },
+    "G8": {
+      "title": "Final Agent-Surface Regression With The Selected Channel Present",
+      "status": "open",
+      "blocking": true,
+      "planned_task": "175"
+    }
+  }
+}

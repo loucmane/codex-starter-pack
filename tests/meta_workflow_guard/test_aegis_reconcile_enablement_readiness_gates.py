@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-readiness-gates.md"
+GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
 OPEN_GATES = (
     "G1: Approved Invocation And Confirmation Channel",
@@ -13,7 +16,6 @@ OPEN_GATES = (
     "G4: Live Apply-Time Side-Effect Oracle Gate",
     "G5: Enablement Evidence Decision Packet",
     "G6: Terminal Rollback Failure Operator Resolution",
-    "G7: Audit Storage, Retention, And Review Boundary",
     "G8: Final Agent-Surface Regression With The Selected Channel Present",
 )
 
@@ -24,6 +26,7 @@ def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
     assert "**Status:** active Task 169 audit." in contract
     assert "**Verdict:** NO-GO for creating any first guarded apply task." in contract
     assert "This task does not enable apply" in contract
+    assert "Task 170 then closed the G7" in contract
     assert "No first guarded apply task may be scoped until G1-G8 are closed" in contract
     assert "No Taskmaster status mutation against the governed repository" in contract
 
@@ -42,6 +45,7 @@ def test_enablement_readiness_contract_lists_closed_standing_gates() -> None:
         "Terminal rollback failure freezes subsequent apply attempts",
         "Replayable precision corpus",
         "CI artifact transport under Node24 actions",
+        "Audit storage, retention, and review boundary",
     ):
         assert closed_gate in contract
 
@@ -49,9 +53,10 @@ def test_enablement_readiness_contract_lists_closed_standing_gates() -> None:
 def test_enablement_readiness_contract_lists_all_open_blocking_gates() -> None:
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
 
-    assert "## Open Gates Blocking Any First Guarded Apply Task" in contract
+    assert "## Open Gates Still Blocking Any First Guarded Apply Task" in contract
     for gate in OPEN_GATES:
         assert gate in contract
+    assert "G7: Audit Storage, Retention, And Review Boundary" not in contract
     assert "approved non-agent channel" in contract
     assert "agent cannot create, forge, or replay the confirmation" in contract
     assert "emergency disable outranks every other input" in contract
@@ -66,6 +71,16 @@ def test_enablement_readiness_contract_keeps_evidence_streams_non_interchangeabl
     assert "empty operational ledgers or cascade smoke as precision" in contract
     assert "operational post-merge runs are listed as inertness/context evidence only" in contract
     assert "the decision packet states whether the evidence is sufficient for a first apply task" in contract
+
+
+def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
+    status = json.loads(GATE_STATUS_PATH.read_text(encoding="utf-8"))
+
+    assert status["status"] == "NO-GO"
+    assert status["first_guarded_apply_task_allowed"] is False
+    assert status["gates"]["G7"]["status"] == "closed"
+    for gate in ("G1", "G2", "G3", "G4", "G5", "G6", "G8"):
+        assert status["gates"][gate]["status"] == "open"
 
 
 def test_enablement_readiness_contract_preserves_future_non_goals() -> None:

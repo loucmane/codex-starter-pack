@@ -14,7 +14,9 @@ candidate preview, agent-excluded apply design, disabled apply gates, shadow evi
 semantic blast-radius validation, write-and-rollback apparatus, authority/freshness
 hardening, corrected operator-facing claims, and Node24-compatible CI artifact transport.
 
-Task 169 re-derives the readiness list after those changes. The result is intentionally
+Task 169 re-derived the readiness list after those changes. Task 170 then closed the G7
+audit-storage boundary and added a machine-readable gate marker at
+`docs/aegis/reconcile-enablement-gate-status.json`. The result remains intentionally
 conservative:
 
 - the safety spine is strong enough to keep the current system inert;
@@ -62,8 +64,9 @@ They must remain standing gates in every later task.
 | Shadow evidence stream separation | Closed | Operational accumulation, cascade smoke, and precision corpus have distinct record types and classifications. |
 | Replayable precision corpus | Closed for the first class | The corpus replays real synthetic git histories and gates `merged_but_not_done/git_ancestor` at 6 TP, 0 FP, 0 FN, and 0 boundary leaks under the pinned toolchain. |
 | CI artifact transport under Node24 actions | Closed | Task 168 migrated to Node24 action majors and verified `reports/ci/` plus `$RUNNER_TEMP/aegis-shadow/` artifact layout on PR CI. |
+| Audit storage, retention, and review boundary | Closed by Task 170 | `docs/aegis/reconcile-apply-audit-storage-contract.md`; `docs/aegis/reconcile-enablement-gate-status.json`; before-audit write failure blocks Taskmaster status writes. |
 
-## Open Gates Blocking Any First Guarded Apply Task
+## Open Gates Still Blocking Any First Guarded Apply Task
 
 The following gates block creation of a first guarded apply task. A future task may close
 one or more gates, but no task may scope live apply until every blocker has reviewed
@@ -183,23 +186,6 @@ Required evidence before this gate can close:
   class through normal governed surfaces;
 - the system never retries or auto-clears a terminal rollback failure.
 
-### G7: Audit Storage, Retention, And Review Boundary
-
-**Status:** open.
-
-The internal runtime builds before/after audit records, but a production audit destination,
-retention rule, and review boundary have not been selected for the first apply channel.
-
-Required evidence before this gate can close:
-
-- before and after audit records are durable outside the mutable Taskmaster files;
-- audit writes happen before mutation and after success/rollback/terminal failure;
-- failure to write the before audit blocks mutation;
-- audit records bind task id, finding kind, proof, context proof id, toolchain, predicted
-  paths, actual paths, semantic validation, rollback handle, idempotency key, and chain
-  hash;
-- retention and artifact-download procedure are documented for the selected channel.
-
 ### G8: Final Agent-Surface Regression With The Selected Channel Present
 
 **Status:** open.
@@ -219,21 +205,24 @@ Required evidence before this gate can close:
 
 ## Gate Closure Rule
 
-Task 169's go/no-go answer is:
+Task 169's go/no-go answer, updated by Task 170's G7 closure, is:
 
 > No first guarded apply task may be scoped until G1-G8 are closed by reviewed code,
 > tests, and evidence artifacts. Closing a gate may add refusals, audits, or
 > documentation, but must not enable mutation or broaden the candidate class unless a
 > later, separately reviewed enablement task explicitly owns that change.
 
-The future task immediately after this audit should be another gate-closing task, not an
-enablement task. Candidate sequencing:
+G7 is now closed; G1, G2, G3, G4, G5, G6, and G8 remain open. The future task immediately
+after Task 170 should be another gate-closing task, not an enablement task. Candidate
+sequencing:
 
-1. live apply-time side-effect oracle gate for the selected future channel;
-2. approved invocation and confirmation channel design/implementation, still default-off;
-3. kill-switch enablement and terminal-resolution operator procedure;
-4. final enablement evidence decision packet;
-5. only then scope a first guarded apply task, if the packet says GO.
+1. approved invocation and confirmation channel design/implementation, still default-off;
+2. live apply-time side-effect oracle gate for the selected future channel;
+3. agent-excluded enablement and kill-switch semantics, still disabled;
+4. terminal rollback operator-resolution procedure;
+5. final agent-surface regression with the selected channel present;
+6. final enablement evidence decision packet;
+7. only then scope a first guarded apply task, if the packet says GO.
 
 ## Non-Goals
 
