@@ -4,17 +4,14 @@ on:
   pull_request:
   push:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install project dependencies
@@ -57,49 +54,49 @@ jobs:
         run: python3 scripts/template-migration-health-dashboard --strict
       - name: Upload drift artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-template-drift
           path: reports/template-drift/
       - name: Upload metrics artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-template-metrics
           path: reports/template-metrics/
       - name: Upload monitoring artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-template-monitoring
           path: reports/template-monitoring/
       - name: Upload Phase 0 validation artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-phase0-scanner-validation
           path: reports/phase0-scanner-validation/
       - name: Upload reference-fix gate artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-reference-fix-gate
           path: reports/reference-fix-gate/
       - name: Upload performance artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-template-performance
           path: reports/template-performance/
       - name: Upload cost tracking artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-cost-tracking
           path: reports/cost-tracking/
       - name: Upload migration health artefacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codex-guard-migration-health
           path: reports/migration-health/

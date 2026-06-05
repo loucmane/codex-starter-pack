@@ -2,9 +2,9 @@
 
 **Title:** Migrate GitHub Actions majors with artifact layout proof
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 167
+**Dependencies:** 167 ✓
 
 **Priority:** medium
 

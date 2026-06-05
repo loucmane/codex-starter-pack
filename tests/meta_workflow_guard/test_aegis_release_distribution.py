@@ -432,7 +432,7 @@ def test_ci_templates_and_release_matrix_cover_distribution_dimensions() -> None
     matrix = RELEASE_VERIFICATION_MATRIX_DOC.read_text(encoding="utf-8")
 
     for snippet in (
-        "actions/setup-python@v5",
+        "actions/setup-python@v6",
         "aegis-foundation==0.1.0",
         "install-method: [pip, uvx, pipx]",
         "uv build --sdist --wheel --out-dir dist",

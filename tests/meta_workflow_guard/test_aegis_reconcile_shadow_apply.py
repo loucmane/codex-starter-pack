@@ -1255,7 +1255,7 @@ def test_ci_workflow_captures_shadow_context_artifact_without_apply_surface() ->
 
     assert "build_ci_shadow_context_proof" in text
     assert "reconcile-shadow-context-proof.json" in text
-    assert any(step.get("uses") == "actions/upload-artifact@v4" for step in steps)
+    assert any(step.get("uses") == "actions/upload-artifact@v7" for step in steps)
     assert "--apply" not in text
     assert "task-master set-status" not in text
 

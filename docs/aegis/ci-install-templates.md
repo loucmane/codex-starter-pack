@@ -22,8 +22,8 @@ jobs:
         install-method: [pip, uvx, pipx]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Aegis with pip
@@ -59,7 +59,7 @@ jobs:
       - name: Verify MCP startup
         run: |
           uvx --from aegis-foundation==0.1.0 aegis-mcp-server --default-target-dir . --describe-config
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: aegis-reports-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.install-method }}
@@ -85,8 +85,8 @@ jobs:
         python-version: ["3.11", "3.12"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Build release candidate
@@ -107,7 +107,7 @@ jobs:
       - name: Exercise local wheel MCP startup
         run: |
           uvx --from "$PWD/dist/aegis_foundation-0.1.0-py3-none-any.whl" aegis-mcp-server --default-target-dir . --describe-config
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: aegis-local-wheel-reports-${{ matrix.python-version }}
