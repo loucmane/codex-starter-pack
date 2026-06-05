@@ -21,6 +21,7 @@ from aegis_foundation.reconcile_apply_scaffold import (
     FIRST_APPLY_CLASS_KEY,
     ApplyCandidate,
     authorization_binding_for,
+    build_kill_switch_control_plane_state,
     build_post_merge_ci_apply_confirmation,
     idempotency_key_for,
 )
@@ -77,6 +78,17 @@ DISABLED_KILL_SWITCH = {
     "global": {"enabled": True},
     "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True, "disabled": True}},
 }
+STALE_DURABLE_KILL_SWITCH = build_kill_switch_control_plane_state(
+    global_enabled=True,
+    class_enabled=True,
+    expires_at="2000-01-01T00:00:00Z",
+)
+WRONG_CLASS_DURABLE_KILL_SWITCH = build_kill_switch_control_plane_state(
+    class_key="other/proof",
+    global_enabled=True,
+    class_enabled=True,
+    expires_at="2999-01-01T00:00:00Z",
+)
 
 
 class FakeValidation:
@@ -182,6 +194,20 @@ def test_default_config_full_apply_path_has_zero_live_delta(tmp_path: Path) -> N
             DISABLED_KILL_SWITCH,
             TASKMASTER_PACKAGE_VERSION,
             "kill_switch_class_disabled",
+        ),
+        (
+            FIRST_CANDIDATE,
+            APPROVED_CONTEXT,
+            STALE_DURABLE_KILL_SWITCH,
+            TASKMASTER_PACKAGE_VERSION,
+            "kill_switch_stale",
+        ),
+        (
+            FIRST_CANDIDATE,
+            APPROVED_CONTEXT,
+            WRONG_CLASS_DURABLE_KILL_SWITCH,
+            TASKMASTER_PACKAGE_VERSION,
+            "kill_switch_wrong_class",
         ),
         (
             FIRST_CANDIDATE,
@@ -317,7 +343,11 @@ def test_live_apply_delegates_taskmaster_authority_before_validation(
     [
         ("done", FIRST_CANDIDATE, "candidate_already_done"),
         ("in-progress", FIRST_CANDIDATE, "candidate_status_changed"),
-        ("pending", {**FIRST_CANDIDATE, "current_status": "in-progress"}, "candidate_status_changed"),
+        (
+            "pending",
+            {**FIRST_CANDIDATE, "current_status": "in-progress"},
+            "candidate_status_changed",
+        ),
     ],
 )
 def test_live_apply_revalidates_taskmaster_status_before_validation(
@@ -834,9 +864,7 @@ def test_selected_channel_process_oracle_wraps_success_and_persists_artifacts(
     assert (audit_destination / "channel-confirmation.json").is_file()
     assert (audit_destination / "apply-audit.jsonl").is_file()
     assert (audit_destination / "process-oracle.json").is_file()
-    audit_lines = (audit_destination / "apply-audit.jsonl").read_text(
-        encoding="utf-8"
-    ).splitlines()
+    audit_lines = (audit_destination / "apply-audit.jsonl").read_text(encoding="utf-8").splitlines()
     after_audit = json.loads(audit_lines[-1])
     assert after_audit["channel_identity"]["selected_channel"] == "post_merge_ci"
     assert after_audit["audit_destination"] == audit_destination.as_posix()

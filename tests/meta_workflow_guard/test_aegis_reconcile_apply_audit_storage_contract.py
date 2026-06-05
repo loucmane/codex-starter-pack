@@ -9,7 +9,7 @@ from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
 CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-apply-audit-storage-contract.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
-REMAINING_OPEN_GATES = {"G2", "G3", "G5", "G6", "G8"}
+REMAINING_OPEN_GATES = {"G5", "G6", "G8"}
 
 
 def _contract() -> str:
@@ -32,12 +32,16 @@ def test_audit_storage_contract_closes_only_g7_and_remains_no_go() -> None:
     assert status["record_type"] == "reconcile_enablement_gate_status"
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["updated_by_task"] == "172"
+    assert status["updated_by_task"] == "173"
 
     gates = status["gates"]
-    assert set(gates) == {*REMAINING_OPEN_GATES, "G1", "G4", "G7"}
+    assert set(gates) == {*REMAINING_OPEN_GATES, "G1", "G2", "G3", "G4", "G7"}
     assert gates["G1"]["status"] == "closed"
     assert gates["G1"]["closed_by_task"] == "171"
+    assert gates["G2"]["status"] == "closed"
+    assert gates["G2"]["closed_by_task"] == "173"
+    assert gates["G3"]["status"] == "closed"
+    assert gates["G3"]["closed_by_task"] == "173"
     assert gates["G4"]["status"] == "closed"
     assert gates["G4"]["closed_by_task"] == "172"
     assert gates["G7"]["status"] == "closed"
@@ -141,6 +145,5 @@ def test_gate_status_marker_is_machine_readable_and_points_to_evidence() -> None
     assert "docs/aegis/reconcile-apply-audit-storage-contract.md" in marker["evidence"]
     assert (
         "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::"
-        "test_before_audit_write_failure_blocks_taskmaster_status_write"
-        in marker["evidence"]
+        "test_before_audit_write_failure_blocks_taskmaster_status_write" in marker["evidence"]
     )

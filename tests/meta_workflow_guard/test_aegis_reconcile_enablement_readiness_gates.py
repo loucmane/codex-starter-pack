@@ -10,8 +10,6 @@ CONTRACT_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-readiness-gates.md"
 GATE_STATUS_PATH = REPO_ROOT / "docs/aegis/reconcile-enablement-gate-status.json"
 
 OPEN_GATES = (
-    "G2: Agent-Excluded Enablement Mechanism",
-    "G3: Kill-Switch Enablement And Disable Semantics",
     "G5: Enablement Evidence Decision Packet",
     "G6: Terminal Rollback Failure Operator Resolution",
     "G8: Final Agent-Surface Regression With The Selected Channel Present",
@@ -27,6 +25,7 @@ def test_enablement_readiness_contract_is_no_go_and_non_executing() -> None:
     assert "Task 170 closed the G7" in contract
     assert "Task 171 closed the G1" in contract
     assert "Task 172" in contract
+    assert "Task 173 closed the G2/G3" in contract
     assert "No first guarded apply task may be scoped until G1-G8 are closed" in contract
     assert "No Taskmaster status mutation against the governed repository" in contract
 
@@ -48,6 +47,8 @@ def test_enablement_readiness_contract_lists_closed_standing_gates() -> None:
         "Audit storage, retention, and review boundary",
         "Approved invocation and confirmation channel",
         "Live apply-time side-effect oracle gate",
+        "Agent-excluded enablement mechanism",
+        "Kill-switch enablement and disable semantics",
     ):
         assert closed_gate in contract
 
@@ -58,11 +59,12 @@ def test_enablement_readiness_contract_lists_all_open_blocking_gates() -> None:
     assert "## Open Gates Still Blocking Any First Guarded Apply Task" in contract
     for gate in OPEN_GATES:
         assert gate in contract
+    remaining = contract.split("## Open Gates Still Blocking Any First Guarded Apply Task", 1)[1]
+    assert "G2: Agent-Excluded Enablement Mechanism" not in remaining
+    assert "G3: Kill-Switch Enablement And Disable Semantics" not in remaining
     assert "G1: Approved Invocation And Confirmation Channel" not in contract
     assert "G4: Live Apply-Time Side-Effect Oracle Gate" not in contract
     assert "G7: Audit Storage, Retention, And Review Boundary" not in contract
-    assert "approved non-agent channel" in contract
-    assert "emergency disable outranks every other input" in contract
     assert "process-level oracle" in contract
     assert "terminal breadcrumbs are durable" in contract
     assert "malformed/stale/PR-shaped/wrong/ref-task-proof/replayed/agent-originated" in contract
@@ -74,7 +76,10 @@ def test_enablement_readiness_contract_keeps_evidence_streams_non_interchangeabl
     assert "precision corpus artifact as the precision basis" in contract
     assert "empty operational ledgers or cascade smoke as precision" in contract
     assert "operational post-merge runs are listed as inertness/context evidence only" in contract
-    assert "the decision packet states whether the evidence is sufficient for a first apply task" in contract
+    assert (
+        "the decision packet states whether the evidence is sufficient for a first apply task"
+        in contract
+    )
 
 
 def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
@@ -83,9 +88,11 @@ def test_enablement_readiness_contract_has_current_gate_status_marker() -> None:
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
     assert status["gates"]["G1"]["status"] == "closed"
+    assert status["gates"]["G2"]["status"] == "closed"
+    assert status["gates"]["G3"]["status"] == "closed"
     assert status["gates"]["G4"]["status"] == "closed"
     assert status["gates"]["G7"]["status"] == "closed"
-    for gate in ("G2", "G3", "G5", "G6", "G8"):
+    for gate in ("G5", "G6", "G8"):
         assert status["gates"][gate]["status"] == "open"
 
 
