@@ -114,6 +114,12 @@ of the existing gates:
 A separate implementation task may only add an apply path if it satisfies every item in
 this section.
 
+Task 169 supersedes the historical "next task" sequencing below with the current
+enablement-readiness answer:
+`docs/aegis/reconcile-enablement-readiness-gates.md`. That audit is NO-GO for creating any
+first guarded apply task until its open gates are closed by reviewed code, tests, and
+evidence artifacts.
+
 ### Agent-Excluded Invocation
 
 The future apply path must prove:
@@ -259,16 +265,16 @@ The future implementation task must add tests proving:
 - no closeout, git, PR, session, plan, work-tracking, or Aegis state mutation is bundled
   into the Taskmaster status write
 
-## Proposed Next Tasks
+## Historical Next-Task Notes
 
-- **Task 150:** build a disabled apply orchestration scaffold after this invocation model
-  review. The scaffold must wire positive approved-context proof evaluation, an
-  apply-audit transaction model, and kill-switch semantics behind an enable gate that is
-  intentionally unsatisfiable. The enable gate that is intentionally unsatisfiable remains
-  the core disabled-scaffold invariant.
-- **Task 151:** enable a narrowly scoped apply path only after the disabled scaffold and
-  external review prove the invocation, audit, kill-switch, precision, side-effect, and
-  rollback contracts.
+Task 149 originally proposed Task 150 as a disabled apply orchestration scaffold. That work
+now exists behind an enable gate that is intentionally unsatisfiable, and later tasks added
+shadow evidence, semantic validation, isolated write/rollback tests, authority/freshness
+gates, precision evidence, and CI artifact transport hardening.
+
+These historical notes must not be read as permission to create an apply task. The current
+source of truth for what still blocks enablement is the Task 169 gate inventory:
+`docs/aegis/reconcile-enablement-readiness-gates.md`.
 
 ## Claude Discussion Prompt
 
