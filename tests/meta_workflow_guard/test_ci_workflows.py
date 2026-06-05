@@ -10,10 +10,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 CODEX_GUARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "codex-guard.yml"
 META_GUARD_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "meta-workflow-guard.yml"
+WORKFLOW_PATHS = (CI_WORKFLOW, CODEX_GUARD_WORKFLOW, META_GUARD_WORKFLOW)
 
 
 def _load_workflow() -> dict:
     return yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
+
+
+def _load_workflow_path(path: Path) -> dict:
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def test_python_test_workflow_has_version_matrix() -> None:
@@ -22,6 +27,23 @@ def test_python_test_workflow_has_version_matrix() -> None:
 
     assert matrix["python-version"] == ["3.11", "3.12"]
     assert workflow["jobs"]["python-tests"]["strategy"]["fail-fast"] is False
+
+
+def test_github_actions_use_node24_javascript_runtime_without_action_major_bumps() -> None:
+    for path in WORKFLOW_PATHS:
+        workflow = _load_workflow_path(path)
+        text = path.read_text(encoding="utf-8")
+
+        assert workflow["env"]["FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"] == "true"
+        assert "actions/checkout@v4" in text
+        assert "actions/upload-artifact@v4" in text
+        assert "actions/upload-artifact@v5" not in text
+
+    ci_workflow = _load_workflow()
+    steps = ci_workflow["jobs"]["python-tests"]["steps"]
+    taskmaster_node_step = next(step for step in steps if step.get("name") == "Set up Node for Taskmaster CLI")
+    assert taskmaster_node_step["uses"] == "actions/setup-node@v4"
+    assert taskmaster_node_step["with"]["node-version"] == "22"
 
 
 def test_python_test_workflow_runs_full_pytest_and_taskmaster_health() -> None:

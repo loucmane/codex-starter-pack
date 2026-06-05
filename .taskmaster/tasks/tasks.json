@@ -6639,10 +6639,11 @@
         "description": "Track the GitHub Actions Node 20 deprecation warning separately from shadow evidence work and verify CI artifacts still upload under Node 24-compatible action versions.",
         "details": "Scope: address the GitHub Actions warning observed on run 26967742927. The affected actions are actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5, and actions/upload-artifact@v4. GitHub indicates Node 24 becomes default on 2026-06-16 and Node 20 is removed on 2026-09-16. Update to Node-24-compatible action versions when available or set an explicit transition strategy. Acceptance criteria: CI remains green, shadow context proof, cascade validation, taskmaster toolchain, pytest, and reconcile-shadow-accumulation artifacts still upload intact, and the change remains orthogonal to apply or enablement behavior. Non-goals: no changes to shadow precision logic, no apply enablement, no Taskmaster status mutation, no evidence corpus changes.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-05T09:59:05.668Z"
       },
       {
         "id": "164",
@@ -6660,7 +6661,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-05T09:17:39.928Z",
+      "lastModified": "2026-06-05T09:59:05.669Z",
       "taskCount": 164,
       "completedCount": 162,
       "tags": [
