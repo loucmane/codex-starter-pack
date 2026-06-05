@@ -1,0 +1,188 @@
+{
+  "record_type": "reconcile_apply_enablement_decision_packet",
+  "version": 1,
+  "task_id": "176",
+  "packet_status": "complete",
+  "gate_closed": "G5",
+  "gate_status_source": "docs/aegis/reconcile-enablement-gate-status.json",
+  "decision": {
+    "outcome": "NO-GO",
+    "reason": "operator_decision_missing",
+    "operator_decision": {
+      "recorded": false,
+      "operator_decision_id": null,
+      "operator_identity": null,
+      "signed": false
+    },
+    "first_guarded_apply_task_allowed": false,
+    "may_create_task_177": false,
+    "enables_apply": false,
+    "kill_switch_flip": false,
+    "auto_create_first_apply_task": false
+  },
+  "gate_computation": {
+    "required_gates": [
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7",
+      "G8"
+    ],
+    "closed_gates": [
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7",
+      "G8"
+    ],
+    "open_gates": [],
+    "all_gate_markers_closed": true,
+    "go_refusal_reasons": [
+      "operator_decision_missing"
+    ],
+    "status_after_packet": "NO-GO"
+  },
+  "candidate_class": {
+    "finding_kind": "merged_but_not_done",
+    "proof": "git_ancestor",
+    "class_key": "merged_but_not_done/git_ancestor",
+    "no_new_candidate_class": true
+  },
+  "precision_evidence": {
+    "record_type": "reconcile_shadow_precision_corpus",
+    "evidence_stream": "precision_corpus",
+    "precision_evidence_basis": "replayable_labeled_precision_corpus",
+    "counts_toward_enablement_precision": true,
+    "source_paths": [
+      "tests/fixtures/aegis/reconcile_shadow_precision_corpus.json",
+      "$RUNNER_TEMP/aegis-shadow/reconcile-shadow-precision-corpus.json",
+      "tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py"
+    ],
+    "pre_registered_bar": {
+      "registered_before_measurement": true,
+      "auto_eligible_pairs": [
+        "merged_but_not_done/git_ancestor"
+      ],
+      "max_false_positives_per_pair": 0,
+      "max_false_negatives_per_pair": 0,
+      "max_boundary_leaks": 0,
+      "max_label_mismatches": 0,
+      "min_true_positives_per_pair": 3
+    },
+    "result": {
+      "pair": "merged_but_not_done/git_ancestor",
+      "true_positive": 6,
+      "false_positive": 0,
+      "false_negative": 0,
+      "boundary_leak_count": 0,
+      "label_mismatch_count": 0,
+      "precision": 1.0,
+      "precision_gate_passed": true
+    }
+  },
+  "non_precision_evidence": {
+    "operational_accumulation": {
+      "record_type": "reconcile_shadow_accumulation_artifact",
+      "evidence_stream": "operational_accumulation",
+      "evidence_entry_id": "reconcile-shadow-operational-0001",
+      "source_path": "docs/aegis/evidence/reconcile-shadow-operational-0001.json",
+      "run_id": "26959807056",
+      "event_name": "push",
+      "ref": "refs/heads/main",
+      "candidate_count": 0,
+      "would_apply": 0,
+      "shadow_refused": 0,
+      "mutated_live_repo": false,
+      "precision_observation": false,
+      "counts_toward_enablement_precision": false,
+      "purpose": "post-merge context and inertness evidence only"
+    },
+    "cascade_validation_smoke": {
+      "record_type": "reconcile_shadow_ci_cascade_validation",
+      "evidence_stream": "cascade_validation_smoke",
+      "precision_observation": false,
+      "counts_toward_enablement_precision": false,
+      "reason": "synthetic_fixed_fixture_smoke",
+      "purpose": "Taskmaster cascade and state.json smoke only"
+    }
+  },
+  "toolchain_binding": {
+    "task_master_package": "task-master-ai",
+    "task_master_version": "0.43.1",
+    "task_master_install_spec": "task-master-ai@0.43.1",
+    "task_master_source": "npm",
+    "task_master_node_major": "22",
+    "runner_os": "Linux",
+    "runner_arch": "X64",
+    "lock_version": 1,
+    "lock_id": "e02c32c12d8e69f684c37c6d3a1f0656386db0fd36a52a481f9ec3322837f8c2",
+    "baseline_source": "aegis_foundation/taskmaster_toolchain.py",
+    "live_evidence_source": "$RUNNER_TEMP/aegis-shadow/reconcile-shadow-precision-corpus.json",
+    "live_evidence_must_match_validated_baseline": true,
+    "mismatch_outcome": "NO-GO"
+  },
+  "divergence_review": {
+    "unexplained_divergence_count": 0,
+    "benign_normalization_reviews": [],
+    "auto_extend_canonicalization": false,
+    "auto_write_exemptions": false
+  },
+  "readiness_evidence": {
+    "audit_storage": {
+      "gate": "G7",
+      "status": "closed",
+      "evidence": "docs/aegis/reconcile-apply-audit-storage-contract.md"
+    },
+    "approved_channel": {
+      "gate": "G1",
+      "status": "closed",
+      "selected_channel": "post_merge_ci",
+      "evidence": "docs/aegis/reconcile-apply-approved-channel-contract.md"
+    },
+    "live_process_oracle": {
+      "gate": "G4",
+      "status": "closed",
+      "evidence": "docs/aegis/reconcile-apply-live-oracle-contract.md"
+    },
+    "kill_switch_control_plane": {
+      "gates": [
+        "G2",
+        "G3"
+      ],
+      "status": "closed",
+      "evidence": "docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md"
+    },
+    "terminal_resolution": {
+      "gate": "G6",
+      "status": "closed",
+      "evidence": "docs/aegis/reconcile-terminal-rollback-resolution-contract.md"
+    },
+    "agent_surface_regression": {
+      "gate": "G8",
+      "status": "closed",
+      "evidence": "docs/aegis/reconcile-final-agent-surface-regression-contract.md"
+    }
+  },
+  "taskmaster_boundary": {
+    "task_177_created": false,
+    "packet_does_not_create_first_guarded_apply_task": true
+  },
+  "non_goals": [
+    "no apply or apply-like command",
+    "no kill-switch flip",
+    "no production approved context that can mutate",
+    "no operator-local apply command",
+    "no post-merge apply workflow",
+    "no MCP apply tool",
+    "no agent-reachable enablement path",
+    "no new candidate class",
+    "no Taskmaster status mutation against the governed repository",
+    "no automatic creation of Task 177"
+  ]
+}

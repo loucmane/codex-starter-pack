@@ -59,13 +59,17 @@ def test_live_oracle_contract_requires_precision_validated_toolchain_baseline() 
     assert "refuses before fresh validation, idempotency claim, audit, or write" in contract
 
 
-def test_live_oracle_contract_lists_only_remaining_open_gates() -> None:
+def test_live_oracle_contract_points_to_later_no_go_packet_status() -> None:
     contract = CONTRACT_PATH.read_text(encoding="utf-8")
 
-    assert "G5: Enablement Evidence Decision Packet" in contract
-    remaining = contract.split("## Remaining Open Gates", 1)[1]
-    assert "G2: Agent-Excluded Enablement Mechanism" not in remaining
-    assert "G3: Kill-Switch Enablement And Disable Semantics" not in remaining
-    assert "G4: Live Apply-Time Side-Effect Oracle Gate" not in remaining
-    assert "G6: Terminal Rollback Failure Operator Resolution" not in remaining
-    assert "G8: Final Agent-Surface Regression With The Selected Channel Present" not in remaining
+    assert "## Later Gate Status" in contract
+    later = contract.split("## Later Gate Status", 1)[1]
+    assert "Task 176 later closed G5" in later
+    assert "remains" in later
+    assert "`NO-GO`" in later
+    assert "explicit operator GO decision" in later
+    assert "G2: Agent-Excluded Enablement Mechanism" not in later
+    assert "G3: Kill-Switch Enablement And Disable Semantics" not in later
+    assert "G4: Live Apply-Time Side-Effect Oracle Gate" not in later
+    assert "G6: Terminal Rollback Failure Operator Resolution" not in later
+    assert "G8: Final Agent-Surface Regression With The Selected Channel Present" not in later

@@ -129,14 +129,15 @@ def test_final_agent_surface_contract_closes_g8_and_keeps_no_go() -> None:
     assert "**Verdict:** G8 closed; NO-GO remains" in contract
     assert status["status"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
-    assert status["updated_by_task"] == "175"
+    assert status["updated_by_task"] == "176"
     assert status["gates"]["G8"]["status"] == "closed"
     assert status["gates"]["G8"]["closed_by_task"] == "175"
     assert status["gates"]["G8"]["contract"] == (
         "docs/aegis/reconcile-final-agent-surface-regression-contract.md"
     )
-    assert status["gates"]["G5"]["status"] == "open"
-    assert status["gates"]["G5"]["blocking"] is True
+    assert status["gates"]["G5"]["status"] == "closed"
+    assert status["gates"]["G5"]["closed_by_task"] == "176"
+    assert status["gates"]["G5"]["decision"] == "NO-GO"
 
 
 def test_single_gated_caller_audit_still_holds_with_selected_channel_present() -> None:
@@ -231,13 +232,14 @@ def test_codex_task_dispatches_to_normal_handlers_not_apply_runtime(
     _assert_dispatch_is_not_apply_runtime(args.func, expected_handler)
 
 
-def test_open_gate_status_forbids_production_apply_entrypoints() -> None:
+def test_no_go_packet_status_forbids_production_apply_entrypoints() -> None:
     status = _gate_status()
     open_gates = {
         gate_id for gate_id, gate in status["gates"].items() if gate["status"] != "closed"
     }
 
-    assert open_gates == {"G5"}
+    assert open_gates == set()
+    assert status["gates"]["G5"]["decision"] == "NO-GO"
     assert status["first_guarded_apply_task_allowed"] is False
     for path in _agent_surface_paths():
         source = path.read_text(encoding="utf-8")

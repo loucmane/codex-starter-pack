@@ -2,9 +2,9 @@
 
 **Title:** Produce reconcile apply enablement evidence decision packet
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 175
+**Dependencies:** 175 ✓
 
 **Priority:** high
 

@@ -17,17 +17,18 @@ hardening, corrected operator-facing claims, and Node24-compatible CI artifact t
 Task 169 re-derived the readiness list after those changes. Task 170 closed the G7
 audit-storage boundary, Task 171 closed the G1 approved-channel proof model, Task 172
 closed the G4 selected-channel process-level oracle gate, Task 173 closed the G2/G3
-agent-excluded enablement and kill-switch control-plane gates, and Task 174 closed the G6
-terminal rollback failure operator-resolution gate. Task 175 closed the G8 final
-agent-surface regression with the selected channel present. The machine-readable gate
-marker is `docs/aegis/reconcile-enablement-gate-status.json`. The result remains
-intentionally conservative:
+agent-excluded enablement and kill-switch control-plane gates, Task 174 closed the G6
+terminal rollback failure operator-resolution gate, Task 175 closed the G8 final
+agent-surface regression with the selected channel present, and Task 176 produced the G5
+enablement evidence decision packet. The machine-readable gate marker is
+`docs/aegis/reconcile-enablement-gate-status.json`. The result remains intentionally
+conservative:
 
 - the safety spine is strong enough to keep the current system inert;
 - the evidence streams are separated enough to avoid false precision claims;
 - the internal write apparatus is still not a production apply path;
-- no first guarded apply task may be scoped until the open gates below are closed with
-  tests and reviewed evidence.
+- no first guarded apply task may be scoped unless a later decision packet records GO
+  with an explicit signed operator decision.
 
 ## Current Inert Boundary
 
@@ -75,23 +76,23 @@ They must remain standing gates in every later task.
 | Kill-switch enablement and disable semantics | Closed by Task 173 | Durable global/per-class state fails closed for missing, corrupt, unreadable, stale, wrong-class, global-disabled, and class-disabled states before clone/write work; emergency disable is the only default-authorized control action. |
 | Terminal rollback failure operator resolution | Closed by Task 174 | `docs/aegis/reconcile-terminal-rollback-resolution-contract.md`; terminal breadcrumbs are audit-linked, never auto-clear or auto-retry, later attempts refuse before clone/write work, and resolution proof requires approved non-agent operator action plus audit binding. |
 | Final agent-surface regression with the selected channel present | Closed by Task 175 | `docs/aegis/reconcile-final-agent-surface-regression-contract.md`; real MCP schemas, package CLI parser targets, `scripts/codex-task` parser targets, hooks, workflows, preview/report consumers, repair/start/kickoff flows, and source surfaces do not reach the apply runtime or selected-channel helpers. |
+| Enablement evidence decision packet | Closed by Task 176 | `docs/aegis/reconcile-apply-enablement-decision-packet.md`; `docs/aegis/reconcile-apply-enablement-decision-packet.json`; the packet composes G1-G8 evidence and records NO-GO because no explicit operator GO decision is recorded. |
 
-## Open Gates Still Blocking Any First Guarded Apply Task
+## Gate Packet Outcome Still Blocking Any First Guarded Apply Task
 
-The following gates block creation of a first guarded apply task. A future task may close
-one or more gates, but no task may scope live apply until every blocker has reviewed
-evidence.
+All G1-G8 markers are now closed. Creation of a first guarded apply task is still blocked
+because the Task 176 decision packet records `NO-GO`, not `GO`.
 
 ### G5: Enablement Evidence Decision Packet
 
-**Status:** open.
+**Status:** closed by Task 176.
 
 Task 162 supplies a precision corpus artifact for the first class, and post-merge
-accumulation supplies operational evidence. No final enablement decision packet exists that
-names the pre-registered bar, the operational entries, the precision corpus result,
-toolchain binding, residual risks, and explicit non-goals.
+accumulation supplies operational evidence. Task 176 produced the final enablement decision
+packet that names the pre-registered bar, the operational entry, the precision corpus
+result, toolchain binding, residual risks, and explicit non-goals.
 
-Required evidence before this gate can close:
+The packet records:
 
 - a reviewed decision packet that cites the precision corpus artifact as the precision basis
   and refuses to count empty operational ledgers or cascade smoke as precision;
@@ -99,25 +100,25 @@ Required evidence before this gate can close:
 - operational post-merge runs are listed as inertness/context evidence only;
 - every unexplained divergence is zero, or each benign normalization is backed by a
   reviewed transform plus negative tests;
-- the decision packet states whether the evidence is sufficient for a first apply task, not
-  for broad enablement.
+- the decision packet states that the evidence is not sufficient for a first apply task
+  because no explicit operator GO decision is recorded.
 
 ## Gate Closure Rule
 
 Task 169's go/no-go answer, updated by Task 170's G7 closure, Task 171's G1 closure,
-Task 172's G4 closure, Task 173's G2/G3 closure, Task 174's G6 closure, and Task 175's G8
-closure, is:
+Task 172's G4 closure, Task 173's G2/G3 closure, Task 174's G6 closure, Task 175's G8
+closure, and Task 176's G5 packet, is:
 
-> No first guarded apply task may be scoped until G1-G8 are closed by reviewed code,
-> tests, and evidence artifacts. Closing a gate may add refusals, audits, or
-> documentation, but must not enable mutation or broaden the candidate class unless a
-> later, separately reviewed enablement task explicitly owns that change.
+> No first guarded apply task may be scoped unless G1-G8 are closed by reviewed code,
+> tests, and evidence artifacts and a reviewed decision packet records GO with an explicit
+> signed operator decision. Closing a gate may add refusals, audits, or documentation, but
+> must not enable mutation or broaden the candidate class unless a later, separately
+> reviewed enablement task explicitly owns that change.
 
-G1, G2, G3, G4, G6, G7, and G8 are now closed; G5 remains open. The future task
-immediately after Task 175 should be the final decision-packet task, not an enablement task.
-Candidate sequencing:
+G1, G2, G3, G4, G5, G6, G7, and G8 are now closed. The packet is NO-GO because no explicit
+operator GO decision is recorded. Candidate sequencing:
 
-1. final enablement evidence decision packet;
+1. a later operator-signed GO decision packet, if an operator chooses to authorize one;
 2. only then scope a first guarded apply task, if the packet says GO.
 
 ## Non-Goals

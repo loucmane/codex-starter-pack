@@ -18,7 +18,7 @@ left G2, G3, G4, G5, G6, and G8 open.
 Task 172 later closed G4 with the selected-channel process-level oracle. Task 173 later
 closed G2/G3 with the agent-excluded kill-switch control plane. Task 174 later closed G6
 with terminal rollback operator resolution. Task 175 later closed G8 with the final
-agent-surface regression. G5 remains open.
+agent-surface regression. Task 176 later closed G5 with a NO-GO enablement decision packet.
 
 The selected first channel is **post-merge CI**:
 
@@ -146,13 +146,12 @@ Taskmaster, do not write git state, and do not write Taskmaster status.
 | Channel identity binds into audit records | `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_apply_audit_record_requires_transaction_fields_and_binding` |
 | No governed-agent surface reaches the selected channel helpers | `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_apply_scaffold_is_not_reachable_from_agent_surfaces` |
 
-## Remaining Open Gates
+## Later Gate Status
 
 Task 171 closed G1. Task 172 later closed G4. Task 173 later closed G2/G3. Task 174 later
-closed G6. Task 175 later closed G8. This gate remains open and blocks any first guarded
-apply task:
-
-- G5: Enablement Evidence Decision Packet
+closed G6. Task 175 later closed G8. Task 176 later closed G5 with a decision packet. The
+current machine-readable status remains `NO-GO` because that packet lacks an explicit
+operator GO decision.
 
 ## Non-Goals
 

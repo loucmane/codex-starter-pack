@@ -166,12 +166,11 @@ alert must point to the same immutable audit bundle defined here.
 | Default config remains zero-delta | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_default_config_full_apply_path_has_zero_live_delta` |
 | Apply runtime remains agent-unreachable | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_apply_write_apparatus_is_not_reachable_from_agent_surfaces` |
 
-## Remaining Open Gates
+## Later Gate Status
 
-Task 170 closed G7 only. Later tasks closed G1, G2, G3, G4, G6, and G8. This gate remains
-open and blocks any first guarded apply task:
-
-- G5: Enablement Evidence Decision Packet
+Task 170 closed G7 only. Later tasks closed G1, G2, G3, G4, G5, G6, and G8. The current
+machine-readable status remains `NO-GO` because the Task 176 decision packet did not
+record an explicit operator GO decision.
 
 ## Non-Goals
 

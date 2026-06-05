@@ -134,9 +134,10 @@ Task 174 is pinned by:
 - `tests/meta_workflow_guard/test_aegis_reconcile_terminal_rollback_resolution_contract.py`
 - `docs/aegis/reconcile-enablement-gate-status.json`
 
-## Remaining Open Gates
+## Later Gate Status
 
-- G5: Enablement Evidence Decision Packet
+Task 176 later closed G5 with a decision packet. The current machine-readable status
+remains `NO-GO` because that packet lacks an explicit operator GO decision.
 
 ## Non-Goals
 
