@@ -21,10 +21,12 @@
   - The workflow must import/use the baseline helper.
   - The workflow must pass `current_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)`.
   - The workflow must not pass `validated_toolchain_evidence=capture_taskmaster_toolchain_evidence(os.environ)`.
+  - After PR CI exposed a misplaced import, the test now inspects the precision corpus step `run` body directly rather than searching the whole workflow text.
 - Updated `docs/aegis/reconcile-shadow-apply-contract.md` to define the two distinct toolchain records and forbid self-comparison as precision evidence.
 
 ## Verification
 - `PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py tests/meta_workflow_guard/test_ci_workflows.py -q` -> 19 passed.
 - `PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py tests/meta_workflow_guard/test_ci_workflows.py tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_taskmaster_toolchain_mismatch_invalidates_prior_cascade_evidence -q` -> 20 passed.
+- After fixing the PR CI import failure: `PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py tests/meta_workflow_guard/test_ci_workflows.py -q` -> 19 passed.
 - `git diff --check` -> passed.
 - `python3 scripts/codex-task taskmaster health` -> passed.

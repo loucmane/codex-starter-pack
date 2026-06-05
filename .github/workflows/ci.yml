@@ -98,7 +98,6 @@ jobs:
               build_ci_shadow_cascade_validation_report,
           )
           from aegis_foundation.taskmaster_toolchain import (
-              build_validated_taskmaster_ci_toolchain_baseline,
               capture_taskmaster_toolchain_evidence,
           )
 
@@ -227,6 +226,7 @@ jobs:
               build_replayable_shadow_precision_corpus_artifact,
           )
           from aegis_foundation.taskmaster_toolchain import (
+              build_validated_taskmaster_ci_toolchain_baseline,
               capture_taskmaster_toolchain_evidence,
           )
           from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree

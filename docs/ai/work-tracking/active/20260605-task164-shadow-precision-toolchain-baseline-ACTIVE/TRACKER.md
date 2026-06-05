@@ -21,6 +21,10 @@
 - **2026-06-05 13:01** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:git:diff-check|E:cmd`git diff --check`] Whitespace check passed
 - **2026-06-05 13:01** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:scripts/codex-task|E:cmd`python3 scripts/codex-task taskmaster health`] Taskmaster health passed: 164 tasks, 361 subtasks, one in-progress task, zero invalid dependency refs
 - **2026-06-05 13:01** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:serena/memory|E:.serena/memories/2026-06-05_task164_shadow_precision_toolchain_baseline.md] Captured the Task 164 implementation checkpoint memory
+- **2026-06-05 13:22** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:gh:run-view|E:cmd`gh run view 27011627783 --repo loucmane/codex-starter-pack --log-failed`] PR #164 CI failed in the precision corpus step because the workflow called `build_validated_taskmaster_ci_toolchain_baseline(...)` without importing it in that step
+- **2026-06-05 13:22** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:.github/workflows/ci.yml|E:.github/workflows/ci.yml] Moved the baseline helper import from the cascade step to the precision corpus step
+- **2026-06-05 13:22** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:tests/meta_workflow_guard/test_ci_workflows.py|E:tests/meta_workflow_guard/test_ci_workflows.py] Tightened the workflow test to inspect the precision step `run` body so misplaced imports cannot pass by appearing elsewhere in the workflow
+- **2026-06-05 13:22** — [S:20260605|W:task164-shadow-precision-toolchain-baseline|H:pytest|E:cmd`PYTHONDONTWRITEBYTECODE=1 uv run python -m pytest tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py tests/meta_workflow_guard/test_ci_workflows.py -q`] Focused precision corpus and CI workflow contract suite passed after CI import fix: 19 passed
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Defined the stale CI self-comparison boundary and kept scope to the precision corpus toolchain binding
