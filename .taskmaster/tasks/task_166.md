@@ -2,9 +2,9 @@
 
 **Title:** Gate live apply on Taskmaster authority and freshness
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 165
+**Dependencies:** 165 ✓
 
 **Priority:** high
 
