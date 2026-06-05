@@ -10,12 +10,16 @@ import pytest
 from aegis_foundation import cli as aegis_cli
 from aegis_foundation.reconcile_apply_scaffold import (
     FIRST_APPLY_CLASS_KEY,
+    SELECTED_APPLY_CHANNEL,
+    SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY,
     ApplyCandidate,
     ApplyScaffoldError,
     authorization_binding_for,
     build_apply_audit_record,
+    build_post_merge_ci_apply_confirmation,
     evaluate_approved_context,
     evaluate_kill_switch,
+    evaluate_selected_apply_channel_confirmation,
     idempotency_key_for,
     load_kill_switch_state,
     run_disabled_apply_scaffold,
@@ -46,6 +50,16 @@ FUTURE_CI_CONTEXT = {
     "proof_id": "run-123",
     "task_id": "42",
     "proof": "git_ancestor",
+}
+POST_MERGE_CI_ENV = {
+    "GITHUB_RUN_ID": "123",
+    "GITHUB_RUN_ATTEMPT": "1",
+    "GITHUB_WORKFLOW": "reconcile-apply",
+    "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+    "GITHUB_SHA": "a" * 40,
+    "GITHUB_EVENT_NAME": "push",
+    "GITHUB_REF": "refs/heads/main",
+    "GITHUB_REF_NAME": "main",
 }
 ENABLE_SHAPED_KILL_SWITCH = {
     "global": {"enabled": True},
@@ -141,6 +155,14 @@ def test_apply_scaffold_is_not_reachable_from_agent_surfaces(tmp_path: Path) -> 
 
     codex_task_source = (REPO_ROOT / "scripts/codex-task").read_text(encoding="utf-8")
     assert "run_disabled_apply_scaffold" not in codex_task_source
+    for surface in (
+        REPO_ROOT / "aegis_foundation" / "cli.py",
+        REPO_ROOT / "aegis_mcp" / "server.py",
+        REPO_ROOT / "scripts" / "codex-task",
+    ):
+        source = surface.read_text(encoding="utf-8")
+        assert "build_post_merge_ci_apply_confirmation" not in source
+        assert "evaluate_selected_apply_channel_confirmation" not in source
 
 
 @pytest.mark.parametrize(
@@ -210,6 +232,135 @@ def test_approved_context_uses_positive_proof_and_defaults_denied() -> None:
     assert decision.reason == "enable_gate_unsatisfiable"
 
 
+def test_selected_post_merge_ci_confirmation_is_bound_but_unsatisfiable_by_default() -> None:
+    candidate = ApplyCandidate.from_mapping(FIRST_CANDIDATE)
+    confirmation = _selected_channel_confirmation(candidate)
+
+    decision = evaluate_selected_apply_channel_confirmation(
+        confirmation,
+        candidate=candidate,
+        now="2026-06-05T12:00:00Z",
+    )
+
+    assert decision.approved is False
+    assert decision.reason == "enable_gate_unsatisfiable"
+    assert decision.channel == SELECTED_APPLY_CHANNEL
+    assert decision.proof_id == confirmation["proof_id"]
+    assert decision.idempotency_key == confirmation["idempotency_key"]
+    assert decision.audit_destination == confirmation["audit_destination"]
+
+    isolated_positive = evaluate_selected_apply_channel_confirmation(
+        confirmation,
+        candidate=candidate,
+        now="2026-06-05T12:00:00Z",
+        enable_gate_open=True,
+    )
+    assert isolated_positive.approved is True
+    assert isolated_positive.reason == "selected_channel_confirmation_verified"
+
+
+@pytest.mark.parametrize(
+    ("mutator", "reason"),
+    [
+        (lambda proof: None, "selected_channel_confirmation_missing"),
+        (lambda proof: "not-a-mapping", "selected_channel_confirmation_malformed"),
+        (
+            lambda proof: {**proof, "expires_at": "2026-06-05T11:59:59Z"},
+            "selected_channel_confirmation_stale",
+        ),
+        (
+            lambda proof: {
+                **proof,
+                "ci": {
+                    **proof["ci"],
+                    "event_name": "pull_request",
+                    "ref": "refs/pull/172/merge",
+                    "ref_name": "172/merge",
+                },
+            },
+            "selected_channel_pr_shaped_refused",
+        ),
+        (
+            lambda proof: {**proof, "ci": {**proof["ci"], "ref": "refs/heads/feature"}},
+            "selected_channel_wrong_ref",
+        ),
+        (
+            lambda proof: {**proof, "task_id": "99"},
+            "approved_context_binding_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "proof": "github_pr_merged"},
+            "approved_context_binding_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "finding_kind": "done_but_not_merged"},
+            "selected_channel_binding_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "candidate_class": "done_but_not_merged/git_ancestor"},
+            "selected_channel_candidate_class_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "operator_identity": "governed-agent"},
+            "selected_channel_operator_identity_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "proof_artifact": {}},
+            "selected_channel_confirmation_malformed",
+        ),
+        (
+            lambda proof: {**proof, "idempotency_key": "wrong"},
+            "selected_channel_idempotency_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "audit_destination": "/tmp/other"},
+            "selected_channel_audit_destination_mismatch",
+        ),
+        (
+            lambda proof: {**proof, "ci": {**proof["ci"], "run_id": ""}},
+            "selected_channel_confirmation_malformed",
+        ),
+        (
+            lambda proof: {**proof, "agent_originated": True},
+            "selected_channel_agent_originated_refused",
+        ),
+        (
+            lambda proof: {**proof, "origin": "mcp"},
+            "selected_channel_agent_originated_refused",
+        ),
+    ],
+)
+def test_selected_post_merge_ci_confirmation_rejects_forged_shapes(mutator, reason: str) -> None:
+    candidate = ApplyCandidate.from_mapping(FIRST_CANDIDATE)
+    confirmation = _selected_channel_confirmation(candidate)
+
+    decision = evaluate_selected_apply_channel_confirmation(
+        mutator(confirmation),
+        candidate=candidate,
+        now="2026-06-05T12:00:00Z",
+        enable_gate_open=True,
+    )
+
+    assert decision.approved is False
+    assert decision.reason == reason
+
+
+def test_selected_post_merge_ci_confirmation_replay_refuses_by_idempotency_key() -> None:
+    candidate = ApplyCandidate.from_mapping(FIRST_CANDIDATE)
+    confirmation = _selected_channel_confirmation(candidate)
+
+    decision = evaluate_selected_apply_channel_confirmation(
+        confirmation,
+        candidate=candidate,
+        now="2026-06-05T12:00:00Z",
+        claimed_idempotency_keys={confirmation["idempotency_key"]},
+        enable_gate_open=True,
+    )
+
+    assert decision.approved is False
+    assert decision.reason == "selected_channel_replay_refused"
+
+
 def test_apply_audit_record_requires_transaction_fields_and_binding() -> None:
     candidate = ApplyCandidate.from_mapping(FIRST_CANDIDATE)
     binding = authorization_binding_for(
@@ -238,6 +389,15 @@ def test_apply_audit_record_requires_transaction_fields_and_binding() -> None:
         outcome="started",
         rollback_state={"rolled_back": False},
         semantic_validation={"passed": True, "reason": "matches_prediction"},
+        channel_identity={
+            "channel": SELECTED_APPLY_CHANNEL,
+            "operator_identity": SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY,
+            "proof_id": "run-123",
+        },
+        audit_destination=(
+            "$RUNNER_TEMP/aegis-apply-audit/123/42/"
+            "4f0febcc1df3926bdc08d18c4c35d5b0dcb5a6a40356a5fb12d8b74277c88e43/"
+        ),
     )
 
     assert record["record_type"] == "reconcile_apply_audit"
@@ -265,6 +425,11 @@ def test_apply_audit_record_requires_transaction_fields_and_binding() -> None:
     assert record["previous_hash"]
     assert record["chain_hash"]
     assert record["outcome"] == "started"
+    assert record["channel_identity"]["channel"] == SELECTED_APPLY_CHANNEL
+    assert record["channel_identity"]["operator_identity"] == (
+        SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY
+    )
+    assert record["audit_destination"].startswith("$RUNNER_TEMP/aegis-apply-audit/")
 
     with pytest.raises(ApplyScaffoldError, match="authorization binding"):
         build_apply_audit_record(
@@ -332,3 +497,21 @@ def test_existing_writers_do_not_consume_disabled_scaffold() -> None:
         source = inspect.getsource(getattr(installer, name))
         assert "run_disabled_apply_scaffold" not in source
         assert "reconcile_apply_scaffold" not in source
+
+
+def _selected_channel_confirmation(candidate: ApplyCandidate) -> dict:
+    idempotency_key = idempotency_key_for(
+        task_id=candidate.task_id,
+        finding_kind=candidate.finding_kind,
+        proof=candidate.proof,
+        proof_artifact=PROOF_ARTIFACT,
+    )
+    return build_post_merge_ci_apply_confirmation(
+        POST_MERGE_CI_ENV,
+        candidate=candidate,
+        proof_artifact=PROOF_ARTIFACT,
+        audit_destination=(
+            f"$RUNNER_TEMP/aegis-apply-audit/123/{candidate.task_id}/{idempotency_key}/"
+        ),
+        expires_at="2026-06-05T12:05:00Z",
+    )

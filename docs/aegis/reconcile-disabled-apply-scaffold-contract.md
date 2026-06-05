@@ -56,6 +56,10 @@ Task 153 extends the audit payload with runtime fields for the isolated write ap
 toolchain evidence, predicted and actual delta paths, before/after hashes, outcome, and
 rollback state. These fields are still not exposed through governed-agent surfaces.
 
+Task 171 extends the audit payload with selected-channel fields for future audit
+breadcrumbs: channel identity and audit destination. The selected-channel helpers remain
+internal data validators and are still not exposed through governed-agent surfaces.
+
 Task 169 re-derives the current enablement-readiness inventory after the scaffold, shadow,
 write-apparatus, authority/freshness, precision, and CI-maintenance work. The current
 answer is still NO-GO for creating any first guarded apply task; see

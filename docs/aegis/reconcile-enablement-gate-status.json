@@ -3,9 +3,23 @@
   "version": 1,
   "status": "NO-GO",
   "first_guarded_apply_task_allowed": false,
-  "updated_by_task": "170",
+  "updated_by_task": "171",
   "gate_source": "docs/aegis/reconcile-enablement-readiness-gates.md",
   "closed_gate_markers": {
+    "G1": {
+      "title": "Approved Invocation And Confirmation Channel",
+      "status": "closed",
+      "closed_by_task": "171",
+      "marker": "approved_invocation_confirmation_channel_closed",
+      "selected_channel": "post_merge_ci",
+      "evidence": [
+        "docs/aegis/reconcile-apply-approved-channel-contract.md",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_approved_channel_contract.py",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_is_bound_but_unsatisfiable_by_default",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_rejects_forged_shapes",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_replay_refuses_by_idempotency_key"
+      ]
+    },
     "G7": {
       "title": "Audit Storage, Retention, And Review Boundary",
       "status": "closed",
@@ -21,9 +35,11 @@
   "gates": {
     "G1": {
       "title": "Approved Invocation And Confirmation Channel",
-      "status": "open",
-      "blocking": true,
-      "planned_task": "171"
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "171",
+      "contract": "docs/aegis/reconcile-apply-approved-channel-contract.md",
+      "selected_channel": "post_merge_ci"
     },
     "G2": {
       "title": "Agent-Excluded Enablement Mechanism",

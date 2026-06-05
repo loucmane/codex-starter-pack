@@ -14,10 +14,10 @@ candidate preview, agent-excluded apply design, disabled apply gates, shadow evi
 semantic blast-radius validation, write-and-rollback apparatus, authority/freshness
 hardening, corrected operator-facing claims, and Node24-compatible CI artifact transport.
 
-Task 169 re-derived the readiness list after those changes. Task 170 then closed the G7
-audit-storage boundary and added a machine-readable gate marker at
-`docs/aegis/reconcile-enablement-gate-status.json`. The result remains intentionally
-conservative:
+Task 169 re-derived the readiness list after those changes. Task 170 closed the G7
+audit-storage boundary, and Task 171 closed the G1 approved-channel proof model. The
+machine-readable gate marker is `docs/aegis/reconcile-enablement-gate-status.json`. The
+result remains intentionally conservative:
 
 - the safety spine is strong enough to keep the current system inert;
 - the evidence streams are separated enough to avoid false precision claims;
@@ -65,32 +65,13 @@ They must remain standing gates in every later task.
 | Replayable precision corpus | Closed for the first class | The corpus replays real synthetic git histories and gates `merged_but_not_done/git_ancestor` at 6 TP, 0 FP, 0 FN, and 0 boundary leaks under the pinned toolchain. |
 | CI artifact transport under Node24 actions | Closed | Task 168 migrated to Node24 action majors and verified `reports/ci/` plus `$RUNNER_TEMP/aegis-shadow/` artifact layout on PR CI. |
 | Audit storage, retention, and review boundary | Closed by Task 170 | `docs/aegis/reconcile-apply-audit-storage-contract.md`; `docs/aegis/reconcile-enablement-gate-status.json`; before-audit write failure blocks Taskmaster status writes. |
+| Approved invocation and confirmation channel | Closed by Task 171 | `docs/aegis/reconcile-apply-approved-channel-contract.md`; selected post-merge CI proof shape; malformed/stale/PR-shaped/wrong/ref-task-proof/replayed/agent-originated confirmations refuse; valid proof remains unsatisfiable by default. |
 
 ## Open Gates Still Blocking Any First Guarded Apply Task
 
 The following gates block creation of a first guarded apply task. A future task may close
 one or more gates, but no task may scope live apply until every blocker has reviewed
 evidence.
-
-### G1: Approved Invocation And Confirmation Channel
-
-**Status:** open.
-
-The scaffold recognizes future `post_merge_ci` and `operator_controlled_local` context
-families, but no production invocation channel exists. `enable_write_path=True` is a test
-argument, not a governance channel. There is no post-merge apply workflow, no operator-local
-entrypoint, and no reviewed mechanism that can make the enable conjunction satisfiable
-outside tests.
-
-Required evidence before this gate can close:
-
-- a selected first invocation channel: post-merge CI or operator-controlled local;
-- positive context proof bound to task id, proof, ref/run/operator identity, and exact
-  candidate class;
-- proof that the governed agent cannot create, forge, or replay the confirmation;
-- tests for malformed, stale, PR-shaped, wrong-ref, wrong-task, wrong-proof, missing, and
-  agent-originated confirmations;
-- audit breadcrumbs that record the approved channel identity before mutation.
 
 ### G2: Agent-Excluded Enablement Mechanism
 
@@ -205,24 +186,24 @@ Required evidence before this gate can close:
 
 ## Gate Closure Rule
 
-Task 169's go/no-go answer, updated by Task 170's G7 closure, is:
+Task 169's go/no-go answer, updated by Task 170's G7 closure and Task 171's G1 closure,
+is:
 
 > No first guarded apply task may be scoped until G1-G8 are closed by reviewed code,
 > tests, and evidence artifacts. Closing a gate may add refusals, audits, or
 > documentation, but must not enable mutation or broaden the candidate class unless a
 > later, separately reviewed enablement task explicitly owns that change.
 
-G7 is now closed; G1, G2, G3, G4, G5, G6, and G8 remain open. The future task immediately
-after Task 170 should be another gate-closing task, not an enablement task. Candidate
-sequencing:
+G1 and G7 are now closed; G2, G3, G4, G5, G6, and G8 remain open. The future task
+immediately after Task 171 should be another gate-closing task, not an enablement task.
+Candidate sequencing:
 
-1. approved invocation and confirmation channel design/implementation, still default-off;
-2. live apply-time side-effect oracle gate for the selected future channel;
-3. agent-excluded enablement and kill-switch semantics, still disabled;
-4. terminal rollback operator-resolution procedure;
-5. final agent-surface regression with the selected channel present;
-6. final enablement evidence decision packet;
-7. only then scope a first guarded apply task, if the packet says GO.
+1. live apply-time side-effect oracle gate for the selected future channel;
+2. agent-excluded enablement and kill-switch semantics, still disabled;
+3. terminal rollback operator-resolution procedure;
+4. final agent-surface regression with the selected channel present;
+5. final enablement evidence decision packet;
+6. only then scope a first guarded apply task, if the packet says GO.
 
 ## Non-Goals
 
