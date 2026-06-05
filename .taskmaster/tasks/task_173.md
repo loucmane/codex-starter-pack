@@ -2,9 +2,9 @@
 
 **Title:** Implement agent-excluded enablement and kill-switch control plane
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 172
+**Dependencies:** 172 ✓
 
 **Priority:** high
 

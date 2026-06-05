@@ -168,12 +168,9 @@ alert must point to the same immutable audit bundle defined here.
 
 ## Remaining Open Gates
 
-Task 170 closes G7 only. At the Task 170 boundary, these gates remained open and blocked
-any first guarded apply task:
+Task 170 closed G7 only. Later tasks closed G1, G2, G3, and G4. These gates remain open
+and block any first guarded apply task:
 
-- G1: Approved Invocation And Confirmation Channel
-- G2: Agent-Excluded Enablement Mechanism
-- G3: Kill-Switch Enablement And Disable Semantics
 - G5: Enablement Evidence Decision Packet
 - G6: Terminal Rollback Failure Operator Resolution
 - G8: Final Agent-Surface Regression With The Selected Channel Present

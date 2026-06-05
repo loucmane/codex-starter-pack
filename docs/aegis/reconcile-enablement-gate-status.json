@@ -3,7 +3,7 @@
   "version": 1,
   "status": "NO-GO",
   "first_guarded_apply_task_allowed": false,
-  "updated_by_task": "172",
+  "updated_by_task": "173",
   "gate_source": "docs/aegis/reconcile-enablement-readiness-gates.md",
   "closed_gate_markers": {
     "G1": {
@@ -18,6 +18,33 @@
         "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_is_bound_but_unsatisfiable_by_default",
         "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_rejects_forged_shapes",
         "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_selected_post_merge_ci_confirmation_replay_refuses_by_idempotency_key"
+      ]
+    },
+    "G2": {
+      "title": "Agent-Excluded Enablement Mechanism",
+      "status": "closed",
+      "closed_by_task": "173",
+      "marker": "agent_excluded_enablement_mechanism_closed",
+      "evidence": [
+        "docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_kill_switch_control_plane_contract.py",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_apply_scaffold_is_not_reachable_from_agent_surfaces",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_agent_originated_control_plane_actions_are_refused",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_kill_switch_enable_remains_unsatisfiable_for_approved_non_agent_origin"
+      ]
+    },
+    "G3": {
+      "title": "Kill-Switch Enablement And Disable Semantics",
+      "status": "closed",
+      "closed_by_task": "173",
+      "marker": "kill_switch_enablement_disable_semantics_closed",
+      "evidence": [
+        "docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_kill_switch_control_plane_contract.py",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_durable_kill_switch_control_plane_refuses_bad_state",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_durable_kill_switch_disable_precedence_over_enable_shape",
+        "tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_remove_one_conjunct_refuses_before_mutation_and_expensive_validation",
+        "tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_emergency_disable_is_the_only_default_authorized_control_action"
       ]
     },
     "G4": {
@@ -58,15 +85,17 @@
     },
     "G2": {
       "title": "Agent-Excluded Enablement Mechanism",
-      "status": "open",
-      "blocking": true,
-      "planned_task": "173"
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "173",
+      "contract": "docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md"
     },
     "G3": {
       "title": "Kill-Switch Enablement And Disable Semantics",
-      "status": "open",
-      "blocking": true,
-      "planned_task": "173"
+      "status": "closed",
+      "blocking": false,
+      "closed_by_task": "173",
+      "contract": "docs/aegis/reconcile-apply-kill-switch-control-plane-contract.md"
     },
     "G4": {
       "title": "Live Apply-Time Side-Effect Oracle Gate",

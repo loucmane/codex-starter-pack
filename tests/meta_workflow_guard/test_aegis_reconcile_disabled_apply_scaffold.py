@@ -10,15 +10,18 @@ import pytest
 from aegis_foundation import cli as aegis_cli
 from aegis_foundation.reconcile_apply_scaffold import (
     FIRST_APPLY_CLASS_KEY,
+    KILL_SWITCH_AGENT_ORIGINS,
     SELECTED_APPLY_CHANNEL,
     SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY,
     ApplyCandidate,
     ApplyScaffoldError,
     authorization_binding_for,
+    build_kill_switch_control_plane_state,
     build_apply_audit_record,
     build_post_merge_ci_apply_confirmation,
     evaluate_approved_context,
     evaluate_kill_switch,
+    evaluate_kill_switch_control_action,
     evaluate_selected_apply_channel_confirmation,
     idempotency_key_for,
     load_kill_switch_state,
@@ -65,6 +68,8 @@ ENABLE_SHAPED_KILL_SWITCH = {
     "global": {"enabled": True},
     "classes": {FIRST_APPLY_CLASS_KEY: {"enabled": True}},
 }
+FUTURE_KILL_SWITCH_EXPIRY = "2026-06-05T13:00:00Z"
+PAST_KILL_SWITCH_EXPIRY = "2026-06-05T11:00:00Z"
 PROOF_ARTIFACT = {"merge_commit": "abc123", "ancestor": True}
 ALLOWED_DELTA_HASHES = {
     ".taskmaster/tasks/tasks.json": "before:aaa after:bbb",
@@ -164,6 +169,31 @@ def test_apply_scaffold_is_not_reachable_from_agent_surfaces(tmp_path: Path) -> 
         assert "build_post_merge_ci_apply_confirmation" not in source
         assert "evaluate_selected_apply_channel_confirmation" not in source
         assert "run_selected_channel_apply_with_process_oracle" not in source
+        assert "build_kill_switch_control_plane_state" not in source
+        assert "evaluate_kill_switch_control_action" not in source
+
+
+def test_kill_switch_control_plane_is_absent_from_agent_writable_surfaces() -> None:
+    forbidden_helpers = (
+        "build_kill_switch_control_plane_state",
+        "evaluate_kill_switch_control_action",
+    )
+    surfaces = [
+        REPO_ROOT / "aegis_foundation" / "cli.py",
+        REPO_ROOT / "aegis_mcp" / "server.py",
+        REPO_ROOT / "scripts" / "codex-task",
+        REPO_ROOT / "aegis_foundation" / "resources.py",
+        REPO_ROOT / "aegis_foundation" / "reconcile_shadow_apply.py",
+        REPO_ROOT / "aegis_foundation" / "reconcile_shadow_precision.py",
+        *(REPO_ROOT / ".github" / "workflows").glob("*.yml"),
+        *(REPO_ROOT / ".claude" / "scripts").glob("*.sh"),
+        *(REPO_ROOT / ".claude" / "scripts").glob("*.py"),
+    ]
+
+    for surface in surfaces:
+        source = surface.read_text(encoding="utf-8")
+        for helper in forbidden_helpers:
+            assert helper not in source, surface
 
 
 @pytest.mark.parametrize(
@@ -210,6 +240,108 @@ def test_kill_switch_disable_precedence() -> None:
     assert evaluate_kill_switch(global_disabled).reason == "kill_switch_global_disabled"
     assert evaluate_kill_switch(class_disabled).reason == "kill_switch_class_disabled"
     assert evaluate_kill_switch(ENABLE_SHAPED_KILL_SWITCH).reason == "enable_gate_unsatisfiable"
+
+
+@pytest.mark.parametrize(
+    ("state", "reason"),
+    [
+        (
+            build_kill_switch_control_plane_state(
+                global_enabled=True,
+                class_enabled=True,
+                expires_at=PAST_KILL_SWITCH_EXPIRY,
+            ),
+            "kill_switch_stale",
+        ),
+        (
+            build_kill_switch_control_plane_state(
+                class_key="other/proof",
+                global_enabled=True,
+                class_enabled=True,
+                expires_at=FUTURE_KILL_SWITCH_EXPIRY,
+            ),
+            "kill_switch_wrong_class",
+        ),
+        (
+            {
+                **build_kill_switch_control_plane_state(
+                    global_enabled=True,
+                    class_enabled=True,
+                    expires_at=FUTURE_KILL_SWITCH_EXPIRY,
+                ),
+                "record_type": "unexpected",
+            },
+            "kill_switch_corrupt",
+        ),
+    ],
+)
+def test_durable_kill_switch_control_plane_refuses_bad_state(state, reason: str) -> None:
+    decision = evaluate_kill_switch(state, now="2026-06-05T12:00:00Z")
+
+    assert decision.enabled is False
+    assert decision.reason == reason
+
+
+def test_durable_kill_switch_disable_precedence_over_enable_shape() -> None:
+    global_disabled = build_kill_switch_control_plane_state(
+        global_enabled=True,
+        class_enabled=True,
+        global_disabled=True,
+        expires_at=PAST_KILL_SWITCH_EXPIRY,
+    )
+    class_disabled = build_kill_switch_control_plane_state(
+        global_enabled=True,
+        class_enabled=True,
+        class_disabled=True,
+        expires_at=PAST_KILL_SWITCH_EXPIRY,
+    )
+
+    assert (
+        evaluate_kill_switch(global_disabled, now="2026-06-05T12:00:00Z").reason
+        == "kill_switch_global_disabled"
+    )
+    assert (
+        evaluate_kill_switch(class_disabled, now="2026-06-05T12:00:00Z").reason
+        == "kill_switch_class_disabled"
+    )
+
+
+@pytest.mark.parametrize("origin", sorted(KILL_SWITCH_AGENT_ORIGINS))
+@pytest.mark.parametrize("action", ["enable", "clear_terminal"])
+def test_agent_originated_control_plane_actions_are_refused(origin: str, action: str) -> None:
+    decision = evaluate_kill_switch_control_action(
+        {"action": action, "class_key": FIRST_APPLY_CLASS_KEY, "origin": origin}
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "kill_switch_control_agent_originated_refused"
+
+
+def test_kill_switch_enable_remains_unsatisfiable_for_approved_non_agent_origin() -> None:
+    decision = evaluate_kill_switch_control_action(
+        {
+            "action": "enable",
+            "class_key": FIRST_APPLY_CLASS_KEY,
+            "origin": "approved_non_agent_channel",
+            "operator_approval_id": "operator-approved-173",
+        }
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "enable_gate_unsatisfiable"
+
+
+def test_emergency_disable_is_the_only_default_authorized_control_action() -> None:
+    decision = evaluate_kill_switch_control_action(
+        {
+            "action": "disable",
+            "class_key": FIRST_APPLY_CLASS_KEY,
+            "origin": "approved_non_agent_channel",
+        }
+    )
+
+    assert decision.allowed is True
+    assert decision.reason == "kill_switch_disable_authorized"
 
 
 def test_approved_context_uses_positive_proof_and_defaults_denied() -> None:

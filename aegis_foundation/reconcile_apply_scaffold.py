@@ -24,6 +24,26 @@ SELECTED_APPLY_CHANNEL_REF = "refs/heads/main"
 SELECTED_APPLY_CHANNEL_EVENT = "push"
 SELECTED_APPLY_CHANNEL_OPERATOR_IDENTITY = "github_actions_protected_main"
 ZERO_HASH = "0" * 64
+KILL_SWITCH_CONTROL_PLANE_RECORD_TYPE = "reconcile_apply_kill_switch_control_plane"
+KILL_SWITCH_CONTROL_PLANE_VERSION = 1
+KILL_SWITCH_APPROVED_NON_AGENT_ORIGINS = frozenset(
+    {"approved_non_agent_channel", "security_operator", "github_actions_protected_main"}
+)
+KILL_SWITCH_AGENT_ORIGINS = frozenset(
+    {
+        "agent",
+        "governed_agent",
+        "mcp",
+        "cli",
+        "scripts/codex-task",
+        "hook",
+        "environment",
+        "config",
+        "workflow_state",
+        "workflow-state",
+        "report",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -110,6 +130,24 @@ class KillSwitchDecision:
 
     def to_dict(self) -> dict[str, Any]:
         return {"enabled": self.enabled, "reason": self.reason, "class_key": self.class_key}
+
+
+@dataclass(frozen=True)
+class KillSwitchControlActionDecision:
+    allowed: bool
+    reason: str
+    action: str = ""
+    class_key: str = ""
+    origin: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "allowed": self.allowed,
+            "reason": self.reason,
+            "action": self.action,
+            "class_key": self.class_key,
+            "origin": self.origin,
+        }
 
 
 @dataclass(frozen=True)
@@ -253,9 +291,7 @@ def evaluate_selected_apply_channel_confirmation(
     if not isinstance(confirmation, Mapping):
         return SelectedChannelConfirmationDecision(False, "selected_channel_confirmation_malformed")
 
-    channel = str(
-        confirmation.get("selected_channel") or confirmation.get("context_type") or ""
-    )
+    channel = str(confirmation.get("selected_channel") or confirmation.get("context_type") or "")
     proof_id = str(confirmation.get("proof_id") or "")
     audit_destination = str(confirmation.get("audit_destination") or "")
     external_anchor = str(confirmation.get("external_anchor") or "")
@@ -319,9 +355,7 @@ def evaluate_selected_apply_channel_confirmation(
             False, "selected_channel_idempotency_mismatch", **base
         )
     if idempotency_key in {str(key) for key in claimed_idempotency_keys}:
-        return SelectedChannelConfirmationDecision(
-            False, "selected_channel_replay_refused", **base
-        )
+        return SelectedChannelConfirmationDecision(False, "selected_channel_replay_refused", **base)
     if "aegis-apply-audit" not in audit_destination or candidate.task_id not in audit_destination:
         return SelectedChannelConfirmationDecision(
             False, "selected_channel_audit_destination_mismatch", **base
@@ -386,11 +420,167 @@ def load_kill_switch_state(path: Path | None) -> LoadedKillSwitchState:
     return LoadedKillSwitchState(raw=payload, load_status="loaded", path=path.as_posix())
 
 
+def build_kill_switch_control_plane_state(
+    *,
+    class_key: str = FIRST_APPLY_CLASS_KEY,
+    global_enabled: bool = False,
+    class_enabled: bool = False,
+    global_disabled: bool = False,
+    class_disabled: bool = False,
+    expires_at: str = "",
+    writer_origin: str = "approved_non_agent_channel",
+) -> dict[str, Any]:
+    return {
+        "record_type": KILL_SWITCH_CONTROL_PLANE_RECORD_TYPE,
+        "version": KILL_SWITCH_CONTROL_PLANE_VERSION,
+        "expires_at": expires_at,
+        "writer": {"origin": writer_origin},
+        "global": {"enabled": global_enabled, "disabled": global_disabled},
+        "classes": {
+            class_key: {
+                "class_key": class_key,
+                "enabled": class_enabled,
+                "disabled": class_disabled,
+            }
+        },
+    }
+
+
+def evaluate_kill_switch_control_action(
+    payload: Mapping[str, Any] | None,
+    *,
+    class_key: str = FIRST_APPLY_CLASS_KEY,
+    enable_gate_open: bool = False,
+    terminal_resolution_gate_open: bool = False,
+) -> KillSwitchControlActionDecision:
+    if payload is None:
+        return KillSwitchControlActionDecision(
+            False, "kill_switch_control_action_missing", class_key=class_key
+        )
+    if not isinstance(payload, Mapping):
+        return KillSwitchControlActionDecision(
+            False, "kill_switch_control_action_malformed", class_key=class_key
+        )
+    action = str(payload.get("action") or "")
+    origin = str(payload.get("origin") or payload.get("surface") or "")
+    target_class_key = str(payload.get("class_key") or "")
+    if action not in {"enable", "disable", "clear_terminal"}:
+        return KillSwitchControlActionDecision(
+            False,
+            "kill_switch_control_action_unknown",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    if target_class_key != class_key:
+        return KillSwitchControlActionDecision(
+            False,
+            "kill_switch_control_wrong_class",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    if payload.get("agent_originated") is True or origin in KILL_SWITCH_AGENT_ORIGINS:
+        return KillSwitchControlActionDecision(
+            False,
+            "kill_switch_control_agent_originated_refused",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    if origin not in KILL_SWITCH_APPROVED_NON_AGENT_ORIGINS:
+        return KillSwitchControlActionDecision(
+            False,
+            "kill_switch_control_origin_unapproved",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    if action == "disable":
+        return KillSwitchControlActionDecision(
+            True,
+            "kill_switch_disable_authorized",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    if action == "clear_terminal":
+        if not terminal_resolution_gate_open:
+            return KillSwitchControlActionDecision(
+                False,
+                "terminal_resolution_gate_unsatisfiable",
+                action=action,
+                class_key=class_key,
+                origin=origin,
+            )
+        return KillSwitchControlActionDecision(
+            True,
+            "terminal_state_clear_authorized",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    if not enable_gate_open:
+        return KillSwitchControlActionDecision(
+            False, "enable_gate_unsatisfiable", action=action, class_key=class_key, origin=origin
+        )
+    if not payload.get("operator_approval_id"):
+        return KillSwitchControlActionDecision(
+            False,
+            "kill_switch_enable_operator_approval_missing",
+            action=action,
+            class_key=class_key,
+            origin=origin,
+        )
+    return KillSwitchControlActionDecision(
+        True, "kill_switch_enable_authorized", action=action, class_key=class_key, origin=origin
+    )
+
+
+def _kill_switch_control_plane_refusal_reason(
+    state: Mapping[str, Any],
+    *,
+    class_key: str,
+    now: datetime | str | None,
+) -> str:
+    if "record_type" in state and state.get("record_type") != KILL_SWITCH_CONTROL_PLANE_RECORD_TYPE:
+        return "kill_switch_corrupt"
+    if state.get("record_type") != KILL_SWITCH_CONTROL_PLANE_RECORD_TYPE:
+        return ""
+    if state.get("version") != KILL_SWITCH_CONTROL_PLANE_VERSION:
+        return "kill_switch_corrupt"
+    global_state = state.get("global")
+    classes = state.get("classes")
+    if not isinstance(global_state, Mapping) or not isinstance(classes, Mapping):
+        return "kill_switch_corrupt"
+    if global_state.get("disabled") is True:
+        return ""
+    class_state = classes.get(class_key)
+    if class_state is None:
+        return "kill_switch_wrong_class"
+    if not isinstance(class_state, Mapping):
+        return "kill_switch_corrupt"
+    if class_state.get("class_key", class_key) != class_key:
+        return "kill_switch_wrong_class"
+    if class_state.get("disabled") is True:
+        return ""
+    expires_at = _parse_datetime(state.get("expires_at"))
+    if expires_at is None:
+        return "kill_switch_stale"
+    now_dt = _parse_datetime(now) if now is not None else datetime.now(timezone.utc)
+    if now_dt is None:
+        return "kill_switch_corrupt"
+    if expires_at <= now_dt:
+        return "kill_switch_stale"
+    return ""
+
+
 def evaluate_kill_switch(
     state: Mapping[str, Any] | LoadedKillSwitchState | None,
     *,
     class_key: str = FIRST_APPLY_CLASS_KEY,
     enable_gate_open: bool = False,
+    now: datetime | str | None = None,
 ) -> KillSwitchDecision:
     if isinstance(state, LoadedKillSwitchState):
         if not state.usable:
@@ -408,6 +598,11 @@ def evaluate_kill_switch(
         classes is not None and not isinstance(classes, Mapping)
     ):
         return KillSwitchDecision(False, "kill_switch_corrupt", class_key)
+    control_plane_refusal = _kill_switch_control_plane_refusal_reason(
+        state, class_key=class_key, now=now
+    )
+    if control_plane_refusal:
+        return KillSwitchDecision(False, control_plane_refusal, class_key)
     if global_state.get("disabled") is True:
         return KillSwitchDecision(False, "kill_switch_global_disabled", class_key)
     class_state = classes.get(class_key, {}) if isinstance(classes, Mapping) else {}
