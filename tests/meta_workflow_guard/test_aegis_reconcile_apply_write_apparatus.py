@@ -31,7 +31,12 @@ from aegis_foundation.taskmaster_toolchain import (
     build_taskmaster_toolchain_evidence,
 )
 from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
-from tests.meta_workflow_guard.test_aegis_installer import REPO_ROOT
+from tests.meta_workflow_guard.test_aegis_installer import (
+    REPO_ROOT,
+    commit_file,
+    git,
+    init_git_repo,
+)
 
 FIRST_CANDIDATE = {
     "task_id": "42",
@@ -225,6 +230,172 @@ def test_fresh_validation_is_required_and_recorded_validation_is_not_a_license(
 
     assert result.status == "refused"
     assert result.reason == "fresh_validation_not_run"
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+@pytest.mark.parametrize(
+    ("setup", "reason", "authority_reason"),
+    [
+        (lambda target: target.mkdir(parents=True), "taskmaster_authority_missing", ""),
+        (
+            lambda target: _write_raw_taskmaster_payload(target, "{not json}\n"),
+            "taskmaster_authority_invalid",
+            "json_decode_error",
+        ),
+        (
+            lambda target: _write_tasks_payload(target, []),
+            "taskmaster_authority_invalid",
+            "empty_taskmaster_tasks",
+        ),
+        (
+            lambda target: _write_tasks_payload(
+                target,
+                [
+                    {"id": 42, "title": "One", "status": "pending", "dependencies": []},
+                    {"id": "42", "title": "Duplicate", "status": "pending", "dependencies": []},
+                ],
+            ),
+            "taskmaster_authority_invalid",
+            "duplicate_task_id",
+        ),
+    ],
+)
+def test_live_apply_delegates_taskmaster_authority_before_validation(
+    tmp_path: Path,
+    setup: Any,
+    reason: str,
+    authority_reason: str,
+) -> None:
+    target = tmp_path / "authority"
+    setup(target)
+    validation_calls = 0
+
+    def validation_runner(**_: Any) -> FakeValidation:
+        nonlocal validation_calls
+        validation_calls += 1
+        raise AssertionError("authority refusals must fire before sacrificial validation")
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=validation_runner,
+    )
+
+    assert result.status == "refused"
+    assert result.reason == reason
+    assert result.taskmaster_authority["reason"] == reason
+    if authority_reason:
+        assert result.taskmaster_authority["authority_reason"] == authority_reason
+    assert validation_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("live_status", "candidate", "reason"),
+    [
+        ("done", FIRST_CANDIDATE, "candidate_already_done"),
+        ("in-progress", FIRST_CANDIDATE, "candidate_status_changed"),
+        ("pending", {**FIRST_CANDIDATE, "current_status": "in-progress"}, "candidate_status_changed"),
+    ],
+)
+def test_live_apply_revalidates_taskmaster_status_before_validation(
+    tmp_path: Path,
+    live_status: str,
+    candidate: dict[str, Any],
+    reason: str,
+) -> None:
+    target = _target(tmp_path / "fresh-status")
+    _set_task_status(target, "42", live_status)
+    before = snapshot_whole_tree(target)
+    validation_calls = 0
+
+    def validation_runner(**_: Any) -> FakeValidation:
+        nonlocal validation_calls
+        validation_calls += 1
+        raise AssertionError("stale Taskmaster status must refuse before validation")
+
+    result = run_reconcile_apply_write_apparatus(
+        candidate,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=validation_runner,
+    )
+
+    assert result.status == "refused"
+    assert result.reason == reason
+    assert result.freshness_validation["live_status"] == live_status
+    assert validation_calls == 0
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+def test_live_apply_rederives_git_ancestor_before_validation(tmp_path: Path) -> None:
+    target = _target(tmp_path / "fresh-git", merged=False)
+    before = snapshot_whole_tree(target)
+    validation_calls = 0
+
+    def validation_runner(**_: Any) -> FakeValidation:
+        nonlocal validation_calls
+        validation_calls += 1
+        raise AssertionError("unmerged candidates must refuse before validation")
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=validation_runner,
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "candidate_not_merged"
+    assert result.freshness_validation["merge_truth"]["proof"] in {
+        "git_only_non_ancestor_or_missing_base",
+        "git_non_ancestor",
+    }
+    assert validation_calls == 0
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+def test_live_apply_refuses_missing_task_before_validation(tmp_path: Path) -> None:
+    target = _target(tmp_path / "fresh-missing")
+    _remove_task(target, "42")
+    before = snapshot_whole_tree(target)
+    validation_calls = 0
+
+    def validation_runner(**_: Any) -> FakeValidation:
+        nonlocal validation_calls
+        validation_calls += 1
+        raise AssertionError("missing task must refuse before validation")
+
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=validation_runner,
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "candidate_task_missing"
+    assert validation_calls == 0
     before.assert_matches(snapshot_whole_tree(target))
 
 
@@ -669,13 +840,61 @@ def test_apply_write_apparatus_is_not_reachable_from_agent_surfaces() -> None:
             assert token not in source
 
 
-def _target(root: Path, *, state_json_present: bool = False) -> Path:
+def _target(root: Path, *, state_json_present: bool = False, merged: bool = True) -> Path:
+    init_git_repo(root)
     _write_ci_validation_taskmaster_fixture(
         root,
         task_id="42",
         state_json_present=state_json_present,
     )
+    git(root, "add", ".taskmaster")
+    git(root, "commit", "-m", "task 42 pending")
+    git(root, "switch", "-c", "feat/task-42-shadow-ci-cascade")
+    commit_file(root, "feature.txt", "task 42 feature\n", "task 42 feature")
+    git(root, "switch", "main")
+    if merged:
+        git(root, "merge", "--no-ff", "feat/task-42-shadow-ci-cascade", "-m", "merge task 42")
     return root
+
+
+def _tasks_json_path(target: Path) -> Path:
+    return target / ".taskmaster" / "tasks" / "tasks.json"
+
+
+def _write_raw_taskmaster_payload(target: Path, content: str) -> None:
+    path = _tasks_json_path(target)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def _write_tasks_payload(target: Path, tasks: list[dict[str, Any]]) -> None:
+    _write_raw_taskmaster_payload(
+        target,
+        json.dumps({"master": {"tasks": tasks}}, indent=2, sort_keys=True) + "\n",
+    )
+
+
+def _set_task_status(target: Path, task_id: str, status: str) -> None:
+    path = _tasks_json_path(target)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    for task in payload["master"]["tasks"]:
+        if str(task.get("id")) == task_id:
+            task["status"] = status
+            break
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _remove_task(target: Path, task_id: str) -> None:
+    path = _tasks_json_path(target)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["master"]["tasks"] = [
+        task for task in payload["master"]["tasks"] if str(task.get("id")) != task_id
+    ]
+    if not payload["master"]["tasks"]:
+        payload["master"]["tasks"].append(
+            {"id": 41, "title": "Other", "status": "pending", "dependencies": []}
+        )
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _toolchain(*, version: str = TASKMASTER_PACKAGE_VERSION) -> dict[str, Any]:

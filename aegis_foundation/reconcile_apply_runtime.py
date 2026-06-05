@@ -43,11 +43,18 @@ from aegis_foundation.taskmaster_toolchain import (
     capture_taskmaster_toolchain_evidence,
     compare_taskmaster_toolchain_evidence,
 )
+from scripts._aegis_installer import (
+    AegisError,
+    _taskmaster_state,
+    _taskmaster_tasks_by_id_from_state,
+    reconcile,
+)
 
 APPLY_ELIGIBILITY_VERSION = "task146-v1"
 APPLY_AUDIT_RECORD_TYPE = "reconcile_apply_audit"
 TERMINAL_ROLLBACK_RECORD_TYPE = "reconcile_apply_terminal_rollback_failure"
 _MISSING = object()
+_DONE_TASKMASTER_STATUSES = {"done", "completed"}
 
 
 class ReconcileApplyRuntimeError(RuntimeError):
@@ -116,11 +123,17 @@ class IdempotencyClaim:
 class FileIdempotencyStore:
     root: Path
 
-    def claim(self, key: str) -> IdempotencyClaim:
+    def claim_path(self, key: str) -> Path:
         safe_key = "".join(char if char.isalnum() or char in {"-", "_"} else "_" for char in key)
+        return self.root / "idempotency" / f"{safe_key}.json"
+
+    def exists(self, key: str) -> bool:
+        return self.claim_path(key).exists()
+
+    def claim(self, key: str) -> IdempotencyClaim:
         claims_dir = self.root / "idempotency"
         claims_dir.mkdir(parents=True, exist_ok=True)
-        claim_path = claims_dir / f"{safe_key}.json"
+        claim_path = self.claim_path(key)
         try:
             with claim_path.open("x", encoding="utf-8") as handle:
                 json.dump({"idempotency_key": key, "status": "claimed"}, handle, sort_keys=True)
@@ -146,6 +159,8 @@ class ReconcileApplyResult:
     rollback_state: Mapping[str, Any] | None = None
     toolchain_comparison: Mapping[str, Any] | None = None
     semantic_validation: Mapping[str, Any] | None = None
+    taskmaster_authority: Mapping[str, Any] | None = None
+    freshness_validation: Mapping[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -169,6 +184,8 @@ class ReconcileApplyResult:
             "rollback_state": dict(self.rollback_state or {}),
             "toolchain_comparison": dict(self.toolchain_comparison or {}),
             "semantic_validation": dict(self.semantic_validation or {}),
+            "taskmaster_authority": dict(self.taskmaster_authority or {}),
+            "freshness_validation": dict(self.freshness_validation or {}),
         }
 
 
@@ -260,6 +277,16 @@ def run_reconcile_apply_write_apparatus(
             reason="state_root_not_isolated_temp",
             **base_kwargs,
         )
+    authority, taskmaster_state = _taskmaster_authority_decision(target_root)
+    if not authority["passed"]:
+        return ReconcileApplyResult(
+            status="refused",
+            enabled=True,
+            mutated=False,
+            reason=str(authority["reason"]),
+            taskmaster_authority=authority,
+            **base_kwargs,
+        )
     if validated_toolchain_evidence is None:
         return ReconcileApplyResult(
             status="refused",
@@ -288,6 +315,44 @@ def run_reconcile_apply_write_apparatus(
     predicted_paths = tuple(
         _predicted_paths(candidate_payload, task_id=candidate.task_id, target_root=target_root)
     )
+    proof_artifact = _proof_artifact(candidate_payload, approved_context_proof)
+    idempotency_key = idempotency_key_for(
+        task_id=candidate.task_id,
+        finding_kind=candidate.finding_kind,
+        proof=candidate.proof,
+        proof_artifact=proof_artifact,
+    )
+    idempotency_store = FileIdempotencyStore(state_root)
+    if idempotency_store.exists(idempotency_key):
+        return ReconcileApplyResult(
+            status="noop",
+            enabled=True,
+            mutated=False,
+            reason="idempotency_already_claimed",
+            predicted_delta_paths=predicted_paths,
+            idempotency_key=idempotency_key,
+            toolchain_comparison=toolchain_comparison,
+            taskmaster_authority=authority,
+            **base_kwargs,
+        )
+
+    freshness = _candidate_freshness_decision(
+        candidate,
+        target_root=target_root,
+        taskmaster_state=taskmaster_state,
+    )
+    if not freshness["passed"]:
+        return ReconcileApplyResult(
+            status="refused",
+            enabled=True,
+            mutated=False,
+            reason=str(freshness["reason"]),
+            taskmaster_authority=authority,
+            freshness_validation=freshness,
+            toolchain_comparison=toolchain_comparison,
+            **base_kwargs,
+        )
+
     validation_call = validation_runner or validate_sacrificial_taskmaster_done_cascade
     validation = validation_call(
         target_root=target_root,
@@ -302,6 +367,8 @@ def run_reconcile_apply_write_apparatus(
             reason="fresh_validation_not_run",
             predicted_delta_paths=predicted_paths,
             toolchain_comparison=toolchain_comparison,
+            taskmaster_authority=authority,
+            freshness_validation=freshness,
             **base_kwargs,
         )
     path_delta_result = getattr(validation, "path_delta_matches_prediction", _MISSING)
@@ -328,6 +395,8 @@ def run_reconcile_apply_write_apparatus(
             actual_delta_paths=tuple(validation.actual_delta_paths),
             toolchain_comparison=toolchain_comparison,
             semantic_validation=semantic_validation,
+            taskmaster_authority=authority,
+            freshness_validation=freshness,
             **base_kwargs,
         )
     if not semantic_delta_matches_prediction:
@@ -340,17 +409,12 @@ def run_reconcile_apply_write_apparatus(
             actual_delta_paths=tuple(validation.actual_delta_paths),
             toolchain_comparison=toolchain_comparison,
             semantic_validation=semantic_validation,
+            taskmaster_authority=authority,
+            freshness_validation=freshness,
             **base_kwargs,
         )
 
-    proof_artifact = _proof_artifact(candidate_payload, approved_context_proof)
-    idempotency_key = idempotency_key_for(
-        task_id=candidate.task_id,
-        finding_kind=candidate.finding_kind,
-        proof=candidate.proof,
-        proof_artifact=proof_artifact,
-    )
-    claim = FileIdempotencyStore(state_root).claim(idempotency_key)
+    claim = idempotency_store.claim(idempotency_key)
     if not claim.claimed:
         return ReconcileApplyResult(
             status="noop",
@@ -360,6 +424,8 @@ def run_reconcile_apply_write_apparatus(
             predicted_delta_paths=predicted_paths,
             idempotency_key=idempotency_key,
             toolchain_comparison=toolchain_comparison,
+            taskmaster_authority=authority,
+            freshness_validation=freshness,
             **base_kwargs,
         )
 
@@ -510,8 +576,152 @@ def run_reconcile_apply_write_apparatus(
         rollback_state={"rolled_back": False},
         toolchain_comparison=toolchain_comparison,
         semantic_validation=live_semantic_validation,
+        taskmaster_authority=authority,
+        freshness_validation=freshness,
         **base_kwargs,
     )
+
+
+def _taskmaster_authority_decision(target_root: Path) -> tuple[dict[str, Any], Any]:
+    state = _taskmaster_state(target_root)
+    details = dict(state.details())
+    if "reason" in details:
+        details["authority_reason"] = details.pop("reason")
+    if state.state == "absent":
+        return (
+            {
+                **details,
+                "passed": False,
+                "reason": "taskmaster_authority_missing",
+            },
+            state,
+        )
+    if state.state != "valid":
+        return (
+            {
+                **details,
+                "passed": False,
+                "reason": "taskmaster_authority_invalid",
+            },
+            state,
+        )
+    return (
+        {
+            **details,
+            "passed": True,
+            "reason": "taskmaster_authority_valid",
+        },
+        state,
+    )
+
+
+def _candidate_freshness_decision(
+    candidate: ApplyCandidate,
+    *,
+    target_root: Path,
+    taskmaster_state: Any,
+) -> dict[str, Any]:
+    tasks = _taskmaster_tasks_by_id_from_state(taskmaster_state)
+    task = tasks.get(candidate.task_id)
+    if task is None:
+        return {
+            "passed": False,
+            "reason": "candidate_task_missing",
+            "task_id": candidate.task_id,
+        }
+
+    live_status = _normalize_taskmaster_status(task.get("status"))
+    recorded_status = _normalize_taskmaster_status(candidate.current_status)
+    base: dict[str, Any] = {
+        "task_id": candidate.task_id,
+        "live_status": live_status,
+        "recorded_status": recorded_status,
+        "expected_class_key": FIRST_APPLY_CLASS_KEY,
+    }
+    if live_status in _DONE_TASKMASTER_STATUSES:
+        return {
+            "passed": False,
+            "reason": "candidate_already_done",
+            **base,
+        }
+    if recorded_status and recorded_status != live_status:
+        return {
+            "passed": False,
+            "reason": "candidate_status_changed",
+            **base,
+        }
+
+    try:
+        report = reconcile(
+            target_root,
+            base_ref=None,
+            use_github=False,
+            preview_candidates=True,
+        )
+    except AegisError as exc:
+        return {
+            "passed": False,
+            "reason": "candidate_freshness_unavailable",
+            "message": str(exc),
+            **base,
+        }
+
+    preview = (
+        report.get("mutation_candidate_preview")
+        if isinstance(report.get("mutation_candidate_preview"), Mapping)
+        else {}
+    )
+    live_candidates = (
+        preview.get("candidates") if isinstance(preview.get("candidates"), list) else []
+    )
+    for item in live_candidates:
+        if not isinstance(item, Mapping):
+            continue
+        if (
+            str(item.get("task_id") or "") == candidate.task_id
+            and str(item.get("finding_kind") or item.get("kind") or "")
+            == candidate.finding_kind
+            and str(item.get("proof") or "") == candidate.proof
+        ):
+            return {
+                "passed": True,
+                "reason": "candidate_fresh",
+                "live_candidate": dict(item),
+                **base,
+            }
+
+    task_report = _reconcile_task_report(report, candidate.task_id)
+    merge_truth = (
+        task_report.get("merge_truth") if isinstance(task_report.get("merge_truth"), Mapping) else {}
+    )
+    merge_status = str(merge_truth.get("status") or "")
+    merge_proof = str(merge_truth.get("proof") or "")
+    reason = (
+        "candidate_not_merged"
+        if merge_status != "merged"
+        else "candidate_not_git_ancestor"
+        if merge_proof != "git_ancestor"
+        else "candidate_no_longer_auto_eligible"
+    )
+    return {
+        "passed": False,
+        "reason": reason,
+        "merge_truth": dict(merge_truth),
+        "live_candidate_count": len(live_candidates),
+        **base,
+    }
+
+
+def _reconcile_task_report(report: Mapping[str, Any], task_id: str) -> Mapping[str, Any]:
+    tasks = report.get("tasks") if isinstance(report.get("tasks"), list) else []
+    for item in tasks:
+        if isinstance(item, Mapping) and str(item.get("task_id") or "") == task_id:
+            return item
+    return {}
+
+
+def _normalize_taskmaster_status(value: Any) -> str:
+    return str(value or "").strip().lower()
 
 
 def _rollback_after_failure(
