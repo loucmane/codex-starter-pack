@@ -63,8 +63,8 @@ Every candidate must also include:
 - rollback contract reference:
   - `docs/aegis/reconcile-mutation-rollback-contract.md`
 - operator confirmation requirement
-- statement that actual blast radius is verified by the Task 145 side-effect oracle at
-  mutation time
+- statement that no live apply-time blast-radius oracle is wired today, and that Task 145
+  is test-side proof only
 
 The preview must not include:
 

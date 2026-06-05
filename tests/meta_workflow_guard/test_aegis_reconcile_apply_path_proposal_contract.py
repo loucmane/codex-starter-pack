@@ -88,7 +88,10 @@ def test_apply_path_contract_lists_task_144_to_148_preconditions() -> None:
         assert path in contract
     assert "zero auto/manual boundary leaks" in contract
     assert "before breadcrumb must exist before the first write" in contract
-    assert "Task 145's side-effect oracle is the authority" in contract
+    assert "Task 145's side-effect oracle is test-side proof only" in contract
+    assert "separate apply-time side-effect oracle" in contract
+    assert "## Future Enablement Gate: Live Apply-Time Oracle" in contract
+    assert "Task 145's side-effect oracle is the authority" not in contract
 
 
 def test_apply_path_contract_names_audit_and_kill_switch_prerequisites() -> None:

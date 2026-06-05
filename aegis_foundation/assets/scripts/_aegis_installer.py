@@ -2749,7 +2749,7 @@ def _reconcile_finding(
 RECONCILE_PREVIEW_BLOCKED_REASON = "report-only per Task 147 contract"
 RECONCILE_PREVIEW_ROLLBACK_CONTRACT_REL = "docs/aegis/reconcile-mutation-rollback-contract.md"
 RECONCILE_PREVIEW_ACTUAL_BLAST_RADIUS_AUTHORITY = (
-    "Task 145 side-effect oracle verifies actual blast radius at mutation time"
+    "No live apply-time blast-radius oracle is wired; Task 145 is test-side proof only"
 )
 
 
@@ -2865,7 +2865,7 @@ def _reconcile_mutation_candidate_preview(findings: Sequence[Mapping[str, Any]])
         "excluded": excluded,
         "notes": [
             "This opt-in preview is inert data for operator review, not an execution surface.",
-            "Actual blast radius must be verified by the Task 145 side-effect oracle before any future mutation task.",
+            "A future live mutation task must add a separate apply-time side-effect oracle before claiming actual mutation-time blast-radius verification.",
         ],
     }
 

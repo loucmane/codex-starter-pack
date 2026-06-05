@@ -2,9 +2,9 @@
 
 **Title:** Correct apply-time oracle claims and log deep gate
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 166
+**Dependencies:** 166 ✓
 
 **Priority:** high
 

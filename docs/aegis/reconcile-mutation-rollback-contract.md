@@ -21,8 +21,11 @@ local stubs, and squash/offline unknown merge truth are non-goals for this first
 contract.
 
 Task 148 preview entries may predict the changed paths from this contract, but the
-prediction is non-authoritative. The Task 145 side-effect oracle remains the authority for
-actual blast-radius verification at mutation time.
+prediction is non-authoritative. The Task 145 side-effect oracle remains test-side proof
+for read-only and isolated-fixture side-effect boundaries; it is not wired into live
+mutation-time verification. Any future live apply task must add a separate apply-time
+side-effect oracle, or keep operator-facing text from claiming mutation-time blast-radius
+verification exists.
 
 Task 149 may describe a future apply path that uses this rollback contract, but it does not
 add an execution path. Reconcile remains read-only until a separate implementation task
