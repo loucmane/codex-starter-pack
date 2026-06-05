@@ -2,7 +2,7 @@
 
 **Title:** Update GitHub Actions for Node 24 runner transition
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** None
 
