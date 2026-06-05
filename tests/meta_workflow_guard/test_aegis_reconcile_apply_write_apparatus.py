@@ -15,10 +15,13 @@ from aegis_foundation.reconcile_apply_runtime import (
     FileIdempotencyStore,
     SnapshotRollbackHandle,
     run_reconcile_apply_write_apparatus,
+    run_selected_channel_apply_with_process_oracle,
 )
 from aegis_foundation.reconcile_apply_scaffold import (
     FIRST_APPLY_CLASS_KEY,
+    ApplyCandidate,
     authorization_binding_for,
+    build_post_merge_ci_apply_confirmation,
     idempotency_key_for,
 )
 from aegis_foundation.reconcile_shadow_apply import (
@@ -29,6 +32,7 @@ from aegis_foundation.reconcile_shadow_apply import (
 from aegis_foundation.taskmaster_toolchain import (
     TASKMASTER_PACKAGE_VERSION,
     build_taskmaster_toolchain_evidence,
+    build_validated_taskmaster_ci_toolchain_baseline,
 )
 from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
 from tests.meta_workflow_guard.test_aegis_installer import (
@@ -51,6 +55,19 @@ APPROVED_CONTEXT = {
     "task_id": "42",
     "proof": "git_ancestor",
     "external_anchor": "github-actions://run/153",
+}
+POST_MERGE_CI_ENV = {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_EVENT_NAME": "push",
+    "GITHUB_REF": "refs/heads/main",
+    "GITHUB_REF_NAME": "main",
+    "GITHUB_REPOSITORY": "loucmane/codex-starter-pack",
+    "GITHUB_RUN_ID": "153",
+    "GITHUB_RUN_ATTEMPT": "1",
+    "GITHUB_SHA": "abc123",
+    "GITHUB_WORKFLOW": "CI",
+    "RUNNER_ARCH": "X64",
+    "RUNNER_OS": "Linux",
 }
 ENABLED_KILL_SWITCH = {
     "global": {"enabled": True},
@@ -119,7 +136,7 @@ def test_default_config_full_apply_path_has_zero_live_delta(tmp_path: Path) -> N
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         audit_log_path=tmp_path / "audit" / "apply.jsonl",
@@ -136,7 +153,7 @@ def test_default_config_full_apply_path_has_zero_live_delta(tmp_path: Path) -> N
 
 
 @pytest.mark.parametrize(
-    ("candidate", "context", "kill_switch", "validated_version", "reason"),
+    ("candidate", "context", "kill_switch", "current_version", "reason"),
     [
         (
             {**FIRST_CANDIDATE, "proof": "github_pr_merged"},
@@ -180,7 +197,7 @@ def test_remove_one_conjunct_refuses_before_mutation_and_expensive_validation(
     candidate: dict[str, Any],
     context: dict[str, Any] | None,
     kill_switch: dict[str, Any],
-    validated_version: str,
+    current_version: str,
     reason: str,
 ) -> None:
     target = _target(tmp_path / "conjunct")
@@ -197,8 +214,8 @@ def test_remove_one_conjunct_refuses_before_mutation_and_expensive_validation(
         target_root=target,
         approved_context_proof=context,
         kill_switch_state=kill_switch,
-        validated_toolchain_evidence=_toolchain(version=validated_version),
-        current_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
+        current_toolchain_evidence=_toolchain(version=current_version),
         state_root=tmp_path / "state",
         enable_write_path=True,
         validation_runner=validation_runner,
@@ -221,7 +238,7 @@ def test_fresh_validation_is_required_and_recorded_validation_is_not_a_license(
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -280,7 +297,7 @@ def test_live_apply_delegates_taskmaster_authority_before_validation(
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -324,7 +341,7 @@ def test_live_apply_revalidates_taskmaster_status_before_validation(
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -353,7 +370,7 @@ def test_live_apply_rederives_git_ancestor_before_validation(tmp_path: Path) -> 
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -386,7 +403,7 @@ def test_live_apply_refuses_missing_task_before_validation(tmp_path: Path) -> No
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -408,7 +425,7 @@ def test_fresh_validation_semantic_mismatch_refuses_before_write(tmp_path: Path)
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -443,7 +460,7 @@ def test_fresh_validation_semantic_evidence_must_be_present_and_true(
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -467,7 +484,7 @@ def test_fresh_validation_path_delta_does_not_default_allow(tmp_path: Path) -> N
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -489,7 +506,7 @@ def test_successful_apply_uses_real_taskmaster_cascade_and_audit(tmp_path: Path)
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         audit_log_path=tmp_path / "audit" / "apply.jsonl",
@@ -534,7 +551,7 @@ def test_before_audit_write_failure_blocks_taskmaster_status_write(tmp_path: Pat
             target_root=target,
             approved_context_proof=APPROVED_CONTEXT,
             kill_switch_state=ENABLED_KILL_SWITCH,
-            validated_toolchain_evidence=_toolchain(),
+            validated_toolchain_evidence=_validated_toolchain(),
             current_toolchain_evidence=_toolchain(),
             state_root=tmp_path / "state",
             audit_log_path=audit_parent / "apply.jsonl",
@@ -557,7 +574,7 @@ def test_idempotency_claim_makes_second_apply_noop(tmp_path: Path) -> None:
         "target_root": target,
         "approved_context_proof": APPROVED_CONTEXT,
         "kill_switch_state": ENABLED_KILL_SWITCH,
-        "validated_toolchain_evidence": _toolchain(),
+        "validated_toolchain_evidence": _validated_toolchain(),
         "current_toolchain_evidence": _toolchain(),
         "state_root": state_root,
         "enable_write_path": True,
@@ -604,7 +621,7 @@ def test_successful_path_delta_divergence_rolls_back(tmp_path: Path) -> None:
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         audit_log_path=tmp_path / "audit" / "apply.jsonl",
@@ -666,7 +683,7 @@ def test_successful_path_with_semantic_divergence_rolls_back(tmp_path: Path) -> 
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         audit_log_path=tmp_path / "audit" / "apply.jsonl",
@@ -702,7 +719,7 @@ def test_partial_apply_failure_rolls_back_snapshot_restore(tmp_path: Path) -> No
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         audit_log_path=tmp_path / "audit" / "apply.jsonl",
@@ -735,7 +752,7 @@ def test_rollback_failure_is_terminal_and_engages_kill_switch(tmp_path: Path) ->
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         audit_log_path=tmp_path / "audit" / "apply.jsonl",
@@ -768,7 +785,7 @@ def test_rollback_failure_is_terminal_and_engages_kill_switch(tmp_path: Path) ->
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=terminal_kill_switch,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state-2",
         enable_write_path=True,
@@ -780,6 +797,150 @@ def test_rollback_failure_is_terminal_and_engages_kill_switch(tmp_path: Path) ->
     assert result_after_terminal.status == "refused"
     assert result_after_terminal.reason == "terminal_rollback_failure_present"
     before.assert_matches(snapshot_whole_tree(target))
+
+
+def test_selected_channel_process_oracle_wraps_success_and_persists_artifacts(
+    tmp_path: Path,
+) -> None:
+    _require_taskmaster_cli()
+    target = _target(tmp_path / "selected-channel-success", state_json_present=True)
+    confirmation = _selected_channel_confirmation(
+        tmp_path / "aegis-apply-audit" / "153" / "42" / "candidate"
+    )
+    audit_destination = Path(confirmation["audit_destination"])
+
+    result = run_selected_channel_apply_with_process_oracle(
+        FIRST_CANDIDATE,
+        target_root=target,
+        selected_channel_confirmation=confirmation,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_validated_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        kill_switch_path=tmp_path / "state" / "kill-switch.json",
+        enable_write_path=True,
+        validation_runner=lambda **kwargs: FakeValidation(
+            kwargs["predicted_paths"], kwargs["predicted_paths"]
+        ),
+    )
+
+    assert result.status == "applied"
+    assert result.process_oracle["record_type"] == "reconcile_apply_process_oracle"
+    assert result.process_oracle["status"] == "passed"
+    assert result.process_oracle["allowed_delta_paths"] == list(
+        result.apply_result.actual_delta_paths
+    )
+    assert result.process_oracle["unexpected_delta_paths"] == []
+    assert (audit_destination / "channel-confirmation.json").is_file()
+    assert (audit_destination / "apply-audit.jsonl").is_file()
+    assert (audit_destination / "process-oracle.json").is_file()
+    audit_lines = (audit_destination / "apply-audit.jsonl").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    after_audit = json.loads(audit_lines[-1])
+    assert after_audit["channel_identity"]["selected_channel"] == "post_merge_ci"
+    assert after_audit["audit_destination"] == audit_destination.as_posix()
+
+
+def test_selected_channel_process_oracle_rolls_back_validation_side_effect(
+    tmp_path: Path,
+) -> None:
+    target = _target(tmp_path / "selected-channel-validation-side-effect")
+    before = snapshot_whole_tree(target)
+    confirmation = _selected_channel_confirmation(
+        tmp_path / "aegis-apply-audit" / "153" / "42" / "candidate"
+    )
+
+    def validation_runner(**kwargs: Any) -> FakeValidation:
+        (kwargs["target_root"] / "validation-leak.txt").write_text(
+            "validation leaked into governed repo\n", encoding="utf-8"
+        )
+        return FakeValidation(kwargs["predicted_paths"], kwargs["predicted_paths"])
+
+    result = run_selected_channel_apply_with_process_oracle(
+        FIRST_CANDIDATE,
+        target_root=target,
+        selected_channel_confirmation=confirmation,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_validated_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        kill_switch_path=tmp_path / "state" / "kill-switch.json",
+        enable_write_path=True,
+        validation_runner=validation_runner,
+    )
+
+    assert result.status == "rolled_back"
+    assert result.reason == "process_oracle_delta_mismatch"
+    assert "validation-leak.txt" in result.process_oracle["unexpected_delta_paths"]
+    assert result.process_oracle["rollback_state"]["rolled_back"] is True
+    before.assert_matches(snapshot_whole_tree(target))
+
+
+def test_selected_channel_process_oracle_terminal_on_process_rollback_failure(
+    tmp_path: Path,
+) -> None:
+    target = _target(tmp_path / "selected-channel-terminal")
+    confirmation = _selected_channel_confirmation(
+        tmp_path / "aegis-apply-audit" / "153" / "42" / "candidate"
+    )
+    audit_destination = Path(confirmation["audit_destination"])
+    kill_switch_path = tmp_path / "state" / "kill-switch.json"
+
+    def validation_runner(**kwargs: Any) -> FakeValidation:
+        (kwargs["target_root"] / "validation-leak.txt").write_text(
+            "validation leaked into governed repo\n", encoding="utf-8"
+        )
+        return FakeValidation(kwargs["predicted_paths"], kwargs["predicted_paths"])
+
+    def broken_restore(_handle: SnapshotRollbackHandle, _root: Path, _paths: Iterable[str]) -> None:
+        raise RuntimeError("process rollback refused")
+
+    result = run_selected_channel_apply_with_process_oracle(
+        FIRST_CANDIDATE,
+        target_root=target,
+        selected_channel_confirmation=confirmation,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_validated_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        kill_switch_path=kill_switch_path,
+        enable_write_path=True,
+        validation_runner=validation_runner,
+        rollback_restore=broken_restore,
+    )
+
+    assert result.status == "terminal_rollback_failed"
+    assert result.reason == "rollback_failed"
+    kill_switch = json.loads(kill_switch_path.read_text(encoding="utf-8"))
+    assert kill_switch["global"]["disabled"] is True
+    terminal = json.loads(
+        (audit_destination / "apply-audit.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+    )
+    assert terminal["record_type"] == "reconcile_apply_terminal_rollback_failure"
+    assert terminal["operator_resolution_required"] is True
+
+
+def test_live_runtime_refuses_non_precision_validated_toolchain_baseline(
+    tmp_path: Path,
+) -> None:
+    target = _target(tmp_path / "toolchain-baseline")
+    result = run_reconcile_apply_write_apparatus(
+        FIRST_CANDIDATE,
+        target_root=target,
+        approved_context_proof=APPROVED_CONTEXT,
+        kill_switch_state=ENABLED_KILL_SWITCH,
+        validated_toolchain_evidence=_toolchain(),
+        current_toolchain_evidence=_toolchain(),
+        state_root=tmp_path / "state",
+        enable_write_path=True,
+        validation_runner=lambda **_: (_ for _ in ()).throw(
+            AssertionError("baseline refusal must happen before validation")
+        ),
+    )
+
+    assert result.status == "refused"
+    assert result.reason == "validated_toolchain_baseline_missing"
 
 
 def test_test_enabled_apply_refuses_governed_repo_target_before_validation(tmp_path: Path) -> None:
@@ -795,7 +956,7 @@ def test_test_enabled_apply_refuses_governed_repo_target_before_validation(tmp_p
         target_root=REPO_ROOT,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -827,7 +988,7 @@ def test_enable_path_requires_agent_excluded_switch_state(tmp_path: Path) -> Non
         target_root=target,
         approved_context_proof=APPROVED_CONTEXT,
         kill_switch_state=ENABLED_KILL_SWITCH,
-        validated_toolchain_evidence=_toolchain(),
+        validated_toolchain_evidence=_validated_toolchain(),
         current_toolchain_evidence=_toolchain(),
         state_root=tmp_path / "state",
         enable_write_path=True,
@@ -862,7 +1023,11 @@ def test_live_write_function_has_single_gated_caller() -> None:
 
 
 def test_apply_write_apparatus_is_not_reachable_from_agent_surfaces() -> None:
-    forbidden = ("reconcile_apply_runtime", "run_reconcile_apply_write_apparatus")
+    forbidden = (
+        "reconcile_apply_runtime",
+        "run_reconcile_apply_write_apparatus",
+        "run_selected_channel_apply_with_process_oracle",
+    )
     surfaces = (
         REPO_ROOT / "aegis_foundation" / "cli.py",
         REPO_ROOT / "aegis_mcp" / "server.py",
@@ -946,6 +1111,32 @@ def _toolchain(*, version: str = TASKMASTER_PACKAGE_VERSION) -> dict[str, Any]:
         node_version="v22.1.0",
         npm_version="10.0.0",
         python_version="3.12.0",
+    )
+
+
+def _validated_toolchain() -> dict[str, Any]:
+    return build_validated_taskmaster_ci_toolchain_baseline(
+        POST_MERGE_CI_ENV,
+        python_version="3.12.0",
+    )
+
+
+def _selected_channel_confirmation(audit_destination: Path) -> dict[str, Any]:
+    candidate = ApplyCandidate.from_mapping(FIRST_CANDIDATE)
+    proof_artifact = _proof_artifact(FIRST_CANDIDATE, APPROVED_CONTEXT)
+    idempotency_key = idempotency_key_for(
+        task_id=candidate.task_id,
+        finding_kind=candidate.finding_kind,
+        proof=candidate.proof,
+        proof_artifact=proof_artifact,
+    )
+    destination = audit_destination.parent / idempotency_key
+    return build_post_merge_ci_apply_confirmation(
+        POST_MERGE_CI_ENV,
+        candidate=candidate,
+        proof_artifact=proof_artifact,
+        audit_destination=destination.as_posix(),
+        expires_at="2099-01-01T00:00:00+00:00",
     )
 
 

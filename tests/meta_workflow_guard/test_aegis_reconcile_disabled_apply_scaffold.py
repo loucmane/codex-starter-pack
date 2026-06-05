@@ -163,6 +163,7 @@ def test_apply_scaffold_is_not_reachable_from_agent_surfaces(tmp_path: Path) -> 
         source = surface.read_text(encoding="utf-8")
         assert "build_post_merge_ci_apply_confirmation" not in source
         assert "evaluate_selected_apply_channel_confirmation" not in source
+        assert "run_selected_channel_apply_with_process_oracle" not in source
 
 
 @pytest.mark.parametrize(
