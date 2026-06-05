@@ -99,6 +99,27 @@ def test_python_test_workflow_captures_shadow_accumulation_with_side_effect_orac
     assert "--apply" not in text
 
 
+def test_python_test_workflow_captures_shadow_precision_corpus_artifact() -> None:
+    workflow = _load_workflow()
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+    steps = workflow["jobs"]["python-tests"]["steps"]
+    step_names = [step.get("name") for step in steps]
+
+    assert "Capture reconcile shadow precision corpus" in step_names
+    assert "build_replayable_shadow_precision_corpus_artifact" in text
+    assert "reconcile_shadow_precision_corpus.json" in text
+    assert "reconcile-shadow-precision-corpus.json" in text
+    assert 'report_dir = Path(os.environ["RUNNER_TEMP"]) / "aegis-shadow"' in text
+    assert "snapshot_whole_tree(repo, require_tmp_root=False)" in text
+    assert "before.assert_matches(snapshot_whole_tree(repo, require_tmp_root=False))" in text
+    assert 'if not payload["precision_gate"]["passed"]' in text
+    assert "capture_taskmaster_toolchain_evidence" in text
+    assert "tests\" / \"fixtures\" / \"aegis\" / \"reconcile_shadow_precision_corpus.json" in text
+    assert "${{ runner.temp }}/aegis-shadow/" in text
+    assert "task-master set-status" not in text
+    assert "--apply" not in text
+
+
 def test_python_test_workflow_uploads_matrix_artifacts() -> None:
     workflow = _load_workflow()
     steps = workflow["jobs"]["python-tests"]["steps"]

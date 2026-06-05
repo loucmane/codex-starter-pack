@@ -2,7 +2,7 @@
 
 **Title:** Build replayable precision corpus for shadow apply
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 161 ✓
 

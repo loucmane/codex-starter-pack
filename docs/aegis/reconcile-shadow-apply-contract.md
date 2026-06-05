@@ -1,6 +1,6 @@
 # Aegis Reconcile Shadow Apply Contract
 
-**Status:** active Task 151/152/161 contract; consumed by Task 153 fresh validation.
+**Status:** active Task 151/152/161/162 contract; consumed by Task 153 fresh validation.
 **Scope:** shadow evidence only. This task does not enable reconcile mutation and does not
 expose apply through governed-agent surfaces.
 
@@ -84,9 +84,8 @@ Shadow accumulation artifacts have two distinct evidence uses:
 - **Operational evidence** proves the post-merge shadow pipeline ran in the approved CI
   context, wrote only artifacts, kept `executed: false`, kept `mutated_live_repo: false`,
   and preserved the governed repository.
-- **Precision evidence** requires at least one live candidate partition for the narrowed
-  `(merged_but_not_done, git_ancestor)` class, or the pre-registered labeled precision
-  corpus and cascade fixtures.
+- **Precision evidence** requires the pre-registered labeled precision corpus. Empty
+  operational ledgers and fixed cascade-validation smoke are not precision evidence.
 
 An empty real-repo accumulation is operational evidence only. It must not be cited as
 `0 divergences`, `100% precision`, or evidence that enablement criteria are met. Codex main
@@ -106,6 +105,46 @@ The first operational entry is recorded in
 `26959807056` at merge commit `ac2a8f13fc5aed9e9a30ebffbee12372fa47a6f8`. Its partition is
 `candidate_count: 0`, `would_apply: 0`, `shadow_refused: 0`, and `triage_required: false`,
 so it is a clean operational milestone with no precision signal.
+
+## Precision Corpus Evidence
+
+Task 162 defines the precision evidence path as a physically separate replayable corpus,
+not as a reinterpretation of post-merge operational ledgers or CI cascade smoke. The
+precision artifact record type is `reconcile_shadow_precision_corpus`.
+
+The corpus must be:
+
+- label-driven: expected truth lives in
+  `tests/fixtures/aegis/reconcile_shadow_precision_corpus.json`.
+- replayable: cases are materialized as synthetic git histories, not mocked merge booleans.
+- toolchain-bound: expected outcomes are valid only for the pinned Taskmaster toolchain.
+- pre-registered: the bar is recorded before measurement, with zero false positives, zero
+  false negatives, zero boundary leaks, zero reviewed-label decision mismatches, and at
+  least the registered true-positive count per auto-eligible `(finding_kind, proof)` pair.
+
+The current auto-eligible pair remains only:
+
+- `merged_but_not_done/git_ancestor`
+
+`merged_but_not_done/github_pr_merged` and unknown/deleted-branch merge truth are corpus
+boundary cases. They must not emit `would_apply`, must not be counted as zero-observation
+precision for the git-ancestor pair, and must not let GitHub/squash evidence inherit
+git-ancestor precision.
+
+Shadow evidence streams are intentionally non-interchangeable:
+
+- post-merge accumulation: operational/context/inertness evidence.
+- CI cascade validation: fixed-fixture synthetic smoke, `precision_observation: false`.
+- precision corpus: the only stream that contributes enablement precision evidence.
+
+A Taskmaster, Node, Python, runner, or provisioning-lock mismatch makes the corpus
+precision artifact stale; in that state no precision metrics may be emitted.
+
+CI writes the corpus artifact to `$RUNNER_TEMP/aegis-shadow/reconcile-shadow-precision-corpus.json`.
+That write is outside the governed repository and is wrapped in the same whole-tree
+side-effect oracle used by post-merge accumulation. CI must fail if the replay does not meet
+the pre-registered precision gate; local tests may skip real replay only when the
+`task-master` CLI is unavailable.
 
 ## CI Cascade Validation
 
@@ -176,6 +215,13 @@ Task 151 must not add:
 | Empty post-merge accumulation is operational evidence, not precision evidence | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_run_26959807056_operational_evidence_is_not_precision_signal` |
 | Future accumulation artifacts carry the operational/precision split inline | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_shadow_accumulation_classifies_empty_candidate_run_operational_not_precision` |
 | Pinned Taskmaster CLI state initialization writes no active tag keys | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_apply.py::test_pinned_taskmaster_cli_state_initialization_writes_no_active_tag_keys` |
+| Shadow precision corpus replays real git histories and meets the pre-registered bar | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py::test_shadow_precision_corpus_replays_real_git_histories_and_meets_registered_bar` |
+| Corpus labels live as reviewed fixture data | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py::test_shadow_precision_corpus_fixture_labels_are_reviewed_data` |
+| Manual/wrong-proof boundary leaks fail the precision gate | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py::test_shadow_precision_gate_rejects_manual_boundary_leak` |
+| Missing auto-eligible would-apply records fail as false negatives | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py::test_shadow_precision_gate_rejects_missing_auto_candidate_as_false_negative` |
+| Toolchain mismatch makes corpus precision stale and suppresses metrics | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py::test_shadow_precision_toolchain_mismatch_marks_corpus_stale_and_emits_no_metrics` |
+| Operational, cascade-smoke, and precision streams are non-interchangeable | `tests/meta_workflow_guard/test_aegis_reconcile_shadow_precision_corpus.py::test_shadow_evidence_streams_are_not_interchangeable` |
+| CI captures a separate precision corpus artifact under `$RUNNER_TEMP` and fails if the precision gate fails | `tests/meta_workflow_guard/test_ci_workflows.py::test_python_test_workflow_captures_shadow_precision_corpus_artifact` |
 
 ## Non-Goals
 
