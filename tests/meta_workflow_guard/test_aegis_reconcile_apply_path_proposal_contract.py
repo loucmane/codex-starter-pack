@@ -27,6 +27,7 @@ RELATED_CONTRACTS = (
     "docs/aegis/reconcile-precision-corpus.md",
     "docs/aegis/reconcile-mutation-rollback-contract.md",
     "docs/aegis/reconcile-mutation-candidate-preview-contract.md",
+    "docs/aegis/reconcile-enablement-readiness-gates.md",
 )
 EXCLUDED_CLASSES = (
     "github_pr_merged",
@@ -91,6 +92,7 @@ def test_apply_path_contract_lists_task_144_to_148_preconditions() -> None:
     assert "Task 145's side-effect oracle is test-side proof only" in contract
     assert "separate apply-time side-effect oracle" in contract
     assert "## Future Enablement Gate: Live Apply-Time Oracle" in contract
+    assert "Task 169 supersedes the historical" in contract
     assert "Task 145's side-effect oracle is the authority" not in contract
 
 

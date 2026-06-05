@@ -2,9 +2,9 @@
 
 **Title:** Re-derive enablement readiness gate list
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 168
+**Dependencies:** 168 ✓
 
 **Priority:** high
 

@@ -1,0 +1,249 @@
+# Aegis Reconcile Enablement Readiness Gates
+
+**Status:** active Task 169 audit.
+**Verdict:** NO-GO for creating any first guarded apply task.
+**Scope:** evidence-backed gate inventory only. This task does not enable apply, create an
+apply invocation channel, flip a kill-switch, add an MCP/CLI apply surface, mutate
+Taskmaster status, or make the current test-enabled write apparatus reachable.
+
+## Purpose
+
+Tasks 144-168 built a default-off reconcile apply control plane in small, testable steps:
+read-only promotion, side-effect evidence, precision corpus, rollback modeling, inert
+candidate preview, agent-excluded apply design, disabled apply gates, shadow evidence,
+semantic blast-radius validation, write-and-rollback apparatus, authority/freshness
+hardening, corrected operator-facing claims, and Node24-compatible CI artifact transport.
+
+Task 169 re-derives the readiness list after those changes. The result is intentionally
+conservative:
+
+- the safety spine is strong enough to keep the current system inert;
+- the evidence streams are separated enough to avoid false precision claims;
+- the internal write apparatus is still not a production apply path;
+- no first guarded apply task may be scoped until the open gates below are closed with
+  tests and reviewed evidence.
+
+## Current Inert Boundary
+
+The current implementation still has no governed-agent apply surface:
+
+- no `aegis reconcile --apply` or equivalent mutation flag;
+- no MCP apply tool;
+- no `scripts/codex-task aegis reconcile` apply route;
+- no operator-local apply command;
+- no post-merge apply workflow;
+- no enabled kill-switch state in repo or CI;
+- no Taskmaster status mutation against the governed repository from reconcile.
+
+`aegis_foundation/reconcile_apply_runtime.py` contains an internal write apparatus used by
+isolated tests. Its default behavior refuses before validation or mutation. Tests may pass
+`enable_write_path=True` only inside temporary fixtures to exercise rollback, idempotency,
+audit, authority, freshness, and semantic-delta behavior.
+
+## Closed Gates
+
+These gates are currently satisfied for the default-off apparatus and shadow evidence.
+They must remain standing gates in every later task.
+
+| Gate | Current status | Evidence |
+| --- | --- | --- |
+| Read-only reconcile promotion | Closed | `docs/aegis/reconcile-promotion-contract.md`; reconcile surfaces still reject mutation flags. |
+| First apply class narrowed to `merged_but_not_done/git_ancestor` | Closed | `docs/aegis/reconcile-mutation-rollback-contract.md`; Task 148 preview and Task 162 precision corpus use the same first class. |
+| Agent-facing apply surface absent | Closed | `tests/meta_workflow_guard/test_aegis_reconcile_apply_write_apparatus.py::test_apply_write_apparatus_is_not_reachable_from_agent_surfaces`; `tests/meta_workflow_guard/test_aegis_reconcile_disabled_apply_scaffold.py::test_apply_scaffold_is_not_reachable_from_agent_surfaces`. |
+| Single live writer caller | Closed | `_perform_taskmaster_done_write` is referenced only by `run_reconcile_apply_write_apparatus`, pinned by `test_live_write_function_has_single_gated_caller`. |
+| Default config produces zero governed-repo delta | Closed | `test_default_config_full_apply_path_has_zero_live_delta`. |
+| Kill-switch evaluator fails closed | Closed for evaluation only | Missing, unreadable, corrupt, default-disabled, global-disabled, and class-disabled states refuse in scaffold/runtime tests. |
+| Taskmaster authority is single-source in shadow and runtime checks | Closed for current shadow/runtime paths | Shadow delegates to `_taskmaster_state`; runtime calls `_taskmaster_state` before toolchain, clone, or write work. |
+| Apply-time candidate freshness re-validation | Closed for the internal runtime | Runtime re-runs read-only `reconcile(... preview_candidates=True, use_github=False)` and refuses stale, done, missing, non-merged, or non-`git_ancestor` candidates. |
+| Semantic validation fails closed | Closed | Missing, `None`, or false `semantic_delta_matches_prediction` refuses; no default-true semantic gate remains in the runtime. |
+| Fresh sacrificial cascade validation required | Closed | Runtime refuses if validation is absent or if path/semantic deltas mismatch. |
+| Live write delta/semantic mismatch rolls back | Closed in isolated runtime tests | After the write, actual paths must equal fresh prediction and semantic delta must pass, or snapshot rollback runs. |
+| Terminal rollback failure freezes subsequent apply attempts | Closed in isolated runtime tests | Rollback failure writes a terminal breadcrumb, engages a kill-switch state, and later attempts refuse on `terminal_rollback_failure_present`. |
+| Shadow evidence stream separation | Closed | Operational accumulation, cascade smoke, and precision corpus have distinct record types and classifications. |
+| Replayable precision corpus | Closed for the first class | The corpus replays real synthetic git histories and gates `merged_but_not_done/git_ancestor` at 6 TP, 0 FP, 0 FN, and 0 boundary leaks under the pinned toolchain. |
+| CI artifact transport under Node24 actions | Closed | Task 168 migrated to Node24 action majors and verified `reports/ci/` plus `$RUNNER_TEMP/aegis-shadow/` artifact layout on PR CI. |
+
+## Open Gates Blocking Any First Guarded Apply Task
+
+The following gates block creation of a first guarded apply task. A future task may close
+one or more gates, but no task may scope live apply until every blocker has reviewed
+evidence.
+
+### G1: Approved Invocation And Confirmation Channel
+
+**Status:** open.
+
+The scaffold recognizes future `post_merge_ci` and `operator_controlled_local` context
+families, but no production invocation channel exists. `enable_write_path=True` is a test
+argument, not a governance channel. There is no post-merge apply workflow, no operator-local
+entrypoint, and no reviewed mechanism that can make the enable conjunction satisfiable
+outside tests.
+
+Required evidence before this gate can close:
+
+- a selected first invocation channel: post-merge CI or operator-controlled local;
+- positive context proof bound to task id, proof, ref/run/operator identity, and exact
+  candidate class;
+- proof that the governed agent cannot create, forge, or replay the confirmation;
+- tests for malformed, stale, PR-shaped, wrong-ref, wrong-task, wrong-proof, missing, and
+  agent-originated confirmations;
+- audit breadcrumbs that record the approved channel identity before mutation.
+
+### G2: Agent-Excluded Enablement Mechanism
+
+**Status:** open.
+
+The current system proves agents cannot call apply, but it does not yet prove agents cannot
+enable apply. A future enablement mechanism must itself be outside the governed agent's
+tool, MCP, CLI, workflow-state, and config-write surfaces.
+
+Required evidence before this gate can close:
+
+- no MCP tool, CLI flag, `scripts/codex-task` route, environment variable controlled by the
+  agent, or agent-writable config can satisfy the enable gate;
+- static and behavioral tests attempt to enable from every governed-agent surface and
+  observe refusal;
+- a positive enable path exists only in the approved non-agent channel;
+- clearing or overriding any terminal rollback state is also agent-excluded.
+
+### G3: Kill-Switch Enablement And Disable Semantics
+
+**Status:** open.
+
+The kill-switch evaluator is fail-closed, but the production enable/disable mechanism is
+not designed. A future task must define where the switch lives, who may write it, how CI or
+operator invocation reads it, and how emergency disable outranks every other input.
+
+Required evidence before this gate can close:
+
+- a durable global and per-class kill-switch location with default-off behavior;
+- missing, corrupt, unreadable, stale, wrong-class, global-disabled, and class-disabled
+  states all refuse before clone or write work;
+- explicit disable outranks approved context, candidate eligibility, and prior evidence;
+- emergency disable can be applied by an approved non-agent operator path;
+- no agent-controlled path can enable, disable, clear, or rewrite the switch except through
+  an audited approved channel.
+
+### G4: Live Apply-Time Side-Effect Oracle Gate
+
+**Status:** open as an enablement gate.
+
+The internal runtime now snapshots the target tree, compares actual live delta paths to the
+fresh prediction, validates the live semantic delta, and rolls back on mismatch. That is
+necessary but not enough to claim enablement readiness: the Task 145 side-effect oracle is
+still test-side proof, and no production invocation workflow wraps the actual approved
+apply job with a process-level oracle and operator-facing evidence.
+
+Required evidence before this gate can close:
+
+- the selected apply channel snapshots the governed repository immediately before and
+  after the actual apply attempt;
+- only explicitly allowed audit/report artifacts may be written outside the Taskmaster
+  status cascade;
+- unexpected `.taskmaster`, `.aegis`, work-tracking, git-ref, source, plan, session, or
+  workflow-state deltas fail the apply and trigger rollback or terminal failure;
+- the operator-facing preview/audit text names only oracle-backed claims;
+- tests prove path-level and semantic mismatches both roll back, and rollback failure enters
+  terminal fail-closed state.
+
+### G5: Enablement Evidence Decision Packet
+
+**Status:** open.
+
+Task 162 supplies a precision corpus artifact for the first class, and post-merge
+accumulation supplies operational evidence. No final enablement decision packet exists that
+names the pre-registered bar, the operational entries, the precision corpus result,
+toolchain binding, residual risks, and explicit non-goals.
+
+Required evidence before this gate can close:
+
+- a reviewed decision packet that cites the precision corpus artifact as the precision basis
+  and refuses to count empty operational ledgers or cascade smoke as precision;
+- toolchain versions in the decision match the validated baseline and live job evidence;
+- operational post-merge runs are listed as inertness/context evidence only;
+- every unexplained divergence is zero, or each benign normalization is backed by a
+  reviewed transform plus negative tests;
+- the decision packet states whether the evidence is sufficient for a first apply task, not
+  for broad enablement.
+
+### G6: Terminal Rollback Failure Operator Resolution
+
+**Status:** open for production operations.
+
+The runtime can enter `terminal_rollback_failed`, write a terminal breadcrumb, engage a
+kill-switch state, and refuse subsequent attempts. The operator-resolution path for a real
+terminal state is not defined.
+
+Required evidence before this gate can close:
+
+- a documented manual resolution procedure for dirty governed repos after rollback failure;
+- proof that terminal breadcrumbs are durable and checked before any future apply attempt;
+- clearing terminal state requires approved non-agent operator action and is audited;
+- tests prove an agent cannot clear terminal state, delete the breadcrumb, or re-enable the
+  class through normal governed surfaces;
+- the system never retries or auto-clears a terminal rollback failure.
+
+### G7: Audit Storage, Retention, And Review Boundary
+
+**Status:** open.
+
+The internal runtime builds before/after audit records, but a production audit destination,
+retention rule, and review boundary have not been selected for the first apply channel.
+
+Required evidence before this gate can close:
+
+- before and after audit records are durable outside the mutable Taskmaster files;
+- audit writes happen before mutation and after success/rollback/terminal failure;
+- failure to write the before audit blocks mutation;
+- audit records bind task id, finding kind, proof, context proof id, toolchain, predicted
+  paths, actual paths, semantic validation, rollback handle, idempotency key, and chain
+  hash;
+- retention and artifact-download procedure are documented for the selected channel.
+
+### G8: Final Agent-Surface Regression With The Selected Channel Present
+
+**Status:** open.
+
+Existing static tests prove no current agent surface reaches the runtime. Once a future
+task adds any approved channel, that proof must be rerun with the new code present.
+
+Required evidence before this gate can close:
+
+- single-gated-caller audit still holds;
+- no MCP tool, package CLI command, `scripts/codex-task` path, preview/report consumer,
+  repair/start/kickoff flow, or hook can transitively reach apply;
+- no agent-writable input can satisfy the selected approved context or kill-switch enable
+  path;
+- behavioral dispatch tests try the real MCP/CLI/codex-task surfaces and fail to reach the
+  write function.
+
+## Gate Closure Rule
+
+Task 169's go/no-go answer is:
+
+> No first guarded apply task may be scoped until G1-G8 are closed by reviewed code,
+> tests, and evidence artifacts. Closing a gate may add refusals, audits, or
+> documentation, but must not enable mutation or broaden the candidate class unless a
+> later, separately reviewed enablement task explicitly owns that change.
+
+The future task immediately after this audit should be another gate-closing task, not an
+enablement task. Candidate sequencing:
+
+1. live apply-time side-effect oracle gate for the selected future channel;
+2. approved invocation and confirmation channel design/implementation, still default-off;
+3. kill-switch enablement and terminal-resolution operator procedure;
+4. final enablement evidence decision packet;
+5. only then scope a first guarded apply task, if the packet says GO.
+
+## Non-Goals
+
+- No apply or apply-like command.
+- No kill-switch flip.
+- No production approved context.
+- No operator-local invocation.
+- No post-merge apply workflow.
+- No MCP apply tool.
+- No agent-reachable enablement path.
+- No new candidate class.
+- No Taskmaster status mutation against the governed repository.
+- No claim that the current write apparatus is ready for production enablement.

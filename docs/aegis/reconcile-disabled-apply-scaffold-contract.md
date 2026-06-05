@@ -56,6 +56,11 @@ Task 153 extends the audit payload with runtime fields for the isolated write ap
 toolchain evidence, predicted and actual delta paths, before/after hashes, outcome, and
 rollback state. These fields are still not exposed through governed-agent surfaces.
 
+Task 169 re-derives the current enablement-readiness inventory after the scaffold, shadow,
+write-apparatus, authority/freshness, precision, and CI-maintenance work. The current
+answer is still NO-GO for creating any first guarded apply task; see
+`docs/aegis/reconcile-enablement-readiness-gates.md`.
+
 ## Kill-Switch Semantics
 
 Kill-switch evaluation is fail-closed:
