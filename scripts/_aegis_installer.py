@@ -3954,6 +3954,12 @@ def _update_tracker_plan_step(tracker_path: Path, plan_step: str, plan_status: s
         tracker_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
+def _markdown_table_cell(value: str) -> str:
+    """Render untrusted evidence text as a single markdown-table cell."""
+    collapsed = re.sub(r"\s+", " ", str(value)).strip()
+    return collapsed.replace("|", "&#124;")
+
+
 def _update_plan_table(
     plan_path: Path,
     *,
@@ -3973,8 +3979,9 @@ def _update_plan_table(
         if len(columns) != 4:
             raise AegisError(f"plan row for {plan_step} is malformed")
         evidence = columns[2]
-        if evidence_rel not in evidence:
-            evidence = f"{evidence}; {evidence_rel}" if evidence else evidence_rel
+        evidence_cell = _markdown_table_cell(evidence_rel)
+        if evidence_cell not in evidence:
+            evidence = f"{evidence}; {evidence_cell}" if evidence else evidence_cell
         current_status = columns[3]
         next_status = current_status
         if current_status not in {"completed", "n/a"} or plan_status == "completed":
@@ -3984,7 +3991,8 @@ def _update_plan_table(
         break
     if not changed:
         raise AegisError(f"plan step not found in current plan: {plan_step}")
-    amendment = f"- {timestamp} - `aegis log` updated `{plan_step}` to `{plan_status}` with evidence `{evidence_rel}`."
+    amendment_evidence = _markdown_table_cell(evidence_rel).replace("`", "'")
+    amendment = f"- {timestamp} - `aegis log` updated `{plan_step}` to `{plan_status}` with evidence `{amendment_evidence}`."
     if amendment not in lines:
         try:
             heading_index = next(
@@ -4413,7 +4421,8 @@ def log_work(
             row = plan_rows.get(normalized_plan_step)
             evidence_text = str(row.get("evidence") or "") if isinstance(row, Mapping) else ""
             row_status = str(row.get("status") or "") if isinstance(row, Mapping) else ""
-            needs_plan_update = evidence_rel not in evidence_text or (
+            evidence_cell = _markdown_table_cell(evidence_rel)
+            needs_plan_update = evidence_cell not in evidence_text or (
                 normalized_plan_status == "completed" and row_status not in {"completed", "done"}
             )
             if needs_plan_update:

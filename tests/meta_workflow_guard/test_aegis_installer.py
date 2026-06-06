@@ -2544,6 +2544,65 @@ def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
     assert set(explicit["paths"]["surfaces"]) == {"decisions"}
 
 
+def test_log_work_sanitizes_multiline_plan_table_evidence(tmp_path: Path) -> None:
+    target = tmp_path / "multiline-plan-evidence"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="multiline-plan", title="Multiline Plan")
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
+    plan_path = target / current_work["paths"]["plan"]
+
+    scope_evidence = "cmd`python - <<'PY'\nprint('scope | evidence')\nPY`"
+    scope = log_work(
+        target,
+        handler="claude:scope",
+        evidence=scope_evidence,
+        note="Recorded multiline scope evidence",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    assert scope["plan"]["evidence"] == scope_evidence
+    plan_text = plan_path.read_text(encoding="utf-8")
+    scope_row = next(line for line in plan_text.splitlines() if line.startswith("| plan-step-scope |"))
+    assert scope_row.count("|") == 5
+    assert "scope &#124; evidence" in scope_row
+    assert "print('scope | evidence')" not in scope_row
+    rows = aegis_installer._parse_plan_rows(plan_path)
+    assert rows["plan-step-scope"]["malformed"] is False
+    assert rows["plan-step-scope"]["status"] == "completed"
+
+    verify_evidence = "cmd`pytest -q\nuv run | tee verification.txt`"
+    verification = log_work(
+        target,
+        handler="aegis:verify",
+        evidence=verify_evidence,
+        note="Recorded multiline verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    assert verification["status"] == "logged"
+    assert verification["plan"]["evidence"] == verify_evidence
+    plan_text = plan_path.read_text(encoding="utf-8")
+    verify_row = next(line for line in plan_text.splitlines() if line.startswith("| plan-step-verify |"))
+    assert verify_row.count("|") == 5
+    assert "uv run &#124; tee verification.txt" in verify_row
+    rows = aegis_installer._parse_plan_rows(plan_path)
+    assert rows["plan-step-verify"]["malformed"] is False
+    assert rows["plan-step-verify"]["status"] == "completed"
+
+
 def test_log_work_consumes_pending_event_by_id(tmp_path: Path) -> None:
     target = tmp_path / "pending-id-log"
     target.mkdir()
