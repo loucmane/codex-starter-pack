@@ -860,6 +860,70 @@ def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_fold
     assert stale.is_dir()
 
 
+def test_repair_normalizes_malformed_current_plan_table(tmp_path: Path) -> None:
+    target = tmp_path / "repair-plan-table"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="plan-table-repair", title="Plan Table Repair")
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
+    plan_path = target / current_work["paths"]["plan"]
+    plan_lines = plan_path.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(plan_lines):
+        if line.startswith("| plan-step-scope |"):
+            plan_lines[index] = line.replace(
+                " | in-progress |",
+                "; cmd`python - <<'PY'\nprint('scope | evidence')\nPY` | completed |",
+            )
+        if line.startswith("| plan-step-verify |"):
+            plan_lines[index] = line.replace(
+                " | pending |",
+                "; cmd`pytest -q\nuv run | tee verification.txt` | completed |",
+            )
+    plan_path.write_text("\n".join(plan_lines).rstrip() + "\n", encoding="utf-8")
+
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    preview = repair(target, source_root=REPO_ROOT)
+
+    assert diagnosis["status"] == "repairable"
+    assert any(
+        check["id"] == "workflow.plan_table" and check["status"] == "fail"
+        for check in diagnosis["checks"]
+    )
+    assert any(
+        action["kind"] == "normalize_plan_table" and action["path"] == current_work["paths"]["plan"]
+        for action in preview["repair_plan"]["actions"]
+    )
+    assert "print('scope | evidence')" in plan_path.read_text(encoding="utf-8")
+
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+
+    assert applied["status"] == "applied"
+    assert any(
+        item["id"] == "workflow.normalize_plan_table" and item["status"] == "applied"
+        for item in applied["applied"]
+    )
+    repaired_text = plan_path.read_text(encoding="utf-8")
+    assert "scope &#124; evidence" in repaired_text
+    assert "uv run &#124; tee verification.txt" in repaired_text
+    assert "print('scope | evidence')" not in repaired_text
+    rows = aegis_installer._parse_plan_rows(plan_path)
+    assert rows["plan-step-scope"]["malformed"] is False
+    assert rows["plan-step-scope"]["status"] == "completed"
+    assert rows["plan-step-verify"]["malformed"] is False
+    assert rows["plan-step-verify"]["status"] == "completed"
+    assert doctor(target, source_root=REPO_ROOT)["status"] == "healthy"
+
+
 def test_repair_apply_is_blocked_while_pending_tracking_exists(tmp_path: Path) -> None:
     target = tmp_path / "repair-pending"
     target.mkdir()
@@ -2601,6 +2665,64 @@ def test_log_work_sanitizes_multiline_plan_table_evidence(tmp_path: Path) -> Non
     rows = aegis_installer._parse_plan_rows(plan_path)
     assert rows["plan-step-verify"]["malformed"] is False
     assert rows["plan-step-verify"]["status"] == "completed"
+
+
+def test_log_work_keeps_pending_tracking_when_plan_table_update_fails(tmp_path: Path) -> None:
+    target = tmp_path / "log-plan-failure-keeps-pending"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="atomic-log", title="Atomic Log")
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
+    plan_path = target / current_work["paths"]["plan"]
+    plan_lines = plan_path.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(plan_lines):
+        if line.startswith("| plan-step-implement |"):
+            plan_lines[index] = line.replace("changed files", "src/a.ts | src/b.ts")
+    plan_path.write_text("\n".join(plan_lines).rstrip() + "\n", encoding="utf-8")
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    pending_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "events": [
+                    {
+                        "id": "keepme123",
+                        "handler": "claude:Write",
+                        "evidence": "src/a.ts",
+                        "task": {"id": "42", "slug": "atomic-log"},
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AegisError, match="plan row for plan-step-implement is malformed"):
+        log_work(
+            target,
+            pending_event_id="keepme123",
+            note="Tried to log implementation evidence into a malformed plan row",
+            plan_step="plan-step-implement",
+            plan_status="completed",
+        )
+
+    pending_payload = json.loads(pending_path.read_text(encoding="utf-8"))
+    assert [event["id"] for event in pending_payload["events"]] == ["keepme123"]
 
 
 def test_log_work_consumes_pending_event_by_id(tmp_path: Path) -> None:

@@ -3849,6 +3849,26 @@ def _normalize_plan_status(status: str | None) -> str:
 
 
 AEGIS_PLAN_STEP_IDS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
+AEGIS_PLAN_STEP_ROW_RE = re.compile(r"^\|\s*(plan-step-[A-Za-z0-9_-]+)\s*\|")
+AEGIS_PLAN_STEP_DEFAULTS: dict[str, dict[str, str]] = {
+    "plan-step-scope": {
+        "description": "Confirm task scope, constraints, expected outputs, and affected files before implementation",
+        "status": "in-progress",
+    },
+    "plan-step-implement": {
+        "description": "Make only task-scoped changes and record implementation notes",
+        "status": "pending",
+    },
+    "plan-step-verify": {
+        "description": "Run verification, capture reports, and update handoff state",
+        "status": "pending",
+    },
+    "plan-step-emergency": {
+        "description": "Optional - only if a bypass is explicitly authorized",
+        "evidence": "Waiver plus post-mortem note in DECISIONS.md and FINDINGS.md",
+        "status": "n/a",
+    },
+}
 
 
 def _pending_event_is_confident_implementation(pending_event: Mapping[str, Any] | None) -> bool:
@@ -3958,6 +3978,150 @@ def _markdown_table_cell(value: str) -> str:
     """Render untrusted evidence text as a single markdown-table cell."""
     collapsed = re.sub(r"\s+", " ", str(value)).strip()
     return collapsed.replace("|", "&#124;")
+
+
+def _canonical_plan_step_rows(current_work: Mapping[str, Any]) -> dict[str, dict[str, str]]:
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    work_rel = str(paths.get("work_tracking") or "docs/ai/work-tracking/active/<folder>")
+    reports_rel = str(paths.get("reports") or f"{work_rel}/reports")
+    tracker_rel = f"{work_rel}/TRACKER.md"
+    rows = {step: dict(payload) for step, payload in AEGIS_PLAN_STEP_DEFAULTS.items()}
+    rows["plan-step-scope"]["evidence"] = f"{work_rel}/FINDINGS.md; {work_rel}/DECISIONS.md"
+    rows["plan-step-implement"]["evidence"] = f"{work_rel}/IMPLEMENTATION.md; changed files"
+    rows["plan-step-verify"]["evidence"] = f"{reports_rel}/; {work_rel}/HANDOFF.md; {tracker_rel}"
+    return rows
+
+
+def _plan_table_row_line(step: str, row: Mapping[str, str]) -> str:
+    description = _markdown_table_cell(str(row.get("description") or ""))
+    evidence = _markdown_table_cell(str(row.get("evidence") or ""))
+    status = str(row.get("status") or "pending").strip().lower()
+    if status not in AEGIS_PLAN_STATUS_CHOICES:
+        status = "pending"
+    return f"| {step} | {description} | {evidence} | {status} |"
+
+
+def _recover_plan_table_row(
+    step: str,
+    block: Sequence[str],
+    *,
+    canonical_rows: Mapping[str, Mapping[str, str]],
+    tracker_steps: Mapping[str, str],
+) -> dict[str, str]:
+    canonical = canonical_rows[step]
+    joined = " ".join(line.strip() for line in block if line.strip())
+    cells = [cell.strip() for cell in joined.strip().strip("|").split("|")]
+    status = str(canonical.get("status") or "pending").strip().lower()
+    status_index: int | None = None
+    for index in range(len(cells) - 1, 1, -1):
+        candidate = cells[index].strip().lower()
+        if candidate in AEGIS_PLAN_STATUS_CHOICES:
+            status = candidate
+            status_index = index
+            break
+    if status_index is None and tracker_steps.get(step) == "completed":
+        status = "completed"
+    evidence_cells = cells[2:status_index] if status_index is not None else cells[2:]
+    evidence = " | ".join(cell for cell in evidence_cells if cell).strip()
+    if not evidence:
+        evidence = str(canonical.get("evidence") or "")
+    return {
+        "description": str(canonical.get("description") or ""),
+        "evidence": evidence,
+        "status": status,
+    }
+
+
+def _normalize_plan_table_text(
+    text: str,
+    current_work: Mapping[str, Any],
+    *,
+    tracker_steps: Mapping[str, str] | None = None,
+) -> tuple[str, list[str]]:
+    canonical_rows = _canonical_plan_step_rows(current_work)
+    tracker_statuses = dict(tracker_steps or {})
+    lines = text.splitlines()
+    output: list[str] = []
+    repaired_steps: list[str] = []
+    seen_steps: set[str] = set()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        match = AEGIS_PLAN_STEP_ROW_RE.match(line)
+        if match and match.group(1) in canonical_rows:
+            step = match.group(1)
+            block = [line]
+            index += 1
+            while index < len(lines):
+                next_line = lines[index]
+                if AEGIS_PLAN_STEP_ROW_RE.match(next_line) or next_line.lstrip().startswith("## "):
+                    break
+                block.append(next_line)
+                index += 1
+            repaired = _recover_plan_table_row(
+                step,
+                block,
+                canonical_rows=canonical_rows,
+                tracker_steps=tracker_statuses,
+            )
+            repaired_line = _plan_table_row_line(step, repaired)
+            if block != [repaired_line]:
+                repaired_steps.append(step)
+            output.append(repaired_line)
+            seen_steps.add(step)
+            continue
+        output.append(line)
+        index += 1
+
+    missing_steps = [step for step in canonical_rows if step not in seen_steps]
+    if missing_steps:
+        try:
+            separator_index = next(
+                idx
+                for idx, value in enumerate(output)
+                if value.strip() == "| --- | --- | --- | --- |"
+            )
+        except StopIteration:
+            separator_index = -1
+        if separator_index >= 0:
+            insertion = separator_index + 1
+            for step in missing_steps:
+                output.insert(insertion, _plan_table_row_line(step, canonical_rows[step]))
+                repaired_steps.append(step)
+                insertion += 1
+    normalized = "\n".join(output).rstrip() + "\n"
+    return normalized, sorted(set(repaired_steps), key=lambda step: tuple(canonical_rows).index(step))
+
+
+def _plan_table_repair_preview(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(current_work, Mapping):
+        return None
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    plan_rel = str(paths.get("plan") or "").strip()
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    if not plan_rel:
+        return None
+    plan_path = target_root / plan_rel
+    if not plan_path.is_file():
+        return None
+    tracker_path = target_root / work_rel / "TRACKER.md" if work_rel else None
+    tracker_steps = _parse_tracker_plan_steps(tracker_path) if tracker_path is not None else {}
+    original = plan_path.read_text(encoding="utf-8")
+    normalized, repaired_steps = _normalize_plan_table_text(
+        original,
+        current_work,
+        tracker_steps=tracker_steps,
+    )
+    if normalized == original:
+        return None
+    return {
+        "path": plan_rel,
+        "text": normalized,
+        "steps": repaired_steps,
+    }
 
 
 def _update_plan_table(
@@ -5091,6 +5255,35 @@ def _strict_current_work_checks(
                 )
             )
 
+    plan_rel = str(paths.get("plan") or "").strip()
+    if plan_rel and (target_root / plan_rel).is_file():
+        plan_rows = _parse_plan_rows(target_root / plan_rel)
+        expected_rows = _canonical_plan_step_rows(current_work)
+        missing_steps = [step for step in expected_rows if step not in plan_rows]
+        malformed_steps = [
+            step
+            for step, row in plan_rows.items()
+            if str(step).startswith("plan-step-") and isinstance(row, Mapping) and row.get("malformed")
+        ]
+        checks.append(
+            _strict_check(
+                "workflow.plan_table",
+                category="workflow",
+                required=True,
+                passed=not missing_steps and not malformed_steps,
+                message=(
+                    "active plan table is parseable"
+                    if not missing_steps and not malformed_steps
+                    else "active plan table has malformed or missing rows"
+                ),
+                details={
+                    "path": plan_rel,
+                    "missing_steps": missing_steps,
+                    "malformed_steps": malformed_steps,
+                },
+            )
+        )
+
     work_rel = str(paths.get("work_tracking") or "").strip()
     if work_rel:
         missing_surfaces = [
@@ -5493,6 +5686,17 @@ def _doctor_repair_actions(
                 )
             )
     actions.extend(_current_work_pointer_actions(target_root, current_work))
+    plan_table_repair = _plan_table_repair_preview(target_root, current_work)
+    if plan_table_repair is not None:
+        actions.append(
+            _doctor_action(
+                "workflow.normalize_plan_table",
+                kind="normalize_plan_table",
+                path=str(plan_table_repair["path"]),
+                reason="active plan table has malformed or unsafe markdown rows",
+                details={"steps": plan_table_repair["steps"]},
+            )
+        )
     completed_action = _completed_closeout_action(target_root, current_work)
     if completed_action is not None:
         actions.append(completed_action)
@@ -5763,6 +5967,19 @@ def _apply_repair_action(
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         current_path.write_text(_dump_json(current_work), encoding="utf-8")
         return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "normalize_plan_table":
+        current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+        preview = _plan_table_repair_preview(target_root, current_work)
+        if preview is None:
+            return {"id": action.get("id"), "status": "skipped", "reason": "plan table already clean"}
+        plan_path = target_root / str(preview["path"])
+        plan_path.write_text(str(preview["text"]), encoding="utf-8")
+        return {
+            "id": action.get("id"),
+            "status": "applied",
+            "path": str(preview["path"]),
+            "details": {"steps": list(preview["steps"])},
+        }
     return {
         "id": action.get("id"),
         "status": "skipped",
