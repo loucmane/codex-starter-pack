@@ -61,7 +61,7 @@ MUTATING_TASKMASTER_RE = re.compile(
 )
 MUTATING_AEGIS_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
-    r"install|verify|start|kickoff|log|closeout"
+    r"install|uninstall|verify|start|kickoff|log|closeout"
     r")\b",
     re.IGNORECASE,
 )
@@ -557,7 +557,9 @@ def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_ba
 
 def read_only_aegis_remainder(remainder: list[str]) -> bool:
     return bool(remainder) and (
-        remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
+        remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS
+        or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
+        or (remainder[0] == "uninstall" and "--apply" not in remainder[1:])
     )
 
 
@@ -684,6 +686,14 @@ def bash_is_aegis_log(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"log"})
 
 
+def bash_is_aegis_pending_log(command: str) -> bool:
+    return bash_has_trusted_aegis_subcommand(command, {"log"}, required_option="--pending-id")
+
+
+def bash_is_aegis_uninstall_apply(command: str) -> bool:
+    return bash_has_trusted_aegis_subcommand(command, {"uninstall"}, require_apply=True)
+
+
 def bash_is_aegis_verify(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"verify"})
 
@@ -704,6 +714,7 @@ def bash_has_trusted_aegis_subcommand(
     subcommands: set[str],
     *,
     require_apply: bool = False,
+    required_option: str | None = None,
     handoff_repair: bool = False,
 ) -> bool:
     root = project_root()
@@ -719,6 +730,8 @@ def bash_has_trusted_aegis_subcommand(
         if remainder[0] not in subcommands:
             continue
         if require_apply and "--apply" not in remainder[1:]:
+            continue
+        if required_option and required_option not in remainder[1:]:
             continue
         return True
     return False
@@ -1148,6 +1161,32 @@ def payload_is_aegis_log(payload: Payload) -> bool:
     return False
 
 
+def payload_is_aegis_pending_log(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_pending_log(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return (
+            "aegis" in normalized
+            and normalized.endswith("log")
+            and bool(
+                payload.tool_input.get("pending_id")
+                or payload.tool_input.get("pending-id")
+                or payload.tool_input.get("pendingEventId")
+            )
+        )
+    return False
+
+
+def payload_is_aegis_uninstall_apply(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_uninstall_apply(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("uninstall") and payload.tool_input.get("apply") is True
+    return False
+
+
 def payload_is_mutation(payload: Payload) -> bool:
     if payload.tool_name in FILE_MUTATION_TOOLS:
         return True
@@ -1356,6 +1395,8 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         readiness.returncode == 2
         and is_mutation
         and not payload_is_aegis_bootstrap(payload)
+        and not payload_is_aegis_pending_log(payload)
+        and not payload_is_aegis_uninstall_apply(payload)
         and not post_closeout_taskmaster_completion
     ):
         return block(

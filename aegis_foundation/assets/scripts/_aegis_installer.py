@@ -56,6 +56,11 @@ AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
+AEGIS_UNINSTALL_TRANSIENT_NOTE = (
+    "current Claude hook scripts are preserved by default so an already-running Claude "
+    "session can finish; restart Claude, then rerun uninstall with --remove-hook-scripts "
+    "or delete .claude/scripts after .claude/settings.json is gone"
+)
 AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT = "templates/aegis/workflow"
 AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT = ".aegis/templates/workflow"
 AEGIS_WORKFLOW_TEMPLATE_NAMES = (
@@ -743,6 +748,54 @@ def _merge_agents_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes 
     return _merge_managed_entrypoint(
         existing,
         aegis_entrypoint,
+        begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+        end_marker=AEGIS_AGENTS_BLOCK_END,
+        existing_heading="Existing Agent Instructions",
+    )
+
+
+def _strip_managed_entrypoint(
+    existing: bytes,
+    *,
+    begin_marker: str,
+    end_marker: str,
+    existing_heading: str,
+) -> bytes | None:
+    """Remove one Aegis-managed block while preserving project-owned content."""
+
+    try:
+        existing_text = existing.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    if begin_marker not in existing_text or end_marker not in existing_text:
+        return existing
+    pattern = re.compile(
+        rf"{re.escape(begin_marker)}.*?{re.escape(end_marker)}\n?",
+        re.DOTALL,
+    )
+    stripped = pattern.sub("", existing_text, count=1)
+    stripped = re.sub(
+        rf"^\s*---\s*\n\s*## {re.escape(existing_heading)}\s*\n+",
+        "",
+        stripped,
+        count=1,
+    )
+    stripped = stripped.lstrip("\n")
+    return stripped.encode("utf-8")
+
+
+def _strip_claude_entrypoint(existing: bytes) -> bytes | None:
+    return _strip_managed_entrypoint(
+        existing,
+        begin_marker=AEGIS_CLAUDE_BLOCK_BEGIN,
+        end_marker=AEGIS_CLAUDE_BLOCK_END,
+        existing_heading="Existing Project Instructions",
+    )
+
+
+def _strip_agents_entrypoint(existing: bytes) -> bytes | None:
+    return _strip_managed_entrypoint(
+        existing,
         begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
         end_marker=AEGIS_AGENTS_BLOCK_END,
         existing_heading="Existing Agent Instructions",
@@ -2440,8 +2493,17 @@ def _git_ref_exists(target_root: Path, ref: str) -> bool:
     return _run_target_git(target_root, "rev-parse", "--verify", "--quiet", ref).returncode == 0
 
 
-def _resolve_reconcile_base_ref(target_root: Path, base_ref: str | None) -> dict[str, Any]:
+def _validate_reconcile_base_ref(base_ref: str | None) -> str:
     requested = (base_ref or "origin/main").strip() or "origin/main"
+    if requested.startswith("-") or any(ch.isspace() for ch in requested) or "\0" in requested:
+        raise AegisError(
+            "invalid reconcile base_ref: expected a ref-like value without whitespace, NUL bytes, or leading '-'"
+        )
+    return requested
+
+
+def _resolve_reconcile_base_ref(target_root: Path, base_ref: str | None) -> dict[str, Any]:
+    requested = _validate_reconcile_base_ref(base_ref)
     candidates = [requested]
     if requested == "origin/main":
         candidates.extend(["main", "master"])
@@ -3797,13 +3859,6 @@ def _infer_log_event_class(
         or evidence_lower.endswith("verification-report.json")
     ):
         return "verification"
-    if (
-        "write" in handler_lower
-        or "edit" in handler_lower
-        or "implement" in handler_lower
-        or "bash" in handler_lower
-    ):
-        return "implementation"
     return "note"
 
 
@@ -3847,6 +3902,36 @@ def _normalize_plan_status(status: str | None) -> str:
 
 
 AEGIS_PLAN_STEP_IDS = ("plan-step-scope", "plan-step-implement", "plan-step-verify")
+AEGIS_PLAN_STEP_ROW_RE = re.compile(r"^\|\s*(plan-step-[A-Za-z0-9_-]+)\s*\|")
+AEGIS_PLAN_STEP_DEFAULTS: dict[str, dict[str, str]] = {
+    "plan-step-scope": {
+        "description": "Confirm task scope, constraints, expected outputs, and affected files before implementation",
+        "status": "in-progress",
+    },
+    "plan-step-implement": {
+        "description": "Make only task-scoped changes and record implementation notes",
+        "status": "pending",
+    },
+    "plan-step-verify": {
+        "description": "Run verification, capture reports, and update handoff state",
+        "status": "pending",
+    },
+    "plan-step-emergency": {
+        "description": "Optional - only if a bypass is explicitly authorized",
+        "evidence": "Waiver plus post-mortem note in DECISIONS.md and FINDINGS.md",
+        "status": "n/a",
+    },
+}
+
+
+def _pending_event_is_confident_implementation(pending_event: Mapping[str, Any] | None) -> bool:
+    if not isinstance(pending_event, Mapping):
+        return False
+    event_class_value = str(pending_event.get("event_class") or pending_event.get("classification") or "")
+    if event_class_value.strip().lower().replace("-", "_") == "implementation":
+        return True
+    tool_name = str(pending_event.get("tool") or pending_event.get("tool_name") or "")
+    return tool_name in {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 
 
 def _infer_auto_plan_step(
@@ -3875,13 +3960,9 @@ def _infer_auto_plan_step(
         or "verification" in handler_lower
     ):
         candidates.setdefault("plan-step-verify", "verification handler/evidence")
-    if any(token in handler_lower for token in ("write", "edit", "implement", "bash")):
-        candidates.setdefault("plan-step-implement", "mutation handler")
 
-    if isinstance(pending_event, Mapping):
-        tool_name = str(pending_event.get("tool") or pending_event.get("tool_name") or "")
-        if tool_name in {"Edit", "Write", "MultiEdit", "NotebookEdit", "Bash"}:
-            candidates.setdefault("plan-step-implement", "pending mutation event")
+    if _pending_event_is_confident_implementation(pending_event):
+        candidates.setdefault("plan-step-implement", "pending file mutation event")
 
     if len(candidates) == 1:
         step, reason = next(iter(candidates.items()))
@@ -3946,6 +4027,156 @@ def _update_tracker_plan_step(tracker_path: Path, plan_step: str, plan_status: s
         tracker_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
+def _markdown_table_cell(value: str) -> str:
+    """Render untrusted evidence text as a single markdown-table cell."""
+    collapsed = re.sub(r"\s+", " ", str(value)).strip()
+    return collapsed.replace("|", "&#124;")
+
+
+def _canonical_plan_step_rows(current_work: Mapping[str, Any]) -> dict[str, dict[str, str]]:
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    work_rel = str(paths.get("work_tracking") or "docs/ai/work-tracking/active/<folder>")
+    reports_rel = str(paths.get("reports") or f"{work_rel}/reports")
+    tracker_rel = f"{work_rel}/TRACKER.md"
+    rows = {step: dict(payload) for step, payload in AEGIS_PLAN_STEP_DEFAULTS.items()}
+    rows["plan-step-scope"]["evidence"] = f"{work_rel}/FINDINGS.md; {work_rel}/DECISIONS.md"
+    rows["plan-step-implement"]["evidence"] = f"{work_rel}/IMPLEMENTATION.md; changed files"
+    rows["plan-step-verify"]["evidence"] = f"{reports_rel}/; {work_rel}/HANDOFF.md; {tracker_rel}"
+    return rows
+
+
+def _plan_table_row_line(step: str, row: Mapping[str, str]) -> str:
+    description = _markdown_table_cell(str(row.get("description") or ""))
+    evidence = _markdown_table_cell(str(row.get("evidence") or ""))
+    status = str(row.get("status") or "pending").strip().lower()
+    if status not in AEGIS_PLAN_STATUS_CHOICES:
+        status = "pending"
+    return f"| {step} | {description} | {evidence} | {status} |"
+
+
+def _recover_plan_table_row(
+    step: str,
+    block: Sequence[str],
+    *,
+    canonical_rows: Mapping[str, Mapping[str, str]],
+    tracker_steps: Mapping[str, str],
+) -> dict[str, str]:
+    canonical = canonical_rows[step]
+    joined = " ".join(line.strip() for line in block if line.strip())
+    cells = [cell.strip() for cell in joined.strip().strip("|").split("|")]
+    status = str(canonical.get("status") or "pending").strip().lower()
+    status_index: int | None = None
+    for index in range(len(cells) - 1, 1, -1):
+        candidate = cells[index].strip().lower()
+        if candidate in AEGIS_PLAN_STATUS_CHOICES:
+            status = candidate
+            status_index = index
+            break
+    if status_index is None and tracker_steps.get(step) == "completed":
+        status = "completed"
+    evidence_cells = cells[2:status_index] if status_index is not None else cells[2:]
+    evidence = " | ".join(cell for cell in evidence_cells if cell).strip()
+    if not evidence:
+        evidence = str(canonical.get("evidence") or "")
+    return {
+        "description": str(canonical.get("description") or ""),
+        "evidence": evidence,
+        "status": status,
+    }
+
+
+def _normalize_plan_table_text(
+    text: str,
+    current_work: Mapping[str, Any],
+    *,
+    tracker_steps: Mapping[str, str] | None = None,
+) -> tuple[str, list[str]]:
+    canonical_rows = _canonical_plan_step_rows(current_work)
+    tracker_statuses = dict(tracker_steps or {})
+    lines = text.splitlines()
+    output: list[str] = []
+    repaired_steps: list[str] = []
+    seen_steps: set[str] = set()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        match = AEGIS_PLAN_STEP_ROW_RE.match(line)
+        if match and match.group(1) in canonical_rows:
+            step = match.group(1)
+            block = [line]
+            index += 1
+            while index < len(lines):
+                next_line = lines[index]
+                if AEGIS_PLAN_STEP_ROW_RE.match(next_line) or next_line.lstrip().startswith("## "):
+                    break
+                block.append(next_line)
+                index += 1
+            repaired = _recover_plan_table_row(
+                step,
+                block,
+                canonical_rows=canonical_rows,
+                tracker_steps=tracker_statuses,
+            )
+            repaired_line = _plan_table_row_line(step, repaired)
+            if block != [repaired_line]:
+                repaired_steps.append(step)
+            output.append(repaired_line)
+            seen_steps.add(step)
+            continue
+        output.append(line)
+        index += 1
+
+    missing_steps = [step for step in canonical_rows if step not in seen_steps]
+    if missing_steps:
+        try:
+            separator_index = next(
+                idx
+                for idx, value in enumerate(output)
+                if value.strip() == "| --- | --- | --- | --- |"
+            )
+        except StopIteration:
+            separator_index = -1
+        if separator_index >= 0:
+            insertion = separator_index + 1
+            for step in missing_steps:
+                output.insert(insertion, _plan_table_row_line(step, canonical_rows[step]))
+                repaired_steps.append(step)
+                insertion += 1
+    normalized = "\n".join(output).rstrip() + "\n"
+    return normalized, sorted(set(repaired_steps), key=lambda step: tuple(canonical_rows).index(step))
+
+
+def _plan_table_repair_preview(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(current_work, Mapping):
+        return None
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    plan_rel = str(paths.get("plan") or "").strip()
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    if not plan_rel:
+        return None
+    plan_path = target_root / plan_rel
+    if not plan_path.is_file():
+        return None
+    tracker_path = target_root / work_rel / "TRACKER.md" if work_rel else None
+    tracker_steps = _parse_tracker_plan_steps(tracker_path) if tracker_path is not None else {}
+    original = plan_path.read_text(encoding="utf-8")
+    normalized, repaired_steps = _normalize_plan_table_text(
+        original,
+        current_work,
+        tracker_steps=tracker_steps,
+    )
+    if normalized == original:
+        return None
+    return {
+        "path": plan_rel,
+        "text": normalized,
+        "steps": repaired_steps,
+    }
+
+
 def _update_plan_table(
     plan_path: Path,
     *,
@@ -3965,8 +4196,9 @@ def _update_plan_table(
         if len(columns) != 4:
             raise AegisError(f"plan row for {plan_step} is malformed")
         evidence = columns[2]
-        if evidence_rel not in evidence:
-            evidence = f"{evidence}; {evidence_rel}" if evidence else evidence_rel
+        evidence_cell = _markdown_table_cell(evidence_rel)
+        if evidence_cell not in evidence:
+            evidence = f"{evidence}; {evidence_cell}" if evidence else evidence_cell
         current_status = columns[3]
         next_status = current_status
         if current_status not in {"completed", "n/a"} or plan_status == "completed":
@@ -3976,7 +4208,8 @@ def _update_plan_table(
         break
     if not changed:
         raise AegisError(f"plan step not found in current plan: {plan_step}")
-    amendment = f"- {timestamp} - `aegis log` updated `{plan_step}` to `{plan_status}` with evidence `{evidence_rel}`."
+    amendment_evidence = _markdown_table_cell(evidence_rel).replace("`", "'")
+    amendment = f"- {timestamp} - `aegis log` updated `{plan_step}` to `{plan_status}` with evidence `{amendment_evidence}`."
     if amendment not in lines:
         try:
             heading_index = next(
@@ -4347,6 +4580,8 @@ def log_work(
         evidence=evidence_rel,
         explicit_event_class=event_class,
     )
+    if normalized_event_class == "note" and _pending_event_is_confident_implementation(resolved_pending_event):
+        normalized_event_class = "implementation"
     normalized_plan_step, plan_step_inferred, plan_inference_reason = _resolve_plan_step_argument(
         plan_step,
         event_class=normalized_event_class,
@@ -4403,7 +4638,8 @@ def log_work(
             row = plan_rows.get(normalized_plan_step)
             evidence_text = str(row.get("evidence") or "") if isinstance(row, Mapping) else ""
             row_status = str(row.get("status") or "") if isinstance(row, Mapping) else ""
-            needs_plan_update = evidence_rel not in evidence_text or (
+            evidence_cell = _markdown_table_cell(evidence_rel)
+            needs_plan_update = evidence_cell not in evidence_text or (
                 normalized_plan_status == "completed" and row_status not in {"completed", "done"}
             )
             if needs_plan_update:
@@ -5072,6 +5308,35 @@ def _strict_current_work_checks(
                 )
             )
 
+    plan_rel = str(paths.get("plan") or "").strip()
+    if plan_rel and (target_root / plan_rel).is_file():
+        plan_rows = _parse_plan_rows(target_root / plan_rel)
+        expected_rows = _canonical_plan_step_rows(current_work)
+        missing_steps = [step for step in expected_rows if step not in plan_rows]
+        malformed_steps = [
+            step
+            for step, row in plan_rows.items()
+            if str(step).startswith("plan-step-") and isinstance(row, Mapping) and row.get("malformed")
+        ]
+        checks.append(
+            _strict_check(
+                "workflow.plan_table",
+                category="workflow",
+                required=True,
+                passed=not missing_steps and not malformed_steps,
+                message=(
+                    "active plan table is parseable"
+                    if not missing_steps and not malformed_steps
+                    else "active plan table has malformed or missing rows"
+                ),
+                details={
+                    "path": plan_rel,
+                    "missing_steps": missing_steps,
+                    "malformed_steps": malformed_steps,
+                },
+            )
+        )
+
     work_rel = str(paths.get("work_tracking") or "").strip()
     if work_rel:
         missing_surfaces = [
@@ -5474,6 +5739,17 @@ def _doctor_repair_actions(
                 )
             )
     actions.extend(_current_work_pointer_actions(target_root, current_work))
+    plan_table_repair = _plan_table_repair_preview(target_root, current_work)
+    if plan_table_repair is not None:
+        actions.append(
+            _doctor_action(
+                "workflow.normalize_plan_table",
+                kind="normalize_plan_table",
+                path=str(plan_table_repair["path"]),
+                reason="active plan table has malformed or unsafe markdown rows",
+                details={"steps": plan_table_repair["steps"]},
+            )
+        )
     completed_action = _completed_closeout_action(target_root, current_work)
     if completed_action is not None:
         actions.append(completed_action)
@@ -5744,6 +6020,19 @@ def _apply_repair_action(
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         current_path.write_text(_dump_json(current_work), encoding="utf-8")
         return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "normalize_plan_table":
+        current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+        preview = _plan_table_repair_preview(target_root, current_work)
+        if preview is None:
+            return {"id": action.get("id"), "status": "skipped", "reason": "plan table already clean"}
+        plan_path = target_root / str(preview["path"])
+        plan_path.write_text(str(preview["text"]), encoding="utf-8")
+        return {
+            "id": action.get("id"),
+            "status": "applied",
+            "path": str(preview["path"]),
+            "details": {"steps": list(preview["steps"])},
+        }
     return {
         "id": action.get("id"),
         "status": "skipped",
@@ -5824,6 +6113,261 @@ def repair(
     return report
 
 
+def _entrypoint_uninstall_operation(
+    target_root: Path,
+    rel_path: str,
+    *,
+    begin_marker: str,
+    end_marker: str,
+    existing_heading: str,
+    expected_aegis_content: bytes | None = None,
+) -> dict[str, Any] | None:
+    target = target_root / rel_path
+    if not target.is_file():
+        return None
+    existing = target.read_bytes()
+    stripped = _strip_managed_entrypoint(
+        existing,
+        begin_marker=begin_marker,
+        end_marker=end_marker,
+        existing_heading=existing_heading,
+    )
+    if stripped is None:
+        return {
+            "action": "manual-review",
+            "path": rel_path,
+            "classification": "manual-review",
+            "safe_to_apply": False,
+            "reason": "entrypoint is not UTF-8; Aegis cannot safely remove the managed block",
+        }
+    if stripped == existing:
+        if expected_aegis_content is not None and existing == expected_aegis_content:
+            return {
+                "action": "remove",
+                "path": rel_path,
+                "classification": "remove",
+                "safe_to_apply": True,
+                "reason": "remove entrypoint that exactly matches Aegis-managed default content",
+            }
+        return None
+    if stripped.strip():
+        return {
+            "action": "modify",
+            "path": rel_path,
+            "classification": "modify",
+            "safe_to_apply": True,
+            "reason": "remove Aegis-managed runtime block and preserve project-owned content",
+            "content": stripped.decode("utf-8"),
+        }
+    return {
+        "action": "remove",
+        "path": rel_path,
+        "classification": "remove",
+        "safe_to_apply": True,
+        "reason": "remove entrypoint containing only the Aegis-managed runtime block",
+    }
+
+
+def _path_uninstall_operation(target_root: Path, rel_path: str) -> dict[str, Any] | None:
+    target = target_root / rel_path
+    if not target.exists() and not target.is_symlink():
+        return None
+    return {
+        "action": "remove",
+        "path": rel_path,
+        "classification": "remove",
+        "safe_to_apply": True,
+        "reason": "remove Aegis-managed install or workflow artifact",
+    }
+
+
+def _current_work_uninstall_paths(target_root: Path) -> list[str]:
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if not isinstance(current_work, Mapping):
+        return []
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    candidates = [
+        str(paths.get("session_current") or "sessions/current"),
+        str(paths.get("session") or ""),
+        "sessions/state.json",
+        str(paths.get("plan_current") or "plans/current"),
+        str(paths.get("plan") or ""),
+        str(paths.get("work_tracking") or ""),
+    ]
+    return [path for path in candidates if path]
+
+
+def _uninstall_operations(
+    target_root: Path,
+    *,
+    remove_hook_scripts: bool,
+    source_root: Path | None,
+) -> list[dict[str, Any]]:
+    operations: list[dict[str, Any]] = []
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    enabled_agents = _enabled_agents_from_manifest(manifest) or ("claude",)
+    primary_agent = str((manifest or {}).get("primary_agent") or enabled_agents[0])
+    for operation in (
+        _entrypoint_uninstall_operation(
+            target_root,
+            "CLAUDE.md",
+            begin_marker=AEGIS_CLAUDE_BLOCK_BEGIN,
+            end_marker=AEGIS_CLAUDE_BLOCK_END,
+            existing_heading="Existing Project Instructions",
+            expected_aegis_content=_render_claude_entrypoint()
+            if "claude" in enabled_agents
+            else None,
+        ),
+        _entrypoint_uninstall_operation(
+            target_root,
+            "AGENTS.md",
+            begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+            end_marker=AEGIS_AGENTS_BLOCK_END,
+            existing_heading="Existing Agent Instructions",
+            expected_aegis_content=_render_agents_doc(primary_agent, enabled_agents)
+            if source_root is not None
+            else None,
+        ),
+    ):
+        if operation is not None:
+            operations.append(operation)
+
+    remove_paths = [
+        ".claude/settings.json",
+        *SHARED_SCHEMA_FILES,
+        *_current_work_uninstall_paths(target_root),
+    ]
+    if remove_hook_scripts:
+        remove_paths.extend(
+            [
+                *[path for path in CLAUDE_REQUIRED_FILES if path.startswith(".claude/scripts/")],
+                *CLAUDE_SUPPORT_FILES,
+            ]
+        )
+    remove_paths.append(".aegis")
+
+    for rel_path in dict.fromkeys(remove_paths):
+        operation = _path_uninstall_operation(target_root, rel_path)
+        if operation is not None:
+            operations.append(operation)
+    return operations
+
+
+def _remove_path(target_root: Path, rel_path: str) -> dict[str, Any]:
+    target = target_root / rel_path
+    try:
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+        elif target.exists() or target.is_symlink():
+            target.unlink()
+        else:
+            return {"path": rel_path, "status": "skipped", "reason": "path missing"}
+    except OSError as exc:
+        return {"path": rel_path, "status": "failed", "reason": str(exc)}
+    removed = [rel_path]
+    current = target.parent
+    while current != target_root and target_root in current.parents:
+        try:
+            current.rmdir()
+        except OSError:
+            break
+        removed.append(_repo_path(current, target_root))
+        current = current.parent
+    return {"path": rel_path, "status": "applied", "removed": removed}
+
+
+def _apply_uninstall_operation(target_root: Path, operation: Mapping[str, Any]) -> dict[str, Any]:
+    if operation.get("safe_to_apply") is not True:
+        return {"path": operation.get("path"), "status": "skipped", "reason": "manual review action"}
+    action = str(operation.get("action") or "")
+    rel_path = str(operation.get("path") or "")
+    if action == "modify":
+        content = operation.get("content")
+        if not isinstance(content, str):
+            return {"path": rel_path, "status": "failed", "reason": "missing replacement content"}
+        _write_text(target_root, rel_path, content)
+        return {"path": rel_path, "status": "applied", "action": "modify"}
+    if action == "remove":
+        return {"action": "remove", **_remove_path(target_root, rel_path)}
+    return {"path": rel_path, "status": "skipped", "reason": f"unsupported action: {action}"}
+
+
+def uninstall(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path | None = None,
+    apply: bool = False,
+    remove_hook_scripts: bool = False,
+) -> dict[str, Any]:
+    """Preview or remove Aegis-managed install/workflow artifacts from a target project."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve() if source_root is not None else None
+    operations = _uninstall_operations(
+        target_root,
+        remove_hook_scripts=remove_hook_scripts,
+        source_root=source,
+    )
+    manual_review = [operation for operation in operations if operation.get("safe_to_apply") is not True]
+    if not apply:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "checked_at": _iso_now(),
+            "target_root": str(target_root),
+            "read_only": True,
+            "status": "preview",
+            "operations": [
+                {key: value for key, value in operation.items() if key != "content"}
+                for operation in operations
+            ],
+            "summary": {
+                "operations": len(operations),
+                "safe": len(operations) - len(manual_review),
+                "manual_review": len(manual_review),
+            },
+            "current_session_note": AEGIS_UNINSTALL_TRANSIENT_NOTE
+            if not remove_hook_scripts
+            else "hook scripts are selected for removal; use outside an active Claude session",
+        }
+    if manual_review:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "checked_at": _iso_now(),
+            "target_root": str(target_root),
+            "read_only": False,
+            "status": "refused",
+            "reason": "manual-review uninstall operations must be resolved before apply",
+            "operations": [
+                {key: value for key, value in operation.items() if key != "content"}
+                for operation in operations
+            ],
+            "applied": [],
+        }
+    applied = [_apply_uninstall_operation(target_root, operation) for operation in operations]
+    failures = [item for item in applied if item.get("status") == "failed"]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "checked_at": _iso_now(),
+        "target_root": str(target_root),
+        "read_only": False,
+        "status": "failed" if failures else "applied",
+        "operations": [
+            {key: value for key, value in operation.items() if key != "content"}
+            for operation in operations
+        ],
+        "applied": applied,
+        "summary": {
+            "operations": len(operations),
+            "applied": sum(1 for item in applied if item.get("status") == "applied"),
+            "skipped": sum(1 for item in applied if item.get("status") == "skipped"),
+            "failed": len(failures),
+        },
+        "current_session_note": AEGIS_UNINSTALL_TRANSIENT_NOTE
+        if not remove_hook_scripts
+        else "hook scripts were selected for removal",
+    }
+
+
 def format_doctor_summary(report: Mapping[str, Any]) -> str:
     summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
     repair_plan = (
@@ -5846,6 +6390,20 @@ def format_repair_summary(report: Mapping[str, Any]) -> str:
             f"Aegis repair: {report.get('status')}",
             f"Applied/skipped actions: {len(applied)}",
             f"Report written: {report.get('report_written')}",
+            "",
+        ]
+    )
+
+
+def format_uninstall_summary(report: Mapping[str, Any]) -> str:
+    summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    return "\n".join(
+        [
+            f"Aegis uninstall: {report.get('status')}",
+            f"Operations: {summary.get('operations', 0)}",
+            f"Applied: {summary.get('applied', 0)}",
+            f"Failed: {summary.get('failed', 0)}",
+            f"Note: {report.get('current_session_note')}",
             "",
         ]
     )

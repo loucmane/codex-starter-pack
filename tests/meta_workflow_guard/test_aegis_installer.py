@@ -47,6 +47,7 @@ from scripts._aegis_installer import (
     repair_handoff,
     status,
     start_local_work,
+    uninstall,
     verify,
 )
 from tests.meta_workflow_guard.reconcile_side_effect_oracle import snapshot_whole_tree
@@ -158,6 +159,18 @@ def run_target_posttooluse(target: Path, payload: dict) -> subprocess.CompletedP
         ["bash", str(target / ".claude" / "scripts" / "posttooluse-tracking.sh")],
         cwd=target,
         input=json.dumps(payload),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "CLAUDE_PROJECT_DIR": target.as_posix()},
+        check=False,
+    )
+
+
+def run_target_stop_gate(target: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", str(target / ".claude" / "scripts" / "tracking-stop-gate.sh")],
+        cwd=target,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -308,6 +321,23 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert repair_args.target_dir == "/tmp/example"
     assert repair_args.apply is True
     assert repair_args.json is True
+
+    uninstall_args = parser.parse_args(
+        [
+            "aegis",
+            "uninstall",
+            "--target-dir",
+            "/tmp/example",
+            "--apply",
+            "--remove-hook-scripts",
+            "--json",
+        ]
+    )
+    assert uninstall_args.subcommand == "uninstall"
+    assert uninstall_args.target_dir == "/tmp/example"
+    assert uninstall_args.apply is True
+    assert uninstall_args.remove_hook_scripts is True
+    assert uninstall_args.json is True
 
     closeout_args = parser.parse_args(
         [
@@ -2524,6 +2554,101 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
     )
     assert protected.returncode == 2
     assert "Protected path(s):" in protected.stderr
+
+
+def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_path: Path) -> None:
+    target = tmp_path / "blocked-branch-recovery"
+    init_git_repo(target)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    simulate_claude_reload(target)
+    kickoff(
+        target,
+        task_id="42",
+        slug="blocked-recovery",
+        title="Blocked Recovery",
+        goals=["Exercise recovery from non-task branch deadlock"],
+        source_root=REPO_ROOT,
+    )
+
+    git(target, "switch", "-c", "chore/taskmaster-ledger-reconciliation")
+    post = run_target_posttooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git switch -c chore/taskmaster-ledger-reconciliation"},
+        },
+    )
+    assert post.returncode == 0, post.stderr
+    assert (target / AEGIS_PENDING_TRACKING_REL).is_file()
+
+    blocked = run_target_readiness(target)
+    assert blocked.returncode == 2
+    assert "branch 'chore/taskmaster-ledger-reconciliation' does not contain a task ID" in blocked.stdout
+
+    ordinary_write = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "touch source.txt"}},
+    )
+    assert ordinary_write.returncode == 2
+    assert "Claude readiness is BLOCKED" in ordinary_write.stderr
+
+    blocked_verify = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "./.aegis/bin/aegis verify --target-dir ."}},
+    )
+    assert blocked_verify.returncode == 2
+    assert "Claude readiness is BLOCKED" in blocked_verify.stderr
+
+    pending_log = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    "./.aegis/bin/aegis log --target-dir . --pending-id current "
+                    "--note 'Recorded non-task-branch recovery event' "
+                    "--plan-step plan-step-emergency --plan-status completed"
+                )
+            },
+        },
+    )
+    assert pending_log.returncode == 0, pending_log.stderr
+    log_work(
+        target,
+        pending_event_id="current",
+        note="Recorded non-task-branch recovery event",
+        plan_step="plan-step-emergency",
+        plan_status="completed",
+    )
+    assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+    assert run_target_stop_gate(target).returncode == 0
+
+    uninstall_preview = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "./.aegis/bin/aegis uninstall --target-dir ."}},
+    )
+    assert uninstall_preview.returncode == 0, uninstall_preview.stderr
+
+    uninstall_apply = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "./.aegis/bin/aegis uninstall --target-dir . --apply"},
+        },
+    )
+    assert uninstall_apply.returncode == 0, uninstall_apply.stderr
+    report = uninstall(target, source_root=REPO_ROOT, apply=True)
+    assert report["status"] == "applied"
+    assert not (target / ".aegis").exists()
+    assert not (target / ".claude" / "settings.json").exists()
+    assert (target / ".claude" / "scripts" / "pretooluse-gate.sh").is_file()
+    assert run_target_stop_gate(target).returncode == 0
 
 
 def test_log_work_uses_event_aware_default_surfaces(tmp_path: Path) -> None:
