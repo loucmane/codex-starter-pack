@@ -56,6 +56,11 @@ AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
+AEGIS_UNINSTALL_TRANSIENT_NOTE = (
+    "current Claude hook scripts are preserved by default so an already-running Claude "
+    "session can finish; restart Claude, then rerun uninstall with --remove-hook-scripts "
+    "or delete .claude/scripts after .claude/settings.json is gone"
+)
 AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT = "templates/aegis/workflow"
 AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT = ".aegis/templates/workflow"
 AEGIS_WORKFLOW_TEMPLATE_NAMES = (
@@ -743,6 +748,54 @@ def _merge_agents_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes 
     return _merge_managed_entrypoint(
         existing,
         aegis_entrypoint,
+        begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+        end_marker=AEGIS_AGENTS_BLOCK_END,
+        existing_heading="Existing Agent Instructions",
+    )
+
+
+def _strip_managed_entrypoint(
+    existing: bytes,
+    *,
+    begin_marker: str,
+    end_marker: str,
+    existing_heading: str,
+) -> bytes | None:
+    """Remove one Aegis-managed block while preserving project-owned content."""
+
+    try:
+        existing_text = existing.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    if begin_marker not in existing_text or end_marker not in existing_text:
+        return existing
+    pattern = re.compile(
+        rf"{re.escape(begin_marker)}.*?{re.escape(end_marker)}\n?",
+        re.DOTALL,
+    )
+    stripped = pattern.sub("", existing_text, count=1)
+    stripped = re.sub(
+        rf"^\s*---\s*\n\s*## {re.escape(existing_heading)}\s*\n+",
+        "",
+        stripped,
+        count=1,
+    )
+    stripped = stripped.lstrip("\n")
+    return stripped.encode("utf-8")
+
+
+def _strip_claude_entrypoint(existing: bytes) -> bytes | None:
+    return _strip_managed_entrypoint(
+        existing,
+        begin_marker=AEGIS_CLAUDE_BLOCK_BEGIN,
+        end_marker=AEGIS_CLAUDE_BLOCK_END,
+        existing_heading="Existing Project Instructions",
+    )
+
+
+def _strip_agents_entrypoint(existing: bytes) -> bytes | None:
+    return _strip_managed_entrypoint(
+        existing,
         begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
         end_marker=AEGIS_AGENTS_BLOCK_END,
         existing_heading="Existing Agent Instructions",
@@ -6060,6 +6113,261 @@ def repair(
     return report
 
 
+def _entrypoint_uninstall_operation(
+    target_root: Path,
+    rel_path: str,
+    *,
+    begin_marker: str,
+    end_marker: str,
+    existing_heading: str,
+    expected_aegis_content: bytes | None = None,
+) -> dict[str, Any] | None:
+    target = target_root / rel_path
+    if not target.is_file():
+        return None
+    existing = target.read_bytes()
+    stripped = _strip_managed_entrypoint(
+        existing,
+        begin_marker=begin_marker,
+        end_marker=end_marker,
+        existing_heading=existing_heading,
+    )
+    if stripped is None:
+        return {
+            "action": "manual-review",
+            "path": rel_path,
+            "classification": "manual-review",
+            "safe_to_apply": False,
+            "reason": "entrypoint is not UTF-8; Aegis cannot safely remove the managed block",
+        }
+    if stripped == existing:
+        if expected_aegis_content is not None and existing == expected_aegis_content:
+            return {
+                "action": "remove",
+                "path": rel_path,
+                "classification": "remove",
+                "safe_to_apply": True,
+                "reason": "remove entrypoint that exactly matches Aegis-managed default content",
+            }
+        return None
+    if stripped.strip():
+        return {
+            "action": "modify",
+            "path": rel_path,
+            "classification": "modify",
+            "safe_to_apply": True,
+            "reason": "remove Aegis-managed runtime block and preserve project-owned content",
+            "content": stripped.decode("utf-8"),
+        }
+    return {
+        "action": "remove",
+        "path": rel_path,
+        "classification": "remove",
+        "safe_to_apply": True,
+        "reason": "remove entrypoint containing only the Aegis-managed runtime block",
+    }
+
+
+def _path_uninstall_operation(target_root: Path, rel_path: str) -> dict[str, Any] | None:
+    target = target_root / rel_path
+    if not target.exists() and not target.is_symlink():
+        return None
+    return {
+        "action": "remove",
+        "path": rel_path,
+        "classification": "remove",
+        "safe_to_apply": True,
+        "reason": "remove Aegis-managed install or workflow artifact",
+    }
+
+
+def _current_work_uninstall_paths(target_root: Path) -> list[str]:
+    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if not isinstance(current_work, Mapping):
+        return []
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    candidates = [
+        str(paths.get("session_current") or "sessions/current"),
+        str(paths.get("session") or ""),
+        "sessions/state.json",
+        str(paths.get("plan_current") or "plans/current"),
+        str(paths.get("plan") or ""),
+        str(paths.get("work_tracking") or ""),
+    ]
+    return [path for path in candidates if path]
+
+
+def _uninstall_operations(
+    target_root: Path,
+    *,
+    remove_hook_scripts: bool,
+    source_root: Path | None,
+) -> list[dict[str, Any]]:
+    operations: list[dict[str, Any]] = []
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    enabled_agents = _enabled_agents_from_manifest(manifest) or ("claude",)
+    primary_agent = str((manifest or {}).get("primary_agent") or enabled_agents[0])
+    for operation in (
+        _entrypoint_uninstall_operation(
+            target_root,
+            "CLAUDE.md",
+            begin_marker=AEGIS_CLAUDE_BLOCK_BEGIN,
+            end_marker=AEGIS_CLAUDE_BLOCK_END,
+            existing_heading="Existing Project Instructions",
+            expected_aegis_content=_render_claude_entrypoint()
+            if "claude" in enabled_agents
+            else None,
+        ),
+        _entrypoint_uninstall_operation(
+            target_root,
+            "AGENTS.md",
+            begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+            end_marker=AEGIS_AGENTS_BLOCK_END,
+            existing_heading="Existing Agent Instructions",
+            expected_aegis_content=_render_agents_doc(primary_agent, enabled_agents)
+            if source_root is not None
+            else None,
+        ),
+    ):
+        if operation is not None:
+            operations.append(operation)
+
+    remove_paths = [
+        ".claude/settings.json",
+        *SHARED_SCHEMA_FILES,
+        *_current_work_uninstall_paths(target_root),
+    ]
+    if remove_hook_scripts:
+        remove_paths.extend(
+            [
+                *[path for path in CLAUDE_REQUIRED_FILES if path.startswith(".claude/scripts/")],
+                *CLAUDE_SUPPORT_FILES,
+            ]
+        )
+    remove_paths.append(".aegis")
+
+    for rel_path in dict.fromkeys(remove_paths):
+        operation = _path_uninstall_operation(target_root, rel_path)
+        if operation is not None:
+            operations.append(operation)
+    return operations
+
+
+def _remove_path(target_root: Path, rel_path: str) -> dict[str, Any]:
+    target = target_root / rel_path
+    try:
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target)
+        elif target.exists() or target.is_symlink():
+            target.unlink()
+        else:
+            return {"path": rel_path, "status": "skipped", "reason": "path missing"}
+    except OSError as exc:
+        return {"path": rel_path, "status": "failed", "reason": str(exc)}
+    removed = [rel_path]
+    current = target.parent
+    while current != target_root and target_root in current.parents:
+        try:
+            current.rmdir()
+        except OSError:
+            break
+        removed.append(_repo_path(current, target_root))
+        current = current.parent
+    return {"path": rel_path, "status": "applied", "removed": removed}
+
+
+def _apply_uninstall_operation(target_root: Path, operation: Mapping[str, Any]) -> dict[str, Any]:
+    if operation.get("safe_to_apply") is not True:
+        return {"path": operation.get("path"), "status": "skipped", "reason": "manual review action"}
+    action = str(operation.get("action") or "")
+    rel_path = str(operation.get("path") or "")
+    if action == "modify":
+        content = operation.get("content")
+        if not isinstance(content, str):
+            return {"path": rel_path, "status": "failed", "reason": "missing replacement content"}
+        _write_text(target_root, rel_path, content)
+        return {"path": rel_path, "status": "applied", "action": "modify"}
+    if action == "remove":
+        return {"action": "remove", **_remove_path(target_root, rel_path)}
+    return {"path": rel_path, "status": "skipped", "reason": f"unsupported action: {action}"}
+
+
+def uninstall(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path | None = None,
+    apply: bool = False,
+    remove_hook_scripts: bool = False,
+) -> dict[str, Any]:
+    """Preview or remove Aegis-managed install/workflow artifacts from a target project."""
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).resolve() if source_root is not None else None
+    operations = _uninstall_operations(
+        target_root,
+        remove_hook_scripts=remove_hook_scripts,
+        source_root=source,
+    )
+    manual_review = [operation for operation in operations if operation.get("safe_to_apply") is not True]
+    if not apply:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "checked_at": _iso_now(),
+            "target_root": str(target_root),
+            "read_only": True,
+            "status": "preview",
+            "operations": [
+                {key: value for key, value in operation.items() if key != "content"}
+                for operation in operations
+            ],
+            "summary": {
+                "operations": len(operations),
+                "safe": len(operations) - len(manual_review),
+                "manual_review": len(manual_review),
+            },
+            "current_session_note": AEGIS_UNINSTALL_TRANSIENT_NOTE
+            if not remove_hook_scripts
+            else "hook scripts are selected for removal; use outside an active Claude session",
+        }
+    if manual_review:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "checked_at": _iso_now(),
+            "target_root": str(target_root),
+            "read_only": False,
+            "status": "refused",
+            "reason": "manual-review uninstall operations must be resolved before apply",
+            "operations": [
+                {key: value for key, value in operation.items() if key != "content"}
+                for operation in operations
+            ],
+            "applied": [],
+        }
+    applied = [_apply_uninstall_operation(target_root, operation) for operation in operations]
+    failures = [item for item in applied if item.get("status") == "failed"]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "checked_at": _iso_now(),
+        "target_root": str(target_root),
+        "read_only": False,
+        "status": "failed" if failures else "applied",
+        "operations": [
+            {key: value for key, value in operation.items() if key != "content"}
+            for operation in operations
+        ],
+        "applied": applied,
+        "summary": {
+            "operations": len(operations),
+            "applied": sum(1 for item in applied if item.get("status") == "applied"),
+            "skipped": sum(1 for item in applied if item.get("status") == "skipped"),
+            "failed": len(failures),
+        },
+        "current_session_note": AEGIS_UNINSTALL_TRANSIENT_NOTE
+        if not remove_hook_scripts
+        else "hook scripts were selected for removal",
+    }
+
+
 def format_doctor_summary(report: Mapping[str, Any]) -> str:
     summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
     repair_plan = (
@@ -6082,6 +6390,20 @@ def format_repair_summary(report: Mapping[str, Any]) -> str:
             f"Aegis repair: {report.get('status')}",
             f"Applied/skipped actions: {len(applied)}",
             f"Report written: {report.get('report_written')}",
+            "",
+        ]
+    )
+
+
+def format_uninstall_summary(report: Mapping[str, Any]) -> str:
+    summary = report.get("summary") if isinstance(report.get("summary"), Mapping) else {}
+    return "\n".join(
+        [
+            f"Aegis uninstall: {report.get('status')}",
+            f"Operations: {summary.get('operations', 0)}",
+            f"Applied: {summary.get('applied', 0)}",
+            f"Failed: {summary.get('failed', 0)}",
+            f"Note: {report.get('current_session_note')}",
             "",
         ]
     )

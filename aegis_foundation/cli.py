@@ -168,6 +168,24 @@ def handle_repair(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_uninstall(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.uninstall(
+            args.target_dir,
+            source_root=source_root,
+            apply=args.apply,
+            remove_hook_scripts=args.remove_hook_scripts,
+        )
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_uninstall_summary(payload), end="")
+    if payload.get("status") in {"failed", "refused"}:
+        print("Aegis uninstall failed or refused unsafe operations", file=sys.stderr)
+        return 1
+    return 0
+
+
 def handle_install(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.install(
@@ -676,6 +694,31 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Print the full structured repair report instead of a concise summary.",
     )
     repair_parser.set_defaults(func=handle_repair)
+
+    uninstall_parser = subparsers.add_parser(
+        "uninstall",
+        help="Preview or remove Aegis-managed install and workflow artifacts.",
+    )
+    uninstall_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    uninstall_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the uninstall plan; omitted means dry-run preview.",
+    )
+    uninstall_parser.add_argument(
+        "--remove-hook-scripts",
+        action="store_true",
+        help=(
+            "Also remove .claude/scripts hook files. Default preserves them so an already-running "
+            "Claude session can finish after .claude/settings.json is removed."
+        ),
+    )
+    uninstall_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the full structured uninstall report instead of a concise summary.",
+    )
+    uninstall_parser.set_defaults(func=handle_uninstall)
 
     install_parser = subparsers.add_parser(
         "install",
