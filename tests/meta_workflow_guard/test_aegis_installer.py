@@ -1411,6 +1411,85 @@ def test_install_uses_runtime_dispatchers_and_update_without_reinstall(tmp_path:
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
 
 
+def test_install_upgrades_existing_manifest_owned_bootstrap_files(tmp_path: Path) -> None:
+    target = tmp_path / "managed-upgrade-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    stale_paths = [
+        ".aegis/bin/aegis",
+        ".claude/scripts/pretooluse-gate.sh",
+        ".claude/scripts/gate_lib.py",
+        "schemas/aegis/foundation-manifest.schema.json",
+    ]
+    for rel_path in stale_paths:
+        path = target / rel_path
+        path.write_text("# old Aegis-managed bootstrap content\n", encoding="utf-8")
+
+    plan = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+    )
+    operations = {operation["path"]: operation for operation in plan["operations"]}
+
+    assert plan["summary"]["manual_reviews"] == 0
+    for rel_path in stale_paths:
+        assert operations[rel_path]["classification"] == "modify"
+        assert operations[rel_path]["safe_to_apply"] is True
+        assert operations[rel_path]["managed"] is True
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert report["status"] == "applied"
+    assert 'exec "$AEGIS_BIN" hook pretooluse "$@"' in (
+        target / ".claude" / "scripts" / "pretooluse-gate.sh"
+    ).read_text(encoding="utf-8")
+
+
+def test_install_refuses_to_overwrite_customized_bootstrap_files(tmp_path: Path) -> None:
+    target = tmp_path / "customized-upgrade-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    customized_path = ".claude/scripts/pretooluse-gate.sh"
+    (target / customized_path).write_text("# user customized hook\n", encoding="utf-8")
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["customized_files"] = [{"path": customized_path, "kind": "adapter"}]
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    plan = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+    )
+    operations = {operation["path"]: operation for operation in plan["operations"]}
+
+    assert operations[customized_path]["classification"] == "manual-review"
+    assert operations[customized_path]["safe_to_apply"] is False
+    assert plan["summary"]["manual_reviews"] == 1
+
+
 def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -> None:
     target = tmp_path / "guided-repo"
     target.mkdir()
