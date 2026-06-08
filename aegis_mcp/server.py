@@ -964,6 +964,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         target_dir: str,
         summary: str = "",
         allow_dirty: bool = False,
+        collect_artifacts: bool = False,
         apply: bool = False,
     ) -> dict[str, Any]:
         """Stop observation mode after checking for unexpected working-tree deltas; requires apply=true."""
@@ -983,6 +984,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
                 target,
                 summary=summary,
                 allow_dirty=allow_dirty,
+                collect_artifacts=collect_artifacts,
                 source_root=config.source_root,
             )
             if report.get("status") == "blocked":

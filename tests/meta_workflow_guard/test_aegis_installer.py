@@ -277,12 +277,21 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert observe_start_args.slug == "polish-audit"
 
     observe_stop_args = parser.parse_args(
-        ["aegis", "observe", "stop", "--summary", "Observed app shell", "--allow-dirty"]
+        [
+            "aegis",
+            "observe",
+            "stop",
+            "--summary",
+            "Observed app shell",
+            "--allow-dirty",
+            "--collect-artifacts",
+        ]
     )
     assert observe_stop_args.subcommand == "observe"
     assert observe_stop_args.observe_subcommand == "stop"
     assert observe_stop_args.summary == "Observed app shell"
     assert observe_stop_args.allow_dirty is True
+    assert observe_stop_args.collect_artifacts is True
 
     install_args = parser.parse_args(
         [
@@ -1181,6 +1190,22 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     )
     assert taskmaster_gate.returncode == 2
     assert "observation mode only permits observation tooling" in taskmaster_gate.stderr
+    rm_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "rm -f audit-home-mobile.png"}},
+    )
+    assert rm_gate.returncode == 2
+    assert "observation mode only permits observation tooling" in rm_gate.stderr
+    stop_collect_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "./.aegis/bin/aegis observe stop --target-dir . --collect-artifacts"
+            },
+        },
+    )
+    assert stop_collect_gate.returncode == 0, stop_collect_gate.stderr
 
     post = run_target_posttooluse(target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}})
     assert post.returncode == 0, post.stderr
@@ -1217,6 +1242,118 @@ def test_observation_stop_blocks_unexpected_delta_and_allow_dirty_overrides(
     )
     assert completed["status"] == "completed"
     assert "?? src/audit.ts" in completed["unexpected_changes"]
+
+
+def test_observation_stop_collects_known_artifacts(tmp_path: Path) -> None:
+    target = tmp_path / "observe-artifacts"
+    init_git_repo(target)
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Artifact audit", source_root=REPO_ROOT)
+
+    screenshot = target / "audit-home-mobile.png"
+    screenshot.write_text("fake screenshot\n", encoding="utf-8")
+    playwright_snapshot = target / ".playwright-mcp" / "page.yaml"
+    playwright_snapshot.parent.mkdir(parents=True, exist_ok=True)
+    playwright_snapshot.write_text("url: http://localhost:5173\n", encoding="utf-8")
+
+    blocked = stop_observation(target, summary="Artifacts present", source_root=REPO_ROOT)
+    assert blocked["status"] == "blocked"
+    assert "?? audit-home-mobile.png" in blocked["unexpected_changes"]
+    assert any(".playwright-mcp" in entry for entry in blocked["unexpected_changes"])
+    assert blocked["cleanable_artifacts"] == [".playwright-mcp", "audit-home-mobile.png"]
+    assert screenshot.exists()
+    assert playwright_snapshot.exists()
+
+    completed = stop_observation(
+        target,
+        summary="Artifacts collected",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+    assert completed["status"] == "completed"
+    assert completed["unexpected_changes"] == []
+    assert completed["cleanable_artifacts"] == []
+    assert {item["from"] for item in completed["collected_artifacts"]} == {
+        ".playwright-mcp",
+        "audit-home-mobile.png",
+    }
+    artifact_root = target / completed["artifact_root"]
+    assert (artifact_root / "audit-home-mobile.png").is_file()
+    assert (artifact_root / ".playwright-mcp" / "page.yaml").is_file()
+    assert not screenshot.exists()
+    assert not (target / ".playwright-mcp").exists()
+
+
+def test_observation_collect_artifacts_blocks_when_source_delta_exists(tmp_path: Path) -> None:
+    target = tmp_path / "observe-artifacts-source-dirty"
+    init_git_repo(target)
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Mixed dirty audit", source_root=REPO_ROOT)
+
+    screenshot = target / "audit-question-desktop.png"
+    screenshot.write_text("fake screenshot\n", encoding="utf-8")
+    source_file = target / "src" / "audit.ts"
+    source_file.parent.mkdir(parents=True, exist_ok=True)
+    source_file.write_text("export const audit = true;\n", encoding="utf-8")
+
+    blocked = stop_observation(
+        target,
+        summary="Unsafe source delta",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+    assert blocked["status"] == "blocked"
+    assert blocked["cleanable_artifacts"] == ["audit-question-desktop.png"]
+    assert "?? src/audit.ts" in blocked["unexpected_changes"]
+    assert screenshot.exists()
+    assert source_file.exists()
+
+
+def test_observation_collect_artifacts_preserves_preexisting_artifact_names(tmp_path: Path) -> None:
+    target = tmp_path / "observe-preexisting-artifact"
+    init_git_repo(target)
+    preexisting = target / "audit-old-mobile.png"
+    preexisting.write_text("preexisting\n", encoding="utf-8")
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Preexisting audit", source_root=REPO_ROOT)
+
+    completed = stop_observation(
+        target,
+        summary="No new artifacts",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+    assert completed["status"] == "completed"
+    assert completed["collected_artifacts"] == []
+    assert preexisting.read_text(encoding="utf-8") == "preexisting\n"
+
+
+def test_observation_collect_artifacts_refuses_symlink_artifact(tmp_path: Path) -> None:
+    target = tmp_path / "observe-symlink-artifact"
+    init_git_repo(target)
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Symlink audit", source_root=REPO_ROOT)
+
+    outside = tmp_path / "outside.png"
+    outside.write_text("outside\n", encoding="utf-8")
+    link = target / "audit-link-mobile.png"
+    link.symlink_to(outside)
+
+    blocked = stop_observation(
+        target,
+        summary="Symlink artifact",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+    assert blocked["status"] == "blocked"
+    assert blocked["cleanable_artifacts"] == []
+    assert "?? audit-link-mobile.png" in blocked["unexpected_changes"]
+    assert link.is_symlink()
+    assert outside.read_text(encoding="utf-8") == "outside\n"
 
 
 def test_observation_stop_blocks_tracked_and_ignored_deltas(tmp_path: Path) -> None:

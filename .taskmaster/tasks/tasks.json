@@ -6906,13 +6906,25 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-08T14:30:30.841Z"
+      },
+      {
+        "id": "180",
+        "title": "Add safe observation artifact collection to Aegis observe stop",
+        "description": "Implement a sanctioned observation cleanup path so Aegis observe stop can collect known read-only audit artifacts such as screenshots and Playwright MCP output without allowing arbitrary rm during observation. The stop path must remain fail-closed for source, Taskmaster, protected, pre-existing, symlink-escaping, or unknown changes.",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-08T16:44:33.930Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-08T14:30:30.842Z",
-      "taskCount": 178,
-      "completedCount": 178,
+      "lastModified": "2026-06-08T16:44:33.931Z",
+      "taskCount": 179,
+      "completedCount": 179,
       "tags": [
         "master"
       ]

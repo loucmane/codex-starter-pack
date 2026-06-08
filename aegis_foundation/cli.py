@@ -335,6 +335,7 @@ def handle_observe(args: argparse.Namespace) -> int:
                 args.target_dir,
                 summary=args.summary or "",
                 allow_dirty=args.allow_dirty,
+                collect_artifacts=args.collect_artifacts,
                 source_root=source_root,
             )
             _dump_json(payload)
@@ -956,6 +957,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--allow-dirty",
         action="store_true",
         help="Complete observation even when unexpected deltas are present.",
+    )
+    observe_stop_parser.add_argument(
+        "--collect-artifacts",
+        action="store_true",
+        help="Move known observation artifacts into the Aegis observation report before closing.",
     )
     observe_stop_parser.set_defaults(func=handle_observe)
 

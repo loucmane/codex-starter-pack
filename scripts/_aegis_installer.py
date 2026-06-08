@@ -7,6 +7,7 @@ the same deterministic planning, install, and verify behavior as the CLI.
 from __future__ import annotations
 
 import json
+import fnmatch
 import os
 import re
 import shlex
@@ -57,6 +58,7 @@ AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_OBSERVATION_REPORT_REL = ".aegis/reports/observation-report.json"
+AEGIS_OBSERVATION_ARTIFACT_ROOT_REL = ".aegis/reports/observations"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
 AEGIS_UNINSTALL_TRANSIENT_NOTE = (
     "current Claude hook scripts are preserved by default so an already-running Claude "
@@ -92,6 +94,13 @@ AEGIS_EVENT_DEFAULT_LOG_SURFACES = {
 }
 AEGIS_OBSERVATION_FINGERPRINT_MAX_FILES = 512
 AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES = 8 * 1024 * 1024
+AEGIS_OBSERVATION_ARTIFACT_DIRS = (".playwright-mcp",)
+AEGIS_OBSERVATION_ROOT_SCREENSHOT_PATTERNS = (
+    "audit-*.png",
+    "*-desktop.png",
+    "*-mobile.png",
+    "_home_fixed.png",
+)
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
@@ -2361,19 +2370,26 @@ def next_action(
             state="observation_active",
             next_required_action=(
                 "run observation tooling without source edits or Taskmaster mutation, record findings if useful, "
-                "then stop observation so Aegis can verify the working-tree delta"
+                "then stop observation so Aegis can verify the working-tree delta and collect known audit artifacts"
             ),
-            suggested_cli="./.aegis/bin/aegis observe stop --target-dir . --summary '<what was observed>'",
+            suggested_cli=(
+                "./.aegis/bin/aegis observe stop --target-dir . "
+                "--summary '<what was observed>' --collect-artifacts"
+            ),
             suggested_mcp_tool="aegis.observe_stop",
             suggested_mcp_arguments={
                 "target_dir": ".",
                 "summary": "<what was observed>",
+                "collect_artifacts": True,
                 "apply": True,
             },
             missing_gates=[],
             copyable_repairs=[
                 f"Save screenshots or notes under {reports_rel}/",
-                "./.aegis/bin/aegis observe stop --target-dir . --summary '<what was observed>'",
+                (
+                    "./.aegis/bin/aegis observe stop --target-dir . "
+                    "--summary '<what was observed>' --collect-artifacts"
+                ),
             ],
             details={
                 "mode": "observation",
@@ -3755,6 +3771,11 @@ def _git_status_fingerprints(target_root: Path, status_lines: Sequence[str]) -> 
 
 def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    observation = (
+        current_work.get("observation")
+        if isinstance(current_work.get("observation"), Mapping)
+        else {}
+    )
     prefixes = {
         AEGIS_CURRENT_WORK_REL,
         AEGIS_MANIFEST_REL,
@@ -3767,6 +3788,13 @@ def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
         value = str(paths.get(key) or "").strip()
         if value:
             prefixes.add(value.rstrip("/"))
+    artifact_root = str(
+        paths.get("observation_artifacts")
+        or observation.get("artifact_root")
+        or ""
+    ).strip()
+    if artifact_root:
+        prefixes.add(artifact_root.rstrip("/"))
     return sorted(prefixes)
 
 
@@ -3776,10 +3804,9 @@ def _status_line_matches_prefix(line: str, prefix: str) -> bool:
     return rel_path == normalized or rel_path.startswith(f"{normalized}/")
 
 
-def _unexpected_observation_status_lines(
+def _observation_status_delta_lines(
     current_work: Mapping[str, Any],
     current_status: Sequence[str],
-    current_fingerprints: Mapping[str, str],
 ) -> list[str]:
     observation = (
         current_work.get("observation")
@@ -3797,14 +3824,33 @@ def _unexpected_observation_status_lines(
         else {}
     )
     allowed_prefixes = _observation_allowed_prefixes(current_work)
-    unexpected: list[str] = []
+    deltas: list[str] = []
     for line in current_status:
         stripped = str(line).rstrip()
         if not stripped or stripped in baseline:
             continue
         if any(_status_line_matches_prefix(stripped, prefix) for prefix in allowed_prefixes):
             continue
-        unexpected.append(stripped)
+        deltas.append(stripped)
+    return deltas
+
+
+def _observation_fingerprint_delta_lines(
+    current_work: Mapping[str, Any],
+    current_fingerprints: Mapping[str, str],
+) -> list[str]:
+    observation = (
+        current_work.get("observation")
+        if isinstance(current_work.get("observation"), Mapping)
+        else {}
+    )
+    baseline_fingerprints = (
+        observation.get("baseline_git_fingerprints")
+        if isinstance(observation.get("baseline_git_fingerprints"), Mapping)
+        else {}
+    )
+    allowed_prefixes = _observation_allowed_prefixes(current_work)
+    deltas: list[str] = []
     for rel_path, baseline_fingerprint in sorted(baseline_fingerprints.items()):
         rel_text = str(rel_path)
         if any(
@@ -3814,10 +3860,117 @@ def _unexpected_observation_status_lines(
             continue
         current_fingerprint = current_fingerprints.get(rel_text)
         if current_fingerprint is None:
-            unexpected.append(f"removed status-visible path: {rel_text}")
+            deltas.append(f"removed status-visible path: {rel_text}")
         elif current_fingerprint != baseline_fingerprint:
-            unexpected.append(f"changed status-visible path: {rel_text}")
+            deltas.append(f"changed status-visible path: {rel_text}")
+    return deltas
+
+
+def _unexpected_observation_status_lines(
+    current_work: Mapping[str, Any],
+    current_status: Sequence[str],
+    current_fingerprints: Mapping[str, str],
+) -> list[str]:
+    unexpected: list[str] = []
+    unexpected.extend(_observation_status_delta_lines(current_work, current_status))
+    unexpected.extend(_observation_fingerprint_delta_lines(current_work, current_fingerprints))
     return unexpected
+
+
+def _observation_artifact_root_rel(current_work: Mapping[str, Any]) -> str:
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    observation = (
+        current_work.get("observation")
+        if isinstance(current_work.get("observation"), Mapping)
+        else {}
+    )
+    configured = str(
+        paths.get("observation_artifacts")
+        or observation.get("artifact_root")
+        or ""
+    ).strip()
+    if configured:
+        return configured.strip("/")
+    observation_id = str(observation.get("id") or "unknown-observation")
+    return f"{AEGIS_OBSERVATION_ARTIFACT_ROOT_REL}/{_slugify(observation_id)}/artifacts"
+
+
+def _observation_artifact_source_rel(line: str) -> str | None:
+    stripped = str(line).rstrip()
+    if not (stripped.startswith("?? ") or stripped.startswith("!! ")):
+        return None
+    rel_path = _git_status_rel_path(stripped).rstrip("/")
+    if not rel_path:
+        return None
+    first_part = rel_path.split("/", 1)[0]
+    if first_part in AEGIS_OBSERVATION_ARTIFACT_DIRS:
+        return first_part
+    if "/" not in rel_path and any(
+        fnmatch.fnmatchcase(rel_path, pattern)
+        for pattern in AEGIS_OBSERVATION_ROOT_SCREENSHOT_PATTERNS
+    ):
+        return rel_path
+    return None
+
+
+def _observation_cleanable_artifact_rels(
+    target_root: Path,
+    status_delta_lines: Sequence[str],
+    artifact_root_rel: str,
+) -> list[str]:
+    candidates: set[str] = set()
+    normalized_root = artifact_root_rel.rstrip("/")
+    for line in status_delta_lines:
+        rel_path = _observation_artifact_source_rel(str(line))
+        if not rel_path:
+            continue
+        if rel_path == normalized_root or rel_path.startswith(f"{normalized_root}/"):
+            continue
+        source = target_root / rel_path
+        if source.is_symlink():
+            continue
+        if not source.exists():
+            continue
+        candidates.add(rel_path)
+    return sorted(candidates)
+
+
+def _unique_observation_artifact_destination(artifact_root: Path, name: str) -> Path:
+    candidate = artifact_root / name
+    if not candidate.exists():
+        return candidate
+    stem = candidate.stem
+    suffix = candidate.suffix
+    for index in range(2, 1000):
+        alternative = artifact_root / f"{stem}-{index}{suffix}"
+        if not alternative.exists():
+            return alternative
+    raise AegisError(f"could not allocate observation artifact destination for {name}")
+
+
+def _collect_observation_artifacts(
+    target_root: Path,
+    artifact_root_rel: str,
+    cleanable_artifact_rels: Sequence[str],
+) -> list[dict[str, str]]:
+    artifact_root = target_root / artifact_root_rel
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    collected: list[dict[str, str]] = []
+    for rel_path in cleanable_artifact_rels:
+        source = target_root / rel_path
+        if source.is_symlink():
+            raise AegisError(f"refusing to collect symlink observation artifact: {rel_path}")
+        if not source.exists():
+            continue
+        destination = _unique_observation_artifact_destination(artifact_root, source.name)
+        source.rename(destination)
+        collected.append(
+            {
+                "from": rel_path,
+                "to": destination.relative_to(target_root).as_posix(),
+            }
+        )
+    return collected
 
 
 def _default_goals() -> list[str]:
@@ -4243,6 +4396,7 @@ def start_observation(
     plan_rel = _observation_plan_rel(normalized_slug, now)
     work_rel = _observation_work_tracking_rel(normalized_slug, now)
     reports_rel = f"{work_rel}/reports/{normalized_slug}"
+    artifact_root_rel = f"{AEGIS_OBSERVATION_ARTIFACT_ROOT_REL}/{observation_id}/artifacts"
     template_context = _workflow_template_context(
         task_id=observation_id,
         title=clean_title,
@@ -4330,6 +4484,7 @@ def start_observation(
             "id": observation_id,
             "slug": normalized_slug,
             "title": clean_title,
+            "artifact_root": artifact_root_rel,
             "baseline_git_status": baseline_status,
             "baseline_git_fingerprints": baseline_fingerprints,
             "allowed_paths": [],
@@ -4348,6 +4503,7 @@ def start_observation(
             "plan_current": "plans/current",
             "work_tracking": work_rel,
             "reports": reports_rel,
+            "observation_artifacts": artifact_root_rel,
             "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
         },
         "integrations": {
@@ -4387,10 +4543,10 @@ def start_observation(
             "Observation mode is active. Run app-driving, browser, screenshot, and read-only audit tooling without source edits or Taskmaster mutations; then stop observation to verify the working tree delta.",
             suggested_cli=(
                 "./.aegis/bin/aegis observe stop --target-dir . "
-                "--summary '<what was observed>'"
+                "--summary '<what was observed>' --collect-artifacts"
             ),
             suggested_mcp_tool="aegis.observe_stop",
-            suggested_mcp_arguments=stop_arguments,
+            suggested_mcp_arguments={**stop_arguments, "collect_artifacts": True},
             details={
                 "allowed": [
                     "dev servers and localhost probes",
@@ -4404,7 +4560,8 @@ def start_observation(
                     "git mutations",
                     "Aegis closeout/apply paths",
                 ],
-                "side_effect_guard": "aegis observe stop compares git status to the start snapshot and refuses unexpected deltas unless --allow-dirty is explicit.",
+                "artifact_root": artifact_root_rel,
+                "side_effect_guard": "aegis observe stop compares git status to the start snapshot, can collect known observation artifacts with --collect-artifacts, and refuses unexpected deltas unless --allow-dirty is explicit.",
             },
         ),
     }
@@ -4417,6 +4574,7 @@ def stop_observation(
     *,
     summary: str = "",
     allow_dirty: bool = False,
+    collect_artifacts: bool = False,
     source_root: str | Path | None = None,
 ) -> dict[str, Any]:
     """End an observation window and refuse if unexpected working-tree deltas appeared."""
@@ -4439,11 +4597,36 @@ def stop_observation(
     finished_at = _iso_now()
     current_status = _git_status_snapshot(target_root)
     current_fingerprints = _git_status_fingerprints(target_root, current_status)
-    unexpected = _unexpected_observation_status_lines(
-        current_work,
-        current_status,
-        current_fingerprints,
+    artifact_root_rel = _observation_artifact_root_rel(current_work)
+    status_deltas = _observation_status_delta_lines(current_work, current_status)
+    fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
+    cleanable_artifacts = _observation_cleanable_artifact_rels(
+        target_root,
+        status_deltas,
+        artifact_root_rel,
     )
+    cleanable_set = set(cleanable_artifacts)
+    unsafe_status_deltas = [
+        line
+        for line in status_deltas
+        if (_observation_artifact_source_rel(line) or "") not in cleanable_set
+    ]
+    unexpected = [*unsafe_status_deltas, *fingerprint_deltas]
+    collected_artifacts: list[dict[str, str]] = []
+    if collect_artifacts and cleanable_artifacts and not unexpected:
+        collected_artifacts = _collect_observation_artifacts(
+            target_root,
+            artifact_root_rel,
+            cleanable_artifacts,
+        )
+        current_status = _git_status_snapshot(target_root)
+        current_fingerprints = _git_status_fingerprints(target_root, current_status)
+        status_deltas = _observation_status_delta_lines(current_work, current_status)
+        fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
+        unexpected = [*status_deltas, *fingerprint_deltas]
+        cleanable_artifacts = []
+    elif cleanable_artifacts:
+        unexpected = [*status_deltas, *fingerprint_deltas]
     blocked = bool(unexpected and not allow_dirty)
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -4453,6 +4636,10 @@ def stop_observation(
         "target_root": str(target_root),
         "summary": summary,
         "allow_dirty": allow_dirty,
+        "collect_artifacts": collect_artifacts,
+        "artifact_root": artifact_root_rel,
+        "cleanable_artifacts": cleanable_artifacts,
+        "collected_artifacts": collected_artifacts,
         "unexpected_changes": unexpected,
         "final_git_status": current_status,
         "final_git_fingerprints": current_fingerprints,
@@ -4462,13 +4649,18 @@ def stop_observation(
             "resolve_unexpected_delta" if blocked else "observation_closed",
             (
                 "Observation stop refused because unexpected working-tree deltas appeared. "
-                "Revert or intentionally keep them, then rerun with --allow-dirty."
+                "Revert them, rerun with --collect-artifacts for known observation artifacts, "
+                "or intentionally keep them with --allow-dirty."
                 if blocked
                 else "Observation closed; no unexpected working-tree delta was detected."
             ),
             details={
                 "unexpected_changes": unexpected,
+                "cleanable_artifacts": cleanable_artifacts,
+                "collected_artifacts": collected_artifacts,
                 "allow_dirty": allow_dirty,
+                "collect_artifacts": collect_artifacts,
+                "artifact_root": artifact_root_rel,
             },
         ),
     }
@@ -4490,6 +4682,9 @@ def stop_observation(
         observation["final_git_fingerprints"] = current_fingerprints
         observation["unexpected_changes"] = unexpected
         observation["allow_dirty"] = allow_dirty
+        observation["collect_artifacts"] = collect_artifacts
+        observation["artifact_root"] = artifact_root_rel
+        observation["collected_artifacts"] = collected_artifacts
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
     return report
 
