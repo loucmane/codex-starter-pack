@@ -2,3 +2,4 @@
 
 - 2026-06-05 12:55 CEST — Initialized active work-tracking folder.
 - 2026-06-05 13:39 CEST — Archived active work-tracking folder.
+- 2026-06-08 15:10 CEST — Archived active work-tracking folder.

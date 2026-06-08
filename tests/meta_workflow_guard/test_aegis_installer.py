@@ -27,6 +27,7 @@ from scripts._aegis_installer import (
     AEGIS_CLIENT_RELOAD_REL,
     AEGIS_DEGRADED_EVENTS_REL,
     AEGIS_LOCAL_TASKS_REL,
+    AEGIS_RUNTIME_ENV_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
     AEGIS_REPAIR_REPORT_REL,
@@ -45,6 +46,8 @@ from scripts._aegis_installer import (
     reconcile,
     repair,
     repair_handoff,
+    runtime_status,
+    runtime_update,
     status,
     start_observation,
     start_local_work,
@@ -1344,6 +1347,70 @@ def test_install_verify_and_second_plan_are_idempotent(tmp_path: Path) -> None:
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
 
 
+def test_install_uses_runtime_dispatchers_and_update_without_reinstall(tmp_path: Path) -> None:
+    target = tmp_path / "runtime-update-target"
+    target.mkdir()
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    assert report["status"] == "applied"
+
+    pretooluse = (target / ".claude" / "scripts" / "pretooluse-gate.sh").read_text(encoding="utf-8")
+    readiness = (target / ".claude" / "scripts" / "readiness.sh").read_text(encoding="utf-8")
+    assert 'exec "$AEGIS_BIN" hook pretooluse "$@"' in pretooluse
+    assert 'exec "$AEGIS_BIN" hook readiness "$@"' in readiness
+    assert (target / AEGIS_RUNTIME_ENV_REL).read_text(encoding="utf-8") == (
+        "# Aegis runtime pointer. Managed by aegis runtime update.\n"
+        f"AEGIS_SOURCE_ROOT={REPO_ROOT.resolve().as_posix()}\n"
+    )
+
+    manifest = json.loads((target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
+    validate_schema("foundation-manifest.schema.json", manifest)
+    assert manifest["runtime"]["source_root"] == REPO_ROOT.resolve().as_posix()
+    assert manifest["runtime"]["pointer"] == AEGIS_RUNTIME_ENV_REL
+    assert {item["path"] for item in manifest["managed_files"]} >= {AEGIS_RUNTIME_ENV_REL}
+
+    bootstrap_before = {
+        rel: (target / rel).read_text(encoding="utf-8")
+        for rel in (
+            ".aegis/bin/aegis",
+            ".claude/settings.json",
+            ".claude/scripts/pretooluse-gate.sh",
+            ".claude/scripts/readiness.sh",
+        )
+    }
+    preview = runtime_update(target, source_root=REPO_ROOT, apply=False)
+    assert preview["status"] == "preview"
+    assert preview["reinstall_required"] is False
+    assert bootstrap_before == {
+        rel: (target / rel).read_text(encoding="utf-8") for rel in bootstrap_before
+    }
+
+    applied = runtime_update(target, source_root=REPO_ROOT, apply=True)
+    assert applied["status"] == "applied"
+    assert applied["reinstall_required"] is False
+    assert bootstrap_before == {
+        rel: (target / rel).read_text(encoding="utf-8") for rel in bootstrap_before
+    }
+    runtime = runtime_status(target, source_root=REPO_ROOT)
+    assert runtime["status"] == "installed"
+    assert runtime["runtime_env_present"] is True
+    assert runtime["active_source_root"] == REPO_ROOT.resolve().as_posix()
+    assert runtime["active_source_valid"] is True
+
+    second_plan = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+    )
+    assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
+
+
 def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -> None:
     target = tmp_path / "guided-repo"
     target.mkdir()
@@ -1738,7 +1805,7 @@ def test_installed_pretooluse_short_circuits_read_only_before_readiness(tmp_path
 
     assert read_only.returncode == 0, read_only.stderr
     assert mutating.returncode == 2
-    assert "readiness failed" in mutating.stderr
+    assert "readiness is BLOCKED" in mutating.stderr
 
 
 def test_installed_pretooluse_blocks_direct_workflow_edits_but_allows_aegis_handlers(
