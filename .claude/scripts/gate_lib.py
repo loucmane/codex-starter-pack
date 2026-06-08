@@ -89,7 +89,7 @@ AEGIS_CLOSEOUT_RE = re.compile(
 )
 LOCALHOST_URL_RE = re.compile(r"^https?://(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:/|$)", re.IGNORECASE)
 OBSERVATION_BROWSER_MCP_RE = re.compile(
-    r"^mcp__(?:playwright|browser|puppeteer|chrome(?:_devtools)?|chromium)__",
+    r"^mcp__(?:playwright|browser|puppeteer|chrome(?:[-_]devtools)?|chromium)__",
     re.IGNORECASE,
 )
 REDIRECT_RE = re.compile(r"(?<![<])(?:>>|>)(?![>&])\s*([\"']?)([^\"'\s;&|]+)\1")
@@ -681,9 +681,53 @@ def npm_command_words(tokens: list[str]) -> list[str]:
 
 
 def localhost_probe_segment(tokens: list[str]) -> bool:
+    if tokens[0] == "curl":
+        curl_file_output_flags = {
+            "--cookie-jar",
+            "--config",
+            "--dump-header",
+            "--etag-save",
+            "--output",
+            "--output-dir",
+            "--remote-header-name",
+            "--remote-name",
+            "--remote-name-all",
+            "--trace",
+            "--trace-ascii",
+        }
+        for token in tokens[1:]:
+            if token in curl_file_output_flags or any(
+                token.startswith(f"{flag}=") for flag in curl_file_output_flags
+            ):
+                return False
+            if token in {"-D", "-J", "-K", "-O", "-o", "-c"}:
+                return False
+            if token.startswith("-D") or token.startswith("-K") or token.startswith("-o") or token.startswith("-c"):
+                return False
+            if token.startswith("-") and "O" in token[1:]:
+                return False
+        return any(LOCALHOST_URL_RE.match(token) for token in tokens[1:])
+    if tokens[0] == "wget":
+        stdout = False
+        for index, token in enumerate(tokens[1:], start=1):
+            if token == "-O" and index + 1 < len(tokens) and tokens[index + 1] == "-":
+                stdout = True
+            elif token == "-O-":
+                stdout = True
+            elif token == "--output-document=-":
+                stdout = True
+            elif token.startswith("--output-document="):
+                return False
+            elif token == "--output-document":
+                return False
+            elif token in {"-e", "--config"} or token.startswith("--config="):
+                return False
+            elif token.startswith("-O") and token != "-O-":
+                return False
+        return stdout and any(LOCALHOST_URL_RE.match(token) for token in tokens[1:])
     if tokens[0] not in {"curl", "wget"}:
         return False
-    return any(LOCALHOST_URL_RE.match(token) for token in tokens[1:])
+    return False
 
 
 def dev_server_segment(tokens: list[str]) -> bool:

@@ -1131,6 +1131,40 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
         },
     )
     assert browser_gate.returncode == 0, browser_gate.stderr
+    chrome_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__chrome-devtools__take_screenshot",
+            "tool_input": {},
+        },
+    )
+    assert chrome_gate.returncode == 0, chrome_gate.stderr
+
+    curl_stdout_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "curl http://localhost:5173/health"}},
+    )
+    assert curl_stdout_gate.returncode == 0, curl_stdout_gate.stderr
+    wget_stdout_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "wget -O- http://localhost:5173/health"}},
+    )
+    assert wget_stdout_gate.returncode == 0, wget_stdout_gate.stderr
+    curl_output_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "curl -o .claude/settings.json http://localhost:5173/health"},
+        },
+    )
+    assert curl_output_gate.returncode == 2
+    assert "observation mode only permits observation tooling" in curl_output_gate.stderr
+    wget_file_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": "wget http://localhost:5173/health"}},
+    )
+    assert wget_file_gate.returncode == 2
+    assert "observation mode only permits observation tooling" in wget_file_gate.stderr
 
     edit_gate = run_target_pretooluse(
         target,
@@ -1155,6 +1189,57 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     diagnosis = doctor(target, source_root=REPO_ROOT)
     assert diagnosis["current_state"] == "observation_completed"
     assert diagnosis["status"] == "healthy"
+
+
+def test_observation_stop_blocks_unexpected_delta_and_allow_dirty_overrides(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "observe-dirty"
+    init_git_repo(target)
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Dirty audit", source_root=REPO_ROOT)
+
+    (target / "src" / "audit.ts").parent.mkdir(parents=True, exist_ok=True)
+    (target / "src" / "audit.ts").write_text("export const audit = true;\n", encoding="utf-8")
+    blocked = stop_observation(target, summary="Unexpected source file", source_root=REPO_ROOT)
+    assert blocked["status"] == "blocked"
+    assert "?? src/audit.ts" in blocked["unexpected_changes"]
+
+    completed = stop_observation(
+        target,
+        summary="Accepted dirty audit",
+        allow_dirty=True,
+        source_root=REPO_ROOT,
+    )
+    assert completed["status"] == "completed"
+    assert "?? src/audit.ts" in completed["unexpected_changes"]
+
+
+def test_observation_stop_blocks_tracked_and_ignored_deltas(tmp_path: Path) -> None:
+    target = tmp_path / "observe-ignored"
+    init_git_repo(target)
+    (target / ".gitignore").write_text(".ignored/\n", encoding="utf-8")
+    git(target, "add", ".gitignore")
+    git(target, "commit", "-m", "ignore observation cache")
+    ignored_file = target / ".ignored" / "cache.txt"
+    ignored_file.parent.mkdir(parents=True, exist_ok=True)
+    ignored_file.write_text("before\n", encoding="utf-8")
+
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Ignored audit", source_root=REPO_ROOT)
+
+    (target / "README.md").write_text("# target\nchanged\n", encoding="utf-8")
+    ignored_file.write_text("after\n", encoding="utf-8")
+    blocked = stop_observation(target, summary="Unexpected edits", source_root=REPO_ROOT)
+
+    assert blocked["status"] == "blocked"
+    assert " M README.md" in blocked["unexpected_changes"]
+    assert any(
+        entry.startswith("changed status-visible path: .ignored")
+        for entry in blocked["unexpected_changes"]
+    )
 
 
 def test_start_local_work_replay_is_noop_and_different_work_is_refused(tmp_path: Path) -> None:

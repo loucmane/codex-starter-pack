@@ -89,6 +89,8 @@ AEGIS_EVENT_DEFAULT_LOG_SURFACES = {
     "verification": ("implementation", "changelog", "handoff"),
     "note": AEGIS_DEFAULT_LOG_SURFACES,
 }
+AEGIS_OBSERVATION_FINGERPRINT_MAX_FILES = 512
+AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES = 8 * 1024 * 1024
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
@@ -3334,11 +3336,90 @@ def _observation_work_tracking_rel(slug: str, now: datetime) -> str:
 
 
 def _git_status_snapshot(target_root: Path) -> list[str]:
-    result = _run_target_git(target_root, "status", "--short", "--untracked-files=all")
+    result = _run_target_git(target_root, "status", "--short", "--untracked-files=all", "--ignored")
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "git status failed").strip()
         raise AegisError(f"could not snapshot git status: {detail}")
     return [line.rstrip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _hash_file(path: Path, *, byte_limit: int | None = None) -> tuple[str, int, bool]:
+    digest = hashlib.sha256()
+    total = 0
+    truncated = False
+    with path.open("rb") as handle:
+        while True:
+            chunk_size = 1024 * 1024
+            if byte_limit is not None:
+                remaining = byte_limit - total
+                if remaining <= 0:
+                    truncated = True
+                    break
+                chunk_size = min(chunk_size, remaining)
+            chunk = handle.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+            total += len(chunk)
+    return digest.hexdigest(), total, truncated
+
+
+def _fingerprint_status_path(path: Path) -> str:
+    if path.is_symlink():
+        try:
+            return f"symlink:{path.readlink().as_posix()}"
+        except OSError as exc:
+            return f"symlink-error:{exc}"
+    if path.is_file():
+        try:
+            digest, size, truncated = _hash_file(
+                path,
+                byte_limit=AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES,
+            )
+            return f"file:{size}:{digest}:truncated={str(truncated).lower()}"
+        except OSError as exc:
+            return f"file-error:{exc}"
+    if path.is_dir():
+        digest = hashlib.sha256()
+        files_seen = 0
+        bytes_seen = 0
+        truncated = False
+        try:
+            children = sorted(path.rglob("*"), key=lambda item: item.relative_to(path).as_posix())
+            for child in children:
+                rel_child = child.relative_to(path).as_posix()
+                if child.is_dir() and not child.is_symlink():
+                    digest.update(f"D\t{rel_child}\n".encode("utf-8"))
+                    continue
+                files_seen += 1
+                if files_seen > AEGIS_OBSERVATION_FINGERPRINT_MAX_FILES:
+                    truncated = True
+                    break
+                if child.is_symlink():
+                    digest.update(f"L\t{rel_child}\t{child.readlink().as_posix()}\n".encode("utf-8"))
+                    continue
+                if not child.is_file():
+                    digest.update(f"O\t{rel_child}\n".encode("utf-8"))
+                    continue
+                remaining = AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES - bytes_seen
+                if remaining <= 0:
+                    truncated = True
+                    break
+                child_hash, child_bytes, child_truncated = _hash_file(child, byte_limit=remaining)
+                bytes_seen += child_bytes
+                truncated = truncated or child_truncated
+                digest.update(f"F\t{rel_child}\t{child_bytes}\t{child_hash}\n".encode("utf-8"))
+                if truncated:
+                    break
+        except OSError as exc:
+            return f"dir-error:{exc}"
+        return (
+            f"dir:{files_seen}:{bytes_seen}:{digest.hexdigest()}:"
+            f"truncated={str(truncated).lower()}"
+        )
+    if path.exists():
+        return "other"
+    return "missing"
 
 
 def _git_status_rel_path(line: str) -> str:
@@ -3348,10 +3429,22 @@ def _git_status_rel_path(line: str) -> str:
     return body.strip().strip('"')
 
 
+def _git_status_fingerprints(target_root: Path, status_lines: Sequence[str]) -> dict[str, str]:
+    fingerprints: dict[str, str] = {}
+    for line in status_lines:
+        rel_path = _git_status_rel_path(str(line))
+        if not rel_path:
+            continue
+        path = target_root / rel_path
+        fingerprints[rel_path] = _fingerprint_status_path(path)
+    return fingerprints
+
+
 def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
     prefixes = {
         AEGIS_CURRENT_WORK_REL,
+        AEGIS_MANIFEST_REL,
         AEGIS_OBSERVATION_REPORT_REL,
         "sessions/state.json",
         "sessions/current",
@@ -3371,7 +3464,9 @@ def _status_line_matches_prefix(line: str, prefix: str) -> bool:
 
 
 def _unexpected_observation_status_lines(
-    current_work: Mapping[str, Any], current_status: Sequence[str]
+    current_work: Mapping[str, Any],
+    current_status: Sequence[str],
+    current_fingerprints: Mapping[str, str],
 ) -> list[str]:
     observation = (
         current_work.get("observation")
@@ -3383,6 +3478,11 @@ def _unexpected_observation_status_lines(
         for line in observation.get("baseline_git_status", [])
         if isinstance(line, str) and line.strip()
     }
+    baseline_fingerprints = (
+        observation.get("baseline_git_fingerprints")
+        if isinstance(observation.get("baseline_git_fingerprints"), Mapping)
+        else {}
+    )
     allowed_prefixes = _observation_allowed_prefixes(current_work)
     unexpected: list[str] = []
     for line in current_status:
@@ -3392,6 +3492,18 @@ def _unexpected_observation_status_lines(
         if any(_status_line_matches_prefix(stripped, prefix) for prefix in allowed_prefixes):
             continue
         unexpected.append(stripped)
+    for rel_path, baseline_fingerprint in sorted(baseline_fingerprints.items()):
+        rel_text = str(rel_path)
+        if any(
+            rel_text == prefix.rstrip("/") or rel_text.startswith(f"{prefix.rstrip('/')}/")
+            for prefix in allowed_prefixes
+        ):
+            continue
+        current_fingerprint = current_fingerprints.get(rel_text)
+        if current_fingerprint is None:
+            unexpected.append(f"removed status-visible path: {rel_text}")
+        elif current_fingerprint != baseline_fingerprint:
+            unexpected.append(f"changed status-visible path: {rel_text}")
     return unexpected
 
 
@@ -3804,6 +3916,7 @@ def start_observation(
     observation_id = _observation_id(normalized_slug, now)
     branch_current = _current_branch(target_root)
     baseline_status = _git_status_snapshot(target_root)
+    baseline_fingerprints = _git_status_fingerprints(target_root, baseline_status)
     selected_goals = list(
         goals
         or [
@@ -3905,6 +4018,7 @@ def start_observation(
             "slug": normalized_slug,
             "title": clean_title,
             "baseline_git_status": baseline_status,
+            "baseline_git_fingerprints": baseline_fingerprints,
             "allowed_paths": [],
         },
         "branch": {
@@ -4011,7 +4125,12 @@ def stop_observation(
 
     finished_at = _iso_now()
     current_status = _git_status_snapshot(target_root)
-    unexpected = _unexpected_observation_status_lines(current_work, current_status)
+    current_fingerprints = _git_status_fingerprints(target_root, current_status)
+    unexpected = _unexpected_observation_status_lines(
+        current_work,
+        current_status,
+        current_fingerprints,
+    )
     blocked = bool(unexpected and not allow_dirty)
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -4023,6 +4142,7 @@ def stop_observation(
         "allow_dirty": allow_dirty,
         "unexpected_changes": unexpected,
         "final_git_status": current_status,
+        "final_git_fingerprints": current_fingerprints,
         "task": dict(current_work.get("task") or {}),
         "paths": dict(current_work.get("paths") or {}),
         "next_action": _workflow_next_action(
@@ -4054,6 +4174,7 @@ def stop_observation(
         observation["completed_at"] = finished_at
         observation["summary"] = summary
         observation["final_git_status"] = current_status
+        observation["final_git_fingerprints"] = current_fingerprints
         observation["unexpected_changes"] = unexpected
         observation["allow_dirty"] = allow_dirty
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
