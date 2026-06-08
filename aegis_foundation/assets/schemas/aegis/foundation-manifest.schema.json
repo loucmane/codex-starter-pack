@@ -15,7 +15,6 @@
     "primary_agent",
     "entrypoints",
     "interfaces",
-    "runtime",
     "access_policy",
     "agents",
     "capabilities",

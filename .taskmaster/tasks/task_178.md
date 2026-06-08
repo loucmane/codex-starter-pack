@@ -1,8 +1,8 @@
-# Task ID: 177
+# Task ID: 178
 
 **Title:** Add Aegis dynamic runtime dispatch and update flow
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** None
 
@@ -20,7 +20,7 @@ No test strategy provided.
 
 ## Subtasks
 
-### 177.1. Extract hook runtime entrypoints
+### 178.1. Extract hook runtime entrypoints
 
 **Status:** done
 **Dependencies:** None
@@ -31,7 +31,7 @@ Move gate and readiness execution behind Aegis runtime commands.
 
 Add aegis hook pretooluse, posttooluse, stop, and readiness entrypoints that call importable Python runtime code. Keep existing hook behavior equivalent while making the runtime callable through the project-local Aegis shim.
 
-### 177.2. Install dispatcher hooks and runtime pointer
+### 178.2. Install dispatcher hooks and runtime pointer
 
 **Status:** done
 **Dependencies:** None
@@ -42,7 +42,7 @@ Convert installed Claude hooks into stable dispatchers and record the selected r
 
 Replace copied hook logic in installed assets with tiny scripts that invoke ./.aegis/bin/aegis hook <phase>. Add .aegis/runtime.env and a manifest runtime block recording mode, source_root, commit, and update timestamp. Reinstall should be required only when dispatcher/settings shape changes.
 
-### 177.3. Add runtime status and update commands
+### 178.3. Add runtime status and update commands
 
 **Status:** done
 **Dependencies:** None
@@ -53,7 +53,7 @@ Expose an explicit non-reinstall update path for downstream projects.
 
 Implement aegis runtime status and aegis runtime update --apply. Validate source-root shape, record current git commit, report relevant dirty runtime paths, update .aegis/runtime.env and the manifest runtime block only, and refuse broken runtime roots. Keep update scoped away from sessions, plans, and work-tracking.
 
-### 177.4. Preserve fail-closed and backward-compatible hook behavior
+### 178.4. Preserve fail-closed and backward-compatible hook behavior
 
 **Status:** done
 **Dependencies:** None
@@ -64,7 +64,7 @@ Make dispatcher runtime failures safe and keep existing installs migration-safe.
 
 PreToolUse must fail closed for mutation-class actions when the runtime cannot load, while retaining existing safe read-only behavior where applicable. Stop hook must not create infinite loops or branch-name deadlocks. Existing copied hook installs should remain supported or migration-safe until dispatcher installs are in place.
 
-### 177.5. Test downstream runtime update without scaffold reinstall
+### 178.5. Test downstream runtime update without scaffold reinstall
 
 **Status:** done
 **Dependencies:** None

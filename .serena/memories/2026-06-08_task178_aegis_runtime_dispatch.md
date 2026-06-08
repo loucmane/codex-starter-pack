@@ -1,4 +1,4 @@
-# Task 177 - Aegis Runtime Dispatch Update Flow
+# Task 178 - Aegis Runtime Dispatch Update Flow
 
 Implemented dynamic Aegis runtime dispatch so downstream projects can update runtime/gate fixes without full scaffold reinstall after a one-time dispatcher bootstrap refresh.
 
@@ -17,6 +17,6 @@ Verification:
 - `task-master validate-dependencies` / `python3 scripts/codex-task taskmaster health` passed with all 177 tasks done and zero invalid dependency refs.
 
 Workflow notes:
-- Task 177 and subtasks 177.1-177.5 marked done.
+- Task 178 and subtasks 178.1-178.5 marked done.
 - Task 164 completed active tracker archived to remove multiple-ACTIVE guard issue.
-- Task 177 active session/plan/tracker created after implementation because the commit guard required current work tracking aligned to branch task id.
+- Task 178 active session/plan/tracker created after implementation because the commit guard required current work tracking aligned to branch task id.
