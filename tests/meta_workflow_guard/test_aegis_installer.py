@@ -1285,6 +1285,63 @@ def test_observation_stop_collects_known_artifacts(tmp_path: Path) -> None:
     assert not (target / ".playwright-mcp").exists()
 
 
+def test_observation_stop_allows_generated_runtime_deltas_with_collected_artifacts(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "observe-runtime-artifacts"
+    init_git_repo(target)
+    (target / ".gitignore").write_text(
+        "worker/.wrangler/\nworker/node_modules/.mf/\n",
+        encoding="utf-8",
+    )
+    git(target, "add", ".gitignore")
+    git(target, "commit", "-m", "ignore generated worker runtime")
+    wrangler_db = target / "worker" / ".wrangler" / "state" / "v3" / "d1" / "db.sqlite"
+    wrangler_db.parent.mkdir(parents=True, exist_ok=True)
+    wrangler_db.write_text("before\n", encoding="utf-8")
+    mf_config = target / "worker" / "node_modules" / ".mf" / "cf.json"
+    mf_config.parent.mkdir(parents=True, exist_ok=True)
+    mf_config.write_text('{"before":true}\n', encoding="utf-8")
+
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Runtime audit", source_root=REPO_ROOT)
+
+    screenshot = target / "audit-home-mobile.png"
+    screenshot.write_text("fake screenshot\n", encoding="utf-8")
+    playwright_snapshot = target / ".playwright-mcp" / "page.yaml"
+    playwright_snapshot.parent.mkdir(parents=True, exist_ok=True)
+    playwright_snapshot.write_text("url: http://localhost:5173\n", encoding="utf-8")
+    wrangler_db.write_text("after\n", encoding="utf-8")
+    mf_config.write_text('{"after":true}\n', encoding="utf-8")
+
+    completed = stop_observation(
+        target,
+        summary="Artifacts plus generated runtime state",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+
+    assert completed["status"] == "completed"
+    assert completed["unexpected_changes"] == []
+    assert {item["from"] for item in completed["collected_artifacts"]} == {
+        ".playwright-mcp",
+        "audit-home-mobile.png",
+    }
+    assert any(
+        "worker/.wrangler" in entry for entry in completed["allowed_runtime_changes"]
+    )
+    assert any(
+        "worker/node_modules/.mf" in entry
+        for entry in completed["allowed_runtime_changes"]
+    )
+    artifact_root = target / completed["artifact_root"]
+    assert (artifact_root / "audit-home-mobile.png").is_file()
+    assert (artifact_root / ".playwright-mcp" / "page.yaml").is_file()
+    assert wrangler_db.read_text(encoding="utf-8") == "after\n"
+    assert mf_config.read_text(encoding="utf-8") == '{"after":true}\n'
+
+
 def test_observation_collect_artifacts_blocks_when_source_delta_exists(tmp_path: Path) -> None:
     target = tmp_path / "observe-artifacts-source-dirty"
     init_git_repo(target)
@@ -1354,6 +1411,32 @@ def test_observation_collect_artifacts_refuses_symlink_artifact(tmp_path: Path) 
     assert "?? audit-link-mobile.png" in blocked["unexpected_changes"]
     assert link.is_symlink()
     assert outside.read_text(encoding="utf-8") == "outside\n"
+
+
+def test_observation_runtime_delta_requires_ignored_runtime_prefix(tmp_path: Path) -> None:
+    target = tmp_path / "observe-runtime-source-dirty"
+    init_git_repo(target)
+    runtime_file = target / "worker" / ".wrangler" / "state.json"
+    runtime_file.parent.mkdir(parents=True, exist_ok=True)
+    runtime_file.write_text("before\n", encoding="utf-8")
+    git(target, "add", "worker/.wrangler/state.json")
+    git(target, "commit", "-m", "track worker runtime fixture")
+
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Tracked runtime audit", source_root=REPO_ROOT)
+
+    runtime_file.write_text("after\n", encoding="utf-8")
+    blocked = stop_observation(
+        target,
+        summary="Tracked runtime-looking path changed",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+
+    assert blocked["status"] == "blocked"
+    assert " M worker/.wrangler/state.json" in blocked["unexpected_changes"]
+    assert blocked["allowed_runtime_changes"] == []
 
 
 def test_observation_stop_blocks_tracked_and_ignored_deltas(tmp_path: Path) -> None:

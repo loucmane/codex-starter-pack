@@ -101,6 +101,11 @@ AEGIS_OBSERVATION_ROOT_SCREENSHOT_PATTERNS = (
     "*-mobile.png",
     "_home_fixed.png",
 )
+AEGIS_OBSERVATION_RUNTIME_PREFIXES = (
+    ".wrangler",
+    "worker/.wrangler",
+    "worker/node_modules/.mf",
+)
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
@@ -3798,10 +3803,14 @@ def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
     return sorted(prefixes)
 
 
-def _status_line_matches_prefix(line: str, prefix: str) -> bool:
-    rel_path = _git_status_rel_path(line)
+def _rel_path_matches_prefix(rel_path: str, prefix: str) -> bool:
+    rel_path = rel_path.rstrip("/")
     normalized = prefix.rstrip("/")
     return rel_path == normalized or rel_path.startswith(f"{normalized}/")
+
+
+def _status_line_matches_prefix(line: str, prefix: str) -> bool:
+    return _rel_path_matches_prefix(_git_status_rel_path(line), prefix)
 
 
 def _observation_status_delta_lines(
@@ -3875,6 +3884,76 @@ def _unexpected_observation_status_lines(
     unexpected.extend(_observation_status_delta_lines(current_work, current_status))
     unexpected.extend(_observation_fingerprint_delta_lines(current_work, current_fingerprints))
     return unexpected
+
+
+def _observation_ignored_status_rels(status_lines: Sequence[str]) -> list[str]:
+    rels: list[str] = []
+    for line in status_lines:
+        stripped = str(line).rstrip()
+        if not stripped.startswith("!! "):
+            continue
+        rel_path = _git_status_rel_path(stripped).rstrip("/")
+        if rel_path:
+            rels.append(rel_path)
+    return rels
+
+
+def _observation_runtime_rel(rel_path: str) -> str | None:
+    normalized = rel_path.rstrip("/")
+    if any(
+        _rel_path_matches_prefix(normalized, prefix)
+        for prefix in AEGIS_OBSERVATION_RUNTIME_PREFIXES
+    ):
+        return normalized
+    return None
+
+
+def _observation_runtime_status_delta_lines(
+    status_delta_lines: Sequence[str],
+) -> list[str]:
+    allowed: list[str] = []
+    for line in status_delta_lines:
+        stripped = str(line).rstrip()
+        if not stripped.startswith("!! "):
+            continue
+        if _observation_runtime_rel(_git_status_rel_path(stripped)):
+            allowed.append(stripped)
+    return allowed
+
+
+def _observation_fingerprint_delta_rel(line: str) -> str | None:
+    stripped = str(line).rstrip()
+    for prefix in ("changed status-visible path: ", "removed status-visible path: "):
+        if stripped.startswith(prefix):
+            return stripped[len(prefix) :].strip().rstrip("/") or None
+    return None
+
+
+def _observation_runtime_fingerprint_delta_lines(
+    current_work: Mapping[str, Any],
+    fingerprint_delta_lines: Sequence[str],
+) -> list[str]:
+    observation = (
+        current_work.get("observation")
+        if isinstance(current_work.get("observation"), Mapping)
+        else {}
+    )
+    ignored_baseline_rels = _observation_ignored_status_rels(
+        [
+            str(line)
+            for line in observation.get("baseline_git_status", [])
+            if isinstance(line, str) and line.strip()
+        ]
+    )
+    allowed: list[str] = []
+    for line in fingerprint_delta_lines:
+        stripped = str(line).rstrip()
+        rel_path = _observation_fingerprint_delta_rel(stripped)
+        if not rel_path or not _observation_runtime_rel(rel_path):
+            continue
+        if any(_rel_path_matches_prefix(rel_path, ignored) for ignored in ignored_baseline_rels):
+            allowed.append(stripped)
+    return allowed
 
 
 def _observation_artifact_root_rel(current_work: Mapping[str, Any]) -> str:
@@ -4606,12 +4685,24 @@ def stop_observation(
         artifact_root_rel,
     )
     cleanable_set = set(cleanable_artifacts)
+    runtime_status_deltas = _observation_runtime_status_delta_lines(status_deltas)
+    runtime_fingerprint_deltas = _observation_runtime_fingerprint_delta_lines(
+        current_work,
+        fingerprint_deltas,
+    )
+    runtime_delta_set = {*runtime_status_deltas, *runtime_fingerprint_deltas}
     unsafe_status_deltas = [
         line
         for line in status_deltas
-        if (_observation_artifact_source_rel(line) or "") not in cleanable_set
+        if (
+            (_observation_artifact_source_rel(line) or "") not in cleanable_set
+            and line not in runtime_delta_set
+        )
     ]
-    unexpected = [*unsafe_status_deltas, *fingerprint_deltas]
+    unsafe_fingerprint_deltas = [
+        line for line in fingerprint_deltas if line not in runtime_delta_set
+    ]
+    unexpected = [*unsafe_status_deltas, *unsafe_fingerprint_deltas]
     collected_artifacts: list[dict[str, str]] = []
     if collect_artifacts and cleanable_artifacts and not unexpected:
         collected_artifacts = _collect_observation_artifacts(
@@ -4623,10 +4714,23 @@ def stop_observation(
         current_fingerprints = _git_status_fingerprints(target_root, current_status)
         status_deltas = _observation_status_delta_lines(current_work, current_status)
         fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
-        unexpected = [*status_deltas, *fingerprint_deltas]
+        runtime_status_deltas = _observation_runtime_status_delta_lines(status_deltas)
+        runtime_fingerprint_deltas = _observation_runtime_fingerprint_delta_lines(
+            current_work,
+            fingerprint_deltas,
+        )
+        runtime_delta_set = {*runtime_status_deltas, *runtime_fingerprint_deltas}
+        unexpected = [
+            *[line for line in status_deltas if line not in runtime_delta_set],
+            *[line for line in fingerprint_deltas if line not in runtime_delta_set],
+        ]
         cleanable_artifacts = []
     elif cleanable_artifacts:
-        unexpected = [*status_deltas, *fingerprint_deltas]
+        unexpected = [
+            *[line for line in status_deltas if line not in runtime_delta_set],
+            *[line for line in fingerprint_deltas if line not in runtime_delta_set],
+        ]
+    allowed_runtime_changes = [*runtime_status_deltas, *runtime_fingerprint_deltas]
     blocked = bool(unexpected and not allow_dirty)
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -4640,6 +4744,7 @@ def stop_observation(
         "artifact_root": artifact_root_rel,
         "cleanable_artifacts": cleanable_artifacts,
         "collected_artifacts": collected_artifacts,
+        "allowed_runtime_changes": allowed_runtime_changes,
         "unexpected_changes": unexpected,
         "final_git_status": current_status,
         "final_git_fingerprints": current_fingerprints,
@@ -4658,6 +4763,7 @@ def stop_observation(
                 "unexpected_changes": unexpected,
                 "cleanable_artifacts": cleanable_artifacts,
                 "collected_artifacts": collected_artifacts,
+                "allowed_runtime_changes": allowed_runtime_changes,
                 "allow_dirty": allow_dirty,
                 "collect_artifacts": collect_artifacts,
                 "artifact_root": artifact_root_rel,
@@ -4685,6 +4791,7 @@ def stop_observation(
         observation["collect_artifacts"] = collect_artifacts
         observation["artifact_root"] = artifact_root_rel
         observation["collected_artifacts"] = collected_artifacts
+        observation["allowed_runtime_changes"] = allowed_runtime_changes
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
     return report
 
