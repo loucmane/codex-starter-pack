@@ -6918,13 +6918,27 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-08T16:44:33.930Z"
+      },
+      {
+        "id": "181",
+        "title": "Allow generated dev runtime deltas during Aegis observation stop",
+        "description": "Observation stop with --collect-artifacts should close after allowed dev-server audits when only generated runtime state changed, such as Wrangler or miniflare caches, while still blocking source, Taskmaster, protected, or unknown persistent changes.",
+        "details": "Extend Aegis observation stop classification with a narrow generated-runtime delta category. Runtime deltas should be reported separately from collected screenshot/browser artifacts and should not be moved or deleted. Permit only ignored or generated runtime paths under tightly scoped prefixes such as worker/.wrangler/ and worker/node_modules/.mf/ when produced by observation dev-server tooling. Keep all-or-nothing blocking for source deltas and preserve existing collect-artifacts behavior for screenshots and .playwright-mcp. Mirror packaged installer assets and MCP/CLI behavior if needed. Tests: collect-artifacts succeeds with cleanable screenshots plus allowed ignored runtime deltas, reports allowed runtime changes, leaves runtime caches in place, still blocks tracked/source deltas, and does not treat arbitrary ignored files as allowed runtime state.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "180"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-08T17:18:48.483Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-08T16:44:33.931Z",
-      "taskCount": 179,
-      "completedCount": 179,
+      "lastModified": "2026-06-08T17:18:48.483Z",
+      "taskCount": 180,
+      "completedCount": 180,
       "tags": [
         "master"
       ]
