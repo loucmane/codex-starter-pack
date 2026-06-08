@@ -55,6 +55,7 @@ AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
+AEGIS_OBSERVATION_REPORT_REL = ".aegis/reports/observation-report.json"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
 AEGIS_UNINSTALL_TRANSIENT_NOTE = (
     "current Claude hook scripts are preserved by default so an already-running Claude "
@@ -88,6 +89,8 @@ AEGIS_EVENT_DEFAULT_LOG_SURFACES = {
     "verification": ("implementation", "changelog", "handoff"),
     "note": AEGIS_DEFAULT_LOG_SURFACES,
 }
+AEGIS_OBSERVATION_FINGERPRINT_MAX_FILES = 512
+AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES = 8 * 1024 * 1024
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
@@ -1960,6 +1963,7 @@ def next_action(
                     "task-master next",
                     "task-master show <id>",
                     "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+                    "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
                     (
                         "task-master set-status --id=<id> --status=done "
                         "only after aegis closeout and aegis doctor pass"
@@ -1972,6 +1976,10 @@ def next_action(
                         "aegis_task_selection": "suppressed",
                         "kickoff_requires_explicit_taskmaster_id": True,
                         "local_fallback_allowed": False,
+                        "observation_mode": (
+                            "For pre-task audits, screenshots, and app-driving that define future work, "
+                            "use aegis observe start instead of binding an unrelated task."
+                        ),
                         "ordering": [
                             "task-master next/show",
                             "aegis.kickoff",
@@ -1999,6 +2007,7 @@ def next_action(
             copyable_repairs=[
                 "./.aegis/bin/aegis start '<task title>'",
                 "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+                "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
             ],
         )
 
@@ -2024,6 +2033,51 @@ def next_action(
                 "./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense note>' --plan-step auto --plan-status completed"
             ],
             details={"pending_event_ids": ids},
+        )
+
+    if str(current_work.get("mode") or "") == "observation":
+        paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+        reports_rel = str(paths.get("reports") or "docs/ai/work-tracking/active/<folder>/reports").strip()
+        observation = (
+            current_work.get("observation")
+            if isinstance(current_work.get("observation"), Mapping)
+            else {}
+        )
+        return _workflow_guidance_payload(
+            phase="observe",
+            state="observation_active",
+            next_required_action=(
+                "run observation tooling without source edits or Taskmaster mutation, record findings if useful, "
+                "then stop observation so Aegis can verify the working-tree delta"
+            ),
+            suggested_cli="./.aegis/bin/aegis observe stop --target-dir . --summary '<what was observed>'",
+            suggested_mcp_tool="aegis.observe_stop",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "summary": "<what was observed>",
+                "apply": True,
+            },
+            missing_gates=[],
+            copyable_repairs=[
+                f"Save screenshots or notes under {reports_rel}/",
+                "./.aegis/bin/aegis observe stop --target-dir . --summary '<what was observed>'",
+            ],
+            details={
+                "mode": "observation",
+                "observation": dict(observation),
+                "allowed_until_stop": [
+                    "dev servers and localhost probes",
+                    "browser/screenshot MCP tools",
+                    "read-only source and git inspection",
+                    "aegis log observation notes",
+                ],
+                "blocked_until_kickoff": [
+                    "source edits",
+                    "Taskmaster mutations",
+                    "git mutations",
+                    "Aegis closeout/apply paths",
+                ],
+            },
         )
 
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
@@ -3252,6 +3306,207 @@ def _work_tracking_rel(task_id: str, slug: str, now: datetime) -> str:
     return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-task{task_id}-{slug}-ACTIVE"
 
 
+def _normalize_observation_slug(slug: str, title: str) -> str:
+    normalized = _slugify(slug or title)
+    if not normalized:
+        raise AegisError("observation title or slug is required")
+    return normalized
+
+
+def _observation_id(slug: str, now: datetime) -> str:
+    return f"obs-{now.strftime('%Y%m%d-%H%M%S')}-{slug}"
+
+
+def _observation_session_rel(target_root: Path, observation_id: str, now: datetime) -> str:
+    date_text = now.strftime("%Y-%m-%d")
+    month_rel = Path("sessions") / now.strftime("%Y") / now.strftime("%m")
+    for index in range(1, 1000):
+        candidate = month_rel / f"{date_text}-{index:03d}-{observation_id}.md"
+        if not (target_root / candidate).exists():
+            return candidate.as_posix()
+    raise AegisError("could not allocate observation session file name")
+
+
+def _observation_plan_rel(slug: str, now: datetime) -> str:
+    return f"plans/{now.strftime('%Y-%m-%d')}-observe-{slug}.md"
+
+
+def _observation_work_tracking_rel(slug: str, now: datetime) -> str:
+    return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-observe-{slug}-ACTIVE"
+
+
+def _git_status_snapshot(target_root: Path) -> list[str]:
+    result = _run_target_git(target_root, "status", "--short", "--untracked-files=all", "--ignored")
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "git status failed").strip()
+        raise AegisError(f"could not snapshot git status: {detail}")
+    return [line.rstrip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _hash_file(path: Path, *, byte_limit: int | None = None) -> tuple[str, int, bool]:
+    digest = hashlib.sha256()
+    total = 0
+    truncated = False
+    with path.open("rb") as handle:
+        while True:
+            chunk_size = 1024 * 1024
+            if byte_limit is not None:
+                remaining = byte_limit - total
+                if remaining <= 0:
+                    truncated = True
+                    break
+                chunk_size = min(chunk_size, remaining)
+            chunk = handle.read(chunk_size)
+            if not chunk:
+                break
+            digest.update(chunk)
+            total += len(chunk)
+    return digest.hexdigest(), total, truncated
+
+
+def _fingerprint_status_path(path: Path) -> str:
+    if path.is_symlink():
+        try:
+            return f"symlink:{path.readlink().as_posix()}"
+        except OSError as exc:
+            return f"symlink-error:{exc}"
+    if path.is_file():
+        try:
+            digest, size, truncated = _hash_file(
+                path,
+                byte_limit=AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES,
+            )
+            return f"file:{size}:{digest}:truncated={str(truncated).lower()}"
+        except OSError as exc:
+            return f"file-error:{exc}"
+    if path.is_dir():
+        digest = hashlib.sha256()
+        files_seen = 0
+        bytes_seen = 0
+        truncated = False
+        try:
+            children = sorted(path.rglob("*"), key=lambda item: item.relative_to(path).as_posix())
+            for child in children:
+                rel_child = child.relative_to(path).as_posix()
+                if child.is_dir() and not child.is_symlink():
+                    digest.update(f"D\t{rel_child}\n".encode("utf-8"))
+                    continue
+                files_seen += 1
+                if files_seen > AEGIS_OBSERVATION_FINGERPRINT_MAX_FILES:
+                    truncated = True
+                    break
+                if child.is_symlink():
+                    digest.update(f"L\t{rel_child}\t{child.readlink().as_posix()}\n".encode("utf-8"))
+                    continue
+                if not child.is_file():
+                    digest.update(f"O\t{rel_child}\n".encode("utf-8"))
+                    continue
+                remaining = AEGIS_OBSERVATION_FINGERPRINT_MAX_BYTES - bytes_seen
+                if remaining <= 0:
+                    truncated = True
+                    break
+                child_hash, child_bytes, child_truncated = _hash_file(child, byte_limit=remaining)
+                bytes_seen += child_bytes
+                truncated = truncated or child_truncated
+                digest.update(f"F\t{rel_child}\t{child_bytes}\t{child_hash}\n".encode("utf-8"))
+                if truncated:
+                    break
+        except OSError as exc:
+            return f"dir-error:{exc}"
+        return (
+            f"dir:{files_seen}:{bytes_seen}:{digest.hexdigest()}:"
+            f"truncated={str(truncated).lower()}"
+        )
+    if path.exists():
+        return "other"
+    return "missing"
+
+
+def _git_status_rel_path(line: str) -> str:
+    body = line[3:] if len(line) > 3 else line
+    if " -> " in body:
+        body = body.rsplit(" -> ", 1)[-1]
+    return body.strip().strip('"')
+
+
+def _git_status_fingerprints(target_root: Path, status_lines: Sequence[str]) -> dict[str, str]:
+    fingerprints: dict[str, str] = {}
+    for line in status_lines:
+        rel_path = _git_status_rel_path(str(line))
+        if not rel_path:
+            continue
+        path = target_root / rel_path
+        fingerprints[rel_path] = _fingerprint_status_path(path)
+    return fingerprints
+
+
+def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    prefixes = {
+        AEGIS_CURRENT_WORK_REL,
+        AEGIS_MANIFEST_REL,
+        AEGIS_OBSERVATION_REPORT_REL,
+        "sessions/state.json",
+        "sessions/current",
+        "plans/current",
+    }
+    for key in ("session", "plan", "work_tracking", "reports"):
+        value = str(paths.get(key) or "").strip()
+        if value:
+            prefixes.add(value.rstrip("/"))
+    return sorted(prefixes)
+
+
+def _status_line_matches_prefix(line: str, prefix: str) -> bool:
+    rel_path = _git_status_rel_path(line)
+    normalized = prefix.rstrip("/")
+    return rel_path == normalized or rel_path.startswith(f"{normalized}/")
+
+
+def _unexpected_observation_status_lines(
+    current_work: Mapping[str, Any],
+    current_status: Sequence[str],
+    current_fingerprints: Mapping[str, str],
+) -> list[str]:
+    observation = (
+        current_work.get("observation")
+        if isinstance(current_work.get("observation"), Mapping)
+        else {}
+    )
+    baseline = {
+        str(line).rstrip()
+        for line in observation.get("baseline_git_status", [])
+        if isinstance(line, str) and line.strip()
+    }
+    baseline_fingerprints = (
+        observation.get("baseline_git_fingerprints")
+        if isinstance(observation.get("baseline_git_fingerprints"), Mapping)
+        else {}
+    )
+    allowed_prefixes = _observation_allowed_prefixes(current_work)
+    unexpected: list[str] = []
+    for line in current_status:
+        stripped = str(line).rstrip()
+        if not stripped or stripped in baseline:
+            continue
+        if any(_status_line_matches_prefix(stripped, prefix) for prefix in allowed_prefixes):
+            continue
+        unexpected.append(stripped)
+    for rel_path, baseline_fingerprint in sorted(baseline_fingerprints.items()):
+        rel_text = str(rel_path)
+        if any(
+            rel_text == prefix.rstrip("/") or rel_text.startswith(f"{prefix.rstrip('/')}/")
+            for prefix in allowed_prefixes
+        ):
+            continue
+        current_fingerprint = current_fingerprints.get(rel_text)
+        if current_fingerprint is None:
+            unexpected.append(f"removed status-visible path: {rel_text}")
+        elif current_fingerprint != baseline_fingerprint:
+            unexpected.append(f"changed status-visible path: {rel_text}")
+    return unexpected
+
+
 def _default_goals() -> list[str]:
     return [
         "Define scope and constraints before implementation",
@@ -3301,10 +3556,11 @@ def _workflow_template_context(
     plan_rel: str,
     work_rel: str,
     reports_rel: str,
+    work_context: str | None = None,
 ) -> dict[str, str]:
     selected_goals = list(goals or _default_goals())
     session_id = Path(session_rel).stem
-    work_context = f"task{task_id}-{slug}"
+    resolved_work_context = work_context or f"task{task_id}-{slug}"
     tracker_rel = f"{work_rel}/TRACKER.md"
     return {
         "task_id": task_id,
@@ -3312,7 +3568,7 @@ def _workflow_template_context(
         "slug": slug,
         "session_id": session_id,
         "session_value": now.strftime("%Y%m%d"),
-        "work_context": work_context,
+        "work_context": resolved_work_context,
         "date": now.strftime("%Y-%m-%d"),
         "time_label": now.strftime("%H:%M %Z").strip(),
         "time_hm": now.strftime("%H:%M"),
@@ -3627,6 +3883,301 @@ def kickoff(
         ),
     }
     _write_text(target_root, AEGIS_KICKOFF_REPORT_REL, _dump_json(report))
+    return report
+
+
+def start_observation(
+    target_dir: str | Path,
+    *,
+    title: str,
+    slug: str = "",
+    goals: Sequence[str] | None = None,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """Start a non-task observation window for audits, screenshots, and app-driving."""
+
+    target_root = _resolve_target_root(target_dir)
+    resolved_source = Path(source_root).resolve() if source_root is not None else None
+    if not (target_root / AEGIS_MANIFEST_REL).is_file():
+        raise AegisError("Aegis observe requires an installed .aegis/foundation-manifest.json")
+    _ensure_client_reload_cleared(target_root, "observe start")
+    _ensure_git_work_tree(target_root)
+
+    clean_title = title.strip()
+    if not clean_title:
+        raise AegisError("title is required")
+    normalized_slug = _normalize_observation_slug(slug, clean_title)
+
+    existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+    if isinstance(existing_current_work, Mapping) and str(existing_current_work.get("status") or "") == "in-progress":
+        return _already_started_report(target_root, existing_current_work)
+
+    now = datetime.now().astimezone().replace(microsecond=0)
+    observation_id = _observation_id(normalized_slug, now)
+    branch_current = _current_branch(target_root)
+    baseline_status = _git_status_snapshot(target_root)
+    baseline_fingerprints = _git_status_fingerprints(target_root, baseline_status)
+    selected_goals = list(
+        goals
+        or [
+            "Run observation tooling without source edits or Taskmaster mutation",
+            "Capture findings, screenshots, and reproduction notes",
+            "Stop observation and verify no unexpected working-tree delta",
+        ]
+    )
+
+    session_rel = _observation_session_rel(target_root, observation_id, now)
+    plan_rel = _observation_plan_rel(normalized_slug, now)
+    work_rel = _observation_work_tracking_rel(normalized_slug, now)
+    reports_rel = f"{work_rel}/reports/{normalized_slug}"
+    template_context = _workflow_template_context(
+        task_id=observation_id,
+        title=clean_title,
+        slug=normalized_slug,
+        goals=selected_goals,
+        now=now,
+        branch_current=branch_current,
+        session_rel=session_rel,
+        plan_rel=plan_rel,
+        work_rel=work_rel,
+        reports_rel=reports_rel,
+        work_context=f"observe-{normalized_slug}",
+    )
+
+    _write_text(
+        target_root,
+        session_rel,
+        _render_workflow_template(target_root, resolved_source, "session.md", template_context),
+    )
+    _replace_symlink(
+        target_root / "sessions" / "current", str(Path(session_rel).relative_to("sessions"))
+    )
+    state_payload = {
+        "schema_version": SCHEMA_VERSION,
+        "current": Path(session_rel).name,
+        "current_path": session_rel,
+        "mode": "observation",
+        "task": {
+            "id": observation_id,
+            "slug": normalized_slug,
+            "title": clean_title,
+            "status": "in-progress",
+            "source": "aegis-observation",
+        },
+        "updated_at": _iso_now(),
+    }
+    _write_text(target_root, "sessions/state.json", _dump_json(state_payload))
+
+    _write_text(
+        target_root,
+        plan_rel,
+        _render_workflow_template(target_root, resolved_source, "plan.md", template_context),
+    )
+    _replace_symlink(target_root / "plans" / "current", Path(plan_rel).name)
+
+    work_files = {
+        f"{work_rel}/TRACKER.md": _render_workflow_template(
+            target_root, resolved_source, "tracker.md", template_context
+        ),
+        f"{work_rel}/FINDINGS.md": _render_workflow_template(
+            target_root, resolved_source, "findings.md", template_context
+        ),
+        f"{work_rel}/DECISIONS.md": _render_workflow_template(
+            target_root, resolved_source, "decisions.md", template_context
+        ),
+        f"{work_rel}/HANDOFF.md": _render_workflow_template(
+            target_root, resolved_source, "handoff.md", template_context
+        ),
+        f"{work_rel}/IMPLEMENTATION.md": _render_workflow_template(
+            target_root, resolved_source, "implementation.md", template_context
+        ),
+        f"{work_rel}/CHANGELOG.md": _render_workflow_template(
+            target_root, resolved_source, "changelog.md", template_context
+        ),
+    }
+    for rel_path, content in work_files.items():
+        _write_text(target_root, rel_path, content)
+    (target_root / work_rel / "designs").mkdir(parents=True, exist_ok=True)
+    (target_root / reports_rel).mkdir(parents=True, exist_ok=True)
+
+    current_work = {
+        "schema_version": SCHEMA_VERSION,
+        "mode": "observation",
+        "status": "in-progress",
+        "created_at": now.isoformat().replace("+00:00", "Z"),
+        "updated_at": _iso_now(),
+        "task": {
+            "id": observation_id,
+            "slug": normalized_slug,
+            "title": clean_title,
+            "status": "in-progress",
+            "source": "aegis-observation",
+        },
+        "observation": {
+            "id": observation_id,
+            "slug": normalized_slug,
+            "title": clean_title,
+            "baseline_git_status": baseline_status,
+            "baseline_git_fingerprints": baseline_fingerprints,
+            "allowed_paths": [],
+        },
+        "branch": {
+            "before": branch_current,
+            "current": branch_current,
+            "action": "observation_no_branch_change",
+            "created": False,
+            "requires_task_id": False,
+        },
+        "paths": {
+            "session": session_rel,
+            "session_current": "sessions/current",
+            "plan": plan_rel,
+            "plan_current": "plans/current",
+            "work_tracking": work_rel,
+            "reports": reports_rel,
+            "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        },
+        "integrations": {
+            "taskmaster": {
+                "required": False,
+                "detected": (target_root / ".taskmaster").exists(),
+            },
+            "serena": {
+                "required": False,
+                "detected": (target_root / ".serena").exists(),
+            },
+        },
+    }
+    current_work["observation"]["allowed_paths"] = _observation_allowed_prefixes(current_work)
+    _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+    _update_manifest_after_kickoff(target_root)
+
+    stop_arguments = {
+        "target_dir": ".",
+        "summary": "<what was observed>",
+        "apply": True,
+    }
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "started",
+        "mode": "observation",
+        "started_at": _iso_now(),
+        "target_root": str(target_root),
+        "task": current_work["task"],
+        "observation": current_work["observation"],
+        "branch": current_work["branch"],
+        "paths": current_work["paths"],
+        "integrations": current_work["integrations"],
+        "workflow_templates": AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        "next_action": _workflow_next_action(
+            "observe_then_stop",
+            "Observation mode is active. Run app-driving, browser, screenshot, and read-only audit tooling without source edits or Taskmaster mutations; then stop observation to verify the working tree delta.",
+            suggested_cli=(
+                "./.aegis/bin/aegis observe stop --target-dir . "
+                "--summary '<what was observed>'"
+            ),
+            suggested_mcp_tool="aegis.observe_stop",
+            suggested_mcp_arguments=stop_arguments,
+            details={
+                "allowed": [
+                    "dev servers and localhost probes",
+                    "browser/screenshot MCP tools",
+                    "read-only source and git inspection",
+                    "aegis log for observation notes",
+                ],
+                "blocked": [
+                    "source edits",
+                    "Taskmaster mutations",
+                    "git mutations",
+                    "Aegis closeout/apply paths",
+                ],
+                "side_effect_guard": "aegis observe stop compares git status to the start snapshot and refuses unexpected deltas unless --allow-dirty is explicit.",
+            },
+        ),
+    }
+    _write_text(target_root, AEGIS_OBSERVATION_REPORT_REL, _dump_json(report))
+    return report
+
+
+def stop_observation(
+    target_dir: str | Path,
+    *,
+    summary: str = "",
+    allow_dirty: bool = False,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
+    """End an observation window and refuse if unexpected working-tree deltas appeared."""
+
+    del source_root
+    target_root = _resolve_target_root(target_dir)
+    if not (target_root / AEGIS_MANIFEST_REL).is_file():
+        raise AegisError("Aegis observe stop requires an installed .aegis/foundation-manifest.json")
+    _ensure_git_work_tree(target_root)
+
+    current_work_path = target_root / AEGIS_CURRENT_WORK_REL
+    current_work = _read_json(current_work_path)
+    if not isinstance(current_work, MutableMapping):
+        raise AegisError(f"{AEGIS_CURRENT_WORK_REL} missing or invalid; no observation is active")
+    if str(current_work.get("mode") or "") != "observation":
+        raise AegisError("aegis observe stop requires active observation-mode current work")
+    if str(current_work.get("status") or "") != "in-progress":
+        raise AegisError("aegis observe stop requires an in-progress observation")
+
+    finished_at = _iso_now()
+    current_status = _git_status_snapshot(target_root)
+    current_fingerprints = _git_status_fingerprints(target_root, current_status)
+    unexpected = _unexpected_observation_status_lines(
+        current_work,
+        current_status,
+        current_fingerprints,
+    )
+    blocked = bool(unexpected and not allow_dirty)
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "blocked" if blocked else "completed",
+        "mode": "observation",
+        "finished_at": finished_at,
+        "target_root": str(target_root),
+        "summary": summary,
+        "allow_dirty": allow_dirty,
+        "unexpected_changes": unexpected,
+        "final_git_status": current_status,
+        "final_git_fingerprints": current_fingerprints,
+        "task": dict(current_work.get("task") or {}),
+        "paths": dict(current_work.get("paths") or {}),
+        "next_action": _workflow_next_action(
+            "resolve_unexpected_delta" if blocked else "observation_closed",
+            (
+                "Observation stop refused because unexpected working-tree deltas appeared. "
+                "Revert or intentionally keep them, then rerun with --allow-dirty."
+                if blocked
+                else "Observation closed; no unexpected working-tree delta was detected."
+            ),
+            details={
+                "unexpected_changes": unexpected,
+                "allow_dirty": allow_dirty,
+            },
+        ),
+    }
+    _write_text(target_root, AEGIS_OBSERVATION_REPORT_REL, _dump_json(report))
+    if blocked:
+        return report
+
+    current_work["status"] = "completed"
+    current_work["updated_at"] = finished_at
+    current_work["completed_at"] = finished_at
+    task = current_work.get("task")
+    if isinstance(task, MutableMapping):
+        task["status"] = "completed"
+    observation = current_work.get("observation")
+    if isinstance(observation, MutableMapping):
+        observation["completed_at"] = finished_at
+        observation["summary"] = summary
+        observation["final_git_status"] = current_status
+        observation["final_git_fingerprints"] = current_fingerprints
+        observation["unexpected_changes"] = unexpected
+        observation["allow_dirty"] = allow_dirty
+    _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
     return report
 
 
@@ -5207,6 +5758,7 @@ def _strict_current_work_checks(
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
     task_id = str(task.get("id") or "").strip()
     task_slug = str(task.get("slug") or "").strip()
+    work_mode = str(current_work.get("mode") or "task").strip() or "task"
     missing_path_keys = [
         key
         for key in (
@@ -5222,7 +5774,9 @@ def _strict_current_work_checks(
     ]
     work_status = str(current_work.get("status") or "").strip()
     active_payload = work_status == "in-progress"
-    completed_payload = work_status == "completed" and bool(current_work.get("closeout_passed_at"))
+    completed_payload = work_status == "completed" and (
+        bool(current_work.get("closeout_passed_at")) or work_mode == "observation"
+    )
     valid_payload = (
         (active_payload or completed_payload)
         and bool(task_id)
@@ -5247,13 +5801,42 @@ def _strict_current_work_checks(
             message=status_message,
             details={
                 "task": task,
+                "mode": work_mode,
                 "status": work_status,
                 "missing_path_keys": missing_path_keys,
             },
         )
     ]
 
-    if task_id:
+    if task_id and work_mode == "observation":
+        try:
+            branch = _current_branch(target_root)
+            checks.append(
+                _strict_check(
+                    "workflow.branch_task_alignment",
+                    category="workflow",
+                    required=True,
+                    passed=True,
+                    message="observation mode does not require a task-id branch",
+                    details={
+                        "branch": branch,
+                        "current_work_task_id": task_id,
+                        "mode": work_mode,
+                    },
+                )
+            )
+        except AegisError as exc:
+            checks.append(
+                _strict_check(
+                    "workflow.branch_task_alignment",
+                    category="workflow",
+                    required=True,
+                    passed=False,
+                    message=str(exc),
+                    details={"mode": work_mode},
+                )
+            )
+    elif task_id:
         try:
             branch = _current_branch(target_root)
             branch_task = _branch_task_id(branch)
@@ -5776,6 +6359,12 @@ def _classify_doctor_state(
     if isinstance(pending_check, Mapping) and pending_check.get("status") == "fail":
         return "pending_tracking", "blocked"
     status_value = str(current_work.get("status") or "")
+    work_mode = str(current_work.get("mode") or "task")
+    if work_mode == "observation" and status_value == "completed":
+        summary = _doctor_summary(checks)
+        if summary["failed_required"]:
+            return "observation_completed", "repairable"
+        return "observation_completed", "degraded" if summary["warnings"] else "healthy"
     if status_value == "completed" and current_work.get("closeout_passed_at"):
         summary = _doctor_summary(checks)
         if summary["failed_required"]:
@@ -5790,8 +6379,8 @@ def _classify_doctor_state(
     if summary["failed_required"]:
         return "installed_with_failures", "repairable" if repair_actions else "failed"
     if summary["warnings"]:
-        return "in_progress_ready", "degraded"
-    return "in_progress_ready", "healthy"
+        return ("observation_ready" if work_mode == "observation" else "in_progress_ready"), "degraded"
+    return ("observation_ready" if work_mode == "observation" else "in_progress_ready"), "healthy"
 
 
 def doctor(

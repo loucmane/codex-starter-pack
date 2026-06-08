@@ -90,6 +90,10 @@ def text_references_task(text: str, task_id: str) -> bool:
     return any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in patterns)
 
 
+def text_references_work(text: str, work_id: str) -> bool:
+    return bool(work_id and re.search(rf"\b{re.escape(work_id)}\b", text, flags=re.IGNORECASE))
+
+
 def taskmaster_tasks_payload(data: object) -> tuple[str, list[dict[str, object]]] | None:
     if not isinstance(data, dict):
         return None
@@ -116,6 +120,12 @@ def aegis_work_task(data: object) -> dict[str, object] | None:
         return None
     task = data.get("task")
     return task if isinstance(task, dict) else None
+
+
+def aegis_work_mode(data: object) -> str:
+    if not isinstance(data, dict):
+        return ""
+    return str(data.get("mode") or "task")
 
 
 def aegis_integration_required(data: object, name: str) -> bool:
@@ -237,6 +247,83 @@ def check_taskmaster_task(root: Path, task_id: str, *, required: bool, checks: l
     checks.append(Check(READY, f"{prefix} Task {task_id} is in-progress"))
 
 
+def build_observation_checks(root: Path, branch: str, aegis_work: object) -> tuple[str | None, list[Check]]:
+    checks: list[Check] = []
+    task = aegis_work_task(aegis_work)
+    paths = aegis_work.get("paths") if isinstance(aegis_work, dict) and isinstance(aegis_work.get("paths"), dict) else {}
+    work_id = str(task.get("id") if task else "").strip()
+    slug = str(task.get("slug") if task else "").strip()
+    status = str(aegis_work.get("status") if isinstance(aegis_work, dict) else "").strip()
+
+    if not task or not work_id or not slug or status != "in-progress":
+        checks.append(Check(BLOCKED, "observation current work is missing id, slug, or in-progress status"))
+        return work_id or None, checks
+
+    checks.append(Check(READY, f"branch '{branch}' is accepted for observation mode without a task ID"))
+    checks.append(Check(READY, f"Aegis observation {work_id} is in-progress"))
+
+    session_rel = str(paths.get("session") or "").strip()
+    plan_rel = str(paths.get("plan") or "").strip()
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    if not session_rel or not plan_rel or not work_rel:
+        checks.append(Check(BLOCKED, "observation current work paths are incomplete"))
+        return work_id, checks
+
+    session_current = root / "sessions" / "current"
+    session_path, session_target = symlink_target(session_current)
+    if session_path is None or session_target is None:
+        checks.append(Check(BLOCKED, "sessions/current symlink missing"))
+    elif session_path.relative_to(root).as_posix() != session_rel:
+        checks.append(Check(BLOCKED, f"sessions/current does not point to observation session {session_rel}"))
+    elif not session_path.is_file():
+        checks.append(Check(BLOCKED, f"sessions/current points to missing file: {session_target}"))
+    else:
+        session_text = read_text(session_path)
+        if not text_references_work(session_text, work_id):
+            checks.append(Check(BLOCKED, f"active session does not reference observation {work_id}"))
+        else:
+            checks.append(Check(READY, f"active session references observation {work_id}"))
+
+    plan_current = root / "plans" / "current"
+    plan_path, plan_target = symlink_target(plan_current)
+    plan_text: str | None = None
+    if plan_path is None or plan_target is None:
+        checks.append(Check(BLOCKED, "plans/current symlink missing"))
+    elif plan_path.relative_to(root).as_posix() != plan_rel:
+        checks.append(Check(BLOCKED, f"plans/current does not point to observation plan {plan_rel}"))
+    elif not plan_path.is_file():
+        checks.append(Check(BLOCKED, f"plans/current points to missing file: {plan_target}"))
+    else:
+        plan_text = read_text(plan_path)
+        if not text_references_work(plan_text, work_id):
+            checks.append(Check(BLOCKED, f"active plan does not reference observation {work_id}"))
+        else:
+            checks.append(Check(READY, f"active plan references observation {work_id}"))
+
+    tracker_path = root / work_rel / "TRACKER.md"
+    tracker_text: str | None = None
+    if not (root / work_rel).is_dir():
+        checks.append(Check(BLOCKED, f"observation work-tracking folder missing: {work_rel}"))
+    elif not tracker_path.is_file():
+        checks.append(Check(BLOCKED, f"{tracker_path.relative_to(root)} missing"))
+    else:
+        tracker_text = read_text(tracker_path)
+        if not text_references_work(tracker_text, work_id):
+            checks.append(Check(BLOCKED, f"active tracker does not reference observation {work_id}"))
+        else:
+            checks.append(Check(READY, f"active tracker references observation {work_id}"))
+
+    if plan_text is not None and tracker_text is not None:
+        alignment_issues = check_plan_tracker_alignment(plan_text, tracker_text)
+        if alignment_issues:
+            for issue in alignment_issues:
+                checks.append(Check(BLOCKED, f"plan/tracker alignment failure: {issue}"))
+        else:
+            checks.append(Check(READY, "plan-step statuses align between plan and tracker"))
+
+    return work_id, checks
+
+
 def build_checks(root: Path) -> tuple[str | None, list[Check]]:
     checks: list[Check] = []
 
@@ -250,16 +337,26 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
         checks.append(Check(BLOCKED, f"could not determine current git branch: {err or 'empty branch'}"))
         return None, checks
 
+    aegis_work_path = root / ".aegis" / "state" / "current-work.json"
+    aegis_work: object | None = None
+    if aegis_work_path.is_file():
+        try:
+            aegis_work = read_json(aegis_work_path)
+        except Exception as exc:  # noqa: BLE001 - surface exact readiness failure.
+            checks.append(Check(BLOCKED, f"could not read Aegis current work state: {exc}"))
+            return None, checks
+        if aegis_work_mode(aegis_work) == "observation":
+            return build_observation_checks(root, branch, aegis_work)
+
     task_id = task_id_from_branch(branch)
     if not task_id:
         checks.append(Check(BLOCKED, f"branch '{branch}' does not contain a task ID"))
         return None, checks
     checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
 
-    aegis_work_path = root / ".aegis" / "state" / "current-work.json"
     if aegis_work_path.is_file():
         try:
-            aegis_work = read_json(aegis_work_path)
+            aegis_work = aegis_work if aegis_work is not None else read_json(aegis_work_path)
             task = aegis_work_task(aegis_work)
         except Exception as exc:  # noqa: BLE001 - surface exact readiness failure.
             checks.append(Check(BLOCKED, f"could not read Aegis current work state: {exc}"))

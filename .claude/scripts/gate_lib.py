@@ -39,6 +39,8 @@ WORKFLOW_REPORT_SEGMENT = "/reports/"
 SANCTIONED_AEGIS_MCP_MUTATION_SUFFIXES = {
     "kickoff",
     "start",
+    "observe_start",
+    "observe_stop",
     "log",
     "handoff_repair",
     "closeout",
@@ -61,7 +63,7 @@ MUTATING_TASKMASTER_RE = re.compile(
 )
 MUTATING_AEGIS_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
-    r"install|uninstall|verify|start|kickoff|log|closeout"
+    r"install|uninstall|verify|start|kickoff|observe|log|closeout"
     r")\b",
     re.IGNORECASE,
 )
@@ -83,6 +85,11 @@ AEGIS_VERIFY_RE = re.compile(
 )
 AEGIS_CLOSEOUT_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+closeout\b",
+    re.IGNORECASE,
+)
+LOCALHOST_URL_RE = re.compile(r"^https?://(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:/|$)", re.IGNORECASE)
+OBSERVATION_BROWSER_MCP_RE = re.compile(
+    r"^mcp__(?:playwright|browser|puppeteer|chrome(?:[-_]devtools)?|chromium)__",
     re.IGNORECASE,
 )
 REDIRECT_RE = re.compile(r"(?<![<])(?:>>|>)(?![>&])\s*([\"']?)([^\"'\s;&|]+)\1")
@@ -657,6 +664,106 @@ def bash_is_read_only(command: str) -> bool:
     return bool(segments) and all(bash_segment_is_read_only(segment) for segment in segments)
 
 
+def npm_command_words(tokens: list[str]) -> list[str]:
+    words: list[str] = []
+    skip_next = False
+    for token in tokens[1:]:
+        if skip_next:
+            skip_next = False
+            continue
+        if token in {"-C", "--prefix", "--cwd", "--dir", "--filter", "--workspace"}:
+            skip_next = True
+            continue
+        if token.startswith("-"):
+            continue
+        words.append(token)
+    return words
+
+
+def localhost_probe_segment(tokens: list[str]) -> bool:
+    if tokens[0] == "curl":
+        curl_file_output_flags = {
+            "--cookie-jar",
+            "--config",
+            "--dump-header",
+            "--etag-save",
+            "--output",
+            "--output-dir",
+            "--remote-header-name",
+            "--remote-name",
+            "--remote-name-all",
+            "--trace",
+            "--trace-ascii",
+        }
+        for token in tokens[1:]:
+            if token in curl_file_output_flags or any(
+                token.startswith(f"{flag}=") for flag in curl_file_output_flags
+            ):
+                return False
+            if token in {"-D", "-J", "-K", "-O", "-o", "-c"}:
+                return False
+            if token.startswith("-D") or token.startswith("-K") or token.startswith("-o") or token.startswith("-c"):
+                return False
+            if token.startswith("-") and "O" in token[1:]:
+                return False
+        return any(LOCALHOST_URL_RE.match(token) for token in tokens[1:])
+    if tokens[0] == "wget":
+        stdout = False
+        for index, token in enumerate(tokens[1:], start=1):
+            if token == "-O" and index + 1 < len(tokens) and tokens[index + 1] == "-":
+                stdout = True
+            elif token == "-O-":
+                stdout = True
+            elif token == "--output-document=-":
+                stdout = True
+            elif token.startswith("--output-document="):
+                return False
+            elif token == "--output-document":
+                return False
+            elif token in {"-e", "--config"} or token.startswith("--config="):
+                return False
+            elif token.startswith("-O") and token != "-O-":
+                return False
+        return stdout and any(LOCALHOST_URL_RE.match(token) for token in tokens[1:])
+    if tokens[0] not in {"curl", "wget"}:
+        return False
+    return False
+
+
+def dev_server_segment(tokens: list[str]) -> bool:
+    name = tokens[0]
+    if name in {"npm", "pnpm", "yarn", "bun"}:
+        words = npm_command_words(tokens)
+        if not words:
+            return False
+        if words[0] in {"dev", "start"}:
+            return True
+        return len(words) >= 2 and words[0] == "run" and words[1] in {"dev", "start"}
+    if name in {"vite", "next", "astro", "wrangler"}:
+        return len(tokens) >= 2 and tokens[1] in {"dev", "start"}
+    return False
+
+
+def bash_segment_is_observation_tooling(segment: str) -> bool:
+    tokens = strip_shell_prefixes(shlex_tokens(segment))
+    if not tokens:
+        return True
+    name = command_name(tokens[0])
+    tokens[0] = name
+    if bash_segment_is_read_only(segment):
+        return True
+    return dev_server_segment(tokens) or localhost_probe_segment(tokens)
+
+
+def bash_is_observation_tooling(command: str) -> bool:
+    if not command.strip():
+        return True
+    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
+        return False
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    return bool(segments) and all(bash_segment_is_observation_tooling(segment) for segment in segments)
+
+
 def degraded_bash_segment_is_non_destructive(segment: str) -> bool:
     return bash_segment_is_read_only(segment)
 
@@ -679,7 +786,7 @@ def degraded_payload_is_non_destructive(payload: Payload) -> bool:
 
 
 def bash_is_aegis_bootstrap(command: str) -> bool:
-    return bash_has_trusted_aegis_subcommand(command, {"start", "kickoff"})
+    return bash_has_trusted_aegis_subcommand(command, {"start", "kickoff"}) or bash_is_aegis_observe_start(command)
 
 
 def bash_is_aegis_log(command: str) -> bool:
@@ -696,6 +803,14 @@ def bash_is_aegis_uninstall_apply(command: str) -> bool:
 
 def bash_is_aegis_verify(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"verify"})
+
+
+def bash_is_aegis_observe_start(command: str) -> bool:
+    return bash_has_trusted_aegis_nested_subcommand(command, "observe", {"start"})
+
+
+def bash_is_aegis_observe_stop(command: str) -> bool:
+    return bash_has_trusted_aegis_nested_subcommand(command, "observe", {"stop"})
 
 
 def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
@@ -734,6 +849,20 @@ def bash_has_trusted_aegis_subcommand(
         if required_option and required_option not in remainder[1:]:
             continue
         return True
+    return False
+
+
+def bash_has_trusted_aegis_nested_subcommand(
+    command: str,
+    first: str,
+    seconds: set[str],
+) -> bool:
+    root = project_root()
+    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+        tokens = strip_shell_prefixes(shlex_tokens(segment))
+        remainder = aegis_cli_remainder(tokens, root, allow_bare=False)
+        if len(remainder or []) >= 2 and remainder[0] == first and remainder[1] in seconds:
+            return True
     return False
 
 
@@ -938,6 +1067,11 @@ def write_degraded_event(root: Path, payload: Payload, reason: str, raw_payload:
 
 def current_work(root: Path) -> dict[str, Any] | None:
     return read_json(root / AEGIS_CURRENT_WORK_REL)
+
+
+def current_work_is_observation(root: Path) -> bool:
+    work = current_work(root)
+    return isinstance(work, dict) and work.get("mode") == "observation" and work.get("status") == "in-progress"
 
 
 def current_work_closeout_completed(root: Path) -> dict[str, Any] | None:
@@ -1161,6 +1295,24 @@ def payload_is_aegis_log(payload: Payload) -> bool:
     return False
 
 
+def payload_is_aegis_observe_start(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_observe_start(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("observe_start")
+    return False
+
+
+def payload_is_aegis_observe_stop(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_observe_stop(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("observe_stop")
+    return False
+
+
 def payload_is_aegis_pending_log(payload: Payload) -> bool:
     if payload.tool_name == "Bash":
         return bash_is_aegis_pending_log(bash_command(payload))
@@ -1205,12 +1357,27 @@ def payload_is_read_only(payload: Payload) -> bool:
     return False
 
 
+def payload_is_observation_allowed(payload: Payload) -> bool:
+    if payload.tool_name in FILE_MUTATION_TOOLS:
+        return False
+    if payload_is_read_only(payload):
+        return True
+    if payload_is_aegis_log(payload) or payload_is_aegis_observe_stop(payload):
+        return True
+    if payload.tool_name == "Bash":
+        command = bash_command(payload)
+        return bash_is_observation_tooling(command)
+    if is_mcp_tool(payload.tool_name):
+        return bool(OBSERVATION_BROWSER_MCP_RE.match(payload.tool_name))
+    return False
+
+
 def payload_is_aegis_bootstrap(payload: Payload) -> bool:
     if payload.tool_name == "Bash":
         return bash_is_aegis_bootstrap(bash_command(payload))
     if is_mcp_tool(payload.tool_name):
         normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
-        return "aegis" in normalized and normalized.endswith(("start", "kickoff"))
+        return "aegis" in normalized and normalized.endswith(("start", "kickoff", "observe_start"))
     return False
 
 
@@ -1273,6 +1440,8 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     if not work:
         return
     if work.get("status") != "in-progress":
+        return
+    if work.get("mode") == "observation":
         return
     if (
         not payload_is_mutation(payload)
@@ -1391,6 +1560,17 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
     post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(root, payload)
+    if current_work_is_observation(root) and is_mutation:
+        if payload_is_observation_allowed(payload):
+            return 0
+        return block(
+            "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
+            f"Tool: {payload.tool_name}\n"
+            "Reason: Aegis observation mode only permits observation tooling.\n\n"
+            "Allowed while observing: read-only inspection, dev servers, localhost probes, browser/screenshot MCP tools, aegis log, and aegis observe stop.\n"
+            "Blocked while observing: source edits, Taskmaster mutations, git mutations, Aegis closeout/apply paths, and unclassified persistent mutations.\n\n"
+            "Stop observation with `./.aegis/bin/aegis observe stop --target-dir . --summary \"<summary>\"` before implementation work."
+        )
     if (
         readiness.returncode == 2
         and is_mutation

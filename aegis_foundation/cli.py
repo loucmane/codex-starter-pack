@@ -318,6 +318,30 @@ def handle_start(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_observe(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        if args.observe_subcommand == "start":
+            payload = _aegis_installer.start_observation(
+                args.target_dir,
+                title=args.title,
+                slug=args.slug or "",
+                goals=list(args.goal or []),
+                source_root=source_root,
+            )
+            _dump_json(payload)
+            return 0
+        if args.observe_subcommand == "stop":
+            payload = _aegis_installer.stop_observation(
+                args.target_dir,
+                summary=args.summary or "",
+                allow_dirty=args.allow_dirty,
+                source_root=source_root,
+            )
+            _dump_json(payload)
+            return 1 if payload.get("status") == "blocked" else 0
+    raise _aegis_installer.AegisError("unknown observe subcommand")
+
+
 def handle_log(args: argparse.Namespace) -> int:
     payload = _aegis_installer.log_work(
         args.target_dir,
@@ -871,6 +895,35 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Require the current branch to already contain the allocated task id.",
     )
     start_parser.set_defaults(func=handle_start)
+
+    observe_parser = subparsers.add_parser(
+        "observe",
+        help="Run a bounded observation/audit window without binding a Taskmaster task.",
+    )
+    observe_sub = observe_parser.add_subparsers(dest="observe_subcommand", required=True)
+    observe_start_parser = observe_sub.add_parser(
+        "start",
+        help="Start observation mode for app-driving, screenshots, or pre-task audit.",
+    )
+    observe_start_parser.add_argument("title", help="Human-readable observation title.")
+    observe_start_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    observe_start_parser.add_argument("--slug", help="Override the generated observation slug.")
+    observe_start_parser.add_argument(
+        "--goal", action="append", help="Goal to write into the generated plan/tracker."
+    )
+    observe_start_parser.set_defaults(func=handle_observe)
+    observe_stop_parser = observe_sub.add_parser(
+        "stop",
+        help="Stop observation mode after checking for unexpected working-tree deltas.",
+    )
+    observe_stop_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    observe_stop_parser.add_argument("--summary", help="Brief summary of what was observed.")
+    observe_stop_parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Complete observation even when unexpected deltas are present.",
+    )
+    observe_stop_parser.set_defaults(func=handle_observe)
 
     log_parser = subparsers.add_parser(
         "log",

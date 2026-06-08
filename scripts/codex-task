@@ -51,8 +51,10 @@ from _aegis_installer import (
     reconcile as aegis_reconcile,
     repair as aegis_repair,
     repair_handoff as aegis_repair_handoff,
+    start_observation as aegis_start_observation,
     start_local_work as aegis_start_local_work,
     status as aegis_status,
+    stop_observation as aegis_stop_observation,
     uninstall as aegis_uninstall,
     verify as aegis_verify,
 )
@@ -951,6 +953,32 @@ def handle_aegis_start(args: argparse.Namespace) -> None:
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
     _print_json(payload)
+
+
+def handle_aegis_observe(args: argparse.Namespace) -> None:
+    try:
+        if args.observe_subcommand == "start":
+            payload = aegis_start_observation(
+                args.target_dir,
+                title=args.title,
+                slug=args.slug or "",
+                goals=list(args.goal or []),
+                source_root=REPO_ROOT,
+            )
+        elif args.observe_subcommand == "stop":
+            payload = aegis_stop_observation(
+                args.target_dir,
+                summary=args.summary or "",
+                allow_dirty=args.allow_dirty,
+                source_root=REPO_ROOT,
+            )
+        else:
+            raise AegisError("unknown observe subcommand")
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") == "blocked":
+        raise TaskError("Aegis observation stop refused unexpected working-tree deltas")
 
 
 def handle_aegis_log(args: argparse.Namespace) -> None:
@@ -18521,6 +18549,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Require the current branch to already contain the allocated task id",
     )
     aegis_start_parser.set_defaults(func=handle_aegis_start)
+
+    aegis_observe_parser = aegis_sub.add_parser(
+        "observe",
+        help="Run a bounded observation/audit window without binding a Taskmaster task",
+    )
+    aegis_observe_sub = aegis_observe_parser.add_subparsers(dest="observe_subcommand", required=True)
+    aegis_observe_start = aegis_observe_sub.add_parser(
+        "start",
+        help="Start observation mode for app-driving, screenshots, or pre-task audit",
+    )
+    aegis_observe_start.add_argument("title", help="Human-readable observation title")
+    aegis_observe_start.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_observe_start.add_argument("--slug", help="Override the generated observation slug")
+    aegis_observe_start.add_argument("--goal", action="append", help="Goal to write into generated plan/tracker")
+    aegis_observe_start.set_defaults(func=handle_aegis_observe)
+    aegis_observe_stop = aegis_observe_sub.add_parser(
+        "stop",
+        help="Stop observation mode after checking for unexpected working-tree deltas",
+    )
+    aegis_observe_stop.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_observe_stop.add_argument("--summary", help="Brief summary of what was observed")
+    aegis_observe_stop.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Complete observation even when unexpected deltas are present",
+    )
+    aegis_observe_stop.set_defaults(func=handle_aegis_observe)
 
     aegis_log_parser = aegis_sub.add_parser("log", help="Write required S:W:H:E progress entries for current Aegis work")
     aegis_log_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")

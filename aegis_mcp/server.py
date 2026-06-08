@@ -44,6 +44,8 @@ V1_TOOL_NAMES = (
     "aegis.handoff_repair",
     "aegis.kickoff",
     "aegis.start",
+    "aegis.observe_start",
+    "aegis.observe_stop",
     "aegis.log",
     "aegis.list_profiles",
     "aegis.explain_profile",
@@ -916,6 +918,83 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         return run_tool(
             "aegis.start",
+            read_only=False,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.observe_start")
+    def aegis_observe_start(
+        target_dir: str,
+        title: str,
+        slug: str = "",
+        goals: list[str] | None = None,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Start observation mode for audits/screenshots/app-driving without binding a Taskmaster task; requires apply=true."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.observe_start",
+                code="apply_required",
+                message="aegis.observe_start creates observation workflow state and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            return installer.start_observation(
+                target,
+                title=title,
+                slug=slug or "",
+                goals=goals or [],
+                source_root=config.source_root,
+            )
+
+        return run_tool(
+            "aegis.observe_start",
+            read_only=False,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.observe_stop")
+    def aegis_observe_stop(
+        target_dir: str,
+        summary: str = "",
+        allow_dirty: bool = False,
+        apply: bool = False,
+    ) -> dict[str, Any]:
+        """Stop observation mode after checking for unexpected working-tree deltas; requires apply=true."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.observe_stop",
+                code="apply_required",
+                message="aegis.observe_stop writes the observation report/current-work state and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            report = installer.stop_observation(
+                target,
+                summary=summary,
+                allow_dirty=allow_dirty,
+                source_root=config.source_root,
+            )
+            if report.get("status") == "blocked":
+                return _error_tool_response(
+                    "aegis.observe_stop",
+                    code="unexpected_delta",
+                    message="aegis.observe_stop refused because unexpected working-tree deltas were detected.",
+                    status="blocked",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
+            "aegis.observe_stop",
             read_only=False,
             callback=call_core,
         )

@@ -243,6 +243,8 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.handoff_repair",
         "aegis.start",
         "aegis.kickoff",
+        "aegis.observe_start",
+        "aegis.observe_stop",
         "aegis.log",
         "aegis.list_profiles",
         "aegis.explain_profile",
@@ -287,6 +289,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     init_description = tool_by_name(server, "aegis.init").description or ""
     start_description = tool_by_name(server, "aegis.start").description or ""
     kickoff_description = tool_by_name(server, "aegis.kickoff").description or ""
+    observe_start_description = tool_by_name(server, "aegis.observe_start").description or ""
+    observe_stop_description = tool_by_name(server, "aegis.observe_stop").description or ""
     log_description = tool_by_name(server, "aegis.log").description or ""
     verify_description = tool_by_name(server, "aegis.verify").description or ""
     closeout_ready_description = tool_by_name(server, "aegis.closeout_ready").description or ""
@@ -303,6 +307,8 @@ def test_workflow_tools_describe_required_next_actions(tmp_path: Path) -> None:
     assert "Public project setup" in init_description
     assert "Public local-task kickoff" in start_description
     assert "plan-step-scope before source edits" in kickoff_description
+    assert "Start observation mode" in observe_start_description
+    assert "Stop observation mode" in observe_stop_description
     assert "pending_event_id=current" in log_description
     assert "log its pending event before closeout" in verify_description
     assert "Read-only pre-closeout gate check" in closeout_ready_description
@@ -499,6 +505,20 @@ def test_kickoff_schema_requires_explicit_apply_and_task_inputs(tmp_path: Path) 
     assert set(schema["required"]) == {"target_dir", "task", "slug", "title"}
     assert schema["properties"]["apply"]["default"] is False
     assert schema["properties"]["create_branch"]["default"] is True
+
+
+def test_observe_schemas_require_explicit_apply(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+
+    start_schema = tool_by_name(server, "aegis.observe_start").inputSchema
+    assert set(start_schema["required"]) == {"target_dir", "title"}
+    assert start_schema["properties"]["apply"]["default"] is False
+
+    stop_schema = tool_by_name(server, "aegis.observe_stop").inputSchema
+    assert set(stop_schema["required"]) == {"target_dir"}
+    assert stop_schema["properties"]["apply"]["default"] is False
+    assert stop_schema["properties"]["allow_dirty"]["default"] is False
 
 
 def test_log_schema_requires_explicit_apply_and_tracking_inputs(tmp_path: Path) -> None:
@@ -759,6 +779,31 @@ def test_public_init_and_start_require_apply_true_before_core_mutation(tmp_path:
     assert start_payload["ok"] is False
     assert start_payload["error"]["code"] == "apply_required"
     assert not (target / ".aegis" / "state" / "current-work.json").exists()
+
+    observe_start_payload = call_tool_payload(
+        server,
+        "aegis.observe_start",
+        {
+            "target_dir": target.as_posix(),
+            "title": "Polish audit",
+            "apply": False,
+        },
+    )
+    assert observe_start_payload["ok"] is False
+    assert observe_start_payload["error"]["code"] == "apply_required"
+    assert not (target / ".aegis" / "state" / "current-work.json").exists()
+
+    observe_stop_payload = call_tool_payload(
+        server,
+        "aegis.observe_stop",
+        {
+            "target_dir": target.as_posix(),
+            "summary": "Observed nothing",
+            "apply": False,
+        },
+    )
+    assert observe_stop_payload["ok"] is False
+    assert observe_stop_payload["error"]["code"] == "apply_required"
 
 
 def test_doctor_and_repair_tools_preserve_read_only_preview_contract(tmp_path: Path) -> None:
