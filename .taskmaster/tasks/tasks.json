@@ -6932,13 +6932,27 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-08T17:18:48.483Z"
+      },
+      {
+        "id": "182",
+        "title": "Allow fallback observation artifact root for legacy observation state",
+        "description": "Observation stop should treat the computed fallback artifact root as Aegis-owned even when an observation was started before artifact_root metadata existed, so collect-artifacts can close legacy active observations after moving known artifacts.",
+        "details": "Update observation allowed-prefix computation to include the same fallback artifact root used by stop_observation. This keeps observations started before the observation_artifacts path existed from blocking on files that Aegis just collected into .aegis/reports/observations/<observation-id>/artifacts. Add a regression using legacy current-work metadata without paths.observation_artifacts or observation.artifact_root.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "181"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-08T17:43:19.971Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-08T17:18:48.483Z",
-      "taskCount": 180,
-      "completedCount": 180,
+      "lastModified": "2026-06-08T17:43:19.971Z",
+      "taskCount": 181,
+      "completedCount": 181,
       "tags": [
         "master"
       ]

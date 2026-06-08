@@ -1342,6 +1342,46 @@ def test_observation_stop_allows_generated_runtime_deltas_with_collected_artifac
     assert mf_config.read_text(encoding="utf-8") == '{"after":true}\n'
 
 
+def test_observation_stop_allows_fallback_artifact_root_for_legacy_state(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "observe-legacy-artifact-root"
+    init_git_repo(target)
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    started = start_observation(target, title="Legacy artifact audit", source_root=REPO_ROOT)
+    current_work_path = target / AEGIS_CURRENT_WORK_REL
+    current_work = json.loads(current_work_path.read_text(encoding="utf-8"))
+    current_work["paths"].pop("observation_artifacts", None)
+    current_work["observation"].pop("artifact_root", None)
+    current_work_path.write_text(json.dumps(current_work, indent=2) + "\n", encoding="utf-8")
+
+    screenshot = target / "audit-home-mobile.png"
+    screenshot.write_text("fake screenshot\n", encoding="utf-8")
+    completed = stop_observation(
+        target,
+        summary="Legacy artifacts collected",
+        collect_artifacts=True,
+        source_root=REPO_ROOT,
+    )
+
+    assert completed["status"] == "completed"
+    assert completed["unexpected_changes"] == []
+    assert completed["artifact_root"] == (
+        ".aegis/reports/observations/"
+        f"{started['task']['id']}/artifacts"
+    )
+    assert completed["collected_artifacts"] == [
+        {
+            "from": "audit-home-mobile.png",
+            "to": (
+                ".aegis/reports/observations/"
+                f"{started['task']['id']}/artifacts/audit-home-mobile.png"
+            ),
+        }
+    ]
+
+
 def test_observation_collect_artifacts_blocks_when_source_delta_exists(tmp_path: Path) -> None:
     target = tmp_path / "observe-artifacts-source-dirty"
     init_git_repo(target)
