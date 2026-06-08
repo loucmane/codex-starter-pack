@@ -43,6 +43,7 @@ AEGIS_CONTRACT_REL = ".aegis/contract.md"
 AEGIS_REPORTS_REL = ".aegis/reports"
 AEGIS_STATE_REL = ".aegis/state"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
+AEGIS_RUNTIME_ENV_REL = ".aegis/runtime.env"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
@@ -135,6 +136,15 @@ CODEX_GATE_IDS = (
     "codex.guard",
     "codex.work_tracking_audit",
 )
+
+CLAUDE_RUNTIME_HOOK_PHASES = {
+    ".claude/scripts/readiness.sh": "readiness",
+    ".claude/scripts/pretooluse-gate.sh": "pretooluse",
+    ".claude/scripts/posttooluse-tracking.sh": "posttooluse",
+    ".claude/scripts/tracking-stop-gate.sh": "stop",
+    ".claude/scripts/bash-command-guard.sh": "bash",
+    ".claude/scripts/codex-path-guard.sh": "path",
+}
 SHARED_SCHEMA_FILES = (
     "schemas/aegis/foundation-manifest.schema.json",
     "schemas/aegis/profile.schema.json",
@@ -575,6 +585,32 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             "",
             'SELF="$0"',
             'SELF_RESOLVED="$(cd "$(dirname "$SELF")" && pwd -P)/$(basename "$SELF")"',
+            'AEGIS_DIR="$(cd "$(dirname "$SELF_RESOLVED")/.." && pwd -P)"',
+            'AEGIS_RUNTIME_ENV="$AEGIS_DIR/runtime.env"',
+            "",
+            f'AEGIS_SOURCE_FALLBACK="{source}"',
+            'if [ -z "${AEGIS_SOURCE_ROOT:-}" ] && [ -f "$AEGIS_RUNTIME_ENV" ]; then',
+            '  while IFS="=" read -r key value; do',
+            '    case "$key" in',
+            '      AEGIS_SOURCE_ROOT|source_root)',
+            '        AEGIS_SOURCE_ROOT="$value"',
+            "        ;;",
+            "    esac",
+            '  done < "$AEGIS_RUNTIME_ENV"',
+            "fi",
+            'if [ -n "${AEGIS_SOURCE_ROOT:-}" ]; then',
+            '  AEGIS_SOURCE_FALLBACK="$AEGIS_SOURCE_ROOT"',
+            "fi",
+            "",
+            'if [ -d "$AEGIS_SOURCE_FALLBACK" ]; then',
+            '  for AEGIS_PYTHONPATH_CANDIDATE in "$AEGIS_SOURCE_FALLBACK" "$AEGIS_SOURCE_FALLBACK/.." "$AEGIS_SOURCE_FALLBACK/../.."; do',
+            "    if PYTHONPATH=\"$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}\" python3 -c 'import aegis_foundation.cli' >/dev/null 2>&1; then",
+            '      export PYTHONPATH="$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}"',
+            '      exec python3 -m aegis_foundation.cli --source-root "$AEGIS_SOURCE_FALLBACK" "$@"',
+            "    fi",
+            "  done",
+            "fi",
+            "",
             "if command -v aegis >/dev/null 2>&1; then",
             '  RESOLVED="$(command -v aegis)"',
             '  RESOLVED_ABS="$(cd "$(dirname "$RESOLVED")" && pwd -P)/$(basename "$RESOLVED")"',
@@ -587,24 +623,51 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             '  exec python3 -m aegis_foundation.cli "$@"',
             "fi",
             "",
-            f'AEGIS_SOURCE_FALLBACK="{source}"',
-            'if [ -n "${AEGIS_SOURCE_ROOT:-}" ]; then',
-            '  AEGIS_SOURCE_FALLBACK="$AEGIS_SOURCE_ROOT"',
-            "fi",
-            'if [ -d "$AEGIS_SOURCE_FALLBACK" ]; then',
-            '  for AEGIS_PYTHONPATH_CANDIDATE in "$AEGIS_SOURCE_FALLBACK" "$AEGIS_SOURCE_FALLBACK/.." "$AEGIS_SOURCE_FALLBACK/../.."; do',
-            "    if PYTHONPATH=\"$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}\" python3 -c 'import aegis_foundation.cli' >/dev/null 2>&1; then",
-            '      export PYTHONPATH="$AEGIS_PYTHONPATH_CANDIDATE${PYTHONPATH:+:$PYTHONPATH}"',
-            '      exec python3 -m aegis_foundation.cli --source-root "$AEGIS_SOURCE_FALLBACK" "$@"',
-            "    fi",
-            "  done",
-            "fi",
-            "",
             'echo "Aegis CLI is unavailable. Install aegis-foundation, add aegis to PATH, or set AEGIS_SOURCE_ROOT." >&2',
             "exit 127",
             "",
         ]
     )
+    return text.encode("utf-8")
+
+
+def _render_runtime_env(source_root: Path, *, updated_at: str | None = None) -> bytes:
+    source = source_root.resolve().as_posix()
+    lines = [
+        "# Aegis runtime pointer. Managed by aegis runtime update.",
+        f"AEGIS_SOURCE_ROOT={source}",
+        "",
+    ]
+    return "\n".join(lines).encode("utf-8")
+
+
+def _render_claude_runtime_dispatcher(phase: str) -> bytes:
+    text = "\n".join(
+        [
+            "#!/usr/bin/env bash",
+            "# Aegis dispatcher hook. Keep this bootstrap stable; runtime fixes live behind .aegis/bin/aegis.",
+            "",
+            "set -u",
+            "",
+            'PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"',
+            'if [ -z "$PROJECT_DIR" ]; then',
+            '  PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"',
+            "fi",
+            'AEGIS_BIN="$PROJECT_DIR/.aegis/bin/aegis"',
+            'if [ -x "$AEGIS_BIN" ]; then',
+            f'  exec "$AEGIS_BIN" hook {phase} "$@"',
+            "fi",
+            "",
+            'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+            'if [ "$PHASE" = "readiness" ]; then',
+            '  echo "Aegis runtime dispatcher fallback cannot execute readiness without .aegis/bin/aegis." >&2',
+            "  exit 1",
+            "fi",
+            'exec python3 "$SCRIPT_DIR/gate_lib.py" "$PHASE"',
+            "",
+        ]
+    )
+    text = text.replace('"$PHASE"', f'"{phase}"')
     return text.encode("utf-8")
 
 
@@ -637,6 +700,7 @@ def _base_assets(
         Asset("AGENTS.md", _render_agents_doc(primary_agent, enabled_agents)),
         Asset(AEGIS_CONTRACT_REL, _render_contract(primary_agent, enabled_agents)),
         Asset(AEGIS_LOCAL_BIN_REL, _render_local_cli_shim(source_root), executable=True),
+        Asset(AEGIS_RUNTIME_ENV_REL, _render_runtime_env(source_root), kind="runtime"),
     ]
     for rel_path in SHARED_SCHEMA_FILES:
         assets.append(_asset_from_source(source_root, rel_path))
@@ -664,6 +728,17 @@ def _adapter_assets(
         )
         for rel_path in CLAUDE_REQUIRED_FILES:
             if rel_path in {"CLAUDE.md", ".claude/settings.json"}:
+                continue
+            phase = CLAUDE_RUNTIME_HOOK_PHASES.get(rel_path)
+            if phase is not None:
+                assets.append(
+                    Asset(
+                        rel_path,
+                        _render_claude_runtime_dispatcher(phase),
+                        executable=True,
+                        kind="adapter",
+                    )
+                )
                 continue
             assets.append(_asset_from_source(source_root, rel_path, kind="adapter"))
         for rel_path in CLAUDE_SUPPORT_FILES:
@@ -1043,6 +1118,199 @@ def _gates(enabled_agents: Sequence[str]) -> list[dict[str, Any]]:
     return gates
 
 
+def _source_git_commit(source_root: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(source_root), "rev-parse", "HEAD"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    value = result.stdout.strip()
+    return value or None
+
+
+def _source_git_dirty_paths(source_root: Path) -> list[str]:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(source_root), "status", "--short"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return []
+    if result.returncode != 0:
+        return []
+    dirty: list[str] = []
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        dirty.append(line)
+    return dirty
+
+
+def _runtime_payload(source_root: Path, *, updated_at: str) -> dict[str, Any]:
+    source = source_root.resolve()
+    dirty_paths = _source_git_dirty_paths(source)
+    return {
+        "mode": "source-root",
+        "source_root": source.as_posix(),
+        "source_commit": _source_git_commit(source),
+        "source_dirty": bool(dirty_paths),
+        "source_dirty_paths": dirty_paths,
+        "pointer": AEGIS_RUNTIME_ENV_REL,
+        "updated_at": updated_at,
+        "update_command": "aegis runtime update",
+        "reinstall_required_for": [
+            ".aegis/bin/aegis shim changes",
+            ".claude/settings.json hook registration changes",
+            ".claude/scripts/* dispatcher bootstrap changes",
+        ],
+    }
+
+
+def _looks_like_aegis_source_root(path: Path) -> bool:
+    return (
+        (path / "schemas" / "aegis" / "foundation-manifest.schema.json").is_file()
+        and (path / "scripts" / "_aegis_installer.py").is_file()
+        and (path / ".claude" / "scripts" / "gate_lib.py").is_file()
+        and (path / ".claude" / "scripts" / "readiness.sh").is_file()
+    )
+
+
+def _runtime_env_path(target_root: Path) -> Path:
+    return target_root / AEGIS_RUNTIME_ENV_REL
+
+
+def _parse_runtime_env(target_root: Path) -> dict[str, str]:
+    path = _runtime_env_path(target_root)
+    if not path.is_file():
+        return {}
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+    return values
+
+
+def runtime_status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
+    target_root = _resolve_target_root(target_dir)
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    env_values = _parse_runtime_env(target_root)
+    recorded_source = env_values.get("AEGIS_SOURCE_ROOT") or env_values.get("source_root")
+    active_source = Path(recorded_source).expanduser().resolve() if recorded_source else Path(source_root).resolve()
+    runtime = manifest.get("runtime") if isinstance(manifest, Mapping) else None
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "installed" if isinstance(manifest, Mapping) else "not_installed",
+        "target_root": target_root.as_posix(),
+        "runtime_env_path": AEGIS_RUNTIME_ENV_REL,
+        "runtime_env_present": _runtime_env_path(target_root).is_file(),
+        "runtime_env": env_values,
+        "active_source_root": active_source.as_posix(),
+        "active_source_valid": _looks_like_aegis_source_root(active_source),
+        "active_source_commit": _source_git_commit(active_source),
+        "active_source_dirty_paths": _source_git_dirty_paths(active_source),
+        "manifest_runtime": runtime if isinstance(runtime, Mapping) else None,
+        "reinstall_required_for": (
+            runtime.get("reinstall_required_for")
+            if isinstance(runtime, Mapping)
+            else [
+                ".aegis/bin/aegis shim changes",
+                ".claude/settings.json hook registration changes",
+                ".claude/scripts/* dispatcher bootstrap changes",
+            ]
+        ),
+    }
+
+
+def runtime_update(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    apply: bool,
+) -> dict[str, Any]:
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).expanduser().resolve()
+    if not _looks_like_aegis_source_root(source):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "refused",
+            "reason": "source_root does not look like an Aegis source root",
+            "target_root": target_root.as_posix(),
+            "source_root": source.as_posix(),
+            "required_paths": [
+                "schemas/aegis/foundation-manifest.schema.json",
+                "scripts/_aegis_installer.py",
+                ".claude/scripts/gate_lib.py",
+                ".claude/scripts/readiness.sh",
+            ],
+        }
+
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    if not isinstance(manifest, MutableMapping):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "refused",
+            "reason": "Aegis runtime update requires an installed foundation manifest",
+            "target_root": target_root.as_posix(),
+            "manifest_path": AEGIS_MANIFEST_REL,
+        }
+
+    updated_at = _iso_now()
+    runtime = _runtime_payload(source, updated_at=updated_at)
+    operations = [
+        {
+            "path": AEGIS_RUNTIME_ENV_REL,
+            "classification": "modify" if _runtime_env_path(target_root).exists() else "create",
+            "safe_to_apply": True,
+            "managed": True,
+            "reason": "Update the project runtime pointer only; no scaffold files are rewritten.",
+        },
+        {
+            "path": AEGIS_MANIFEST_REL,
+            "classification": "modify",
+            "safe_to_apply": True,
+            "managed": True,
+            "reason": "Refresh manifest runtime metadata only.",
+        },
+    ]
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "preview" if not apply else "applied",
+        "target_root": target_root.as_posix(),
+        "source_root": source.as_posix(),
+        "runtime": runtime,
+        "operations": operations,
+        "reinstall_required": False,
+        "reinstall_required_for": runtime["reinstall_required_for"],
+    }
+    if not apply:
+        return report
+
+    manifest["runtime"] = runtime
+    managed_files = manifest.get("managed_files")
+    if isinstance(managed_files, list) and not any(
+        isinstance(item, Mapping) and item.get("path") == AEGIS_RUNTIME_ENV_REL
+        for item in managed_files
+    ):
+        managed_files.append({"path": AEGIS_RUNTIME_ENV_REL, "kind": "runtime"})
+    _validate_with_schema(source, "foundation-manifest.schema.json", dict(manifest))
+    _write_text(target_root, AEGIS_RUNTIME_ENV_REL, _render_runtime_env(source, updated_at=updated_at).decode("utf-8"))
+    _write_text(target_root, AEGIS_MANIFEST_REL, _dump_json(dict(manifest)))
+    return report
+
+
 def _manifest_payload(
     source_root: Path,
     target_root: Path,
@@ -1061,6 +1329,11 @@ def _manifest_payload(
             "last_verified_at": None,
             "reports": [],
         }
+    )
+    runtime = (
+        existing.get("runtime")
+        if existing and isinstance(existing.get("runtime"), Mapping)
+        else _runtime_payload(source_root, updated_at=installed_at)
     )
     payload = {
         "schema_version": SCHEMA_VERSION,
@@ -1087,6 +1360,7 @@ def _manifest_payload(
                 "endpoint": None,
             },
         },
+        "runtime": runtime,
         "access_policy": {
             "read_interface": "direct_read_or_aegis_cli",
             "write_interface": "aegis_cli_or_mcp",

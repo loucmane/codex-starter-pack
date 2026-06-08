@@ -46,6 +46,8 @@ V1_TOOL_NAMES = (
     "aegis.start",
     "aegis.observe_start",
     "aegis.observe_stop",
+    "aegis.runtime_status",
+    "aegis.runtime_update",
     "aegis.log",
     "aegis.list_profiles",
     "aegis.explain_profile",
@@ -995,6 +997,52 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         return run_tool(
             "aegis.observe_stop",
+            read_only=False,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.runtime_status")
+    def aegis_runtime_status(target_dir: str) -> dict[str, Any]:
+        """Report the active Aegis runtime source root and commit for an installed target."""
+
+        def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            return installer.runtime_status(target, source_root=config.source_root)
+
+        return run_tool(
+            "aegis.runtime_status",
+            read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.runtime_update")
+    def aegis_runtime_update(target_dir: str, apply: bool = False) -> dict[str, Any]:
+        """Update the installed runtime pointer and manifest metadata without reinstalling scaffold files."""
+
+        if apply is not True:
+            return _error_tool_response(
+                "aegis.runtime_update",
+                code="apply_required",
+                message="aegis.runtime_update writes .aegis/runtime.env and requires apply=true.",
+                status="refused",
+                details={"apply": apply},
+            )
+
+        def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            report = installer.runtime_update(target, source_root=config.source_root, apply=True)
+            if report.get("status") == "refused":
+                return _error_tool_response(
+                    "aegis.runtime_update",
+                    code="runtime_update_refused",
+                    message=str(report.get("reason") or "Aegis runtime update refused."),
+                    status="refused",
+                    details={"report": report},
+                )
+            return report
+
+        return run_tool(
+            "aegis.runtime_update",
             read_only=False,
             callback=call_core,
         )

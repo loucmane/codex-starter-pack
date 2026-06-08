@@ -35,6 +35,7 @@ from scripts._aegis_installer import (
     AEGIS_MANIFEST_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_REPAIR_REPORT_REL,
+    AEGIS_RUNTIME_ENV_REL,
     AEGIS_VERIFY_REPORT_REL,
     closeout,
     install,
@@ -245,6 +246,8 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
         "aegis.kickoff",
         "aegis.observe_start",
         "aegis.observe_stop",
+        "aegis.runtime_status",
+        "aegis.runtime_update",
         "aegis.log",
         "aegis.list_profiles",
         "aegis.explain_profile",
@@ -804,6 +807,61 @@ def test_public_init_and_start_require_apply_true_before_core_mutation(tmp_path:
     )
     assert observe_stop_payload["ok"] is False
     assert observe_stop_payload["error"]["code"] == "apply_required"
+
+    runtime_update_payload = call_tool_payload(
+        server,
+        "aegis.runtime_update",
+        {
+            "target_dir": target.as_posix(),
+            "apply": False,
+        },
+    )
+    assert runtime_update_payload["ok"] is False
+    assert runtime_update_payload["error"]["code"] == "apply_required"
+
+
+def test_runtime_status_and_update_tools_do_not_reinstall_scaffold(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "target"
+    target.mkdir()
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+
+    bootstrap_before = {
+        rel: (target / rel).read_text(encoding="utf-8")
+        for rel in (
+            ".aegis/bin/aegis",
+            ".claude/settings.json",
+            ".claude/scripts/pretooluse-gate.sh",
+            ".claude/scripts/readiness.sh",
+        )
+    }
+    status_payload = call_tool_payload(
+        server,
+        "aegis.runtime_status",
+        {"target_dir": target.as_posix()},
+    )
+    assert status_payload["ok"] is True
+    assert status_payload["read_only"] is True
+    assert status_payload["result"]["active_source_root"] == REPO_ROOT.resolve().as_posix()
+    assert status_payload["result"]["active_source_valid"] is True
+
+    update_payload = call_tool_payload(
+        server,
+        "aegis.runtime_update",
+        {"target_dir": target.as_posix(), "apply": True},
+    )
+    assert update_payload["ok"] is True
+    assert update_payload["read_only"] is False
+    assert update_payload["result"]["status"] == "applied"
+    assert update_payload["result"]["reinstall_required"] is False
+    assert (target / AEGIS_RUNTIME_ENV_REL).read_text(encoding="utf-8") == (
+        "# Aegis runtime pointer. Managed by aegis runtime update.\n"
+        f"AEGIS_SOURCE_ROOT={REPO_ROOT.resolve().as_posix()}\n"
+    )
+    assert bootstrap_before == {
+        rel: (target / rel).read_text(encoding="utf-8") for rel in bootstrap_before
+    }
 
 
 def test_doctor_and_repair_tools_preserve_read_only_preview_contract(tmp_path: Path) -> None:

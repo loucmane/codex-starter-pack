@@ -342,6 +342,40 @@ def handle_observe(args: argparse.Namespace) -> int:
     raise _aegis_installer.AegisError("unknown observe subcommand")
 
 
+def handle_hook(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        phase = str(args.phase)
+        if phase == "readiness":
+            script = source_root / ".claude" / "scripts" / "readiness.sh"
+            os.execv(script.as_posix(), [script.as_posix(), *list(args.hook_args or [])])
+        script = source_root / ".claude" / "scripts" / "gate_lib.py"
+        os.execv(sys.executable, [sys.executable, script.as_posix(), phase])
+    return 1
+
+
+def handle_runtime(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        if args.runtime_subcommand == "status":
+            payload = _aegis_installer.runtime_status(
+                args.target_dir,
+                source_root=source_root,
+            )
+            _dump_json(payload)
+            return 0
+        if args.runtime_subcommand == "update":
+            payload = _aegis_installer.runtime_update(
+                args.target_dir,
+                source_root=source_root,
+                apply=args.apply,
+            )
+            _dump_json(payload)
+            if payload.get("status") == "refused":
+                print("Aegis runtime update refused", file=sys.stderr)
+                return 1
+            return 0
+    raise _aegis_installer.AegisError("unknown runtime subcommand")
+
+
 def handle_log(args: argparse.Namespace) -> int:
     payload = _aegis_installer.log_work(
         args.target_dir,
@@ -924,6 +958,41 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Complete observation even when unexpected deltas are present.",
     )
     observe_stop_parser.set_defaults(func=handle_observe)
+
+    hook_parser = subparsers.add_parser(
+        "hook",
+        help="Internal dispatcher surface for installed Aegis hook bootstrap scripts.",
+    )
+    hook_parser.add_argument(
+        "phase",
+        choices=("pretooluse", "posttooluse", "stop", "path", "bash", "configchange", "readiness"),
+        help="Hook phase to execute from the active runtime source.",
+    )
+    hook_parser.add_argument("hook_args", nargs=argparse.REMAINDER)
+    hook_parser.set_defaults(func=handle_hook)
+
+    runtime_parser = subparsers.add_parser(
+        "runtime",
+        help="Inspect or update the installed runtime pointer without reinstalling scaffold files.",
+    )
+    runtime_sub = runtime_parser.add_subparsers(dest="runtime_subcommand", required=True)
+    runtime_status_parser = runtime_sub.add_parser(
+        "status",
+        help="Report which Aegis source root and commit this project runtime uses.",
+    )
+    runtime_status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    runtime_status_parser.set_defaults(func=handle_runtime)
+    runtime_update_parser = runtime_sub.add_parser(
+        "update",
+        help="Update .aegis/runtime.env and manifest runtime metadata only.",
+    )
+    runtime_update_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    runtime_update_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the runtime pointer update; omitted prints a preview.",
+    )
+    runtime_update_parser.set_defaults(func=handle_runtime)
 
     log_parser = subparsers.add_parser(
         "log",

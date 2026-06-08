@@ -41,6 +41,7 @@ SANCTIONED_AEGIS_MCP_MUTATION_SUFFIXES = {
     "start",
     "observe_start",
     "observe_stop",
+    "runtime_update",
     "log",
     "handoff_repair",
     "closeout",
@@ -170,6 +171,7 @@ TASKMASTER_GENERATE_RE = re.compile(r"(^|[;&|]\s*)task-master\s+generate\b", re.
 AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "inspect",
     "status",
+    "runtime_status",
     "next",
     "doctor",
     "reconcile",
@@ -388,6 +390,8 @@ def mcp_is_mutation(payload: Payload) -> bool:
     if not is_mcp_tool(payload.tool_name):
         return False
     normalized = normalized_mcp_tool_name(payload.tool_name)
+    if "aegis" in normalized and normalized.endswith("runtime_update"):
+        return payload.tool_input.get("apply") is True
     if "aegis" in normalized and normalized.endswith("repair"):
         return payload.tool_input.get("apply") is True
     if "aegis" in normalized and normalized.endswith("handoff_repair"):
@@ -565,6 +569,13 @@ def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_ba
 def read_only_aegis_remainder(remainder: list[str]) -> bool:
     return bool(remainder) and (
         remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS
+        or (len(remainder) >= 2 and remainder[0] == "runtime" and remainder[1] == "status")
+        or (
+            len(remainder) >= 2
+            and remainder[0] == "runtime"
+            and remainder[1] == "update"
+            and "--apply" not in remainder[2:]
+        )
         or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
         or (remainder[0] == "uninstall" and "--apply" not in remainder[1:])
     )
@@ -813,6 +824,10 @@ def bash_is_aegis_observe_stop(command: str) -> bool:
     return bash_has_trusted_aegis_nested_subcommand(command, "observe", {"stop"})
 
 
+def bash_is_aegis_runtime_update(command: str) -> bool:
+    return bash_has_trusted_aegis_nested_subcommand(command, "runtime", {"update"})
+
+
 def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
     if not is_mcp_tool(tool_name):
         return False
@@ -874,6 +889,7 @@ def payload_is_sanctioned_aegis_workflow_mutation(payload: Payload) -> bool:
             or bash_is_aegis_log(command)
             or bash_is_aegis_verify(command)
             or bash_is_aegis_closeout(command)
+            or bash_is_aegis_runtime_update(command)
             or bash_has_trusted_aegis_subcommand(command, {"repair"}, require_apply=True)
             or bash_has_trusted_aegis_subcommand(command, set(), handoff_repair=True)
         )
@@ -1313,6 +1329,15 @@ def payload_is_aegis_observe_stop(payload: Payload) -> bool:
     return False
 
 
+def payload_is_aegis_runtime_update(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_runtime_update(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("runtime_update")
+    return False
+
+
 def payload_is_aegis_pending_log(payload: Payload) -> bool:
     if payload.tool_name == "Bash":
         return bash_is_aegis_pending_log(bash_command(payload))
@@ -1446,6 +1471,7 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     if (
         not payload_is_mutation(payload)
         or payload_is_aegis_bootstrap(payload)
+        or payload_is_aegis_runtime_update(payload)
         or payload_is_aegis_log(payload)
         or payload_is_aegis_closeout(payload)
     ):
@@ -1576,6 +1602,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         and is_mutation
         and not payload_is_aegis_bootstrap(payload)
         and not payload_is_aegis_pending_log(payload)
+        and not payload_is_aegis_runtime_update(payload)
         and not payload_is_aegis_uninstall_apply(payload)
         and not post_closeout_taskmaster_completion
     ):

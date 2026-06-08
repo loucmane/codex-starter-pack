@@ -15,6 +15,7 @@
     "primary_agent",
     "entrypoints",
     "interfaces",
+    "runtime",
     "access_policy",
     "agents",
     "capabilities",
@@ -51,6 +52,9 @@
     },
     "interfaces": {
       "$ref": "#/$defs/interfaces"
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime"
     },
     "access_policy": {
       "$ref": "#/$defs/access_policy"
@@ -270,6 +274,58 @@
               "minLength": 1
             }
           }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "source_root",
+        "source_dirty",
+        "source_dirty_paths",
+        "pointer",
+        "updated_at",
+        "update_command",
+        "reinstall_required_for"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "source-root"
+        },
+        "source_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_dirty": {
+          "type": "boolean"
+        },
+        "source_dirty_paths": {
+          "$ref": "#/$defs/string_list"
+        },
+        "pointer": {
+          "type": "string",
+          "const": ".aegis/runtime.env"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "update_command": {
+          "type": "string",
+          "const": "aegis runtime update"
+        },
+        "reinstall_required_for": {
+          "$ref": "#/$defs/string_list"
         }
       }
     },
@@ -573,6 +629,7 @@
             "customized",
             "generated",
             "adapter",
+            "runtime",
             "report"
           ]
         },

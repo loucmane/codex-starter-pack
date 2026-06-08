@@ -6826,13 +6826,81 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-05T18:53:37.830Z"
+      },
+      {
+        "id": "177",
+        "title": "Add Aegis dynamic runtime dispatch and update flow",
+        "description": "Split Aegis bootstrap from runtime so downstream projects can update gate/readiness/runtime fixes without full scaffold reinstall.",
+        "details": "Implement stable installed hook dispatchers that call the project-local .aegis/bin/aegis hook entrypoints; add hook pretooluse/posttooluse/stop/readiness runtime commands; add runtime status/update commands that record source-root mode, commit, and relevant dirty state in .aegis/runtime.env and foundation-manifest.json; preserve fail-closed mutation behavior and existing hook semantics; keep reinstall required only for bootstrap/settings changes; validate with installer, MCP, hook, and downstream-style update tests.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extract hook runtime entrypoints",
+            "description": "Move gate and readiness execution behind Aegis runtime commands.",
+            "details": "Add aegis hook pretooluse, posttooluse, stop, and readiness entrypoints that call importable Python runtime code. Keep existing hook behavior equivalent while making the runtime callable through the project-local Aegis shim.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 177,
+            "parentId": "undefined",
+            "updatedAt": "2026-06-08T13:05:17.452Z"
+          },
+          {
+            "id": 2,
+            "title": "Install dispatcher hooks and runtime pointer",
+            "description": "Convert installed Claude hooks into stable dispatchers and record the selected runtime source.",
+            "details": "Replace copied hook logic in installed assets with tiny scripts that invoke ./.aegis/bin/aegis hook <phase>. Add .aegis/runtime.env and a manifest runtime block recording mode, source_root, commit, and update timestamp. Reinstall should be required only when dispatcher/settings shape changes.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 177,
+            "parentId": "undefined",
+            "updatedAt": "2026-06-08T13:05:20.284Z"
+          },
+          {
+            "id": 3,
+            "title": "Add runtime status and update commands",
+            "description": "Expose an explicit non-reinstall update path for downstream projects.",
+            "details": "Implement aegis runtime status and aegis runtime update --apply. Validate source-root shape, record current git commit, report relevant dirty runtime paths, update .aegis/runtime.env and the manifest runtime block only, and refuse broken runtime roots. Keep update scoped away from sessions, plans, and work-tracking.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 177,
+            "parentId": "undefined",
+            "updatedAt": "2026-06-08T13:05:23.154Z"
+          },
+          {
+            "id": 4,
+            "title": "Preserve fail-closed and backward-compatible hook behavior",
+            "description": "Make dispatcher runtime failures safe and keep existing installs migration-safe.",
+            "details": "PreToolUse must fail closed for mutation-class actions when the runtime cannot load, while retaining existing safe read-only behavior where applicable. Stop hook must not create infinite loops or branch-name deadlocks. Existing copied hook installs should remain supported or migration-safe until dispatcher installs are in place.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 177,
+            "parentId": "undefined",
+            "updatedAt": "2026-06-08T13:05:26.084Z"
+          },
+          {
+            "id": 5,
+            "title": "Test downstream runtime update without scaffold reinstall",
+            "description": "Prove runtime behavior can update without rewriting installed scaffold.",
+            "details": "Add tests for installed dispatcher scripts, aegis hook entrypoints, runtime status/update, manifest and runtime.env updates, broken source-root failure, no scaffold or session rewrite on runtime update, and an HP-Coach-style flow where install-once plus runtime update exposes new gate behavior without reinstall.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 177,
+            "parentId": "undefined",
+            "updatedAt": "2026-06-08T13:05:28.871Z"
+          }
+        ],
+        "updatedAt": "2026-06-08T13:08:50.863Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-05T18:53:37.831Z",
-      "taskCount": 176,
-      "completedCount": 176,
+      "lastModified": "2026-06-08T13:08:50.863Z",
+      "taskCount": 177,
+      "completedCount": 177,
       "tags": [
         "master"
       ]
