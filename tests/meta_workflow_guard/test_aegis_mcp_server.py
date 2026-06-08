@@ -522,6 +522,7 @@ def test_observe_schemas_require_explicit_apply(tmp_path: Path) -> None:
     assert set(stop_schema["required"]) == {"target_dir"}
     assert stop_schema["properties"]["apply"]["default"] is False
     assert stop_schema["properties"]["allow_dirty"]["default"] is False
+    assert stop_schema["properties"]["collect_artifacts"]["default"] is False
 
 
 def test_log_schema_requires_explicit_apply_and_tracking_inputs(tmp_path: Path) -> None:
