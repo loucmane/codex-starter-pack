@@ -46,7 +46,9 @@ from scripts._aegis_installer import (
     repair,
     repair_handoff,
     status,
+    start_observation,
     start_local_work,
+    stop_observation,
     uninstall,
     verify,
 )
@@ -262,6 +264,22 @@ def test_build_parser_accepts_aegis_commands() -> None:
     start_args = parser.parse_args(["aegis", "start", "Improve BrandMark accessibility"])
     assert start_args.subcommand == "start"
     assert start_args.title == "Improve BrandMark accessibility"
+
+    observe_start_args = parser.parse_args(
+        ["aegis", "observe", "start", "Polish audit", "--slug", "polish-audit"]
+    )
+    assert observe_start_args.subcommand == "observe"
+    assert observe_start_args.observe_subcommand == "start"
+    assert observe_start_args.title == "Polish audit"
+    assert observe_start_args.slug == "polish-audit"
+
+    observe_stop_args = parser.parse_args(
+        ["aegis", "observe", "stop", "--summary", "Observed app shell", "--allow-dirty"]
+    )
+    assert observe_stop_args.subcommand == "observe"
+    assert observe_stop_args.observe_subcommand == "stop"
+    assert observe_stop_args.summary == "Observed app shell"
+    assert observe_stop_args.allow_dirty is True
 
     install_args = parser.parse_args(
         [
@@ -1059,6 +1077,84 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     assert run_target_posttooluse(target, bash_start_payload).returncode == 0
     assert run_target_posttooluse(target, mcp_start_payload).returncode == 0
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+
+def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "observe-taskmaster"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    write_taskmaster_tasks(
+        target,
+        [{"id": 18, "title": "Mock exam modes", "status": "pending"}],
+    )
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+
+    before = next_action(target, source_root=REPO_ROOT)
+    assert before["state"] == "installed_taskmaster_present"
+    assert any("observe start" in repair for repair in before["copyable_repairs"])
+
+    observe_payload = {
+        "tool_name": "Bash",
+        "tool_input": {"command": './.aegis/bin/aegis observe start --target-dir . "Polish audit"'},
+    }
+    observe_gate = run_target_pretooluse(target, observe_payload)
+    assert observe_gate.returncode == 0, observe_gate.stderr
+
+    started = start_observation(target, title="Polish audit", source_root=REPO_ROOT)
+    assert started["status"] == "started"
+    assert started["mode"] == "observation"
+    assert started["branch"]["current"] == "main"
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    assert current_work["mode"] == "observation"
+    assert current_work["branch"]["requires_task_id"] is False
+
+    readiness = run_target_readiness(target)
+    assert readiness.returncode == 0, readiness.stdout + readiness.stderr
+    assert readiness.stdout.startswith("READY | task=obs-")
+
+    dev_gate = run_target_pretooluse(target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}})
+    assert dev_gate.returncode == 0, dev_gate.stderr
+    browser_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "mcp__playwright__browser_navigate",
+            "tool_input": {"url": "http://localhost:5173"},
+        },
+    )
+    assert browser_gate.returncode == 0, browser_gate.stderr
+
+    edit_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Write", "tool_input": {"file_path": "app/src/routes/audit.tsx", "content": "x"}},
+    )
+    assert edit_gate.returncode == 2
+    assert "observation mode only permits observation tooling" in edit_gate.stderr
+    taskmaster_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": 'task-master add-task --title "Audit finding"'}},
+    )
+    assert taskmaster_gate.returncode == 2
+    assert "observation mode only permits observation tooling" in taskmaster_gate.stderr
+
+    post = run_target_posttooluse(target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}})
+    assert post.returncode == 0, post.stderr
+    assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+    stopped = stop_observation(target, summary="Observed app shell", source_root=REPO_ROOT)
+    assert stopped["status"] == "completed"
+    assert stopped["unexpected_changes"] == []
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    assert diagnosis["current_state"] == "observation_completed"
+    assert diagnosis["status"] == "healthy"
 
 
 def test_start_local_work_replay_is_noop_and_different_work_is_refused(tmp_path: Path) -> None:
