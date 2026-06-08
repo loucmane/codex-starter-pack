@@ -1392,10 +1392,37 @@ def _installed_at_for_plan(target_root: Path) -> str:
     return _iso_now()
 
 
+def _manifest_path_set(manifest: Mapping[str, Any], key: str) -> set[str]:
+    records = manifest.get(key)
+    if not isinstance(records, list):
+        return set()
+    paths: set[str] = set()
+    for record in records:
+        if isinstance(record, str) and record:
+            paths.add(record)
+            continue
+        if not isinstance(record, Mapping):
+            continue
+        path = record.get("path")
+        if isinstance(path, str) and path:
+            paths.add(path)
+    return paths
+
+
+def _install_ownership(target_root: Path) -> tuple[set[str], set[str]]:
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    if not isinstance(manifest, Mapping):
+        return set(), set()
+    return _manifest_path_set(manifest, "managed_files"), _manifest_path_set(
+        manifest, "customized_files"
+    )
+
+
 def _plan_operations(
     target_root: Path, assets: Sequence[Asset], manifest_bytes: bytes
 ) -> list[dict[str, Any]]:
     all_assets = [*assets, Asset(AEGIS_MANIFEST_REL, manifest_bytes)]
+    managed_paths, customized_paths = _install_ownership(target_root)
     operations: list[dict[str, Any]] = []
     for asset in all_assets:
         target = target_root / asset.path
@@ -1456,6 +1483,18 @@ def _plan_operations(
                     "safe_to_apply": True,
                     "managed": True,
                     "reason": "Existing agent instructions will be preserved below an Aegis-managed runtime block.",
+                }
+            )
+            continue
+        if asset.path in managed_paths and asset.path not in customized_paths:
+            operations.append(
+                {
+                    "action": "modify",
+                    "path": asset.path,
+                    "classification": "modify",
+                    "safe_to_apply": True,
+                    "managed": True,
+                    "reason": "Existing Aegis-managed file will be upgraded to the current managed asset.",
                 }
             )
             continue
