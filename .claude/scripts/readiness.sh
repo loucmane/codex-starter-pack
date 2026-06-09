@@ -339,6 +339,7 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
 
     aegis_work_path = root / ".aegis" / "state" / "current-work.json"
     aegis_work: object | None = None
+    ignore_current_work_for_readiness = False
     if aegis_work_path.is_file():
         try:
             aegis_work = read_json(aegis_work_path)
@@ -346,7 +347,17 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             checks.append(Check(BLOCKED, f"could not read Aegis current work state: {exc}"))
             return None, checks
         if aegis_work_mode(aegis_work) == "observation":
-            return build_observation_checks(root, branch, aegis_work)
+            status = str(aegis_work.get("status") if isinstance(aegis_work, dict) else "").strip()
+            if status == "in-progress":
+                return build_observation_checks(root, branch, aegis_work)
+            if status == "completed":
+                task = aegis_work_task(aegis_work)
+                work_id = str(task.get("id") if task else "").strip()
+                checks.append(Check(READY, f"Aegis observation {work_id or '<unknown>'} is completed"))
+                ignore_current_work_for_readiness = True
+            else:
+                checks.append(Check(BLOCKED, f"Aegis observation status is {status!r}, expected 'in-progress' or 'completed'"))
+                return None, checks
 
     task_id = task_id_from_branch(branch)
     if not task_id:
@@ -354,7 +365,7 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
         return None, checks
     checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
 
-    if aegis_work_path.is_file():
+    if aegis_work_path.is_file() and not ignore_current_work_for_readiness:
         try:
             aegis_work = aegis_work if aegis_work is not None else read_json(aegis_work_path)
             task = aegis_work_task(aegis_work)

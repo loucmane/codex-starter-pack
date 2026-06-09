@@ -1218,6 +1218,29 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     assert diagnosis["current_state"] == "observation_completed"
     assert diagnosis["status"] == "healthy"
 
+    completed_next = next_action(target, source_root=REPO_ROOT)
+    assert completed_next["state"] == "observation_completed"
+    assert completed_next["suggested_mcp_call"]["tool"] == "aegis.kickoff"
+    assert not any("observe stop" in repair for repair in completed_next["copyable_repairs"])
+
+    completed_readiness = run_target_readiness(target)
+    assert completed_readiness.returncode == 2
+    assert "branch 'main' does not contain a task ID" in completed_readiness.stdout
+    assert "observation current work is missing id" not in completed_readiness.stdout
+
+    completed_taskmaster_gate = run_target_pretooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": 'task-master add-task --title "Audit finding"'}},
+    )
+    assert completed_taskmaster_gate.returncode == 2
+    assert "Claude readiness is BLOCKED" in completed_taskmaster_gate.stderr
+    assert "observation mode only permits observation tooling" not in completed_taskmaster_gate.stderr
+
+    idempotent_stop = stop_observation(target, summary="Observed app shell again", source_root=REPO_ROOT)
+    assert idempotent_stop["status"] == "completed"
+    assert idempotent_stop["idempotent"] is True
+    assert idempotent_stop["already_completed"] is True
+
 
 def test_observation_stop_blocks_unexpected_delta_and_allow_dirty_overrides(
     tmp_path: Path,
