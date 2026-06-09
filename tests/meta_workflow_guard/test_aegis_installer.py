@@ -27,6 +27,7 @@ from scripts._aegis_installer import (
     AEGIS_CLIENT_RELOAD_REL,
     AEGIS_DEGRADED_EVENTS_REL,
     AEGIS_LOCAL_TASKS_REL,
+    AEGIS_OBSERVATION_REPORT_REL,
     AEGIS_RUNTIME_ENV_REL,
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
@@ -920,6 +921,79 @@ def test_repair_recreates_current_symlinks_and_does_not_delete_stale_active_fold
     assert stale.is_dir()
 
 
+def test_repair_archives_stale_completed_observation_active_folder(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repair-completed-observation-active"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    kicked = kickoff(
+        target,
+        task_id="53",
+        slug="dogfood-audit-followups",
+        title="M4 dogfood iteration milestone",
+    )
+    stale_rel = "docs/ai/work-tracking/active/20990101-observe-polish-audit-ACTIVE"
+    stale = target / stale_rel
+    stale.mkdir(parents=True)
+    (stale / "TRACKER.md").write_text("Observation tracker\n", encoding="utf-8")
+    (stale / "reports" / "polish-audit").mkdir(parents=True)
+    report = {
+        "schema_version": "1.0.0",
+        "status": "completed",
+        "mode": "observation",
+        "paths": {
+            "work_tracking": stale_rel,
+            "reports": f"{stale_rel}/reports/polish-audit",
+        },
+    }
+    (target / AEGIS_OBSERVATION_REPORT_REL).write_text(
+        json.dumps(report, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    preview = repair(target, source_root=REPO_ROOT)
+
+    assert any(
+        action["kind"] == "archive_completed_observation_work_tracking"
+        for action in preview["repair_plan"]["actions"]
+    )
+    assert any(check["id"] == "workflow.stale_active_folders" for check in diagnosis["checks"])
+
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+    archive_rel = (
+        stale_rel.replace(
+            "docs/ai/work-tracking/active/",
+            "docs/ai/work-tracking/archive/",
+        ).removesuffix("-ACTIVE")
+        + "-COMPLETED"
+    )
+    active_folders = sorted(
+        path.name
+        for path in (target / "docs/ai/work-tracking/active").glob("*-ACTIVE")
+        if path.is_dir()
+    )
+    updated_report = json.loads(
+        (target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8")
+    )
+
+    assert applied["status"] == "applied"
+    assert not stale.exists()
+    assert (target / archive_rel).is_dir()
+    assert active_folders == [Path(kicked["paths"]["work_tracking"]).name]
+    assert updated_report["paths"]["work_tracking"] == archive_rel
+    assert updated_report["archived_work_tracking"] == {"from": stale_rel, "to": archive_rel}
+
+
 def test_repair_normalizes_malformed_current_plan_table(tmp_path: Path) -> None:
     target = tmp_path / "repair-plan-table"
     target.mkdir()
@@ -1128,6 +1202,11 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
     assert current_work["mode"] == "observation"
     assert current_work["branch"]["requires_task_id"] is False
+    observation_work_rel = current_work["paths"]["work_tracking"]
+    observation_archive_rel = observation_work_rel.replace(
+        "docs/ai/work-tracking/active/",
+        "docs/ai/work-tracking/archive/",
+    ).removesuffix("-ACTIVE") + "-COMPLETED"
 
     readiness = run_target_readiness(target)
     assert readiness.returncode == 0, readiness.stdout + readiness.stderr
@@ -1214,6 +1293,20 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     stopped = stop_observation(target, summary="Observed app shell", source_root=REPO_ROOT)
     assert stopped["status"] == "completed"
     assert stopped["unexpected_changes"] == []
+    assert stopped["archived_work_tracking"] == {
+        "from": observation_work_rel,
+        "to": observation_archive_rel,
+    }
+    assert not (target / observation_work_rel).exists()
+    assert (target / observation_archive_rel).is_dir()
+    completed_current_work = json.loads(
+        (target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8")
+    )
+    assert completed_current_work["paths"]["work_tracking"] == observation_archive_rel
+    observation_report = json.loads(
+        (target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8")
+    )
+    assert observation_report["paths"]["work_tracking"] == observation_archive_rel
     diagnosis = doctor(target, source_root=REPO_ROOT)
     assert diagnosis["current_state"] == "observation_completed"
     assert diagnosis["status"] == "healthy"
@@ -1240,6 +1333,19 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     assert idempotent_stop["status"] == "completed"
     assert idempotent_stop["idempotent"] is True
     assert idempotent_stop["already_completed"] is True
+
+    kicked = kickoff(
+        target,
+        task_id="53",
+        slug="dogfood-audit-followups",
+        title="M4 dogfood iteration milestone",
+    )
+    active_folders = sorted(
+        path.name
+        for path in (target / "docs/ai/work-tracking/active").glob("*-ACTIVE")
+        if path.is_dir()
+    )
+    assert active_folders == [Path(kicked["paths"]["work_tracking"]).name]
 
 
 def test_observation_stop_blocks_unexpected_delta_and_allow_dirty_overrides(
