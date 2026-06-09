@@ -3800,6 +3800,12 @@ def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
     ).strip()
     if artifact_root:
         prefixes.add(artifact_root.rstrip("/"))
+    else:
+        observation_id = str(observation.get("id") or "").strip()
+        if observation_id:
+            prefixes.add(
+                f"{AEGIS_OBSERVATION_ARTIFACT_ROOT_REL}/{_slugify(observation_id)}/artifacts"
+            )
     return sorted(prefixes)
 
 
