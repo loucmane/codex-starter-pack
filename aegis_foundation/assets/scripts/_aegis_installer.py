@@ -8448,13 +8448,53 @@ def _parse_tracker_plan_steps(tracker_path: Path) -> dict[str, str]:
     return statuses
 
 
+def _semicolon_closes_html_entity(value: str, index: int) -> bool:
+    amp_index = value.rfind("&", 0, index)
+    if amp_index == -1:
+        return False
+    candidate = value[amp_index : index + 1]
+    return bool(re.fullmatch(r"&(?:#\d+|#[xX][0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]+);", candidate))
+
+
+def _unescape_markdown_table_cell(value: str) -> str:
+    return str(value).replace("&#124;", "|")
+
+
+def _clean_evidence_token(value: str) -> str:
+    clean = _unescape_markdown_table_cell(value.strip())
+    if clean.startswith("`") and clean.endswith("`") and len(clean) > 1:
+        return clean[1:-1].strip()
+    return clean
+
+
 def _split_evidence_tokens(raw_evidence: str) -> list[str]:
     tokens: list[str] = []
-    for token in raw_evidence.split(";"):
-        clean = token.strip().strip("`")
+    current: list[str] = []
+    in_backticks = False
+    for index, char in enumerate(raw_evidence):
+        if char == "`":
+            in_backticks = not in_backticks
+            current.append(char)
+            continue
+        if char == ";" and not in_backticks and not _semicolon_closes_html_entity(raw_evidence, index):
+            clean = _clean_evidence_token("".join(current))
+            if clean and clean != "_TBD_":
+                tokens.append(clean)
+            current = []
+            continue
+        current.append(char)
+    if current:
+        clean = _clean_evidence_token("".join(current))
         if clean and clean != "_TBD_":
             tokens.append(clean)
     return tokens
+
+
+def _surface_contains_evidence(surface_text: str, token: str) -> bool:
+    if token in surface_text:
+        return True
+    escaped_token = _markdown_table_cell(token)
+    return escaped_token != token and escaped_token in surface_text
 
 
 def _is_closeout_required_evidence(token: str) -> bool:
@@ -9428,11 +9468,16 @@ def closeout(
         "plan": _read_text_or_empty(plan_path),
     }
     evidence_matrix = {
-        token: {surface: token in text for surface, text in surface_texts.items()}
+        token: {
+            surface: _surface_contains_evidence(text, token)
+            for surface, text in surface_texts.items()
+        }
         for token in required_evidence
     }
     for surface, text in surface_texts.items():
-        missing = [token for token in required_evidence if token not in text]
+        missing = [
+            token for token in required_evidence if not _surface_contains_evidence(text, token)
+        ]
         checks.append(
             _closeout_check(
                 f"closeout.evidence.{surface}",
@@ -9458,11 +9503,18 @@ def closeout(
         )
         surface_texts["handoff"] = _read_text_or_empty(handoff_path)
         evidence_matrix = {
-            token: {surface: (token in surface_texts[surface]) for surface in surface_texts}
+            token: {
+                surface: _surface_contains_evidence(surface_texts[surface], token)
+                for surface in surface_texts
+            }
             for token in required_evidence
         }
         checks = [check for check in checks if check.get("gate_id") != "closeout.evidence.handoff"]
-        missing = [token for token in required_evidence if token not in surface_texts["handoff"]]
+        missing = [
+            token
+            for token in required_evidence
+            if not _surface_contains_evidence(surface_texts["handoff"], token)
+        ]
         checks.append(
             _closeout_check(
                 "closeout.evidence.handoff",

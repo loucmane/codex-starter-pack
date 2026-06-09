@@ -7016,12 +7016,79 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-09T13:22:19.941Z"
+      },
+      {
+        "id": "188",
+        "title": "Install cross-agent natural continuation contract",
+        "description": "Make short user intents such as continue, go, proceed, finish this, and next work consistently across Aegis-installed projects and supported agents.",
+        "details": "Add a reusable continuation-contract template to the Aegis installed guidance for Claude, Codex, and generic agent surfaces. Define what short continuation intents authorize, how agents must consult aegis doctor and aegis next, how Taskmaster remains authority when present, which actions can proceed autonomously, which boundaries require confirmation, and which actions are never allowed automatically. Ensure installed instructions are project-agnostic and do not depend on HP-Coach-specific paths. Add installer tests proving fresh Aegis installs include the contract in the relevant agent guidance files.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "187"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "189",
+        "title": "Add agent-ready continuation brief to aegis next",
+        "description": "Extend aegis next so agents can translate short user intents into the next safe workflow action without bespoke prompts.",
+        "details": "Add a machine-readable continuation brief to aegis next output with current task authority, workflow phase, continue_means text, next_safe_action, suggested commands, protected confirmation boundaries, artifact policy, and stop conditions. Cover common states including no current work, active implementation, dirty scoped files, verified but uncommitted work, committed but not closed out, closeout passed with Taskmaster not done, pending tracking, safe repair available, manual-review repair, observation ready, and observation completed. Add tests for the state table and concise CLI output suitable for agent consumption.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "188"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "190",
+        "title": "Support fresh-project PRD bootstrap continuation flow",
+        "description": "Make Aegis work naturally in brand-new projects that start from no Taskmaster ledger, no current work, and a PRD-driven planning phase.",
+        "details": "Define and implement a bootstrap state for fresh projects where Aegis is installed before Taskmaster has tasks. The flow should support task-master init when needed, PRD discovery or creation guidance, task-master parse-prd with explicit user approval, analyze-complexity and expansion guidance, and the first kickoff after tasks exist. The continuation contract must distinguish setup/planning mutations from product implementation and must never force fake task binding before the task ledger exists. Add aegis next brief states for no_taskmaster, taskmaster_empty, prd_available_not_parsed, prd_parsed_tasks_pending, and first_task_ready. Add tests against a temporary brand-new repo proving a short continue prompt can guide install, PRD parse readiness, task generation, and first-task kickoff boundaries without manual JSON edits or state corruption.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "189"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "191",
+        "title": "Reduce read-only verification tracking tax",
+        "description": "Make natural continuation flows less noisy by avoiding pending-tracking churn for known read-only inspection, verification, and browser-observation actions.",
+        "details": "Improve command/tool classification so read-only Taskmaster queries, git/status inspection, grep/list/cat/sed style reads, typecheck/lint verification commands, localhost probes, and browser screenshot/snapshot calls do not create unnecessary pending tracking when they do not mutate persistent project state. Preserve strict tracking for source edits, Taskmaster writes, git mutations, repair/apply/closeout, generated file writes, and artifact cleanup. Consider a batch evidence command for runtime verification passes. Add tests showing common continue/verify flows stay pending-clean while mutations are still tracked and stop-gated.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "189",
+          "190"
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "192",
+        "title": "Closeout must normalize compound Bash evidence",
+        "description": "Aegis closeout can become unreconcilable when tracked Bash commands use pipes or compound shell segments; the tracker records fragments such as tail/grep/python pieces that handoff repair cannot reconcile.",
+        "details": "Treat a piped or compound Bash command as a single evidence unit for S:W:H:E purposes, or normalize/prune segment fragments during handoff repair and closeout. Preserve security classification for each segment, but do not require every shell pipeline fragment to appear as separate implementation/changelog/session evidence. Regression fixture from the HP-Coach #73 closeout failure: commands like git diff | grep, pnpm typecheck | tail, and aegis verify | python3 should not leave closeout.evidence.session/tracker/implementation/changelog permanently failing after the meaningful evidence has been logged. Tests should assert handoff repair plus closeout --dry-run converges for logged piped diagnostic/verification commands, and negative tests should prove mutating commands inside compound Bash are still tracked and cannot be hidden by pipes.",
+        "testStrategy": "",
+        "status": "in-progress",
+        "dependencies": [
+          "187"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-09T15:23:20.845Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-09T13:22:19.941Z",
-      "taskCount": 186,
+      "lastModified": "2026-06-09T15:23:20.845Z",
+      "taskCount": 191,
       "completedCount": 186,
       "tags": [
         "master"
