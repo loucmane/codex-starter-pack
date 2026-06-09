@@ -2719,6 +2719,78 @@ def test_start_local_work_refuses_to_bypass_present_taskmaster(tmp_path: Path) -
     assert not (target / AEGIS_CURRENT_WORK_REL).exists()
 
 
+@pytest.mark.parametrize(
+    ("is_draft", "expected_action", "expected_command"),
+    [
+        (True, "mark_ready_for_review", "gh pr ready"),
+        (False, "ask_before_merge", "gh pr checks 133"),
+    ],
+)
+def test_post_closeout_delivery_guidance_classifies_passed_pr_checks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    is_draft: bool,
+    expected_action: str,
+    expected_command: str,
+) -> None:
+    branch = "feat/task-73-p0-poisoned-resume-fallback"
+    current_work = {"branch": {"current": branch}, "paths": {}}
+    base_pr = {
+        "number": 133,
+        "state": "OPEN",
+        "title": "Fix stale drill resume recovery",
+        "headRefName": branch,
+        "baseRefName": "main",
+        "mergedAt": None,
+        "url": "https://example.invalid/pr/133",
+        "isDraft": is_draft,
+    }
+    detailed_pr = {
+        **base_pr,
+        "mergeStateStatus": "CLEAN",
+        "statusCheckRollup": [
+            {
+                "__typename": "CheckRun",
+                "name": "app · typecheck · lint · test · build · e2e",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "detailsUrl": "https://example.invalid/checks/1",
+            }
+        ],
+    }
+
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: branch)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        lambda *_args: subprocess.CompletedProcess(
+            args=["git", "rev-parse"],
+            returncode=0,
+            stdout=f"origin/{branch}\n",
+            stderr="",
+        ),
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": [base_pr]},
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_view",
+        lambda _target, _number: {"available": True, "reason": "", "pr": detailed_pr},
+    )
+
+    delivery = aegis_installer._post_closeout_delivery_guidance(tmp_path, current_work)
+
+    assert delivery["state"] == "delivery_pending"
+    assert delivery["next_safe_action"] == expected_action
+    assert delivery["suggested_cli"] == expected_command
+    assert delivery["details"]["checks"]["state"] == "passed"
+    assert delivery["details"]["merge_requires_explicit_user_approval"] is True
+    assert not any("pr merge" in command for command in delivery["copyable_repairs"])
+
+
 def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Path) -> None:
     target = tmp_path / "post-closeout-taskmaster"
     target.mkdir()
@@ -2770,6 +2842,20 @@ def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Pa
     current_work["closeout_passed_at"] = "2026-05-30T15:48:41Z"
     current_work["task"]["status"] = "completed"
     current_work_path.write_text(json.dumps(current_work, indent=2) + "\n", encoding="utf-8")
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=target,
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).stdout.strip()
+
+    guidance = next_action(target, source_root=REPO_ROOT)
+    assert guidance["phase"] == "deliver"
+    assert guidance["state"] == "delivery_pending"
+    assert guidance["details"]["delivery"]["next_safe_action"] == "push_branch"
+    assert guidance["suggested_cli"] == f"git push -u origin {branch}"
 
     done_gate = run_target_pretooluse(
         target,
@@ -2788,6 +2874,128 @@ def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Pa
     )
     assert done_posttool.returncode == 0, done_posttool.stderr
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
+
+    push_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": f"git push -u origin {branch} 2>&1 | tail -15"},
+        },
+    )
+    assert push_gate.returncode == 0, push_gate.stderr
+
+    head_push_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git push --set-upstream origin HEAD"},
+        },
+    )
+    assert head_push_gate.returncode == 0, head_push_gate.stderr
+
+    pr_create_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": (
+                    f"gh pr create --draft --base main --head {branch} "
+                    "--title 'Task 42' --body 'Closeout passed'"
+                )
+            },
+        },
+    )
+    assert pr_create_gate.returncode == 0, pr_create_gate.stderr
+
+    pr_ready_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "gh pr ready"},
+        },
+    )
+    assert pr_ready_gate.returncode == 0, pr_ready_gate.stderr
+
+    pr_merge_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "gh pr merge --squash --delete-branch"},
+        },
+    )
+    assert pr_merge_gate.returncode == 0, pr_merge_gate.stderr
+
+    force_push_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": f"git push --force origin {branch}"},
+        },
+    )
+    assert force_push_gate.returncode == 2
+    assert "readiness is BLOCKED" in force_push_gate.stderr
+
+    wrong_branch_push_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "git push -u origin feat/task-99-other"},
+        },
+    )
+    assert wrong_branch_push_gate.returncode == 2
+    assert "readiness is BLOCKED" in wrong_branch_push_gate.stderr
+
+    wrong_branch_pr_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "gh pr create --draft --head feat/task-99-other"},
+        },
+    )
+    assert wrong_branch_pr_gate.returncode == 2
+    assert "readiness is BLOCKED" in wrong_branch_pr_gate.stderr
+
+    numbered_pr_merge_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "gh pr merge 99 --squash"},
+        },
+    )
+    assert numbered_pr_merge_gate.returncode == 2
+    assert "readiness is BLOCKED" in numbered_pr_merge_gate.stderr
+
+    admin_pr_merge_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "gh pr merge --squash --admin"},
+        },
+    )
+    assert admin_pr_merge_gate.returncode == 2
+    assert "readiness is BLOCKED" in admin_pr_merge_gate.stderr
+
+    substitution_pr_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": f"gh pr create --draft --head {branch} --title $(touch owned)"
+            },
+        },
+    )
+    assert substitution_pr_gate.returncode == 2
+    assert "readiness is BLOCKED" in substitution_pr_gate.stderr
+
+    redirected_pr_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": f"gh pr create --draft --head {branch} > pr.txt"},
+        },
+    )
+    assert redirected_pr_gate.returncode == 2
+    assert "readiness is BLOCKED" in redirected_pr_gate.stderr
 
     generate_gate = run_target_pretooluse(
         target,

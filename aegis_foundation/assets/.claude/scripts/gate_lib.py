@@ -168,6 +168,7 @@ TASKMASTER_SET_STATUS_RE = re.compile(
     re.IGNORECASE,
 )
 TASKMASTER_GENERATE_RE = re.compile(r"(^|[;&|]\s*)task-master\s+generate\b", re.IGNORECASE)
+SHELL_REDIRECT_TOKEN_RE = re.compile(r"^\d?>&\d$")
 AEGIS_READ_ONLY_MCP_TOOL_SUFFIXES = {
     "inspect",
     "status",
@@ -1108,6 +1109,26 @@ def current_work_closeout_completed(root: Path) -> dict[str, Any] | None:
     return None
 
 
+def current_git_branch(root: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(root), "branch", "--show-current"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def current_work_branch_name(work: dict[str, Any]) -> str:
+    branch = work.get("branch")
+    if isinstance(branch, dict):
+        return str(branch.get("current") or branch.get("name") or "").strip()
+    if isinstance(branch, str):
+        return branch.strip()
+    return ""
+
+
 def clear_client_reload_marker(root: Path) -> None:
     marker = root / AEGIS_CLIENT_RELOAD_REL
     if marker.exists():
@@ -1449,6 +1470,117 @@ def bash_is_post_closeout_taskmaster_completion(command: str, task_id: str) -> b
     return False
 
 
+def command_segments(command: str) -> list[str]:
+    return [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+
+
+def cleaned_shell_tokens(segment: str) -> list[str]:
+    tokens = strip_shell_prefixes(shlex_tokens(segment))
+    return [token for token in tokens if not SHELL_REDIRECT_TOKEN_RE.match(token)]
+
+
+def shell_args_have_positional(args: list[str], value_options: set[str] | None = None) -> bool:
+    value_options = value_options or set()
+    skip_next = False
+    for token in args:
+        if skip_next:
+            skip_next = False
+            continue
+        if token.startswith("-"):
+            if token in value_options:
+                skip_next = True
+            continue
+        return True
+    return False
+
+
+def bash_segment_is_current_branch_push(segment: str, branch: str) -> bool:
+    tokens = cleaned_shell_tokens(segment)
+    if len(tokens) < 3:
+        return False
+    if command_name(tokens[0]) != "git" or tokens[1] != "push":
+        return False
+    if any(
+        token in {"-f", "--force", "--force-with-lease", "--mirror", "--all", "--tags", "--delete"}
+        or token.startswith("--force-with-lease=")
+        for token in tokens[2:]
+    ):
+        return False
+    args = tokens[2:]
+    if not args:
+        return False
+    if args[0] in {"-u", "--set-upstream"}:
+        args = args[1:]
+    if len(args) != 2:
+        return False
+    remote, ref = args
+    if remote != "origin":
+        return False
+    return ref in {branch, "HEAD"}
+
+
+def bash_segment_is_current_branch_pr_create(segment: str, branch: str) -> bool:
+    tokens = cleaned_shell_tokens(segment)
+    if len(tokens) < 3:
+        return False
+    if command_name(tokens[0]) != "gh" or tokens[1:3] != ["pr", "create"]:
+        return False
+    if "--web" in tokens[3:] or option_value(tokens, "--repo") or "-R" in tokens[3:]:
+        return False
+    head = option_value(tokens, "--head")
+    if head:
+        return head == branch or head.endswith(f":{branch}")
+    return True
+
+
+def bash_segment_is_current_branch_pr_ready(segment: str, branch: str) -> bool:
+    tokens = cleaned_shell_tokens(segment)
+    if len(tokens) < 3:
+        return False
+    if command_name(tokens[0]) != "gh" or tokens[1:3] != ["pr", "ready"]:
+        return False
+    args = tokens[3:]
+    if "--undo" in args or "--web" in args or option_value(tokens, "--repo") or "-R" in args:
+        return False
+    return not shell_args_have_positional(args, {"--repo", "-R"})
+
+
+def bash_segment_is_current_branch_pr_merge(segment: str, branch: str) -> bool:
+    tokens = cleaned_shell_tokens(segment)
+    if len(tokens) < 3:
+        return False
+    if command_name(tokens[0]) != "gh" or tokens[1:3] != ["pr", "merge"]:
+        return False
+    args = tokens[3:]
+    if "--admin" in args or "--web" in args or option_value(tokens, "--repo") or "-R" in args:
+        return False
+    if not any(method in args for method in {"--merge", "--squash", "--rebase"}):
+        return False
+    value_options = {"--subject", "--body", "--body-file", "--author-email", "--match-head-commit"}
+    return not shell_args_have_positional(args, value_options)
+
+
+def bash_is_post_closeout_delivery(command: str, branch: str) -> bool:
+    if not branch:
+        return False
+    if UNSUPPORTED_READ_ONLY_SHELL_RE.search(command):
+        return False
+    if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
+        return False
+    segments = command_segments(command)
+    if not segments:
+        return False
+    first, rest = segments[0], segments[1:]
+    if not (
+        bash_segment_is_current_branch_push(first, branch)
+        or bash_segment_is_current_branch_pr_create(first, branch)
+        or bash_segment_is_current_branch_pr_ready(first, branch)
+        or bash_segment_is_current_branch_pr_merge(first, branch)
+    ):
+        return False
+    return all(bash_segment_is_read_only(segment) for segment in rest)
+
+
 def mcp_is_post_closeout_taskmaster_completion(payload: Payload, task_id: str) -> bool:
     normalized = normalized_mcp_tool_name(payload.tool_name)
     if not mcp_is_taskmaster_tool(payload.tool_name):
@@ -1480,6 +1612,21 @@ def payload_is_post_closeout_taskmaster_completion(root: Path, payload: Payload)
     if is_mcp_tool(payload.tool_name):
         return mcp_is_post_closeout_taskmaster_completion(payload, task_id)
     return False
+
+
+def payload_is_post_closeout_delivery(root: Path, payload: Payload) -> bool:
+    work = current_work_closeout_completed(root)
+    if work is None or pending_tracking_events(root):
+        return False
+    if payload.tool_name != "Bash":
+        return False
+    branch = current_git_branch(root)
+    if not branch:
+        return False
+    recorded_branch = current_work_branch_name(work)
+    if recorded_branch and recorded_branch != branch:
+        return False
+    return bash_is_post_closeout_delivery(bash_command(payload), branch)
 
 
 def record_pending_tracking_event(root: Path, payload: Payload) -> None:
@@ -1608,6 +1755,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
     post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(root, payload)
+    post_closeout_delivery = payload_is_post_closeout_delivery(root, payload)
     if current_work_is_observation(root) and is_mutation:
         if payload_is_observation_allowed(payload):
             return 0
@@ -1628,6 +1776,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         and not payload_is_aegis_repair_apply(payload)
         and not payload_is_aegis_uninstall_apply(payload)
         and not post_closeout_taskmaster_completion
+        and not post_closeout_delivery
     ):
         return block(
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"

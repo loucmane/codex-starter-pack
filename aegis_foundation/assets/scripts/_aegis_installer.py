@@ -1897,6 +1897,172 @@ def _closeout_passed(target_root: Path) -> bool:
     return isinstance(current_work, Mapping) and bool(current_work.get("closeout_passed_at"))
 
 
+def _post_closeout_delivery_guidance(
+    target_root: Path,
+    current_work: Mapping[str, Any],
+) -> dict[str, Any]:
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    recorded_branch = _current_work_branch_name(current_work, paths).strip()
+    try:
+        branch = _current_branch(target_root)
+    except AegisError as exc:
+        return {
+            "state": "delivery_unknown",
+            "next_safe_action": "inspect_git_state",
+            "next_required_action": "inspect git branch state before delivery",
+            "suggested_cli": "git status --short --branch",
+            "copyable_repairs": ["git status --short --branch"],
+            "details": {"reason": str(exc), "recorded_branch": recorded_branch},
+        }
+    if recorded_branch and recorded_branch != branch:
+        return {
+            "state": "delivery_unknown",
+            "next_safe_action": "inspect_git_state",
+            "next_required_action": (
+                "inspect branch state before delivery because current branch does not match closed work"
+            ),
+            "suggested_cli": "git status --short --branch",
+            "copyable_repairs": ["git status --short --branch"],
+            "details": {"current_branch": branch, "recorded_branch": recorded_branch},
+        }
+
+    upstream = _run_target_git(
+        target_root,
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        "@{u}",
+    )
+    if upstream.returncode != 0 or not upstream.stdout.strip():
+        command = f"git push -u origin {branch}"
+        return {
+            "state": "delivery_pending",
+            "next_safe_action": "push_branch",
+            "next_required_action": "push the closed task branch before opening a PR",
+            "suggested_cli": command,
+            "copyable_repairs": [command],
+            "details": {
+                "current_branch": branch,
+                "upstream": None,
+                "sanctioned_after_closeout": True,
+                "merge_requires_explicit_user_approval": True,
+            },
+        }
+
+    gh = _run_gh_pr_list(target_root)
+    if not gh.get("available"):
+        command = f"gh pr create --draft --base main --head {branch}"
+        return {
+            "state": "delivery_pending",
+            "next_safe_action": "open_pr",
+            "next_required_action": (
+                "branch is pushed; open a draft PR or inspect GitHub state manually"
+            ),
+            "suggested_cli": command,
+            "copyable_repairs": [command],
+            "details": {
+                "current_branch": branch,
+                "upstream": upstream.stdout.strip(),
+                "github": {"available": False, "reason": gh.get("reason")},
+                "merge_requires_explicit_user_approval": True,
+            },
+        }
+
+    prs = [
+        dict(pr)
+        for pr in gh.get("prs", [])
+        if isinstance(pr, Mapping) and str(pr.get("headRefName") or "") == branch
+    ]
+    merged = [pr for pr in prs if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")]
+    if merged:
+        pr = merged[0]
+        return {
+            "state": "merged_complete",
+            "next_safe_action": "merged_complete",
+            "next_required_action": "no workflow action required",
+            "suggested_cli": "./.aegis/bin/aegis status --target-dir .",
+            "copyable_repairs": [],
+            "details": {"current_branch": branch, "pr": pr},
+        }
+    open_prs = [pr for pr in prs if str(pr.get("state") or "").upper() == "OPEN"]
+    if open_prs:
+        pr = open_prs[0]
+        pr_number = pr.get("number")
+        detail = _run_gh_pr_view(target_root, pr_number)
+        if detail.get("available") and isinstance(detail.get("pr"), Mapping):
+            pr = {**pr, **dict(detail["pr"])}
+        checks = _summarize_pr_checks(pr)
+        checks_command = f"gh pr checks {pr_number}"
+        view_command = f"gh pr view {pr_number} --web"
+        details = {
+            "current_branch": branch,
+            "upstream": upstream.stdout.strip(),
+            "pr": pr,
+            "checks": checks,
+            "merge_requires_explicit_user_approval": True,
+        }
+        if not detail.get("available"):
+            details["github_detail"] = {"available": False, "reason": detail.get("reason")}
+        if checks.get("state") == "passed":
+            if bool(pr.get("isDraft")):
+                command = "gh pr ready"
+                return {
+                    "state": "delivery_pending",
+                    "next_safe_action": "mark_ready_for_review",
+                    "next_required_action": (
+                        "PR checks passed; mark the current-branch draft PR ready before merge"
+                    ),
+                    "suggested_cli": command,
+                    "copyable_repairs": [command, checks_command, view_command],
+                    "details": details,
+                }
+            return {
+                "state": "delivery_pending",
+                "next_safe_action": "ask_before_merge",
+                "next_required_action": (
+                    "PR checks passed; ask for explicit user approval before merging"
+                ),
+                "suggested_cli": checks_command,
+                "copyable_repairs": [checks_command, view_command],
+                "details": details,
+            }
+        if checks.get("state") == "failed":
+            return {
+                "state": "delivery_blocked",
+                "next_safe_action": "fix_ci",
+                "next_required_action": "PR checks failed; inspect CI before merge",
+                "suggested_cli": checks_command,
+                "copyable_repairs": [checks_command, view_command],
+                "details": details,
+            }
+        command = checks_command
+        return {
+            "state": "delivery_pending",
+            "next_safe_action": "wait_for_ci",
+            "next_required_action": (
+                "PR is open; check CI and ask before merging when checks are green"
+            ),
+            "suggested_cli": command,
+            "copyable_repairs": [command, view_command],
+            "details": details,
+        }
+
+    command = f"gh pr create --draft --base main --head {branch}"
+    return {
+        "state": "delivery_pending",
+        "next_safe_action": "open_pr",
+        "next_required_action": "branch is pushed but no PR was found; open a draft PR",
+        "suggested_cli": command,
+        "copyable_repairs": [command],
+        "details": {
+            "current_branch": branch,
+            "upstream": upstream.stdout.strip(),
+            "matching_prs": prs,
+            "merge_requires_explicit_user_approval": True,
+        },
+    }
+
+
 def _numeric_task_id(value: Any) -> str | None:
     text = str(value or "").strip()
     return text if re.fullmatch(r"\d+", text) else None
@@ -2450,6 +2616,40 @@ def next_action(
             },
         )
 
+    if _closeout_passed(target_root):
+        delivery = _post_closeout_delivery_guidance(target_root, current_work)
+        if delivery.get("state") != "merged_complete":
+            return _workflow_guidance_payload(
+                phase="deliver",
+                state=str(delivery.get("state") or "delivery_pending"),
+                next_required_action=str(
+                    delivery.get("next_required_action")
+                    or "deliver the closed task branch through GitHub"
+                ),
+                suggested_cli=str(delivery.get("suggested_cli") or "git status --short --branch"),
+                missing_gates=["github.delivery"],
+                copyable_repairs=[
+                    str(item) for item in delivery.get("copyable_repairs", []) if str(item)
+                ],
+                details={
+                    "closeout_report": AEGIS_CLOSEOUT_REPORT_REL,
+                    "delivery": {
+                        key: value
+                        for key, value in delivery.items()
+                        if key not in {"copyable_repairs"}
+                    },
+                },
+            )
+        return _workflow_guidance_payload(
+            phase="complete",
+            state="closeout_passed",
+            next_required_action="no workflow action required",
+            suggested_cli="./.aegis/bin/aegis status --target-dir .",
+            suggested_mcp_tool="aegis.status",
+            suggested_mcp_arguments={"target_dir": "."},
+            details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+        )
+
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
     work_rel = str(paths.get("work_tracking") or "").strip()
     plan_rel = str(paths.get("plan") or "plans/current").strip()
@@ -2642,17 +2842,6 @@ def next_action(
                 "./.aegis/bin/aegis verify --target-dir . --strict",
                 "./.aegis/bin/aegis log --target-dir . --pending-id current --note 'Recorded strict verification evidence' --plan-step auto --plan-status completed",
             ],
-        )
-
-    if _closeout_passed(target_root):
-        return _workflow_guidance_payload(
-            phase="complete",
-            state="closeout_passed",
-            next_required_action="no workflow action required",
-            suggested_cli="./.aegis/bin/aegis status --target-dir .",
-            suggested_mcp_tool="aegis.status",
-            suggested_mcp_arguments={"target_dir": "."},
-            details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
         )
 
     return _workflow_guidance_payload(
@@ -3080,6 +3269,82 @@ def _run_gh_pr_list(target_root: Path) -> dict[str, Any]:
         return {"available": False, "reason": "gh pr list returned non-list JSON", "prs": []}
     prs = [dict(pr) for pr in raw_prs if isinstance(pr, Mapping)]
     return {"available": True, "reason": "", "prs": prs}
+
+
+def _run_gh_pr_view(target_root: Path, number: Any) -> dict[str, Any]:
+    gh = shutil.which("gh")
+    if gh is None:
+        return {"available": False, "reason": "gh executable not found", "pr": {}}
+    pr_number = str(number or "").strip()
+    if not pr_number:
+        return {"available": False, "reason": "PR number is missing", "pr": {}}
+    result = subprocess.run(
+        [
+            gh,
+            "pr",
+            "view",
+            pr_number,
+            "--json",
+            "number,state,title,headRefName,baseRefName,url,isDraft,mergeStateStatus,statusCheckRollup",
+        ],
+        cwd=target_root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode != 0:
+        return {
+            "available": False,
+            "reason": (result.stderr or result.stdout or "gh pr view failed").strip(),
+            "pr": {},
+        }
+    try:
+        raw_pr = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {"available": False, "reason": "gh pr view returned invalid JSON", "pr": {}}
+    if not isinstance(raw_pr, Mapping):
+        return {"available": False, "reason": "gh pr view returned non-object JSON", "pr": {}}
+    return {"available": True, "reason": "", "pr": dict(raw_pr)}
+
+
+def _summarize_pr_checks(pr: Mapping[str, Any]) -> dict[str, Any]:
+    raw_checks = pr.get("statusCheckRollup")
+    if not isinstance(raw_checks, list) or not raw_checks:
+        return {"state": "unknown", "checks": [], "reason": "no status checks reported"}
+
+    checks: list[dict[str, Any]] = []
+    pending: list[str] = []
+    failed: list[str] = []
+    passed: list[str] = []
+    success_conclusions = {"SUCCESS", "NEUTRAL", "SKIPPED"}
+    for item in raw_checks:
+        if not isinstance(item, Mapping):
+            continue
+        name = str(item.get("name") or item.get("workflowName") or "unnamed check")
+        status = str(item.get("status") or "").upper()
+        conclusion = str(item.get("conclusion") or "").upper()
+        check = {
+            "name": name,
+            "status": status,
+            "conclusion": conclusion,
+            "detailsUrl": item.get("detailsUrl"),
+        }
+        checks.append(check)
+        if status != "COMPLETED":
+            pending.append(name)
+        elif conclusion in success_conclusions:
+            passed.append(name)
+        else:
+            failed.append(name)
+
+    if failed:
+        return {"state": "failed", "checks": checks, "failed": failed, "pending": pending}
+    if pending:
+        return {"state": "pending", "checks": checks, "pending": pending}
+    if passed:
+        return {"state": "passed", "checks": checks, "passed": passed}
+    return {"state": "unknown", "checks": checks, "reason": "no classifiable checks reported"}
 
 
 def _task_ids_for_pr(pr: Mapping[str, Any]) -> list[str]:
