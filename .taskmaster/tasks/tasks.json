@@ -6946,13 +6946,27 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-08T17:43:19.971Z"
+      },
+      {
+        "id": "183",
+        "title": "Allow safe Aegis repair while readiness is blocked",
+        "description": "Aegis PreToolUse must allow doctor-prescribed safe repair actions when readiness is BLOCKED, so completed observation or scaffold repair states can recover without human out-of-band commands.",
+        "details": "Fix the gate contradiction where doctor reports a safe repair but both CLI and MCP aegis repair --apply are blocked by readiness. Allow project-confined aegis repair apply paths through the PreToolUse gate while readiness is BLOCKED, restricted to Aegis repair surfaces and existing safe-repair validation. Preserve blocking for closeout, kickoff, Taskmaster mutations, arbitrary Bash writes, and out-of-project target dirs. Cover both CLI and MCP repair apply forms in regression tests.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "182"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-09T10:31:50.125Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-08T17:43:19.971Z",
-      "taskCount": 181,
-      "completedCount": 181,
+      "lastModified": "2026-06-09T10:31:50.126Z",
+      "taskCount": 182,
+      "completedCount": 182,
       "tags": [
         "master"
       ]

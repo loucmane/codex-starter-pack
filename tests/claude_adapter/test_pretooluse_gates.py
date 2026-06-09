@@ -218,6 +218,7 @@ def test_pretooluse_blocks_read_only_aegis_mcp_target_outside_project_before_rea
     ("tool_name", "tool_input"),
     [
         ("mcp__aegis__aegis_repair", {"apply": False}),
+        ("mcp__aegis__aegis_repair", {"apply": True}),
         ("mcp__aegis__aegis_handoff_repair", {"apply": False}),
         (
             "mcp__aegis__aegis_kickoff",
@@ -247,6 +248,97 @@ def test_pretooluse_confines_every_aegis_mcp_target_dir_before_readiness(
     assert result.returncode == 2
     assert "target_dir escapes governed project root" in result.stderr
     assert "readiness is BLOCKED" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "./.aegis/bin/aegis repair --target-dir . --apply",
+        "python3 -m aegis_foundation.cli repair --target-dir . --apply",
+    ],
+)
+def test_pretooluse_allows_aegis_repair_apply_when_readiness_blocked(
+    tmp_path: Path, command: str
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_allows_aegis_mcp_repair_apply_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("mcp__aegis__aegis_repair", target_dir=".", apply=True),
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_compounded_aegis_repair_apply_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="./.aegis/bin/aegis repair --target-dir . --apply && touch state.txt"),
+    )
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
+def test_pretooluse_blocks_aegis_repair_apply_while_pending_tracking_exists(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    write(
+        repo / ".aegis" / "state" / "pending-tracking.json",
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "events": [
+                    {
+                        "id": "pending-1",
+                        "h": "bash:test",
+                        "e": "cmd`touch state.txt`",
+                    }
+                ],
+            }
+        ),
+    )
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="./.aegis/bin/aegis repair --target-dir . --apply"),
+    )
+
+    assert result.returncode == 2
+    assert "pending S:W:H:E tracking must be logged" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "tool_input"),
+    [
+        ("mcp__aegis__aegis_closeout", {"target_dir": "."}),
+        ("mcp__taskmaster_ai__set_task_status", {"id": "183", "status": "done"}),
+        ("Write", {"file_path": "README.md"}),
+    ],
+)
+def test_pretooluse_still_blocks_non_repair_mutations_when_readiness_blocked(
+    tmp_path: Path, tool_name: str, tool_input: dict[str, object]
+) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload(tool_name, **tool_input))
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
 
 
 def test_pretooluse_short_circuits_read_only_before_readiness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

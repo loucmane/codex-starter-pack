@@ -20,3 +20,4 @@ Add a safe `aegis observe stop --collect-artifacts` path that collects only know
 - Focused observation stop tests passed.
 - Installer and MCP suites passed.
 - Remaining: final Taskmaster dependency validation, work-tracking audit, commit guard, and commit.
+- Archived on 2026-06-09 12:29 CEST — Folder moved to archive and tracker marked COMPLETED.
