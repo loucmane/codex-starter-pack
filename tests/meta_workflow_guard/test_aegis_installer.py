@@ -994,6 +994,77 @@ def test_repair_archives_stale_completed_observation_active_folder(
     assert updated_report["archived_work_tracking"] == {"from": stale_rel, "to": archive_rel}
 
 
+def test_repair_archives_orphaned_observation_active_folder_by_name(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repair-orphaned-observation-active"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    kicked = kickoff(
+        target,
+        task_id="53",
+        slug="dogfood-audit-followups",
+        title="M4 dogfood iteration milestone",
+    )
+    stale_rel = "docs/ai/work-tracking/active/20260608-observe-read-only-hp-coach-polish-audit-ACTIVE"
+    stale = target / stale_rel
+    stale.mkdir(parents=True)
+    (stale / "TRACKER.md").write_text("Observation tracker\n", encoding="utf-8")
+    report = {
+        "schema_version": "1.0.0",
+        "status": "completed",
+        "mode": "observation",
+        "paths": {
+            "work_tracking": "docs/ai/work-tracking/archive/old-observation-COMPLETED",
+            "reports": "docs/ai/work-tracking/archive/old-observation-COMPLETED/reports/audit",
+        },
+    }
+    (target / AEGIS_OBSERVATION_REPORT_REL).write_text(
+        json.dumps(report, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    preview = repair(target, source_root=REPO_ROOT)
+
+    assert any(
+        action["kind"] == "archive_completed_observation_work_tracking"
+        and action["path"] == stale_rel
+        for action in preview["repair_plan"]["actions"]
+    )
+
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+    archive_rel = (
+        stale_rel.replace(
+            "docs/ai/work-tracking/active/",
+            "docs/ai/work-tracking/archive/",
+        ).removesuffix("-ACTIVE")
+        + "-COMPLETED"
+    )
+    active_folders = sorted(
+        path.name
+        for path in (target / "docs/ai/work-tracking/active").glob("*-ACTIVE")
+        if path.is_dir()
+    )
+    updated_report = json.loads(
+        (target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8")
+    )
+
+    assert applied["status"] == "applied"
+    assert not stale.exists()
+    assert (target / archive_rel).is_dir()
+    assert active_folders == [Path(kicked["paths"]["work_tracking"]).name]
+    assert updated_report["paths"]["work_tracking"] == report["paths"]["work_tracking"]
+    assert updated_report["archived_work_tracking"] == {"from": stale_rel, "to": archive_rel}
+
+
 def test_repair_normalizes_malformed_current_plan_table(tmp_path: Path) -> None:
     target = tmp_path / "repair-plan-table"
     target.mkdir()

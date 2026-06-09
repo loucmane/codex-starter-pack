@@ -3723,6 +3723,13 @@ def _completed_observation_work_tracking_archive_rel(work_rel: str) -> str:
     return f"docs/ai/work-tracking/archive/{archive_name}"
 
 
+def _is_observation_active_work_tracking_rel(work_rel: str) -> bool:
+    archive_rel = _completed_observation_work_tracking_archive_rel(work_rel)
+    if not archive_rel:
+        return False
+    return "-observe-" in Path(work_rel).name
+
+
 def _unique_work_tracking_archive_rel(target_root: Path, archive_rel: str) -> str:
     archive_path = target_root / archive_rel
     if not archive_path.exists():
@@ -7114,30 +7121,51 @@ def _completed_observation_work_tracking_action(
     target_root: Path,
     current_work: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
-    candidates: list[Mapping[str, Any]] = []
+    current_work_rel = ""
+    if isinstance(current_work, Mapping):
+        current_paths = (
+            current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+        )
+        current_work_rel = str(current_paths.get("work_tracking") or "").strip()
+
+    candidate_rels: list[str] = []
     if (
         isinstance(current_work, Mapping)
         and str(current_work.get("mode") or "") == "observation"
         and str(current_work.get("status") or "") == "completed"
     ):
-        candidates.append(current_work)
+        paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+        candidate_rels.append(str(paths.get("work_tracking") or "").strip())
     report = _read_json(target_root / AEGIS_OBSERVATION_REPORT_REL)
     if (
         isinstance(report, Mapping)
         and str(report.get("mode") or "") == "observation"
         and str(report.get("status") or "") == "completed"
     ):
-        candidates.append(report)
+        paths = report.get("paths") if isinstance(report.get("paths"), Mapping) else {}
+        candidate_rels.append(str(paths.get("work_tracking") or "").strip())
+
+    active_root = target_root / "docs" / "ai" / "work-tracking" / "active"
+    if active_root.is_dir():
+        for path in sorted(active_root.glob("*-observe-*-ACTIVE")):
+            if path.is_dir():
+                candidate_rels.append(path.relative_to(target_root).as_posix())
 
     seen: set[str] = set()
-    for candidate in candidates:
-        paths = candidate.get("paths") if isinstance(candidate.get("paths"), Mapping) else {}
-        work_rel = str(paths.get("work_tracking") or "").strip()
+    for work_rel in candidate_rels:
         if work_rel in seen:
             continue
         seen.add(work_rel)
+        if work_rel == current_work_rel and not (
+            isinstance(current_work, Mapping)
+            and str(current_work.get("mode") or "") == "observation"
+            and str(current_work.get("status") or "") == "completed"
+        ):
+            continue
         archive_rel = _completed_observation_work_tracking_archive_rel(work_rel)
         if not archive_rel:
+            continue
+        if not _is_observation_active_work_tracking_rel(work_rel):
             continue
         if not (target_root / work_rel).is_dir():
             continue
