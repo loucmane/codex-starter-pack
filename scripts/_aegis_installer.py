@@ -3705,6 +3705,97 @@ def _observation_work_tracking_rel(slug: str, now: datetime) -> str:
     return f"docs/ai/work-tracking/active/{now.strftime('%Y%m%d')}-observe-{slug}-ACTIVE"
 
 
+def _is_safe_relative_rel(rel_path: str) -> bool:
+    path = Path(rel_path)
+    return bool(rel_path) and not path.is_absolute() and ".." not in path.parts
+
+
+def _completed_observation_work_tracking_archive_rel(work_rel: str) -> str:
+    if not _is_safe_relative_rel(work_rel):
+        return ""
+    active_prefix = "docs/ai/work-tracking/active/"
+    if not work_rel.startswith(active_prefix):
+        return ""
+    name = Path(work_rel).name
+    if not name.endswith("-ACTIVE"):
+        return ""
+    archive_name = f"{name[: -len('-ACTIVE')]}-COMPLETED"
+    return f"docs/ai/work-tracking/archive/{archive_name}"
+
+
+def _unique_work_tracking_archive_rel(target_root: Path, archive_rel: str) -> str:
+    archive_path = target_root / archive_rel
+    if not archive_path.exists():
+        return archive_rel
+    parent = archive_path.parent
+    name = archive_path.name
+    for index in range(2, 1000):
+        candidate = parent / f"{name}-{index}"
+        if not candidate.exists():
+            return candidate.relative_to(target_root).as_posix()
+    raise AegisError(f"could not allocate completed observation archive path for {archive_rel}")
+
+
+def _replace_work_tracking_path_prefix(paths: MutableMapping[str, Any], old: str, new: str) -> None:
+    for key in ("work_tracking", "reports"):
+        value = str(paths.get(key) or "")
+        if value == old:
+            paths[key] = new
+        elif value.startswith(f"{old}/"):
+            paths[key] = f"{new}{value[len(old):]}"
+
+
+def _archive_completed_observation_work_tracking_path(
+    target_root: Path,
+    work_rel: str,
+) -> dict[str, str] | None:
+    archive_rel = _completed_observation_work_tracking_archive_rel(work_rel)
+    if not archive_rel:
+        return None
+    source = target_root / work_rel
+    if not source.is_dir():
+        return None
+    actual_archive_rel = _unique_work_tracking_archive_rel(target_root, archive_rel)
+    destination = target_root / actual_archive_rel
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    source.rename(destination)
+    return {"from": work_rel, "to": actual_archive_rel}
+
+
+def _archive_current_completed_observation_work_tracking(
+    target_root: Path,
+    current_work: MutableMapping[str, Any],
+) -> dict[str, str] | None:
+    if str(current_work.get("mode") or "") != "observation":
+        return None
+    if str(current_work.get("status") or "") != "completed":
+        return None
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+    if paths is None:
+        return None
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    archived = _archive_completed_observation_work_tracking_path(target_root, work_rel)
+    if archived is None:
+        return None
+    _replace_work_tracking_path_prefix(paths, archived["from"], archived["to"])
+    return archived
+
+
+def _update_observation_report_archived_work_tracking(
+    target_root: Path,
+    archived: Mapping[str, str],
+) -> None:
+    report_path = target_root / AEGIS_OBSERVATION_REPORT_REL
+    report = _read_json(report_path)
+    if not isinstance(report, MutableMapping):
+        return
+    paths = report.get("paths") if isinstance(report.get("paths"), MutableMapping) else None
+    if paths is not None:
+        _replace_work_tracking_path_prefix(paths, str(archived["from"]), str(archived["to"]))
+    report["archived_work_tracking"] = dict(archived)
+    report_path.write_text(_dump_json(report), encoding="utf-8")
+
+
 def _git_status_snapshot(target_root: Path) -> list[str]:
     result = _run_target_git(target_root, "status", "--short", "--untracked-files=all", "--ignored")
     if result.returncode != 0:
@@ -4319,6 +4410,17 @@ def kickoff(
                 "Aegis current work is already in progress: "
                 f"task {existing_id} {existing_slug}. Close it out before starting task {normalized_task_id} {normalized_slug}."
             )
+        if isinstance(existing_current_work, MutableMapping):
+            archived_observation_work = _archive_current_completed_observation_work_tracking(
+                target_root,
+                existing_current_work,
+            )
+            if archived_observation_work is not None:
+                _update_observation_report_archived_work_tracking(
+                    target_root,
+                    archived_observation_work,
+                )
+                _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(existing_current_work))
 
     now = datetime.now().astimezone().replace(microsecond=0)
     selected_goals = list(goals or _default_goals())
@@ -4498,6 +4600,14 @@ def start_observation(
     existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
     if isinstance(existing_current_work, Mapping) and str(existing_current_work.get("status") or "") == "in-progress":
         return _already_started_report(target_root, existing_current_work)
+    if isinstance(existing_current_work, MutableMapping):
+        archived_observation_work = _archive_current_completed_observation_work_tracking(
+            target_root,
+            existing_current_work,
+        )
+        if archived_observation_work is not None:
+            _update_observation_report_archived_work_tracking(target_root, archived_observation_work)
+            _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(existing_current_work))
 
     now = datetime.now().astimezone().replace(microsecond=0)
     observation_id = _observation_id(normalized_slug, now)
@@ -4715,6 +4825,12 @@ def stop_observation(
     if str(current_work.get("status") or "") != "in-progress":
         if str(current_work.get("status") or "") == "completed":
             finished_at = _iso_now()
+            archived_observation_work = _archive_current_completed_observation_work_tracking(
+                target_root,
+                current_work,
+            )
+            if archived_observation_work is not None:
+                _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
             report = _read_json(target_root / AEGIS_OBSERVATION_REPORT_REL)
             if not isinstance(report, MutableMapping):
                 report = {
@@ -4731,6 +4847,18 @@ def stop_observation(
             report["idempotent"] = True
             report["already_completed"] = True
             report["checked_at"] = finished_at
+            if archived_observation_work is not None:
+                report_paths = (
+                    report.get("paths") if isinstance(report.get("paths"), MutableMapping) else None
+                )
+                if report_paths is not None:
+                    _replace_work_tracking_path_prefix(
+                        report_paths,
+                        archived_observation_work["from"],
+                        archived_observation_work["to"],
+                    )
+                report["archived_work_tracking"] = dict(archived_observation_work)
+                _write_text(target_root, AEGIS_OBSERVATION_REPORT_REL, _dump_json(report))
             report["next_action"] = _workflow_next_action(
                 "observation_already_closed",
                 "Observation was already completed; review evidence, then kickoff task-scoped work before mutating.",
@@ -4861,7 +4989,22 @@ def stop_observation(
         observation["artifact_root"] = artifact_root_rel
         observation["collected_artifacts"] = collected_artifacts
         observation["allowed_runtime_changes"] = allowed_runtime_changes
+    archived_observation_work = _archive_current_completed_observation_work_tracking(
+        target_root,
+        current_work,
+    )
+    if archived_observation_work is not None:
+        report_paths = report.get("paths") if isinstance(report.get("paths"), MutableMapping) else None
+        if report_paths is not None:
+            _replace_work_tracking_path_prefix(
+                report_paths,
+                archived_observation_work["from"],
+                archived_observation_work["to"],
+            )
+        report["archived_work_tracking"] = dict(archived_observation_work)
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
+    if archived_observation_work is not None:
+        _write_text(target_root, AEGIS_OBSERVATION_REPORT_REL, _dump_json(report))
     return report
 
 
@@ -4960,6 +5103,17 @@ def start_local_work(
                 "Aegis current work is already in progress: "
                 f"task {existing_task.get('id')} {existing_slug}. Close it out before starting {normalized_slug}."
             )
+        if isinstance(existing_current_work, MutableMapping):
+            archived_observation_work = _archive_current_completed_observation_work_tracking(
+                target_root,
+                existing_current_work,
+            )
+            if archived_observation_work is not None:
+                _update_observation_report_archived_work_tracking(
+                    target_root,
+                    archived_observation_work,
+                )
+                _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(existing_current_work))
     taskmaster = _taskmaster_state(target_root)
     if taskmaster.state == "invalid":
         raise AegisError(
@@ -6956,6 +7110,50 @@ def _completed_closeout_action(
     )
 
 
+def _completed_observation_work_tracking_action(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    candidates: list[Mapping[str, Any]] = []
+    if (
+        isinstance(current_work, Mapping)
+        and str(current_work.get("mode") or "") == "observation"
+        and str(current_work.get("status") or "") == "completed"
+    ):
+        candidates.append(current_work)
+    report = _read_json(target_root / AEGIS_OBSERVATION_REPORT_REL)
+    if (
+        isinstance(report, Mapping)
+        and str(report.get("mode") or "") == "observation"
+        and str(report.get("status") or "") == "completed"
+    ):
+        candidates.append(report)
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        paths = candidate.get("paths") if isinstance(candidate.get("paths"), Mapping) else {}
+        work_rel = str(paths.get("work_tracking") or "").strip()
+        if work_rel in seen:
+            continue
+        seen.add(work_rel)
+        archive_rel = _completed_observation_work_tracking_archive_rel(work_rel)
+        if not archive_rel:
+            continue
+        if not (target_root / work_rel).is_dir():
+            continue
+        return _doctor_action(
+            "workflow.archive_completed_observation_work_tracking",
+            kind="archive_completed_observation_work_tracking",
+            path=work_rel,
+            reason="completed observation work-tracking folder is still marked ACTIVE",
+            details={
+                "archive_path": archive_rel,
+                "observation_report": AEGIS_OBSERVATION_REPORT_REL,
+            },
+        )
+    return None
+
+
 def _doctor_repair_actions(
     target_root: Path,
     source_root: Path,
@@ -7020,6 +7218,12 @@ def _doctor_repair_actions(
     completed_action = _completed_closeout_action(target_root, current_work)
     if completed_action is not None:
         actions.append(completed_action)
+    completed_observation_action = _completed_observation_work_tracking_action(
+        target_root,
+        current_work,
+    )
+    if completed_observation_action is not None:
+        actions.append(completed_observation_action)
     return actions
 
 
@@ -7293,6 +7497,42 @@ def _apply_repair_action(
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         current_path.write_text(_dump_json(current_work), encoding="utf-8")
         return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "archive_completed_observation_work_tracking":
+        archived = _archive_completed_observation_work_tracking_path(target_root, rel_path)
+        if archived is None:
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "completed observation ACTIVE folder unavailable",
+                "path": rel_path,
+            }
+        report_path = target_root / AEGIS_OBSERVATION_REPORT_REL
+        report = _read_json(report_path)
+        if isinstance(report, MutableMapping):
+            report_paths = (
+                report.get("paths") if isinstance(report.get("paths"), MutableMapping) else None
+            )
+            if report_paths is not None:
+                _replace_work_tracking_path_prefix(report_paths, archived["from"], archived["to"])
+            report["archived_work_tracking"] = dict(archived)
+            report_path.write_text(_dump_json(report), encoding="utf-8")
+        current_path = target_root / AEGIS_CURRENT_WORK_REL
+        current_work = _read_json(current_path)
+        if (
+            isinstance(current_work, MutableMapping)
+            and str(current_work.get("mode") or "") == "observation"
+            and str(current_work.get("status") or "") == "completed"
+        ):
+            paths = current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+            if paths is not None:
+                _replace_work_tracking_path_prefix(paths, archived["from"], archived["to"])
+            current_path.write_text(_dump_json(current_work), encoding="utf-8")
+        return {
+            "id": action.get("id"),
+            "status": "applied",
+            "path": archived["from"],
+            "details": {"archive_path": archived["to"]},
+        }
     if kind == "normalize_plan_table":
         current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
         preview = _plan_table_repair_preview(target_root, current_work)
