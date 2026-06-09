@@ -1065,6 +1065,113 @@ def test_repair_archives_orphaned_observation_active_folder_by_name(
     assert updated_report["archived_work_tracking"] == {"from": stale_rel, "to": archive_rel}
 
 
+def test_repair_archives_closed_task_tracker_and_restores_mismatched_current_work(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repair-closed-task-active"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    kicked = kickoff(
+        target,
+        task_id="73",
+        slug="p0-poisoned-resume-fallback",
+        title="P0: Repair poisoned resume plus graceful drill fallback",
+    )
+    task73_rel = kicked["paths"]["work_tracking"]
+    stale_rel = "docs/ai/work-tracking/active/20260609-task53-dogfood-audit-followups-ACTIVE"
+    stale = target / stale_rel
+    stale.mkdir(parents=True)
+    (stale / "HANDOFF.md").write_text("# Stale #53 handoff\n", encoding="utf-8")
+    (stale / "reports" / "dogfood-audit-followups").mkdir(parents=True)
+    closeout_report = {
+        "schema_version": "1.0.0",
+        "status": "passed",
+        "checked_at": "2026-06-09T12:55:49Z",
+        "closed_at": "2026-06-09T12:55:49Z",
+        "current_work": {
+            "status": "completed",
+            "task": {
+                "id": "53",
+                "slug": "dogfood-audit-followups",
+                "status": "completed",
+            },
+            "paths": {
+                "work_tracking": stale_rel,
+                "reports": f"{stale_rel}/reports/dogfood-audit-followups",
+            },
+        },
+    }
+    (target / AEGIS_CLOSEOUT_REPORT_REL).write_text(
+        json.dumps(closeout_report, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    current_path = target / AEGIS_CURRENT_WORK_REL
+    current_work = json.loads(current_path.read_text(encoding="utf-8"))
+    current_work["status"] = "completed"
+    current_work["task"]["status"] = "completed"
+    current_work["closeout_passed_at"] = closeout_report["closed_at"]
+    current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
+    current_path.write_text(json.dumps(current_work, indent=2) + "\n", encoding="utf-8")
+
+    preview = repair(target, source_root=REPO_ROOT)
+    action_kinds = {action["kind"] for action in preview["repair_plan"]["actions"]}
+
+    assert "remove_mismatched_closeout_metadata" in action_kinds
+    assert "archive_completed_task_work_tracking" in action_kinds
+    assert "normalize_completed_closeout" not in action_kinds
+
+    applied = repair(target, source_root=REPO_ROOT, apply=True)
+    archive_rel = (
+        stale_rel.replace(
+            "docs/ai/work-tracking/active/",
+            "docs/ai/work-tracking/archive/",
+        ).removesuffix("-ACTIVE")
+        + "-COMPLETED"
+    )
+    applied_kinds = {
+        item["id"]: item["status"]
+        for item in applied["applied"]
+        if item["id"]
+        in {
+            "workflow.remove_mismatched_closeout_metadata",
+            "workflow.archive_completed_task_work_tracking",
+        }
+    }
+    active_folders = sorted(
+        path.name
+        for path in (target / "docs/ai/work-tracking/active").glob("*-ACTIVE")
+        if path.is_dir()
+    )
+    repaired_work = json.loads(current_path.read_text(encoding="utf-8"))
+    repaired_closeout = json.loads(
+        (target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8")
+    )
+
+    assert applied_kinds == {
+        "workflow.remove_mismatched_closeout_metadata": "applied",
+        "workflow.archive_completed_task_work_tracking": "applied",
+    }
+    assert not stale.exists()
+    assert (target / archive_rel).is_dir()
+    assert active_folders == [Path(task73_rel).name]
+    assert repaired_work["status"] == "in-progress"
+    assert repaired_work["task"]["status"] == "in-progress"
+    assert repaired_work["paths"]["work_tracking"] == task73_rel
+    assert "closeout_passed_at" not in repaired_work
+    assert "closeout_report" not in repaired_work
+    assert repaired_closeout["current_work"]["paths"]["work_tracking"] == archive_rel
+    assert repaired_closeout["archived_work_tracking"] == {"from": stale_rel, "to": archive_rel}
+    assert applied["postflight"]["summary"]["failed_required"] == 0
+
+
 def test_repair_normalizes_malformed_current_plan_table(tmp_path: Path) -> None:
     target = tmp_path / "repair-plan-table"
     target.mkdir()
@@ -4214,14 +4321,26 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert "closeout_report: .aegis/reports/closeout-report.json (written)" in concise_passed
     assert (target / AEGIS_CLOSEOUT_REPORT_REL).is_file()
     closeout_report = json.loads((target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8"))
+    archive_rel = (
+        work_rel.replace(
+            "docs/ai/work-tracking/active/",
+            "docs/ai/work-tracking/archive/",
+        ).removesuffix("-ACTIVE")
+        + "-COMPLETED"
+    )
     assert closeout_report["report_written"] is True
     assert closeout_report["state_updated"] is True
+    assert closeout_report["archived_work_tracking"] == {"from": work_rel, "to": archive_rel}
+    assert closeout_report["current_work"]["paths"]["work_tracking"] == archive_rel
+    assert not (target / work_rel).exists()
+    assert (target / archive_rel).is_dir()
     refreshed_work = json.loads(
         (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
     )
     assert refreshed_work["status"] == "completed"
     assert refreshed_work["task"]["status"] == "completed"
     assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
+    assert refreshed_work["paths"]["work_tracking"] == archive_rel
     degraded_event = {
         "id": "degraded123",
         "created_at": "2026-06-01T17:00:00Z",
@@ -4279,7 +4398,7 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert idempotent_dry_run["readiness"]["status"] == "passed"
     assert idempotent_dry_run["readiness"]["stdout"] == "READY from completed closeout state"
     assert idempotent_dry_run["next_action"]["action"] == "task_complete"
-    handoff = (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8")
+    handoff = (target / archive_rel / "HANDOFF.md").read_text(encoding="utf-8")
     assert AEGIS_CLOSEOUT_REPORT_REL in handoff
     assert AEGIS_VERIFY_REPORT_REL in handoff
     assert report_rel in handoff
