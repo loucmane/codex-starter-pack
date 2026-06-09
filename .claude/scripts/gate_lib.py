@@ -867,6 +867,15 @@ def bash_has_trusted_aegis_subcommand(
     return False
 
 
+def bash_is_aegis_repair_apply(command: str) -> bool:
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    if len(segments) != 1:
+        return False
+    tokens = strip_shell_prefixes(shlex_tokens(segments[0]))
+    remainder = aegis_cli_remainder(tokens, project_root(), allow_bare=False)
+    return bool(remainder) and remainder[0] == "repair" and "--apply" in remainder[1:]
+
+
 def bash_has_trusted_aegis_nested_subcommand(
     command: str,
     first: str,
@@ -1338,6 +1347,19 @@ def payload_is_aegis_runtime_update(payload: Payload) -> bool:
     return False
 
 
+def payload_is_aegis_repair_apply(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_repair_apply(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = normalized_mcp_tool_name(payload.tool_name)
+        return (
+            "aegis" in normalized
+            and normalized.endswith("aegis_repair")
+            and payload.tool_input.get("apply") is True
+        )
+    return False
+
+
 def payload_is_aegis_pending_log(payload: Payload) -> bool:
     if payload.tool_name == "Bash":
         return bash_is_aegis_pending_log(bash_command(payload))
@@ -1603,6 +1625,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         and not payload_is_aegis_bootstrap(payload)
         and not payload_is_aegis_pending_log(payload)
         and not payload_is_aegis_runtime_update(payload)
+        and not payload_is_aegis_repair_apply(payload)
         and not payload_is_aegis_uninstall_apply(payload)
         and not post_closeout_taskmaster_completion
     ):
