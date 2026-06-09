@@ -2362,6 +2362,42 @@ def next_action(
             details={"pending_event_ids": ids},
         )
 
+    if str(current_work.get("mode") or "") == "observation" and str(current_work.get("status") or "") == "completed":
+        paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+        observation = (
+            current_work.get("observation")
+            if isinstance(current_work.get("observation"), Mapping)
+            else {}
+        )
+        return _workflow_guidance_payload(
+            phase="start",
+            state="observation_completed",
+            next_required_action=(
+                "review the completed observation evidence, then kickoff a task before mutating files or Taskmaster"
+            ),
+            suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+            suggested_mcp_tool="aegis.kickoff",
+            suggested_mcp_arguments={
+                "target_dir": ".",
+                "task": "<id>",
+                "slug": "<slug>",
+                "title": "<title>",
+                "apply": True,
+            },
+            missing_gates=["aegis.current_work.in_progress"],
+            copyable_repairs=[
+                "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+                "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
+            ],
+            details={
+                "mode": "observation",
+                "status": "completed",
+                "completed_at": current_work.get("completed_at"),
+                "observation": dict(observation),
+                "paths": dict(paths),
+            },
+        )
+
     if str(current_work.get("mode") or "") == "observation":
         paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
         reports_rel = str(paths.get("reports") or "docs/ai/work-tracking/active/<folder>/reports").strip()
@@ -4677,6 +4713,33 @@ def stop_observation(
     if str(current_work.get("mode") or "") != "observation":
         raise AegisError("aegis observe stop requires active observation-mode current work")
     if str(current_work.get("status") or "") != "in-progress":
+        if str(current_work.get("status") or "") == "completed":
+            finished_at = _iso_now()
+            report = _read_json(target_root / AEGIS_OBSERVATION_REPORT_REL)
+            if not isinstance(report, MutableMapping):
+                report = {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "completed",
+                    "mode": "observation",
+                    "target_root": str(target_root),
+                    "task": dict(current_work.get("task") or {}),
+                    "paths": dict(current_work.get("paths") or {}),
+                }
+            report["status"] = "completed"
+            report["mode"] = "observation"
+            report["target_root"] = str(target_root)
+            report["idempotent"] = True
+            report["already_completed"] = True
+            report["checked_at"] = finished_at
+            report["next_action"] = _workflow_next_action(
+                "observation_already_closed",
+                "Observation was already completed; review evidence, then kickoff task-scoped work before mutating.",
+                details={
+                    "completed_at": current_work.get("completed_at"),
+                    "observation_report": AEGIS_OBSERVATION_REPORT_REL,
+                },
+            )
+            return dict(report)
         raise AegisError("aegis observe stop requires an in-progress observation")
 
     finished_at = _iso_now()

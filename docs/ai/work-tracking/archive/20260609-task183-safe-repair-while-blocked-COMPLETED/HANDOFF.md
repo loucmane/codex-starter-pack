@@ -9,3 +9,4 @@
 ## Next Steps
 - Run final guard validation and commit the scoped Task 183 changes.
 - After merge, retry the HP-Coach `aegis repair --apply` path to verify the malformed completed observation can be normalized from inside Claude.
+- Archived on 2026-06-09 13:02 CEST — Folder moved to archive and tracker marked COMPLETED.
