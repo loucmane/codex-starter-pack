@@ -1290,36 +1290,37 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     assert closeout_resource["ok"] is True
     assert closeout_resource["result"]["payload"]["status"] == "passed"
 
-    plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
-    work_root = target / current_work["paths"]["work_tracking"]
+    completed_work = closeout_payload["current_work"]
+    plan_text = (target / completed_work["paths"]["plan"]).read_text(encoding="utf-8")
+    work_root = target / completed_work["paths"]["work_tracking"]
     tracker_text = (work_root / "TRACKER.md").read_text(encoding="utf-8")
     handoff_text = (work_root / "HANDOFF.md").read_text(encoding="utf-8")
 
     scope_evidence = f"{current_work['paths']['work_tracking']}/FINDINGS.md"
     assert_workflow_evidence(
         target,
-        current_work,
+        completed_work,
         handler="claude:scope",
         evidence=scope_evidence,
         surfaces=["session", "tracker", "findings", "decisions"],
     )
     assert_workflow_evidence(
         target,
-        current_work,
+        completed_work,
         handler="claude:Edit",
         evidence=source_rel,
         surfaces=["session", "tracker", "implementation", "changelog", "handoff"],
     )
     assert_workflow_evidence(
         target,
-        current_work,
+        completed_work,
         handler="verify:web-cart-button-semantics",
         evidence=semantic_verify_evidence,
         surfaces=["session", "tracker", "implementation", "changelog", "handoff"],
     )
     assert_workflow_evidence(
         target,
-        current_work,
+        completed_work,
         handler="aegis:verify",
         evidence=AEGIS_VERIFY_REPORT_REL,
         surfaces=["session", "tracker", "implementation", "changelog", "handoff"],

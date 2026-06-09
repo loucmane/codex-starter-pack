@@ -29,7 +29,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if _REPO_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, _REPO_ROOT.as_posix())
 
-from aegis_foundation.version import (
+from aegis_foundation.version import (  # noqa: E402
     FOUNDATION_NAME,
     FOUNDATION_VERSION,
     INSTALLER_VERSION,
@@ -3710,7 +3710,7 @@ def _is_safe_relative_rel(rel_path: str) -> bool:
     return bool(rel_path) and not path.is_absolute() and ".." not in path.parts
 
 
-def _completed_observation_work_tracking_archive_rel(work_rel: str) -> str:
+def _completed_work_tracking_archive_rel(work_rel: str) -> str:
     if not _is_safe_relative_rel(work_rel):
         return ""
     active_prefix = "docs/ai/work-tracking/active/"
@@ -3723,11 +3723,22 @@ def _completed_observation_work_tracking_archive_rel(work_rel: str) -> str:
     return f"docs/ai/work-tracking/archive/{archive_name}"
 
 
+def _completed_observation_work_tracking_archive_rel(work_rel: str) -> str:
+    return _completed_work_tracking_archive_rel(work_rel)
+
+
 def _is_observation_active_work_tracking_rel(work_rel: str) -> bool:
     archive_rel = _completed_observation_work_tracking_archive_rel(work_rel)
     if not archive_rel:
         return False
     return "-observe-" in Path(work_rel).name
+
+
+def _is_task_active_work_tracking_rel(work_rel: str) -> bool:
+    archive_rel = _completed_work_tracking_archive_rel(work_rel)
+    if not archive_rel:
+        return False
+    return re.search(r"(?:^|-)task\d+(?:-|$)", Path(work_rel).name) is not None
 
 
 def _unique_work_tracking_archive_rel(target_root: Path, archive_rel: str) -> str:
@@ -3756,7 +3767,7 @@ def _archive_completed_observation_work_tracking_path(
     target_root: Path,
     work_rel: str,
 ) -> dict[str, str] | None:
-    archive_rel = _completed_observation_work_tracking_archive_rel(work_rel)
+    archive_rel = _completed_work_tracking_archive_rel(work_rel)
     if not archive_rel:
         return None
     source = target_root / work_rel
@@ -3767,6 +3778,28 @@ def _archive_completed_observation_work_tracking_path(
     destination.parent.mkdir(parents=True, exist_ok=True)
     source.rename(destination)
     return {"from": work_rel, "to": actual_archive_rel}
+
+
+def _archive_completed_work_tracking_path(
+    target_root: Path,
+    work_rel: str,
+) -> dict[str, str] | None:
+    return _archive_completed_observation_work_tracking_path(target_root, work_rel)
+
+
+def _archive_current_completed_work_tracking(
+    target_root: Path,
+    current_work: MutableMapping[str, Any],
+) -> dict[str, str] | None:
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+    if paths is None:
+        return None
+    work_rel = str(paths.get("work_tracking") or "").strip()
+    archived = _archive_completed_work_tracking_path(target_root, work_rel)
+    if archived is None:
+        return None
+    _replace_work_tracking_path_prefix(paths, archived["from"], archived["to"])
+    return archived
 
 
 def _archive_current_completed_observation_work_tracking(
@@ -3967,11 +4000,6 @@ def _observation_status_delta_lines(
         for line in observation.get("baseline_git_status", [])
         if isinstance(line, str) and line.strip()
     }
-    baseline_fingerprints = (
-        observation.get("baseline_git_fingerprints")
-        if isinstance(observation.get("baseline_git_fingerprints"), Mapping)
-        else {}
-    )
     allowed_prefixes = _observation_allowed_prefixes(current_work)
     deltas: list[str] = []
     for line in current_status:
@@ -7108,12 +7136,117 @@ def _completed_closeout_action(
     closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
     if not isinstance(closeout_report, Mapping) or closeout_report.get("status") != "passed":
         return None
+    if not _closeout_report_matches_current_work(closeout_report, current_work):
+        return None
     return _doctor_action(
         "workflow.normalize_completed_closeout",
         kind="normalize_completed_closeout",
         path=AEGIS_CURRENT_WORK_REL,
         reason="closeout report passed but current-work is not marked completed",
         details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
+    )
+
+
+def _current_work_task_id(current_work: Mapping[str, Any] | None) -> str:
+    if not isinstance(current_work, Mapping):
+        return ""
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    return str(task.get("id") or "").strip()
+
+
+def _current_work_tracking_rel(current_work: Mapping[str, Any] | None) -> str:
+    if not isinstance(current_work, Mapping):
+        return ""
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
+    return str(paths.get("work_tracking") or "").strip()
+
+
+def _closeout_report_current_work(closeout_report: Mapping[str, Any] | None) -> Mapping[str, Any]:
+    if not isinstance(closeout_report, Mapping):
+        return {}
+    current = closeout_report.get("current_work")
+    return current if isinstance(current, Mapping) else {}
+
+
+def _closeout_report_matches_current_work(
+    closeout_report: Mapping[str, Any] | None,
+    current_work: Mapping[str, Any] | None,
+) -> bool:
+    report_work = _closeout_report_current_work(closeout_report)
+    return (
+        bool(report_work)
+        and bool(_current_work_task_id(current_work))
+        and _current_work_task_id(report_work) == _current_work_task_id(current_work)
+        and _current_work_tracking_rel(report_work) == _current_work_tracking_rel(current_work)
+    )
+
+
+def _completed_task_work_tracking_action(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
+    if not isinstance(closeout_report, Mapping) or closeout_report.get("status") != "passed":
+        return None
+    report_work = _closeout_report_current_work(closeout_report)
+    work_rel = _current_work_tracking_rel(report_work)
+    if not work_rel:
+        return None
+    is_current_completed_task = (
+        isinstance(current_work, Mapping)
+        and str(current_work.get("mode") or "") != "observation"
+        and str(current_work.get("status") or "") == "completed"
+        and _current_work_task_id(current_work) == _current_work_task_id(report_work)
+    )
+    if work_rel == _current_work_tracking_rel(current_work) and not is_current_completed_task:
+        return None
+    if not _is_task_active_work_tracking_rel(work_rel):
+        return None
+    if not (target_root / work_rel).is_dir():
+        return None
+    return _doctor_action(
+        "workflow.archive_completed_task_work_tracking",
+        kind="archive_completed_task_work_tracking",
+        path=work_rel,
+        reason="completed task work-tracking folder is still marked ACTIVE",
+        details={
+            "archive_path": _completed_work_tracking_archive_rel(work_rel),
+            "closeout_report": AEGIS_CLOSEOUT_REPORT_REL,
+            "task_id": _current_work_task_id(report_work),
+        },
+    )
+
+
+def _mismatched_closeout_metadata_action(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(current_work, Mapping):
+        return None
+    if not (current_work.get("closeout_passed_at") or current_work.get("closeout_report")):
+        return None
+    closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
+    if not isinstance(closeout_report, Mapping) or closeout_report.get("status") != "passed":
+        return None
+    report_work = _closeout_report_current_work(closeout_report)
+    if not report_work:
+        return None
+    current_id = _current_work_task_id(current_work)
+    report_id = _current_work_task_id(report_work)
+    if not current_id or not report_id or _closeout_report_matches_current_work(closeout_report, current_work):
+        return None
+    return _doctor_action(
+        "workflow.remove_mismatched_closeout_metadata",
+        kind="remove_mismatched_closeout_metadata",
+        path=AEGIS_CURRENT_WORK_REL,
+        reason="current-work contains closeout metadata from a different task envelope",
+        details={
+            "current_task_id": current_id,
+            "closeout_task_id": report_id,
+            "current_work_tracking": _current_work_tracking_rel(current_work),
+            "closeout_work_tracking": _current_work_tracking_rel(report_work),
+            "closeout_report": AEGIS_CLOSEOUT_REPORT_REL,
+        },
     )
 
 
@@ -7243,6 +7376,12 @@ def _doctor_repair_actions(
                 details={"steps": plan_table_repair["steps"]},
             )
         )
+    mismatched_closeout_action = _mismatched_closeout_metadata_action(target_root, current_work)
+    if mismatched_closeout_action is not None:
+        actions.append(mismatched_closeout_action)
+    completed_task_action = _completed_task_work_tracking_action(target_root, current_work)
+    if completed_task_action is not None:
+        actions.append(completed_task_action)
     completed_action = _completed_closeout_action(target_root, current_work)
     if completed_action is not None:
         actions.append(completed_action)
@@ -7504,14 +7643,20 @@ def _apply_repair_action(
         current_work = _read_json(current_path)
         closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
         if (
-            current_work is None
-            or closeout_report is None
+            not isinstance(current_work, MutableMapping)
+            or not isinstance(closeout_report, Mapping)
             or closeout_report.get("status") != "passed"
         ):
             return {
                 "id": action.get("id"),
                 "status": "skipped",
                 "reason": "completed closeout evidence unavailable",
+            }
+        if not _closeout_report_matches_current_work(closeout_report, current_work):
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "closeout evidence belongs to a different work envelope",
             }
         current_work["status"] = "completed"
         task = (
@@ -7521,10 +7666,99 @@ def _apply_repair_action(
         )
         if task is not None:
             task["status"] = "completed"
-        current_work["closeout_passed_at"] = str(closeout_report.get("checked_at") or _iso_now())
+        current_work["closeout_passed_at"] = str(
+            closeout_report.get("closed_at") or closeout_report.get("checked_at") or _iso_now()
+        )
         current_work["closeout_report"] = AEGIS_CLOSEOUT_REPORT_REL
         current_path.write_text(_dump_json(current_work), encoding="utf-8")
         return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "remove_mismatched_closeout_metadata":
+        current_path = target_root / AEGIS_CURRENT_WORK_REL
+        current_work = _read_json(current_path)
+        closeout_report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
+        if (
+            not isinstance(current_work, MutableMapping)
+            or not isinstance(closeout_report, Mapping)
+            or closeout_report.get("status") != "passed"
+        ):
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "mismatched closeout evidence unavailable",
+            }
+        if _closeout_report_matches_current_work(closeout_report, current_work):
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "closeout evidence matches current work",
+            }
+        if not (current_work.get("closeout_passed_at") or current_work.get("closeout_report")):
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "current work has no closeout metadata",
+            }
+        current_work.pop("closeout_passed_at", None)
+        current_work.pop("closeout_report", None)
+        current_work["status"] = "in-progress"
+        current_work["updated_at"] = _iso_now()
+        task = (
+            current_work.get("task")
+            if isinstance(current_work.get("task"), MutableMapping)
+            else None
+        )
+        if task is not None:
+            task["status"] = "in-progress"
+        current_path.write_text(_dump_json(current_work), encoding="utf-8")
+        return {"id": action.get("id"), "status": "applied", "path": rel_path}
+    if kind == "archive_completed_task_work_tracking":
+        archived = _archive_completed_work_tracking_path(target_root, rel_path)
+        if archived is None:
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "completed task ACTIVE folder unavailable",
+                "path": rel_path,
+            }
+        report_path = target_root / AEGIS_CLOSEOUT_REPORT_REL
+        report = _read_json(report_path)
+        if isinstance(report, MutableMapping):
+            report_current = (
+                report.get("current_work")
+                if isinstance(report.get("current_work"), MutableMapping)
+                else None
+            )
+            if report_current is not None:
+                report_paths = (
+                    report_current.get("paths")
+                    if isinstance(report_current.get("paths"), MutableMapping)
+                    else None
+                )
+                if report_paths is not None:
+                    _replace_work_tracking_path_prefix(
+                        report_paths,
+                        archived["from"],
+                        archived["to"],
+                    )
+            report["archived_work_tracking"] = dict(archived)
+            report_path.write_text(_dump_json(report), encoding="utf-8")
+        current_path = target_root / AEGIS_CURRENT_WORK_REL
+        current_work = _read_json(current_path)
+        if isinstance(current_work, MutableMapping):
+            paths = (
+                current_work.get("paths")
+                if isinstance(current_work.get("paths"), MutableMapping)
+                else None
+            )
+            if paths is not None:
+                _replace_work_tracking_path_prefix(paths, archived["from"], archived["to"])
+                current_path.write_text(_dump_json(current_work), encoding="utf-8")
+        return {
+            "id": action.get("id"),
+            "status": "applied",
+            "path": archived["from"],
+            "details": {"archive_path": archived["to"]},
+        }
     if kind == "archive_completed_observation_work_tracking":
         archived = _archive_completed_observation_work_tracking_path(target_root, rel_path)
         if archived is None:
@@ -9425,6 +9659,12 @@ def closeout(
         task_payload = current_work.get("task")
         if isinstance(task_payload, dict):
             task_payload["status"] = "completed"
+        archived_work_tracking = _archive_current_completed_work_tracking(
+            target_root,
+            current_work,
+        )
+        if archived_work_tracking is not None:
+            report["archived_work_tracking"] = dict(archived_work_tracking)
         _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
         report["state_updated"] = True
 
