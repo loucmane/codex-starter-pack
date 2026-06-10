@@ -1,8 +1,8 @@
 # Task 195 Aegis vNext Phase 0 replay harness Tracker
 
 **Started**: 2026-06-10
-**Status**: ACTIVE
-**Last Updated**: 2026-06-10
+**Status**: COMPLETED
+**Last Updated**: 2026-06-11
 
 ## Goals
 - [x] Define the scope and workflow boundary for Aegis vNext Phase 0 replay harness

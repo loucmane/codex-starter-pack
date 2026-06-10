@@ -7338,12 +7338,13 @@
         "description": "Prevent stale MCP server logic after source-root runtime updates or mid-session Aegis upgrades.",
         "details": "Add a version/capability handshake between the Aegis CLI shim, installed hooks, source-root runtime metadata, and the long-running Aegis MCP server. The MCP server should expose its source commit/capabilities, compare against .aegis/foundation-manifest.json and active source root, and return a clear reload_required/degraded state when stale. next_action/doctor should surface stale-MCP guidance instead of letting MCP preview disagree with CLI repair/apply behavior. Acceptance should reproduce the HP-Coach stale MCP case where MCP returned empty repair plans while the CLI had newer repair logic, and prove the mismatch is detected before action decisions.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "194"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T22:16:01.347Z"
       },
       {
         "id": "201",
@@ -7483,7 +7484,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T21:46:53.667Z",
+      "lastModified": "2026-06-10T22:16:01.348Z",
       "taskCount": 209,
       "completedCount": 196,
       "tags": [
