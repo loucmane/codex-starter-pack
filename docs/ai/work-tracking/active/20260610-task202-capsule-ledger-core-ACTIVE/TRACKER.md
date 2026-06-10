@@ -16,6 +16,7 @@
 - **2026-06-10 17:50** — [S:20260610|W:task202-capsule-ledger-core|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 202 kickoff
 - **2026-06-10 17:55** — [S:20260610|W:task202-capsule-ledger-core|H:claude:Write|E:docs/ai/work-tracking/active/20260610-task202-capsule-ledger-core-ACTIVE/designs/ledger-core-scope.md] Pinned the PR-1a scope artifact and completed plan-step-scope
 - **2026-06-10 17:55** — [S:20260610|W:task202-capsule-ledger-core|H:serena/memory|E:.serena/memories/2026-06-10_task202_capsule_ledger_core.md] Captured the Task 202 kickoff Serena memory checkpoint (scope, bootstrap state repair, advisory enforcement context)
+- **2026-06-10 18:02** — [S:20260610|W:task202-capsule-ledger-core|H:task-master:add-task|E:.taskmaster/tasks/tasks.json] Backlog wiring and Phase-0 reconciliation complete; decisions recorded in DECISIONS.md
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope

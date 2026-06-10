@@ -2,7 +2,7 @@
 
 **Title:** Aegis passive ledger spike
 
-**Status:** pending
+**Status:** cancelled
 
 **Dependencies:** 195
 
