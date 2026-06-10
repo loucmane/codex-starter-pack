@@ -26,6 +26,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -331,8 +332,18 @@ class SQLiteLedger(_BaseLedger):
         self.redact_patterns = tuple(redact_patterns)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(self.path.as_posix(), timeout=BUSY_TIMEOUT_MS / 1000)
-        self.connection.execute("PRAGMA journal_mode=WAL")
         self.connection.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+        # Switching journal modes takes an exclusive lock and can raise "database is
+        # locked" while a concurrent writer holds a transaction (the busy handler does
+        # not always cover this pragma). WAL is persistent in the file, so a brief
+        # retry suffices; if every attempt loses the race the connection still works
+        # in the file's existing (already-WAL) journal mode.
+        for attempt in range(20):
+            try:
+                self.connection.execute("PRAGMA journal_mode=WAL")
+                break
+            except sqlite3.OperationalError:
+                time.sleep(0.02 * (attempt + 1))
         self.connection.execute(_CREATE_TABLE)
         for statement in _CREATE_INDEXES:
             self.connection.execute(statement)

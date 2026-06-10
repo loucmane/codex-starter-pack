@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the PR-1c boundary from AEGIS_CAPSULE_SPEC.md section 2: dual-write mechanics, session attribution via Payload, parity key, and the explicit not-in-this-PR list (no JSONL freeze, no history migration) | docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/designs/decisions-dualwrite-scope.md | completed |
-| plan-step-implement | Extend Payload with session_id/cwd, dual-write append_gate_decision to the ledger as gate_decision events (best-effort), mirror both gate_lib copies | .claude/scripts/gate_lib.py; docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Fixture-driven parity tests (JSONL twin in ledger by payload_digest), failure-isolation tests, full suite + guard stack; evidence under reports/capsule-decisions-dualwrite/ | docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Extend Payload with session_id/cwd, dual-write append_gate_decision to the ledger as gate_decision events (best-effort), mirror both gate_lib copies | .claude/scripts/gate_lib.py; docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Fixture-driven parity tests (JSONL twin in ledger by payload_digest), failure-isolation tests, full suite + guard stack; evidence under reports/capsule-decisions-dualwrite/ | docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task204-capsule-decisions-dualwrite-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
