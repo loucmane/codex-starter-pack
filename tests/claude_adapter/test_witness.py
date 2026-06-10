@@ -131,7 +131,7 @@ def test_deleted_test_escalates(repo: Path) -> None:
 
 def test_stale_verification_fails_and_after_head_passes(repo: Path) -> None:
     old_head = head_short(repo)
-    seed_verification(repo, old_head)
+    seed_verification(repo, old_head, ts="2000-01-01T00:00:00Z")
     commit_change(repo, "app/feature.py")
     report = witness_lib.run_witness(repo, base="main")
     assert report["checks"]["verification_at_head"]["passed"] is False, "old-commit run with old ts is stale"
@@ -218,3 +218,40 @@ def test_support_files_include_witness_lib() -> None:
 def test_assets_and_live_witness_copies_identical() -> None:
     live = (REPO_ROOT / ".claude" / "scripts" / "witness_lib.py").read_bytes()
     assert ASSETS_WITNESS_LIB.read_bytes() == live
+
+
+def test_ci_mode_without_config_is_honest_but_test_deletions_still_escalate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_STATE_HOME", (tmp_path / "state").as_posix())
+    repo = tmp_path / "bare-repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "tests").mkdir()
+    (repo / "tests" / "test_x.py").write_text("def test_x(): pass\n", encoding="utf-8")
+    (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "seed")
+    git(repo, "checkout", "-q", "-b", "feat/task-42-bare")
+    commit_change(repo, "anything/at-all.txt")
+    report = witness_lib.run_witness(repo, base="main", ci_mode=True)
+    accounting = report["checks"]["diff_accounting"]
+    assert accounting["passed"] is True
+    assert accounting["status"] == "globs_not_derivable_in_ci"
+    git(repo, "rm", "-q", "tests/test_x.py")
+    git(repo, "commit", "-q", "-m", "delete test")
+    report = witness_lib.run_witness(repo, base="main", ci_mode=True)
+    accounting = report["checks"]["diff_accounting"]
+    assert accounting["passed"] is False, "test deletions are git-derivable and always escalate"
+    assert "tests/test_x.py" in accounting["deleted_tests_escalated"]
+
+
+def test_detached_head_uses_github_head_ref(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    commit_change(repo, "app/feature.py")
+    head = git(repo, "rev-parse", "HEAD").stdout.strip()
+    git(repo, "checkout", "-q", head)
+    monkeypatch.setenv("GITHUB_HEAD_REF", "feat/task-31-widget")
+    report = witness_lib.run_witness(repo, base="main", ci_mode=True)
+    assert report["branch"] == "feat/task-31-widget"
+    assert report["checks"]["scope_mapping"]["passed"] is True
+    assert report["checks"]["scope_mapping"]["task_id"] == "31"

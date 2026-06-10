@@ -1,0 +1,42 @@
+{
+  "gates": {
+    "codex": {
+      "tests": [
+        "python3 -m pytest tests/ -q",
+        "python3 -m pytest tests -q"
+      ]
+    }
+  },
+  "source_roots": [
+    "aegis_foundation/",
+    "aegis_mcp/",
+    "scripts/",
+    "tests/",
+    "schemas/",
+    ".claude/",
+    "docs/aegis/"
+  ],
+  "witness": {
+    "always_in_scope": [
+      "docs/",
+      "sessions/",
+      "plans/",
+      ".taskmaster/",
+      ".serena/",
+      ".github/",
+      "CLAUDE.md",
+      "AGENTS.md",
+      "CODEX.md",
+      "pyproject.toml",
+      "requirements.lock",
+      "uv.lock"
+    ]
+  },
+  "thresholds": {
+    "branch_count": 30,
+    "unignored_file_mb": 5
+  },
+  "redact_extra": [],
+  "archive_keep": 20,
+  "inject": true
+}

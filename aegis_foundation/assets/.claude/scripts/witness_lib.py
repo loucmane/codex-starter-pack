@@ -15,6 +15,7 @@ from __future__ import annotations
 import fnmatch
 import importlib.util
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, timezone
@@ -28,6 +29,15 @@ TASKS_JSON_REL = ".taskmaster/tasks/tasks.json"
 TASK_BRANCH_RE = re.compile(r"task-?(\d+)", re.IGNORECASE)
 DONE_FLIP_ADDED_RE = re.compile(r'^\+\s*"status":\s*"done"', re.MULTILINE)
 TEST_PATH_PATTERNS = ("tests/*", "test/*", "*_test.*", "*.test.*", "test_*")
+
+
+def _parse_ts(value: Any):
+    """Parse an ISO timestamp tolerating Z and offset forms; None on failure."""
+
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
 
 
 def utc_now_iso() -> str:
@@ -150,6 +160,9 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
     target = Path(root).resolve()
     rc, branch_out = _run(["git", "branch", "--show-current"], target)
     branch = branch_out.strip() if rc == 0 else ""
+    if not branch:
+        # PR CI checks out a detached merge ref; GITHUB_HEAD_REF carries the branch.
+        branch = os.environ.get("GITHUB_HEAD_REF", "").strip()
     rc, head_out = _run(["git", "rev-parse", "--short", "HEAD"], target)
     head = head_out.strip() if rc == 0 else None
     resolved_base = _resolve_base(target, base)
@@ -167,18 +180,34 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
         "detail": "branch must map to a scope record or the task-NN convention",
     }
 
-    unaccounted = [
-        path for _status, path in diff if not any(_matches_glob(path, glob) for glob in scope["path_globs"])
-    ]
     deleted_tests = [path for status, path in diff if status == "D" and _is_test_path(path)]
-    checks["diff_accounting"] = {
-        "passed": not unaccounted and not deleted_tests,
-        "files_in_diff": len(diff),
-        "globs": scope["path_globs"],
-        "unaccounted": unaccounted[:20],
-        "deleted_tests_escalated": deleted_tests,
-        "detail": "every diff file must match the scope globs; test deletions escalate to human review",
-    }
+    if ci_mode and not scope["path_globs"]:
+        # The scope config (brief.json) is typically untracked per the gitignore rider,
+        # so CI may have no globs to account against. Be honest rather than fail
+        # everything — but test deletions are git-derivable and ALWAYS escalate.
+        checks["diff_accounting"] = {
+            "passed": not deleted_tests,
+            "status": "globs_not_derivable_in_ci",
+            "files_in_diff": len(diff),
+            "deleted_tests_escalated": deleted_tests,
+            "detail": (
+                "no scope config available in CI (brief.json is untracked); glob "
+                "accounting is owned by the local witness report — test deletions "
+                "still escalate"
+            ),
+        }
+    else:
+        unaccounted = [
+            path for _status, path in diff if not any(_matches_glob(path, glob) for glob in scope["path_globs"])
+        ]
+        checks["diff_accounting"] = {
+            "passed": not unaccounted and not deleted_tests,
+            "files_in_diff": len(diff),
+            "globs": scope["path_globs"],
+            "unaccounted": unaccounted[:20],
+            "deleted_tests_escalated": deleted_tests,
+            "detail": "every diff file must match the scope globs; test deletions escalate to human review",
+        }
 
     if ci_mode:
         checks["verification_at_head"] = {
@@ -211,7 +240,11 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
                 and event.get("exit_class") == "pass"
                 and (
                     event.get("extra", {}).get("commit") == head
-                    or (head_time and str(event.get("ts") or "") >= head_time)
+                    or (
+                        _parse_ts(head_time) is not None
+                        and _parse_ts(event.get("ts")) is not None
+                        and _parse_ts(event.get("ts")) >= _parse_ts(head_time)
+                    )
                 )
                 for event in verifications
             )
