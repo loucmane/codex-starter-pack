@@ -2,7 +2,7 @@
 
 **Title:** Aegis durable delivery evidence report
 
-**Status:** pending
+**Status:** cancelled
 
 **Dependencies:** 194 ✓
 

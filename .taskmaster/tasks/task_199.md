@@ -2,7 +2,7 @@
 
 **Title:** Aegis mode lattice and micro-mode spec
 
-**Status:** in-progress
+**Status:** cancelled
 
 **Dependencies:** 194 ✓
 

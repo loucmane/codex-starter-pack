@@ -7200,9 +7200,10 @@
             "description": "Inspect `scripts/_aegis_installer.py`, `scripts/codex-task`, and existing installer/MCP tests to identify all surfaces that currently report completed closeout, git guidance, next actions, and PreToolUse readiness behavior.",
             "dependencies": [],
             "details": "Confirm how `next_action()`, `_classify_doctor_state()`, `_closeout_git_report()`, `closeout()`, and `_workflow_next_action()` interact today. Record HP-Coach #73 as the reproduction target for the delivery gap.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": null,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-10T16:00:03.089Z"
           },
           {
             "id": 2,
@@ -7212,9 +7213,10 @@
               1
             ],
             "details": "Add a machine-readable state such as `delivery_pending` for `completed_closeout + local branch not pushed/no PR`. Prefer structured git/gh helpers or mocked wrappers over ad hoc output parsing where the codebase already provides helpers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests with local git fixtures and mocked gh responses for each delivery state.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-10T16:00:03.104Z"
           },
           {
             "id": 3,
@@ -7224,9 +7226,10 @@
               2
             ],
             "details": "For natural continuation prompts, ensure completed local work routes to delivery guidance rather than terminal completion. Suggested commands must be concrete when policy permits them, but merge must remain approval-gated.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Assert JSON payloads from `aegis.next`, closeout, and MCP guidance contain the expected action, command, policy notes, and blocker messages.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-10T16:00:03.116Z"
           },
           {
             "id": 4,
@@ -7237,9 +7240,10 @@
               3
             ],
             "details": "Either permit narrowly-scoped delivery commands from completed closeout under explicit policy or update closeout guidance so delivery is scheduled before final closeout. Preserve the existing allowance for Taskmaster completion after closeout and keep unrelated source edits blocked.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Regression test the HP-Coach #73 command shape `git push -u origin feat/task-73-p0-poisoned-resume-fallback` as sanctioned delivery while unrelated edits or unrelated git mutations remain blocked.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-10T16:00:03.124Z"
           },
           {
             "id": 5,
@@ -7251,18 +7255,19 @@
               4
             ],
             "details": "Cover `tests/meta_workflow_guard/test_aegis_installer.py` for local git and hook behavior, and `tests/meta_workflow_guard/test_aegis_mcp_server.py` for read-only MCP guidance. Reuse reconcile PR classification patterns where applicable.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run the focused pytest targets for Aegis installer/MCP guidance and any affected guard tests.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-10T16:00:03.132Z"
           }
         ],
-        "updatedAt": "2026-06-10T09:53:47.126Z"
+        "updatedAt": "2026-06-10T16:00:03.132Z"
       },
       {
         "id": "195",
         "title": "Aegis vNext Phase 0 replay harness",
         "description": "Build a replay harness for historical Aegis tool-call and gate-decision traces so policy changes are measured against real HP-Coach friction before rollout.",
-        "details": "Implement an additive aegis replay path that can ingest recorded sessions, pending-tracking events, BLOCKED messages, and known outcomes from the HP-Coach 2026-06-08..10 deployment. Seed golden scenarios for the 15+ false-positive workflow blocks, the two confirmed true positives (observation dirty artifact stop and trailing unlogged Stop-gate pending), and synthetic adversarial cases such as exfil curl, hook writes, test deletion, fabricated artifacts, wrong-branch delivery, and missing verification. Report false-positive and false-negative deltas for any gate/policy change. This is a measurement harness first: record/replay only, no behavior change.",
+        "details": "Implement an additive aegis replay path that can ingest recorded sessions, pending-tracking events, BLOCKED messages, and known outcomes from the HP-Coach 2026-06-08..10 deployment. Seed golden scenarios for the 13 false-positive workflow blocks, the fixture's must-fire set per its labels — one true positive (E01: observation dirty-artifact stop) plus one validated boundary mechanism (E29: trailing unlogged Stop-gate pending, classified ceremony_self_catch, not a second true positive) — and synthetic adversarial cases such as exfil curl, hook writes, test deletion, fabricated artifacts, wrong-branch delivery, and missing verification. Report false-positive and false-negative deltas for any gate/policy change. This is a measurement harness first: record/replay only, no behavior change.",
         "testStrategy": "",
         "status": "pending",
         "dependencies": [
@@ -7277,12 +7282,13 @@
         "description": "Record post-closeout delivery actions and explicit human approvals as durable evidence artifacts.",
         "details": "Extend the delivery phase introduced by #194 with a content-addressed deliver-report.json (or equivalent) that records push, PR creation, CI/check state, ready-for-review, explicit merge approval, merge command, PR URL/number, mergedAt, approver identity/source, and failure/cleanup outcomes. HP-Coach #73 exposed the current audit inversion: low-stakes edits had dense S:W:H:E entries while the merge approval existed only in chat. Preserve explicit-approval policy and keep merge commands out of copyable repairs until approval is recorded. Acceptance should prove a fresh agent can reconstruct the full push->PR->CI->approval->merge path without the chat transcript.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "cancelled",
         "dependencies": [
           "194"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T16:00:17.463Z"
       },
       {
         "id": "197",
@@ -7303,12 +7309,13 @@
         "description": "Prototype auto-captured PostToolUse event ranges with boundary annotations instead of log-after-every-mutation blocking.",
         "details": "Add an experimental passive-ledger path: PostToolUse records the WHAT automatically (tool, normalized command/action, args digest, diff hash, output hash or artifact pointer, timestamp, cwd, agent identity) without blocking the next mutation. Replace per-mutation aegis log ceremony with aegis annotate --range for WHY narration at phase boundaries. Boundary gates should fail only when a phase has unannotated substantive event ranges, preserving the Stop-gate true positive without taxing every edit/browser action. Run the replay harness to show historical per-mutation false positives disappear while true positives and adversarial cases still fire.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "cancelled",
         "dependencies": [
           "195"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T16:00:14.787Z"
       },
       {
         "id": "199",
@@ -7316,13 +7323,13 @@
         "description": "Define Aegis lifecycle modes and their policy boundaries as a coherent state model.",
         "details": "Write and validate a mode lattice covering observe, implement, delivery, strict, recovery, and touch/micro-mode. For each mode define allowed action classes, boundary gates, evidence requirements, transition rules, current-work/state representation, and how natural prompts such as continue/ship/fix bookkeeping route. Include maintenance micro-mode for one-line status/report/bookkeeping updates without pretending to start product work, and specify how modes compose with future worktree/multi-agent envelopes. Acceptance should be a spec plus tests or fixtures proving next_action/readiness guidance maps common states to the intended mode.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "cancelled",
         "dependencies": [
           "194"
         ],
         "priority": "medium",
         "subtasks": [],
-        "updatedAt": "2026-06-10T12:32:01.976Z"
+        "updatedAt": "2026-06-10T16:00:20.144Z"
       },
       {
         "id": "200",
@@ -7345,17 +7352,132 @@
         "testStrategy": "",
         "status": "pending",
         "dependencies": [
-          "195",
-          "199"
+          "195"
         ],
         "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "202",
+        "title": "Capsule PR-1a: passive ledger core (store, schema, redaction)",
+        "description": "Phase 1 of the Session Zero Capsule program per docs/aegis/AEGIS_CAPSULE_SPEC.md. Covers: (1) committing the capsule spec atomically with the AEGIS_VNEXT_PROGRAM.md pointer/G3 update; (2) wiring the nine-PR backlog and reconciling tasks 194-201; (3) PR-1a per spec section 2: assets ledger_lib.py (stdlib-only) with SQLite open/append/read at the XDG state-dir store path, WAL+busy_timeout, redaction helpers, backend-agnostic reader with JSONL fallback, docs/aegis/LEDGER_SCHEMA.md, aegis ledger path + status surfacing, unit tests. No hook registration; zero behavior change.",
+        "details": "",
+        "testStrategy": "",
+        "status": "in-progress",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-06-10T15:50:35.765Z"
+      },
+      {
+        "id": "203",
+        "title": "Capsule PR-1b: async record hooks",
+        "description": "Spec: docs/aegis/AEGIS_CAPSULE_SPEC.md sections 1.1, 1.2, 2. Wire PostToolUse AND PostToolUseFailure recording through the installer and rendered assets as a NEW parallel async:true hook entry (existing posttooluse-tracking.sh untouched until PR-4): basic events only (ts, session_id, cwd, branch, tool_name, normalized paths, outcome class, duration_ms, agent_id/agent_type), plus delivery events (git push / gh pr create / merge; branch-to-PR mapping) and task-truth events (tasks.json writes / task-master commands). Prerequisite: capture real hook payload fixtures from a live session under tests/fixtures/hook_payloads/ and test graceful degradation (missing field = null, never crash). Touch all five coordinated points from spec 1.1 (settings renderer, bootstrap script, cli.py hook choices incl. posttoolusefailure/sessionstart/sessionend, gate_lib routing, manifest hashes) using exec-form args. Includes the .gitignore hygiene rider on install/upgrade. Requires aegis plan-install + aegis install --apply in target repos. Together with task 202 this supersedes Phase-0 task 198 (passive ledger spike) and absorbs task 196's delivery-event capture. Merge gate: live HP-Coach events appear, nothing blocks.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "202"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "204",
+        "title": "Capsule PR-1c: gate-decisions dual-write",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md section 2 (gate-decisions migration, decided). Dual-write new advisory gate decisions to both the existing .aegis/reports/gate-decisions.jsonl and the ledger for one release; then freeze the JSONL read-only in place. Never migrate history. aegis enforce status and existing tests keep reading what they read today. Ties directly to the PR #199 advisory machinery (gate_block_or_record / append_gate_decision). Merge gate: old-vs-new parity on live decisions.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "203"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "205",
+        "title": "Capsule PR-1d: gate registry + verification classification",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 2 and 2.1. New installed asset .aegis/brief.json holding {gates, thresholds, redact_extra, archive_keep}; gates map package-to-gate-to-command-patterns matched against normalized Bash commands — matching MUST handle cd-prefix, -C, and --dir invocation variants of the same logical command (pattern VALUES are per-repo config shipped via deployment docs, never hardcoded). Exit-class enum pass|fail|interrupted|unknown mapped exactly as specced (PostToolUse success = pass, PostToolUseFailure = fail, tool_response.interrupted = interrupted, else unknown; Bash tool_response has no documented exit-code field). Also implements section 2.1 scope records: inferred from branch name / in-progress task / PR body, recorded as a ledger event at first mutation on a new branch, with the single non-blocking aegis scope set confirmation nudge. Isolated on purpose: command normalization is the subtle, riskier part. Merge gate: fixture suite incl. cd-prefix/-C/--dir variants.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "204"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "206",
+        "title": "Capsule PR-2a: computed aegis brief",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 3, 3.1, 3.2. aegis brief compile+print with ALL computed-stratum fields (capsule_meta, repo_pose, delivery_state, verification_ledger with explicit absence reporting, task_truth with claimed-done-vs-shipped cross-check, governance, drift_sentinel, repo_hygiene), recomputed/revalidated at read time — any field failing revalidation renders STALE-recheck, never the cached value. Drift sentinel v1: exactly the 5 deterministic checks, no LLM; sentinel must prove it ran (N attempted / M parsed / K drift; parse failure is itself drift); seeded canary asset at .aegis/capsule/canary.md must always flag or the capsule reports the sentinel broken. risk_register seeding consumed once from .aegis/capsule/risk-seed.json (values per-repo). No injection in this PR. Merge gate: brief output matches independently-checked HP-Coach reality.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "205"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "207",
+        "title": "Capsule PR-2b: SessionStart injection",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 3, 3.3, 3.4. SessionStart hook (matchers startup|resume|clear|compact, main sessions only — no SubagentStart) + aegis brief --inject with the 8k-char budget (10k hook hard cap), the decided degradation order (repo_hygiene first; never drop repo_pose/delivery_state/verification_ledger/task_truth/open_loops/decisions_pending_owner), aegis brief --check as the only over-budget-fails mode, 1500ms total network budget with ~800ms gh timeout rendering STALE-recheck plus cached last-success, falsifier stamping (session_begin + capsule_on/off only; metric computed retrospectively from ledger), injection-safety contract (claim+citation schema, DATA-not-instructions wrapper label, distiller span exclusion). Fallbacks: UserPromptSubmit additionalContext; plain file at .aegis/capsule/current.md referenced from CLAUDE.md/AGENTS.md. First user-visible capsule. Merge gate: acceptance section 8 items 1-4 and 6. Requires install --apply run in target repos.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "206"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "208",
+        "title": "Capsule PR-3: narration",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md section 4. Deterministic Stop-hook checkpoints every turn (ts, turn index, mutation-event count, dirty-file list, branch — no LLM); narration is ONE budgeted per-session distill over transcript tail + checkpoints, triggered by the SessionEnd detached finalizer (nohup, exit 0, never inline) or lazily at next SessionStart compile-on-read when SessionEnd never fired. Day-one guards: AEGIS_COMPILE=1 short-circuits Aegis hooks in the distiller session; skip subagent/headless/short sessions (<10 mutation events); hard daily distill budget (4/day) with counter in the out-of-worktree store; LLM spend via subscription subagents only. Anti-compounding: distiller NEVER reads prior capsules including the injected-capsule transcript span. TTL scoping: story/decisions_made expire after 3 main-thread sessions unless re-evidenced; open_loops/risk_register/decisions_pending_owner are TTL-exempt with machine-checkable close/supersede conditions. Build only after the computed capsule proves useful. Merge gate: acceptance section 8 items 5 and 7.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "207"
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": "209",
+        "title": "Capsule PR-3.5: delivery witness v0",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md section 5.1. Deterministic, zero-LLM boundary check computed from ledger + git + section 2.1 scope records, exposed as aegis witness and wired as a REQUIRED GitHub check under branch protection (required-check status is the enforcement — this repo-class auto-merge labels would silently bypass a non-required check). Checks: (1) branch maps to scope record/task; (2) every diff file accounted for by scope path globs, test deletions/weakenings escalate to human review (the G5 diff-accounting gate pulled forward); (3) scope verification gates have pass runs on record at/after head commit; (4) any task flipped done has a containing commit on the branch; (5) CI green via native required checks. Output is the generated delivery report, replacing the old hand-fed closeout entirely — this absorbs Phase-0 task 196's deliver-report scope (durable push/PR/CI/approval/merge evidence). The teeth move here BEFORE anything is retired. Merge gate: runs as a required check on a real PR; zero LLM.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "208"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "210",
+        "title": "Capsule PR-4: retirement (codex + companion target-repo PR)",
+        "description": "Spec: AEGIS_CAPSULE_SPEC.md section 5.2. Ships LAST. HARD GATE (do not start before all four hold): (a) witness v0 live as a required PR check, (b) ledger live, (c) capsule in real use, (d) the section 7 falsifier window run (2 weeks of A/B on HP-Coach with the keep/kill decision recorded). Scope, codex side: default enforcement for fresh installs becomes advisory (strict opt-in); PreToolUse readiness/current-work gate class becomes advisory-only permanently (strict mode still hard-blocks only protected-path denylist + settings/hook config integrity); tracking-stop-gate retired and Stop repurposed to checkpoint appends; posttooluse-tracking.sh pending-tracking machinery retired (the PR-1b recorder becomes the only PostToolUse hook); closeout handoff semantic gates removed from required paths (aegis closeout survives as an alias printing the witness delivery report); WORKFLOW_LINK_PREFIXES protections dropped; voluntary kickoff still generates HANDOFF/TRACKER but nothing requires/checks/repairs them; client_reload_required state machine and its ~10 installer message sites removed, gated on doctor min-version check. Doctor: pin minimum CLI version (Stop/SubagentStop additionalContext needs 2.1.163+) via claude --version on PATH (absent = warn, never fail); verify both PostToolUse hooks + injection wiring; shrink sentinel scope per section 3.2 (checks 1 and 4 become vacuous — expected, not rot). Companion PR in each deployed repo retires ceremony scaffolding per that repo's deployment doc. Replace, do not stack.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "209"
+        ],
+        "priority": "medium",
         "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T12:32:01.979Z",
-      "taskCount": 200,
+      "lastModified": "2026-06-10T16:00:20.144Z",
+      "taskCount": 209,
       "completedCount": 188,
       "tags": [
         "master"

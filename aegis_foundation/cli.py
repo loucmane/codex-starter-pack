@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
+import importlib.util
 import json
 import os
 import sys
@@ -107,6 +108,31 @@ def handle_status(args: argparse.Namespace) -> int:
         )
     _dump_json(payload)
     return 0
+
+
+def _load_ledger_lib(source_root: Path):
+    """Import ledger_lib from the runtime source root, same pattern as aegis hook."""
+
+    script = source_root / ".claude" / "scripts" / "ledger_lib.py"
+    spec = importlib.util.spec_from_file_location("_aegis_cli_ledger_lib", script)
+    if spec is None or spec.loader is None:
+        raise _aegis_installer.AegisError(f"unable to load ledger_lib from {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def handle_ledger(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        ledger_lib = _load_ledger_lib(source_root)
+        if args.ledger_subcommand == "path":
+            try:
+                print(ledger_lib.store_path(cwd=args.target_dir).as_posix())
+            except ledger_lib.LedgerError as exc:
+                print(str(exc), file=sys.stderr)
+                return 1
+            return 0
+    raise _aegis_installer.AegisError("unknown ledger subcommand")
 
 
 def handle_next(args: argparse.Namespace) -> int:
@@ -705,6 +731,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
+
+    ledger_parser = subparsers.add_parser(
+        "ledger",
+        help="Inspect the out-of-worktree Aegis ledger store (read-only).",
+    )
+    ledger_sub = ledger_parser.add_subparsers(dest="ledger_subcommand", required=True)
+    ledger_path_parser = ledger_sub.add_parser(
+        "path",
+        help="Print the resolved ledger store path for the target repository.",
+    )
+    ledger_path_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    ledger_path_parser.set_defaults(func=handle_ledger)
 
     next_parser = subparsers.add_parser(
         "next",

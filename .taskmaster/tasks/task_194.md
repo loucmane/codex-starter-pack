@@ -34,8 +34,8 @@ Add PreToolUse/hook regression coverage using the existing installed target help
 
 ### 194.1. Map current Aegis closeout and delivery guidance surfaces
 
-**Status:** pending
-**Dependencies:** None
+**Status:** done  
+**Dependencies:** None  
 
 Inspect `scripts/_aegis_installer.py`, `scripts/codex-task`, and existing installer/MCP tests to identify all surfaces that currently report completed closeout, git guidance, next actions, and PreToolUse readiness behavior.
 
@@ -45,8 +45,8 @@ Confirm how `next_action()`, `_classify_doctor_state()`, `_closeout_git_report()
 
 ### 194.2. Classify post-closeout GitHub delivery states
 
-**Status:** pending
-**Dependencies:** 194.1
+**Status:** done  
+**Dependencies:** 194.1  
 
 Implement delivery-state detection for completed closeout, including local-only commits, missing upstream, missing PR, pending or failed CI, unmerged PR, and merged completion.
 
@@ -56,8 +56,8 @@ Add a machine-readable state such as `delivery_pending` for `completed_closeout 
 
 ### 194.3. Expose sanctioned delivery next actions
 
-**Status:** pending
-**Dependencies:** 194.2
+**Status:** done  
+**Dependencies:** 194.2  
 
 Update Aegis next/closeout guidance and continuation payloads to return `next_safe_action` values for `push_branch`, `open_pr`, `wait_for_ci`, `ask_before_merge`, and `merged_complete`.
 
@@ -67,8 +67,8 @@ For natural continuation prompts, ensure completed local work routes to delivery
 
 ### 194.4. Permit or schedule safe delivery around completed closeout
 
-**Status:** pending
-**Dependencies:** 194.2, 194.3
+**Status:** done  
+**Dependencies:** 194.2, 194.3  
 
 Adjust PreToolUse/readiness policy so completed closeout does not trap an agent before push/PR delivery, while still preventing unrelated mutation.
 
@@ -78,8 +78,8 @@ Either permit narrowly-scoped delivery commands from completed closeout under ex
 
 ### 194.5. Verify delivery checkpoint end to end
 
-**Status:** pending
-**Dependencies:** 194.2, 194.3, 194.4
+**Status:** done  
+**Dependencies:** 194.2, 194.3, 194.4  
 
 Add installer and MCP tests proving the post-closeout delivery checkpoint is visible, non-mutating when read-only, and safe across git/PR/CI/merge states.
 

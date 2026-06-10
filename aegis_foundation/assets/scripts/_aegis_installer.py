@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import fnmatch
+import importlib.util
 import os
 import re
 import shlex
@@ -1829,6 +1830,41 @@ def inspect_project(
     }
 
 
+def _ledger_status_block(target_root: Path, source_root: Path) -> dict[str, Any]:
+    """Resolve the out-of-worktree ledger store for status discoverability (PR-1a).
+
+    Read-only and best-effort: a missing ledger_lib, a non-git target, or any
+    resolution failure degrades to a null store_path with a reason, never an error.
+    """
+
+    block: dict[str, Any] = {
+        "backend": "sqlite",
+        "store_path": None,
+        "exists": False,
+        "size_bytes": None,
+        "schema_doc": "docs/aegis/LEDGER_SCHEMA.md",
+    }
+    script = Path(source_root) / ".claude" / "scripts" / "ledger_lib.py"
+    if not script.is_file():
+        block["note"] = "ledger_lib.py not present in source root"
+        return block
+    try:
+        spec = importlib.util.spec_from_file_location("_aegis_status_ledger_lib", script)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"unable to load {script}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        resolved = module.store_path(cwd=target_root)
+    except Exception as exc:  # noqa: BLE001 - status must stay read-only and non-fatal.
+        block["note"] = f"ledger store unresolved: {exc}"
+        return block
+    block["store_path"] = resolved.as_posix()
+    if resolved.is_file():
+        block["exists"] = True
+        block["size_bytes"] = resolved.stat().st_size
+    return block
+
+
 def status(
     target_dir: str | Path,
     *,
@@ -1859,6 +1895,7 @@ def status(
         "migration_required": False,
         "status": "not_installed",
         "enforcement": _read_enforcement_state(target_root),
+        "ledger": _ledger_status_block(target_root, source),
         "checks": [],
         "recommended_actions": [
             "Run aegis plan-install before applying Aegis to this target.",
