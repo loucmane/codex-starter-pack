@@ -7458,13 +7458,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md section 5.1. Deterministic, zero-LLM boundary check computed from ledger + git + section 2.1 scope records, exposed as aegis witness and wired as a REQUIRED GitHub check under branch protection (required-check status is the enforcement — this repo-class auto-merge labels would silently bypass a non-required check). Checks: (1) branch maps to scope record/task; (2) every diff file accounted for by scope path globs, test deletions/weakenings escalate to human review (the G5 diff-accounting gate pulled forward); (3) scope verification gates have pass runs on record at/after head commit; (4) any task flipped done has a containing commit on the branch; (5) CI green via native required checks. Output is the generated delivery report, replacing the old hand-fed closeout entirely — this absorbs Phase-0 task 196's deliver-report scope (durable push/PR/CI/approval/merge evidence). The teeth move here BEFORE anything is retired. Merge gate: runs as a required check on a real PR; zero LLM.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "207"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T19:34:49.058Z"
+        "updatedAt": "2026-06-10T20:51:03.105Z"
       },
       {
         "id": "210",
@@ -7482,9 +7482,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T19:34:49.059Z",
+      "lastModified": "2026-06-10T20:51:03.105Z",
       "taskCount": 209,
-      "completedCount": 194,
+      "completedCount": 195,
       "tags": [
         "master"
       ]
