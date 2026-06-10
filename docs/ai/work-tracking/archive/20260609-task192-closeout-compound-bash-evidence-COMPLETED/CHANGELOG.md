@@ -10,3 +10,4 @@
 - **2026-06-09 17:32** — [S:20260609|W:task192-closeout-compound-bash-evidence|H:task192:implementation|E:scripts/_aegis_installer.py] Changed closeout evidence parsing so table-escaped pipelines and shell semicolons do not create false required evidence fragments
 - **2026-06-10 12:04** — [S:20260610|W:task192-closeout-compound-bash-evidence|H:task-master:add-task|E:.taskmaster/tasks/tasks.json] Added Taskmaster roadmap entries 195-201 from the friction-analysis synthesis
 
+- 2026-06-10 14:31 CEST — Archived active work-tracking folder.

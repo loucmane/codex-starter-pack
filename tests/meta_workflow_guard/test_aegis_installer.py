@@ -26,6 +26,8 @@ from scripts._aegis_installer import (
     AEGIS_CURRENT_WORK_REL,
     AEGIS_CLIENT_RELOAD_REL,
     AEGIS_DEGRADED_EVENTS_REL,
+    AEGIS_ENFORCEMENT_REL,
+    AEGIS_GATE_DECISIONS_REL,
     AEGIS_LOCAL_TASKS_REL,
     AEGIS_OBSERVATION_REPORT_REL,
     AEGIS_RUNTIME_ENV_REL,
@@ -37,6 +39,8 @@ from scripts._aegis_installer import (
     certify_release_candidate,
     closeout,
     doctor,
+    enforce_mode,
+    enforcement_status,
     initialize_project,
     install,
     inspect_project,
@@ -325,6 +329,27 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert doctor_args.target_dir == "/tmp/example"
     assert doctor_args.json is True
 
+    enforce_status_args = parser.parse_args(["aegis", "enforce", "status", "--target-dir", "/tmp/example"])
+    assert enforce_status_args.subcommand == "enforce"
+    assert enforce_status_args.enforce_subcommand == "status"
+    assert enforce_status_args.target_dir == "/tmp/example"
+
+    enforce_mode_args = parser.parse_args(
+        [
+            "aegis",
+            "enforce",
+            "--target-dir",
+            "/tmp/example",
+            "--mode",
+            "advisory",
+            "--reason",
+            "pause product work",
+        ]
+    )
+    assert enforce_mode_args.subcommand == "enforce"
+    assert enforce_mode_args.mode == "advisory"
+    assert enforce_mode_args.reason == "pause product work"
+
     reconcile_args = parser.parse_args(
         [
             "aegis",
@@ -514,6 +539,13 @@ def test_reconcile_cli_parsers_reject_mutation_flags() -> None:
     assert package_allowed.json is True
     assert package_allowed.preview_candidates is True
 
+    package_enforce = package_parser.parse_args(
+        ["enforce", "--target-dir", "/tmp/example", "--mode", "strict", "--reason", "resume"]
+    )
+    assert package_enforce.subcommand == "enforce"
+    assert package_enforce.mode == "strict"
+    assert package_enforce.reason == "resume"
+
     for flag in RECONCILE_MUTATION_FLAGS:
         with pytest.raises(SystemExit):
             codex_parser.parse_args(["aegis", "reconcile", flag])
@@ -530,6 +562,93 @@ def test_reconcile_rejects_option_shaped_base_ref(tmp_path: Path) -> None:
 
     with pytest.raises(AegisError, match="invalid reconcile base_ref"):
         reconcile(target, source_root=REPO_ROOT, base_ref="--git-dir=/tmp/other", use_github=False)
+
+
+def test_enforce_mode_writes_state_and_surfaces_in_diagnostics(tmp_path: Path) -> None:
+    target = tmp_path / "enforce-mode"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="enforce-mode", title="Enforce Mode")
+
+    default_status = enforcement_status(target, source_root=REPO_ROOT)
+    assert default_status["status"] == "strict"
+    assert default_status["enforcement"]["configured"] is False
+
+    updated = enforce_mode(
+        target,
+        source_root=REPO_ROOT,
+        mode="advisory",
+        reason="product work",
+        set_by="pytest",
+    )
+
+    assert updated["status"] == "updated"
+    assert updated["previous_mode"] == "strict"
+    state = json.loads((target / AEGIS_ENFORCEMENT_REL).read_text(encoding="utf-8"))
+    assert state == {
+        "mode": "advisory",
+        "set_at": updated["updated_at"],
+        "set_by": "pytest",
+        "reason": "product work",
+    }
+
+    status_report = status(target, source_root=REPO_ROOT)
+    assert status_report["enforcement"]["mode"] == "advisory"
+    assert "advisory" in status_report["recommended_actions"][0]
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    assert diagnosis["enforcement"]["mode"] == "advisory"
+    assert diagnosis["status"] == "degraded"
+    assert any(
+        check["id"] == "runtime.enforcement_mode" and check["status"] == "fail"
+        for check in diagnosis["checks"]
+    )
+    verification = verify(target, source_root=REPO_ROOT, dry_run=True)
+    assert verification["enforcement"]["mode"] == "advisory"
+    assert verification["summary"]["warnings"] >= 1
+    assert any(
+        check["gate_id"] == "runtime.enforcement_mode" and check["status"] == "warn"
+        for check in verification["checks"]
+    )
+
+    advisory_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Write",
+            "tool_input": {"file_path": ".claude/settings.json", "content": "{}"},
+        },
+    )
+    assert advisory_gate.returncode == 0
+    decisions = [
+        json.loads(line)
+        for line in (target / AEGIS_GATE_DECISIONS_REL).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert decisions[-1]["hook"] == "pretooluse"
+    assert decisions[-1]["verdict"] == "would_block"
+    assert decisions[-1]["reason"] == "protected_path"
+
+    (target / AEGIS_PENDING_TRACKING_REL).write_text(
+        json.dumps({"events": [{"id": "adv1", "mode": "advisory"}]}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    strict = enforce_mode(
+        target,
+        source_root=REPO_ROOT,
+        mode="strict",
+        reason="resume strict",
+        set_by="pytest",
+    )
+    assert strict["enforcement"]["mode"] == "strict"
+    assert strict["pending"]["advisory"] == 1
+    assert strict["workflow_guidance"]["strict_reentry"]["suggested_cli"] == "aegis repair --apply"
 
 
 def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(

@@ -49,6 +49,8 @@ AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_DEGRADED_EVENTS_REL = ".aegis/state/degraded-events.json"
+AEGIS_ENFORCEMENT_REL = ".aegis/state/enforcement.json"
+AEGIS_GATE_DECISIONS_REL = ".aegis/reports/gate-decisions.jsonl"
 AEGIS_LOCAL_TASKS_REL = ".aegis/state/local-tasks.json"
 TASKMASTER_TASKS_REL = ".taskmaster/tasks/tasks.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
@@ -108,6 +110,7 @@ AEGIS_OBSERVATION_RUNTIME_PREFIXES = (
 )
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
+AEGIS_ENFORCEMENT_MODES = {"strict", "advisory"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
 AEGIS_CLAUDE_BLOCK_END = "<!-- AEGIS:END claude-runtime -->"
 AEGIS_AGENTS_BLOCK_BEGIN = "<!-- AEGIS:BEGIN agents-runtime -->"
@@ -1217,6 +1220,115 @@ def _parse_runtime_env(target_root: Path) -> dict[str, str]:
     return values
 
 
+def _enforcement_path(target_root: Path) -> Path:
+    return target_root / AEGIS_ENFORCEMENT_REL
+
+
+def _read_enforcement_state(target_root: Path) -> dict[str, Any]:
+    path = _enforcement_path(target_root)
+    raw = _read_json(path)
+    configured = isinstance(raw, Mapping)
+    mode = str(raw.get("mode") if isinstance(raw, Mapping) else "strict").strip().lower()
+    valid = mode in AEGIS_ENFORCEMENT_MODES
+    if not valid:
+        mode = "strict"
+    state = {
+        "mode": mode,
+        "configured": configured,
+        "valid": valid or not configured,
+        "path": AEGIS_ENFORCEMENT_REL,
+        "gate_decisions": AEGIS_GATE_DECISIONS_REL,
+        "set_at": raw.get("set_at") if isinstance(raw, Mapping) else None,
+        "set_by": raw.get("set_by") if isinstance(raw, Mapping) else None,
+        "reason": raw.get("reason") if isinstance(raw, Mapping) else None,
+    }
+    if configured and not valid:
+        state["invalid_mode"] = raw.get("mode")
+    return state
+
+
+def _pending_events_by_mode(target_root: Path, mode: str) -> list[dict[str, Any]]:
+    return [
+        event
+        for event in _pending_tracking_events(target_root)
+        if isinstance(event, Mapping) and str(event.get("mode") or "strict") == mode
+    ]
+
+
+def enforcement_status(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
+    target_root = _resolve_target_root(target_dir)
+    state = _read_enforcement_state(target_root)
+    advisory_pending = _pending_events_by_mode(target_root, "advisory")
+    mode = str(state.get("mode") or "strict")
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": mode,
+        "checked_at": _iso_now(),
+        "target_root": target_root.as_posix(),
+        "read_only": True,
+        "enforcement": state,
+        "pending": {
+            "advisory": len(advisory_pending),
+            "advisory_event_ids": [str(event.get("id") or "") for event in advisory_pending],
+        },
+        "workflow_guidance": {
+            "mode": mode,
+            "message": (
+                "Aegis is in advisory mode: gates record would-block decisions but do not block."
+                if mode == "advisory"
+                else "Aegis is in strict mode: gates block according to readiness, pending tracking, and protected-path policy."
+            ),
+            "strict_reentry": (
+                {
+                    "advisory_pending_events": len(advisory_pending),
+                    "suggested_cli": "aegis repair --apply",
+                    "message": "Review or reconcile advisory-era pending events before relying on strict enforcement.",
+                }
+                if advisory_pending
+                else None
+            ),
+        },
+    }
+
+
+def enforce_mode(
+    target_dir: str | Path,
+    *,
+    mode: str,
+    reason: str = "",
+    set_by: str | None = None,
+    source_root: str | Path | None = None,
+) -> dict[str, Any]:
+    target_root = _resolve_target_root(target_dir)
+    normalized = mode.strip().lower()
+    if normalized not in AEGIS_ENFORCEMENT_MODES:
+        raise AegisError(f"unsupported Aegis enforcement mode: {mode}")
+    previous = _read_enforcement_state(target_root)
+    now = _iso_now()
+    actor = set_by or os.environ.get("USER") or os.environ.get("LOGNAME") or "aegis-cli"
+    state = {
+        "mode": normalized,
+        "set_at": now,
+        "set_by": actor,
+        "reason": reason.strip(),
+    }
+    _write_text(target_root, AEGIS_ENFORCEMENT_REL, _dump_json(state))
+    status_payload = enforcement_status(target_root, source_root=source_root)
+    status_payload.update(
+        {
+            "status": "updated",
+            "read_only": False,
+            "updated_at": now,
+            "previous_mode": previous.get("mode"),
+        }
+    )
+    return status_payload
+
+
 def runtime_status(target_dir: str | Path, *, source_root: str | Path) -> dict[str, Any]:
     target_root = _resolve_target_root(target_dir)
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
@@ -1746,6 +1858,7 @@ def status(
         "installed_versions": None,
         "migration_required": False,
         "status": "not_installed",
+        "enforcement": _read_enforcement_state(target_root),
         "checks": [],
         "recommended_actions": [
             "Run aegis plan-install before applying Aegis to this target.",
@@ -1764,6 +1877,7 @@ def status(
             default_primary_agent=default_primary_agent,
             default_agents=default_agents,
         )
+        payload["workflow_guidance"]["enforcement"] = payload["enforcement"]
         return payload
 
     installed_versions = {
@@ -1829,6 +1943,13 @@ def status(
         default_primary_agent=default_primary_agent,
         default_agents=default_agents,
     )
+    payload["workflow_guidance"]["enforcement"] = payload["enforcement"]
+    if payload["enforcement"].get("mode") == "advisory":
+        payload["recommended_actions"] = [
+            "Aegis enforcement is advisory: gates record would-block decisions but do not block.",
+            "Return to strict with `aegis enforce --mode strict --reason \"<reason>\"` after product work.",
+            *payload["recommended_actions"],
+        ]
     return payload
 
 
@@ -7814,6 +7935,21 @@ def doctor(
             },
         )
     )
+    enforcement = _read_enforcement_state(target_root)
+    checks.append(
+        _strict_check(
+            "runtime.enforcement_mode",
+            category="runtime",
+            required=False,
+            passed=enforcement.get("mode") != "advisory",
+            message=(
+                "Aegis enforcement is strict"
+                if enforcement.get("mode") != "advisory"
+                else "Aegis enforcement is advisory; gates record would-block decisions but do not block"
+            ),
+            details=enforcement,
+        )
+    )
 
     current_state, status_value = _classify_doctor_state(
         manifest=manifest,
@@ -7830,6 +7966,7 @@ def doctor(
         "read_only": True,
         "status": status_value,
         "current_state": current_state,
+        "enforcement": enforcement,
         "checks": checks,
         "summary": _doctor_summary(checks),
         "repair_plan": {
@@ -8413,9 +8550,13 @@ def format_doctor_summary(report: Mapping[str, Any]) -> str:
     repair_plan = (
         report.get("repair_plan") if isinstance(report.get("repair_plan"), Mapping) else {}
     )
+    enforcement = (
+        report.get("enforcement") if isinstance(report.get("enforcement"), Mapping) else {}
+    )
     return "\n".join(
         [
             f"Aegis doctor: {report.get('status')} ({report.get('current_state')})",
+            f"Enforcement: {enforcement.get('mode', 'strict')}",
             f"Checks: {summary.get('total', 0)} total, {summary.get('failed_required', 0)} required failures, {summary.get('warnings', 0)} warnings",
             f"Repair plan: {repair_plan.get('safe', 0)} safe, {repair_plan.get('manual_review', 0)} manual-review",
             "",
@@ -8462,6 +8603,7 @@ def verify(
     source = Path(source_root).resolve()
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest = _read_json(manifest_path)
+    enforcement = _read_enforcement_state(target_root)
     mode = "strict" if strict else "standard"
     checks: list[dict[str, Any]] = []
     if manifest is None:
@@ -8480,6 +8622,7 @@ def verify(
             "verified_at": _iso_now(),
             "target_root": str(target_root),
             "manifest_path": AEGIS_MANIFEST_REL,
+            "enforcement": enforcement,
             "dry_run": dry_run,
             "report_written": False,
             "checks": [
@@ -8541,6 +8684,16 @@ def verify(
 
     if strict:
         checks.extend(_strict_verification_checks(target_root, manifest))
+    if enforcement.get("mode") == "advisory":
+        checks.append(
+            {
+                "gate_id": "runtime.enforcement_mode",
+                "required": False,
+                "status": "warn",
+                "message": "Aegis enforcement is advisory; gates record would-block decisions but do not block.",
+                "details": enforcement,
+            }
+        )
 
     failed_required = [
         check for check in checks if check.get("required") and check.get("status") == "fail"
@@ -8586,6 +8739,7 @@ def verify(
         "verified_at": _iso_now(),
         "target_root": str(target_root),
         "manifest_path": AEGIS_MANIFEST_REL,
+        "enforcement": enforcement,
         "dry_run": dry_run,
         "report_written": False,
         "summary": {

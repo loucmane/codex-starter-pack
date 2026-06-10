@@ -27,6 +27,8 @@ AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_DEGRADED_EVENTS_REL = ".aegis/state/degraded-events.json"
+AEGIS_ENFORCEMENT_REL = ".aegis/state/enforcement.json"
+AEGIS_GATE_DECISIONS_REL = ".aegis/reports/gate-decisions.jsonl"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 
@@ -46,6 +48,7 @@ SANCTIONED_AEGIS_MCP_MUTATION_SUFFIXES = {
     "handoff_repair",
     "closeout",
     "repair",
+    "enforce",
 }
 
 MUTATING_GIT_RE = re.compile(
@@ -64,7 +67,7 @@ MUTATING_TASKMASTER_RE = re.compile(
 )
 MUTATING_AEGIS_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+("
-    r"install|uninstall|verify|start|kickoff|observe|log|closeout"
+    r"install|uninstall|verify|start|kickoff|observe|log|closeout|enforce"
     r")\b",
     re.IGNORECASE,
 )
@@ -288,6 +291,122 @@ def project_root() -> Path:
     if result.returncode == 0 and result.stdout.strip():
         return Path(result.stdout.strip()).resolve()
     return Path.cwd().resolve()
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def enforcement_state(root: Path) -> dict[str, Any]:
+    state = _read_json_object(root / AEGIS_ENFORCEMENT_REL)
+    mode = str(state.get("mode") or "strict").strip().lower()
+    if mode not in {"strict", "advisory"}:
+        mode = "strict"
+    return {
+        "mode": mode,
+        "set_at": state.get("set_at"),
+        "set_by": state.get("set_by"),
+        "reason": state.get("reason"),
+        "path": AEGIS_ENFORCEMENT_REL,
+        "configured": (root / AEGIS_ENFORCEMENT_REL).is_file(),
+    }
+
+
+def enforcement_mode(root: Path) -> str:
+    return str(enforcement_state(root).get("mode") or "strict")
+
+
+def source_commit(root: Path) -> str | None:
+    manifest = _read_json_object(root / ".aegis" / "foundation-manifest.json")
+    runtime = manifest.get("runtime") if isinstance(manifest.get("runtime"), dict) else {}
+    commit = runtime.get("source_commit") or manifest.get("source_commit")
+    return str(commit) if commit else None
+
+
+def payload_digest(payload: Payload | None, raw_preview: str | None = None) -> str:
+    if payload is None:
+        data: dict[str, Any] = {"raw_preview": raw_preview or ""}
+    else:
+        data = {"tool_name": payload.tool_name, "tool_input": payload.tool_input}
+    encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return sha256(encoded).hexdigest()
+
+
+def append_gate_decision(
+    root: Path,
+    *,
+    hook: str,
+    payload: Payload | None,
+    verdict: str,
+    reason: str,
+    readiness_state: str | None = None,
+    raw_preview: str | None = None,
+) -> None:
+    mode = enforcement_mode(root)
+    report_path = root / AEGIS_GATE_DECISIONS_REL
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "ts": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "hook": hook,
+        "tool_name": payload.tool_name if payload is not None else "unclassifiable",
+        "payload_digest": payload_digest(payload, raw_preview),
+        "verdict": verdict,
+        "reason": reason,
+        "readiness_state": readiness_state,
+        "mode": mode,
+        "source_commit": source_commit(root),
+    }
+    with report_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def advisory_enabled(root: Path) -> bool:
+    return enforcement_mode(root) == "advisory"
+
+
+def advisory_message(hook: str, reason: str) -> None:
+    print(
+        f"ADVISORY | {hook} would have blocked, but Aegis enforcement mode is advisory: {reason}",
+        file=sys.stderr,
+    )
+
+
+def gate_block_or_record(
+    root: Path,
+    payload: Payload,
+    message: str,
+    *,
+    reason: str,
+    readiness_state: str | None = None,
+) -> int:
+    if advisory_enabled(root):
+        append_gate_decision(
+            root,
+            hook="pretooluse",
+            payload=payload,
+            verdict="would_block",
+            reason=reason,
+            readiness_state=readiness_state,
+        )
+        advisory_message("pretooluse", reason)
+        return 0
+    return block(message)
+
+
+def gate_allow_or_record(root: Path, payload: Payload, *, reason: str) -> int:
+    if advisory_enabled(root):
+        append_gate_decision(
+            root,
+            hook="pretooluse",
+            payload=payload,
+            verdict="allow",
+            reason=reason,
+        )
+    return 0
 
 
 def script_dir() -> Path:
@@ -579,6 +698,7 @@ def read_only_aegis_remainder(remainder: list[str]) -> bool:
         )
         or (remainder[0] == "closeout" and "--dry-run" in remainder[1:])
         or (remainder[0] == "uninstall" and "--apply" not in remainder[1:])
+        or (remainder[0] == "enforce" and "--mode" not in remainder[1:])
     )
 
 
@@ -829,6 +949,15 @@ def bash_is_aegis_runtime_update(command: str) -> bool:
     return bash_has_trusted_aegis_nested_subcommand(command, "runtime", {"update"})
 
 
+def bash_is_aegis_enforce(command: str) -> bool:
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    if len(segments) != 1:
+        return False
+    tokens = strip_shell_prefixes(shlex_tokens(segments[0]))
+    remainder = aegis_cli_remainder(tokens, project_root(), allow_bare=False)
+    return bool(remainder) and remainder[0] == "enforce"
+
+
 def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
     if not is_mcp_tool(tool_name):
         return False
@@ -900,6 +1029,7 @@ def payload_is_sanctioned_aegis_workflow_mutation(payload: Payload) -> bool:
             or bash_is_aegis_verify(command)
             or bash_is_aegis_closeout(command)
             or bash_is_aegis_runtime_update(command)
+            or bash_is_aegis_enforce(command)
             or bash_has_trusted_aegis_subcommand(command, {"repair"}, require_apply=True)
             or bash_has_trusted_aegis_subcommand(command, set(), handoff_repair=True)
         )
@@ -1407,6 +1537,15 @@ def payload_is_aegis_uninstall_apply(payload: Payload) -> bool:
     return False
 
 
+def payload_is_aegis_enforce(payload: Payload) -> bool:
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_enforce(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("enforce")
+    return False
+
+
 def payload_is_mutation(payload: Payload) -> bool:
     if payload.tool_name in FILE_MUTATION_TOOLS:
         return True
@@ -1672,6 +1811,7 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
             "id": task_id,
             "slug": slug,
         },
+        "mode": enforcement_mode(root),
         "reason": "Mutation requires S:W:H:E entries in sessions/current and active TRACKER.md.",
     }
     if evidence_location:
@@ -1723,17 +1863,38 @@ def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
 
 
 def pretooluse_gate(raw_payload: str | None = None) -> int:
+    root = project_root()
     loaded = load_payload_result(raw_payload)
     if isinstance(loaded, PayloadLoadError):
+        if advisory_enabled(root):
+            append_gate_decision(
+                root,
+                hook="pretooluse",
+                payload=None,
+                verdict="would_block",
+                reason=f"unclassifiable_payload: {loaded.reason}",
+                raw_preview=loaded.raw_preview,
+            )
+            advisory_message("pretooluse", "unclassifiable_payload")
+            return 0
         return block_unclassifiable_payload(loaded.reason, loaded.raw_preview)
     payload = loaded
     if not is_hookable_tool(payload.tool_name):
         return 0
     required_field_issue = payload_required_field_issue(payload)
     if required_field_issue:
+        if advisory_enabled(root):
+            append_gate_decision(
+                root,
+                hook="pretooluse",
+                payload=payload,
+                verdict="would_block",
+                reason=f"invalid_payload: {required_field_issue}",
+            )
+            advisory_message("pretooluse", "invalid_payload")
+            return 0
         return block_unclassifiable_payload(required_field_issue)
 
-    root = project_root()
     clear_client_reload_marker(root)
     aegis_target_violations: list[str] = []
     if payload.tool_name == "Bash":
@@ -1744,28 +1905,34 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             aegis_target_violations = [violation]
     if aegis_target_violations:
         details = "\n".join(f"  - {violation}" for violation in aegis_target_violations)
-        return block(
+        return gate_block_or_record(
+            root,
+            payload,
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
             f"Violation(s):\n{details}\n\n"
-            "Aegis read-only target selection is confined to the governed project root."
+            "Aegis read-only target selection is confined to the governed project root.",
+            reason="aegis_target_dir_violation",
         )
     if payload_is_read_only(payload):
-        return 0
+        return gate_allow_or_record(root, payload, reason="read_only")
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
     post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(root, payload)
     post_closeout_delivery = payload_is_post_closeout_delivery(root, payload)
     if current_work_is_observation(root) and is_mutation:
         if payload_is_observation_allowed(payload):
-            return 0
-        return block(
+            return gate_allow_or_record(root, payload, reason="observation_allowed")
+        return gate_block_or_record(
+            root,
+            payload,
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
             "Reason: Aegis observation mode only permits observation tooling.\n\n"
             "Allowed while observing: read-only inspection, dev servers, localhost probes, browser/screenshot MCP tools, aegis log, and aegis observe stop.\n"
             "Blocked while observing: source edits, Taskmaster mutations, git mutations, Aegis closeout/apply paths, and unclassified persistent mutations.\n\n"
-            "Stop observation with `./.aegis/bin/aegis observe stop --target-dir . --summary \"<summary>\"` before implementation work."
+            "Stop observation with `./.aegis/bin/aegis observe stop --target-dir . --summary \"<summary>\"` before implementation work.",
+            reason="observation_mode_disallowed_mutation",
         )
     if (
         readiness.returncode == 2
@@ -1774,28 +1941,39 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         and not payload_is_aegis_pending_log(payload)
         and not payload_is_aegis_runtime_update(payload)
         and not payload_is_aegis_repair_apply(payload)
+        and not payload_is_aegis_enforce(payload)
         and not payload_is_aegis_uninstall_apply(payload)
         and not post_closeout_taskmaster_completion
         and not post_closeout_delivery
     ):
-        return block(
+        return gate_block_or_record(
+            root,
+            payload,
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
             "Reason: Claude readiness is BLOCKED, so hookable persistent mutations are refused.\n\n"
             f"{readiness.stdout.strip()}\n\n"
-            "Run the kickoff workflow or repair task/session/plan/work-tracking state before mutating files, memory, Git, Taskmaster, or other persistent surfaces."
+            "Run the kickoff workflow or repair task/session/plan/work-tracking state before mutating files, memory, Git, Taskmaster, or other persistent surfaces.",
+            reason="readiness_blocked",
+            readiness_state=readiness.stdout.strip(),
         )
     if readiness.returncode not in {0, 2} and is_mutation:
-        return block(
+        return gate_block_or_record(
+            root,
+            payload,
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
             f"Reason: readiness failed with exit {readiness.returncode}.\n\n"
-            f"{readiness.stdout.strip()}\n{readiness.stderr.strip()}"
+            f"{readiness.stdout.strip()}\n{readiness.stderr.strip()}",
+            reason=f"readiness_error:{readiness.returncode}",
+            readiness_state=readiness.stdout.strip(),
         )
 
     pending_events = pending_tracking_events(root)
     if pending_events and is_mutation and not payload_is_aegis_log(payload):
-        return block(
+        return gate_block_or_record(
+            root,
+            payload,
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
             "Reason: pending S:W:H:E tracking must be logged before another persistent mutation.\n\n"
@@ -1803,41 +1981,52 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             "Run the pending-id repair command above, or use the explicit fallback "
             "`aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"`, "
             "so the active session, tracker, plan, implementation log, changelog, "
-            "and handoff all contain the required S:W:H:E entry."
+            "and handoff all contain the required S:W:H:E entry.",
+            reason="pending_tracking",
+            readiness_state=readiness.stdout.strip(),
         )
 
     if payload.tool_name in FILE_MUTATION_TOOLS:
         protected = [path for path in file_paths_from_payload(payload, root) if is_protected_path(path, root)]
         if protected:
             paths = "\n".join(f"  - {path}" for path in protected)
-            return block(
+            return gate_block_or_record(
+                root,
+                payload,
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Protected path(s):\n{paths}\n\n"
-                "Claude may not edit protected Aegis/Codex-owned paths from this task."
+                "Claude may not edit protected Aegis/Codex-owned paths from this task.",
+                reason="protected_path",
             )
         workflow_owned = [
             path for path in file_paths_from_payload(payload, root) if is_workflow_owned_path(path, root)
         ]
         if workflow_owned:
             paths = "\n".join(f"  - {path}" for path in workflow_owned)
-            return block(
+            return gate_block_or_record(
+                root,
+                payload,
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Workflow-owned path(s):\n{paths}\n\n"
                 "Agents may not directly edit Aegis authority surfaces. Use sanctioned Aegis commands "
-                "such as kickoff, log, handoff repair, or closeout so workflow evidence stays structured."
+                "such as kickoff, log, handoff repair, or closeout so workflow evidence stays structured.",
+                reason="workflow_owned_path",
             )
 
     if payload.tool_name == "Bash":
         violations = protected_bash_violations(bash_command(payload), root)
         if violations:
             details = "\n".join(f"  - {violation}" for violation in violations)
-            return block(
+            return gate_block_or_record(
+                root,
+                payload,
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: Bash\nCommand: {bash_command(payload)}\n"
                 f"Violation(s):\n{details}\n\n"
-                "Bash may not be used to bypass protected Aegis/Codex-owned path boundaries."
+                "Bash may not be used to bypass protected Aegis/Codex-owned path boundaries.",
+                reason="protected_bash_violation",
             )
 
     if is_mcp_tool(payload.tool_name):
@@ -1849,11 +2038,14 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         ]
         if protected:
             paths = "\n".join(f"  - {path}" for path in sorted(set(protected)))
-            return block(
+            return gate_block_or_record(
+                root,
+                payload,
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Protected path(s):\n{paths}\n\n"
-                "MCP tools may not bypass protected Aegis/Codex-owned path boundaries."
+                "MCP tools may not bypass protected Aegis/Codex-owned path boundaries.",
+                reason="mcp_protected_path",
             )
         workflow_owned = [
             normalize_path(path, root)
@@ -1862,15 +2054,18 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         ]
         if workflow_owned and not sanctioned_aegis:
             paths = "\n".join(f"  - {path}" for path in sorted(set(workflow_owned)))
-            return block(
+            return gate_block_or_record(
+                root,
+                payload,
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Workflow-owned path(s):\n{paths}\n\n"
                 "MCP tools may not directly mutate Aegis authority surfaces. Use sanctioned Aegis MCP "
-                "handlers so workflow evidence stays structured."
+                "handlers so workflow evidence stays structured.",
+                reason="mcp_workflow_owned_path",
             )
 
-    return 0
+    return gate_allow_or_record(root, payload, reason="allow")
 
 
 def pretooluse_gate_with_degraded_fallback(raw_payload: str) -> int:
@@ -1893,8 +2088,16 @@ def stop_gate() -> int:
     root = project_root()
     pending_events = pending_tracking_events(root)
     if not pending_events:
+        if advisory_enabled(root):
+            append_gate_decision(
+                root,
+                hook="stop",
+                payload=Payload("Stop", {}),
+                verdict="allow",
+                reason="no_pending_tracking",
+            )
         return 0
-    return block(
+    message = (
         "BLOCKED by .claude/scripts/tracking-stop-gate.sh\n\n"
         "Reason: pending S:W:H:E tracking remains before session stop.\n\n"
         f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
@@ -1902,6 +2105,17 @@ def stop_gate() -> int:
         "`aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"`, "
         "before ending the session."
     )
+    if advisory_enabled(root):
+        append_gate_decision(
+            root,
+            hook="stop",
+            payload=Payload("Stop", {}),
+            verdict="would_block",
+            reason="pending_tracking",
+        )
+        advisory_message("stop", "pending_tracking")
+        return 0
+    return block(message)
 
 
 def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
