@@ -13,3 +13,4 @@
   window) and PR-4 retirement (hard-gated on witness-required + ledger live + capsule
   in use + falsifier run). HP-Coach upgrade run unlocks its evidence stream.
 - Archived on 2026-06-10 22:50 CEST — Folder moved to archive and tracker marked COMPLETED.
+- Archived on 2026-06-10 23:20 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -1,7 +1,7 @@
 # Task 209 Capsule PR-3.5: delivery witness v0 Tracker
 
 **Started**: 2026-06-10
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-10
 
 ## Goals
