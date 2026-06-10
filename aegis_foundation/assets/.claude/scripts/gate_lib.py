@@ -429,6 +429,101 @@ def advisory_message(hook: str, reason: str) -> None:
     )
 
 
+# TM #201 recovery contract: every block reason maps to a copyable safe repair, a
+# blast-radius tier, an audit destination, and an escalation path. Tier-a/b
+# (workflow-state) blocks are break-glass-eligible; tier-c (protected paths, observation
+# boundary, adversarial) are NEVER override-eligible — that is the line between a
+# recovery valve and a generic bypass.
+AEGIS_OVERRIDE_TOKEN_REL = ".aegis/state/override-token.json"
+OVERRIDE_ELIGIBLE_REASONS = {"readiness_blocked", "pending_tracking"}
+RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
+    "readiness_blocked": {
+        "tier": "b",
+        "repair": "./.aegis/bin/aegis repair --target-dir . --apply",
+        "alt_repair": "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug> --title '<title>'",
+        "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
+        "escalation": "If repair/kickoff cannot resolve it, break glass: aegis override --reason \"<why>\" (workflow-state only).",
+        "override_eligible": "true",
+    },
+    "pending_tracking": {
+        "tier": "a",
+        "repair": "aegis log --pending-id current   # or: aegis log --handler <h> --evidence <e> --note \"<past-tense>\"",
+        "alt_repair": "",
+        "audit": "sessions/current + active TRACKER.md + ledger",
+        "escalation": "If the pending event is unmatchable, break glass: aegis override --reason \"<why>\".",
+        "override_eligible": "true",
+    },
+    "observation_mode_disallowed_mutation": {
+        "tier": "c",
+        "repair": "./.aegis/bin/aegis observe stop --target-dir . --summary '<what was observed>' --collect-artifacts",
+        "alt_repair": "",
+        "audit": ".aegis/reports/observation-report.json + ledger",
+        "escalation": "Stop observation before implementation work. NOT override-eligible (boundary, not workflow state).",
+        "override_eligible": "false",
+    },
+}
+RECOVERY_CONTRACT_DEFAULT = {
+    "tier": "c",
+    "repair": "./.aegis/bin/aegis next --target-dir .   # inspect the prescribed next action",
+    "alt_repair": "",
+    "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
+    "escalation": "Resolve the underlying state. NOT override-eligible by default.",
+    "override_eligible": "false",
+}
+
+
+def recovery_contract(reason: str) -> dict[str, str]:
+    base = RECOVERY_CONTRACT.get(reason, RECOVERY_CONTRACT_DEFAULT)
+    return {**RECOVERY_CONTRACT_DEFAULT, **base}
+
+
+def recovery_block_suffix(reason: str) -> str:
+    contract = recovery_contract(reason)
+    lines = [
+        "",
+        "── Aegis recovery contract ──",
+        f"blast-radius tier: {contract['tier']}",
+        f"copyable safe repair: {contract['repair']}",
+    ]
+    if contract.get("alt_repair"):
+        lines.append(f"alternative: {contract['alt_repair']}")
+    lines.append(f"audit destination: {contract['audit']}")
+    lines.append(f"escalation: {contract['escalation']}")
+    return "\n".join(lines)
+
+
+def _consume_override_token(root: Path, reason: str) -> dict[str, Any] | None:
+    """One-shot, TTL-bounded break-glass token (TM #201).
+
+    Honored ONLY for override-eligible (tier-a/b workflow-state) reasons, and consumed
+    on use so it can never become a standing bypass. Returns the token record when a
+    valid token is consumed, else None.
+    """
+
+    if reason not in OVERRIDE_ELIGIBLE_REASONS:
+        return None
+    path = root / AEGIS_OVERRIDE_TOKEN_REL
+    token = _read_json_object(path)
+    if not token:
+        return None
+    token_reason = str(token.get("reason_class") or "")
+    if token_reason not in {"", "any", reason} and token_reason != reason:
+        return None
+    expires_at = str(token.get("expires_at") or "")
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    if expires_at and now > expires_at:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        return None
+    try:
+        path.unlink()  # single use
+    except OSError:
+        return None
+    return token
+
+
 def gate_block_or_record(
     root: Path,
     payload: Payload,
@@ -437,6 +532,23 @@ def gate_block_or_record(
     reason: str,
     readiness_state: str | None = None,
 ) -> int:
+    token = _consume_override_token(root, reason)
+    if token is not None:
+        append_gate_decision(
+            root,
+            hook="pretooluse",
+            payload=payload,
+            verdict="allow",
+            reason=f"break_glass_override:{reason}",
+            readiness_state=readiness_state,
+        )
+        _record_override_use(root, payload, reason=reason, token=token)
+        print(
+            f"BREAK-GLASS: one-shot override consumed for {reason} "
+            f"(reason: {token.get('note') or 'unspecified'}). Recorded to the ledger.",
+            file=sys.stderr,
+        )
+        return 0
     if advisory_enabled(root):
         append_gate_decision(
             root,
@@ -448,7 +560,33 @@ def gate_block_or_record(
         )
         advisory_message("pretooluse", reason)
         return 0
-    return block(message)
+    return block(message + "\n" + recovery_block_suffix(reason))
+
+
+def _record_override_use(root: Path, payload: Payload, *, reason: str, token: dict[str, Any]) -> None:
+    ledger_lib = _load_ledger_lib_module()
+    if ledger_lib is None:
+        return
+    try:
+        ledger = ledger_lib.open_ledger(cwd=root)
+        try:
+            ledger.append(
+                {
+                    "event_type": "override",
+                    "tool_name": payload.tool_name,
+                    "payload_digest": payload_digest(payload),
+                    "extra": {
+                        "reason_class": reason,
+                        "note": token.get("note"),
+                        "minted_at": token.get("minted_at"),
+                        "minted_by": token.get("minted_by"),
+                    },
+                }
+            )
+        finally:
+            ledger.close()
+    except Exception:  # noqa: BLE001 - audit is best-effort, never blocks recovery.
+        return
 
 
 def gate_allow_or_record(root: Path, payload: Payload, *, reason: str) -> int:
@@ -1011,6 +1149,30 @@ def bash_is_aegis_enforce(command: str) -> bool:
     tokens = strip_shell_prefixes(shlex_tokens(segments[0]))
     remainder = aegis_cli_remainder(tokens, project_root(), allow_bare=False)
     return bool(remainder) and remainder[0] == "enforce"
+
+
+def bash_is_aegis_override(command: str) -> bool:
+    segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    if len(segments) != 1:
+        return False
+    tokens = strip_shell_prefixes(shlex_tokens(segments[0]))
+    remainder = aegis_cli_remainder(tokens, project_root(), allow_bare=False)
+    return bool(remainder) and remainder[0] == "override"
+
+
+def payload_is_aegis_override(payload: Payload) -> bool:
+    """Minting a break-glass token must itself run while BLOCKED (TM #201).
+
+    It writes only `.aegis/state/override-token.json` and is rate-limited + audited; it
+    does not perform the user's mutation, so sanctioning it is not a bypass.
+    """
+
+    if payload.tool_name == "Bash":
+        return bash_is_aegis_override(bash_command(payload))
+    if is_mcp_tool(payload.tool_name):
+        normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
+        return "aegis" in normalized and normalized.endswith("override")
+    return False
 
 
 def mcp_tool_is_aegis_verify(tool_name: str) -> bool:
@@ -1997,6 +2159,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         and not payload_is_aegis_runtime_update(payload)
         and not payload_is_aegis_repair_apply(payload)
         and not payload_is_aegis_enforce(payload)
+        and not payload_is_aegis_override(payload)
         and not payload_is_aegis_uninstall_apply(payload)
         and not post_closeout_taskmaster_completion
         and not post_closeout_delivery

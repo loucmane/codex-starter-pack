@@ -187,6 +187,68 @@ def handle_brief(args: argparse.Namespace) -> int:
         return 0
 
 
+def handle_override(args: argparse.Namespace) -> int:
+    """Mint a one-shot, rate-limited break-glass token (recovery contract, TM 201).
+
+    Honored by the gate only for workflow-state (tier-a/b) blocks and consumed on first
+    use. Never a generic bypass: tier-c (protected paths, observation boundary,
+    adversarial) blocks ignore it entirely.
+    """
+
+    import json as _json
+    from datetime import datetime, timedelta, timezone
+
+    target = Path(args.target_dir).resolve()
+    reason_class = args.reason_class or "any"
+    if reason_class not in {"any", "readiness_blocked", "pending_tracking"}:
+        print(f"override reason-class not eligible for break-glass: {reason_class}", file=sys.stderr)
+        return 1
+    state_dir = target / ".aegis" / "state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    counter_path = state_dir / "override-rate.json"
+    now = datetime.now(timezone.utc)
+    today = now.date().isoformat()
+    counter: dict[str, Any] = {}
+    if counter_path.is_file():
+        try:
+            loaded = _json.loads(counter_path.read_text(encoding="utf-8"))
+            counter = loaded if isinstance(loaded, dict) else {}
+        except (OSError, ValueError):
+            counter = {}
+    used_today = int(counter.get(today, 0))
+    if used_today >= args.max_per_day:
+        print(
+            f"break-glass rate limit reached ({used_today}/{args.max_per_day} today); "
+            "resolve the block through repair/kickoff or wait.",
+            file=sys.stderr,
+        )
+        return 1
+    token = {
+        "reason_class": reason_class,
+        "note": args.reason,
+        "minted_at": now.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "minted_by": os.environ.get("USER") or os.environ.get("LOGNAME") or "aegis-cli",
+        "expires_at": (now + timedelta(minutes=args.ttl_minutes))
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
+        "single_use": True,
+    }
+    (state_dir / "override-token.json").write_text(_json.dumps(token, indent=2), encoding="utf-8")
+    counter[today] = used_today + 1
+    counter_path.write_text(_json.dumps(counter), encoding="utf-8")
+    _dump_json(
+        {
+            "status": "minted",
+            "token": token,
+            "used_today": used_today + 1,
+            "max_per_day": args.max_per_day,
+            "scope": "workflow-state blocks only (tier a/b); single-use; consumed on next matching mutation",
+        }
+    )
+    return 0
+
+
 def handle_scope(args: argparse.Namespace) -> int:
     """Record a confirmed scope record for the current branch (capsule PR-1d)."""
 
@@ -874,6 +936,22 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Offline strict validation: char budget + canary + parse counters (fails over budget).",
     )
     brief_parser.set_defaults(func=handle_brief)
+
+    override_parser = subparsers.add_parser(
+        "override",
+        help="Mint a one-shot break-glass token for workflow-state blocks (tier a/b only).",
+    )
+    override_parser.add_argument("--reason", required=True, help="Why the break-glass is needed (audited).")
+    override_parser.add_argument(
+        "--reason-class",
+        default="any",
+        choices=("any", "readiness_blocked", "pending_tracking"),
+        help="Restrict the token to one block reason; default any eligible workflow-state block.",
+    )
+    override_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    override_parser.add_argument("--ttl-minutes", type=int, default=15, help="Token lifetime (default 15).")
+    override_parser.add_argument("--max-per-day", type=int, default=3, help="Rate limit per day (default 3).")
+    override_parser.set_defaults(func=handle_override)
 
     scope_parser = subparsers.add_parser(
         "scope",
