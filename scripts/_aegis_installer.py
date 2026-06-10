@@ -127,6 +127,8 @@ CLAUDE_STOP_TRACKING_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/trackin
 # in exec-form args on CLI 2.1.170, so the spec section 1.1 exec-form directive fails its
 # own payload reality check; async is the load-bearing property.
 CLAUDE_LEDGER_RECORD_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/ledger-record.sh"
+CLAUDE_SESSION_BRIEF_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/session-brief.sh"
+CLAUDE_SESSION_START_MATCHER = "startup|resume|clear|compact"
 CLAUDE_REQUIRED_FILES = (
     "CLAUDE.md",
     ".claude/settings.json",
@@ -137,6 +139,7 @@ CLAUDE_REQUIRED_FILES = (
     ".claude/scripts/bash-command-guard.sh",
     ".claude/scripts/codex-path-guard.sh",
     ".claude/scripts/ledger-record.sh",
+    ".claude/scripts/session-brief.sh",
 )
 CLAUDE_SUPPORT_FILES = (
     ".claude/scripts/gate_lib.py",
@@ -174,6 +177,7 @@ CLAUDE_RUNTIME_HOOK_PHASES = {
     ".claude/scripts/bash-command-guard.sh": "bash",
     ".claude/scripts/codex-path-guard.sh": "path",
     ".claude/scripts/ledger-record.sh": "record",
+    ".claude/scripts/session-brief.sh": "sessionstart",
 }
 SHARED_SCHEMA_FILES = (
     "schemas/aegis/foundation-manifest.schema.json",
@@ -600,6 +604,17 @@ def _render_claude_settings() -> bytes:
                         }
                     ],
                 },
+            ],
+            "SessionStart": [
+                {
+                    "matcher": CLAUDE_SESSION_START_MATCHER,
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": CLAUDE_SESSION_BRIEF_COMMAND,
+                        }
+                    ],
+                }
             ],
             "PostToolUseFailure": [
                 {

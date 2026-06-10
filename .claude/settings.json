@@ -98,6 +98,17 @@
         ]
       }
     ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/session-brief.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUseFailure": [
       {
         "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",

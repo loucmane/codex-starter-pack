@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the PR-2b boundary: render_injection degradation order + caps, sessionstart stamp+inject wiring, off-switch precedence, sync SessionStart entry | docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/designs/injection-scope.md | completed |
-| plan-step-implement | Implement render_injection, gate_lib sessionstart inject path, session-brief.sh, renderer/settings/manifest wiring, mirrors | .claude/scripts/brief_lib.py; docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Stamp/inject/degradation/cap tests on real SessionStart fixtures, renderer tests, full suite + guard stack | docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement render_injection, gate_lib sessionstart inject path, session-brief.sh, renderer/settings/manifest wiring, mirrors | .claude/scripts/brief_lib.py; docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Stamp/inject/degradation/cap tests on real SessionStart fixtures, renderer tests, full suite + guard stack | docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task207-capsule-injection-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
