@@ -8,3 +8,4 @@
 ## Next Steps
 - Push, PR, CI, owner merge approval. Then #201 (break-glass contract) is the last
   ungated Phase-0 task; it builds on the replay harness fixtures.
+- Archived on 2026-06-11 01:13 CEST — Folder moved to archive and tracker marked COMPLETED.

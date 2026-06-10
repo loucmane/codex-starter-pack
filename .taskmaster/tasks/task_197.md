@@ -2,7 +2,7 @@
 
 **Title:** Aegis observation report size budgets
 
-**Status:** pending
+**Status:** in-progress
 
 **Dependencies:** 194 ✓
 
