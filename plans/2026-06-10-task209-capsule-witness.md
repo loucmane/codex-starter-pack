@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the PR-3.5 boundary: four local checks + CI-mode split (ledger does not travel to CI), delivery report output, workflow wiring, required-check flip stays with the owner | docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/designs/witness-scope.md | completed |
-| plan-step-implement | Implement witness_lib.py, aegis witness CLI (--base/--json/--ci), gate classification, aegis-witness workflow, mirrors | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Fixture tests (scope mapping, diff accounting, test-deletion escalation, verification-at-HEAD, done-flip containment, CI split), live witness run on this branch, full suite + guard stack | docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement witness_lib.py, aegis witness CLI (--base/--json/--ci), gate classification, aegis-witness workflow, mirrors | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Fixture tests (scope mapping, diff accounting, test-deletion escalation, verification-at-HEAD, done-flip containment, CI split), live witness run on this branch, full suite + guard stack | docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task209-capsule-witness-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope

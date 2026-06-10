@@ -2,7 +2,7 @@
 
 **Title:** Capsule PR-2b: SessionStart injection
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 206 ✓
 
