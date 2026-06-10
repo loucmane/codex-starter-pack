@@ -15,3 +15,4 @@
   `./.aegis/bin/aegis enforce --mode advisory --reason "product work; program Phase 0"`
 - Re-enable with:
   `./.aegis/bin/aegis enforce --mode strict --reason "resume strict enforcement"`
+- Archived on 2026-06-10 17:49 CEST — Folder moved to archive and tracker marked COMPLETED.
