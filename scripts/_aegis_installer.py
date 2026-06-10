@@ -46,6 +46,7 @@ AEGIS_REPORTS_REL = ".aegis/reports"
 AEGIS_STATE_REL = ".aegis/state"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
 AEGIS_RUNTIME_ENV_REL = ".aegis/runtime.env"
+AEGIS_BRIEF_REL = ".aegis/brief.json"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
@@ -743,6 +744,24 @@ def _asset_from_source_as(
     )
 
 
+def _render_default_brief() -> bytes:
+    """Default `.aegis/brief.json` (capsule PR-1d gate registry, seed-once).
+
+    Pattern VALUES are per-repo configuration shipped via each repo's deployment doc —
+    never hardcoded in Aegis, so the generic default ships empty gates.
+    """
+
+    payload = {
+        "gates": {},
+        "source_roots": [],
+        "thresholds": {"branch_count": 30, "unignored_file_mb": 5},
+        "redact_extra": [],
+        "archive_keep": 20,
+        "inject": True,
+    }
+    return _dump_json(payload).encode("utf-8")
+
+
 def _base_assets(
     source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
 ) -> list[Asset]:
@@ -751,6 +770,7 @@ def _base_assets(
         Asset(AEGIS_CONTRACT_REL, _render_contract(primary_agent, enabled_agents)),
         Asset(AEGIS_LOCAL_BIN_REL, _render_local_cli_shim(source_root), executable=True),
         Asset(AEGIS_RUNTIME_ENV_REL, _render_runtime_env(source_root), kind="runtime"),
+        Asset(AEGIS_BRIEF_REL, _render_default_brief(), kind="config"),
     ]
     for rel_path in SHARED_SCHEMA_FILES:
         assets.append(_asset_from_source(source_root, rel_path))
@@ -1619,6 +1639,18 @@ def _plan_operations(
                     "safe_to_apply": True,
                     "managed": True,
                     "reason": "Target file already matches expected content.",
+                }
+            )
+            continue
+        if asset.kind == "config":
+            operations.append(
+                {
+                    "action": "skip",
+                    "path": asset.path,
+                    "classification": "skip",
+                    "safe_to_apply": True,
+                    "managed": True,
+                    "reason": "Per-repo Aegis configuration is owner-maintained; seeded only when missing.",
                 }
             )
             continue
@@ -6813,6 +6845,9 @@ def install(
         for asset in [*assets, manifest_asset]:
             target = target_root / asset.path
             if target.exists() and target.is_file() and target.read_bytes() == asset.content:
+                continue
+            if asset.kind == "config" and target.exists():
+                # Seed-once: per-repo configuration is owner-maintained after creation.
                 continue
             _write_asset(target_root, asset)
 

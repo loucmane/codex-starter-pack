@@ -4,3 +4,4 @@
 - 2026-06-10 19:55 CEST — Implemented gate-decisions dual-write (Payload attribution,
   best-effort ledger twin keyed on payload_digest) with 4 parity/isolation tests;
   live decisions in this repo now twin into the ledger.
+- 2026-06-10 20:15 CEST — Archived active work-tracking folder.

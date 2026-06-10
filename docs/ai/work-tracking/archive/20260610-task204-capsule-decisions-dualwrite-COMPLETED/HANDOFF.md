@@ -11,3 +11,4 @@
 - One release after this ships: freeze gate-decisions.jsonl read-only (spec section 2).
 - Then PR-1d (task 205): gate registry + verification classification + scope records —
   the command-normalization-heavy slice, isolated on purpose.
+- Archived on 2026-06-10 20:15 CEST — Folder moved to archive and tracker marked COMPLETED.
