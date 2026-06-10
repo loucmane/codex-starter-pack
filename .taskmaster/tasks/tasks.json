@@ -7417,13 +7417,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 3, 3.1, 3.2. aegis brief compile+print with ALL computed-stratum fields (capsule_meta, repo_pose, delivery_state, verification_ledger with explicit absence reporting, task_truth with claimed-done-vs-shipped cross-check, governance, drift_sentinel, repo_hygiene), recomputed/revalidated at read time — any field failing revalidation renders STALE-recheck, never the cached value. Drift sentinel v1: exactly the 5 deterministic checks, no LLM; sentinel must prove it ran (N attempted / M parsed / K drift; parse failure is itself drift); seeded canary asset at .aegis/capsule/canary.md must always flag or the capsule reports the sentinel broken. risk_register seeding consumed once from .aegis/capsule/risk-seed.json (values per-repo). No injection in this PR. Merge gate: brief output matches independently-checked HP-Coach reality.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "205"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T18:44:54.080Z"
+        "updatedAt": "2026-06-10T19:10:32.326Z"
       },
       {
         "id": "207",
@@ -7431,12 +7431,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 3, 3.3, 3.4. SessionStart hook (matchers startup|resume|clear|compact, main sessions only — no SubagentStart) + aegis brief --inject with the 8k-char budget (10k hook hard cap), the decided degradation order (repo_hygiene first; never drop repo_pose/delivery_state/verification_ledger/task_truth/open_loops/decisions_pending_owner), aegis brief --check as the only over-budget-fails mode, 1500ms total network budget with ~800ms gh timeout rendering STALE-recheck plus cached last-success, falsifier stamping (session_begin + capsule_on/off only; metric computed retrospectively from ledger), injection-safety contract (claim+citation schema, DATA-not-instructions wrapper label, distiller span exclusion). Fallbacks: UserPromptSubmit additionalContext; plain file at .aegis/capsule/current.md referenced from CLAUDE.md/AGENTS.md. First user-visible capsule. Merge gate: acceptance section 8 items 1-4 and 6. Requires install --apply run in target repos.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "206"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T19:10:35.081Z"
       },
       {
         "id": "208",
@@ -7480,9 +7481,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T18:44:54.081Z",
+      "lastModified": "2026-06-10T19:10:35.081Z",
       "taskCount": 209,
-      "completedCount": 192,
+      "completedCount": 193,
       "tags": [
         "master"
       ]

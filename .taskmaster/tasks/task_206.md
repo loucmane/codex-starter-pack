@@ -2,7 +2,7 @@
 
 **Title:** Capsule PR-2a: computed aegis brief
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 205 ✓
 

@@ -2480,6 +2480,71 @@ def ledger_record() -> int:
     return 0
 
 
+def _load_brief_lib_module():
+    script = Path(__file__).resolve().parent / "brief_lib.py"
+    if not script.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("_gate_brief_lib", script)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def session_start_hook() -> int:
+    """Capsule PR-2b: stamp session_begin with the capsule on/off flag (falsifier
+    instrumentation) and, when on, inject the computed capsule via stdout.
+
+    SessionStart is synchronous on purpose — stdout enters model context. The stamp
+    and the injection are independent best-effort paths; nothing here may fail the
+    hook or block a session start.
+    """
+
+    try:
+        raw = sys.stdin.read()
+    except Exception:  # noqa: BLE001
+        raw = ""
+    root = project_root()
+    brief_lib = _load_brief_lib_module()
+    injected = bool(brief_lib and brief_lib.injection_enabled(root))
+    try:
+        data = json.loads(raw or "{}")
+        if not isinstance(data, dict):
+            data = {}
+        ledger_lib = _load_ledger_lib_module()
+        if ledger_lib is not None:
+            ledger = ledger_lib.open_ledger(cwd=root)
+            try:
+                ledger.append(
+                    {
+                        "session_id": data.get("session_id"),
+                        "branch": _record_branch(str(root)),
+                        "cwd": data.get("cwd"),
+                        "event_type": "session_begin",
+                        "extra": {
+                            "hook_event_name": "SessionStart",
+                            "source": data.get("source"),
+                            "capsule_injected": injected,
+                        },
+                    }
+                )
+            finally:
+                ledger.close()
+    except Exception:  # noqa: BLE001 - the falsifier stamp is best-effort.
+        pass
+    if not injected or brief_lib is None:
+        return 0
+    try:
+        capsule = brief_lib.compile_capsule(root)
+        text, _dropped = brief_lib.render_injection(capsule)
+        brief_lib.write_capsule(root, capsule, brief_lib.render_markdown(capsule))
+        print(text)
+    except Exception:  # noqa: BLE001 - injection must never block a session start.
+        return 0
+    return 0
+
+
 def stop_gate() -> int:
     root = project_root()
     pending_events = pending_tracking_events(root)
@@ -2642,7 +2707,9 @@ def main() -> int:
         return bash_guard()
     if command == "configchange":
         return config_change_guard()
-    if command in {"record", "posttoolusefailure", "sessionstart", "sessionend"}:
+    if command == "sessionstart":
+        return session_start_hook()
+    if command in {"record", "posttoolusefailure", "sessionend"}:
         return ledger_record()
     print(f"unknown gate command: {command}", file=sys.stderr)
     return 1

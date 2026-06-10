@@ -11,3 +11,4 @@
   falsifier stamping, matchers, fallbacks. First user-visible capsule.
 - HP-Coach rollout note: once 1b-2a are installed there and its brief.json seeded, the
   negative-space probe (worker x lint NO RUN ON RECORD) becomes demonstrable.
+- Archived on 2026-06-10 21:10 CEST — Folder moved to archive and tracker marked COMPLETED.
