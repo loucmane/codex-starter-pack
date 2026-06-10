@@ -8,3 +8,4 @@
 ## Next Steps
 - Push, PR, CI, owner merge approval. Then #197 (size budgets) or #201 (break-glass)
   remain as the last ungated Phase-0 tasks.
+- Archived on 2026-06-11 00:53 CEST — Folder moved to archive and tracker marked COMPLETED.
