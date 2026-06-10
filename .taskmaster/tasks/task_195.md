@@ -2,7 +2,7 @@
 
 **Title:** Aegis vNext Phase 0 replay harness
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 194 ✓
 
