@@ -36,6 +36,13 @@ def write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def read_gate_decisions(repo: Path) -> list[dict[str, object]]:
+    path = repo / ".aegis" / "reports" / "gate-decisions.jsonl"
+    if not path.is_file():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
 def payload(tool_name: str, **tool_input: object) -> str:
     return json.dumps({"tool_name": tool_name, "tool_input": tool_input})
 
@@ -141,6 +148,34 @@ def test_pretooluse_blocks_file_write_when_readiness_blocked(tmp_path: Path) -> 
     assert result.returncode == 2
     assert "readiness is BLOCKED" in result.stderr
     assert "branch 'feature/no-task' does not contain a task ID" in result.stderr
+
+
+def test_pretooluse_advisory_records_would_block_without_blocking(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+    write(
+        repo / ".aegis" / "state" / "enforcement.json",
+        json.dumps(
+            {
+                "mode": "advisory",
+                "set_at": "2026-06-10T10:00:00Z",
+                "set_by": "test",
+                "reason": "regression test",
+            }
+        ),
+    )
+
+    result = run_gate(PRETOOLUSE, repo, payload("Write", file_path="README.md"))
+
+    assert result.returncode == 0
+    assert "ADVISORY | pretooluse would have blocked" in result.stderr
+    decisions = read_gate_decisions(repo)
+    assert len(decisions) == 1
+    assert decisions[0]["hook"] == "pretooluse"
+    assert decisions[0]["tool_name"] == "Write"
+    assert decisions[0]["verdict"] == "would_block"
+    assert decisions[0]["reason"] == "readiness_blocked"
+    assert decisions[0]["mode"] == "advisory"
+    assert "branch 'feature/no-task' does not contain a task ID" in str(decisions[0]["readiness_state"])
 
 
 def test_pretooluse_allows_read_only_bash_when_readiness_blocked(tmp_path: Path) -> None:
@@ -281,6 +316,32 @@ def test_pretooluse_allows_aegis_mcp_repair_apply_when_readiness_blocked(tmp_pat
     assert result.stderr == ""
 
 
+def test_pretooluse_allows_aegis_enforce_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="./.aegis/bin/aegis enforce --mode advisory --reason pause"),
+    )
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
+def test_pretooluse_blocks_compounded_aegis_enforce_when_readiness_blocked(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(
+        PRETOOLUSE,
+        repo,
+        payload("Bash", command="./.aegis/bin/aegis enforce --mode advisory && touch state.txt"),
+    )
+
+    assert result.returncode == 2
+    assert "readiness is BLOCKED" in result.stderr
+
+
 def test_pretooluse_blocks_compounded_aegis_repair_apply_when_readiness_blocked(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, ready=False)
 
@@ -396,6 +457,70 @@ def test_pretooluse_degraded_fails_closed_for_mutation_when_gate_infra_crashes(
     captured = capsys.readouterr()
     assert "fails closed" in captured.err
     assert not (repo / ".aegis" / "state" / "degraded-events.json").exists()
+
+
+def test_stop_gate_advisory_records_would_block_without_blocking(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "enforcement.json",
+        json.dumps(
+            {
+                "mode": "advisory",
+                "set_at": "2026-06-10T10:00:00Z",
+                "set_by": "test",
+                "reason": "regression test",
+            }
+        ),
+    )
+    write(
+        repo / ".aegis" / "state" / "pending-tracking.json",
+        json.dumps({"events": [{"id": "pending-1", "handler": "bash:touch", "evidence": "cmd`touch x`"}]}),
+    )
+
+    result = run(["bash", str(REPO_ROOT / ".claude" / "scripts" / "tracking-stop-gate.sh")], repo, env=gate_env(repo))
+
+    assert result.returncode == 0
+    assert "ADVISORY | stop would have blocked" in result.stderr
+    decisions = read_gate_decisions(repo)
+    assert decisions[-1]["hook"] == "stop"
+    assert decisions[-1]["verdict"] == "would_block"
+    assert decisions[-1]["reason"] == "pending_tracking"
+    assert decisions[-1]["mode"] == "advisory"
+
+
+def test_posttooluse_tags_pending_tracking_with_enforcement_mode(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "current-work.json",
+        json.dumps(
+            {
+                "status": "in-progress",
+                "task": {"id": "103", "slug": "claude-runtime-adapter"},
+            }
+        ),
+    )
+    write(
+        repo / ".aegis" / "state" / "enforcement.json",
+        json.dumps(
+            {
+                "mode": "advisory",
+                "set_at": "2026-06-10T10:00:00Z",
+                "set_by": "test",
+                "reason": "regression test",
+            }
+        ),
+    )
+
+    result = run(
+        ["bash", str(POSTTOOLUSE)],
+        repo,
+        input_text=payload("Bash", command="touch state.txt"),
+        env=gate_env(repo),
+    )
+
+    assert result.returncode == 0
+    pending = json.loads((repo / ".aegis" / "state" / "pending-tracking.json").read_text(encoding="utf-8"))
+    assert pending["events"][0]["mode"] == "advisory"
 
 
 @pytest.mark.parametrize(

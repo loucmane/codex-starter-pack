@@ -135,6 +135,24 @@ def handle_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_enforce(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        if args.mode:
+            payload = _aegis_installer.enforce_mode(
+                args.target_dir,
+                source_root=source_root,
+                mode=args.mode,
+                reason=args.reason or "",
+            )
+        else:
+            payload = _aegis_installer.enforcement_status(
+                args.target_dir,
+                source_root=source_root,
+            )
+    _dump_json(payload)
+    return 0
+
+
 def handle_reconcile(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.reconcile(
@@ -706,6 +724,29 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Print the full structured doctor report instead of a concise summary.",
     )
     doctor_parser.set_defaults(func=handle_doctor)
+
+    enforce_parser = subparsers.add_parser(
+        "enforce",
+        help="Inspect or set Aegis enforcement mode for installed hooks.",
+    )
+    enforce_parser.add_argument(
+        "enforce_subcommand",
+        nargs="?",
+        choices=("status",),
+        help="Use 'status' to inspect enforcement mode. Omitted with --mode sets the mode.",
+    )
+    enforce_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    enforce_parser.add_argument(
+        "--mode",
+        choices=sorted(_aegis_installer.AEGIS_ENFORCEMENT_MODES),
+        help="Set enforcement mode. File absent remains strict by default.",
+    )
+    enforce_parser.add_argument(
+        "--reason",
+        default="",
+        help="Reason recorded when setting enforcement mode.",
+    )
+    enforce_parser.set_defaults(func=handle_enforce)
 
     reconcile_parser = subparsers.add_parser(
         "reconcile",

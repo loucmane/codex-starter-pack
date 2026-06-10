@@ -29,11 +29,14 @@ from aegis_foundation import mcp_registration
 from _repo_structure import DEFAULT_REPO_STRUCTURE, RepoStructure, load_repo_structure
 from _aegis_installer import (
     AEGIS_LOG_SURFACES,
+    AEGIS_ENFORCEMENT_MODES,
     AEGIS_PLAN_STATUS_CHOICES,
     AegisError,
     certify_release_candidate as aegis_certify_release_candidate,
     closeout as aegis_closeout,
     doctor as aegis_doctor,
+    enforce_mode as aegis_enforce_mode,
+    enforcement_status as aegis_enforcement_status,
     explain_profile as aegis_explain_profile,
     format_closeout_summary as aegis_format_closeout_summary,
     format_doctor_summary as aegis_format_doctor_summary,
@@ -780,6 +783,22 @@ def handle_aegis_doctor(args: argparse.Namespace) -> None:
         print(aegis_format_doctor_summary(payload), end="")
     if payload.get("status") == "failed":
         raise TaskError("Aegis doctor found required failures")
+
+
+def handle_aegis_enforce(args: argparse.Namespace) -> None:
+    try:
+        if args.mode:
+            payload = aegis_enforce_mode(
+                args.target_dir,
+                source_root=REPO_ROOT,
+                mode=args.mode,
+                reason=args.reason or "",
+            )
+        else:
+            payload = aegis_enforcement_status(args.target_dir, source_root=REPO_ROOT)
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
 
 
 def handle_aegis_reconcile(args: argparse.Namespace) -> None:
@@ -18361,6 +18380,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the full structured doctor report instead of the concise summary",
     )
     aegis_doctor_parser.set_defaults(func=handle_aegis_doctor)
+
+    aegis_enforce_parser = aegis_sub.add_parser(
+        "enforce",
+        help="Inspect or set Aegis enforcement mode for installed hooks",
+    )
+    aegis_enforce_parser.add_argument(
+        "enforce_subcommand",
+        nargs="?",
+        choices=("status",),
+        help="Use 'status' to inspect enforcement mode. Omitted with --mode sets the mode.",
+    )
+    aegis_enforce_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_enforce_parser.add_argument(
+        "--mode",
+        choices=sorted(AEGIS_ENFORCEMENT_MODES),
+        help="Set enforcement mode. File absent remains strict by default.",
+    )
+    aegis_enforce_parser.add_argument(
+        "--reason",
+        default="",
+        help="Reason recorded when setting enforcement mode.",
+    )
+    aegis_enforce_parser.set_defaults(func=handle_aegis_enforce)
 
     aegis_reconcile_parser = aegis_sub.add_parser(
         "reconcile",
