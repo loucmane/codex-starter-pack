@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the PR-1b boundary from AEGIS_CAPSULE_SPEC.md sections 1.1, 1.2, and 2: the five touchpoints, recorder design (one gate_lib record command, always-exit-0), event classification, payload-fixture prerequisite, hygiene rider, out-of-scope list | docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/designs/record-hooks-scope.md | completed |
-| plan-step-implement | Capture live hook payload fixtures, then implement ledger-record.sh, gate_lib record routing, exec-form async settings entries, aegis hook dispatcher additions, manifest managed_files, recorder classification (mutation/tool_failure/delivery/task_truth), and the .gitignore hygiene rider | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Run fixture-driven recorder tests + renderer/dispatcher/manifest tests + full suite and guard stack; store evidence under reports/capsule-record-hooks/ and refresh handoff | docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Capture live hook payload fixtures, then implement ledger-record.sh, gate_lib record routing, exec-form async settings entries, aegis hook dispatcher additions, manifest managed_files, recorder classification (mutation/tool_failure/delivery/task_truth), and the .gitignore hygiene rider | aegis_foundation/assets/.claude/scripts/ledger-record.sh; tests/fixtures/hook_payloads/PostToolUse.jsonl; docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Run fixture-driven recorder tests + renderer/dispatcher/manifest tests + full suite and guard stack; store evidence under reports/capsule-record-hooks/ and refresh handoff | docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/reports/capsule-record-hooks/tests-2026-06-10-final.txt; docs/ai/work-tracking/active/20260610-task203-capsule-record-hooks-ACTIVE/HANDOFF.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -47,6 +47,7 @@ emergency_bypass: false
 
 ## Amendments & Versioning
 - 2026-06-10 - Task 203 kickoff created via the guided wizard flow.
+- 2026-06-10 - Implementation amendment: exec-form hook args directive replaced with shell-form + async after a live probe showed $CLAUDE_PROJECT_DIR is not expanded in exec-form args (CLI 2.1.170); spec-revision note filed.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

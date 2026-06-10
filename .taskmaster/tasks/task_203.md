@@ -2,9 +2,9 @@
 
 **Title:** Capsule PR-1b: async record hooks
 
-**Status:** pending
+**Status:** in-progress
 
-**Dependencies:** 202 ⧖
+**Dependencies:** 202 ✓
 
 **Priority:** high
 

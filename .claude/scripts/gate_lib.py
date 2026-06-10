@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
@@ -2085,6 +2086,136 @@ def posttooluse_tracking() -> int:
     return 0
 
 
+DELIVERY_COMMAND_RE = re.compile(
+    r"(^|[;&|]\s*)(git\s+push\b|gh\s+pr\s+(create|merge|ready)\b)",
+    re.IGNORECASE,
+)
+TASKMASTER_TASKS_JSON_SUFFIX = ".taskmaster/tasks/tasks.json"
+
+
+def _load_ledger_lib_module():
+    script = Path(__file__).resolve().parent / "ledger_lib.py"
+    if not script.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("_gate_ledger_lib", script)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _record_branch(cwd: str | None) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=cwd or None,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    branch = result.stdout.strip()
+    return branch or None
+
+
+def _classify_record_event(data: dict[str, Any], payload: Payload | None, paths: list[str]) -> str:
+    hook_event = str(data.get("hook_event_name") or "")
+    if hook_event == "PostToolUseFailure":
+        return "tool_failure"
+    if hook_event == "SessionStart":
+        return "session_begin"
+    if hook_event == "SessionEnd":
+        return "session_end"
+    if payload is not None and payload.tool_name == "Bash":
+        command = bash_command(payload)
+        if DELIVERY_COMMAND_RE.search(command):
+            return "delivery"
+        if MUTATING_TASKMASTER_RE.search(command):
+            return "task_truth"
+    if any(path.endswith(TASKMASTER_TASKS_JSON_SUFFIX) for path in paths):
+        return "task_truth"
+    if hook_event == "PostToolUse":
+        return "mutation"
+    return "unknown"
+
+
+def ledger_record() -> int:
+    """Append one passive ledger event for a hook payload (capsule PR-1b).
+
+    The recorder must NEVER block, fail, or slow the session: every error path
+    degrades to exit 0. It runs as an async hook, so nothing it prints or returns
+    can influence tool behavior by design.
+    """
+
+    try:
+        raw = sys.stdin.read()
+        data = json.loads(raw or "{}")
+        if not isinstance(data, dict):
+            return 0
+        ledger_lib = _load_ledger_lib_module()
+        if ledger_lib is None:
+            return 0
+        root = project_root()
+        tool_name = data.get("tool_name")
+        tool_input = data.get("tool_input")
+        payload = (
+            Payload(str(tool_name), dict(tool_input))
+            if isinstance(tool_name, str) and isinstance(tool_input, dict)
+            else None
+        )
+        paths = file_paths_from_payload(payload, root) if payload is not None else []
+        tool_response = data.get("tool_response") if isinstance(data.get("tool_response"), dict) else {}
+        hook_event = str(data.get("hook_event_name") or "")
+        if hook_event == "PostToolUseFailure":
+            outcome = "fail"
+        elif tool_response.get("interrupted") is True:
+            outcome = "interrupted"
+        elif hook_event == "PostToolUse":
+            outcome = "pass"
+        else:
+            outcome = "unknown"
+        extra: dict[str, Any] = {
+            "hook_event_name": hook_event or None,
+            "tool_use_id": data.get("tool_use_id"),
+            "permission_mode": data.get("permission_mode"),
+            "transcript_path": data.get("transcript_path"),
+            "error": data.get("error"),
+            "source": data.get("source"),
+            "reason": data.get("reason"),
+        }
+        if payload is not None:
+            extra["is_mutation"] = payload_is_mutation(payload)
+            if payload.tool_name == "Bash":
+                extra["command"] = bash_command(payload)
+        event = {
+            "session_id": data.get("session_id"),
+            "branch": _record_branch(data.get("cwd") if isinstance(data.get("cwd"), str) else None),
+            "cwd": data.get("cwd"),
+            "event_type": _classify_record_event(data, payload, paths),
+            "tool_name": tool_name if isinstance(tool_name, str) else None,
+            "handler": payload_handler(payload) if payload is not None else None,
+            "paths": paths,
+            "outcome": outcome,
+            "exit_class": outcome,
+            "duration_ms": data.get("duration_ms"),
+            "agent_id": data.get("agent_id"),
+            "agent_type": data.get("agent_type"),
+            "payload_digest": payload_digest(payload) if payload is not None else None,
+            "extra": {key: value for key, value in extra.items() if value is not None},
+        }
+        ledger = ledger_lib.open_ledger(cwd=root)
+        try:
+            ledger.append(event)
+        finally:
+            ledger.close()
+    except Exception:  # noqa: BLE001 - the recorder must never break a session.
+        return 0
+    return 0
+
+
 def stop_gate() -> int:
     root = project_root()
     pending_events = pending_tracking_events(root)
@@ -2247,6 +2378,8 @@ def main() -> int:
         return bash_guard()
     if command == "configchange":
         return config_change_guard()
+    if command in {"record", "posttoolusefailure", "sessionstart", "sessionend"}:
+        return ledger_record()
     print(f"unknown gate command: {command}", file=sys.stderr)
     return 1
 

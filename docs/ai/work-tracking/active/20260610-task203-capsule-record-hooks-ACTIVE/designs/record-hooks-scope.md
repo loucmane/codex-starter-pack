@@ -7,10 +7,14 @@ the PR-1a ledger core (task 202, merged as 3b45955).
 
 1. **Settings renderer** (`_render_claude_settings()` in `scripts/_aegis_installer.py`,
    both copies): NEW parallel hook entries — `PostToolUse` + `PostToolUseFailure` →
-   `ledger-record.sh`, rendered **exec-form** (`command` + `args`, ≥2.1.139 pattern, new
-   for the installer) with `async: true` so recording can never block or slow a tool
-   call. Existing synchronous entries (pretooluse-gate, posttooluse-tracking,
-   tracking-stop-gate) are UNTOUCHED — retirement is PR-4.
+   `ledger-record.sh` with `async: true` so recording can never block or slow a tool
+   call. **AMENDED during implementation:** the spec's exec-form (`command` + `args`)
+   directive failed its own payload reality check — a live probe (CLI 2.1.170,
+   2026-06-10) showed `$CLAUDE_PROJECT_DIR` is NOT expanded in exec-form `args` (the
+   exec-form hook never fired; shell-form fired). Shipped shell-form + async; async is
+   the load-bearing property. Spec-revision note filed. Existing synchronous entries
+   (pretooluse-gate, posttooluse-tracking, tracking-stop-gate) are UNTOUCHED —
+   retirement is PR-4.
 2. **New bootstrap script** `assets/.claude/scripts/ledger-record.sh` following the
    existing asset pattern (exec `python3 "$SCRIPT_DIR/gate_lib.py" record`).
 3. **`aegis hook` dispatcher** (`aegis_foundation/cli.py` choices tuple): add
