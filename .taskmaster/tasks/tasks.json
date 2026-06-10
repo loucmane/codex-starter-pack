@@ -7363,11 +7363,11 @@
         "description": "Phase 1 of the Session Zero Capsule program per docs/aegis/AEGIS_CAPSULE_SPEC.md. Covers: (1) committing the capsule spec atomically with the AEGIS_VNEXT_PROGRAM.md pointer/G3 update; (2) wiring the nine-PR backlog and reconciling tasks 194-201; (3) PR-1a per spec section 2: assets ledger_lib.py (stdlib-only) with SQLite open/append/read at the XDG state-dir store path, WAL+busy_timeout, redaction helpers, backend-agnostic reader with JSONL fallback, docs/aegis/LEDGER_SCHEMA.md, aegis ledger path + status surfacing, unit tests. No hook registration; zero behavior change.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T15:50:35.765Z"
+        "updatedAt": "2026-06-10T16:42:39.158Z"
       },
       {
         "id": "203",
@@ -7375,12 +7375,13 @@
         "description": "Spec: docs/aegis/AEGIS_CAPSULE_SPEC.md sections 1.1, 1.2, 2. Wire PostToolUse AND PostToolUseFailure recording through the installer and rendered assets as a NEW parallel async:true hook entry (existing posttooluse-tracking.sh untouched until PR-4): basic events only (ts, session_id, cwd, branch, tool_name, normalized paths, outcome class, duration_ms, agent_id/agent_type), plus delivery events (git push / gh pr create / merge; branch-to-PR mapping) and task-truth events (tasks.json writes / task-master commands). Prerequisite: capture real hook payload fixtures from a live session under tests/fixtures/hook_payloads/ and test graceful degradation (missing field = null, never crash). Touch all five coordinated points from spec 1.1 (settings renderer, bootstrap script, cli.py hook choices incl. posttoolusefailure/sessionstart/sessionend, gate_lib routing, manifest hashes) using exec-form args. Includes the .gitignore hygiene rider on install/upgrade. Requires aegis plan-install + aegis install --apply in target repos. Together with task 202 this supersedes Phase-0 task 198 (passive ledger spike) and absorbs task 196's delivery-event capture. Merge gate: live HP-Coach events appear, nothing blocks.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "202"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T16:42:54.468Z"
       },
       {
         "id": "204",
@@ -7476,9 +7477,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T16:00:20.144Z",
+      "lastModified": "2026-06-10T16:42:54.469Z",
       "taskCount": 209,
-      "completedCount": 188,
+      "completedCount": 189,
       "tags": [
         "master"
       ]

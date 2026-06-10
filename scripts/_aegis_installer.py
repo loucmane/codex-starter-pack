@@ -121,6 +121,11 @@ CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
 CLAUDE_PRETOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
 CLAUDE_POSTTOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
 CLAUDE_STOP_TRACKING_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
+# Capsule PR-1b recorder: async so it can never block or slow a tool call. Shell-form
+# command on purpose: live probe (2026-06-10) showed $CLAUDE_PROJECT_DIR is NOT expanded
+# in exec-form args on CLI 2.1.170, so the spec section 1.1 exec-form directive fails its
+# own payload reality check; async is the load-bearing property.
+CLAUDE_LEDGER_RECORD_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/ledger-record.sh"
 CLAUDE_REQUIRED_FILES = (
     "CLAUDE.md",
     ".claude/settings.json",
@@ -130,8 +135,12 @@ CLAUDE_REQUIRED_FILES = (
     ".claude/scripts/tracking-stop-gate.sh",
     ".claude/scripts/bash-command-guard.sh",
     ".claude/scripts/codex-path-guard.sh",
+    ".claude/scripts/ledger-record.sh",
 )
-CLAUDE_SUPPORT_FILES = (".claude/scripts/gate_lib.py",)
+CLAUDE_SUPPORT_FILES = (
+    ".claude/scripts/gate_lib.py",
+    ".claude/scripts/ledger_lib.py",
+)
 CLAUDE_GATE_IDS = (
     "claude.readiness",
     "claude.pretooluse",
@@ -162,6 +171,7 @@ CLAUDE_RUNTIME_HOOK_PHASES = {
     ".claude/scripts/tracking-stop-gate.sh": "stop",
     ".claude/scripts/bash-command-guard.sh": "bash",
     ".claude/scripts/codex-path-guard.sh": "path",
+    ".claude/scripts/ledger-record.sh": "record",
 }
 SHARED_SCHEMA_FILES = (
     "schemas/aegis/foundation-manifest.schema.json",
@@ -575,6 +585,28 @@ def _render_claude_settings() -> bytes:
                         {
                             "type": "command",
                             "command": CLAUDE_POSTTOOLUSE_COMMAND,
+                        }
+                    ],
+                },
+                {
+                    "matcher": CLAUDE_PRETOOLUSE_MATCHER,
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": CLAUDE_LEDGER_RECORD_COMMAND,
+                            "async": True,
+                        }
+                    ],
+                },
+            ],
+            "PostToolUseFailure": [
+                {
+                    "matcher": CLAUDE_PRETOOLUSE_MATCHER,
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": CLAUDE_LEDGER_RECORD_COMMAND,
+                            "async": True,
                         }
                     ],
                 }
@@ -1421,6 +1453,7 @@ def runtime_update(
         "operations": operations,
         "reinstall_required": False,
         "reinstall_required_for": runtime["reinstall_required_for"],
+        "hygiene": gitignore_hygiene_report(target_root),
     }
     if not apply:
         return report
@@ -3071,6 +3104,75 @@ def plan_install(
     }
     _validate_with_schema(source, "install-plan.schema.json", payload)
     return payload
+
+
+AEGIS_HYGIENE_SIZE_THRESHOLD_BYTES = 5 * 1024 * 1024
+AEGIS_GITIGNORE_OUTPUT_PREFIXES = (".aegis/reports/", ".aegis/state/", ".aegis/capsule/")
+
+
+def _path_is_git_ignored(target_root: Path, rel_path: str) -> bool:
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", rel_path],
+            cwd=str(target_root),
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def gitignore_hygiene_report(target_root: Path) -> dict[str, Any]:
+    """Capsule PR-1b hygiene rider: warn when Aegis output paths are commit-capable.
+
+    Motivating incident: a 36 MB .aegis/reports/observation-report.json one
+    `git add -A` away from a repo. Warn-only — install/upgrade never fail on hygiene.
+    """
+
+    warnings: list[str] = []
+    gitignore = target_root / ".gitignore"
+    lines: set[str] = set()
+    if gitignore.is_file():
+        try:
+            lines = {
+                line.strip()
+                for line in gitignore.read_text(encoding="utf-8").splitlines()
+                if line.strip() and not line.strip().startswith("#")
+            }
+        except OSError:
+            lines = set()
+    aegis_covered = bool({".aegis/", ".aegis", ".aegis/**"} & lines)
+    uncovered = []
+    for prefix in AEGIS_GITIGNORE_OUTPUT_PREFIXES:
+        if aegis_covered or prefix in lines or prefix.rstrip("/") in lines:
+            continue
+        uncovered.append(prefix)
+        warnings.append(f".gitignore does not cover Aegis output path {prefix}")
+    oversized: list[dict[str, Any]] = []
+    aegis_dir = target_root / ".aegis"
+    if aegis_dir.is_dir():
+        for path in sorted(aegis_dir.rglob("*")):
+            try:
+                if not path.is_file() or path.stat().st_size < AEGIS_HYGIENE_SIZE_THRESHOLD_BYTES:
+                    continue
+            except OSError:
+                continue
+            rel = path.relative_to(target_root).as_posix()
+            if _path_is_git_ignored(target_root, rel):
+                continue
+            size = path.stat().st_size
+            oversized.append({"path": rel, "size_bytes": size})
+            warnings.append(
+                f"unignored Aegis-generated file exceeds {AEGIS_HYGIENE_SIZE_THRESHOLD_BYTES} bytes: {rel} ({size} bytes)"
+            )
+    return {
+        "gitignore_covers_aegis_output": not uncovered,
+        "uncovered_prefixes": uncovered,
+        "oversized_unignored": oversized,
+        "warnings": warnings,
+    }
 
 
 def _unsafe_operations(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -6729,6 +6831,7 @@ def install(
             "plan": plan,
             "manifest_path": AEGIS_MANIFEST_REL,
             "client_reload": client_reload,
+            "hygiene": gitignore_hygiene_report(target_root),
         }
         (target_root / AEGIS_INSTALL_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
         return report

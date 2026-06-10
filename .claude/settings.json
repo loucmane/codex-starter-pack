@@ -86,6 +86,28 @@
             "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
           }
         ]
+      },
+      {
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/ledger-record.sh",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/scripts/ledger-record.sh",
+            "async": true
+          }
+        ]
       }
     ],
     "Stop": [

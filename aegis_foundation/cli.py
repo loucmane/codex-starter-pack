@@ -1050,7 +1050,19 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     hook_parser.add_argument(
         "phase",
-        choices=("pretooluse", "posttooluse", "stop", "path", "bash", "configchange", "readiness"),
+        choices=(
+            "pretooluse",
+            "posttooluse",
+            "stop",
+            "path",
+            "bash",
+            "configchange",
+            "readiness",
+            "record",
+            "posttoolusefailure",
+            "sessionstart",
+            "sessionend",
+        ),
         help="Hook phase to execute from the active runtime source.",
     )
     hook_parser.add_argument("hook_args", nargs=argparse.REMAINDER)

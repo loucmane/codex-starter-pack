@@ -23,3 +23,4 @@
 - Spec-revision notes from this implementation are listed in the session report
   (dual-copy mirror requirement; gate read-only classification for ledger path;
   generate-one friction).
+- Archived on 2026-06-10 18:42 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -9,3 +9,4 @@
 - 2026-06-10 18:25 CEST — Built PR-1a: ledger_lib.py (assets + live mirror),
   docs/aegis/LEDGER_SCHEMA.md, aegis ledger path + status ledger block, read-only gate
   classification for ledger path, and a 29-test suite covering both backends.
+- 2026-06-10 18:42 CEST — Archived active work-tracking folder.
