@@ -132,6 +132,27 @@ def _load_brief_lib(source_root: Path):
     return module
 
 
+def _load_witness_lib(source_root: Path):
+    script = source_root / ".claude" / "scripts" / "witness_lib.py"
+    spec = importlib.util.spec_from_file_location("_aegis_cli_witness_lib", script)
+    if spec is None or spec.loader is None:
+        raise _aegis_installer.AegisError(f"unable to load witness_lib from {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def handle_witness(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        witness_lib = _load_witness_lib(source_root)
+        report = witness_lib.run_witness(args.target_dir, base=args.base, ci_mode=args.ci)
+        if args.json:
+            _dump_json(report)
+        else:
+            print(witness_lib.render_report(report), end="")
+        return 0 if report.get("passed") else 1
+
+
 def handle_brief(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         brief_lib = _load_brief_lib(source_root)
@@ -800,6 +821,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
+
+    witness_parser = subparsers.add_parser(
+        "witness",
+        help="Run the deterministic delivery witness (boundary check; zero LLM).",
+    )
+    witness_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    witness_parser.add_argument("--base", default=None, help="Base ref for the diff (default: origin/main).")
+    witness_parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    witness_parser.add_argument(
+        "--ci",
+        action="store_true",
+        help="CI mode: git-derivable checks only; ledger checks reported not_derivable_in_ci.",
+    )
+    witness_parser.set_defaults(func=handle_witness)
 
     brief_parser = subparsers.add_parser(
         "brief",

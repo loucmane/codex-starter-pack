@@ -11,3 +11,4 @@
   A/B falsifier window (spec section 7) can start counting wherever 2b is installed.
 - Then PR-3 (task 208, narration) — spec gates it on the computed capsule proving
   useful; the falsifier window informs that call. PR-3.5 (witness) follows.
+- Archived on 2026-06-10 21:34 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -7431,13 +7431,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 3, 3.3, 3.4. SessionStart hook (matchers startup|resume|clear|compact, main sessions only — no SubagentStart) + aegis brief --inject with the 8k-char budget (10k hook hard cap), the decided degradation order (repo_hygiene first; never drop repo_pose/delivery_state/verification_ledger/task_truth/open_loops/decisions_pending_owner), aegis brief --check as the only over-budget-fails mode, 1500ms total network budget with ~800ms gh timeout rendering STALE-recheck plus cached last-success, falsifier stamping (session_begin + capsule_on/off only; metric computed retrospectively from ledger), injection-safety contract (claim+citation schema, DATA-not-instructions wrapper label, distiller span exclusion). Fallbacks: UserPromptSubmit additionalContext; plain file at .aegis/capsule/current.md referenced from CLAUDE.md/AGENTS.md. First user-visible capsule. Merge gate: acceptance section 8 items 1-4 and 6. Requires install --apply run in target repos.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "206"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T19:10:35.081Z"
+        "updatedAt": "2026-06-10T19:34:40.724Z"
       },
       {
         "id": "208",
@@ -7458,12 +7458,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md section 5.1. Deterministic, zero-LLM boundary check computed from ledger + git + section 2.1 scope records, exposed as aegis witness and wired as a REQUIRED GitHub check under branch protection (required-check status is the enforcement — this repo-class auto-merge labels would silently bypass a non-required check). Checks: (1) branch maps to scope record/task; (2) every diff file accounted for by scope path globs, test deletions/weakenings escalate to human review (the G5 diff-accounting gate pulled forward); (3) scope verification gates have pass runs on record at/after head commit; (4) any task flipped done has a containing commit on the branch; (5) CI green via native required checks. Output is the generated delivery report, replacing the old hand-fed closeout entirely — this absorbs Phase-0 task 196's deliver-report scope (durable push/PR/CI/approval/merge evidence). The teeth move here BEFORE anything is retired. Merge gate: runs as a required check on a real PR; zero LLM.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
-          "208"
+          "207"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T19:34:49.058Z"
       },
       {
         "id": "210",
@@ -7481,9 +7482,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T19:10:35.081Z",
+      "lastModified": "2026-06-10T19:34:49.059Z",
       "taskCount": 209,
-      "completedCount": 193,
+      "completedCount": 194,
       "tags": [
         "master"
       ]

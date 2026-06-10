@@ -145,6 +145,7 @@ CLAUDE_SUPPORT_FILES = (
     ".claude/scripts/gate_lib.py",
     ".claude/scripts/ledger_lib.py",
     ".claude/scripts/brief_lib.py",
+    ".claude/scripts/witness_lib.py",
 )
 CLAUDE_GATE_IDS = (
     "claude.readiness",
