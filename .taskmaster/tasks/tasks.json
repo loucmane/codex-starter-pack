@@ -7389,13 +7389,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md section 2 (gate-decisions migration, decided). Dual-write new advisory gate decisions to both the existing .aegis/reports/gate-decisions.jsonl and the ledger for one release; then freeze the JSONL read-only in place. Never migrate history. aegis enforce status and existing tests keep reading what they read today. Ties directly to the PR #199 advisory machinery (gate_block_or_record / append_gate_decision). Merge gate: old-vs-new parity on live decisions.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "203"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T17:27:20.067Z"
+        "updatedAt": "2026-06-10T18:15:27.739Z"
       },
       {
         "id": "205",
@@ -7403,12 +7403,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 2 and 2.1. New installed asset .aegis/brief.json holding {gates, thresholds, redact_extra, archive_keep}; gates map package-to-gate-to-command-patterns matched against normalized Bash commands — matching MUST handle cd-prefix, -C, and --dir invocation variants of the same logical command (pattern VALUES are per-repo config shipped via deployment docs, never hardcoded). Exit-class enum pass|fail|interrupted|unknown mapped exactly as specced (PostToolUse success = pass, PostToolUseFailure = fail, tool_response.interrupted = interrupted, else unknown; Bash tool_response has no documented exit-code field). Also implements section 2.1 scope records: inferred from branch name / in-progress task / PR body, recorded as a ledger event at first mutation on a new branch, with the single non-blocking aegis scope set confirmation nudge. Isolated on purpose: command normalization is the subtle, riskier part. Merge gate: fixture suite incl. cd-prefix/-C/--dir variants.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "204"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T18:15:30.521Z"
       },
       {
         "id": "206",
@@ -7478,9 +7479,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T17:27:20.068Z",
+      "lastModified": "2026-06-10T18:15:30.522Z",
       "taskCount": 209,
-      "completedCount": 190,
+      "completedCount": 191,
       "tags": [
         "master"
       ]
