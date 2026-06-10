@@ -62,6 +62,18 @@ AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_OBSERVATION_REPORT_REL = ".aegis/reports/observation-report.json"
+AEGIS_OBSERVATION_REPORT_DETAIL_REL = ".aegis/reports/observation-report-detail.json"
+AEGIS_OBSERVATION_BASELINE_REL = ".aegis/state/observation-baseline.json"
+# TM #197 size budgets: guidance payloads stay small; full enumerations live in linked
+# artifact files. Defaults are deliberately conservative; per-repo additions come from
+# brief.json {"observation": {"ignore_globs": [...], "sample_cap": N, "prefix_cap": N}}.
+DEFAULT_OBSERVATION_IGNORE_GLOBS = (
+    "**/.wrangler/**",
+    "**/node_modules/**",
+    "**/__pycache__/**",
+)
+OBSERVATION_SAMPLE_CAP_DEFAULT = 50
+OBSERVATION_PREFIX_CAP_DEFAULT = 20
 AEGIS_OBSERVATION_ARTIFACT_ROOT_REL = ".aegis/reports/observations"
 AEGIS_RELEASE_CERT_REPORT_REL = "reports/aegis-release-certification/certification-report.json"
 AEGIS_UNINSTALL_TRANSIENT_NOTE = (
@@ -4560,6 +4572,100 @@ def _status_line_matches_prefix(line: str, prefix: str) -> bool:
     return _rel_path_matches_prefix(_git_status_rel_path(line), prefix)
 
 
+def _observation_budget_config(target_root: Path) -> dict[str, Any]:
+    """TM #197: ignore globs + summarization budgets, extensible via brief.json."""
+
+    brief = _read_json(target_root / AEGIS_BRIEF_REL)
+    section = brief.get("observation") if isinstance(brief, Mapping) else None
+    section = section if isinstance(section, Mapping) else {}
+    extra_globs = section.get("ignore_globs")
+    globs = list(DEFAULT_OBSERVATION_IGNORE_GLOBS)
+    if isinstance(extra_globs, list):
+        globs.extend(str(glob) for glob in extra_globs if isinstance(glob, str))
+    def _int_or(value: Any, default: int) -> int:
+        try:
+            return max(1, int(value))
+        except (TypeError, ValueError):
+            return default
+    return {
+        "ignore_globs": globs,
+        "sample_cap": _int_or(section.get("sample_cap"), OBSERVATION_SAMPLE_CAP_DEFAULT),
+        "prefix_cap": _int_or(section.get("prefix_cap"), OBSERVATION_PREFIX_CAP_DEFAULT),
+    }
+
+
+def _observation_path_ignored(rel_path: str, ignore_globs: Sequence[str]) -> bool:
+    text = rel_path.rstrip("/")
+    return any(fnmatch.fnmatch(text, glob) or fnmatch.fnmatch(f"/{text}", glob) for glob in ignore_globs)
+
+
+def _filter_observation_status(
+    status_lines: Sequence[str], config: Mapping[str, Any]
+) -> tuple[list[str], int]:
+    """Drop runtime-noise paths (ignore globs) from a status snapshot; count them."""
+
+    kept: list[str] = []
+    ignored = 0
+    for line in status_lines:
+        rel = _git_status_rel_path(str(line).rstrip())
+        if rel and _observation_path_ignored(rel, config.get("ignore_globs", ())):
+            ignored += 1
+            continue
+        kept.append(str(line).rstrip())
+    return kept, ignored
+
+
+def _summarize_path_lines(lines: Sequence[str], config: Mapping[str, Any]) -> dict[str, Any]:
+    """Capped sample + counts by path prefix + truncation marker (TM #197)."""
+
+    sample_cap = int(config.get("sample_cap") or OBSERVATION_SAMPLE_CAP_DEFAULT)
+    prefix_cap = int(config.get("prefix_cap") or OBSERVATION_PREFIX_CAP_DEFAULT)
+    texts = [str(line).rstrip() for line in lines if str(line).strip()]
+    by_prefix: dict[str, int] = {}
+    for text in texts:
+        rel = _git_status_rel_path(text) or text
+        parts = rel.strip("/").split("/")
+        prefix = "/".join(parts[:2]) if len(parts) > 1 else parts[0]
+        by_prefix[prefix] = by_prefix.get(prefix, 0) + 1
+    top_prefixes = dict(sorted(by_prefix.items(), key=lambda item: -item[1])[:prefix_cap])
+    return {
+        "total": len(texts),
+        "sample": texts[:sample_cap],
+        "by_prefix": top_prefixes,
+        "prefixes_truncated": len(by_prefix) > prefix_cap,
+        "truncated": len(texts) > sample_cap,
+    }
+
+
+def _load_observation_baseline(target_root: Path, current_work: MutableMapping[str, Any]) -> None:
+    """Hydrate full baseline lists from the baseline artifact file (TM #197).
+
+    current-work.json carries only a baseline_ref + summary so guidance payloads stay
+    small; the comparison logic keeps reading the inline fields, which this loader
+    restores in memory. Legacy state with inline baselines is untouched.
+    """
+
+    observation = current_work.get("observation")
+    if not isinstance(observation, MutableMapping):
+        return
+    if observation.get("baseline_git_status") or observation.get("baseline_git_fingerprints"):
+        return
+    ref = observation.get("baseline_ref")
+    if not isinstance(ref, str) or not ref:
+        return
+    baseline = _read_json(target_root / ref)
+    if not isinstance(baseline, Mapping):
+        return
+    status = baseline.get("baseline_git_status")
+    fingerprints = baseline.get("baseline_git_fingerprints")
+    if isinstance(status, list):
+        observation["baseline_git_status"] = [str(line) for line in status]
+    if isinstance(fingerprints, Mapping):
+        observation["baseline_git_fingerprints"] = {
+            str(key): str(value) for key, value in fingerprints.items()
+        }
+
+
 def _observation_status_delta_lines(
     current_work: Mapping[str, Any],
     current_status: Sequence[str],
@@ -5221,7 +5327,11 @@ def start_observation(
     now = datetime.now().astimezone().replace(microsecond=0)
     observation_id = _observation_id(normalized_slug, now)
     branch_current = _current_branch(target_root)
-    baseline_status = _git_status_snapshot(target_root)
+    observation_budget = _observation_budget_config(target_root)
+    raw_baseline_status = _git_status_snapshot(target_root)
+    baseline_status, baseline_ignored_count = _filter_observation_status(
+        raw_baseline_status, observation_budget
+    )
     baseline_fingerprints = _git_status_fingerprints(target_root, baseline_status)
     selected_goals = list(
         goals
@@ -5325,8 +5435,11 @@ def start_observation(
             "slug": normalized_slug,
             "title": clean_title,
             "artifact_root": artifact_root_rel,
-            "baseline_git_status": baseline_status,
-            "baseline_git_fingerprints": baseline_fingerprints,
+            # TM #197: the full baseline lives in the linked artifact file so
+            # current-work.json (and every payload embedding it) stays small.
+            "baseline_ref": AEGIS_OBSERVATION_BASELINE_REL,
+            "baseline_summary": _summarize_path_lines(baseline_status, observation_budget),
+            "baseline_ignored_count": baseline_ignored_count,
             "allowed_paths": [],
         },
         "branch": {
@@ -5358,6 +5471,20 @@ def start_observation(
         },
     }
     current_work["observation"]["allowed_paths"] = _observation_allowed_prefixes(current_work)
+    _write_text(
+        target_root,
+        AEGIS_OBSERVATION_BASELINE_REL,
+        _dump_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "captured_at": _iso_now(),
+                "ignored_count": baseline_ignored_count,
+                "ignore_globs": list(observation_budget["ignore_globs"]),
+                "baseline_git_status": baseline_status,
+                "baseline_git_fingerprints": baseline_fingerprints,
+            }
+        ),
+    )
     _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(current_work))
     _update_manifest_after_kickoff(target_root)
 
@@ -5480,7 +5607,11 @@ def stop_observation(
         raise AegisError("aegis observe stop requires an in-progress observation")
 
     finished_at = _iso_now()
-    current_status = _git_status_snapshot(target_root)
+    observation_budget = _observation_budget_config(target_root)
+    _load_observation_baseline(target_root, current_work)
+    current_status, _stop_ignored = _filter_observation_status(
+        _git_status_snapshot(target_root), observation_budget
+    )
     current_fingerprints = _git_status_fingerprints(target_root, current_status)
     artifact_root_rel = _observation_artifact_root_rel(current_work)
     status_deltas = _observation_status_delta_lines(current_work, current_status)
@@ -5516,7 +5647,9 @@ def stop_observation(
             artifact_root_rel,
             cleanable_artifacts,
         )
-        current_status = _git_status_snapshot(target_root)
+        current_status, _stop_ignored = _filter_observation_status(
+            _git_status_snapshot(target_root), observation_budget
+        )
         current_fingerprints = _git_status_fingerprints(target_root, current_status)
         status_deltas = _observation_status_delta_lines(current_work, current_status)
         fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
@@ -5538,6 +5671,28 @@ def stop_observation(
         ]
     allowed_runtime_changes = [*runtime_status_deltas, *runtime_fingerprint_deltas]
     blocked = bool(unexpected and not allow_dirty)
+    # TM #197: guidance payloads carry capped summaries with truncation markers; the
+    # full enumerations live in the linked detail artifact. Unexpected deltas keep a
+    # sample large enough to act on; nothing is silently dropped.
+    sample_cap = int(observation_budget["sample_cap"])
+    allowed_summary = _summarize_path_lines(allowed_runtime_changes, observation_budget)
+    final_status_summary = _summarize_path_lines(current_status, observation_budget)
+    unexpected_sample = unexpected[:sample_cap]
+    unexpected_truncated = len(unexpected) > sample_cap
+    _write_text(
+        target_root,
+        AEGIS_OBSERVATION_REPORT_DETAIL_REL,
+        _dump_json(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "finished_at": finished_at,
+                "allowed_runtime_changes": allowed_runtime_changes,
+                "unexpected_changes": unexpected,
+                "final_git_status": current_status,
+                "final_git_fingerprints": current_fingerprints,
+            }
+        ),
+    )
     report = {
         "schema_version": SCHEMA_VERSION,
         "status": "blocked" if blocked else "completed",
@@ -5550,10 +5705,12 @@ def stop_observation(
         "artifact_root": artifact_root_rel,
         "cleanable_artifacts": cleanable_artifacts,
         "collected_artifacts": collected_artifacts,
-        "allowed_runtime_changes": allowed_runtime_changes,
-        "unexpected_changes": unexpected,
-        "final_git_status": current_status,
-        "final_git_fingerprints": current_fingerprints,
+        "allowed_runtime_changes_summary": allowed_summary,
+        "unexpected_changes": unexpected_sample,
+        "unexpected_changes_total": len(unexpected),
+        "unexpected_changes_truncated": unexpected_truncated,
+        "final_git_status_summary": final_status_summary,
+        "detail_ref": AEGIS_OBSERVATION_REPORT_DETAIL_REL,
         "task": dict(current_work.get("task") or {}),
         "paths": dict(current_work.get("paths") or {}),
         "next_action": _workflow_next_action(
@@ -5566,10 +5723,13 @@ def stop_observation(
                 else "Observation closed; no unexpected working-tree delta was detected."
             ),
             details={
-                "unexpected_changes": unexpected,
+                "unexpected_changes": unexpected_sample,
+                "unexpected_changes_total": len(unexpected),
+                "unexpected_changes_truncated": unexpected_truncated,
                 "cleanable_artifacts": cleanable_artifacts,
                 "collected_artifacts": collected_artifacts,
-                "allowed_runtime_changes": allowed_runtime_changes,
+                "allowed_runtime_changes_summary": allowed_summary,
+                "detail_ref": AEGIS_OBSERVATION_REPORT_DETAIL_REL,
                 "allow_dirty": allow_dirty,
                 "collect_artifacts": collect_artifacts,
                 "artifact_root": artifact_root_rel,
@@ -5590,14 +5750,20 @@ def stop_observation(
     if isinstance(observation, MutableMapping):
         observation["completed_at"] = finished_at
         observation["summary"] = summary
-        observation["final_git_status"] = current_status
-        observation["final_git_fingerprints"] = current_fingerprints
-        observation["unexpected_changes"] = unexpected
+        # TM #197: persisted state carries summaries + the detail artifact link; the
+        # hydrated full baselines are stripped so current-work.json stays small.
+        observation.pop("baseline_git_status", None)
+        observation.pop("baseline_git_fingerprints", None)
+        observation["final_git_status_summary"] = final_status_summary
+        observation["unexpected_changes"] = unexpected_sample
+        observation["unexpected_changes_total"] = len(unexpected)
+        observation["unexpected_changes_truncated"] = unexpected_truncated
         observation["allow_dirty"] = allow_dirty
         observation["collect_artifacts"] = collect_artifacts
         observation["artifact_root"] = artifact_root_rel
         observation["collected_artifacts"] = collected_artifacts
-        observation["allowed_runtime_changes"] = allowed_runtime_changes
+        observation["allowed_runtime_changes_summary"] = allowed_summary
+        observation["detail_ref"] = AEGIS_OBSERVATION_REPORT_DETAIL_REL
     archived_observation_work = _archive_current_completed_observation_work_tracking(
         target_root,
         current_work,

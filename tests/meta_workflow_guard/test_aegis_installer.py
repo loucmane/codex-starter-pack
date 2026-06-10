@@ -1754,13 +1754,12 @@ def test_observation_stop_allows_generated_runtime_deltas_with_collected_artifac
         ".playwright-mcp",
         "audit-home-mobile.png",
     }
-    assert any(
-        "worker/.wrangler" in entry for entry in completed["allowed_runtime_changes"]
-    )
-    assert any(
-        "worker/node_modules/.mf" in entry
-        for entry in completed["allowed_runtime_changes"]
-    )
+    allowed_sample = completed["allowed_runtime_changes_summary"]["sample"]
+    assert any("worker/.wrangler" in entry for entry in allowed_sample)
+    assert any("worker/node_modules/.mf" in entry for entry in allowed_sample)
+    assert completed["allowed_runtime_changes_summary"]["total"] >= 2
+    detail = json.loads((target / completed["detail_ref"]).read_text(encoding="utf-8"))
+    assert any("worker/.wrangler" in entry for entry in detail["allowed_runtime_changes"])
     artifact_root = target / completed["artifact_root"]
     assert (artifact_root / "audit-home-mobile.png").is_file()
     assert (artifact_root / ".playwright-mcp" / "page.yaml").is_file()
@@ -1902,7 +1901,7 @@ def test_observation_runtime_delta_requires_ignored_runtime_prefix(tmp_path: Pat
 
     assert blocked["status"] == "blocked"
     assert " M worker/.wrangler/state.json" in blocked["unexpected_changes"]
-    assert blocked["allowed_runtime_changes"] == []
+    assert blocked["allowed_runtime_changes_summary"]["total"] == 0
 
 
 def test_observation_stop_blocks_tracked_and_ignored_deltas(tmp_path: Path) -> None:
@@ -5364,3 +5363,54 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     assert second_plan["summary"]["creates"] == 0
     assert second_plan["summary"]["manual_reviews"] == 0
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
+
+
+def test_observation_report_stays_under_size_budget_with_huge_runtime_dir(tmp_path: Path) -> None:
+    """TM #197: a large runtime directory must not balloon the guidance payload.
+
+    Reproduces the 8MB observation-report class: thousands of ignored .wrangler KV
+    blob paths. The committed report must stay <100KB via capped sample + counts by
+    prefix, while the full enumeration remains available in the linked detail artifact.
+    """
+
+    target = tmp_path / "observe-huge-runtime"
+    init_git_repo(target)
+    # A tracked, git-ignored runtime dir so the blobs show up as !!-ignored deltas
+    # (the allowed-runtime class), exactly like worker/.wrangler in the field.
+    (target / ".gitignore").write_text("worker/.wrangler/\n", encoding="utf-8")
+    git(target, "add", ".gitignore")
+    git(target, "commit", "-m", "ignore wrangler state")
+
+    initialize_project(target, source_root=REPO_ROOT)
+    simulate_claude_reload(target)
+    start_observation(target, title="Huge runtime audit", source_root=REPO_ROOT)
+
+    blob_root = target / "worker" / ".wrangler" / "state" / "v3" / "kv" / "blobs"
+    blob_root.mkdir(parents=True, exist_ok=True)
+    for index in range(4000):
+        (blob_root / f"blob-{index:05d}.bin").write_text("x", encoding="utf-8")
+
+    completed = stop_observation(
+        target,
+        summary="Huge runtime dir observed",
+        source_root=REPO_ROOT,
+        collect_artifacts=True,
+    )
+    assert completed["status"] == "completed"
+
+    report_path = target / AEGIS_OBSERVATION_REPORT_REL
+    report_size = report_path.stat().st_size
+    assert report_size < 100 * 1024, f"observation report is {report_size} bytes (budget 100KB)"
+
+    current_work_size = (target / AEGIS_CURRENT_WORK_REL).stat().st_size
+    assert current_work_size < 100 * 1024, f"current-work.json is {current_work_size} bytes"
+
+    summary = completed["allowed_runtime_changes_summary"]
+    assert summary["total"] >= 4000, "the count is preserved even though the list is capped"
+    assert len(summary["sample"]) <= 50, "sample is capped"
+    assert summary["truncated"] is True
+    assert summary["by_prefix"], "counts by path prefix are reported"
+
+    # Nothing is silently dropped: the full enumeration lives in the detail artifact.
+    detail = json.loads((target / completed["detail_ref"]).read_text(encoding="utf-8"))
+    assert len(detail["allowed_runtime_changes"]) >= 4000
