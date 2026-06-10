@@ -122,6 +122,35 @@ def _load_ledger_lib(source_root: Path):
     return module
 
 
+def _load_brief_lib(source_root: Path):
+    script = source_root / ".claude" / "scripts" / "brief_lib.py"
+    spec = importlib.util.spec_from_file_location("_aegis_cli_brief_lib", script)
+    if spec is None or spec.loader is None:
+        raise _aegis_installer.AegisError(f"unable to load brief_lib from {script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def handle_brief(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        brief_lib = _load_brief_lib(source_root)
+        if args.check:
+            ok, problems = brief_lib.check_capsule(args.target_dir)
+            for problem in problems:
+                print(problem, file=sys.stderr)
+            print("capsule check: " + ("ok" if ok else "FAILED"))
+            return 0 if ok else 1
+        capsule = brief_lib.compile_capsule(args.target_dir)
+        markdown = brief_lib.render_markdown(capsule)
+        brief_lib.write_capsule(args.target_dir, capsule, markdown)
+        if args.json:
+            _dump_json(capsule)
+        else:
+            print(markdown, end="")
+        return 0
+
+
 def handle_scope(args: argparse.Namespace) -> int:
     """Record a confirmed scope record for the current branch (capsule PR-1d)."""
 
@@ -771,6 +800,19 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
+
+    brief_parser = subparsers.add_parser(
+        "brief",
+        help="Compile and print the computed Aegis capsule (read-time, never cached).",
+    )
+    brief_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    brief_parser.add_argument("--json", action="store_true", help="Print the capsule as JSON.")
+    brief_parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Offline strict validation: char budget + canary + parse counters (fails over budget).",
+    )
+    brief_parser.set_defaults(func=handle_brief)
 
     scope_parser = subparsers.add_parser(
         "scope",

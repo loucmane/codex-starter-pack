@@ -4,3 +4,4 @@
 - 2026-06-10 20:40 CEST — Implemented the gate registry (seed-once brief.json, kind
   config), command normalization + verification classification, scope records with the
   once-only nudge, and aegis scope set; 26 new tests, full suite 1247 green.
+- 2026-06-10 20:44 CEST — Archived active work-tracking folder.

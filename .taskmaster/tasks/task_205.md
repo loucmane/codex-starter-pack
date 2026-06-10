@@ -2,7 +2,7 @@
 
 **Title:** Capsule PR-1d: gate registry + verification classification
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 204 ✓
 

@@ -7403,13 +7403,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 2 and 2.1. New installed asset .aegis/brief.json holding {gates, thresholds, redact_extra, archive_keep}; gates map package-to-gate-to-command-patterns matched against normalized Bash commands — matching MUST handle cd-prefix, -C, and --dir invocation variants of the same logical command (pattern VALUES are per-repo config shipped via deployment docs, never hardcoded). Exit-class enum pass|fail|interrupted|unknown mapped exactly as specced (PostToolUse success = pass, PostToolUseFailure = fail, tool_response.interrupted = interrupted, else unknown; Bash tool_response has no documented exit-code field). Also implements section 2.1 scope records: inferred from branch name / in-progress task / PR body, recorded as a ledger event at first mutation on a new branch, with the single non-blocking aegis scope set confirmation nudge. Isolated on purpose: command normalization is the subtle, riskier part. Merge gate: fixture suite incl. cd-prefix/-C/--dir variants.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "204"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T18:15:30.521Z"
+        "updatedAt": "2026-06-10T18:44:51.297Z"
       },
       {
         "id": "206",
@@ -7417,12 +7417,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md sections 3, 3.1, 3.2. aegis brief compile+print with ALL computed-stratum fields (capsule_meta, repo_pose, delivery_state, verification_ledger with explicit absence reporting, task_truth with claimed-done-vs-shipped cross-check, governance, drift_sentinel, repo_hygiene), recomputed/revalidated at read time — any field failing revalidation renders STALE-recheck, never the cached value. Drift sentinel v1: exactly the 5 deterministic checks, no LLM; sentinel must prove it ran (N attempted / M parsed / K drift; parse failure is itself drift); seeded canary asset at .aegis/capsule/canary.md must always flag or the capsule reports the sentinel broken. risk_register seeding consumed once from .aegis/capsule/risk-seed.json (values per-repo). No injection in this PR. Merge gate: brief output matches independently-checked HP-Coach reality.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "205"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T18:44:54.080Z"
       },
       {
         "id": "207",
@@ -7479,9 +7480,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T18:15:30.522Z",
+      "lastModified": "2026-06-10T18:44:54.081Z",
       "taskCount": 209,
-      "completedCount": 191,
+      "completedCount": 192,
       "tags": [
         "master"
       ]

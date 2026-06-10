@@ -10,3 +10,4 @@
 - After merge: seed HP-Coach's .aegis/brief.json from its deployment doc bindings during
   the install --apply rollout, then its verification ledger starts filling.
 - Then PR-2a (task 206): computed aegis brief — the first read-time compiler slice.
+- Archived on 2026-06-10 20:44 CEST — Folder moved to archive and tracker marked COMPLETED.

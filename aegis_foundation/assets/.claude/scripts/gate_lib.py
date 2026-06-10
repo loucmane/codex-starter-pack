@@ -141,6 +141,7 @@ READ_ONLY_TASKMASTER_SUBCOMMANDS = {
     "validate-dependencies",
 }
 READ_ONLY_AEGIS_SUBCOMMANDS = {
+    "brief",
     "doctor",
     "explain-profile",
     "inspect",
