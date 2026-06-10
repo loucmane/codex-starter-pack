@@ -7083,12 +7083,186 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-06-09T15:23:20.845Z"
+      },
+      {
+        "id": "193",
+        "title": "Reduce CI feedback time without reducing coverage",
+        "description": "Improve GitHub Actions feedback time while preserving the full quality bar for Aegis, Taskmaster, and meta-workflow changes.",
+        "details": "Create a tiered CI design: fast PR signal for routine iteration, full matrix coverage for merge confidence, duration measurement before optimization, dependency caching, slow-test sharding, path-aware test selection, duplicate guard cleanup, and documented quality policy. Full coverage must not be removed; any faster lane must either be a preliminary required signal or be backed by full CI before merge.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "192"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Measure CI duration and slow-test profile",
+            "description": "Establish a factual CI timing baseline before changing workflow behavior.",
+            "details": "Add or use workflow timing data and pytest duration reporting to separate runner queue/setup time, dependency install/provisioning time, Taskmaster/Aegis proof-step time, pytest execution time, and artifact upload/post time. Capture the slowest pytest cases with duration reporting and use PR #195 or an equivalent run as the initial baseline.",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add fast required PR signal lane",
+            "description": "Create a short required CI path that gives useful PR feedback quickly without replacing full coverage.",
+            "details": "Introduce a fast PR workflow or job set that runs guard validation, lint/static checks, Taskmaster health, and changed-path focused pytest on one Python version. Target roughly 2-5 minute feedback. Keep full matrix CI available and required before merge or ready-for-review, so this lane is an early signal rather than a coverage reduction.",
+            "status": "pending",
+            "dependencies": [
+              "193.1"
+            ],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Deduplicate guard workflow triggers",
+            "description": "Remove redundant guard check noise while preserving the meaningful guard coverage.",
+            "details": "Audit GitHub Actions triggers and guard workflows to explain why a PR can show multiple guard checks. Collapse duplicate trigger paths or rename/report checks so a PR has one clear guard signal per intended surface. Preserve required protection for guard validation; only remove accidental duplication or confusing duplicate reporting.",
+            "status": "pending",
+            "dependencies": [
+              "193.1"
+            ],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Cache Python Node and Taskmaster setup",
+            "description": "Reduce CI setup time by caching dependency and provisioning work safely.",
+            "details": "Add conservative GitHub Actions caches for Python dependency artifacts, Node package manager data, and pinned Taskmaster CLI provisioning where inputs are stable. Key caches from lock files and relevant config such as uv.lock, pyproject.toml, package manager lock files, and Taskmaster version pins. Do not cache generated workflow state in a way that can hide correctness failures.",
+            "status": "pending",
+            "dependencies": [
+              "193.1"
+            ],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Shard slow meta-workflow pytest domains",
+            "description": "Lower full-CI wall-clock time by splitting slow pytest domains across parallel jobs.",
+            "details": "Use the timing baseline to group slow tests into stable shards, for example installer/assets, readiness/gate, closeout/handoff/repair, reconcile/shadow, and MCP/server. Keep every existing test covered; the change is parallelization and reporting, not deletion. Ensure artifacts remain attributable by shard and failures are easy to inspect.",
+            "status": "pending",
+            "dependencies": [
+              "193.1"
+            ],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Add path-aware test selection with full-coverage fallback",
+            "description": "Run focused checks for low-risk changes while preserving full coverage for risky or merge-bound changes.",
+            "details": "Implement changed-path rules that select focused test slices for docs-only, Taskmaster-only, Aegis installer/runtime, guard/readiness, closeout/handoff, reconcile/shadow, and MCP/server changes. Fail closed when a path is unknown or high risk. Full matrix coverage must still run before merge or on ready-for-review for changes that affect shared workflow behavior.",
+            "status": "pending",
+            "dependencies": [
+              "193.2",
+              "193.5"
+            ],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Document CI quality policy and required gates",
+            "description": "Make the faster CI model explicit so agents and maintainers know which checks are required at each phase.",
+            "details": "Document draft-PR, ready-for-review, merge, and release gates. Define which jobs are fast signal, which are full confidence, which are advisory, and which are required. Include rules for when full matrix cannot be skipped, especially Aegis runtime, installer, guard, closeout, reconcile, and MCP changes. Update contributor or workflow docs so natural-language requests like continue or ship do not cause an agent to skip required gates.",
+            "status": "pending",
+            "dependencies": [
+              "193.2",
+              "193.6"
+            ],
+            "parentTaskId": 193,
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "194",
+        "title": "Surface post-closeout GitHub delivery state",
+        "description": "After local Aegis closeout, agents must clearly surface whether the task branch is pushed, has a PR, has passing CI, and is merged, so done does not accidentally mean local-only. HP-Coach #73 proved that reporting alone is insufficient: after closeout passed and Taskmaster #73 was marked done, `git push -u origin feat/task-73-p0-poisoned-resume-fallback` was blocked because current work was `completed` rather than `in-progress`. Aegis must therefore expose a sanctioned post-closeout delivery path, or prescribe delivery before final closeout, while still requiring explicit user approval before merge.",
+        "status": "in-progress",
+        "dependencies": [
+          "192"
+        ],
+        "priority": "high",
+        "details": "Extend Aegis next/closeout guidance and continuation contract so completed local work transitions into an explicit delivery checkpoint instead of a terminal no-mutation gap. Anchor implementation in `scripts/_aegis_installer.py`: `next_action()` / `_workflow_guidance_payload()` for read-only guidance, `_classify_doctor_state()` for completed-closeout state classification, `_closeout_git_report()` for closeout git guidance, and `closeout()` / `_workflow_next_action()` for the post-closeout `next_action` payload surfaced through `scripts/codex-task handle_aegis_next` and `handle_aegis_closeout`.\n\nAdd HP-Coach #73 reproduction evidence to the implementation notes and regression coverage: closeout passed, Taskmaster task #73 was marked done, then PreToolUse refused `git push -u origin feat/task-73-p0-poisoned-resume-fallback` with `BLOCKED | task=73 | blocked=2 | first=Aegis current work status is 'completed', expected 'in-progress'`. Treat this as the concrete failure mode for `completed_closeout + local branch not pushed/no PR`.\n\nDetect and classify delivery states for the active/completed task branch: local-only commits, missing upstream branch, missing PR, pending/failed GitHub checks, open unmerged PR, merged PR, and unknown GitHub state when `gh` is unavailable. Introduce an explicit state such as `delivery_pending` for completed closeout with unpublished/unopened delivery, and return machine-readable `next_safe_action` values including `push_branch`, `open_pr`, `wait_for_ci`, `ask_before_merge`, and `merged_complete`. The payload should also include concrete suggested commands such as `git push -u origin <branch>` and `gh pr create --draft` only when policy allows them.\n\nPreserve safety boundaries. Completed closeout must not allow arbitrary source edits or unrelated Git mutation, but it must either permit the specific sanctioned delivery actions or make it impossible to close out before delivery when project policy requires pre-closeout delivery. Never merge without explicit user approval unless a project policy explicitly enables auto-merge; never stage unrelated drift; report blockers exactly. Natural prompts such as `finish this`, `continue`, `ship it`, and `done` should route to the delivery checkpoint rather than incorrectly reporting local-only completion.\n\nReuse existing patterns where possible: read-only `aegis.next` guidance must remain non-mutating as covered in `tests/meta_workflow_guard/test_aegis_mcp_server.py`; completed-closeout guard behavior is already exercised around `test_installed_gate_allows_taskmaster_completion_after_closeout` in `tests/meta_workflow_guard/test_aegis_installer.py`; reconcile already has GitHub PR classification examples such as `test_reconcile_reports_done_task_with_open_pr_as_not_merged` that can guide mocked `gh` handling.",
+        "testStrategy": "Add focused regression tests in `tests/meta_workflow_guard/test_aegis_installer.py` for a local git fixture representing HP-Coach #73: completed Aegis closeout, Taskmaster done, local branch with commits, no upstream and no PR. Assert `aegis.next` or doctor/closeout guidance classifies the state as `delivery_pending` and returns `next_safe_action: push_branch` instead of a generic completed terminal state.\n\nAdd mocked `gh`/git-state tests for the delivery matrix: missing upstream -> `push_branch`; upstream exists but no PR -> `open_pr`; PR open with pending checks -> `wait_for_ci`; PR open with passing checks but unmerged -> `ask_before_merge`; merged PR or branch merged to base -> `merged_complete`. Include negative coverage proving merge actions require explicit user approval.\n\nAdd PreToolUse/hook regression coverage using the existing installed target helpers to prove the completed-closeout state no longer blocks sanctioned `git push -u origin <branch>` and `gh pr create` actions when policy permits delivery, while still blocking unrelated source edits and unrelated Git mutation. Add MCP read-only coverage in `tests/meta_workflow_guard/test_aegis_mcp_server.py` so `aegis.next` exposes the same delivery guidance without mutating files.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Map current Aegis closeout and delivery guidance surfaces",
+            "description": "Inspect `scripts/_aegis_installer.py`, `scripts/codex-task`, and existing installer/MCP tests to identify all surfaces that currently report completed closeout, git guidance, next actions, and PreToolUse readiness behavior.",
+            "dependencies": [],
+            "details": "Confirm how `next_action()`, `_classify_doctor_state()`, `_closeout_git_report()`, `closeout()`, and `_workflow_next_action()` interact today. Record HP-Coach #73 as the reproduction target for the delivery gap.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Classify post-closeout GitHub delivery states",
+            "description": "Implement delivery-state detection for completed closeout, including local-only commits, missing upstream, missing PR, pending or failed CI, unmerged PR, and merged completion.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add a machine-readable state such as `delivery_pending` for `completed_closeout + local branch not pushed/no PR`. Prefer structured git/gh helpers or mocked wrappers over ad hoc output parsing where the codebase already provides helpers.",
+            "status": "pending",
+            "testStrategy": "Unit tests with local git fixtures and mocked gh responses for each delivery state.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Expose sanctioned delivery next actions",
+            "description": "Update Aegis next/closeout guidance and continuation payloads to return `next_safe_action` values for `push_branch`, `open_pr`, `wait_for_ci`, `ask_before_merge`, and `merged_complete`.",
+            "dependencies": [
+              2
+            ],
+            "details": "For natural continuation prompts, ensure completed local work routes to delivery guidance rather than terminal completion. Suggested commands must be concrete when policy permits them, but merge must remain approval-gated.",
+            "status": "pending",
+            "testStrategy": "Assert JSON payloads from `aegis.next`, closeout, and MCP guidance contain the expected action, command, policy notes, and blocker messages.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Permit or schedule safe delivery around completed closeout",
+            "description": "Adjust PreToolUse/readiness policy so completed closeout does not trap an agent before push/PR delivery, while still preventing unrelated mutation.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Either permit narrowly-scoped delivery commands from completed closeout under explicit policy or update closeout guidance so delivery is scheduled before final closeout. Preserve the existing allowance for Taskmaster completion after closeout and keep unrelated source edits blocked.",
+            "status": "pending",
+            "testStrategy": "Regression test the HP-Coach #73 command shape `git push -u origin feat/task-73-p0-poisoned-resume-fallback` as sanctioned delivery while unrelated edits or unrelated git mutations remain blocked.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify delivery checkpoint end to end",
+            "description": "Add installer and MCP tests proving the post-closeout delivery checkpoint is visible, non-mutating when read-only, and safe across git/PR/CI/merge states.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Cover `tests/meta_workflow_guard/test_aegis_installer.py` for local git and hook behavior, and `tests/meta_workflow_guard/test_aegis_mcp_server.py` for read-only MCP guidance. Reuse reconcile PR classification patterns where applicable.",
+            "status": "pending",
+            "testStrategy": "Run the focused pytest targets for Aegis installer/MCP guidance and any affected guard tests.",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2026-06-09T16:27:51.403Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-09T15:23:20.845Z",
-      "taskCount": 191,
+      "lastModified": "2026-06-09T16:27:51.403Z",
+      "taskCount": 193,
       "completedCount": 186,
       "tags": [
         "master"
