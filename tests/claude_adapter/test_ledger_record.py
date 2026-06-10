@@ -89,7 +89,7 @@ def test_recorder_handles_all_captured_posttooluse_fixtures(tmp_path: Path) -> N
     for fixture in fixtures:
         result = run_record(repo, state, json.dumps(fixture))
         assert result.returncode == 0, result.stderr
-    events = read_events(state)
+    events = [event for event in read_events(state) if event["event_type"] != "scope"]
     assert len(events) == len(fixtures)
     by_tool = {event["tool_name"] for event in events}
     assert {"Bash", "Write", "Edit"} <= by_tool
@@ -145,7 +145,7 @@ def test_recorder_classifies_delivery_and_task_truth(tmp_path: Path) -> None:
         "new_string": "b",
     }
     assert run_record(repo, state, json.dumps(tasks_json_edit)).returncode == 0
-    kinds = [event["event_type"] for event in read_events(state)]
+    kinds = [event["event_type"] for event in read_events(state) if event["event_type"] != "scope"]
     assert kinds == ["delivery", "task_truth", "task_truth"]
 
 

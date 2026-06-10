@@ -122,6 +122,46 @@ def _load_ledger_lib(source_root: Path):
     return module
 
 
+def handle_scope(args: argparse.Namespace) -> int:
+    """Record a confirmed scope record for the current branch (capsule PR-1d)."""
+
+    import subprocess
+
+    with _resolve_source_root(args.source_root) as source_root:
+        ledger_lib = _load_ledger_lib(source_root)
+        target = Path(args.target_dir).resolve()
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            cwd=target,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        branch = result.stdout.strip()
+        if not branch:
+            print("aegis scope set requires a git branch in the target repository", file=sys.stderr)
+            return 1
+        ledger = ledger_lib.open_ledger(cwd=target)
+        try:
+            ledger.append(
+                {
+                    "branch": branch,
+                    "cwd": target.as_posix(),
+                    "event_type": "scope",
+                    "extra": {
+                        "task_id": str(args.task_id),
+                        "path_globs": list(args.glob or []),
+                        "inferred": False,
+                        "confirmed": True,
+                    },
+                }
+            )
+        finally:
+            ledger.close()
+        print(f"Scope recorded for branch {branch}: task {args.task_id}")
+        return 0
+
+
 def handle_ledger(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         ledger_lib = _load_ledger_lib(source_root)
@@ -731,6 +771,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
+
+    scope_parser = subparsers.add_parser(
+        "scope",
+        help="Record task scope for the current branch (consumed by the delivery witness).",
+    )
+    scope_sub = scope_parser.add_subparsers(dest="scope_subcommand", required=True)
+    scope_set_parser = scope_sub.add_parser(
+        "set",
+        help="Confirm the task id (and optional path globs) for the current branch.",
+    )
+    scope_set_parser.add_argument("task_id", help="Task id this branch's work belongs to.")
+    scope_set_parser.add_argument("glob", nargs="*", help="Optional in-scope path globs.")
+    scope_set_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    scope_set_parser.set_defaults(func=handle_scope)
 
     ledger_parser = subparsers.add_parser(
         "ledger",

@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the PR-1d boundary: seed-once brief.json config asset (new kind config), command normalization rules, verification classification, scope-record inference + once-only nudge | docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/designs/gate-registry-scope.md | completed |
-| plan-step-implement | Implement brief.json asset + schema kind, gate matching in gate_lib record path, scope records, aegis scope set, sync-hook nudge; mirror both copies | .claude/scripts/gate_lib.py; docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Fixture suite incl. cd-prefix/-C/--dir variants, seed-once upgrade test, scope inference/nudge tests, full suite + guard stack; evidence under reports/capsule-gate-registry/ | docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement brief.json asset + schema kind, gate matching in gate_lib record path, scope records, aegis scope set, sync-hook nudge; mirror both copies | .claude/scripts/gate_lib.py; docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Fixture suite incl. cd-prefix/-C/--dir variants, seed-once upgrade test, scope inference/nudge tests, full suite + guard stack; evidence under reports/capsule-gate-registry/ | docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task205-capsule-gate-registry-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope

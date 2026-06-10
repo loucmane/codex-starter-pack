@@ -2133,7 +2133,64 @@ def posttooluse_tracking() -> int:
         return 0
     root = project_root()
     record_pending_tracking_event(root, payload)
+    _maybe_emit_scope_nudge(root, payload)
     return 0
+
+
+def _maybe_emit_scope_nudge(root: Path, payload: Payload) -> None:
+    """Capsule PR-1d (spec section 2.1): ONE non-blocking additionalContext nudge per
+    branch when scope inference was ambiguous. Fully failure-proof — this runs on the
+    synchronous hook path and must never gain a failure mode."""
+
+    try:
+        ledger_lib = _load_ledger_lib_module()
+        if ledger_lib is None:
+            return
+        store = ledger_lib.store_path(cwd=root)
+        if not store.is_file():
+            return
+        branch = _record_branch(payload.cwd or str(root))
+        if not branch:
+            return
+        ledger = ledger_lib.open_ledger(cwd=root)
+        try:
+            events = _scope_events_for_branch(ledger, branch)
+            needs = any(
+                event.get("extra", {}).get("needs_confirmation")
+                and not event.get("extra", {}).get("confirmed")
+                for event in events
+            )
+            confirmed = any(event.get("extra", {}).get("confirmed") for event in events)
+            nudged = any(event.get("extra", {}).get("nudge") for event in events)
+            if not needs or confirmed or nudged:
+                return
+            ledger.append(
+                {
+                    "session_id": payload.session_id,
+                    "branch": branch,
+                    "event_type": "scope",
+                    "extra": {"nudge": True},
+                }
+            )
+        finally:
+            ledger.close()
+        print(
+            json.dumps(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PostToolUse",
+                        "additionalContext": (
+                            f"Aegis scope note: branch '{branch}' has no inferable task id. "
+                            "If this work belongs to a task, run "
+                            "`aegis scope set <task-id> [path-globs...]` once to record its scope "
+                            "(used by the delivery witness). This is advisory and will not be asked again."
+                        ),
+                    }
+                }
+            )
+        )
+    except Exception:  # noqa: BLE001 - nudge is strictly best-effort.
+        return
 
 
 DELIVERY_COMMAND_RE = re.compile(
@@ -2141,6 +2198,138 @@ DELIVERY_COMMAND_RE = re.compile(
     re.IGNORECASE,
 )
 TASKMASTER_TASKS_JSON_SUFFIX = ".taskmaster/tasks/tasks.json"
+AEGIS_BRIEF_REL = ".aegis/brief.json"
+TASK_BRANCH_RE = re.compile(r"task-?(\d+)", re.IGNORECASE)
+BARE_REDIRECT_OP_RE = re.compile(r"^(?:\d?>{1,2}|<|&>{1,2})$")
+REDIRECT_TOKEN_RE = re.compile(r"^(?:\d?>{1,2}\S+|\d?>>?&\d|<\S+|&>{1,2}\S+)$")
+
+
+def load_brief(root: Path) -> dict[str, Any]:
+    """Read `.aegis/brief.json` (capsule PR-1d gate registry); {} on any failure."""
+
+    data = _read_json_object(root / AEGIS_BRIEF_REL)
+    return data if isinstance(data, dict) else {}
+
+
+def _normalize_command_text(text: str) -> str:
+    tokens = strip_shell_prefixes(shlex_tokens(text))
+    kept: list[str] = []
+    skip_next = False
+    for token in tokens:
+        if skip_next:
+            skip_next = False
+            continue
+        if BARE_REDIRECT_OP_RE.match(token):
+            # A bare redirect operator consumes the following target token too.
+            skip_next = True
+            continue
+        if REDIRECT_TOKEN_RE.match(token):
+            continue
+        kept.append(token)
+    return " ".join(kept)
+
+
+def normalized_command_segments(command: str) -> list[str]:
+    """Normalized candidate forms of a Bash command for gate-registry matching.
+
+    Splits on shell control operators, strips env-assignment prefixes and redirect
+    tokens, collapses whitespace, and joins adjacent `cd X` + command pairs back into
+    `cd X && command` so cd-prefix patterns match alongside `-C`/`--dir` variants.
+    """
+
+    raw_segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
+    normalized = [form for form in (_normalize_command_text(segment) for segment in raw_segments) if form]
+    candidates = list(normalized)
+    for index in range(len(normalized) - 1):
+        if normalized[index].startswith("cd "):
+            candidates.append(f"{normalized[index]} && {normalized[index + 1]}")
+    return candidates
+
+
+def match_gate_command(command: str, gates: dict[str, Any]) -> tuple[str, str] | None:
+    """Return (package, gate) when the command matches a registered gate pattern.
+
+    Matching is exact equality on normalized forms; pattern VALUES are per-repo
+    configuration from `.aegis/brief.json`, never hardcoded here.
+    """
+
+    if not gates or not command:
+        return None
+    candidates = set(normalized_command_segments(command))
+    if not candidates:
+        return None
+    for package, package_gates in gates.items():
+        if not isinstance(package_gates, dict):
+            continue
+        for gate, patterns in package_gates.items():
+            if not isinstance(patterns, (list, tuple)):
+                continue
+            for pattern in patterns:
+                if isinstance(pattern, str) and _normalize_command_text(pattern) in candidates:
+                    return str(package), str(gate)
+    return None
+
+
+def _record_head_commit(cwd: str | None) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=cwd or None,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    commit = result.stdout.strip()
+    return commit or None
+
+
+def _scope_events_for_branch(ledger: Any, branch: str) -> list[dict[str, Any]]:
+    return [event for event in ledger.read(event_type="scope") if event.get("branch") == branch]
+
+
+def _ensure_scope_record(
+    ledger: Any,
+    *,
+    branch: str | None,
+    session_id: Any,
+    cwd: Any,
+    brief: dict[str, Any],
+) -> None:
+    """Capsule PR-1d (spec section 2.1): infer a scope record at the first recorded
+    mutation on a new branch. One record per branch; never blocks, never re-asks."""
+
+    if not branch:
+        return
+    existing = _scope_events_for_branch(ledger, branch)
+    if any(not event.get("extra", {}).get("nudge") for event in existing):
+        return
+    match = TASK_BRANCH_RE.search(branch)
+    task_id = match.group(1) if match else None
+    gates = brief.get("gates") if isinstance(brief.get("gates"), dict) else {}
+    source_roots = brief.get("source_roots") if isinstance(brief.get("source_roots"), list) else []
+    ledger.append(
+        {
+            "session_id": session_id,
+            "branch": branch,
+            "cwd": cwd,
+            "event_type": "scope",
+            "extra": {
+                "task_id": task_id,
+                "path_globs": list(source_roots),
+                "gates": sorted(
+                    f"{package}:{gate}"
+                    for package, package_gates in gates.items()
+                    if isinstance(package_gates, dict)
+                    for gate in package_gates
+                ),
+                "inferred": True,
+                "needs_confirmation": task_id is None,
+            },
+        }
+    )
 
 
 def _load_ledger_lib_module():
@@ -2240,11 +2429,27 @@ def ledger_record() -> int:
             extra["is_mutation"] = payload_is_mutation(payload)
             if payload.tool_name == "Bash":
                 extra["command"] = bash_command(payload)
+        brief = load_brief(root)
+        gates = brief.get("gates") if isinstance(brief.get("gates"), dict) else {}
+        redact_extra = brief.get("redact_extra") if isinstance(brief.get("redact_extra"), list) else []
+        cwd_value = data.get("cwd") if isinstance(data.get("cwd"), str) else None
+        branch = _record_branch(cwd_value)
+        event_type = _classify_record_event(data, payload, paths)
+        if (
+            payload is not None
+            and payload.tool_name == "Bash"
+            and hook_event in {"PostToolUse", "PostToolUseFailure"}
+        ):
+            matched = match_gate_command(bash_command(payload), gates)
+            if matched is not None:
+                event_type = "verification"
+                extra["package"], extra["gate"] = matched
+                extra["commit"] = _record_head_commit(cwd_value)
         event = {
             "session_id": data.get("session_id"),
-            "branch": _record_branch(data.get("cwd") if isinstance(data.get("cwd"), str) else None),
+            "branch": branch,
             "cwd": data.get("cwd"),
-            "event_type": _classify_record_event(data, payload, paths),
+            "event_type": event_type,
             "tool_name": tool_name if isinstance(tool_name, str) else None,
             "handler": payload_handler(payload) if payload is not None else None,
             "paths": paths,
@@ -2256,9 +2461,17 @@ def ledger_record() -> int:
             "payload_digest": payload_digest(payload) if payload is not None else None,
             "extra": {key: value for key, value in extra.items() if value is not None},
         }
-        ledger = ledger_lib.open_ledger(cwd=root)
+        ledger = ledger_lib.open_ledger(cwd=root, redact_patterns=[p for p in redact_extra if isinstance(p, str)])
         try:
             ledger.append(event)
+            if hook_event == "PostToolUse" and extra.get("is_mutation"):
+                _ensure_scope_record(
+                    ledger,
+                    branch=branch,
+                    session_id=data.get("session_id"),
+                    cwd=cwd_value,
+                    brief=brief,
+                )
         finally:
             ledger.close()
     except Exception:  # noqa: BLE001 - the recorder must never break a session.

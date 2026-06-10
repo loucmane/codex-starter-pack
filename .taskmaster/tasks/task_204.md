@@ -2,7 +2,7 @@
 
 **Title:** Capsule PR-1c: gate-decisions dual-write
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 203 ✓
 

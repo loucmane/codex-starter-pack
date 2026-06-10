@@ -629,7 +629,8 @@
             "generated",
             "adapter",
             "runtime",
-            "report"
+            "report",
+            "config"
           ]
         },
         "checksum": {
