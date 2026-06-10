@@ -9,3 +9,4 @@
 ## Next Steps
 - Mark Taskmaster Task 184 done, capture memory, run final guards, commit, publish PR, and merge after CI.
 - After merge, update HP-Coach runtime and verify its completed observation now falls back to normal kickoff/task binding.
+- Archived on 2026-06-09 17:22 CEST — Folder moved to archive and tracker marked COMPLETED.

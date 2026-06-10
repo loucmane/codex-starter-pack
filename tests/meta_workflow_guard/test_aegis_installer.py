@@ -4011,6 +4011,136 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
     assert implementation_evidence in changelog_repairs[0]["command"]
 
 
+def test_closeout_evidence_tokenizer_preserves_table_escaped_compound_commands() -> None:
+    raw_evidence = (
+        "cmd`git diff -- app/src &#124; grep -E '^\\+' &#124; tail -25`; "
+        'cmd`python3 -c "import sys,json; data=json.load(sys.stdin); '
+        "print(data.get('status'))\"`; "
+        "reports/verification.txt"
+    )
+
+    assert aegis_installer._split_evidence_tokens(raw_evidence) == [
+        "cmd`git diff -- app/src | grep -E '^\\+' | tail -25`",
+        'cmd`python3 -c "import sys,json; data=json.load(sys.stdin); '
+        "print(data.get('status'))\"`",
+        "reports/verification.txt",
+    ]
+
+
+def test_handoff_repair_converges_with_compound_bash_closeout_evidence(tmp_path: Path) -> None:
+    target = tmp_path / "compound-bash-closeout"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="compound-bash", title="Compound Bash")
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
+    work_rel = current_work["paths"]["work_tracking"]
+    implementation_evidence = (
+        "cmd`git diff -- app/src/components/session/SessionPlayer.tsx 2>&1 "
+        "| grep -E '^\\+' | tail -25`"
+    )
+    verification_evidence = (
+        'cmd`./.aegis/bin/aegis verify --target-dir . --strict 2>&1 | '
+        'python3 -c "import sys,json; data=json.load(sys.stdin); '
+        "print(data.get('status'))\"`"
+    )
+
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed compound Bash closeout scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Bash",
+        evidence=implementation_evidence,
+        note="Recorded compound Bash implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Bash",
+        evidence=verification_evidence,
+        note="Recorded compound Bash verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    plan_text = (target / current_work["paths"]["plan"]).read_text(encoding="utf-8")
+    assert "&#124;" in plan_text
+    assert "| grep" not in plan_text
+
+    strict = verify(target, source_root=REPO_ROOT, strict=True)
+    assert strict["status"] == "passed"
+    log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+
+    repaired = repair_handoff(target, source_root=REPO_ROOT)
+
+    assert repaired["status"] == "repaired"
+    assert repaired["closeout_ready_after"]["status"] == "passed"
+    assert repaired["evidence"]["implementation"] == [implementation_evidence]
+    assert verification_evidence in repaired["evidence"]["verification"]
+    closeout_ready = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
+    assert closeout_ready["status"] == "passed"
+    assert implementation_evidence in closeout_ready["evidence_matrix"]
+    assert verification_evidence in closeout_ready["evidence_matrix"]
+    assert not any("&#124" in token for token in closeout_ready["evidence_matrix"])
+    assert not any(token in closeout_ready["evidence_matrix"] for token in ("tail -25", "head"))
+
+
+def test_compound_bash_mutation_still_records_pending_tracking(tmp_path: Path) -> None:
+    target = tmp_path / "compound-bash-tracking"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="compound-track", title="Compound Track")
+    command = (
+        "python3 -c \"from pathlib import Path; "
+        "Path('proof.txt').write_text('x', encoding='utf-8')\" | cat"
+    )
+
+    posttool = run_target_posttooluse(
+        target,
+        {"tool_name": "Bash", "tool_input": {"command": command}},
+    )
+
+    assert posttool.returncode == 0, posttool.stdout + posttool.stderr
+    pending = json.loads((target / AEGIS_PENDING_TRACKING_REL).read_text(encoding="utf-8"))
+    assert len(pending["events"]) == 1
+    assert pending["events"][0]["handler"] == "bash:python3"
+    assert pending["events"][0]["evidence"] == f"cmd`{command}`"
+
+
 def test_kickoff_ready_state_does_not_depend_on_optional_stale_taskmaster(tmp_path: Path) -> None:
     target = tmp_path / "portable-repo-with-stale-taskmaster"
     target.mkdir()
