@@ -29,7 +29,8 @@
       "CODEX.md",
       "pyproject.toml",
       "requirements.lock",
-      "uv.lock"
+      "uv.lock",
+      ".aegis/brief.json"
     ]
   },
   "thresholds": {
