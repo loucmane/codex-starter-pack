@@ -2,9 +2,9 @@
 
 **Title:** Surface post-closeout GitHub delivery state
 
-**Status:** in-progress
+**Status:** done
 
-**Dependencies:** 192 ⧖
+**Dependencies:** 192 ✓
 
 **Priority:** high
 

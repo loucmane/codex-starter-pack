@@ -2,7 +2,7 @@
 
 **Title:** Closeout must normalize compound Bash evidence
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 187 ✓
 
