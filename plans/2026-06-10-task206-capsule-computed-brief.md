@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the PR-2a boundary: brief_lib.py compiler, 8 computed fields with STALE semantics, 5-check sentinel + canary, risk-seed consumption, aegis brief + --check CLI | docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/designs/computed-brief-scope.md | completed |
-| plan-step-implement | Implement brief_lib.py (compile, sentinel, canary, render, capsule files), aegis brief CLI + gate classification, mirrors | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Fixture-repo tests per field, sentinel/canary tests, --check budget tests, live brief-vs-reality check in this repo, full suite + guard stack | docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement brief_lib.py (compile, sentinel, canary, render, capsule files), aegis brief CLI + gate classification, mirrors | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Fixture-repo tests per field, sentinel/canary tests, --check budget tests, live brief-vs-reality check in this repo, full suite + guard stack | docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task206-capsule-computed-brief-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
