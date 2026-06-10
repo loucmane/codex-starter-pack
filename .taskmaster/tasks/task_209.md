@@ -2,9 +2,9 @@
 
 **Title:** Capsule PR-3.5: delivery witness v0
 
-**Status:** pending
+**Status:** in-progress
 
-**Dependencies:** 208
+**Dependencies:** 207 ✓
 
 **Priority:** high
 
