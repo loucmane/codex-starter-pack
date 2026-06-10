@@ -7375,13 +7375,13 @@
         "description": "Spec: docs/aegis/AEGIS_CAPSULE_SPEC.md sections 1.1, 1.2, 2. Wire PostToolUse AND PostToolUseFailure recording through the installer and rendered assets as a NEW parallel async:true hook entry (existing posttooluse-tracking.sh untouched until PR-4): basic events only (ts, session_id, cwd, branch, tool_name, normalized paths, outcome class, duration_ms, agent_id/agent_type), plus delivery events (git push / gh pr create / merge; branch-to-PR mapping) and task-truth events (tasks.json writes / task-master commands). Prerequisite: capture real hook payload fixtures from a live session under tests/fixtures/hook_payloads/ and test graceful degradation (missing field = null, never crash). Touch all five coordinated points from spec 1.1 (settings renderer, bootstrap script, cli.py hook choices incl. posttoolusefailure/sessionstart/sessionend, gate_lib routing, manifest hashes) using exec-form args. Includes the .gitignore hygiene rider on install/upgrade. Requires aegis plan-install + aegis install --apply in target repos. Together with task 202 this supersedes Phase-0 task 198 (passive ledger spike) and absorbs task 196's delivery-event capture. Merge gate: live HP-Coach events appear, nothing blocks.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "202"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-06-10T16:42:54.468Z"
+        "updatedAt": "2026-06-10T17:27:17.203Z"
       },
       {
         "id": "204",
@@ -7389,12 +7389,13 @@
         "description": "Spec: AEGIS_CAPSULE_SPEC.md section 2 (gate-decisions migration, decided). Dual-write new advisory gate decisions to both the existing .aegis/reports/gate-decisions.jsonl and the ledger for one release; then freeze the JSONL read-only in place. Never migrate history. aegis enforce status and existing tests keep reading what they read today. Ties directly to the PR #199 advisory machinery (gate_block_or_record / append_gate_decision). Merge gate: old-vs-new parity on live decisions.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "203"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-10T17:27:20.067Z"
       },
       {
         "id": "205",
@@ -7477,9 +7478,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-10T16:42:54.469Z",
+      "lastModified": "2026-06-10T17:27:20.068Z",
       "taskCount": 209,
-      "completedCount": 189,
+      "completedCount": 190,
       "tags": [
         "master"
       ]

@@ -8,3 +8,4 @@
   async shell-form settings entries (exec-form failed live probe), aegis hook
   dispatcher additions, manifest managed_files, hygiene rider; 15 recorder tests;
   live events recorded in this repo's store from running + fresh sessions.
+- 2026-06-10 19:27 CEST — Archived active work-tracking folder.
