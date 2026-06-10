@@ -10,7 +10,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, Literal, Sequence
 
@@ -179,6 +182,47 @@ class AegisMCPConfig:
         }
 
 
+# The long-running MCP server caches the imported installer module, so mid-session
+# upstream bumps historically produced stale logic (HP-Coach friction 13: MCP returned
+# empty repair plans while the fresh-reading CLI had the fix). The handshake fingerprints
+# the runtime-bearing source files at startup and re-checks on every tool call.
+RUNTIME_FINGERPRINT_FILES = (
+    "scripts/_aegis_installer.py",
+    ".claude/scripts/gate_lib.py",
+    ".claude/scripts/ledger_lib.py",
+)
+
+
+def runtime_fingerprint(source_root: Path) -> dict[str, Any]:
+    """Hash the runtime-bearing source files plus the source commit (best effort)."""
+
+    hashes: dict[str, str | None] = {}
+    for rel in RUNTIME_FINGERPRINT_FILES:
+        path = source_root / rel
+        try:
+            hashes[rel] = sha256(path.read_bytes()).hexdigest()
+        except OSError:
+            hashes[rel] = None
+    commit: str | None = None
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(source_root),
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        commit = result.stdout.strip() or None if result.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        commit = None
+    return {
+        "files": hashes,
+        "source_commit": commit,
+        "captured_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    }
+
+
 def create_server(config: AegisMCPConfig | None = None) -> FastMCP:
     """Create the Aegis MCP server without starting a transport."""
 
@@ -187,6 +231,9 @@ def create_server(config: AegisMCPConfig | None = None) -> FastMCP:
     server.aegis_config = resolved_config  # type: ignore[attr-defined]
     server.aegis_installer = _aegis_installer  # type: ignore[attr-defined]
     server.aegis_latest_plan = None  # type: ignore[attr-defined]
+    server.aegis_runtime_fingerprint = runtime_fingerprint(  # type: ignore[attr-defined]
+        resolved_config.source_root
+    )
     register_v1_tools(server)
     register_resources_and_prompts(server)
     return server
@@ -234,14 +281,18 @@ def _ok_tool_response(
     *,
     result: dict[str, Any],
     read_only: bool,
+    runtime_stale: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "ok": True,
         "schema_version": _aegis_installer.SCHEMA_VERSION,
         "tool": tool_name,
         "read_only": read_only,
         "result": result,
     }
+    if runtime_stale is not None:
+        payload["runtime_stale"] = runtime_stale
+    return payload
 
 
 def _error_tool_response(
@@ -383,12 +434,43 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
     def validate_core_payload(schema_name: str, payload: dict[str, Any]) -> None:
         installer._validate_with_schema(config.source_root, schema_name, payload)
 
+    def runtime_staleness() -> dict[str, Any] | None:
+        started = getattr(server, "aegis_runtime_fingerprint", None)
+        if not isinstance(started, dict):
+            return None
+        on_disk = runtime_fingerprint(config.source_root)
+        if on_disk.get("files") == started.get("files"):
+            return None
+        return {
+            "reason": (
+                "the Aegis source on disk changed after this MCP server started; the "
+                "long-running server is serving stale logic"
+            ),
+            "started_with": started,
+            "on_disk": on_disk,
+            "guidance": "Restart the Aegis MCP server (or use the fresh-reading CLI) before relying on this result.",
+        }
+
     def run_tool(
         tool_name: str,
         *,
         read_only: bool,
         callback,
     ) -> dict[str, Any]:
+        stale = runtime_staleness()
+        if stale is not None and not read_only:
+            return _error_tool_response(
+                tool_name,
+                code="runtime_stale_reload_required",
+                status="blocked",
+                message=(
+                    "HARD STOP: the Aegis source changed after this MCP server started, so "
+                    "state-mutating tools are refused to prevent stale-logic decisions "
+                    "(the HP-Coach empty-repair-plan class). Restart the Aegis MCP server, "
+                    "or run the equivalent fresh-reading CLI command instead."
+                ),
+                details=stale,
+            )
         try:
             result = callback()
         except AegisMCPToolError as exc:
@@ -426,7 +508,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             )
         if isinstance(result, dict) and result.get("ok") is False and "error" in result:
             return result
-        return _ok_tool_response(tool_name, result=result, read_only=read_only)
+        return _ok_tool_response(tool_name, result=result, read_only=read_only, runtime_stale=stale)
 
     @server.tool(name="aegis.inspect")
     def aegis_inspect(
@@ -1009,7 +1091,17 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
 
         def call_core() -> dict[str, Any]:
             target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
-            return installer.runtime_status(target, source_root=config.source_root)
+            payload = installer.runtime_status(target, source_root=config.source_root)
+            started = getattr(server, "aegis_runtime_fingerprint", None)
+            on_disk = runtime_fingerprint(config.source_root)
+            payload["mcp_server"] = {
+                "started_fingerprint": started,
+                "on_disk_fingerprint": on_disk,
+                "stale": bool(
+                    isinstance(started, dict) and on_disk.get("files") != started.get("files")
+                ),
+            }
+            return payload
 
         return run_tool(
             "aegis.runtime_status",

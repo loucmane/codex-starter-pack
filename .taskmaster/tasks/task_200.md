@@ -2,7 +2,7 @@
 
 **Title:** Aegis MCP CLI version handshake
 
-**Status:** pending
+**Status:** in-progress
 
 **Dependencies:** 194 ✓
 

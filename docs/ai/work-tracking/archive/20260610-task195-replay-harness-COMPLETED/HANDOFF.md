@@ -11,3 +11,4 @@
   budgets); #201 (break-glass) builds on this harness's fixtures.
 - When any future policy change frees a historical FP or closes a gap, update the
   corpus locks IN THE SAME PR — the tests force it.
+- Archived on 2026-06-11 00:15 CEST — Folder moved to archive and tracker marked COMPLETED.
