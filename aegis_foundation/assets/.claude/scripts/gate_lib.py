@@ -689,6 +689,7 @@ def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_ba
 def read_only_aegis_remainder(remainder: list[str]) -> bool:
     return bool(remainder) and (
         remainder[0] in READ_ONLY_AEGIS_SUBCOMMANDS
+        or (len(remainder) >= 2 and remainder[0] == "ledger" and remainder[1] == "path")
         or (len(remainder) >= 2 and remainder[0] == "runtime" and remainder[1] == "status")
         or (
             len(remainder) >= 2
