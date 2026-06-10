@@ -2,7 +2,7 @@
 
 **Title:** Capsule PR-1a: passive ledger core (store, schema, redaction)
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** None
 

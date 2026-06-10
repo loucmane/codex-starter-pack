@@ -1,7 +1,7 @@
 # Task 202 Capsule PR-1a: passive ledger core (store, schema, redaction) Tracker
 
 **Started**: 2026-06-10
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-10
 
 ## Goals
@@ -19,6 +19,7 @@
 - **2026-06-10 18:02** — [S:20260610|W:task202-capsule-ledger-core|H:task-master:add-task|E:.taskmaster/tasks/tasks.json] Backlog wiring and Phase-0 reconciliation complete; decisions recorded in DECISIONS.md
 - **2026-06-10 18:16** — [S:20260610|W:task202-capsule-ledger-core|H:claude:Write|E:aegis_foundation/assets/.claude/scripts/ledger_lib.py] PR-1a implementation complete; details in IMPLEMENTATION.md; plan-step-implement completed
 - **2026-06-10 18:19** — [S:20260610|W:task202-capsule-ledger-core|H:pytest|E:docs/ai/work-tracking/active/20260610-task202-capsule-ledger-core-ACTIVE/reports/capsule-ledger-core/tests-2026-06-10-final.txt] Verification stack green; plan-step-verify completed; handoff refreshed
+- **2026-06-10 18:21** — [S:20260610|W:task202-capsule-ledger-core|H:gh:pr-create|E:cmd`gh pr create (PR #200)`] PR 200 opened; awaiting CI + owner merge approval
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
