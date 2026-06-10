@@ -142,6 +142,7 @@ READ_ONLY_TASKMASTER_SUBCOMMANDS = {
 }
 READ_ONLY_AEGIS_SUBCOMMANDS = {
     "brief",
+    "replay",
     "witness",
     "doctor",
     "explain-profile",

@@ -142,6 +142,21 @@ def _load_witness_lib(source_root: Path):
     return module
 
 
+def handle_replay(args: argparse.Namespace) -> int:
+    import tempfile
+
+    from aegis_foundation import replay
+
+    with _resolve_source_root(args.source_root) as source_root:
+        work_dir = args.work_dir or tempfile.mkdtemp(prefix="aegis-replay-")
+        report = replay.run_corpus(args.corpus, source_root=source_root, work_dir=work_dir)
+        if args.json:
+            _dump_json({key: value for key, value in report.items() if key != "results"})
+        else:
+            print(replay.render_report(report), end="")
+        return 0 if report.get("passed") else 1
+
+
 def handle_witness(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         witness_lib = _load_witness_lib(source_root)
@@ -821,6 +836,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
+
+    replay_parser = subparsers.add_parser(
+        "replay",
+        help="Replay tool-call corpora through the real gate and report verdict deltas.",
+    )
+    replay_parser.add_argument(
+        "--corpus", action="append", required=True, help="Corpus JSONL path; repeatable."
+    )
+    replay_parser.add_argument("--work-dir", default=None, help="Scratch dir for state fixtures.")
+    replay_parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    replay_parser.set_defaults(func=handle_replay)
 
     witness_parser = subparsers.add_parser(
         "witness",

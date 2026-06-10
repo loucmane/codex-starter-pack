@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Pin the harness boundary: corpus schema + labels, state fixtures, E01/E29 goldens, ledger ingestion, replay CLI + CI suite | docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/designs/replay-harness-scope.md | completed |
-| plan-step-implement | Implement aegis_foundation/replay.py, corpora, E01/E29 goldens, ledger ingestion, aegis replay CLI | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Corpus suites green with correct expectations (FP baseline, must-fire, adversarial incl. expected gaps), full suite + guard stack | docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement aegis_foundation/replay.py, corpora, E01/E29 goldens, ledger ingestion, aegis replay CLI | aegis_foundation/cli.py; docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Corpus suites green with correct expectations (FP baseline, must-fire, adversarial incl. expected gaps), full suite + guard stack | docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260610-task195-replay-harness-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
