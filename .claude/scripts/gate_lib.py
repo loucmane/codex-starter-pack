@@ -210,6 +210,10 @@ PATH_FIELD_NAMES = {
 class Payload:
     tool_name: str
     tool_input: dict[str, Any]
+    # Hook-envelope attribution (capsule PR-1c): optional so every existing call site
+    # and test remains valid; populated by parse_payload from the hook stdin JSON.
+    session_id: str | None = None
+    cwd: str | None = None
 
 
 @dataclass
@@ -256,7 +260,12 @@ def parse_payload(raw: str) -> Payload | PayloadLoadError:
             reason=f"hook payload field 'tool_input' must be an object, got {type(raw_tool_input).__name__}",
             raw_preview=raw_payload_preview(raw),
         )
-    return Payload(tool_name=str(data.get("tool_name") or ""), tool_input=tool_input)
+    return Payload(
+        tool_name=str(data.get("tool_name") or ""),
+        tool_input=tool_input,
+        session_id=str(data["session_id"]) if isinstance(data.get("session_id"), str) else None,
+        cwd=str(data["cwd"]) if isinstance(data.get("cwd"), str) else None,
+    )
 
 
 def load_payload_result(raw: str | None = None) -> Payload | PayloadLoadError:
@@ -363,6 +372,47 @@ def append_gate_decision(
     }
     with report_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, sort_keys=True) + "\n")
+    _dual_write_gate_decision(root, record, payload)
+
+
+def _dual_write_gate_decision(root: Path, record: dict[str, Any], payload: Payload | None) -> None:
+    """Capsule PR-1c: mirror the advisory decision into the ledger, best-effort.
+
+    The JSONL above stays the primary surface (aegis enforce status and existing
+    tests keep reading it); the ledger twin shares the same payload_digest, which is
+    the old-vs-new parity key. Any failure here is swallowed — dual-write must never
+    break or delay a gate decision.
+    """
+
+    try:
+        ledger_lib = _load_ledger_lib_module()
+        if ledger_lib is None:
+            return
+        extra = {
+            "hook": record.get("hook"),
+            "verdict": record.get("verdict"),
+            "reason": record.get("reason"),
+            "mode": record.get("mode"),
+            "source_commit": record.get("source_commit"),
+        }
+        if record.get("readiness_state"):
+            extra["readiness_state"] = record.get("readiness_state")
+        event = {
+            "ts": record.get("ts"),
+            "session_id": payload.session_id if payload is not None else None,
+            "cwd": payload.cwd if payload is not None else None,
+            "event_type": "gate_decision",
+            "tool_name": record.get("tool_name"),
+            "payload_digest": record.get("payload_digest"),
+            "extra": {key: value for key, value in extra.items() if value is not None},
+        }
+        ledger = ledger_lib.open_ledger(cwd=root)
+        try:
+            ledger.append(event)
+        finally:
+            ledger.close()
+    except Exception:  # noqa: BLE001 - dual-write is strictly best-effort.
+        return
 
 
 def advisory_enabled(root: Path) -> bool:

@@ -16,3 +16,4 @@
   (spec section 1.1 — its installed gate_lib drifts from assets, so the upgrade run is
   required regardless), then watch events appear during normal product work.
 - Then PR-1c (task 204): gate-decisions dual-write to the ledger with JSONL parity.
+- Archived on 2026-06-10 19:27 CEST — Folder moved to archive and tracker marked COMPLETED.
