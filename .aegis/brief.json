@@ -39,5 +39,6 @@
   },
   "redact_extra": [],
   "archive_keep": 20,
-  "inject": true
+  "inject": true,
+  "ab_assignment": "session-hash"
 }

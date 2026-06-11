@@ -2672,11 +2672,20 @@ def session_start_hook() -> int:
         raw = ""
     root = project_root()
     brief_lib = _load_brief_lib_module()
-    injected = bool(brief_lib and brief_lib.injection_enabled(root))
     try:
         data = json.loads(raw or "{}")
         if not isinstance(data, dict):
             data = {}
+    except Exception:  # noqa: BLE001 - a malformed payload must not block a session.
+        data = {}
+    if brief_lib is not None and hasattr(brief_lib, "capsule_assignment"):
+        assignment = brief_lib.capsule_assignment(root, session_id=data.get("session_id"))
+    elif brief_lib is not None:
+        assignment = {"injected": brief_lib.injection_enabled(root), "mode": "static-on"}
+    else:
+        assignment = {"injected": False, "mode": "no-brief-lib"}
+    injected = bool(assignment.get("injected"))
+    try:
         ledger_lib = _load_ledger_lib_module()
         if ledger_lib is not None:
             ledger = ledger_lib.open_ledger(cwd=root)
@@ -2691,6 +2700,7 @@ def session_start_hook() -> int:
                             "hook_event_name": "SessionStart",
                             "source": data.get("source"),
                             "capsule_injected": injected,
+                            "assignment": assignment.get("mode"),
                         },
                     }
                 )

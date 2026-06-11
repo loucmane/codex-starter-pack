@@ -14,6 +14,7 @@ unflagged canary reports the sentinel as broken, never silent zero-drift.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -518,17 +519,17 @@ def render_markdown(capsule: dict[str, Any]) -> str:
         f"decisions since last capsule: {governance.get('decisions_since_last_capsule')}"
     )
     drift = sentinel.get("drift", [])
+    reds = [f"- {item}" for item in drift]
+    if hygiene.get("branch_count_flagged"):
+        reds.append(f"- hygiene: {hygiene.get('branch_count')} local branches (threshold)")
+    for entry in hygiene.get("oversized_unignored", []):
+        reds.append(f"- hygiene: oversized unignored file {entry.get('path')} ({entry.get('size_bytes')} bytes)")
     lines.append(
         f"**Known reds (sentinel):** {sentinel.get('attempted')} checks attempted, "
-        f"{sentinel.get('parsed')} parsed, {len(drift)} drift item(s)"
+        f"{sentinel.get('parsed')} parsed, {len(drift)} drift item(s), {len(reds)} red(s) listed"
         + ("" if sentinel.get("sentinel_ok") else " — SENTINEL BROKEN (canary did not flag)")
     )
-    for item in drift:
-        lines.append(f"- {item}")
-    if hygiene.get("branch_count_flagged"):
-        lines.append(f"- hygiene: {hygiene.get('branch_count')} local branches (threshold)")
-    for entry in hygiene.get("oversized_unignored", []):
-        lines.append(f"- hygiene: oversized unignored file {entry.get('path')} ({entry.get('size_bytes')} bytes)")
+    lines.extend(reds)
     register = capsule.get("risk_register", [])
     if register:
         lines.append("**Risk register (seeded):**")
@@ -582,19 +583,50 @@ def render_injection(capsule: dict[str, Any], budget: int = CHAR_BUDGET) -> tupl
     return text, dropped
 
 
-def injection_enabled(root: str | Path, env: dict[str, str] | None = None) -> bool:
-    """Off-switch precedence: AEGIS_CAPSULE env wins, then brief.json inject flag."""
+AB_ASSIGNMENT_KEY = "ab_assignment"
+AB_SESSION_HASH = "session-hash"
+
+
+def capsule_assignment(
+    root: str | Path,
+    session_id: str | None = None,
+    env: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Decide the capsule arm for one session start (spec §7 A/B, amended 2026-06-11).
+
+    Precedence: AEGIS_CAPSULE env (owner override) > brief.json ``inject: false``
+    (hard off) > ``ab_assignment: "session-hash"`` (deterministic per-session arm from
+    sha256(session_id) parity — the unit of analysis is the cold start, so assignment
+    randomizes per session, not per calendar day) > static on. Paths without a
+    session_id (CLI renders, --check) never randomize: assignment only applies where a
+    session_begin stamp will record the arm.
+    """
 
     environment = env if env is not None else dict(os.environ)
     env_value = str(environment.get("AEGIS_CAPSULE") or "").strip().lower()
     if env_value in {"off", "0", "false", "no"}:
-        return False
+        return {"injected": False, "mode": "env-override"}
     if env_value in {"on", "1", "true", "yes"}:
-        return True
+        return {"injected": True, "mode": "env-override"}
     brief = _read_json(Path(root) / BRIEF_REL)
-    if isinstance(brief, dict) and brief.get("inject") is False:
-        return False
-    return True
+    brief = brief if isinstance(brief, dict) else {}
+    if brief.get("inject") is False:
+        return {"injected": False, "mode": "brief-inject-false"}
+    if brief.get(AB_ASSIGNMENT_KEY) == AB_SESSION_HASH and session_id:
+        digest = hashlib.sha256(str(session_id).encode("utf-8")).hexdigest()
+        return {"injected": int(digest, 16) % 2 == 0, "mode": AB_SESSION_HASH}
+    return {"injected": True, "mode": "static-on"}
+
+
+def injection_enabled(
+    root: str | Path,
+    env: dict[str, str] | None = None,
+    session_id: str | None = None,
+) -> bool:
+    """Off-switch precedence: AEGIS_CAPSULE env wins, then brief.json inject flag,
+    then per-session hashed assignment when configured."""
+
+    return bool(capsule_assignment(root, session_id=session_id, env=env)["injected"])
 
 
 def write_capsule(root: str | Path, capsule: dict[str, Any], markdown: str) -> None:
@@ -628,10 +660,13 @@ def check_capsule(root: str | Path) -> tuple[bool, list[str]]:
 
 
 __all__ = [
+    "AB_ASSIGNMENT_KEY",
+    "AB_SESSION_HASH",
     "CANARY_REL",
     "CAPSULE_DIR_REL",
     "CHAR_BUDGET",
     "HOOK_HARD_CAP",
+    "capsule_assignment",
     "check_capsule",
     "compile_capsule",
     "injection_enabled",

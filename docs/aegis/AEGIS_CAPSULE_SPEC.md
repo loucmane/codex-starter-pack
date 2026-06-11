@@ -476,9 +476,16 @@ Instrument before investing in depth features:
   SessionStart only stamps session_begin + the capsule_on/off flag. **Secondary metrics**
   (recorded alongside — a tiny unrelated write can make the primary noisy): first
   *source/project* mutation (target under the repo's declared `source_roots` in brief.json)
-  and first non-governance investigation command. **A/B mechanism:**
-  `AEGIS_CAPSULE=off` env (or `{"inject": false}` in brief.json), assignment alternating by
-  calendar day, owner-overridable. Compare over 2 weeks of real HP-Coach sessions. Baselines
+  and first non-governance investigation command. **A/B mechanism (amended 2026-06-11,
+  owner-approved):** deterministic per-session assignment — `"ab_assignment": "session-hash"`
+  in brief.json makes SessionStart pick the arm from sha256(session_id) parity; the unit of
+  analysis is the genuine cold start (`session_begin` with source `startup`; resume/clear/
+  compact stamps are excluded). `AEGIS_CAPSULE` env remains the owner override and
+  `{"inject": false}` a hard off. **Stopping rule:** fixed-n, not fixed-time — decide once
+  each arm has ≥15 genuine cold starts (`aegis ab` reports per-arm counts and rule status);
+  this supersedes the original calendar-day alternation and 2-week window. Known biases,
+  accepted: carryover through handoff files attenuates the delta toward zero (harsher on the
+  capsule), and arms are unblinded. Baselines
   on record: 30-50 reconnaissance calls on a normal morning; 378k tokens when trust collapsed
   entirely.
 - **Ceremony count:** governance tool-calls per session, target ≈0. Baselines: ~47% of tool
@@ -491,8 +498,9 @@ Instrument before investing in depth features:
 
 **Kill criterion, stated in advance:** today's scan happened with THREE injected/available
 context surfaces already present (CLAUDE.md, auto-memory, STATUS.md on disk) — the burden of
-proof is on the capsule. If tool-calls-before-first-meaningful-action does not move in 2
-weeks, keep Loop 1 as a flight recorder and **kill Loop 3 without sentiment**.
+proof is on the capsule. If tool-calls-before-first-meaningful-action does not move by the
+time the fixed-n stopping rule is met, keep Loop 1 as a flight recorder and **kill Loop 3
+without sentiment**.
 
 **The final test (dev-stated, governs the whole phase):** not whether the system feels
 elegant — whether "let's continue" starts producing useful work in fewer tool calls, with

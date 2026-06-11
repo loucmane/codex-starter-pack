@@ -187,6 +187,71 @@ def handle_brief(args: argparse.Namespace) -> int:
         return 0
 
 
+def handle_ab(args: argparse.Namespace) -> int:
+    """Per-session A/B stopping-rule counter (spec §7 as amended 2026-06-11, TM 213).
+
+    Counts genuine cold starts per arm from the ledger's session_begin stamps —
+    only source == "startup" qualifies (resume/clear/compact are not orientation
+    events) — and reports whether each arm has reached the fixed-n stopping rule
+    that replaced the 2-week calendar window.
+    """
+
+    with _resolve_source_root(args.source_root) as source_root:
+        ledger_lib = _load_ledger_lib(source_root)
+        try:
+            ledger = ledger_lib.open_ledger(cwd=args.target_dir)
+        except ledger_lib.LedgerError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        try:
+            events = ledger.read(event_type="session_begin")
+        finally:
+            ledger.close()
+        target_root = Path(args.target_dir).resolve()
+        arms = {"on": 0, "off": 0}
+        excluded_non_startup = 0
+        excluded_other_cwd = 0
+        for event in events:
+            extra = event.get("extra") if isinstance(event.get("extra"), dict) else {}
+            if extra.get("source") != "startup":
+                excluded_non_startup += 1
+                continue
+            # Harness/capture sessions (replay worktrees, hook captures) share this
+            # ledger via the git common dir but start elsewhere — only sessions begun
+            # in the target repo itself are live A/B observations.
+            cwd = event.get("cwd")
+            if cwd and Path(str(cwd)).resolve() != target_root:
+                excluded_other_cwd += 1
+                continue
+            arms["on" if extra.get("capsule_injected") else "off"] += 1
+        remaining = {arm: max(0, args.min_n - count) for arm, count in arms.items()}
+        met = not any(remaining.values())
+        payload = {
+            "cold_starts": arms,
+            "excluded_non_startup": excluded_non_startup,
+            "excluded_other_cwd": excluded_other_cwd,
+            "min_n_per_arm": args.min_n,
+            "remaining": remaining,
+            "stopping_rule_met": met,
+        }
+        if args.json:
+            _dump_json(payload)
+        else:
+            print(f"Genuine cold starts (source=startup, in-repo): on={arms['on']} off={arms['off']}")
+            print(
+                f"Excluded: {excluded_non_startup} non-startup, "
+                f"{excluded_other_cwd} out-of-repo (harness/capture) stamps"
+            )
+            if met:
+                print(f"Stopping rule MET (>= {args.min_n} per arm) — compute the §7 metric and decide.")
+            else:
+                print(
+                    f"Stopping rule not met (need {args.min_n}/arm): "
+                    f"{remaining['on']} more on-arm, {remaining['off']} more off-arm."
+                )
+        return 0
+
+
 def handle_override(args: argparse.Namespace) -> int:
     """Mint a one-shot, rate-limited break-glass token (recovery contract, TM 201).
 
@@ -936,6 +1001,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Offline strict validation: char budget + canary + parse counters (fails over budget).",
     )
     brief_parser.set_defaults(func=handle_brief)
+
+    ab_parser = subparsers.add_parser(
+        "ab",
+        help="Report per-arm cold-start counts for the §7 capsule A/B and the fixed-n stopping rule.",
+    )
+    ab_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    ab_parser.add_argument(
+        "--min-n",
+        type=int,
+        default=15,
+        help="Genuine cold starts required per arm before deciding (default 15).",
+    )
+    ab_parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    ab_parser.set_defaults(func=handle_ab)
 
     override_parser = subparsers.add_parser(
         "override",
