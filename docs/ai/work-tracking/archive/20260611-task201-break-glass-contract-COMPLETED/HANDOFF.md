@@ -9,3 +9,4 @@
 - Push, PR, CI, owner merge approval.
 - Remaining program work is the two falsifier-gated capsule slices (PR-3 narration,
   PR-4 retirement) waiting on the ~2026-06-24 window + the required-check decision.
+- Archived on 2026-06-11 09:51 CEST — Folder moved to archive and tracker marked COMPLETED.

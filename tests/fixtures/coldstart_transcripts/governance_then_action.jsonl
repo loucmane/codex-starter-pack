@@ -1,0 +1,5 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status"}}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Write", "input": {"file_path": ".aegis/capsule/current.md", "content": "x"}}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {"command": "aegis log --pending-id current"}}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Write", "input": {"file_path": "worker/handler.py", "content": "def h(): pass"}}]}}
+{"type": "assistant", "message": {"content": [{"type": "text", "text": "done"}]}}
