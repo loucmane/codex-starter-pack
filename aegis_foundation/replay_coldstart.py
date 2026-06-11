@@ -315,8 +315,9 @@ def run_live_ab(
                         # API credits. A present ANTHROPIC_API_KEY routes claude -p down the
                         # API-credit path; drop it so the subscription auth is used.
                         env.pop("ANTHROPIC_API_KEY", None)
-                        if arm == "baseline":
-                            env["AEGIS_CAPSULE"] = "off"
+                        # Explicit per-arm override: with session-hash A/B assignment in
+                        # brief.json, an unset env would randomize the capsule arm.
+                        env["AEGIS_CAPSULE"] = "off" if arm == "baseline" else "on"
                         project_dir = home_projects / wt.as_posix().replace("/", "-")
                         before = project_dir.stat().st_mtime if project_dir.exists() else 0.0
                         subprocess.run(
