@@ -311,6 +311,10 @@ def run_live_ab(
                     try:
                         env = dict(os.environ)
                         env.pop(RUN_GATE_ENV, None)  # the replay agent must not recurse
+                        # Household rule: replay agents run on the Max subscription, never
+                        # API credits. A present ANTHROPIC_API_KEY routes claude -p down the
+                        # API-credit path; drop it so the subscription auth is used.
+                        env.pop("ANTHROPIC_API_KEY", None)
                         if arm == "baseline":
                             env["AEGIS_CAPSULE"] = "off"
                         project_dir = home_projects / wt.as_posix().replace("/", "-")

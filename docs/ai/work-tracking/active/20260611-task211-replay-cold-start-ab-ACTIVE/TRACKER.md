@@ -16,6 +16,7 @@
 - **2026-06-11 09:51** — [S:20260611|W:task211-replay-cold-start-ab|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 211 kickoff
 - **2026-06-11 09:56** — [S:20260611|W:task211-replay-cold-start-ab|H:serena/memory|E:.serena/memories/2026-06-11_task211_coldstart_ab.md] Captured the Task 211 cold-start A/B Serena memory checkpoint
 - **2026-06-11 09:56** — [S:20260611|W:task211-replay-cold-start-ab|H:pytest|E:tests/claude_adapter/test_replay_coldstart.py] 11 core tests + full suite; plan steps completed
+- **2026-06-11 11:49** — [S:20260611|W:task211-replay-cold-start-ab|H:claude:Edit|E:aegis_foundation/replay_coldstart.py] First live run finding: run_live_ab must drop ANTHROPIC_API_KEY so claude -p uses the Max subscription not the empty API path (household rule); fix applied
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
