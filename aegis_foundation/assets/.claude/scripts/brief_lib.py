@@ -519,17 +519,17 @@ def render_markdown(capsule: dict[str, Any]) -> str:
         f"decisions since last capsule: {governance.get('decisions_since_last_capsule')}"
     )
     drift = sentinel.get("drift", [])
+    reds = [f"- {item}" for item in drift]
+    if hygiene.get("branch_count_flagged"):
+        reds.append(f"- hygiene: {hygiene.get('branch_count')} local branches (threshold)")
+    for entry in hygiene.get("oversized_unignored", []):
+        reds.append(f"- hygiene: oversized unignored file {entry.get('path')} ({entry.get('size_bytes')} bytes)")
     lines.append(
         f"**Known reds (sentinel):** {sentinel.get('attempted')} checks attempted, "
-        f"{sentinel.get('parsed')} parsed, {len(drift)} drift item(s)"
+        f"{sentinel.get('parsed')} parsed, {len(drift)} drift item(s), {len(reds)} red(s) listed"
         + ("" if sentinel.get("sentinel_ok") else " — SENTINEL BROKEN (canary did not flag)")
     )
-    for item in drift:
-        lines.append(f"- {item}")
-    if hygiene.get("branch_count_flagged"):
-        lines.append(f"- hygiene: {hygiene.get('branch_count')} local branches (threshold)")
-    for entry in hygiene.get("oversized_unignored", []):
-        lines.append(f"- hygiene: oversized unignored file {entry.get('path')} ({entry.get('size_bytes')} bytes)")
+    lines.extend(reds)
     register = capsule.get("risk_register", [])
     if register:
         lines.append("**Risk register (seeded):**")

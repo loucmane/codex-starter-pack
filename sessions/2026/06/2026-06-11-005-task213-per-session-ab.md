@@ -33,3 +33,4 @@ Task 213 was kicked off via `python3 scripts/codex-task wizard kickoff`, which c
 - **[13:19]** — [S:20260611|W:task213-per-session-ab|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 213 in progress and updated only its generated task file
 - **[13:19]** — [S:20260611|W:task213-per-session-ab|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 213 kickoff
 - **[13:29]** — [S:20260611|W:task213 per-session A/B|H:.claude/scripts/brief_lib.py|E:docs/ai/work-tracking/active/20260611-task213-per-session-ab-ACTIVE/reports/pytest-ab-focused.txt] Task 213: per-session hashed A/B assignment implemented; focused tests green; full suite running.
+- **[13:34]** — [S:20260611|W:task213-per-session-ab|H:gh/pr|E:https://github.com/loucmane/codex-starter-pack/pull/216] Opened PR #216 (TM 213); awaiting CI.
