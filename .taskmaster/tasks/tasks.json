@@ -7516,18 +7516,18 @@
         "description": "Replace spec §7 calendar-day A/B assignment with deterministic per-session hashing: brief.json ab_assignment=session-hash makes the SessionStart hook decide capsule on/off from a hash of session_id (AEGIS_CAPSULE env still wins); session_begin records assignment mode; add 'aegis ab' to count genuine cold starts (source=startup) per arm against a fixed-n stopping rule (n>=15/arm) replacing the 2-week window; amend spec §7.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": [],
-        "updatedAt": "2026-06-11T11:19:57.319Z"
+        "updatedAt": "2026-06-11T12:00:15.525Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-11T11:19:57.319Z",
+      "lastModified": "2026-06-11T12:00:15.526Z",
       "taskCount": 212,
-      "completedCount": 200,
+      "completedCount": 201,
       "tags": [
         "master"
       ]
