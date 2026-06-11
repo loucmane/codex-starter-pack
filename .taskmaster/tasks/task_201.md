@@ -2,9 +2,9 @@
 
 **Title:** Aegis break-glass recovery contract
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 195
+**Dependencies:** 195 ✓
 
 **Priority:** high
 
