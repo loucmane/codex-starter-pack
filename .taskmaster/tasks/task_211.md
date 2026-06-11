@@ -2,7 +2,7 @@
 
 **Title:** Capsule falsifier: replay-cold-start A/B harness
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 195 ✓
 
