@@ -7534,12 +7534,35 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-06-12T15:22:52.220Z"
+      },
+      {
+        "id": "215",
+        "title": "Verify schema-skew self-diagnosis",
+        "description": "From HP-Coach closeout report 2026-06-12: a stale MCP/CLI bundle rejected the manifest 'runtime' field with a bare jsonschema error (Additional properties are not allowed) even though current schemas support it and the installed mirror in the target repo was newer than the validator's packaged copy. NOT a schema-content bug (current source validates the same manifest clean — verified). Fix: schema-validation failures in verify/doctor must report the resolved source_root + installer_version they validated with, cross-check the target's mirrored schema, and when the mirror is newer than the validator's copy, replace the error with an explicit 'validator runtime is stale — re-register/update your Aegis CLI/MCP' message. Regression test: stale-schema source root + newer mirror => skew message, not bare validation error.",
+        "details": "",
+        "testStrategy": "",
+        "status": "in-progress",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-06-12T22:31:07.624Z"
+      },
+      {
+        "id": "216",
+        "title": "Closeout convergence: kill the evidence/pending-tracking loop",
+        "description": "From HP-Coach closeout report 2026-06-12: closeout.evidence.*/closeout.handoff.* gates demand verbatim mutation-evidence strings present in all five surfaces, but every edit that populates a surface enqueues a new pending-tracking event, which fails closeout.pending_tracking — fix-creates-failure loop; closeout effectively unreachable without edit/log ping-pong. Also: read-only Bash (git status, jq, ls, cat — recorded as bash:cd/bash:jq) wrongly spawns pending events. Fixes per report: (1) generate-dont-assert — aegis log / closeout --update-handoff populate implementation/changelog/handoff surfaces + HANDOFF semantic sections from logged events; (2) mutations whose sole targets are work-tracking surfaces (or performed by aegis log/closeout itself) must not re-arm pending tracking; (3) read-only Bash must not enqueue; (4) evidence matching on stable keys (commit SHA, path, event id) not verbatim multi-line command text; (5) idempotent one-shot aegis closeout --update-handoff --apply that populates then drains atomically. Acceptance: from a committed test-green task, one closeout invocation converges with empty queue; regression test for one-shot convergence.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-12T17:23:50.593Z",
-      "taskCount": 213,
+      "lastModified": "2026-06-12T22:31:07.625Z",
+      "taskCount": 215,
       "completedCount": 203,
       "tags": [
         "master"

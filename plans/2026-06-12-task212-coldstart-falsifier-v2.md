@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for Cold-start falsifier v2: recon-to-decision metric + READY-envelope scenarios | docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/designs/wizard-flow.md | completed |
-| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Cold-start falsifier v2: recon-to-decision metric + READY-envelope scenarios | scripts/codex-task; docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Cold-start falsifier v2: recon-to-decision metric + READY-envelope scenarios | scripts/codex-task; docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260612-task212-coldstart-falsifier-v2-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
