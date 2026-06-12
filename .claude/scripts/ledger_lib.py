@@ -26,6 +26,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import tempfile
 import time
 import uuid
 from datetime import datetime, timezone
@@ -137,12 +138,37 @@ def git_common_dir(cwd: str | Path | None = None) -> Path:
     return common.resolve()
 
 
+def _state_base(environment: Mapping[str, str]) -> Path:
+    """Resolve the XDG state base without ever raising RuntimeError.
+
+    Sandboxed hook environments (no HOME, no passwd entry for the uid) make
+    ``Path.home()`` raise ``RuntimeError: Could not determine home directory`` —
+    the HP-Coach 2026-06-12 incident. The ledger is an audit surface; its path
+    resolution must degrade to a deterministic per-uid tmp store, not crash the
+    gate that is trying to record a decision.
+    """
+
+    state_home = environment.get("XDG_STATE_HOME")
+    if state_home:
+        try:
+            return Path(state_home).expanduser()
+        except RuntimeError:
+            return Path(state_home)
+    home = environment.get("HOME")
+    if home:
+        return Path(home) / ".local" / "state"
+    try:
+        return Path.home() / ".local" / "state"
+    except RuntimeError:
+        uid = os.getuid() if hasattr(os, "getuid") else "unknown"
+        return Path(tempfile.gettempdir()) / f"aegis-state-{uid}"
+
+
 def store_dir(cwd: str | Path | None = None, env: Mapping[str, str] | None = None) -> Path:
     """Per-repo out-of-worktree state directory (spec section 2 store decision)."""
 
     environment = env if env is not None else os.environ
-    state_home = environment.get("XDG_STATE_HOME")
-    base = Path(state_home).expanduser() if state_home else Path.home() / ".local" / "state"
+    base = _state_base(environment)
     key = hashlib.sha1(git_common_dir(cwd).as_posix().encode("utf-8")).hexdigest()
     return base / "aegis" / key
 

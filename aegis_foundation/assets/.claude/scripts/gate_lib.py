@@ -8,6 +8,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import traceback
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from hashlib import sha1, sha256
@@ -605,10 +606,24 @@ def script_dir() -> Path:
     return Path(__file__).resolve().parent
 
 
+def safe_expanduser(path_text: str) -> Path:
+    """``Path.expanduser`` that survives sandboxed environments (no HOME, no passwd
+    entry), where pathlib raises ``RuntimeError: Could not determine home directory``.
+    The unexpanded literal is the safe fallback: a ``~``-prefixed path never matches a
+    repo-relative protected/workflow path, and home-relative classification elsewhere
+    checks the ``~`` prefix textually."""
+
+    path = Path(path_text)
+    try:
+        return path.expanduser()
+    except RuntimeError:
+        return path
+
+
 def normalize_path(path_text: str, root: Path | None = None) -> str:
     if not path_text:
         return ""
-    path = Path(path_text).expanduser()
+    path = safe_expanduser(path_text)
     root = root or project_root()
     if path.is_absolute():
         try:
@@ -749,7 +764,7 @@ def target_dir_confinement_violation(target_dir: str | None, root: Path | None =
     if not target_dir:
         return None
     root = (root or project_root()).resolve()
-    raw = Path(target_dir).expanduser()
+    raw = safe_expanduser(target_dir)
     try:
         resolved = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
     except (OSError, ValueError) as exc:
@@ -1410,7 +1425,16 @@ def degraded_event_hash(event: dict[str, Any]) -> str:
     return sha256(encoded).hexdigest()
 
 
-def write_degraded_event(root: Path, payload: Payload, reason: str, raw_payload: str) -> dict[str, Any]:
+def write_degraded_event(
+    root: Path,
+    payload: Payload,
+    reason: str,
+    raw_payload: str,
+    *,
+    mode: str = "degraded_allow",
+    action_class: str = "non_destructive",
+    trace: str = "",
+) -> dict[str, Any]:
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     existing_events = degraded_events(root)
     previous_hash = str(existing_events[-1].get("event_hash") or "") if existing_events else ""
@@ -1418,13 +1442,15 @@ def write_degraded_event(root: Path, payload: Payload, reason: str, raw_payload:
         "id": sha1(f"{now}|{payload.tool_name}|{reason}|{raw_payload_preview(raw_payload)}".encode("utf-8")).hexdigest()[:12],
         "created_at": now,
         "gate": "pretooluse",
-        "mode": "degraded_allow",
-        "action_class": "non_destructive",
+        "mode": mode,
+        "action_class": action_class,
         "tool": payload.tool_name,
         "reason": reason,
         "raw_preview": raw_payload_preview(raw_payload),
         "previous_event_hash": previous_hash,
     }
+    if trace:
+        event["traceback"] = trace
     event["event_hash"] = degraded_event_hash(event)
     existing_events.append(event)
     write_json(
@@ -1543,7 +1569,7 @@ def payload_evidence(payload: Payload, root: Path) -> str:
 def _path_for_evidence(root: Path, evidence: str) -> Path | None:
     if not evidence or evidence.startswith("cmd`"):
         return None
-    candidate = Path(evidence).expanduser()
+    candidate = safe_expanduser(evidence)
     if candidate.is_absolute():
         return candidate
     return root / evidence
@@ -2059,22 +2085,48 @@ def format_pending_tracking(events: list[dict[str, Any]]) -> str:
 def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
     loaded = parse_payload(raw_payload)
     reason = f"{type(exc).__name__}: {exc}"
+    trace = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))[-4000:]
     if isinstance(loaded, PayloadLoadError):
         return block_unclassifiable_payload(f"gate infrastructure failed after an unclassifiable payload: {reason}", loaded.raw_preview)
     root = project_root()
     if degraded_payload_is_non_destructive(loaded):
-        event = write_degraded_event(root, loaded, reason, raw_payload)
+        event = write_degraded_event(root, loaded, reason, raw_payload, trace=trace)
         print(
             "DEGRADED | pretooluse gate infrastructure failed; allowed conservative non-destructive action "
             f"and wrote {AEGIS_DEGRADED_EVENTS_REL} event {event['id']}",
             file=sys.stderr,
         )
         return 0
+    # Advisory contract: enforcement mode advisory NEVER hard-blocks — an infra
+    # failure records a degraded event (with traceback) and allows, loudly. Strict
+    # mode keeps failing closed below. The advisory check itself is best-effort:
+    # if it crashes too, fail closed.
+    try:
+        if advisory_enabled(root):
+            event = write_degraded_event(
+                root,
+                loaded,
+                reason,
+                raw_payload,
+                mode="degraded_advisory_allow",
+                action_class="mutation_or_unsafe",
+                trace=trace,
+            )
+            print(
+                "DEGRADED-ADVISORY | pretooluse gate infrastructure failed while evaluating a mutation; "
+                f"enforcement mode is advisory so the action is allowed and recorded as "
+                f"{AEGIS_DEGRADED_EVENTS_REL} event {event['id']}. Details: {reason}",
+                file=sys.stderr,
+            )
+            return 0
+    except Exception:  # noqa: BLE001 - double infra failure falls through to fail-closed.
+        pass
     return block(
         "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
         f"Tool: {loaded.tool_name}\n"
         "Reason: PreToolUse gate infrastructure failed while evaluating a mutation or unsafe action.\n\n"
         f"Details: {reason}\n\n"
+        f"Traceback (for diagnosis):\n{trace}\n"
         "Aegis fails closed for destructive, protected, workflow-state, and unclassified actions when the gate cannot render a verdict."
     )
 
@@ -2845,7 +2897,7 @@ def config_change_guard() -> int:
         return 0
 
     root = project_root()
-    path = Path(file_path).expanduser()
+    path = safe_expanduser(file_path)
     if not path.is_absolute():
         path = root / path
     path = path.resolve()
