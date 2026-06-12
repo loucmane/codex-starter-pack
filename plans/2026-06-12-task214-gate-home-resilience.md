@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for Gate resilience when home directory is unresolvable | docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/designs/wizard-flow.md | completed |
-| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Gate resilience when home directory is unresolvable | scripts/codex-task; docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Gate resilience when home directory is unresolvable | scripts/codex-task; docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260612-task214-gate-home-resilience-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
