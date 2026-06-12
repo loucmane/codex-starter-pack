@@ -7528,18 +7528,18 @@
         "description": "Production bug from HP-Coach dogfood: PreToolUse gate failed closed with 'RuntimeError: Could not determine home directory' when hooks ran in a sandboxed env (no HOME, no passwd entry). Fix: ledger_lib.store_dir home fallback chain that raises LedgerError never RuntimeError; harden unwrapped expanduser sites in gate_lib; degraded fallback must honor advisory mode (record would_block + allow loudly, never hard-block on infra failure in advisory); capture full traceback in degraded details and events for diagnosability. Regression tests simulate Path.home() raising via sitecustomize PYTHONPATH injection.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": [],
-        "updatedAt": "2026-06-12T14:40:37.380Z"
+        "updatedAt": "2026-06-12T15:22:52.220Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-12T14:40:37.380Z",
+      "lastModified": "2026-06-12T15:22:52.221Z",
       "taskCount": 213,
-      "completedCount": 201,
+      "completedCount": 202,
       "tags": [
         "master"
       ]
