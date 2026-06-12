@@ -343,16 +343,350 @@ def run_live_ab(
     return {"aggregated": aggregated, "verdict": verdict, "raw_scores": scores}
 
 
+# ───────────────────────────── FALSIFIER V2 (TM #212) ─────────────────────────────
+# The first live run proved "tool-calls-to-first-meaningful-action" degenerate on a
+# gated repo: a well-oriented agent that correctly does NOTHING scores worse than a
+# charge-ahead baseline that trips the mutation heuristic. V2 grades runs against
+# scenario ground truth (recon-to-CORRECT-DECISION, where the correct decision may be
+# "don't mutate"), and replays genuine in-progress states reconstructed as READY
+# envelopes (task branch + committed workflow state + advisory enforcement) captured
+# forward from real work via `aegis coldstart capture`.
+
+DIRTY_PATCH_CAP = 200_000
+DO_NOTHING_KEYWORDS = ("complete", "done", "nothing to do", "no pending", "clean", "merged")
+
+
+def _final_assistant_text(transcript_path: str | Path) -> str:
+    """Last assistant text in the transcript — the decision statement for runs that
+    correctly conclude without mutating."""
+
+    text = ""
+    for line in Path(transcript_path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("type") != "assistant":
+            continue
+        for block in entry.get("message", {}).get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "text" and str(block.get("text") or "").strip():
+                text = str(block["text"])
+    return text
+
+
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args], cwd=Path(repo).as_posix(), capture_output=True, text=True, check=False
+    )
+
+
+def _expected_from_plan(repo: Path) -> dict[str, Any]:
+    """Derive scenario ground truth from the live workflow state: the first pending
+    plan step is the expected next move; no open step means the correct decision is
+    to do nothing. Operators can edit the captured JSON when the derivation is off."""
+
+    pointer = Path(repo) / "plans" / "current"
+    plan_path = pointer.resolve() if (pointer.is_symlink() or pointer.exists()) else None
+    if plan_path is None or not plan_path.is_file():
+        return {"decision_class": "do_nothing", "keywords_any": list(DO_NOTHING_KEYWORDS), "target_prefixes": []}
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {"decision_class": "do_nothing", "keywords_any": list(DO_NOTHING_KEYWORDS), "target_prefixes": []}
+    import re
+
+    step_desc = ""
+    for match in re.finditer(r"^\|\s*(plan-step-[\w-]+)\s*\|\s*([^|]+)\|[^|]+\|\s*(pending|in-progress)\s*\|", text, re.MULTILINE):
+        step_desc = match.group(2).strip()
+        break
+    scope_prefixes = re.findall(r"^- `([^`]+)`", text, re.MULTILINE)
+    if not step_desc:
+        return {"decision_class": "do_nothing", "keywords_any": list(DO_NOTHING_KEYWORDS), "target_prefixes": []}
+    keywords = [word.lower() for word in re.findall(r"[A-Za-z][A-Za-z_-]{3,}", step_desc)][:8]
+    return {
+        "decision_class": "continue",
+        "keywords_any": keywords,
+        "target_prefixes": [prefix for prefix in scope_prefixes if not prefix.startswith(NON_MEANINGFUL_PREFIXES)],
+    }
+
+
+def capture_scenario(
+    repo: str | Path,
+    *,
+    scenario_id: str | None = None,
+    expect_class: str | None = None,
+    fresh_null: bool = False,
+    note: str = "",
+) -> dict[str, Any]:
+    """Forward-capture the CURRENT repo state as a replayable cold-start scenario.
+
+    Mid-task states get squashed out of main history, so the corpus is built while
+    the work is live: commit SHA + branch + dirty diff + ground truth derived from the
+    active plan. Cheap enough to run at any natural pause.
+    """
+
+    repo = Path(repo).resolve()
+    sha = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    branch = _git(repo, "branch", "--show-current").stdout.strip()
+    if not sha:
+        raise RuntimeError(f"coldstart capture requires a git repository at {repo}")
+    patch = _git(repo, "diff", "HEAD").stdout
+    truncated = len(patch) > DIRTY_PATCH_CAP
+    untracked = [line for line in _git(repo, "ls-files", "--others", "--exclude-standard").stdout.splitlines() if line.strip()]
+    expected = _expected_from_plan(repo)
+    if expect_class:
+        expected["decision_class"] = expect_class
+        if expect_class == "do_nothing":
+            expected.setdefault("keywords_any", list(DO_NOTHING_KEYWORDS))
+    return {
+        "schema": "coldstart-scenario/2",
+        "scenario_id": scenario_id or f"capture-{sha[:10]}",
+        "sha": sha,
+        "branch": branch,
+        "dirty_patch": patch[:DIRTY_PATCH_CAP],
+        "dirty_patch_truncated": truncated,
+        "untracked_count": len(untracked),
+        "expected": expected,
+        "fresh_null": fresh_null,
+        "note": note,
+    }
+
+
+def build_envelope_worktree(repo: Path, scenario: dict[str, Any], dest: Path) -> Path:
+    """Reconstruct a captured in-progress state as a READY-envelope worktree: detached
+    at the scenario SHA, on a task-id-bearing replay branch, dirty diff re-applied,
+    enforcement seeded advisory so the gate records instead of refusing."""
+
+    repo = Path(repo).resolve()
+    dest = Path(dest).resolve()
+    wt = build_scenario_worktree(repo, scenario["sha"], dest)
+    branch = str(scenario.get("branch") or "").strip()
+    if branch:
+        replay_branch = f"{branch}-coldstart-replay"
+        result = _git(wt, "switch", "-c", replay_branch)
+        if result.returncode != 0:
+            raise RuntimeError(f"replay branch creation failed: {result.stderr.strip()}")
+    patch = str(scenario.get("dirty_patch") or "")
+    if patch:
+        apply = subprocess.run(
+            ["git", "apply", "--whitespace=nowarn"],
+            cwd=wt.as_posix(),
+            input=patch,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if apply.returncode != 0:
+            raise RuntimeError(f"dirty patch did not apply at {scenario['sha']}: {apply.stderr.strip()}")
+    state = wt / ".aegis" / "state"
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "enforcement.json").write_text(
+        json.dumps({"mode": "advisory", "set_by": "coldstart-replay", "reason": "falsifier v2 envelope"}),
+        encoding="utf-8",
+    )
+    return wt
+
+
+def remove_envelope_worktree(repo: Path, scenario: dict[str, Any], dest: Path) -> None:
+    remove_worktree(repo, dest)
+    branch = str(scenario.get("branch") or "").strip()
+    if branch:
+        _git(Path(repo), "branch", "-D", f"{branch}-coldstart-replay")
+
+
+def score_decision(transcript_path: str | Path, expected: dict[str, Any]) -> dict[str, Any]:
+    """Recon-to-CORRECT-DECISION: how much the agent foraged before committing to the
+    right next move — where "correctly doing nothing" scores as a success, fixing the
+    v1 inversion that rewarded charge-ahead mutations."""
+
+    decision_class = str(expected.get("decision_class") or "continue")
+    target_prefixes = tuple(str(p) for p in expected.get("target_prefixes") or ())
+    keywords = [str(k).lower() for k in expected.get("keywords_any") or ()]
+    recon = 0
+    reached = False
+    first_target = ""
+    for name, tool_input in _iter_tool_uses(transcript_path):
+        if not reached and is_meaningful_action(name, tool_input):
+            reached = True
+            first_target = str(
+                tool_input.get("file_path") or tool_input.get("notebook_path") or tool_input.get("command") or ""
+            )
+            continue
+        if not reached:
+            recon += 1
+    if decision_class == "do_nothing":
+        text = _final_assistant_text(transcript_path).lower()
+        correct = (not reached) and (not keywords or any(k in text for k in keywords))
+    else:
+        on_target = not target_prefixes or any(prefix in first_target for prefix in target_prefixes)
+        correct = reached and on_target
+    return {
+        "correct": correct,
+        "recon_to_decision": recon,
+        "reached": reached,
+        "first_target": first_target,
+        "decision_class": decision_class,
+    }
+
+
+def aggregate_v2(scores: Sequence[dict[str, Any]], *, fresh_null_ids: Sequence[str] = ()) -> dict[str, Any]:
+    """V2 aggregation: accuracy per arm across ALL runs; recon deltas computed among
+    CORRECT runs only (a fast wrong answer is not a win). Scenarios where an arm has
+    zero correct runs drop out of the recon CI but still count against accuracy."""
+
+    by_scenario: dict[str, dict[str, list[dict[str, Any]]]] = {}
+    arm_totals = {"capsule": [0, 0], "baseline": [0, 0]}  # [correct, total]
+    for score in scores:
+        by_scenario.setdefault(score["scenario_id"], {}).setdefault(score["arm"], []).append(score)
+        if score["arm"] in arm_totals:
+            arm_totals[score["arm"]][1] += 1
+            if score.get("correct"):
+                arm_totals[score["arm"]][0] += 1
+    decision_pairs: list[tuple[float, float]] = []
+    fresh_null_pairs: list[tuple[float, float]] = []
+    per_scenario: list[dict[str, Any]] = []
+    for scenario_id, arms in by_scenario.items():
+        if "capsule" not in arms or "baseline" not in arms:
+            continue
+        cap_correct = [s["recon_to_decision"] for s in arms["capsule"] if s.get("correct")]
+        base_correct = [s["recon_to_decision"] for s in arms["baseline"] if s.get("correct")]
+        row = {
+            "scenario_id": scenario_id,
+            "capsule_accuracy": round(len(cap_correct) / len(arms["capsule"]), 2),
+            "baseline_accuracy": round(len(base_correct) / len(arms["baseline"]), 2),
+            "fresh_null": scenario_id in fresh_null_ids,
+        }
+        if cap_correct and base_correct:
+            pair = (_mean(base_correct), _mean(cap_correct))
+            (fresh_null_pairs if scenario_id in fresh_null_ids else decision_pairs).append(pair)
+            row["capsule_recon"] = round(pair[1], 2)
+            row["baseline_recon"] = round(pair[0], 2)
+            row["delta"] = round(pair[0] - pair[1], 2)
+        per_scenario.append(row)
+    capsule_acc = arm_totals["capsule"][0] / arm_totals["capsule"][1] if arm_totals["capsule"][1] else 0.0
+    baseline_acc = arm_totals["baseline"][0] / arm_totals["baseline"][1] if arm_totals["baseline"][1] else 0.0
+    return {
+        "decision_delta_recon": _paired_delta_ci(decision_pairs),
+        "fresh_null_delta_recon": _paired_delta_ci(fresh_null_pairs),
+        "accuracy": {"capsule": round(capsule_acc, 3), "baseline": round(baseline_acc, 3)},
+        "per_scenario": per_scenario,
+    }
+
+
+def decide_v2(
+    aggregated: dict[str, Any],
+    *,
+    min_delta: float = 1.0,
+    fresh_null_tol: float = 0.5,
+    accuracy_margin: float = 0.0,
+) -> dict[str, Any]:
+    """Pre-registered v2 verdict. KEEP-ELIGIBLE additionally requires the capsule arm's
+    decision accuracy to be at least the baseline's — orientation that speeds you to
+    the WRONG move is grounds to kill, not keep."""
+
+    accuracy = aggregated["accuracy"]
+    if accuracy["capsule"] + accuracy_margin < accuracy["baseline"]:
+        return {
+            "recommendation": "KILL",
+            "reason": f"capsule reduced decision accuracy ({accuracy['capsule']:.2f} vs baseline {accuracy['baseline']:.2f})",
+        }
+    fresh = aggregated["fresh_null_delta_recon"]
+    if fresh["n"] > 0 and abs(fresh["delta"]) > fresh_null_tol:
+        return {
+            "recommendation": "INCONCLUSIVE",
+            "reason": f"fresh-null violated (clean-state delta {fresh['delta']:.2f} > tol {fresh_null_tol}); battery is capsule-shaped",
+        }
+    decision = aggregated["decision_delta_recon"]
+    if decision["n"] < 2:
+        return {"recommendation": "INCONCLUSIVE", "reason": "too few decision scenarios with correct runs in both arms"}
+    if decision["delta"] >= min_delta and decision["ci_low"] > 0:
+        return {
+            "recommendation": "KEEP-ELIGIBLE",
+            "reason": (
+                f"capsule cut recon-to-correct-decision by {decision['delta']:.2f} "
+                f"(CI {decision['ci_low']:.2f}..{decision['ci_high']:.2f}) at accuracy "
+                f"{accuracy['capsule']:.2f} >= {accuracy['baseline']:.2f}"
+            ),
+        }
+    if decision["ci_high"] <= 0:
+        return {"recommendation": "KILL", "reason": "capsule did not reduce recon-to-correct-decision (CI entirely <= 0)"}
+    return {"recommendation": "INCONCLUSIVE", "reason": f"recon delta {decision['delta']:.2f} CI straddles 0 / below {min_delta}"}
+
+
+def run_live_ab_v2(
+    repo: str | Path,
+    scenarios: Sequence[dict[str, Any]],
+    *,
+    k: int = 3,
+    allowed_tools: Sequence[str] = ("Bash", "Read", "Edit", "Write", "Grep", "Glob"),
+) -> dict[str, Any]:
+    """Operator-only (AEGIS_RUN_COLDSTART_AB=1): replay captured scenarios as READY
+    envelopes, capsule ON vs OFF, k times per arm, scored recon-to-correct-decision."""
+
+    if os.environ.get(RUN_GATE_ENV) != "1":
+        raise RuntimeError(
+            f"live cold-start A/B is operator-only; set {RUN_GATE_ENV}=1 to run real claude -p sessions"
+        )
+    repo = Path(repo).resolve()
+    import tempfile
+
+    scores: list[dict[str, Any]] = []
+    fresh_ids = [s["scenario_id"] for s in scenarios if s.get("fresh_null")]
+    home_projects = Path.home() / ".claude" / "projects"
+    for scenario in scenarios:
+        for arm in ("capsule", "baseline"):
+            for _ in range(k):
+                with tempfile.TemporaryDirectory(prefix="aegis-coldstart-v2-") as tmp:
+                    wt = build_envelope_worktree(repo, scenario, Path(tmp) / "wt")
+                    try:
+                        env = dict(os.environ)
+                        env.pop(RUN_GATE_ENV, None)
+                        env.pop("ANTHROPIC_API_KEY", None)
+                        env["AEGIS_CAPSULE"] = "off" if arm == "baseline" else "on"
+                        project_dir = home_projects / wt.as_posix().replace("/", "-")
+                        before = project_dir.stat().st_mtime if project_dir.exists() else 0.0
+                        subprocess.run(
+                            ["claude", "-p", RESUME_PROMPT, "--allowedTools", *allowed_tools],
+                            cwd=wt.as_posix(),
+                            capture_output=True,
+                            text=True,
+                            env=env,
+                            timeout=600,
+                            check=False,
+                        )
+                        transcript = _newest_transcript(project_dir, before) if project_dir.exists() else None
+                        result = (
+                            score_decision(transcript, scenario.get("expected") or {})
+                            if transcript
+                            else {"correct": False, "recon_to_decision": 0, "reached": False}
+                        )
+                        scores.append({"scenario_id": scenario["scenario_id"], "arm": arm, **result})
+                    finally:
+                        remove_envelope_worktree(repo, scenario, wt)
+    aggregated = aggregate_v2(scores, fresh_null_ids=fresh_ids)
+    verdict = decide_v2(aggregated)
+    return {"aggregated": aggregated, "verdict": verdict, "raw_scores": scores}
+
+
 __all__ = [
     "RESUME_PROMPT",
     "RUN_GATE_ENV",
     "aggregate",
+    "aggregate_v2",
+    "build_envelope_worktree",
     "build_scenario_worktree",
+    "capture_scenario",
     "decide",
+    "decide_v2",
     "extract_first_action_cost",
     "is_meaningful_action",
+    "remove_envelope_worktree",
     "remove_worktree",
     "render_report",
     "run_live_ab",
+    "run_live_ab_v2",
     "score_arm",
+    "score_decision",
 ]

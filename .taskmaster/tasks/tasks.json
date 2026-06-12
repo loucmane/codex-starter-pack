@@ -7503,12 +7503,13 @@
         "description": "First live run of the TM #211 replay-cold-start harness exposed that 'tool-calls-to-first-meaningful-action' is degenerate and inverted on this gated repo: a detached worktree at a recent SHA has BLOCKED readiness (gate refuses mutations) and recent main SHAs are 'done' states with no pending work, so a well-oriented capsule-on agent correctly does nothing (scored 18 recon, no action) while a charge-ahead baseline trips the mutation heuristic at 3 calls and falsely wins. Redesign: (1) metric becomes recon-to-CORRECT-DECISION — grade whether the agent reaches the right next move (including correctly choosing not to mutate) and how much it foraged to get there, against known ground truth; (2) scenarios must be genuine in-progress work in a READY envelope (task branch + sessions/current + plans/current + ACTIVE folder) or run under advisory mode so mutations are not gate-refused; (3) mid-task states were squashed out of main history, so seed from forward-captured in-progress snapshots and/or HP-Coach archived in-progress states. Keep the testable-core/operator-gated split and the fresh-null guard.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "211"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-12T16:49:04.328Z"
       },
       {
         "id": "213",
@@ -7537,7 +7538,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-12T15:22:52.221Z",
+      "lastModified": "2026-06-12T16:49:04.329Z",
       "taskCount": 213,
       "completedCount": 202,
       "tags": [

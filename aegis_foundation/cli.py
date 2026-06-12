@@ -187,6 +187,40 @@ def handle_brief(args: argparse.Namespace) -> int:
         return 0
 
 
+def handle_coldstart(args: argparse.Namespace) -> int:
+    """Forward-capture the current in-progress state as a falsifier-v2 scenario
+    (TM 212). Mid-task states get squashed out of history; the corpus is built while
+    the work is live."""
+
+    from aegis_foundation import replay_coldstart
+
+    if args.coldstart_subcommand != "capture":
+        raise _aegis_installer.AegisError("unknown coldstart subcommand")
+    scenario = replay_coldstart.capture_scenario(
+        args.target_dir,
+        scenario_id=args.id,
+        expect_class=args.expect_class,
+        fresh_null=args.fresh_null,
+        note=args.note or "",
+    )
+    out = Path(args.out) if args.out else Path(args.target_dir) / ".aegis" / "coldstart-scenarios" / f"{scenario['scenario_id']}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(scenario, indent=2, sort_keys=True), encoding="utf-8")
+    summary = {
+        "scenario_id": scenario["scenario_id"],
+        "sha": scenario["sha"],
+        "branch": scenario["branch"],
+        "decision_class": scenario["expected"]["decision_class"],
+        "dirty_patch_bytes": len(scenario["dirty_patch"]),
+        "untracked_count": scenario["untracked_count"],
+        "written": out.as_posix(),
+    }
+    _dump_json(summary)
+    if scenario["dirty_patch_truncated"]:
+        print("warning: dirty patch truncated at cap; scenario replay will be incomplete", file=sys.stderr)
+    return 0
+
+
 def handle_ab(args: argparse.Namespace) -> int:
     """Per-session A/B stopping-rule counter (spec §7 as amended 2026-06-11, TM 213).
 
@@ -1001,6 +1035,32 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Offline strict validation: char budget + canary + parse counters (fails over budget).",
     )
     brief_parser.set_defaults(func=handle_brief)
+
+    coldstart_parser = subparsers.add_parser(
+        "coldstart",
+        help="Falsifier-v2 cold-start tooling (forward-capture replay scenarios).",
+    )
+    coldstart_sub = coldstart_parser.add_subparsers(dest="coldstart_subcommand", required=True)
+    coldstart_capture_parser = coldstart_sub.add_parser(
+        "capture",
+        help="Capture the current in-progress state as a replayable cold-start scenario.",
+    )
+    coldstart_capture_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    coldstart_capture_parser.add_argument("--id", default=None, help="Scenario id (default: capture-<sha>).")
+    coldstart_capture_parser.add_argument("--out", default=None, help="Output path (default: .aegis/coldstart-scenarios/<id>.json).")
+    coldstart_capture_parser.add_argument(
+        "--expect-class",
+        choices=("continue", "do_nothing"),
+        default=None,
+        help="Override the derived ground truth class.",
+    )
+    coldstart_capture_parser.add_argument(
+        "--fresh-null",
+        action="store_true",
+        help="Mark as a fresh-null control scenario (clean state; expected ~no capsule edge).",
+    )
+    coldstart_capture_parser.add_argument("--note", default=None, help="Operator note stored in the scenario.")
+    coldstart_capture_parser.set_defaults(func=handle_coldstart)
 
     ab_parser = subparsers.add_parser(
         "ab",
