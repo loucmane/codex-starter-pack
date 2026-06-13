@@ -4425,14 +4425,86 @@ def test_handoff_repair_converges_with_compound_bash_closeout_evidence(tmp_path:
 
     assert repaired["status"] == "repaired"
     assert repaired["closeout_ready_after"]["status"] == "passed"
-    assert repaired["evidence"]["implementation"] == [implementation_evidence]
-    assert verification_evidence in repaired["evidence"]["verification"]
+    # TM 218: compound `cmd`...`` command tokens are ADVISORY, not required evidence —
+    # requiring their verbatim multi-line string in every surface is brittle and becomes
+    # unrecoverable once the originating pending event is consumed. So they are demoted out
+    # of the required evidence set; closeout still converges on the real artifact
+    # (the strict-verify report), which IS required.
+    assert repaired["evidence"]["implementation"] == []
+    assert verification_evidence not in repaired["evidence"]["verification"]
     closeout_ready = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
     assert closeout_ready["status"] == "passed"
-    assert implementation_evidence in closeout_ready["evidence_matrix"]
-    assert verification_evidence in closeout_ready["evidence_matrix"]
-    assert not any("&#124" in token for token in closeout_ready["evidence_matrix"])
-    assert not any(token in closeout_ready["evidence_matrix"] for token in ("tail -25", "head"))
+    assert implementation_evidence not in closeout_ready["evidence_matrix"]
+    assert verification_evidence not in closeout_ready["evidence_matrix"]
+    # The real artifact path stays required and present.
+    strict_verify_rel = aegis_installer._normalize_evidence(target, AEGIS_VERIFY_REPORT_REL)
+    assert strict_verify_rel in closeout_ready["evidence_matrix"]
+
+
+def test_is_closeout_required_evidence_demotes_command_tokens() -> None:
+    # TM 218: command / free-text narration tokens are advisory (non-required); durable
+    # artifact paths and bare SHAs stay required.
+    demoted = [
+        'cmd`git commit -m "feat: x"`',
+        "note`free-text observation`",
+        'git commit -m "feat: x"',  # prefix-stripped command (whitespace + quotes, not a path)
+        "git diff -- app/src | grep -E '^\\+' | tail -25",  # compound, shell metacharacters
+    ]
+    required = [
+        "app/src/components/session/SessionPlayer.tsx",
+        AEGIS_VERIFY_REPORT_REL,
+        "docs/ai/work-tracking/active/foo/reports/impl-note.md",
+        "be569cd",  # bare SHA: no whitespace/metachars, stays required
+        "./relative/path.py",
+    ]
+    for token in demoted:
+        assert aegis_installer._is_closeout_required_evidence(token) is False, token
+    for token in required:
+        assert aegis_installer._is_closeout_required_evidence(token) is True, token
+
+
+def test_closeout_recovers_when_command_evidence_absent_from_progress_surfaces(tmp_path: Path) -> None:
+    # HP-Coach 2026-06-13: a committed, strict-verify-green task whose implementation
+    # evidence is a command token NOT present on session/tracker/implementation/changelog
+    # (its originating pending event was consumed during the pre-216 churn era). Before TM
+    # 218 this stranded closeout permanently on the four evidence gates; after demotion the
+    # advisory command token no longer gates, and closeout converges on the real artifact.
+    target = tmp_path / "command-evidence-recovery"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"], cwd=target, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="80", slug="recovery", title="Recovery")
+    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+
+    log_work(
+        target, handler="claude:scope", evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed recovery scope", plan_step="plan-step-scope", plan_status="completed",
+    )
+    # Implementation evidence is a command token, logged ONLY to handoff — it never reaches
+    # session/tracker/implementation/changelog, exactly the lost-pending-event state.
+    log_work(
+        target, handler="claude:Bash", evidence='cmd`git commit -m "feat: recovery"`',
+        note="Recorded the implementation commit command", surfaces=["handoff"],
+        plan_step="plan-step-implement", plan_status="completed",
+    )
+    strict = verify(target, source_root=REPO_ROOT, strict=True)
+    assert strict["status"] == "passed"
+    log_work(
+        target, handler="aegis:verify", evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence", plan_step="plan-step-verify", plan_status="completed",
+    )
+
+    result = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+    assert result["status"] == "passed", result.get("failed_required") or result
+    # The command token is advisory — absent from the required matrix; the artifact is required.
+    assert 'cmd`git commit -m "feat: recovery"`' not in result["evidence_matrix"]
+    strict_verify_rel = aegis_installer._normalize_evidence(target, AEGIS_VERIFY_REPORT_REL)
+    assert strict_verify_rel in result["evidence_matrix"]
 
 
 def test_compound_bash_mutation_still_records_pending_tracking(tmp_path: Path) -> None:
