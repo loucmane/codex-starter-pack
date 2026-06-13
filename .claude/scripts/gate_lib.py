@@ -106,23 +106,56 @@ PYTHON_WRITE_RE = re.compile(
     r"|write_text\(\s*['\"]",
     re.IGNORECASE,
 )
+# Pure inspection commands that only write to stdout. Anything here that CAN mutate
+# in place (sed -i, sort -o, yq -i) is special-cased via READ_ONLY_WRITE_FLAG_GUARDS in
+# bash_segment_is_read_only; file-writing via shell redirect is caught separately by
+# is_persistent_redirect_target. Commands that write to a POSITIONAL output argument
+# (uniq IN OUT, xxd -r IN OUT, tee) are deliberately NOT here — a flag guard cannot model
+# positional-output arity, so they stay classified as mutations (TM 216 adversarial review).
 READ_ONLY_SIMPLE_COMMANDS = {
+    "basename",
     "cat",
+    "cmp",
+    "column",
+    "comm",
+    "cut",
     "date",
+    "diff",
+    "dirname",
     "echo",
     "false",
+    "file",
+    "fmt",
+    "fold",
     "grep",
     "head",
+    "jq",
     "ls",
+    "nl",
+    "od",
+    "paste",
+    "printf",
     "pwd",
+    "realpath",
     "rg",
     "sed",
+    "sort",
     "stat",
     "tail",
     "test",
+    "tr",
     "true",
     "wc",
     "which",
+    "yq",
+}
+# Commands in READ_ONLY_SIMPLE_COMMANDS that mutate a file when given a specific flag.
+# Enumerate BOTH short and GNU long forms; command_has_write_flag matches bundled short
+# clusters (sed -ni), short values (sort -ofile), and long --flag=value (sed --in-place=.bak).
+READ_ONLY_WRITE_FLAG_GUARDS = {
+    "sed": ("-i", "--in-place"),
+    "yq": ("-i", "--inplace"),
+    "sort": ("-o", "--output"),
 }
 READ_ONLY_GIT_SUBCOMMANDS = {
     "branch",
@@ -968,6 +1001,34 @@ def read_only_find_segment(tokens: list[str]) -> bool:
     return tokens[0] == "find" and "-delete" not in tokens and "-exec" not in tokens and "-execdir" not in tokens
 
 
+def command_has_write_flag(arg_tokens: list[str], write_flags: tuple[str, ...]) -> bool:
+    """Detect a file-mutating flag among a command's args, robust to bundled short
+    clusters. A short flag like ``-i`` mutates whether written ``-i``, ``-i.bak``,
+    ``-ni`` (bundled with another boolean), or ``-uo`` (cluster ending in a value flag);
+    a long flag like ``--inplace`` must match a whole token. Scanning stops at a literal
+    ``--`` end-of-options terminator, after which tokens are operands, not flags."""
+
+    short_letters = {flag[1:] for flag in write_flags if flag.startswith("-") and not flag.startswith("--") and len(flag) == 2}
+    long_flags = {flag for flag in write_flags if flag.startswith("--")}
+    for token in arg_tokens:
+        if token == "--":
+            break
+        # Long form, bare or with attached value: --output, --in-place=.bak.
+        if token in long_flags or any(token.startswith(flag + "=") for flag in long_flags):
+            return True
+        if token.startswith("-") and not token.startswith("--"):
+            # Alpha prefix of the short cluster, e.g. "-ni"->"ni", "-i.bak"->"i", "-uo"->"uo".
+            cluster = ""
+            for char in token[1:]:
+                if char.isalpha():
+                    cluster += char
+                else:
+                    break
+            if any(letter in cluster for letter in short_letters):
+                return True
+    return False
+
+
 def bash_segment_is_read_only(segment: str) -> bool:
     tokens = strip_shell_prefixes(shlex_tokens(segment))
     if not tokens:
@@ -983,7 +1044,10 @@ def bash_segment_is_read_only(segment: str) -> bool:
     if read_only_aegis_segment(tokens):
         return True
     if name in READ_ONLY_SIMPLE_COMMANDS:
-        return name != "sed" or "-i" not in tokens
+        write_flags = READ_ONLY_WRITE_FLAG_GUARDS.get(name)
+        if write_flags and command_has_write_flag(tokens[1:], write_flags):
+            return False
+        return True
     if read_only_find_segment(tokens):
         return True
     if read_only_node_segment(tokens):
@@ -1133,6 +1197,56 @@ def bash_is_aegis_log(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"log"})
 
 
+# codex-task evidence/workflow subcommands are this repo's analog of `aegis log`:
+# sanctioned self-writes to the tracking surfaces (or read-only validation). They must
+# not arm pending-tracking against themselves (TM 216 — fix-creates-failure loop).
+CODEX_TASK_LOGGING_SUBCOMMANDS = {
+    ("work-tracking", "update"),
+    ("work-tracking", "audit"),
+    ("sessions", "update"),
+    ("plan", "sync"),
+    ("scanner", "run"),
+}
+
+
+def codex_task_remainder(tokens: list[str], root: Path | None = None) -> list[str] | None:
+    """Return the subcommand tokens after a `scripts/codex-task` invocation, else None."""
+
+    if len(tokens) < 2:
+        return None
+    root = root or project_root()
+    if command_name(tokens[0]) not in {"python", "python3"}:
+        return None
+    if normalize_path(tokens[1], root) == "scripts/codex-task":
+        return tokens[2:]
+    return None
+
+
+def _segment_is_codex_task_logging(segment: str) -> bool:
+    tokens = strip_shell_prefixes(shlex_tokens(segment))
+    remainder = codex_task_remainder(tokens)
+    return bool(remainder) and len(remainder) >= 2 and (remainder[0], remainder[1]) in CODEX_TASK_LOGGING_SUBCOMMANDS
+
+
+def bash_is_codex_task_logging(command: str) -> bool:
+    """Whole-payload-AND: a codex-task logging command excludes the payload from
+    pending-tracking only when every other segment is read-only. Without this,
+    ``codex-task plan sync; rm -rf src`` would exclude the whole payload and let the
+    mutation escape (TM 216 adversarial review)."""
+
+    saw_logging = False
+    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+        if _segment_is_codex_task_logging(segment):
+            saw_logging = True
+        elif not bash_is_read_only(segment):
+            return False
+    return saw_logging
+
+
+def payload_is_codex_task_logging(payload: Payload) -> bool:
+    return payload.tool_name == "Bash" and bash_is_codex_task_logging(bash_command(payload))
+
+
 def bash_is_aegis_pending_log(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"log"}, required_option="--pending-id")
 
@@ -1201,6 +1315,30 @@ def bash_is_aegis_closeout(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"closeout"})
 
 
+def _segment_is_trusted_aegis(
+    segment: str,
+    subcommands: set[str],
+    root: Path,
+    *,
+    require_apply: bool,
+    required_option: str | None,
+    handoff_repair: bool,
+) -> bool:
+    tokens = strip_shell_prefixes(shlex_tokens(segment))
+    remainder = aegis_cli_remainder(tokens, root, allow_bare=False)
+    if not remainder:
+        return False
+    if handoff_repair:
+        return len(remainder) >= 2 and remainder[0] == "handoff" and remainder[1] == "repair"
+    if remainder[0] not in subcommands:
+        return False
+    if require_apply and "--apply" not in remainder[1:]:
+        return False
+    if required_option and required_option not in remainder[1:]:
+        return False
+    return True
+
+
 def bash_has_trusted_aegis_subcommand(
     command: str,
     subcommands: set[str],
@@ -1209,24 +1347,27 @@ def bash_has_trusted_aegis_subcommand(
     required_option: str | None = None,
     handoff_repair: bool = False,
 ) -> bool:
+    """A compound command is a trusted aegis invocation only when at least one segment
+    is the trusted subcommand AND every other segment is itself read-only. Otherwise a
+    real mutation chained with a sanctioned command (``aegis log && rm -rf src``) would
+    be wrongly trusted — escaping both the readiness gate and pending-tracking (TM 216
+    adversarial review)."""
+
     root = project_root()
+    saw_trusted = False
     for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
-        tokens = strip_shell_prefixes(shlex_tokens(segment))
-        remainder = aegis_cli_remainder(tokens, root, allow_bare=False)
-        if not remainder:
-            continue
-        if handoff_repair:
-            if len(remainder) >= 2 and remainder[0] == "handoff" and remainder[1] == "repair":
-                return True
-            continue
-        if remainder[0] not in subcommands:
-            continue
-        if require_apply and "--apply" not in remainder[1:]:
-            continue
-        if required_option and required_option not in remainder[1:]:
-            continue
-        return True
-    return False
+        if _segment_is_trusted_aegis(
+            segment,
+            subcommands,
+            root,
+            require_apply=require_apply,
+            required_option=required_option,
+            handoff_repair=handoff_repair,
+        ):
+            saw_trusted = True
+        elif not bash_is_read_only(segment):
+            return False
+    return saw_trusted
 
 
 def bash_is_aegis_repair_apply(command: str) -> bool:
@@ -1243,13 +1384,19 @@ def bash_has_trusted_aegis_nested_subcommand(
     first: str,
     seconds: set[str],
 ) -> bool:
+    """Whole-payload-AND, like bash_has_trusted_aegis_subcommand: a trusted nested
+    invocation only when every non-trusted segment is read-only."""
+
     root = project_root()
+    saw_trusted = False
     for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
         tokens = strip_shell_prefixes(shlex_tokens(segment))
         remainder = aegis_cli_remainder(tokens, root, allow_bare=False)
         if len(remainder or []) >= 2 and remainder[0] == first and remainder[1] in seconds:
-            return True
-    return False
+            saw_trusted = True
+        elif not bash_is_read_only(segment):
+            return False
+    return saw_trusted
 
 
 def payload_is_sanctioned_aegis_workflow_mutation(payload: Payload) -> bool:
@@ -2025,6 +2172,7 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
         or payload_is_aegis_runtime_update(payload)
         or payload_is_aegis_log(payload)
         or payload_is_aegis_closeout(payload)
+        or payload_is_codex_task_logging(payload)
     ):
         return
     evidence = payload_evidence(payload, root)
