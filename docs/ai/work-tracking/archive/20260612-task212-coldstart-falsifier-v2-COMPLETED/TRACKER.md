@@ -20,8 +20,8 @@
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
-- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-implement — Update workflow/guard/docs and capture tests
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes

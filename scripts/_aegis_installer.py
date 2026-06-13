@@ -297,6 +297,38 @@ def _validate_with_schema(source_root: Path, schema_name: str, payload: Mapping[
     validator.validate(payload)
 
 
+def _manifest_schema_failure_message(
+    source_root: Path, target_root: Path, manifest: Mapping[str, Any], exc: ValidationError
+) -> str:
+    """Skew-aware manifest_schema failure (TM 215, HP-Coach 2026-06-12 incident).
+
+    A stale CLI/MCP bundle validates with ITS packaged schemas and rejects fields a
+    newer installer legitimately wrote (e.g. `runtime`), surfacing as a bare
+    jsonschema error that reads like target corruption. When the target's installed
+    schema mirror is newer and accepts the manifest, the validator itself is the
+    stale party — say so, and name the source root used.
+    """
+
+    base = f"{exc.message} [validated with schemas from {Path(source_root).as_posix()}]"
+    mirror = Path(target_root) / "schemas" / "aegis" / "foundation-manifest.schema.json"
+    try:
+        mirror_schema = json.loads(mirror.read_text(encoding="utf-8"))
+        if mirror_schema == _load_schema(Path(source_root), "foundation-manifest.schema.json"):
+            return base
+        Draft202012Validator(mirror_schema, format_checker=FormatChecker()).validate(dict(manifest))
+    except ValidationError:
+        return base
+    except (OSError, ValueError):
+        return base
+    return (
+        f"{exc.message} — validator runtime is STALE: the schemas packaged with this "
+        f"Aegis CLI/MCP (source root {Path(source_root).as_posix()}) are older than the "
+        "schema mirror installed in the target repo, and the mirror accepts this "
+        "manifest. Update or re-register the Aegis runtime (re-run `aegis runtime "
+        "update`, or repoint the MCP server at the current source) and re-run verify."
+    )
+
+
 def _enabled_agents(primary_agent: str, agents: Sequence[str] | None) -> tuple[str, ...]:
     if primary_agent not in PRIMARY_AGENT_CHOICES:
         raise AegisError(f"Unsupported primary agent: {primary_agent}")
@@ -2028,7 +2060,7 @@ def status(
             {
                 "id": "manifest_schema",
                 "status": "fail",
-                "message": exc.message,
+                "message": _manifest_schema_failure_message(source, target_root, manifest, exc),
             }
         )
 
@@ -8995,7 +9027,7 @@ def verify(
                 "gate_id": "aegis.manifest_schema",
                 "required": True,
                 "status": "fail",
-                "message": exc.message,
+                "message": _manifest_schema_failure_message(source, target_root, manifest, exc),
             }
         )
 
