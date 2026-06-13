@@ -9269,6 +9269,27 @@ def _surface_contains_evidence(surface_text: str, token: str) -> bool:
     return escaped_token != token and escaped_token in surface_text
 
 
+_EVIDENCE_COMMAND_METACHARS = set("|&;<>$(){}*?!`'\"")
+
+
+def _evidence_token_is_path_like(token: str) -> bool:
+    """A token is a stable artifact reference (a repo-relative path) rather than a
+    free-text command: no whitespace, no shell metacharacters, and it either contains a
+    path separator or ends in a file extension."""
+
+    canon = str(token).strip()
+    if canon.startswith("./"):
+        canon = canon[2:]
+    canon = canon.replace("\\", "/").rstrip("/")
+    if not canon:
+        return False
+    if any(ch.isspace() for ch in canon):
+        return False
+    if any(ch in _EVIDENCE_COMMAND_METACHARS for ch in canon):
+        return False
+    return ("/" in canon) or bool(re.search(r"\.[A-Za-z0-9]{1,8}\Z", canon))
+
+
 def _is_closeout_required_evidence(token: str) -> bool:
     if token == "changed files":
         return False
@@ -9282,6 +9303,21 @@ def _is_closeout_required_evidence(token: str) -> bool:
         "CHANGELOG.md",
         "HANDOFF.md",
     }:
+        return False
+    # TM 218: free-text/compound-command evidence tokens are ADVISORY, not required. A
+    # `cmd`...`` (or `note`...`) token records a command an operator ran, not a durable
+    # artifact; requiring its verbatim multi-line string in all six surfaces is brittle and
+    # becomes unrecoverable once the originating pending event is consumed (HP-Coach 2026-06-13).
+    # The source-truth gates (closeout.strict_verify, mutation.pending_tracking_empty) are
+    # independent and computed, so demoting command narration never lets un-evidenced work pass.
+    if token.startswith("cmd`") or token.startswith("note`"):
+        return False
+    # Defensive fallback for command tokens whose marker prefix was stripped upstream:
+    # command-shaped (whitespace or shell metachar) and not a path is advisory; real
+    # artifact paths (no whitespace/metachars) stay required.
+    if not _evidence_token_is_path_like(token) and (
+        any(ch.isspace() for ch in token) or any(ch in _EVIDENCE_COMMAND_METACHARS for ch in token)
+    ):
         return False
     return True
 

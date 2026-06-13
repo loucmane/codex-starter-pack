@@ -1,7 +1,7 @@
 # Task 216 Closeout convergence: kill the evidence/pending-tracking loop Tracker
 
 **Started**: 2026-06-13
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-13
 
 ## Goals
@@ -22,8 +22,8 @@
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
-- [ ] plan-step-implement — Update workflow/guard/docs and capture tests
-- [ ] plan-step-verify — Evidence stored, documentation updated
+- [x] plan-step-implement — Update workflow/guard/docs and capture tests
+- [x] plan-step-verify — Evidence stored, documentation updated
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes
