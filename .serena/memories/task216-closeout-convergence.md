@@ -16,6 +16,22 @@ The CHURN-ENGINE fix in .claude/scripts/gate_lib.py (+ assets mirror):
   existing gate test that pinned the OLD buggy "block read-only jq when BLOCKED" behavior
   (read-only inspection is allowed even when BLOCKED) + added positive test for that.
 
+## Adversarial diff-review caught 5 gate-bypass escapes pre-merge (hardening that shipped)
+A 5-agent review workflow on the actual diff found real escapes; all fixed before merge with tests:
+- Bundled short clusters (sed -ni, sort -uo, yq -Pi) — first guard used token.startswith,
+  missed non-leading write letters. Fixed with cluster-aware command_has_write_flag.
+- GNU long forms sed --in-place / sort --output[=FILE] — guard set only had short forms.
+  Added long forms; matcher handles --flag and --flag=value.
+- Positional-output writers uniq IN OUT, xxd -r IN OUT — a flag guard CANNOT model positional
+  output arity, so removed from READ_ONLY_SIMPLE_COMMANDS entirely (now mutations = safe
+  over-enqueue). LESSON: only stdout-only commands belong in the read-only set.
+- MOST SERIOUS — compound bypass: bash_is_codex_task_logging / bash_has_trusted_aegis_subcommand
+  / _nested returned True if ANY segment matched, so `codex-task plan sync; rm -rf src` (and
+  pre-existing `aegis log && rm -rf src`, `aegis kickoff && rm`) excluded the WHOLE payload —
+  core-invariant break. Fixed to whole-payload-AND: a sanctioned segment excludes only when
+  EVERY other segment is read-only (redirect-aware bash_is_read_only per segment, so
+  `...; echo x > src/f` is caught). Legit logging+read-only chains still excluded.
+
 ## The decisive finding (9-agent read-only workflow: reproduce + map + design + review)
 Post-churn-fix, the canonical flow ALREADY converges one-shot (empirically reproduced via
 real CLI: kickoff -> log scope/implement/verify -> verify --strict -> closeout

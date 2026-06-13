@@ -95,7 +95,6 @@ READ_ONLY_INSPECTORS = [
     "realpath .aegis/state",
     "basename /a/b/c",
     "sort in.txt",
-    "uniq sorted.txt",
     "yq '.x' config.yaml",
 ]
 
@@ -117,11 +116,37 @@ def test_read_only_inspectors_do_not_enqueue(tmp_path_factory: pytest.TempPathFa
 IN_PLACE_WRITES = [
     "sed -i 's/a/b/' src/main.py",
     "sed -i.bak 's/a/b/' src/main.py",
+    "sed -ni 's/a/b/' src/main.py",  # bundled short cluster -n -i
+    "sed --in-place 's/a/b/' src/main.py",  # GNU long form
+    "sed --in-place=.bak 's/a/b/' src/main.py",  # long form with attached value
     "yq -i '.x=1' config.yaml",
     "yq --inplace '.x=1' config.yaml",
+    "yq -Pi '.x=1' config.yaml",  # bundled -P -i
+    "yq -iP '.x=1' config.yaml",
     "sort -o out.txt in.txt",
+    "sort -uo out.txt in.txt",  # bundled -u -o
+    "sort --output out.txt in.txt",  # GNU long form
+    "sort --output=out.txt in.txt",  # long form with attached value
+    "uniq input.txt output.txt",  # positional output arg (no flag guard can catch)
+    "xxd -r dump.hex out.bin",  # reverse mode positional output
     "jq '.' a.json > b.json",
 ]
+
+
+# These look flag-adjacent to the guarded writers but only write to stdout — must stay read-only.
+READ_ONLY_WRITER_VARIANTS = [
+    "sed -n 'p' file.txt",
+    "sed -E 's/a/b/' file.txt",
+    "sort -r in.txt",
+    "sort -u in.txt",
+    "sort --ignore-case in.txt",
+    "yq -P '.x' config.yaml",
+]
+
+
+@pytest.mark.parametrize("command", READ_ONLY_WRITER_VARIANTS)
+def test_stdout_only_writer_variants_stay_read_only(command: str) -> None:
+    assert gate_lib.bash_is_read_only(command) is True, command
 
 
 @pytest.mark.parametrize("command", IN_PLACE_WRITES)
@@ -163,6 +188,48 @@ def test_aegis_log_both_forms_still_excluded() -> None:
         "python3 -m aegis_foundation.cli log --handler h --evidence e --note n",
     ):
         assert gate_lib.payload_is_aegis_log(gate_lib.Payload("Bash", {"command": command})) is True
+
+
+def test_logging_chained_with_read_only_stays_excluded() -> None:
+    # A sanctioned logging command plus a genuinely read-only companion is still pure
+    # logging and must remain excluded (whole-payload-AND, not single-segment-only).
+    for command in (
+        "git status --short && python3 scripts/codex-task plan sync",
+        "python3 scripts/codex-task work-tracking update --work x --handler h --evidence e --note n; git diff",
+        "git status && ./.aegis/bin/aegis log --handler h --evidence e --note n",
+    ):
+        payload = gate_lib.Payload("Bash", {"command": command})
+        assert (
+            gate_lib.payload_is_codex_task_logging(payload) or gate_lib.payload_is_aegis_log(payload)
+        ), command
+
+
+# CORE INVARIANT: a real mutation chained with a sanctioned command must NOT be excluded.
+COMPOUND_BYPASS_ATTEMPTS = [
+    "python3 scripts/codex-task plan sync; rm -rf src",
+    "python3 scripts/codex-task plan sync && rm -rf src/foo.py",
+    "rm -rf src && python3 scripts/codex-task plan sync",
+    "python3 scripts/codex-task scanner run; echo pwned > src/evil.py",
+    "python3 scripts/codex-task work-tracking update --work x --handler h --evidence e --note n && git commit -am x",
+    "python3 scripts/codex-task plan sync | tee src/evil.py",
+    "python3 scripts/codex-task sessions update --work x --handler h --evidence e --note n; sed -i 's/a/b/' CODEX.md",
+    "./.aegis/bin/aegis log --handler h --evidence e --note n && rm -rf src",
+    "./.aegis/bin/aegis kickoff --task 1 --slug x --title y && rm -rf src",
+]
+
+
+@pytest.mark.parametrize("command", COMPOUND_BYPASS_ATTEMPTS)
+def test_compound_logging_plus_mutation_is_not_excluded(command: str) -> None:
+    payload = gate_lib.Payload("Bash", {"command": command})
+    assert gate_lib.payload_is_codex_task_logging(payload) is False, command
+    assert gate_lib.payload_is_aegis_log(payload) is False, command
+    assert gate_lib.payload_is_aegis_bootstrap(payload) is False, command
+
+
+@pytest.mark.parametrize("command", COMPOUND_BYPASS_ATTEMPTS)
+def test_compound_logging_plus_mutation_still_enqueues(tmp_path_factory: pytest.TempPathFactory, command: str) -> None:
+    repo = make_in_progress_repo(tmp_path_factory.mktemp("cb"))
+    assert enqueue_count(repo, "Bash", command=command) == 1, command
 
 
 # --- CORE INVARIANT: real mutations still tracked ---------------------------------
