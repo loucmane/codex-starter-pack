@@ -630,7 +630,7 @@ def test_pretooluse_mutation_still_invokes_readiness(tmp_path: Path, monkeypatch
         "find . -delete",
         "pytest --junitxml=reports/results.xml",
         "cat README.md > out.txt",
-        "jq -c . .aegis/reports/reconcile.json",
+        "jq -c . .aegis/reports/reconcile.json > out.json",
         "task-master generate",
         "git commit -m test",
     ],
@@ -642,6 +642,25 @@ def test_pretooluse_blocks_unknown_or_writing_bash_when_readiness_blocked(tmp_pa
 
     assert result.returncode == 2
     assert "readiness is BLOCKED" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "jq -c . .aegis/reports/reconcile.json",
+        "column -t data.tsv",
+        "cut -d, -f1 data.csv",
+    ],
+)
+def test_pretooluse_allows_read_only_inspection_when_readiness_blocked(tmp_path: Path, command: str) -> None:
+    # Read-only inspection is permitted even when readiness is BLOCKED (TM 216):
+    # these write only to stdout, so they must not be treated as mutations. A
+    # redirect to a file makes them writes — that case stays blocked above.
+    repo = make_repo(tmp_path, ready=False)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_pretooluse_blocks_bash_mutation_when_readiness_blocked(tmp_path: Path) -> None:

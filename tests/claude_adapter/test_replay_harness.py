@@ -47,11 +47,27 @@ def test_fp_baseline_is_locked(report: dict[str, object]) -> None:
     # The historical false positives still block under today's strict policy. This
     # number is the program's improvement metric: it may only ever DECREASE, and any
     # decrease must arrive with a deliberate corpus update in the same change.
-    assert report["fp_baseline"] == 9, (
-        f"FP baseline moved to {report['fp_baseline']} (expected 9). If a policy change "
+    #
+    # 2026-06-13 (TM 216): 9 -> 8. The churn-engine fix classifies the read-only
+    # `jq`/`ls` compound in corpus entry E04a (HP-Coach friction case "E04: read-only
+    # jq/ls compound gated as persistent mutation while readiness BLOCKED") as
+    # inspection, so it no longer blocks — a genuine false-positive elimination. E04a
+    # now surfaces in report["improvements"]; see test_e04a_read_only_jq_is_freed.
+    assert report["fp_baseline"] == 8, (
+        f"FP baseline moved to {report['fp_baseline']} (expected 8). If a policy change "
         "legitimately freed historical false positives, update this lock and the corpus "
         "notes in the same PR — never silently."
     )
+
+
+def test_e04a_read_only_jq_is_freed(report: dict[str, object]) -> None:
+    # TM 216 churn-engine fix: the read-only jq/ls compound that historically blocked
+    # under BLOCKED readiness is now correctly allowed. Pin it as an improvement so a
+    # future regression that re-blocks it is caught.
+    results = {result["id"]: result for result in report["results"]}
+    assert results["E04a"]["verdict"] == "allow", "read-only jq/ls compound must no longer block"
+    improvement_ids = {item["id"] for item in report["improvements"]}
+    assert "E04a" in improvement_ids
 
 
 def test_known_gaps_are_exactly_the_documented_ones(report: dict[str, object]) -> None:

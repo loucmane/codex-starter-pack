@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for Verify schema-skew self-diagnosis | docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/designs/wizard-flow.md | completed |
-| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Verify schema-skew self-diagnosis | scripts/codex-task; docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Verify schema-skew self-diagnosis | scripts/codex-task; docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260613-task215-schema-skew-diagnosis-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope

@@ -106,23 +106,54 @@ PYTHON_WRITE_RE = re.compile(
     r"|write_text\(\s*['\"]",
     re.IGNORECASE,
 )
+# Pure inspection commands that only write to stdout. Anything here that CAN mutate
+# in place (sed -i, sort -o, yq -i) is special-cased in bash_segment_is_read_only;
+# file-writing via shell redirect is caught separately by is_persistent_redirect_target.
 READ_ONLY_SIMPLE_COMMANDS = {
+    "basename",
     "cat",
+    "cmp",
+    "column",
+    "comm",
+    "cut",
     "date",
+    "diff",
+    "dirname",
     "echo",
     "false",
+    "file",
+    "fmt",
+    "fold",
     "grep",
     "head",
+    "hexdump",
+    "jq",
     "ls",
+    "nl",
+    "od",
+    "paste",
+    "printf",
     "pwd",
+    "realpath",
     "rg",
     "sed",
+    "sort",
     "stat",
     "tail",
     "test",
+    "tr",
     "true",
+    "uniq",
     "wc",
     "which",
+    "xxd",
+    "yq",
+}
+# Commands in READ_ONLY_SIMPLE_COMMANDS that mutate a file when given a specific flag.
+READ_ONLY_WRITE_FLAG_GUARDS = {
+    "sed": ("-i",),
+    "yq": ("-i", "--inplace"),
+    "sort": ("-o",),
 }
 READ_ONLY_GIT_SUBCOMMANDS = {
     "branch",
@@ -983,7 +1014,14 @@ def bash_segment_is_read_only(segment: str) -> bool:
     if read_only_aegis_segment(tokens):
         return True
     if name in READ_ONLY_SIMPLE_COMMANDS:
-        return name != "sed" or "-i" not in tokens
+        write_flags = READ_ONLY_WRITE_FLAG_GUARDS.get(name)
+        if write_flags:
+            return not any(
+                token == flag or (flag.startswith("-") and not flag.startswith("--") and token.startswith(flag))
+                for token in tokens
+                for flag in write_flags
+            )
+        return True
     if read_only_find_segment(tokens):
         return True
     if read_only_node_segment(tokens):
@@ -1131,6 +1169,44 @@ def bash_is_aegis_bootstrap(command: str) -> bool:
 
 def bash_is_aegis_log(command: str) -> bool:
     return bash_has_trusted_aegis_subcommand(command, {"log"})
+
+
+# codex-task evidence/workflow subcommands are this repo's analog of `aegis log`:
+# sanctioned self-writes to the tracking surfaces (or read-only validation). They must
+# not arm pending-tracking against themselves (TM 216 — fix-creates-failure loop).
+CODEX_TASK_LOGGING_SUBCOMMANDS = {
+    ("work-tracking", "update"),
+    ("work-tracking", "audit"),
+    ("sessions", "update"),
+    ("plan", "sync"),
+    ("scanner", "run"),
+}
+
+
+def codex_task_remainder(tokens: list[str], root: Path | None = None) -> list[str] | None:
+    """Return the subcommand tokens after a `scripts/codex-task` invocation, else None."""
+
+    if len(tokens) < 2:
+        return None
+    root = root or project_root()
+    if command_name(tokens[0]) not in {"python", "python3"}:
+        return None
+    if normalize_path(tokens[1], root) == "scripts/codex-task":
+        return tokens[2:]
+    return None
+
+
+def bash_is_codex_task_logging(command: str) -> bool:
+    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+        tokens = strip_shell_prefixes(shlex_tokens(segment))
+        remainder = codex_task_remainder(tokens)
+        if remainder and len(remainder) >= 2 and (remainder[0], remainder[1]) in CODEX_TASK_LOGGING_SUBCOMMANDS:
+            return True
+    return False
+
+
+def payload_is_codex_task_logging(payload: Payload) -> bool:
+    return payload.tool_name == "Bash" and bash_is_codex_task_logging(bash_command(payload))
 
 
 def bash_is_aegis_pending_log(command: str) -> bool:
@@ -2025,6 +2101,7 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
         or payload_is_aegis_runtime_update(payload)
         or payload_is_aegis_log(payload)
         or payload_is_aegis_closeout(payload)
+        or payload_is_codex_task_logging(payload)
     ):
         return
     evidence = payload_evidence(payload, root)
