@@ -762,6 +762,13 @@ def mcp_is_mutation(payload: Payload) -> bool:
         return mcp_aegis_target_dir_violation(payload) is not None
     if mcp_is_taskmaster_tool(payload.tool_name):
         return not mcp_is_read_only_taskmaster_discovery(payload)
+    # Browser-observation tools (chrome-devtools / playwright) drive a live browser, not the
+    # project tree (TM 191). They are read-only w.r.t. the repo UNLESS the call writes a repo
+    # path (e.g. take_screenshot/save with a path field) — so observation churn (snapshot,
+    # click, navigate, console, evaluate) stops arming pending-tracking while a path-bearing
+    # write still tracks. Conservative: any repo path field present => treat as a mutation.
+    if "__chrome_devtools__" in normalized or "__playwright__" in normalized:
+        return bool(mcp_path_values(payload.tool_input))
     if MCP_MUTATION_TOOL_RE.search(payload.tool_name):
         return True
     if MCP_READ_ONLY_TOOL_RE.search(payload.tool_name):

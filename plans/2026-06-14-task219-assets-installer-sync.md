@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for Sync aegis_foundation/assets/scripts/_aegis_installer.py drift from live | docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/designs/wizard-flow.md | completed |
-| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Sync aegis_foundation/assets/scripts/_aegis_installer.py drift from live | scripts/codex-task; docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Sync aegis_foundation/assets/scripts/_aegis_installer.py drift from live | scripts/codex-task; docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260614-task219-assets-installer-sync-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
