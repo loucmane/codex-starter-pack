@@ -1,7 +1,7 @@
 # Task 221 Drain must not accrete read-only events into required closeout evidence Tracker
 
 **Started**: 2026-06-14
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-14
 
 ## Goals

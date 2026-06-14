@@ -64,14 +64,11 @@ AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
 AEGIS_OBSERVATION_REPORT_REL = ".aegis/reports/observation-report.json"
 AEGIS_OBSERVATION_REPORT_DETAIL_REL = ".aegis/reports/observation-report-detail.json"
 AEGIS_OBSERVATION_BASELINE_REL = ".aegis/state/observation-baseline.json"
-# TM #197 size budgets: guidance payloads stay small; full enumerations live in linked
-# artifact files. Defaults are deliberately conservative; per-repo additions come from
-# brief.json {"observation": {"ignore_globs": [...], "sample_cap": N, "prefix_cap": N}}.
-DEFAULT_OBSERVATION_IGNORE_GLOBS = (
-    "**/.wrangler/**",
-    "**/node_modules/**",
-    "**/__pycache__/**",
-)
+# TM #197 size budgets: guidance payloads carry capped samples + counts-by-prefix with
+# truncation markers; full enumerations live in linked artifact files. Detection logic
+# is unchanged (the existing !!-ignored runtime mechanism still classifies deltas) —
+# this is purely a report-size fix for the 8MB observation-report / 69MB next class.
+# Per-repo overrides: brief.json {"observation": {"sample_cap": N, "prefix_cap": N}}.
 OBSERVATION_SAMPLE_CAP_DEFAULT = 50
 OBSERVATION_PREFIX_CAP_DEFAULT = 20
 AEGIS_OBSERVATION_ARTIFACT_ROOT_REL = ".aegis/reports/observations"
@@ -298,6 +295,38 @@ def _validate_with_schema(source_root: Path, schema_name: str, payload: Mapping[
     schema = _load_schema(source_root, schema_name)
     validator = Draft202012Validator(schema, format_checker=FormatChecker())
     validator.validate(payload)
+
+
+def _manifest_schema_failure_message(
+    source_root: Path, target_root: Path, manifest: Mapping[str, Any], exc: ValidationError
+) -> str:
+    """Skew-aware manifest_schema failure (TM 215, HP-Coach 2026-06-12 incident).
+
+    A stale CLI/MCP bundle validates with ITS packaged schemas and rejects fields a
+    newer installer legitimately wrote (e.g. `runtime`), surfacing as a bare
+    jsonschema error that reads like target corruption. When the target's installed
+    schema mirror is newer and accepts the manifest, the validator itself is the
+    stale party — say so, and name the source root used.
+    """
+
+    base = f"{exc.message} [validated with schemas from {Path(source_root).as_posix()}]"
+    mirror = Path(target_root) / "schemas" / "aegis" / "foundation-manifest.schema.json"
+    try:
+        mirror_schema = json.loads(mirror.read_text(encoding="utf-8"))
+        if mirror_schema == _load_schema(Path(source_root), "foundation-manifest.schema.json"):
+            return base
+        Draft202012Validator(mirror_schema, format_checker=FormatChecker()).validate(dict(manifest))
+    except ValidationError:
+        return base
+    except (OSError, ValueError):
+        return base
+    return (
+        f"{exc.message} — validator runtime is STALE: the schemas packaged with this "
+        f"Aegis CLI/MCP (source root {Path(source_root).as_posix()}) are older than the "
+        "schema mirror installed in the target repo, and the mirror accepts this "
+        "manifest. Update or re-register the Aegis runtime (re-run `aegis runtime "
+        "update`, or repoint the MCP server at the current source) and re-run verify."
+    )
 
 
 def _enabled_agents(primary_agent: str, agents: Sequence[str] | None) -> tuple[str, ...]:
@@ -2031,7 +2060,7 @@ def status(
             {
                 "id": "manifest_schema",
                 "status": "fail",
-                "message": exc.message,
+                "message": _manifest_schema_failure_message(source, target_root, manifest, exc),
             }
         )
 
@@ -4538,6 +4567,8 @@ def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
         AEGIS_CURRENT_WORK_REL,
         AEGIS_MANIFEST_REL,
         AEGIS_OBSERVATION_REPORT_REL,
+        AEGIS_OBSERVATION_REPORT_DETAIL_REL,
+        AEGIS_OBSERVATION_BASELINE_REL,
         "sessions/state.json",
         "sessions/current",
         "plans/current",
@@ -4573,46 +4604,20 @@ def _status_line_matches_prefix(line: str, prefix: str) -> bool:
 
 
 def _observation_budget_config(target_root: Path) -> dict[str, Any]:
-    """TM #197: ignore globs + summarization budgets, extensible via brief.json."""
+    """TM #197: report summarization budgets, extensible via brief.json."""
 
     brief = _read_json(target_root / AEGIS_BRIEF_REL)
     section = brief.get("observation") if isinstance(brief, Mapping) else None
     section = section if isinstance(section, Mapping) else {}
-    extra_globs = section.get("ignore_globs")
-    globs = list(DEFAULT_OBSERVATION_IGNORE_GLOBS)
-    if isinstance(extra_globs, list):
-        globs.extend(str(glob) for glob in extra_globs if isinstance(glob, str))
     def _int_or(value: Any, default: int) -> int:
         try:
             return max(1, int(value))
         except (TypeError, ValueError):
             return default
     return {
-        "ignore_globs": globs,
         "sample_cap": _int_or(section.get("sample_cap"), OBSERVATION_SAMPLE_CAP_DEFAULT),
         "prefix_cap": _int_or(section.get("prefix_cap"), OBSERVATION_PREFIX_CAP_DEFAULT),
     }
-
-
-def _observation_path_ignored(rel_path: str, ignore_globs: Sequence[str]) -> bool:
-    text = rel_path.rstrip("/")
-    return any(fnmatch.fnmatch(text, glob) or fnmatch.fnmatch(f"/{text}", glob) for glob in ignore_globs)
-
-
-def _filter_observation_status(
-    status_lines: Sequence[str], config: Mapping[str, Any]
-) -> tuple[list[str], int]:
-    """Drop runtime-noise paths (ignore globs) from a status snapshot; count them."""
-
-    kept: list[str] = []
-    ignored = 0
-    for line in status_lines:
-        rel = _git_status_rel_path(str(line).rstrip())
-        if rel and _observation_path_ignored(rel, config.get("ignore_globs", ())):
-            ignored += 1
-            continue
-        kept.append(str(line).rstrip())
-    return kept, ignored
 
 
 def _summarize_path_lines(lines: Sequence[str], config: Mapping[str, Any]) -> dict[str, Any]:
@@ -5328,10 +5333,7 @@ def start_observation(
     observation_id = _observation_id(normalized_slug, now)
     branch_current = _current_branch(target_root)
     observation_budget = _observation_budget_config(target_root)
-    raw_baseline_status = _git_status_snapshot(target_root)
-    baseline_status, baseline_ignored_count = _filter_observation_status(
-        raw_baseline_status, observation_budget
-    )
+    baseline_status = _git_status_snapshot(target_root)
     baseline_fingerprints = _git_status_fingerprints(target_root, baseline_status)
     selected_goals = list(
         goals
@@ -5439,7 +5441,6 @@ def start_observation(
             # current-work.json (and every payload embedding it) stays small.
             "baseline_ref": AEGIS_OBSERVATION_BASELINE_REL,
             "baseline_summary": _summarize_path_lines(baseline_status, observation_budget),
-            "baseline_ignored_count": baseline_ignored_count,
             "allowed_paths": [],
         },
         "branch": {
@@ -5478,8 +5479,6 @@ def start_observation(
             {
                 "schema_version": SCHEMA_VERSION,
                 "captured_at": _iso_now(),
-                "ignored_count": baseline_ignored_count,
-                "ignore_globs": list(observation_budget["ignore_globs"]),
                 "baseline_git_status": baseline_status,
                 "baseline_git_fingerprints": baseline_fingerprints,
             }
@@ -5609,9 +5608,7 @@ def stop_observation(
     finished_at = _iso_now()
     observation_budget = _observation_budget_config(target_root)
     _load_observation_baseline(target_root, current_work)
-    current_status, _stop_ignored = _filter_observation_status(
-        _git_status_snapshot(target_root), observation_budget
-    )
+    current_status = _git_status_snapshot(target_root)
     current_fingerprints = _git_status_fingerprints(target_root, current_status)
     artifact_root_rel = _observation_artifact_root_rel(current_work)
     status_deltas = _observation_status_delta_lines(current_work, current_status)
@@ -5647,9 +5644,7 @@ def stop_observation(
             artifact_root_rel,
             cleanable_artifacts,
         )
-        current_status, _stop_ignored = _filter_observation_status(
-            _git_status_snapshot(target_root), observation_budget
-        )
+        current_status = _git_status_snapshot(target_root)
         current_fingerprints = _git_status_fingerprints(target_root, current_status)
         status_deltas = _observation_status_delta_lines(current_work, current_status)
         fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
@@ -6441,6 +6436,84 @@ def _event_matches_current_work(event: Mapping[str, Any], *, task_id: str, slug:
     return str(task.get("id") or "") == task_id and str(task.get("slug") or "") == slug
 
 
+_TARGET_GATE_LIB_CACHE: dict[str, Any] = {}
+
+
+def _load_target_gate_lib(target_root: Path) -> Any | None:
+    """Import the TARGET repo's .claude/scripts/gate_lib.py for read-only classification
+    at drain time (TM 221). Uses the target's own copy so events are classified by the
+    same gate version that recorded them. Fail-None on any problem — callers fail-KEEP."""
+
+    script = Path(target_root) / ".claude" / "scripts" / "gate_lib.py"
+    key = str(script.resolve()) if script.exists() else str(script)
+    if key in _TARGET_GATE_LIB_CACHE:
+        return _TARGET_GATE_LIB_CACHE[key]
+    module: Any | None = None
+    try:
+        if script.is_file():
+            spec = importlib.util.spec_from_file_location("_aegis_log_gate_lib", script)
+            if spec is not None and spec.loader is not None:
+                candidate = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = candidate  # required before exec for dataclasses
+                spec.loader.exec_module(candidate)
+                module = candidate
+    except Exception:  # noqa: BLE001 - any import failure => fail-KEEP (treat as mutation)
+        module = None
+    _TARGET_GATE_LIB_CACHE[key] = module
+    return module
+
+
+def _stored_event_is_read_only(target_root: Path, event: Mapping[str, Any]) -> bool:
+    """Strict, fail-KEEP classifier for a stored pending-tracking event (TM 221).
+
+    Returns True ONLY when the event's originating action is provably read-only, so its
+    evidence can be drained/purged without accreting into required closeout evidence.
+    Classifies by tool + recovered command/tool-name, NEVER by evidence-token shape (a
+    read-only `cat app/x.ts` is byte-identical to a real edit of app/x.ts). Any
+    uncertainty — unknown tool, lost command, apply-gated MCP, import failure — returns
+    False so genuine mutations are never discarded.
+    """
+
+    try:
+        gl = _load_target_gate_lib(target_root)
+        if gl is None:
+            return False
+        tool = str(event.get("tool") or "")
+        evidence = str(event.get("evidence") or "")
+        if tool in getattr(gl, "FILE_MUTATION_TOOLS", {"Edit", "Write", "MultiEdit", "NotebookEdit"}):
+            return False
+        if tool == "Bash":
+            # The command is recoverable only when evidence kept the cmd`...` wrapper.
+            # Redirect-target / aegis-verify evidence means the command was already a
+            # mutation (bash_is_read_only is False on persistent redirects) -> KEEP.
+            if evidence.startswith("cmd`") and evidence.endswith("`") and len(evidence) > 5:
+                inner = evidence[4:-1]
+                return bool(gl.bash_is_read_only(inner))
+            return False
+        if tool.startswith("mcp__"):
+            # Name-only classification (tool_input is NOT persisted in the event). Discard
+            # ONLY unconditionally repo-non-mutating tools. Apply-gated aegis tools
+            # (repair/runtime_update/handoff_repair) and target-dir-sensitive aegis
+            # read-only tools depend on un-persisted tool_input, so they are KEPT — closing
+            # the apply-gated escape the adversarial review flagged.
+            if gl.MCP_MUTATION_TOOL_RE.search(tool):
+                return False
+            normalized = gl.normalized_mcp_tool_name(tool)
+            if "__chrome_devtools__" in normalized or "__playwright__" in normalized:
+                return True  # browser observation never mutates the repo, no apply gate
+            if any(
+                normalized.endswith(f"__{suffix}")
+                for suffix in getattr(gl, "TASKMASTER_READ_ONLY_MCP_TOOL_SUFFIXES", set())
+            ):
+                return True
+            if gl.MCP_READ_ONLY_TOOL_RE.search(tool):
+                return True
+            return False  # aegis suffixes, apply-gated, and unknown MCP tools -> KEEP
+        return False
+    except Exception:  # noqa: BLE001 - fail-KEEP on any classifier fault.
+        return False
+
+
 def _resolve_pending_tracking_event(
     events: Sequence[Mapping[str, Any]],
     pending_event_id: str,
@@ -6721,6 +6794,26 @@ def log_work(
             task_id=task_id,
             slug=slug,
         )
+        # TM 221: a read-only/inspection pending event (pre-#224 backlog false-positive)
+        # must NOT accrete its evidence into surfaces or the plan-step required-evidence
+        # cell. Drain it from the queue and return without writing anything.
+        if _stored_event_is_read_only(target_root, resolved_pending_event):
+            resolved_id = str(resolved_pending_event.get("id") or "")
+            remaining = [e for e in pending_before if str(e.get("id") or "") != resolved_id]
+            _write_pending_tracking_events(target_root, remaining)
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "status": "purged_read_only",
+                "logged_at": _iso_now(),
+                "target_root": str(target_root),
+                "entry": None,
+                "purged_event": {
+                    "id": resolved_id,
+                    "tool": resolved_pending_event.get("tool"),
+                    "evidence": resolved_pending_event.get("evidence"),
+                },
+                "paths": {"pending_tracking": AEGIS_PENDING_TRACKING_REL},
+            }
         handler = str(resolved_pending_event.get("handler") or "")
         evidence = str(resolved_pending_event.get("evidence") or "")
 
@@ -8575,6 +8668,40 @@ def _apply_repair_action(
     }
 
 
+def purge_read_only_pending(target_dir: str | Path, *, apply: bool = False) -> dict[str, Any]:
+    """Batch-purge read-only/inspection events from the pending-tracking queue (TM 221).
+
+    Cleans a pre-#224 backlog of read-only false-positives so they are never drained into
+    a plan step's required-evidence. Preview by default; mutates only with apply=True.
+    Fail-KEEP: only events _stored_event_is_read_only proves read-only are dropped; any
+    classification or import uncertainty retains the event. Touches ONLY the pending
+    queue file — never surfaces or plan cells.
+    """
+
+    target_root = _resolve_target_root(target_dir)
+    events = _pending_tracking_events(target_root)
+    read_only = [e for e in events if _stored_event_is_read_only(target_root, e)]
+    kept = [e for e in events if not _stored_event_is_read_only(target_root, e)]
+    purged_ids = [str(e.get("id") or "") for e in read_only]
+    if apply and read_only:
+        _write_pending_tracking_events(target_root, kept)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "purged" if (apply and read_only) else "preview",
+        "applied": bool(apply and read_only),
+        "target_root": str(target_root),
+        "total_pending": len(events),
+        "read_only_count": len(read_only),
+        "kept_count": len(kept),
+        "purged": [
+            {"id": str(e.get("id") or ""), "tool": e.get("tool"), "evidence": e.get("evidence")}
+            for e in read_only
+        ],
+        "purged_ids": purged_ids,
+        "paths": {"pending_tracking": AEGIS_PENDING_TRACKING_REL},
+    }
+
+
 def repair(
     target_dir: str | Path,
     *,
@@ -9032,7 +9159,7 @@ def verify(
                 "gate_id": "aegis.manifest_schema",
                 "required": True,
                 "status": "fail",
-                "message": exc.message,
+                "message": _manifest_schema_failure_message(source, target_root, manifest, exc),
             }
         )
 
@@ -9274,6 +9401,27 @@ def _surface_contains_evidence(surface_text: str, token: str) -> bool:
     return escaped_token != token and escaped_token in surface_text
 
 
+_EVIDENCE_COMMAND_METACHARS = set("|&;<>$(){}*?!`'\"")
+
+
+def _evidence_token_is_path_like(token: str) -> bool:
+    """A token is a stable artifact reference (a repo-relative path) rather than a
+    free-text command: no whitespace, no shell metacharacters, and it either contains a
+    path separator or ends in a file extension."""
+
+    canon = str(token).strip()
+    if canon.startswith("./"):
+        canon = canon[2:]
+    canon = canon.replace("\\", "/").rstrip("/")
+    if not canon:
+        return False
+    if any(ch.isspace() for ch in canon):
+        return False
+    if any(ch in _EVIDENCE_COMMAND_METACHARS for ch in canon):
+        return False
+    return ("/" in canon) or bool(re.search(r"\.[A-Za-z0-9]{1,8}\Z", canon))
+
+
 def _is_closeout_required_evidence(token: str) -> bool:
     if token == "changed files":
         return False
@@ -9287,6 +9435,21 @@ def _is_closeout_required_evidence(token: str) -> bool:
         "CHANGELOG.md",
         "HANDOFF.md",
     }:
+        return False
+    # TM 218: free-text/compound-command evidence tokens are ADVISORY, not required. A
+    # `cmd`...`` (or `note`...`) token records a command an operator ran, not a durable
+    # artifact; requiring its verbatim multi-line string in all six surfaces is brittle and
+    # becomes unrecoverable once the originating pending event is consumed (HP-Coach 2026-06-13).
+    # The source-truth gates (closeout.strict_verify, mutation.pending_tracking_empty) are
+    # independent and computed, so demoting command narration never lets un-evidenced work pass.
+    if token.startswith("cmd`") or token.startswith("note`"):
+        return False
+    # Defensive fallback for command tokens whose marker prefix was stripped upstream:
+    # command-shaped (whitespace or shell metachar) and not a path is advisory; real
+    # artifact paths (no whitespace/metachars) stay required.
+    if not _evidence_token_is_path_like(token) and (
+        any(ch.isspace() for ch in token) or any(ch in _EVIDENCE_COMMAND_METACHARS for ch in token)
+    ):
         return False
     return True
 
