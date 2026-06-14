@@ -53,8 +53,12 @@ def test_fp_baseline_is_locked(report: dict[str, object]) -> None:
     # jq/ls compound gated as persistent mutation while readiness BLOCKED") as
     # inspection, so it no longer blocks — a genuine false-positive elimination. E04a
     # now surfaces in report["improvements"]; see test_e04a_read_only_jq_is_freed.
-    assert report["fp_baseline"] == 8, (
-        f"FP baseline moved to {report['fp_baseline']} (expected 8). If a policy change "
+    #
+    # 2026-06-14 (TM 191): 8 -> 7. Browser-observation MCP tools are now read-only, so
+    # corpus entry E24a (mcp__playwright__browser_snapshot, "browser verification taxed
+    # by pending tracking") no longer blocks — see test_e24a_browser_snapshot_is_freed.
+    assert report["fp_baseline"] == 7, (
+        f"FP baseline moved to {report['fp_baseline']} (expected 7). If a policy change "
         "legitimately freed historical false positives, update this lock and the corpus "
         "notes in the same PR — never silently."
     )
@@ -68,6 +72,14 @@ def test_e04a_read_only_jq_is_freed(report: dict[str, object]) -> None:
     assert results["E04a"]["verdict"] == "allow", "read-only jq/ls compound must no longer block"
     improvement_ids = {item["id"] for item in report["improvements"]}
     assert "E04a" in improvement_ids
+
+
+def test_e24a_browser_snapshot_is_freed(report: dict[str, object]) -> None:
+    # TM 191: browser-observation MCP tools are read-only, so the browser_snapshot
+    # verification call no longer arms pending-tracking / blocks. Pin as improvement.
+    results = {result["id"]: result for result in report["results"]}
+    assert results["E24a"]["verdict"] == "allow", "browser_snapshot must no longer be taxed"
+    assert "E24a" in {item["id"] for item in report["improvements"]}
 
 
 def test_known_gaps_are_exactly_the_documented_ones(report: dict[str, object]) -> None:
