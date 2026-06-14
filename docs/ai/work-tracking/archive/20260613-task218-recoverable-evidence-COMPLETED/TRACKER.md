@@ -1,7 +1,7 @@
 # Task 218 Robust + recoverable closeout evidence (stable-key matching) Tracker
 
 **Started**: 2026-06-13
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-06-13
 
 ## Goals
