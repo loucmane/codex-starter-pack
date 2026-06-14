@@ -30,7 +30,10 @@
       "pyproject.toml",
       "requirements.lock",
       "uv.lock",
-      ".aegis/brief.json"
+      ".aegis/brief.json",
+      ".gitignore",
+      ".pre-commit-config.yaml",
+      ".claude.json"
     ]
   },
   "thresholds": {

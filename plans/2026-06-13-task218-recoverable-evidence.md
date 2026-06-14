@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for Robust + recoverable closeout evidence (stable-key matching) | docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/designs/wizard-flow.md | completed |
-| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Robust + recoverable closeout evidence (stable-key matching) | scripts/codex-task; docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Robust + recoverable closeout evidence (stable-key matching) | scripts/codex-task; docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260613-task218-recoverable-evidence-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope

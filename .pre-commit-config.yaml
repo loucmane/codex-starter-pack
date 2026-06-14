@@ -3,6 +3,12 @@ minimum_pre_commit_version: "3.0.0"
 repos:
   - repo: local
     hooks:
+      - id: secret-scan
+        name: Secret scan (staged keys)
+        entry: bash .claude/scripts/secret-scan.sh
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: codex-guard-validate
         name: Codex Guard Validate
         entry: python3 scripts/codex-guard validate --include-untracked
