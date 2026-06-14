@@ -7062,14 +7062,14 @@
         "description": "RESCOPED 2026-06-14 (reconciliation): the shell/git/taskmaster/aegis read-only classification shipped via TM 216 / PR #224 (read-only inspectors + logging no longer arm pending-tracking; in-place writers/redirects still tracked). RESIDUAL: read-only classification for BROWSER-OBSERVATION MCP tools (chrome-devtools / playwright: take_snapshot, screenshot, list_console_messages, navigate, etc.) which are not in the gate's read-only MCP allowlist and still arm pending-tracking. Independent of the 188->189->190 chain; can be done standalone.",
         "details": "Improve command/tool classification so read-only Taskmaster queries, git/status inspection, grep/list/cat/sed style reads, typecheck/lint verification commands, localhost probes, and browser screenshot/snapshot calls do not create unnecessary pending tracking when they do not mutate persistent project state. Preserve strict tracking for source edits, Taskmaster writes, git mutations, repair/apply/closeout, generated file writes, and artifact cleanup. Consider a batch evidence command for runtime verification passes. Add tests showing common continue/verify flows stay pending-clean while mutations are still tracked and stop-gated.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "189",
           "190"
         ],
         "priority": "medium",
         "subtasks": [],
-        "updatedAt": "2026-06-14T18:27:16.805Z"
+        "updatedAt": "2026-06-14T18:56:05.873Z"
       },
       {
         "id": "192",
@@ -7644,9 +7644,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-14T18:27:16.806Z",
+      "lastModified": "2026-06-14T18:56:05.874Z",
       "taskCount": 222,
-      "completedCount": 209,
+      "completedCount": 210,
       "tags": [
         "master"
       ]
