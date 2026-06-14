@@ -462,6 +462,20 @@ def handle_reconcile(args: argparse.Namespace) -> int:
 
 
 def handle_repair(args: argparse.Namespace) -> int:
+    # TM 221: dedicated batch purge of read-only pending-tracking backlog (no source_root needed).
+    if getattr(args, "purge_read_only_pending", False):
+        payload = _aegis_installer.purge_read_only_pending(args.target_dir, apply=args.apply)
+        if args.json:
+            _dump_json(payload)
+        else:
+            print(
+                f"purge-read-only-pending: {payload['status']} — "
+                f"{payload['read_only_count']} read-only of {payload['total_pending']} pending "
+                f"({'removed' if payload['applied'] else 'preview; rerun with --apply'})"
+            )
+            for item in payload["purged"]:
+                print(f"  - {item['id']} {item['tool']}: {item['evidence']}")
+        return 0
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.repair(
             args.target_dir,
@@ -1204,6 +1218,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="Print the full structured repair report instead of a concise summary.",
+    )
+    repair_parser.add_argument(
+        "--purge-read-only-pending",
+        action="store_true",
+        help="Instead of repair: drop read-only/inspection events from the pending-tracking "
+        "queue (preview unless --apply) so they cannot accrete into required closeout evidence.",
     )
     repair_parser.set_defaults(func=handle_repair)
 
