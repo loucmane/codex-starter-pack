@@ -7610,7 +7610,7 @@
         "description": "Third HP-Coach closeout report (after TM 216 churn + TM 218 orphan). Draining a PRE-#224 pending-tracking backlog via 'aegis log --pending-id <id> --plan-step plan-step-verify' (the documented drain path) writes each drained event's evidence into the plan-step-verify cell, so closeout.evidence.{tracker,implementation,changelog} then REQUIRE all that read-only inspection noise on the surfaces, and every further drain compounds it. Confirmed: TM 218 demotion does NOT cover this class \u2014 probe shows these drained tokens stay REQUIRED: '.scratch/task81/M3.reference.tsx', '/tmp/task81-vite.log', 'mcp__playwright__browser_click', 'app/src/lib/nogPrompt.ts', '=p', '127:'. KEY INSIGHT: matching-layer demotion (TM 218) is FUNDAMENTALLY INSUFFICIENT for this class because read-only evidence like 'app/src/lib/nogPrompt.ts' (a cat/inspection target) is indistinguishable BY TOKEN SHAPE from a real edited artifact \u2014 only the originating event's TOOL/command knows it was read-only. So the fix MUST be at the DRAIN/SOURCE layer: when 'aegis log --pending-id X' drains an event whose recorded tool/command is read-only/inspection (reuse gate_lib's bash_is_read_only / read-only MCP classification on the event's stored tool+command), DISCARD it from the queue WITHOUT writing its evidence to surfaces or the plan. Genuine-mutation events still log normally. Note: post-#224 read-only no longer enters the queue, so this is primarily a migration-cleanup for pre-#224 backlogs (and a guard so churn-clearing never pollutes required evidence). Consider a batch 'aegis repair'/'aegis reconcile-pending' that purges read-only pending events. Cross-layer: _aegis_installer.py drain path needs gate_lib's read-only classifier. Invariant: a genuine source mutation's evidence must still be required; only read-only-event-derived evidence is excluded. Acceptance: after draining a backlog of read-only inspection events, closeout's evidence gates require none of those tokens. Captured: .aegis/reports/closeout-report.json on HP-Coach feat/task-80-boksidan-conventions. Core-gate change: design + adversarial-review rigor like TM 218.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
@@ -7621,7 +7621,7 @@
         "description": "Bundled housekeeping. (A) SECURITY HYGIENE (keys already revoked by owner; preventive): git rm --cached .claude.json (held the real Firecrawl/ElevenLabs keys), add it to .gitignore, add a pre-commit secret guard (.claude/scripts/secret-scan.sh wired in .pre-commit-config.yaml) blocking staged real-key patterns. (B) BACKLOG RECONCILIATION (from the read-only reconciliation workflow): commit the filed follow-up tasks 219 (assets installer drift), 220 (path-lost populate), 221 (drain accretion); rescope 189 to the residual continuation-brief schema + safe/manual-repair states + concise aegis next rendering (core shipped via next_action + PR #197); rescope 191 to the residual browser-observation MCP read-only classification (shell/git/taskmaster/aegis half shipped by #224). No cancellations; 188/190 kept as-is.",
         "details": "",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": [],

@@ -6436,6 +6436,84 @@ def _event_matches_current_work(event: Mapping[str, Any], *, task_id: str, slug:
     return str(task.get("id") or "") == task_id and str(task.get("slug") or "") == slug
 
 
+_TARGET_GATE_LIB_CACHE: dict[str, Any] = {}
+
+
+def _load_target_gate_lib(target_root: Path) -> Any | None:
+    """Import the TARGET repo's .claude/scripts/gate_lib.py for read-only classification
+    at drain time (TM 221). Uses the target's own copy so events are classified by the
+    same gate version that recorded them. Fail-None on any problem — callers fail-KEEP."""
+
+    script = Path(target_root) / ".claude" / "scripts" / "gate_lib.py"
+    key = str(script.resolve()) if script.exists() else str(script)
+    if key in _TARGET_GATE_LIB_CACHE:
+        return _TARGET_GATE_LIB_CACHE[key]
+    module: Any | None = None
+    try:
+        if script.is_file():
+            spec = importlib.util.spec_from_file_location("_aegis_log_gate_lib", script)
+            if spec is not None and spec.loader is not None:
+                candidate = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = candidate  # required before exec for dataclasses
+                spec.loader.exec_module(candidate)
+                module = candidate
+    except Exception:  # noqa: BLE001 - any import failure => fail-KEEP (treat as mutation)
+        module = None
+    _TARGET_GATE_LIB_CACHE[key] = module
+    return module
+
+
+def _stored_event_is_read_only(target_root: Path, event: Mapping[str, Any]) -> bool:
+    """Strict, fail-KEEP classifier for a stored pending-tracking event (TM 221).
+
+    Returns True ONLY when the event's originating action is provably read-only, so its
+    evidence can be drained/purged without accreting into required closeout evidence.
+    Classifies by tool + recovered command/tool-name, NEVER by evidence-token shape (a
+    read-only `cat app/x.ts` is byte-identical to a real edit of app/x.ts). Any
+    uncertainty — unknown tool, lost command, apply-gated MCP, import failure — returns
+    False so genuine mutations are never discarded.
+    """
+
+    try:
+        gl = _load_target_gate_lib(target_root)
+        if gl is None:
+            return False
+        tool = str(event.get("tool") or "")
+        evidence = str(event.get("evidence") or "")
+        if tool in getattr(gl, "FILE_MUTATION_TOOLS", {"Edit", "Write", "MultiEdit", "NotebookEdit"}):
+            return False
+        if tool == "Bash":
+            # The command is recoverable only when evidence kept the cmd`...` wrapper.
+            # Redirect-target / aegis-verify evidence means the command was already a
+            # mutation (bash_is_read_only is False on persistent redirects) -> KEEP.
+            if evidence.startswith("cmd`") and evidence.endswith("`") and len(evidence) > 5:
+                inner = evidence[4:-1]
+                return bool(gl.bash_is_read_only(inner))
+            return False
+        if tool.startswith("mcp__"):
+            # Name-only classification (tool_input is NOT persisted in the event). Discard
+            # ONLY unconditionally repo-non-mutating tools. Apply-gated aegis tools
+            # (repair/runtime_update/handoff_repair) and target-dir-sensitive aegis
+            # read-only tools depend on un-persisted tool_input, so they are KEPT — closing
+            # the apply-gated escape the adversarial review flagged.
+            if gl.MCP_MUTATION_TOOL_RE.search(tool):
+                return False
+            normalized = gl.normalized_mcp_tool_name(tool)
+            if "__chrome_devtools__" in normalized or "__playwright__" in normalized:
+                return True  # browser observation never mutates the repo, no apply gate
+            if any(
+                normalized.endswith(f"__{suffix}")
+                for suffix in getattr(gl, "TASKMASTER_READ_ONLY_MCP_TOOL_SUFFIXES", set())
+            ):
+                return True
+            if gl.MCP_READ_ONLY_TOOL_RE.search(tool):
+                return True
+            return False  # aegis suffixes, apply-gated, and unknown MCP tools -> KEEP
+        return False
+    except Exception:  # noqa: BLE001 - fail-KEEP on any classifier fault.
+        return False
+
+
 def _resolve_pending_tracking_event(
     events: Sequence[Mapping[str, Any]],
     pending_event_id: str,
@@ -6716,6 +6794,26 @@ def log_work(
             task_id=task_id,
             slug=slug,
         )
+        # TM 221: a read-only/inspection pending event (pre-#224 backlog false-positive)
+        # must NOT accrete its evidence into surfaces or the plan-step required-evidence
+        # cell. Drain it from the queue and return without writing anything.
+        if _stored_event_is_read_only(target_root, resolved_pending_event):
+            resolved_id = str(resolved_pending_event.get("id") or "")
+            remaining = [e for e in pending_before if str(e.get("id") or "") != resolved_id]
+            _write_pending_tracking_events(target_root, remaining)
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "status": "purged_read_only",
+                "logged_at": _iso_now(),
+                "target_root": str(target_root),
+                "entry": None,
+                "purged_event": {
+                    "id": resolved_id,
+                    "tool": resolved_pending_event.get("tool"),
+                    "evidence": resolved_pending_event.get("evidence"),
+                },
+                "paths": {"pending_tracking": AEGIS_PENDING_TRACKING_REL},
+            }
         handler = str(resolved_pending_event.get("handler") or "")
         evidence = str(resolved_pending_event.get("evidence") or "")
 
@@ -8567,6 +8665,40 @@ def _apply_repair_action(
         "id": action.get("id"),
         "status": "skipped",
         "reason": f"unsupported repair kind: {kind}",
+    }
+
+
+def purge_read_only_pending(target_dir: str | Path, *, apply: bool = False) -> dict[str, Any]:
+    """Batch-purge read-only/inspection events from the pending-tracking queue (TM 221).
+
+    Cleans a pre-#224 backlog of read-only false-positives so they are never drained into
+    a plan step's required-evidence. Preview by default; mutates only with apply=True.
+    Fail-KEEP: only events _stored_event_is_read_only proves read-only are dropped; any
+    classification or import uncertainty retains the event. Touches ONLY the pending
+    queue file — never surfaces or plan cells.
+    """
+
+    target_root = _resolve_target_root(target_dir)
+    events = _pending_tracking_events(target_root)
+    read_only = [e for e in events if _stored_event_is_read_only(target_root, e)]
+    kept = [e for e in events if not _stored_event_is_read_only(target_root, e)]
+    purged_ids = [str(e.get("id") or "") for e in read_only]
+    if apply and read_only:
+        _write_pending_tracking_events(target_root, kept)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "purged" if (apply and read_only) else "preview",
+        "applied": bool(apply and read_only),
+        "target_root": str(target_root),
+        "total_pending": len(events),
+        "read_only_count": len(read_only),
+        "kept_count": len(kept),
+        "purged": [
+            {"id": str(e.get("id") or ""), "tool": e.get("tool"), "evidence": e.get("evidence")}
+            for e in read_only
+        ],
+        "purged_ids": purged_ids,
+        "paths": {"pending_tracking": AEGIS_PENDING_TRACKING_REL},
     }
 
 
