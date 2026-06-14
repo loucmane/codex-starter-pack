@@ -16,6 +16,7 @@
 - **2026-06-14 13:26** — [S:20260614|W:task222-housekeeping|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 222 kickoff
 - **2026-06-14 13:29** — [S:20260614|W:task222-housekeeping|H:.claude/scripts/secret-scan.sh|E:docs/ai/work-tracking/active/20260614-task222-housekeeping-ACTIVE/designs/wizard-flow.md] Secret hygiene: untracked .claude.json + gitignored it + added tested pre-commit secret guard. Backlog: committed filed tasks 219/220/221; rescoped 189 (residual brief schema/repair states/concise rendering) and 191 (residual browser-observation MCP read-only).
 - **2026-06-14 13:30** — [S:20260614|W:task222-housekeeping|H:serena/memory|E:.serena/memories/task222-secret-hygiene-and-backlog.md] Captured the Task 222 secret-hygiene + backlog Serena memory checkpoint.
+- **2026-06-14 14:26** — [S:20260614|W:task222-housekeeping|H:.aegis/brief.json|E:.aegis/brief.json] Added repo-root config (.gitignore/.pre-commit-config.yaml/.claude.json) to witness always_in_scope — diff_accounting flagged them as unaccounted; they are legitimate always-in-scope repo config.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define alignment prerequisites and scope
