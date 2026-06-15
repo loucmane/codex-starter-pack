@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Design the wizard flow, prompt contract, and workflow boundary for Install cross-agent natural continuation contract | docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/designs/wizard-flow.md | completed |
-| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Install cross-agent natural continuation contract | scripts/codex-task; docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement the wizard CLI, helper integration, and documentation for Install cross-agent natural continuation contract | scripts/codex-task; docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260615-task188-continuation-contract-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
