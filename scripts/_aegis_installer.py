@@ -430,6 +430,10 @@ def _render_agents_doc(primary_agent: str, enabled_agents: Sequence[str]) -> byt
             "- Agents must not write `.aegis/` directly; use Aegis MCP tools or the project-local Aegis CLI.",
             "- Aegis MCP/CLI is the workflow control plane. Use native agent tools for normal source edits, test runs, and git inspection.",
             "",
+            "## Continuation",
+            "",
+            AEGIS_CONTINUATION_SUMMARY,
+            "",
         ]
     )
     return text.encode("utf-8")
@@ -488,6 +492,12 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
             "- Omit `--surface` for event-aware defaults. Scope logs update findings, decisions, and handoff; implementation and verification logs update implementation, changelog, and handoff. Use `--surface` only for targeted repairs.",
             "- `aegis closeout --dry-run --update-handoff` checks closeout gates without writing reports, handoff updates, or current-work state.",
             "- `aegis closeout --update-handoff` may refresh Aegis-owned semantic handoff sections before validation. It preserves the Progress Log.",
+            "",
+            "## Continuation Contract",
+            "",
+            "How to interpret a short continuation intent (continue / go / proceed / next / resume). This grants no authority to bypass any gate.",
+            "",
+            *AEGIS_CONTINUATION_LINES,
             "",
         ]
     )
@@ -562,6 +572,10 @@ def _render_claude_entrypoint() -> bytes:
             "",
             'After any mutation, use `aegis log --pending-id <id> --note "<past-tense note>" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.',
             "Read `.aegis/contract.md` for the shared contract and access policy.",
+            "",
+            "## Continuation",
+            "",
+            AEGIS_CONTINUATION_SUMMARY,
             "",
         ]
     )
@@ -2117,6 +2131,55 @@ AEGIS_ARCHITECTURE_NOTES = (
     "Aegis CLI/MCP controls workflow state and evidence. Native agent tools perform "
     "source reads, edits, and project tests. Installed hooks and guards enforce tracking "
     "and protected-path behavior."
+)
+
+# TM 188: the cross-agent continuation contract. ONE source of truth, reused by the
+# installed-guidance renderers (contract.md / AGENTS.md / CLAUDE.md) and, via the brief
+# (TM 189), by `aegis next`. It describes how an agent INTERPRETS a short continuation
+# intent and where it STOPS for confirmation — it grants no authority to bypass any gate.
+# Policy (owner-set 2026-06-15): a bare continuation = exactly one safe step then re-consult;
+# repairs and non-dry-run closeout require confirmation; merge/push/destructive git never auto.
+AEGIS_CONTINUATION_LINES = (
+    'A short continuation intent — "continue", "go", "proceed", "next", "keep going", '
+    '"resume" — is NOT a new authority. It means: advance the current Aegis workflow by '
+    "exactly ONE safe step, then re-consult.",
+    "",
+    "Resolve the intent from live runtime state, never from memory or chat history:",
+    "- Run `aegis next` (or the `aegis.next` MCP tool) and perform its `next_safe_action` — "
+    "the single sanctioned step. Run `aegis doctor` when `aegis next` reports a repair or "
+    "blocked state.",
+    "- If readiness is BLOCKED, \"continue\" means fix workflow state, not mutate.",
+    "- When `.taskmaster/tasks/tasks.json` has available work, Taskmaster is the "
+    "task-selection authority; do not start Aegis-local work to bypass it.",
+    "- Perform the brief's one `next_safe_action`, then re-run `aegis next`. Do not chain "
+    "implement -> log -> verify -> closeout across a single intent.",
+    "",
+    "A bare continuation MAY, without re-asking: read; run read-only inspection and project "
+    "tests; edit task-scoped source files; `aegis log`; `aegis verify`; "
+    "`aegis closeout --dry-run`; `aegis doctor`; advance one plan step.",
+    "",
+    "SURFACE and ASK before: applying repairs (`aegis repair --apply` — show the repair plan "
+    "first); running non-dry-run `aegis closeout` (needs an explicit close-out intent or "
+    "confirmation — it records completion and arms delivery); crossing a protected or owned "
+    "path; switching the active task; pushing or opening a PR (only after closeout passes).",
+    "",
+    "NEVER automatic on any intent: merge, force-push, `reset --hard`, `branch -D`, history "
+    "rewrite, direct `.aegis/` writes, bypassing BLOCKED readiness, or skipping S:W:H:E "
+    "tracking.",
+    "",
+    'Completion-flavored intents ("finish this", "wrap up", "done") advance one safe step '
+    "like any continuation. They do NOT authorize skipping closeout, the push confirmation, "
+    "or merge.",
+)
+AEGIS_CONTINUATION_CONTRACT = "\n".join(AEGIS_CONTINUATION_LINES)
+AEGIS_CONTINUATION_SUMMARY = (
+    "Continuation contract: a short intent (continue / go / proceed / next / resume) advances "
+    "the Aegis workflow by exactly ONE safe step — resolved from `aegis next` (its "
+    "`next_safe_action`), never from memory — then re-consult. It is not new authority. "
+    "Surface and ask before repairs (`aegis repair --apply`), non-dry-run `closeout`, "
+    "protected/owned paths, switching tasks, or push/PR. Never automatic: merge, force-push, "
+    'history rewrite, `.aegis/` writes, BLOCKED-readiness bypass, skipping S:W:H:E. "Finish '
+    'this" still stops at these boundaries. Full text in `.aegis/contract.md`.'
 )
 
 
