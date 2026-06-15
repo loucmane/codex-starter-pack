@@ -7652,19 +7652,30 @@
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 225,
+        "title": "Surface doctor safe-repair vs manual-review states in aegis next",
+        "description": "Residual #2 of TM 189: surface the doctor-derived safe-repair vs manual-review-repair classification as distinct next_action states, each with a continuation brief, so a bare \"continue\" routes a repairable workflow to the correct (and correctly-gated) repair path.",
+        "details": "next_action does not currently emit repair-oriented states; the safe vs manual_review classification lives in doctor's repair_plan (_doctor_repair_actions). When the installed workflow is in a repairable state, next_action should detect it and emit a safe_repair_available state (continue_means: review the repair plan, then run aegis repair --apply for safe actions) vs a manual_review_repair state (continue_means: surface the plan; manual-review actions need explicit human decision, never auto-applied). Add CONTINUATION_BRIEF_BY_STATE entries for both (manual_review_repair confirmation-gated). Mirror assets installer; add tests asserting the states + briefs, that safe-repair stays apply-gated and manual-review never auto-applies.",
+        "testStrategy": "",
+        "priority": "high",
+        "dependencies": [
+          "189"
+        ],
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-06-15T18:11:07.875Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-15T10:30:37.638Z",
-      "taskCount": 222,
-      "completedCount": 210,
+      "lastModified": "2026-06-15T18:11:07.875Z",
+      "taskCount": 224,
+      "completedCount": 212,
       "tags": [
         "master"
-      ],
-      "created": "2026-06-15T10:36:26.021Z",
-      "description": "Tasks for master context",
-      "updated": "2026-06-15T10:36:26.027Z"
+      ]
     }
   }
 }

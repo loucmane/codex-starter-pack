@@ -23,3 +23,4 @@
 - `task_188.md` carries a pre-existing status skew (md `pending` vs json `done`); generate-one
   is blocked while the current task file is dirty. Out of TM 189 scope; will resync on a clean
   tree post-merge.
+- Archived on 2026-06-15 20:10 CEST — Folder moved to archive and tracker marked COMPLETED.
