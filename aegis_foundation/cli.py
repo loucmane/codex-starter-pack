@@ -407,7 +407,10 @@ def handle_next(args: argparse.Namespace) -> int:
             args.target_dir,
             source_root=source_root,
         )
-    _dump_json(payload)
+    if args.json:
+        _dump_json(payload)
+    else:
+        print(_aegis_installer.format_next_summary(payload), end="")
     return 0
 
 
@@ -1137,6 +1140,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Report the next required Aegis workflow action without mutating the target.",
     )
     next_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    next_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit the full next-action payload as JSON instead of the concise summary.",
+    )
     next_parser.set_defaults(func=handle_next)
 
     doctor_parser = subparsers.add_parser(

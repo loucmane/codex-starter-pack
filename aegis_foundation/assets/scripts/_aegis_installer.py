@@ -2183,6 +2183,58 @@ AEGIS_CONTINUATION_SUMMARY = (
 )
 
 
+# TM 189: the continuation brief. Per-state interpretation of a short continuation intent,
+# derived from the contract (TM 188) vocabulary. Keyed by next_action's `state` so every state
+# gets a coherent brief with no per-site edits. Fields not set here fall back to universal
+# defaults in _continuation_brief. continue_means/confirmation/stop must never describe an
+# auto merge/push or a BLOCKED-readiness bypass — see test_continuation_brief.
+_CONTINUATION_UNIVERSAL_STOP = (
+    "readiness BLOCKED",
+    "pending tracking unlogged",
+    "a protected or owned path edit is required",
+    "a user-confirmation boundary is reached",
+)
+CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
+    "not_installed": {"continue_means": "initialize Aegis before any source edit", "next_safe_action": "initialize"},
+    "invalid_manifest": {"continue_means": "repair the Aegis manifest before mutating", "next_safe_action": "repair_manifest"},
+    "client_reload_required": {"continue_means": "restart the client so hooks load, then re-run aegis next", "next_safe_action": "restart_client"},
+    "installed_taskmaster_invalid": {"continue_means": "repair Taskmaster task state", "next_safe_action": "repair_taskmaster"},
+    "installed_taskmaster_present": {"continue_means": "select the next Taskmaster task and kickoff", "next_safe_action": "taskmaster_next_then_kickoff", "confirmation_boundary": ["switch the active task"]},
+    "installed_no_current_work": {"continue_means": "pick a Taskmaster task, or start tracked local work", "next_safe_action": "start_or_select", "confirmation_boundary": ["start a new task"]},
+    "pending_tracking": {"continue_means": "log the pending S:W:H:E event before any other mutation", "next_safe_action": "log_pending"},
+    "observation_completed": {"continue_means": "stop observation and proceed to implementation", "next_safe_action": "exit_observation"},
+    "observation_active": {"continue_means": "continue read-only observation; stop with aegis observe stop", "next_safe_action": "observe_stop", "artifact_policy": "save screenshots/notes under reports/; do not edit source"},
+    "closeout_passed": {"continue_means": "task complete; deliver only with confirmation", "next_safe_action": "deliver", "confirmation_boundary": ["push or open a PR", "merge requires explicit user approval"]},
+    "delivery_pending": {"continue_means": "the task is closed; deliver via git/GitHub only with explicit confirmation", "next_safe_action": "deliver_with_confirmation", "confirmation_boundary": ["push the branch", "open a PR", "merge requires explicit user approval"], "artifact_policy": "delivery is git/GitHub only; no source edits"},
+    "delivery_unknown": {"continue_means": "inspect git/branch state before any delivery step", "next_safe_action": "inspect_git_state", "confirmation_boundary": ["any push, PR, or merge requires explicit confirmation"], "artifact_policy": "read-only git inspection only"},
+    "workflow_scaffold_incomplete": {"continue_means": "repair the workflow scaffold (plan/tracker pointers)", "next_safe_action": "repair_scaffold"},
+    "scope_required": {"continue_means": "log task scope, then begin the source change", "next_safe_action": "log_scope", "artifact_policy": "log scope evidence (e.g. FINDINGS.md)"},
+    "implementation_required": {"continue_means": "make the task-scoped change with native tools, then log the pending mutation", "next_safe_action": "implement_and_log", "confirmation_boundary": ["cross a protected/owned path", "switch the active task"], "artifact_policy": "log the changed file as evidence"},
+    "task_verification_required": {"continue_means": "run task verification and log it", "next_safe_action": "verify_and_log", "artifact_policy": "save verification under reports/, then log"},
+    "strict_verification_required": {"continue_means": "run aegis verify --strict and log the report", "next_safe_action": "strict_verify", "artifact_policy": "log the strict-verify report"},
+    "closeout_required": {"continue_means": "run aegis closeout --dry-run; run non-dry-run closeout only with explicit close-out intent", "next_safe_action": "run_closeout_dry_run", "confirmation_boundary": ["running non-dry-run aegis closeout"], "artifact_policy": "closeout writes the report; do not hand-edit .aegis/"},
+}
+
+
+def _continuation_brief(state: str, phase: str, *, current_task_authority: str | None = None) -> dict[str, Any]:
+    """Build the per-state continuation brief (TM 189), derived from the TM 188 contract.
+    read_only is always True — the brief proves `aegis next` grants no mutation authority."""
+
+    spec = CONTINUATION_BRIEF_BY_STATE.get(state, {})
+    extra_stop = tuple(spec.get("stop_conditions") or ())
+    brief: dict[str, Any] = {
+        "workflow_phase": phase,
+        "current_task_authority": current_task_authority or "none",
+        "continue_means": spec.get("continue_means", "perform the single next_safe_action, then re-run aegis next"),
+        "next_safe_action": spec.get("next_safe_action", state),
+        "confirmation_boundary": list(spec.get("confirmation_boundary") or []),
+        "artifact_policy": spec.get("artifact_policy", "log evidence via aegis log; do not hand-edit .aegis/"),
+        "stop_conditions": [*_CONTINUATION_UNIVERSAL_STOP, *extra_stop],
+        "read_only": True,
+    }
+    return brief
+
+
 def _workflow_guidance_payload(
     *,
     phase: str,
@@ -2194,6 +2246,7 @@ def _workflow_guidance_payload(
     missing_gates: Sequence[str] | None = None,
     copyable_repairs: Sequence[str] | None = None,
     details: Mapping[str, Any] | None = None,
+    current_task_authority: str | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "phase": phase,
@@ -2212,6 +2265,9 @@ def _workflow_guidance_payload(
         "copyable_repairs": list(copyable_repairs or []),
         "read_only": True,
         "architecture_notes": AEGIS_ARCHITECTURE_NOTES,
+        "continuation_brief": _continuation_brief(
+            state, phase, current_task_authority=current_task_authority
+        ),
     }
     if details:
         payload["details"] = dict(details)
@@ -2848,6 +2904,16 @@ def next_action(
             ],
         )
 
+    # An active work record exists from here on: a bare "continue" must not be read as
+    # "switch tasks". Name the authoritative task/session so the continuation brief can say so.
+    active_task_id = _current_work_task_id(current_work)
+    if active_task_id:
+        current_task_authority = f"taskmaster:{active_task_id}"
+    elif str(current_work.get("mode") or "") == "observation":
+        current_task_authority = "observation-session"
+    else:
+        current_task_authority = "local-tracked-work"
+
     pending_events = _pending_tracking_events(target_root)
     if pending_events:
         ids = [str(event.get("id") or "unknown") for event in pending_events]
@@ -2855,6 +2921,7 @@ def next_action(
             phase="track",
             state="pending_tracking",
             next_required_action="log the pending S:W:H:E event before any further mutation",
+            current_task_authority=current_task_authority,
             suggested_cli="./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense note>' --plan-step auto --plan-status completed",
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments={
@@ -2885,6 +2952,7 @@ def next_action(
             next_required_action=(
                 "review the completed observation evidence, then kickoff a task before mutating files or Taskmaster"
             ),
+            current_task_authority=current_task_authority,
             suggested_cli="./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
             suggested_mcp_tool="aegis.kickoff",
             suggested_mcp_arguments={
@@ -2923,6 +2991,7 @@ def next_action(
                 "run observation tooling without source edits or Taskmaster mutation, record findings if useful, "
                 "then stop observation so Aegis can verify the working-tree delta and collect known audit artifacts"
             ),
+            current_task_authority=current_task_authority,
             suggested_cli=(
                 "./.aegis/bin/aegis observe stop --target-dir . "
                 "--summary '<what was observed>' --collect-artifacts"
@@ -2971,6 +3040,7 @@ def next_action(
                     or "deliver the closed task branch through GitHub"
                 ),
                 suggested_cli=str(delivery.get("suggested_cli") or "git status --short --branch"),
+                current_task_authority=current_task_authority,
                 missing_gates=["github.delivery"],
                 copyable_repairs=[
                     str(item) for item in delivery.get("copyable_repairs", []) if str(item)
@@ -2991,6 +3061,7 @@ def next_action(
             suggested_cli="./.aegis/bin/aegis status --target-dir .",
             suggested_mcp_tool="aegis.status",
             suggested_mcp_arguments={"target_dir": "."},
+            current_task_authority=current_task_authority,
             details={"closeout_report": AEGIS_CLOSEOUT_REPORT_REL},
         )
 
@@ -3025,6 +3096,7 @@ def next_action(
             suggested_cli="./.aegis/bin/aegis status --target-dir .",
             suggested_mcp_tool="aegis.status",
             suggested_mcp_arguments={"target_dir": "."},
+            current_task_authority=current_task_authority,
             missing_gates=missing,
             copyable_repairs=[
                 "Re-run kickoff only after preserving existing task evidence, or restore missing workflow files from git history."
@@ -3037,6 +3109,7 @@ def next_action(
             phase="scope",
             state="scope_required",
             next_required_action="log task scope before source edits",
+            current_task_authority=current_task_authority,
             suggested_cli=(
                 f"./.aegis/bin/aegis log --target-dir . --handler {scope_handler} "
                 f"--evidence {_quote_cli(findings_rel)} --note 'Confirmed task scope before implementation' "
@@ -3107,6 +3180,7 @@ def next_action(
             phase="implement",
             state="implementation_required",
             next_required_action=next_required_action,
+            current_task_authority=current_task_authority,
             suggested_cli=suggested_cli,
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments=suggested_mcp_arguments,
@@ -3161,6 +3235,7 @@ def next_action(
             phase="verify",
             state="task_verification_required",
             next_required_action="run project verification, save evidence, then log it",
+            current_task_authority=current_task_authority,
             suggested_cli=suggested_cli,
             suggested_mcp_tool="aegis.log",
             suggested_mcp_arguments=suggested_mcp_arguments,
@@ -3174,6 +3249,7 @@ def next_action(
             phase="verify",
             state="strict_verification_required",
             next_required_action="run strict Aegis verification and log its pending event",
+            current_task_authority=current_task_authority,
             suggested_cli="./.aegis/bin/aegis verify --target-dir . --strict",
             suggested_mcp_tool="aegis.verify",
             suggested_mcp_arguments={
@@ -3192,6 +3268,7 @@ def next_action(
         phase="closeout",
         state="closeout_required",
         next_required_action="run closeout dry-run/readiness, then final closeout before reporting the task complete",
+        current_task_authority=current_task_authority,
         suggested_cli="./.aegis/bin/aegis closeout --target-dir . --dry-run --update-handoff",
         suggested_mcp_tool="aegis.closeout_ready",
         suggested_mcp_arguments={
@@ -9110,6 +9187,34 @@ def format_doctor_summary(report: Mapping[str, Any]) -> str:
             "",
         ]
     )
+
+
+def format_next_summary(payload: Mapping[str, Any]) -> str:
+    """TM 189: concise human rendering of `aegis next`, leading with the continuation brief.
+
+    A bare "continue" means: do exactly the one next_safe_action below, honour the
+    confirmation boundaries, then re-run `aegis next`. The full payload (--json) carries
+    suggested CLI/MCP calls and copyable repairs."""
+
+    brief = payload.get("continuation_brief") if isinstance(payload.get("continuation_brief"), Mapping) else {}
+    boundaries = [str(item) for item in (brief.get("confirmation_boundary") or []) if str(item)]
+    stops = [str(item) for item in (brief.get("stop_conditions") or []) if str(item)]
+    lines = [
+        f"Aegis next: {payload.get('state')} (phase: {payload.get('phase')})",
+        f"Active authority: {brief.get('current_task_authority', 'none')}",
+        f"\"continue\" means: {brief.get('continue_means', '')}",
+        f"Next safe action: {brief.get('next_safe_action', payload.get('next_required_action', ''))}",
+        f"Required: {payload.get('next_required_action', '')}",
+        f"Suggested: {payload.get('suggested_cli', '')}",
+    ]
+    if boundaries:
+        lines.append("Confirm first: " + "; ".join(boundaries))
+    if stops:
+        lines.append("Stop if: " + "; ".join(stops))
+    lines.append(f"Artifact policy: {brief.get('artifact_policy', '')}")
+    lines.append("(read-only guidance — aegis next grants no mutation authority; re-run after the one step)")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def format_repair_summary(report: Mapping[str, Any]) -> str:
