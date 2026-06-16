@@ -10,12 +10,22 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 from tests.meta_workflow_guard.cross_project_fixtures import (
     REPO_SHAPES,
     write_governed_markdown,
     write_metadata_policy,
     write_repo_config,
 )
+
+# TM 193 parallel-safety: several tests here create fixtures at FIXED paths inside the real
+# repo's docs/ai/work-tracking/active|archive dirs (the guard validators resolve paths relative
+# to REPO_ROOT, so the fixtures cannot move to tmp). Under pytest-xdist concurrent workers would
+# race on those shared paths. Pinning the whole module to one xdist group keeps these tests on a
+# single worker (serial among themselves, like a non-parallel run) while the rest of the suite
+# parallelizes. Requires `--dist loadgroup`.
+pytestmark = pytest.mark.xdist_group(name="guard_real_repo_worktracking")
 
 
 def load_guard_module():

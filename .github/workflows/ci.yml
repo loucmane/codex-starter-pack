@@ -251,7 +251,11 @@ jobs:
         run: |
           mkdir -p reports/ci
           set -o pipefail
-          PYTHONDONTWRITEBYTECODE=1 python3 -m pytest | tee "reports/ci/pytest-python-${{ matrix.python-version }}.txt"
+          # TM 193: -n auto runs the full suite across all runner cores (same tests, same
+          # coverage) to cut feedback time. --dist loadgroup keeps the few real-repo-mutating
+          # tests (xdist_group "guard_real_repo_worktracking") on one worker; the isolated git
+          # config (conftest.py) makes the rest parallel-safe.
+          PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -n auto --dist loadgroup | tee "reports/ci/pytest-python-${{ matrix.python-version }}.txt"
 
       - name: Upload pytest artifacts
         if: always()

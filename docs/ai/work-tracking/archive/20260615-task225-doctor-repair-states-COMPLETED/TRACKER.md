@@ -1,8 +1,8 @@
 # Task 225 Surface doctor safe-repair vs manual-review states in aegis next Tracker
 
 **Started**: 2026-06-15
-**Status**: ACTIVE
-**Last Updated**: 2026-06-15
+**Status**: COMPLETED
+**Last Updated**: 2026-06-16
 
 ## Goals
 - [x] next_action emits safe_repair_available + manual_review_repair states

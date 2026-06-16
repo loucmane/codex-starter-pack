@@ -6,3 +6,4 @@
   `manual_review_repair`, with `CONTINUATION_BRIEF_BY_STATE` entries; assets re-mirrored; new
   `test_repair_next_states.py`. Design + adversarial-review workflows run; review-found major
   bug (cosmetic-action resurrection) fixed + regression-tested. Closes TM 189 residual #2.
+- 2026-06-16 13:14 CEST — Archived active work-tracking folder.

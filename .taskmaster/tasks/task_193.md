@@ -2,9 +2,9 @@
 
 **Title:** Reduce CI feedback time without reducing coverage
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 192 ⧖
+**Dependencies:** 192 ✓
 
 **Priority:** high
 
