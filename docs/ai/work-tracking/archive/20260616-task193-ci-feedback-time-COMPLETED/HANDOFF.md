@@ -19,3 +19,4 @@
 - Hoisting the version-independent shadow-capture steps out of the matrix + caching the npm
   Taskmaster install — smaller, higher-churn CI wins; possible follow-up if more reduction is
   wanted.
+- Archived on 2026-06-16 14:32 CEST — Folder moved to archive and tracker marked COMPLETED.
