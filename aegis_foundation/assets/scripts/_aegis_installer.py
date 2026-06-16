@@ -2208,6 +2208,8 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
     "delivery_pending": {"continue_means": "the task is closed; deliver via git/GitHub only with explicit confirmation", "next_safe_action": "deliver_with_confirmation", "confirmation_boundary": ["push the branch", "open a PR", "merge requires explicit user approval"], "artifact_policy": "delivery is git/GitHub only; no source edits"},
     "delivery_unknown": {"continue_means": "inspect git/branch state before any delivery step", "next_safe_action": "inspect_git_state", "confirmation_boundary": ["any push, PR, or merge requires explicit confirmation"], "artifact_policy": "read-only git inspection only"},
     "workflow_scaffold_incomplete": {"continue_means": "repair the workflow scaffold (plan/tracker pointers)", "next_safe_action": "repair_scaffold"},
+    "safe_repair_available": {"continue_means": "review the repair plan (aegis doctor / aegis next), then apply only the safe repairs with aegis repair --apply after surfacing the plan", "next_safe_action": "review_repair_plan_then_apply_safe", "confirmation_boundary": ["applying repairs with aegis repair --apply (show the repair plan first)", "any manual-review action needs explicit user confirmation"], "artifact_policy": "aegis repair writes the changes; show the plan before applying and do not hand-edit .aegis/"},
+    "manual_review_repair": {"continue_means": "surface the repair plan only; manual-review actions need an explicit human decision and are never auto-applied", "next_safe_action": "surface_repair_plan_for_review", "confirmation_boundary": ["every manual-review repair action requires explicit user confirmation before it is applied", "manual-review actions are never applied by aegis repair --apply"], "artifact_policy": "read-only: present the plan; do not run aegis repair --apply and do not hand-edit .aegis/"},
     "scope_required": {"continue_means": "log task scope, then begin the source change", "next_safe_action": "log_scope", "artifact_policy": "log scope evidence (e.g. FINDINGS.md)"},
     "implementation_required": {"continue_means": "make the task-scoped change with native tools, then log the pending mutation", "next_safe_action": "implement_and_log", "confirmation_boundary": ["cross a protected/owned path", "switch the active task"], "artifact_policy": "log the changed file as evidence"},
     "task_verification_required": {"continue_means": "run task verification and log it", "next_safe_action": "verify_and_log", "artifact_policy": "save verification under reports/, then log"},
@@ -3101,6 +3103,83 @@ def next_action(
             copyable_repairs=[
                 "Re-run kickoff only after preserving existing task evidence, or restore missing workflow files from git history."
             ],
+        )
+
+    # TM 225: surface fixable drift as a repair state BEFORE the scope/implement/verify/closeout
+    # ladder, so a bare "continue" repairs first, then re-consults. Read-only detection (NOT
+    # doctor(), which calls next_action() and would recurse): reuse the canonical classifier
+    # _classify_doctor_state and trigger only on its "repairable" severity. Gating on severity
+    # (not mere presence of a repair action) is essential — a healthy task still yields a
+    # cosmetic normalize_plan_table action, which must NOT preempt the ladder. The
+    # terminal/observation/scaffold branches above already returned, so only active-work drift
+    # reaches here.
+    repair_checks = _strict_verification_checks(target_root, manifest)
+    repair_actions = _doctor_repair_actions(
+        target_root, Path(source_root).resolve(), manifest, current_work
+    )
+    _, repair_severity = _classify_doctor_state(
+        manifest=manifest,
+        current_work=current_work,
+        checks=repair_checks,
+        repair_actions=repair_actions,
+    )
+    # normalize_plan_table is cosmetic and ever-present (a healthy kickoff table triggers it
+    # too), so it is not a reliable repair signal. Route to a repair state ONLY on SUBSTANTIVE
+    # drift (missing managed files, broken pointers, manual-review issues). When "repairable"
+    # severity is driven by a condition with no substantive repair action — a branch/task
+    # misalignment, or only a cosmetic plan-table normalization — fall through to the ladder so
+    # the real condition is never masked by a no-op `repair --apply` that "succeeds" without
+    # fixing it.
+    substantive_repairs = [
+        action for action in repair_actions if action.get("kind") != "normalize_plan_table"
+    ]
+    if repair_severity == "repairable" and substantive_repairs:
+        safe_actions, manual_actions = _repair_plan_split(substantive_repairs)
+        if safe_actions:
+            return _workflow_guidance_payload(
+                phase="repair",
+                state="safe_repair_available",
+                next_required_action="review the repair plan, then apply only the safe repairs",
+                suggested_cli="./.aegis/bin/aegis doctor --target-dir .",
+                suggested_mcp_tool="aegis.doctor",
+                suggested_mcp_arguments={"target_dir": "."},
+                current_task_authority=current_task_authority,
+                missing_gates=["aegis.repair_plan_clean"],
+                copyable_repairs=[
+                    "./.aegis/bin/aegis doctor --target-dir .",
+                    "./.aegis/bin/aegis repair --target-dir .",
+                    "./.aegis/bin/aegis repair --target-dir . --apply",
+                ],
+                details={
+                    "repair_plan": {
+                        "available": True,
+                        "safe": len(safe_actions),
+                        "manual_review": len(manual_actions),
+                        "apply_command": "aegis repair --apply",
+                    }
+                },
+            )
+        return _workflow_guidance_payload(
+            phase="repair",
+            state="manual_review_repair",
+            next_required_action="surface the repair plan; manual-review actions require explicit human resolution",
+            suggested_cli="./.aegis/bin/aegis doctor --target-dir .",
+            suggested_mcp_tool="aegis.doctor",
+            suggested_mcp_arguments={"target_dir": "."},
+            current_task_authority=current_task_authority,
+            missing_gates=["aegis.repair_plan_clean"],
+            copyable_repairs=[
+                "./.aegis/bin/aegis doctor --target-dir .",
+                "Review each manual-review repair action in the doctor report and resolve it by hand; do NOT run aegis repair --apply.",
+            ],
+            details={
+                "repair_plan": {
+                    "available": True,
+                    "safe": 0,
+                    "manual_review": len(manual_actions),
+                    "apply_command": None,
+                }
+            },
         )
 
     plan_rows = _parse_plan_rows(plan_path)
@@ -8371,6 +8450,20 @@ def _doctor_repair_actions(
     return actions
 
 
+def _repair_plan_split(
+    repair_actions: Sequence[Mapping[str, Any]],
+) -> tuple[list[Mapping[str, Any]], list[Mapping[str, Any]]]:
+    """Split repair actions into (safe, manual_review).
+
+    safe=True actions are auto-applyable by `aegis repair --apply`; everything else needs
+    explicit human resolution (and is skipped by `_apply_repair_action`). Single-sourced so
+    `next_action` (TM 225) and `doctor` classify repairs by exactly the same predicate."""
+
+    safe = [action for action in repair_actions if action.get("safe") is True]
+    manual = [action for action in repair_actions if action.get("safe") is not True]
+    return safe, manual
+
+
 def _classify_doctor_state(
     *,
     manifest: Mapping[str, Any] | None,
@@ -8548,8 +8641,7 @@ def doctor(
         checks=checks,
         repair_actions=repair_actions,
     )
-    safe_actions = [action for action in repair_actions if action.get("safe") is True]
-    manual_actions = [action for action in repair_actions if action.get("safe") is not True]
+    safe_actions, manual_actions = _repair_plan_split(repair_actions)
     return {
         "schema_version": SCHEMA_VERSION,
         "checked_at": _iso_now(),
