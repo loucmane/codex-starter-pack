@@ -33,7 +33,8 @@
       ".aegis/brief.json",
       ".gitignore",
       ".pre-commit-config.yaml",
-      ".claude.json"
+      ".claude.json",
+      "conftest.py"
     ]
   },
   "thresholds": {

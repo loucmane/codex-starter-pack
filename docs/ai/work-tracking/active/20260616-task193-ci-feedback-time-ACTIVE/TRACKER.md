@@ -19,6 +19,7 @@
 - **2026-06-16** — [S:20260616|W:task193-ci-feedback-time|H:tests/meta_workflow_guard/test_guard_rules.py|E:tests/meta_workflow_guard/test_guard_rules.py] Implement: pinned guard-rules module to one xdist group (real-repo fixed-path fixtures); added xdist dev dep + ci.yml `-n auto --dist loadgroup`
 - **2026-06-16** — [S:20260616|W:task193-ci-feedback-time|H:pytest|E:docs/ai/work-tracking/active/20260616-task193-ci-feedback-time-ACTIVE/reports/task193-ci-feedback-time/tests-2026-06-16-final.txt] Verify: serial 1688 green; 6/6 `-n auto` runs green (323s→~60s @32c, →103s @4w); coverage unchanged
 - **2026-06-16** — [S:20260616|W:task193-ci-feedback-time|H:serena/memory|E:.serena/memories/task193-ci-feedback-time.md] Captured Task 193 Serena memory.
+- **2026-06-16** — [S:20260616|W:task193-ci-feedback-time|H:.aegis/brief.json|E:.aegis/brief.json] Accounted the new root `conftest.py` in witness `always_in_scope` (PR #238 aegis-witness diff_accounting flagged it); witness PASS locally.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Profiled CI; pytest is the dominant cost; chose xdist `-n auto --dist loadgroup`
