@@ -1413,7 +1413,9 @@ def test_public_start_allocates_local_task_without_taskmaster_or_serena(tmp_path
     assert next_before_start["suggested_mcp_call"]["tool"] == "aegis.next"
     simulate_claude_reload(target)
     next_before_start = next_action(target, source_root=REPO_ROOT)
-    assert next_before_start["state"] == "installed_no_current_work"
+    # TM 190: no Taskmaster ledger -> no_taskmaster bootstrap state (still offers aegis start
+    # for local tracked work, which this test then exercises).
+    assert next_before_start["state"] == "no_taskmaster"
     assert next_before_start["suggested_mcp_call"]["tool"] == "aegis.start"
     assert next_before_start["suggested_mcp_call"]["arguments"]["apply"] is True
 
@@ -1482,7 +1484,9 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     simulate_claude_reload(target)
 
     before = next_action(target, source_root=REPO_ROOT)
-    assert before["state"] == "installed_taskmaster_present"
+    # TM 190: a single pending task with nothing started is the first_task_ready bootstrap state
+    # (still surfaces observe start for a pre-task audit).
+    assert before["state"] == "first_task_ready"
     assert any("observe start" in repair for repair in before["copyable_repairs"])
 
     observe_payload = {
@@ -2207,7 +2211,9 @@ def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -
     simulate_claude_reload(target)
     installed = next_action(target, source_root=REPO_ROOT)
     assert installed["phase"] == "start"
-    assert installed["state"] == "installed_no_current_work"
+    # TM 190: a fresh install with no Taskmaster ledger is now the no_taskmaster bootstrap state
+    # (offers both local tracked work and the task-master init/PRD path).
+    assert installed["state"] == "no_taskmaster"
     assert installed["suggested_mcp_call"]["tool"] == "aegis.start"
     assert installed["suggested_mcp_call"]["arguments"]["apply"] is True
 
@@ -2317,7 +2323,8 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
         ("{not json\n", "json_decode_error"),
         ([], "non_object_payload"),
         ({}, "missing_task_container"),
-        ({"master": {"tasks": []}}, "empty_taskmaster_tasks"),
+        # TM 190: an empty ledger ({"tasks": []}) is no longer "invalid" — it is the
+        # taskmaster_empty bootstrap state (covered by test_next_action_fresh_project_bootstrap_states).
         ({"master": {"tasks": {}}}, "malformed_task_container"),
         ({"master": {"tasks": ["not-an-object"]}}, "malformed_task"),
         (

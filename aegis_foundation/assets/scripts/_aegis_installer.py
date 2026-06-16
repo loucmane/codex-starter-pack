@@ -2201,6 +2201,11 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
     "installed_taskmaster_invalid": {"continue_means": "repair Taskmaster task state", "next_safe_action": "repair_taskmaster"},
     "installed_taskmaster_present": {"continue_means": "select the next Taskmaster task and kickoff", "next_safe_action": "taskmaster_next_then_kickoff", "confirmation_boundary": ["switch the active task"]},
     "installed_no_current_work": {"continue_means": "pick a Taskmaster task, or start tracked local work", "next_safe_action": "start_or_select", "confirmation_boundary": ["start a new task"]},
+    "no_taskmaster": {"continue_means": "no task ledger exists yet; initialize Taskmaster for task-driven planning, or start tracked local work — never bind or invent a task id before the ledger exists", "next_safe_action": "init_taskmaster_or_start_local", "confirmation_boundary": ["creating the Taskmaster ledger (task-master init) is a setup mutation; surface it first", "do not invent or pin a task id before the ledger exists"], "artifact_policy": "setup-only: init the ledger or start local tracked work; do not edit product source"},
+    "taskmaster_empty": {"continue_means": "the ledger is initialized but empty; seed planning by adding a task or authoring and parsing a PRD — never bind a fabricated task to begin work", "next_safe_action": "seed_tasks", "confirmation_boundary": ["parsing a PRD requires explicit user approval", "adding the first task is a planning mutation; surface it first", "do not bind a placeholder or fake task id"], "artifact_policy": "planning-only: write task entries into the ledger; do not edit product source"},
+    "prd_available_not_parsed": {"continue_means": "a PRD is present but not parsed; surface the PRD and the parse plan and get explicit approval before parsing — never assume task ids the parse has not created", "next_safe_action": "propose_parse_prd", "confirmation_boundary": ["running parse-prd requires explicit user approval before it generates tasks", "do not assume or fabricate task ids the parse has not created"], "artifact_policy": "read the PRD and present the parse plan; run the planning mutation only after explicit approval"},
+    "prd_parsed_tasks_pending": {"continue_means": "the PRD parsed into pending tasks and none is started; review and optionally expand the generated tasks, then select a real task — do not jump into product code", "next_safe_action": "review_then_select_task", "confirmation_boundary": ["selecting and kicking off a task is a workflow mutation; surface the task id first", "expanding a task is a planning mutation; surface it first", "switch the active task only with explicit confirmation"], "artifact_policy": "planning-only: read tasks and expand into subtasks; do not edit product source"},
+    "first_task_ready": {"continue_means": "a real ledger task is ready and none is started; kick off that specific task to open a tracked session — do not edit source before kickoff", "next_safe_action": "kickoff_first_task", "confirmation_boundary": ["kickoff binds and starts the selected task; surface the task id first", "switch to a different task only with explicit confirmation"], "artifact_policy": "setup-only: kickoff records the session/plan/tracker for the real task; do not edit product source"},
     "pending_tracking": {"continue_means": "log the pending S:W:H:E event before any other mutation", "next_safe_action": "log_pending"},
     "observation_completed": {"continue_means": "stop observation and proceed to implementation", "next_safe_action": "exit_observation"},
     "observation_active": {"continue_means": "continue read-only observation; stop with aegis observe stop", "next_safe_action": "observe_stop", "artifact_policy": "save screenshots/notes under reports/; do not edit source"},
@@ -2498,6 +2503,18 @@ def _invalid_taskmaster_state(reason: str, message: str) -> TaskmasterState:
     )
 
 
+def _empty_taskmaster_state() -> TaskmasterState:
+    # TM 190: an initialized-but-taskless ledger is a fresh-project bootstrap phase, NOT
+    # corruption. Distinct from `invalid` so next_action can route it to the PRD/empty bootstrap
+    # states instead of "repair Taskmaster".
+    return TaskmasterState(
+        state="empty",
+        source=TASKMASTER_TASKS_REL,
+        reason="empty_taskmaster_tasks",
+        message="Taskmaster ledger is initialized but has no tasks yet",
+    )
+
+
 def _iter_taskmaster_tasks(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     task_lists: list[Any] = []
     root_tasks = payload.get("tasks")
@@ -2598,10 +2615,8 @@ def _validate_taskmaster_tasks(task_lists: Sequence[Sequence[Any]]) -> Taskmaste
                         f"task {task_id} dependency {dependency!r} is not a numeric task id",
                     )
     if not seen_ids:
-        return _invalid_taskmaster_state(
-            "empty_taskmaster_tasks",
-            "Taskmaster payload must contain at least one task",
-        )
+        # TM 190: zero tasks is the fresh-project "empty" bootstrap phase, not corruption.
+        return _empty_taskmaster_state()
     return None
 
 
@@ -2637,6 +2652,60 @@ def _taskmaster_state(target_root: Path) -> TaskmasterState:
         source=TASKMASTER_TASKS_REL,
         tasks=tuple(_iter_taskmaster_tasks(payload)),
     )
+
+
+_PRD_PLACEHOLDER_MARKERS = (
+    "[Provide a high-level overview of your product here",
+    "[List and describe the main features of your product",
+)
+_PRD_READ_LIMIT = 1_000_000  # PRDs are small text docs; bound the read so a pathological file can't OOM.
+
+
+def _prd_read_head(path: Path) -> str | None:
+    """Read at most _PRD_READ_LIMIT chars; return None on read error or binary (NUL) content."""
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            text = handle.read(_PRD_READ_LIMIT)
+    except OSError:
+        return None
+    if "\x00" in text:  # binary file masquerading as prd.txt
+        return None
+    return text
+
+
+def _prd_state(target_root: Path) -> Path | None:
+    """TM 190: return the path to an AVAILABLE, real PRD under .taskmaster/docs, else None.
+
+    Read-only and bounded. Only the canonical `prd.txt`/`prd.md` count (a generic `*.md` would
+    false-positive on unrelated docs; non-lowercase/other names are intentionally a conservative
+    miss that still steers toward PRD authoring). The canonical names are never the example file,
+    so the shipped template is excluded implicitly by name AND defensively by content-equality to
+    the live `.taskmaster/templates/example_prd.txt` plus placeholder markers — never by a
+    hard-coded hash, so it survives template drift. Binary/empty/huge files are rejected."""
+
+    docs = target_root / ".taskmaster" / "docs"
+    if not docs.is_dir():
+        return None
+    template = target_root / ".taskmaster" / "templates" / "example_prd.txt"
+    template_text: str | None = None
+    if template.is_file():
+        head = _prd_read_head(template)
+        template_text = head.strip() if head is not None else None
+    for candidate in (docs / "prd.txt", docs / "prd.md"):
+        if not candidate.is_file():
+            continue
+        text = _prd_read_head(candidate)
+        if text is None:
+            continue
+        stripped = text.strip()
+        if not stripped:
+            continue
+        if template_text is not None and stripped == template_text:
+            continue
+        if any(marker in text for marker in _PRD_PLACEHOLDER_MARKERS):
+            continue
+        return candidate
+    return None
 
 
 def _normalise_default_agent_selection(
@@ -2822,6 +2891,102 @@ def next_action(
                 },
             )
         taskmaster = _taskmaster_state(target_root)
+        prd_path = _prd_state(target_root)
+        if taskmaster.state == "absent":
+            # TM 190: no task ledger yet. Offer BOTH local tracked work (aegis start) and the
+            # task-driven path (task-master init + PRD); never bind a fabricated task id.
+            no_tm_repairs = [
+                "./.aegis/bin/aegis start '<task title>'",
+                "# or, for task-driven planning, stand up Taskmaster then re-check:",
+                "task-master init",
+                "./.aegis/bin/aegis next --target-dir .",
+                "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
+            ]
+            no_tm_details: dict[str, Any] = {
+                "present": False,
+                "bootstrap_phase": "no_taskmaster",
+                "local_fallback_allowed": True,
+            }
+            if prd_path is not None:
+                # A PRD already exists; after init it can be parsed (with approval) rather than re-authored.
+                prd_rel = prd_path.relative_to(target_root).as_posix()
+                no_tm_repairs.insert(
+                    3,
+                    f"# a PRD already exists at {prd_rel}; after init, parse it (with approval) rather than re-authoring",
+                )
+                no_tm_details["prd"] = prd_rel
+            return _workflow_guidance_payload(
+                phase="start",
+                state="no_taskmaster",
+                next_required_action=(
+                    "no task ledger yet: either start tracked local work, or initialize "
+                    "Taskmaster (then add a PRD/task) for task-driven planning — never bind a "
+                    "fabricated task id before the ledger exists"
+                ),
+                suggested_cli="./.aegis/bin/aegis start '<task title>'",
+                suggested_mcp_tool="aegis.start",
+                suggested_mcp_arguments={
+                    "target_dir": ".",
+                    "title": "<title>",
+                    "apply": True,
+                },
+                missing_gates=["aegis.current_work"],
+                copyable_repairs=no_tm_repairs,
+                details={"taskmaster": no_tm_details},
+            )
+        if taskmaster.state == "empty":
+            if prd_path is not None:
+                prd_rel = prd_path.relative_to(target_root).as_posix()
+                return _workflow_guidance_payload(
+                    phase="start",
+                    state="prd_available_not_parsed",
+                    next_required_action=(
+                        f"a PRD ({prd_rel}) is present but not parsed: surface the parse plan and "
+                        "get explicit user approval before running parse-prd — never assume task "
+                        "ids the parse has not created"
+                    ),
+                    suggested_cli=f"task-master parse-prd --input={prd_rel}",
+                    missing_gates=["aegis.current_work", "taskmaster.tasks_present"],
+                    copyable_repairs=[
+                        f"less {prd_rel}",
+                        "# only after explicit user approval, run the planning mutation:",
+                        f"task-master parse-prd --input={prd_rel}",
+                        "./.aegis/bin/aegis next --target-dir .",
+                    ],
+                    details={
+                        "taskmaster": {
+                            "state": "empty",
+                            "present": True,
+                            "bootstrap_phase": "prd_available_not_parsed",
+                            "prd": prd_rel,
+                        }
+                    },
+                )
+            return _workflow_guidance_payload(
+                phase="start",
+                state="taskmaster_empty",
+                next_required_action=(
+                    "Taskmaster ledger is initialized but empty: seed planning (add a task, or "
+                    "author a PRD and parse it with explicit approval) before kickoff — never "
+                    "bind a fabricated task id"
+                ),
+                suggested_cli="task-master add-task --prompt '<first planned task>'",
+                missing_gates=["aegis.current_work", "taskmaster.tasks_present"],
+                copyable_repairs=[
+                    "task-master add-task --prompt '<first planned task>'",
+                    "# or author a PRD, then parse it with explicit approval:",
+                    "$EDITOR .taskmaster/docs/prd.txt",
+                    "task-master parse-prd --input=.taskmaster/docs/prd.txt",
+                    "./.aegis/bin/aegis next --target-dir .",
+                ],
+                details={
+                    "taskmaster": {
+                        "state": "empty",
+                        "present": True,
+                        "bootstrap_phase": "taskmaster_empty",
+                    }
+                },
+            )
         if taskmaster.state == "invalid":
             return _workflow_guidance_payload(
                 phase="start",
@@ -2842,6 +3007,79 @@ def next_action(
                 },
             )
         if taskmaster.state == "valid":
+            # "started" = real progress (in-progress/done/completed). pending and the terminal
+            # non-progress statuses (cancelled/deferred/blocked) are NOT started, so an
+            # all-terminal ledger still routes to the pre-kickoff states; that is safe (Taskmaster
+            # remains the authority and surfaces only an actionable task, no fabricated id), and
+            # the guidance is worded to defer to `task-master next` rather than promise one exists.
+            started = any(
+                str(task.get("status") or "").strip().lower()
+                in {"in-progress", "done", "completed"}
+                for task in taskmaster.tasks
+            )
+            if not started:
+                # TM 190: valid ledger with nothing started yet — the pre-kickoff bootstrap
+                # states. PRD present => still in the parsed-tasks review phase; no PRD => a
+                # curated ledger ready for first kickoff. Both bind only a real ledger task.
+                if prd_path is not None:
+                    return _workflow_guidance_payload(
+                        phase="start",
+                        state="prd_parsed_tasks_pending",
+                        next_required_action=(
+                            "PRD-parsed tasks are pending and none is started: review (and "
+                            "optionally expand) the generated tasks, then kick off a real task"
+                        ),
+                        suggested_cli="task-master list --status=pending && task-master next",
+                        missing_gates=["aegis.current_work"],
+                        copyable_repairs=[
+                            "task-master list --status=pending",
+                            "task-master analyze-complexity",
+                            "task-master expand --id=<id>",
+                            "task-master next && task-master show <id>",
+                            "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+                            "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
+                        ],
+                        details={
+                            "taskmaster": {
+                                **taskmaster.details(),
+                                "task_selection_authority": "taskmaster",
+                                "aegis_task_selection": "suppressed",
+                                "kickoff_requires_explicit_taskmaster_id": True,
+                                "local_fallback_allowed": False,
+                                "bootstrap_phase": "prd_parsed_tasks_pending",
+                            }
+                        },
+                    )
+                return _workflow_guidance_payload(
+                    phase="start",
+                    state="first_task_ready",
+                    next_required_action=(
+                        "the ledger has tasks and none is started: select the first available "
+                        "task via Taskmaster next/show (if one is actionable) and kick it off — "
+                        "bind only a real ledger task id"
+                    ),
+                    suggested_cli=(
+                        "task-master next && task-master show <id> && "
+                        "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'"
+                    ),
+                    missing_gates=["aegis.current_work"],
+                    copyable_repairs=[
+                        "task-master next",
+                        "task-master show <id>",
+                        "./.aegis/bin/aegis kickoff --target-dir . --task <id> --slug <slug> --title '<title>'",
+                        "./.aegis/bin/aegis observe start --target-dir . 'Read-only audit title'",
+                    ],
+                    details={
+                        "taskmaster": {
+                            **taskmaster.details(),
+                            "task_selection_authority": "taskmaster",
+                            "aegis_task_selection": "suppressed",
+                            "kickoff_requires_explicit_taskmaster_id": True,
+                            "local_fallback_allowed": False,
+                            "bootstrap_phase": "first_task_ready",
+                        }
+                    },
+                )
             return _workflow_guidance_payload(
                 phase="start",
                 state="installed_taskmaster_present",
@@ -2887,6 +3125,11 @@ def next_action(
                     }
                 },
             )
+        # Defensive fallthrough: with TM 190's absent/empty/invalid/valid branches above, every
+        # _taskmaster_state outcome returns earlier, so this is unreachable today. Kept as a safe
+        # default if _taskmaster_state ever grows a new state; its local-work guidance is otherwise
+        # fully preserved by the no_taskmaster branch. (The installed_no_current_work brief + the
+        # live _classify_doctor_state usage must stay.)
         return _workflow_guidance_payload(
             phase="start",
             state="installed_no_current_work",

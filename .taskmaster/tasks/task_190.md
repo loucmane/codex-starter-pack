@@ -2,9 +2,9 @@
 
 **Title:** Support fresh-project PRD bootstrap continuation flow
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 189
+**Dependencies:** 189 ✓
 
 **Priority:** high
 
