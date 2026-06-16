@@ -7092,7 +7092,7 @@
         "description": "Improve GitHub Actions feedback time while preserving the full quality bar for Aegis, Taskmaster, and meta-workflow changes.",
         "details": "Create a tiered CI design: fast PR signal for routine iteration, full matrix coverage for merge confidence, duration measurement before optimization, dependency caching, slow-test sharding, path-aware test selection, duplicate guard cleanup, and documented quality policy. Full coverage must not be removed; any faster lane must either be a preliminary required signal or be backed by full CI before merge.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "192"
         ],
@@ -7182,7 +7182,8 @@
             "parentTaskId": 193,
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-16T11:14:38.251Z"
       },
       {
         "id": 194,
@@ -7670,9 +7671,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-15T18:11:07.875Z",
+      "lastModified": "2026-06-16T11:14:38.252Z",
       "taskCount": 224,
-      "completedCount": 212,
+      "completedCount": 213,
       "tags": [
         "master"
       ]

@@ -23,3 +23,4 @@
 - Finding #1: dedupe the doctor→next_action double battery computation (perf nicety).
 - Finding #3: next_action vs doctor repair_plan count divergence (intentional; accepted).
 - TM 189 residual #2 is now closed by this task.
+- Archived on 2026-06-16 13:14 CEST — Folder moved to archive and tracker marked COMPLETED.
