@@ -13,6 +13,12 @@
 > single-user repo) supersedes the "hash-chained" wording in G3, F2, §2, and §5 of this
 > document for v1. Phase 1 delivery is sliced as nine PRs (spec §1.2): 1a–1d ledger,
 > 2a–2b brief/injection, 3 narration, 3.5 delivery witness, 4 retirement.
+>
+> **Capsule evaluation update (2026-07-03):** the owner workflow is resume-heavy, not
+> cold-start-heavy. For this deployment the primary gate is resume-time drift refresh:
+> on resume/compact, the capsule must correct stale conversation assumptions and preserve
+> delivery discipline. Cold-start A/B remains relevant for headless, scheduled, new-user,
+> and cold-start-heavy deployments, but it is not the blocking operator gate.
 
 ---
 
@@ -65,8 +71,8 @@ recorder ships, no gate activation may be visible only in chat.**
 
 ## 2. The thesis (what makes Aegis cutting-edge)
 
-Aegis is a **repo-native evidence engine for autonomous coding work**: a passive, hash-chained
-flight record no agent can fake, projected into things nobody ships together — cited cross-session
+Aegis is a **repo-native evidence engine for autonomous coding work**: a passive, append-only
+flight record the agent does not author, projected into things nobody ships together — cited cross-session
 memory the agent actually uses, autonomy priced by displayed track record, independent
 fresh-context verification recorded in the same chain, and **policy that is regression-tested code
 rather than vibes.** Blocking is the smallest part, not the center.
@@ -81,6 +87,8 @@ moat. Each piece alone is absorbable; the chain of custody between them is not.
 
 **Success criterion is the inversion test, not compliance:** an agent under Aegis ships better
 work faster than the same agent without it, with governance overhead < 5% of session spend.
+For the owner workflow, the concrete form is: "let's continue" produces useful work in fewer
+tool calls, with fewer false blocks, without losing delivery discipline.
 
 ---
 
@@ -88,9 +96,9 @@ work faster than the same agent without it, with governance overhead < 5% of ses
 
 F1 **Replay governance** — every gate decision recorded (state hash, payload digest, verdict,
    reason, policy version); policy changes regression-tested against recorded corpora before rollout.
-F2 **Passive hash-chained ledger** — WHAT auto-captured at PostToolUse (one event per command,
-   diff/output hashes), mirrored append-only outside the worktree; WHY annotated at phase
-   boundaries only; Stop/closeout gate on annotation completeness.
+F2 **Passive append-only ledger** — WHAT auto-captured at PostToolUse (one event per command,
+   normalized evidence), stored outside the worktree; WHY compiled into bounded capsule fields
+   rather than required after every mutation.
 F3 **Mechanism-based risk tiers** — OS-sandbox interior never blocks; named-state-surface writes
    require an active envelope; boundary crossings + protected-path denylist escalate; audited
    break-glass; human factor required for outward actions.
@@ -159,7 +167,7 @@ the existing pytest infra (tests/: claude_adapter, meta_workflow_guard, session_
 timestamp_guard, fixtures) — **not greenfield.**
 
 **Weeks 3–6 (shadow + unify):** run #198 in shadow against the recorder, **forcing its events into
-the out-of-worktree, hash-chained SQLite store (G3) with OTel/NCCoE-shaped fields from day one;**
+the out-of-worktree append-only SQLite store (G3) with OTel/NCCoE-shaped fields from day one;**
 unify readiness+repair into the G2 shared detector with normalize_completed_closeout as a golden
 must-fail test; DBOS spike; Cedar shadow evaluation.
 
@@ -183,8 +191,10 @@ zero-ceremony record profile). Each quarter has a falsifiable proof point.
   cited, injection-quarantined); `aegis ask --would` preflight via the replay engine; Session Zero
   Capsule (≤2k, structured-fields-only) absorbing kill+handoff compilation.
   *Proof / falsifier:* a cited `aegis ask` costs fewer tokens than the grep it replaces; a kill -9'd
-  session resumes at the right plan step with zero human re-explanation. **If the agent ignores the
-  Oracle and the capsule doesn't change first-tool-call behavior, the spine is falsified — re-plan.**
+  session resumes at the right plan step with zero human re-explanation. For the owner workflow,
+  the capsule is falsified if real resume/compact events show no useful drift correction and no
+  next-action effect. Cold-start behavior remains a separate deployment track for headless/new-user
+  use.
 - **Q2 (mo 7–9) Trust by contract, verification by witness:** evidence-displayed/human-decided
   Autonomy Contracts (actuary amputated until n≥20/cell) with live downgrade; deliver-time
   Adversarial Witness (deterministic-first, ledger-pinned inputs, context-manifest event).

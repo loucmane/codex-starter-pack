@@ -30,3 +30,7 @@
   softened first_task_ready wording, defensive-fallthrough annotation, tighter test helper).
   Accepted/deferred as documented above: non-canonical PRD names (conservative miss), placeholder
   false-exclude (very low likelihood, safe downgrade).
+- 2026-07-03 — Capsule evaluation gate is reframed for the owner deployment: resume-time drift
+  refresh is the primary success criterion; cold-start A/B remains a secondary track for
+  headless/new-user/cold-start-heavy deployments. PR-3 narration and PR-4 retirement are
+  dogfood-gated follow-ons, not automatic next steps.

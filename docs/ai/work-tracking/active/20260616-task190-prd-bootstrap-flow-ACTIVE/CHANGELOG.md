@@ -6,3 +6,6 @@
   briefs; new `empty` Taskmaster state (split from invalid); read-only `_prd_state` PRD
   detection; assets re-mirrored; new test_prd_bootstrap_states.py + 4 updated tests. Design +
   adversarial-review workflows (verdict ship); polish folded in. Full suite 1699 passed.
+- 2026-07-03 — Added capsule resume-drift decision record, updated AEGIS capsule/program docs,
+  and refreshed Taskmaster roadmap tasks 208/210 so PR-3/PR-4 are gated on real resume-drift
+  evidence instead of the owner workflow waiting on cold-start A/B.
