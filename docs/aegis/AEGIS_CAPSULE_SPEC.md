@@ -514,6 +514,9 @@ deployments; `AEGIS_CAPSULE` env remains the owner override and `{"inject": fals
 off. Genuine cold-start analysis uses `session_begin` with source `startup`; resume/clear/
 compact stamps belong to Track A.
 
+**Stopping rule for Track B:** for cold-start-heavy deployments, decide only once each arm
+reaches the configured fixed-n threshold; this supersedes the original calendar-day alternation.
+
 Baselines on record: 30-50 reconnaissance calls on a normal morning; 378k tokens when trust
 collapsed entirely.
 - **Ceremony count:** governance tool-calls per session, target ≈0. Baselines: ~47% of tool
