@@ -2,7 +2,7 @@
 
 **Title:** Capsule freshness triggers for delivery and orientation boundaries
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** None
 
