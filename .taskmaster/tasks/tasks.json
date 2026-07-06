@@ -7728,13 +7728,25 @@
         "status": "done",
         "subtasks": [],
         "updatedAt": "2026-06-15T18:11:07.875Z"
+      },
+      {
+        "id": "226",
+        "title": "Capsule freshness triggers for delivery and orientation boundaries",
+        "description": "Make capsule compile/status support session/resume, post-merge, task-status-change, orientation, pre-delivery, verification, risk-register-change, and manual triggers so long-running chats and PR delivery keep one canonical capsule fresh without restoring per-mutation ceremony.",
+        "details": "Adds aegis brief --status, compile_reason metadata, freshness snapshots in current.json, SessionStart reason stamping, and spec/tests. This task records the scoped capsule freshness trigger implementation and supplies the delivery-witness branch/task mapping for the PR.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-07-06T14:31:58.519Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-06T12:54:05.077Z",
-      "taskCount": 224,
-      "completedCount": 216,
+      "lastModified": "2026-07-06T14:31:58.519Z",
+      "taskCount": 225,
+      "completedCount": 217,
       "tags": [
         "master"
       ]

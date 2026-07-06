@@ -90,6 +90,8 @@ def test_sessionstart_injects_and_stamps_on(tmp_path: Path) -> None:
     assert stamps[0]["extra"]["capsule_injected"] is True
     assert stamps[0]["extra"]["source"] == "startup"
     assert (repo / ".aegis" / "capsule" / "current.md").is_file()
+    capsule = json.loads((repo / ".aegis" / "capsule" / "current.json").read_text(encoding="utf-8"))
+    assert capsule["capsule_meta"]["compile_reason"] == "session-start"
 
 
 def test_sessionstart_env_off_stamps_but_does_not_inject(tmp_path: Path) -> None:
