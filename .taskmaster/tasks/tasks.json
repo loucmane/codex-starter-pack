@@ -7701,10 +7701,11 @@
         "description": "Discovered during TM 219: aegis_foundation/assets/scripts/codex-guard and codex-task have drifted from the live scripts/codex-guard and scripts/codex-task. These are Codex-owned paths (scripts/codex-*), so Claude must not edit them or their packaged copies — re-syncing is Codex-led per CLAUDE.md. TM 219 added tests/meta_workflow_guard/test_assets_scripts_parity.py which guards the .py mirrors and tracks these two as KNOWN_CODEX_OWNED_DRIFT. When Codex re-syncs (cp scripts/codex-guard aegis_foundation/assets/scripts/codex-guard; same for codex-task), move them from KNOWN_CODEX_OWNED_DRIFT into MIRRORED_* coverage so they are byte-parity-enforced too.",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-06T18:07:53.667Z"
       },
       {
         "id": "224",
@@ -7787,9 +7788,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-06T17:47:25.483Z",
+      "lastModified": "2026-07-06T18:07:53.667Z",
       "taskCount": 228,
-      "completedCount": 221,
+      "completedCount": 222,
       "tags": [
         "master"
       ]
