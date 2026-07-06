@@ -2,7 +2,7 @@
 
 **Title:** Dogfood Capsule Boundary Refresh Across Codex And HP-Coach
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 226 ✓
 
