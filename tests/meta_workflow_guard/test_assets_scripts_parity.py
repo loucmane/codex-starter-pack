@@ -6,10 +6,9 @@ drifted — assets/scripts/_aegis_installer.py missed the TM 215/218/221 fixes a
 carried the reverted TM-197 observation-globs — because no test guarded the mirror. This
 locks the .py mirrors so a future fix to one can't be dropped from the other.
 
-The Codex-owned shell tools (scripts/codex-guard, scripts/codex-task) are also drifted, but
-Claude must not edit Codex-owned paths; re-syncing them is a Codex-led follow-up (recorded in
-this task's DECISIONS.md). They are listed here as known drift so the gap is explicit, not
-silently uncovered.
+The Codex-owned shell tools (scripts/codex-guard, scripts/codex-task) are also mirrored into
+the package. TM 223 re-synced them and moved them into byte-parity coverage so drift is no
+longer a documented exception.
 """
 
 from __future__ import annotations
@@ -22,20 +21,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 LIVE_SCRIPTS = REPO_ROOT / "scripts"
 ASSETS_SCRIPTS = REPO_ROOT / "aegis_foundation" / "assets" / "scripts"
 
-# Claude-maintainable .py mirrors that MUST stay byte-identical.
-MIRRORED_PY = (
+# Live scripts that MUST stay byte-identical in the packaged assets copy.
+MIRRORED_ASSET_SCRIPTS = (
     "_aegis_installer.py",
     "_repo_structure.py",
+    "codex-guard",
+    "codex-task",
     "template_governance.py",
     "template_registry.py",
     "template_versioning.py",
 )
 
-# Codex-owned tools that are drifted; re-sync is a Codex-led follow-up (DECISIONS.md).
-KNOWN_CODEX_OWNED_DRIFT = ("codex-guard", "codex-task")
 
-
-@pytest.mark.parametrize("name", MIRRORED_PY)
+@pytest.mark.parametrize("name", MIRRORED_ASSET_SCRIPTS)
 def test_assets_script_matches_live(name: str) -> None:
     live = LIVE_SCRIPTS / name
     asset = ASSETS_SCRIPTS / name
@@ -53,20 +51,7 @@ def test_no_new_unmirrored_py_under_assets_scripts() -> None:
     # in the guarded mirror set (or it could drift unguarded). New mirrors must be added above.
     for asset in ASSETS_SCRIPTS.glob("*.py"):
         if (LIVE_SCRIPTS / asset.name).is_file():
-            assert asset.name in MIRRORED_PY, (
+            assert asset.name in MIRRORED_ASSET_SCRIPTS, (
                 f"assets/scripts/{asset.name} mirrors a live script but is not guarded; "
-                "add it to MIRRORED_PY."
+                "add it to MIRRORED_ASSET_SCRIPTS."
             )
-
-
-def test_codex_owned_drift_is_tracked() -> None:
-    # Documents (does not fix) the Codex-owned drift so it stays visible. Claude cannot edit
-    # scripts/codex-*; re-sync is Codex-led. If a pair becomes identical, drop it from the list.
-    still_drifted = [
-        name
-        for name in KNOWN_CODEX_OWNED_DRIFT
-        if (LIVE_SCRIPTS / name).is_file()
-        and (ASSETS_SCRIPTS / name).is_file()
-        and (LIVE_SCRIPTS / name).read_bytes() != (ASSETS_SCRIPTS / name).read_bytes()
-    ]
-    assert set(still_drifted) <= set(KNOWN_CODEX_OWNED_DRIFT)
