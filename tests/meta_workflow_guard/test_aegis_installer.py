@@ -5467,6 +5467,38 @@ def test_install_merges_existing_claude_entrypoint_without_losing_project_contex
     assert (target / AEGIS_MANIFEST_REL).exists()
 
 
+def test_install_merges_existing_codex_entrypoint_without_losing_project_context(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "existing-codex-project"
+    target.mkdir()
+    codex = target / "CODEX.md"
+    codex.write_text("# Existing Codex instructions\n", encoding="utf-8")
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+
+    assert report["status"] == "applied"
+    text = codex.read_text(encoding="utf-8")
+    assert aegis_installer.AEGIS_CODEX_BLOCK_BEGIN in text
+    assert aegis_installer.AEGIS_CODEX_BLOCK_END in text
+    assert "Continuation contract:" in text
+    assert ".aegis/contract.md" in text
+    assert "## Existing Codex Instructions" in text
+    assert "# Existing Codex instructions" in text
+    codex_operation = next(
+        operation for operation in report["plan"]["operations"] if operation["path"] == "CODEX.md"
+    )
+    assert codex_operation["classification"] == "modify"
+    assert codex_operation["safe_to_apply"] is True
+    assert (target / AEGIS_MANIFEST_REL).exists()
+
+
 def test_install_merges_existing_agents_entrypoint_without_losing_project_context(
     tmp_path: Path,
 ) -> None:

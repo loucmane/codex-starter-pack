@@ -124,6 +124,8 @@ AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a
 AEGIS_ENFORCEMENT_MODES = {"strict", "advisory"}
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
 AEGIS_CLAUDE_BLOCK_END = "<!-- AEGIS:END claude-runtime -->"
+AEGIS_CODEX_BLOCK_BEGIN = "<!-- AEGIS:BEGIN codex-runtime -->"
+AEGIS_CODEX_BLOCK_END = "<!-- AEGIS:END codex-runtime -->"
 AEGIS_AGENTS_BLOCK_BEGIN = "<!-- AEGIS:BEGIN agents-runtime -->"
 AEGIS_AGENTS_BLOCK_END = "<!-- AEGIS:END agents-runtime -->"
 
@@ -582,6 +584,18 @@ def _render_claude_entrypoint() -> bytes:
     return text.encode("utf-8")
 
 
+def _render_codex_continuation_block() -> bytes:
+    text = "\n".join(
+        [
+            "## Aegis Continuation",
+            "",
+            AEGIS_CONTINUATION_SUMMARY,
+            "",
+        ]
+    )
+    return text.encode("utf-8")
+
+
 def _render_claude_settings() -> bytes:
     payload = {
         "$schema": "https://json.schemastore.org/claude-code-settings.json",
@@ -962,6 +976,18 @@ def _merge_claude_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes 
     )
 
 
+def _merge_codex_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes | None:
+    """Return CODEX.md with an Aegis-managed block while preserving project content."""
+
+    return _merge_managed_entrypoint(
+        existing,
+        aegis_entrypoint,
+        begin_marker=AEGIS_CODEX_BLOCK_BEGIN,
+        end_marker=AEGIS_CODEX_BLOCK_END,
+        existing_heading="Existing Codex Instructions",
+    )
+
+
 def _merge_agents_entrypoint(existing: bytes, aegis_entrypoint: bytes) -> bytes | None:
     """Return AGENTS.md with an Aegis-managed block while preserving project content."""
 
@@ -1013,6 +1039,15 @@ def _strip_claude_entrypoint(existing: bytes) -> bytes | None:
     )
 
 
+def _strip_codex_entrypoint(existing: bytes) -> bytes | None:
+    return _strip_managed_entrypoint(
+        existing,
+        begin_marker=AEGIS_CODEX_BLOCK_BEGIN,
+        end_marker=AEGIS_CODEX_BLOCK_END,
+        existing_heading="Existing Codex Instructions",
+    )
+
+
 def _strip_agents_entrypoint(existing: bytes) -> bytes | None:
     return _strip_managed_entrypoint(
         existing,
@@ -1026,11 +1061,33 @@ def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset
     """Materialize target-specific assets such as merged Claude entrypoints."""
 
     materialized: list[Asset] = []
+    managed_paths, customized_paths = _install_ownership(target_root)
     for asset in assets:
         if asset.path == "CLAUDE.md" and asset.kind == "adapter":
             target = target_root / asset.path
             if target.exists() and target.is_file():
                 merged = _merge_claude_entrypoint(target.read_bytes(), asset.content)
+                if merged is not None:
+                    materialized.append(
+                        Asset(
+                            path=asset.path,
+                            content=merged,
+                            executable=asset.executable,
+                            kind=asset.kind,
+                        )
+                    )
+                    continue
+        if asset.path == "CODEX.md" and asset.kind == "adapter":
+            target = target_root / asset.path
+            if (
+                target.exists()
+                and target.is_file()
+                and (asset.path not in managed_paths or asset.path in customized_paths)
+            ):
+                merged = _merge_codex_entrypoint(
+                    target.read_bytes(),
+                    _render_codex_continuation_block(),
+                )
                 if merged is not None:
                     materialized.append(
                         Asset(
@@ -1735,6 +1792,18 @@ def _plan_operations(
                     "safe_to_apply": True,
                     "managed": True,
                     "reason": "Existing Claude instructions will be preserved below an Aegis-managed runtime block.",
+                }
+            )
+            continue
+        if asset.path == "CODEX.md" and asset.kind == "adapter":
+            operations.append(
+                {
+                    "action": "modify",
+                    "path": asset.path,
+                    "classification": "modify",
+                    "safe_to_apply": True,
+                    "managed": True,
+                    "reason": "Existing Codex instructions will be preserved below an Aegis-managed continuation block.",
                 }
             )
             continue
@@ -9354,6 +9423,14 @@ def _uninstall_operations(
             expected_aegis_content=_render_claude_entrypoint()
             if "claude" in enabled_agents
             else None,
+        ),
+        _entrypoint_uninstall_operation(
+            target_root,
+            "CODEX.md",
+            begin_marker=AEGIS_CODEX_BLOCK_BEGIN,
+            end_marker=AEGIS_CODEX_BLOCK_END,
+            existing_heading="Existing Codex Instructions",
+            expected_aegis_content=None,
         ),
         _entrypoint_uninstall_operation(
             target_root,

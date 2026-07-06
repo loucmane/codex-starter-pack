@@ -5,6 +5,13 @@
 - Run it **before any substantive reasoning or tool use**.
 - Treat every section as an executable checklist, not passive docs.
 
+<!-- AEGIS:BEGIN codex-runtime -->
+## Aegis Continuation
+
+Continuation contract: a short intent (continue / go / proceed / next / resume) advances the Aegis workflow by exactly ONE safe step — resolved from `aegis next` (its `next_safe_action`), never from memory — then re-consult. It is not new authority. Surface and ask before repairs (`aegis repair --apply`), non-dry-run `closeout`, protected/owned paths, switching tasks, or push/PR. Never automatic: merge, force-push, history rewrite, `.aegis/` writes, BLOCKED-readiness bypass, skipping S:W:H:E. "Finish this" still stops at these boundaries. Full text in `.aegis/contract.md`.
+
+<!-- AEGIS:END codex-runtime -->
+
 ## 🚦 CODEx READINESS CHECK
 **[`templates/engine/core/codex-readiness.md`](templates/engine/core/codex-readiness.md)**
 - Confirm the session launched with the expected profile (`/status` → workspace-write, on-request).

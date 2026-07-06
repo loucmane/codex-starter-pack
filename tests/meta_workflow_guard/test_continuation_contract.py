@@ -3,8 +3,9 @@
 A short continuation intent (continue/go/proceed/next/resume) means "advance the Aegis
 workflow by exactly one safe step, then re-consult" — it grants no authority to bypass a
 gate. These tests lock both that the contract reaches every agent surface (via the shared
-.aegis/contract.md plus the AGENTS.md/CLAUDE.md summary) and that its autonomy boundaries
-stay conservative (no auto-merge/push, repairs and non-dry-run closeout require confirmation).
+.aegis/contract.md plus the AGENTS.md/CLAUDE.md/CODEX.md summaries) and that its autonomy
+boundaries stay conservative (no auto-merge/push, repairs and non-dry-run closeout require
+confirmation).
 """
 
 from __future__ import annotations
@@ -30,14 +31,19 @@ def test_contract_md_carries_full_continuation_contract() -> None:
     assert "Taskmaster is the task-selection authority" in text
 
 
-def test_agents_and_claude_surfaces_carry_the_summary() -> None:
-    # Cross-agent reach: AGENTS.md (read by every agent incl. Codex/Gemini) + CLAUDE.md both
-    # carry the summary and point at the authoritative .aegis/contract.md.
+def test_agents_claude_and_codex_surfaces_carry_the_summary() -> None:
+    # Cross-agent reach: AGENTS.md (read by every agent incl. Codex/Gemini), CLAUDE.md,
+    # and CODEX.md all carry the summary and point at the authoritative .aegis/contract.md.
     agents = inst._render_agents_doc("claude", ["claude"]).decode("utf-8")
     claude = inst._render_claude_entrypoint().decode("utf-8")
-    for surface in (agents, claude):
+    codex = inst._render_codex_continuation_block().decode("utf-8")
+    codex_entrypoint = (REPO_ROOT / "CODEX.md").read_text(encoding="utf-8")
+    for surface in (agents, claude, codex, codex_entrypoint):
         assert "Continuation contract:" in surface
         assert ".aegis/contract.md" in surface
+    assert codex.strip() in codex_entrypoint
+    assert inst.AEGIS_CODEX_BLOCK_BEGIN in codex_entrypoint
+    assert inst.AEGIS_CODEX_BLOCK_END in codex_entrypoint
 
 
 def test_contract_requires_confirmation_for_repair_and_closeout() -> None:
