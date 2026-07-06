@@ -19,3 +19,4 @@
 ## Notes
 - Accepted limitations (DECISIONS): non-canonical PRD names are a conservative miss; the
   placeholder-marker exclusion could rarely false-exclude a PRD quoting it (safe downgrade).
+- Archived on 2026-07-06 13:04 CEST — Folder moved to archive and tracker marked COMPLETED.

@@ -9,3 +9,4 @@
 - 2026-07-03 — Added capsule resume-drift decision record, updated AEGIS capsule/program docs,
   and refreshed Taskmaster roadmap tasks 208/210 so PR-3/PR-4 are gated on real resume-drift
   evidence instead of the owner workflow waiting on cold-start A/B.
+- 2026-07-06 13:04 CEST — Archived active work-tracking folder.
