@@ -49,18 +49,24 @@ start (recall). Nothing blocks, ever.**
 
 ```
 LOOP 1  RECORD   PostToolUse/PostToolUseFailure → append-only ledger   (zero ceremony)
-LOOP 2  COMPILE  computed stratum @ SessionStart (deterministic, <2s)
+LOOP 2  COMPILE  computed stratum @ workflow boundaries (deterministic, <2s)
                  narrated stratum @ per-session distill over deterministic Stop checkpoints
-LOOP 3  RECALL   SessionStart hook injects the capsule; depth via direct ledger queries
+LOOP 3  RECALL   SessionStart/resume + orientation flows read the capsule; depth via direct ledger queries
 ```
 
 **Critical timing decision (adversary-forced, non-negotiable):** computed state is compiled
-at **read time** (SessionStart), never at write time. SessionEnd is the least reliable hook in
-the lifecycle (historically hard-killed at 1.5s on exit; never fires on kill -9) and anything
-snapshotted at write time is stale by definition at read time — HP-Coach's own
+at **orientation boundaries**, never at every mutation. SessionStart is one boundary, but the
+reference operator mostly works in long resumed chats, so post-merge, post-task-status-change,
+pre-delivery, verification, risk-register-change, and natural-language orientation ("what's
+next?", "continue", "let's go") are first-class triggers too. SessionEnd is the least reliable
+hook in the lifecycle (historically hard-killed at 1.5s on exit; never fires on kill -9) and
+anything snapshotted only there is stale by definition at read time — HP-Coach's own
 `sessions/state.json` vs `.aegis/state/current-work.json` split-brain (51 spurious would_block
-records in one morning) is the standing proof. The capsule file caches only narration; every
-computed field is recomputed or revalidated at injection.
+records in one morning) is the standing proof. The capsule file caches the latest compiled
+brief; every computed field is recomputed or revalidated when a boundary compile runs, and
+`aegis brief --status` must loudly report stale if branch, HEAD, Taskmaster state, brief config,
+risk seed, worktree state, or newer ledger/gate-decision events no longer match the last
+compiled capsule.
 
 **Compliance model (decided):** defaults make the right path the easiest path → the recorder
 captures what happened without asking → the capsule makes state obvious at the next start →
@@ -226,10 +232,17 @@ v1 keeps this at near-zero ceremony — a scope record is **inferred, not author
 
 ## 3. Component: `aegis brief` — compiler + injection (PRs 2a–2b)  [codex repo]
 
-**CLI surface (decided):** `aegis brief` (compile + print), `aegis brief --inject`
-(char-budgeted render for the SessionStart hook), `aegis brief --narrate` (PR-3 finalizer),
-`aegis brief --check` (offline strict validation: budget + canary + parse counters; this is
-the only mode where over-budget **fails**).
+**CLI surface (decided):** `aegis brief` (compile + print), `aegis brief --reason <trigger>`
+(records why this boundary compile happened), `aegis brief --status` (fresh/stale without
+recompiling), `aegis brief --inject` (char-budgeted render for the SessionStart hook),
+`aegis brief --narrate` (PR-3 finalizer), `aegis brief --check` (offline strict validation:
+budget + canary + parse counters; this is the only mode where over-budget **fails**).
+
+**Compile triggers (decided):** `session-start`, `session-resume`, `post-merge`,
+`task-status-change`, `orientation`, `pre-delivery`, `verification`, `risk-register-change`,
+and `manual`. These triggers all write the same canonical `.aegis/capsule/current.*` files.
+They do **not** create parallel session/plan/tracker truth. The recorder remains always-on;
+compile is boundary-scoped; recall reads the latest fresh capsule. No per-mutation compile.
 
 **Capsule files (decided):** current capsule at `.aegis/capsule/current.md` (+ `current.json`)
 — in-worktree so the non-hook-agent fallback can reference it from CLAUDE.md / AGENTS.md, and
@@ -238,12 +251,12 @@ keyed by session_id, keep last 20 (`archive_keep` in brief.json).
 
 ### 3.1 Capsule schema (two strata, 14 fields)
 
-COMPUTED stratum — derived deterministically; **recomputed/revalidated at SessionStart**; any
-field that fails revalidation renders `STALE — recheck`, never the cached value:
+COMPUTED stratum — derived deterministically; **recomputed/revalidated at boundary compile**;
+any field that fails revalidation renders `STALE — recheck`, never the cached value:
 
 | field | source | what it carries (example from 2026-06-10 morning) |
 |---|---|---|
-| capsule_meta | compiler | version, compile ts, source_commit, ledger span, size (chars + chars/4 ≈ tokens) |
+| capsule_meta | compiler | version, compile ts, compile_reason, source_commit, freshness snapshot, ledger span, size (chars + chars/4 ≈ tokens) |
 | repo_pose | git (live) | branch, uncommitted tracked edits ("tasks.json #73→done flip UNCOMMITTED; CLAUDE.md +72"), untracked summary, stale local refs (ahead/behind vs fetched remote) |
 | delivery_state | ledger + one `gh pr list` | open/merged PRs mapped to branches ("PR #133 MERGED = tip of THIS branch → rescue edits before deleting") |
 | verification_ledger | ledger | per package×gate: last run, exit_class, commit — **absence is reported explicitly** ("worker lint: NO RUN ON RECORD since 6a898ba"); flagged STALE when HEAD moved past the run's commit |

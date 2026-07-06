@@ -21,6 +21,18 @@ from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
 
+BRIEF_REASON_CHOICES = (
+    "session-start",
+    "session-resume",
+    "post-merge",
+    "task-status-change",
+    "orientation",
+    "pre-delivery",
+    "verification",
+    "risk-register-change",
+    "manual",
+)
+
 
 def _dump_json(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
@@ -171,13 +183,20 @@ def handle_witness(args: argparse.Namespace) -> int:
 def handle_brief(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         brief_lib = _load_brief_lib(source_root)
+        if args.status:
+            status = brief_lib.capsule_status(args.target_dir)
+            if args.json:
+                _dump_json(status)
+            else:
+                print(brief_lib.render_status(status), end="")
+            return 0 if status.get("fresh") else 1
         if args.check:
             ok, problems = brief_lib.check_capsule(args.target_dir)
             for problem in problems:
                 print(problem, file=sys.stderr)
             print("capsule check: " + ("ok" if ok else "FAILED"))
             return 0 if ok else 1
-        capsule = brief_lib.compile_capsule(args.target_dir)
+        capsule = brief_lib.compile_capsule(args.target_dir, reason=args.reason)
         markdown = brief_lib.render_markdown(capsule)
         brief_lib.write_capsule(args.target_dir, capsule, markdown)
         if args.json:
@@ -1046,6 +1065,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     brief_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     brief_parser.add_argument("--json", action="store_true", help="Print the capsule as JSON.")
+    brief_parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Report whether .aegis/capsule/current.json is fresh for current repo truth.",
+    )
+    brief_parser.add_argument(
+        "--reason",
+        choices=BRIEF_REASON_CHOICES,
+        default="manual",
+        help="Boundary that triggered this compile (recorded in capsule_meta).",
+    )
     brief_parser.add_argument(
         "--check",
         action="store_true",

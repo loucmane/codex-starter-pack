@@ -211,6 +211,88 @@ def test_governance_tallies_gate_decisions(repo: Path) -> None:
     assert tallies.get("would_block") == 1 and tallies.get("allow") == 1
 
 
+def test_capsule_status_tracks_compile_boundaries_and_staleness(repo: Path) -> None:
+    missing = brief_lib.capsule_status(repo)
+    assert missing["status"] == "stale"
+    assert "missing or unreadable" in missing["reasons"][0]
+
+    capsule = brief_lib.compile_capsule(repo, reason="post-merge")
+    assert capsule["capsule_meta"]["compile_reason"] == "post-merge"
+    brief_lib.write_capsule(repo, capsule, brief_lib.render_markdown(capsule))
+    fresh = brief_lib.capsule_status(repo)
+    assert fresh["status"] == "fresh", fresh
+
+    ledger = ledger_lib.open_ledger(cwd=repo)
+    try:
+        ledger.append({"event_type": "gate_decision", "extra": {"verdict": "would_block"}})
+    finally:
+        ledger.close()
+    stale = brief_lib.capsule_status(repo)
+    assert stale["status"] == "stale"
+    assert any("new gate decisions recorded" in reason for reason in stale["reasons"])
+
+    capsule = brief_lib.compile_capsule(repo, reason="orientation")
+    brief_lib.write_capsule(repo, capsule, brief_lib.render_markdown(capsule))
+    assert brief_lib.capsule_status(repo)["status"] == "fresh"
+
+    (repo / "after.txt").write_text("after\n", encoding="utf-8")
+    subprocess.run(["git", "add", "after.txt"], cwd=repo, check=False)
+    subprocess.run(
+        ["git", "-c", "user.email=t@e.c", "-c", "user.name=t", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "after"],
+        cwd=repo,
+        check=False,
+    )
+    head_stale = brief_lib.capsule_status(repo)
+    assert head_stale["status"] == "stale"
+    assert any("HEAD changed" in reason for reason in head_stale["reasons"])
+
+
+def test_cli_brief_status_reports_freshness(repo: Path) -> None:
+    env = dict(os.environ)
+    env["XDG_STATE_HOME"] = os.environ["XDG_STATE_HOME"]
+    stale = subprocess.run(
+        [sys.executable, "-m", "aegis_foundation.cli", "brief", "--target-dir", repo.as_posix(), "--status"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert stale.returncode == 1
+    assert "capsule status: STALE" in stale.stdout
+
+    compiled = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "brief",
+            "--target-dir",
+            repo.as_posix(),
+            "--reason",
+            "post-merge",
+            "--json",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert compiled.returncode == 0, compiled.stderr
+    assert json.loads(compiled.stdout)["capsule_meta"]["compile_reason"] == "post-merge"
+    fresh = subprocess.run(
+        [sys.executable, "-m", "aegis_foundation.cli", "brief", "--target-dir", repo.as_posix(), "--status"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert fresh.returncode == 0, fresh.stdout + fresh.stderr
+    assert "capsule status: fresh" in fresh.stdout
+
+
 def test_check_fails_over_char_budget(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(brief_lib, "CHAR_BUDGET", 10)
     ok, problems = brief_lib.check_capsule(repo)
@@ -251,3 +333,5 @@ def test_gate_classifies_brief_read_only() -> None:
     gate_lib = load_module(REPO_ROOT / ".claude" / "scripts" / "gate_lib.py", "gate_lib_for_brief")
     assert gate_lib.bash_is_read_only("python3 -m aegis_foundation.cli brief --target-dir .") is True
     assert gate_lib.bash_is_read_only("python3 -m aegis_foundation.cli brief --check") is True
+    assert gate_lib.bash_is_read_only("python3 -m aegis_foundation.cli brief --status") is True
+    assert gate_lib.bash_is_read_only("python3 -m aegis_foundation.cli brief --reason post-merge") is True

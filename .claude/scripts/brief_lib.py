@@ -36,6 +36,17 @@ ENFORCEMENT_REL = ".aegis/state/enforcement.json"
 TASKS_JSON_REL = ".taskmaster/tasks/tasks.json"
 BRIEF_META_FILENAME = "brief-meta.json"
 STALE = "STALE — recheck"
+CAPSULE_COMPILE_REASONS = (
+    "session-start",
+    "session-resume",
+    "post-merge",
+    "task-status-change",
+    "orientation",
+    "pre-delivery",
+    "verification",
+    "risk-register-change",
+    "manual",
+)
 
 # The canary doc plants this claim; the checker holds the contradicting constant. The
 # fixture must always disagree so the sentinel can never report silent zero-drift.
@@ -127,6 +138,58 @@ def _read_events(root: Path, ledger_lib) -> list[dict[str, Any]]:
             ledger.close()
     except Exception:  # noqa: BLE001
         return []
+
+
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _hash_file(path: Path) -> str | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def _generated_capsule_status_path(rel: str) -> bool:
+    normalized = rel.strip()
+    return normalized.startswith(".aegis/")
+
+
+def _worktree_status_hash(root: Path) -> str | None:
+    rc, porcelain = _run(["git", "status", "--porcelain"], root)
+    if rc != 0:
+        return None
+    lines: list[str] = []
+    for line in porcelain.splitlines():
+        if len(line) > 3 and _generated_capsule_status_path(line[3:].strip()):
+            continue
+        lines.append(line)
+    return _sha256_text("\n".join(sorted(lines)))
+
+
+def _latest_ts(events: list[dict[str, Any]], *, event_type: str | None = None) -> str | None:
+    values = [
+        str(event.get("ts"))
+        for event in events
+        if event.get("ts") and (event_type is None or event.get("event_type") == event_type)
+    ]
+    return max(values) if values else None
+
+
+def _freshness_snapshot(root: Path, events: list[dict[str, Any]]) -> dict[str, Any]:
+    rc, head = _run(["git", "rev-parse", "--short", "HEAD"], root)
+    rc_branch, branch = _run(["git", "branch", "--show-current"], root)
+    return {
+        "branch": branch.strip() if rc_branch == 0 and branch.strip() else None,
+        "source_commit": head.strip() if rc == 0 and head.strip() else None,
+        "taskmaster_hash": _hash_file(root / TASKS_JSON_REL),
+        "brief_config_hash": _hash_file(root / BRIEF_REL),
+        "risk_seed_hash": _hash_file(root / RISK_SEED_REL),
+        "worktree_status_hash": _worktree_status_hash(root),
+        "latest_event_ts": _latest_ts(events),
+        "latest_gate_decision_ts": _latest_ts(events, event_type="gate_decision"),
+    }
 
 
 def _tasks_payload(root: Path) -> list[dict[str, Any]] | None:
@@ -426,7 +489,7 @@ def _consume_risk_seed(root: Path, meta: dict[str, Any]) -> list[dict[str, Any]]
     return register
 
 
-def compile_capsule(root: str | Path) -> dict[str, Any]:
+def compile_capsule(root: str | Path, reason: str = "manual") -> dict[str, Any]:
     """Compile the computed capsule stratum at read time. Never raises."""
 
     target = Path(root).resolve()
@@ -438,11 +501,15 @@ def compile_capsule(root: str | Path) -> dict[str, Any]:
     rc, head = _run(["git", "rev-parse", "--short", "HEAD"], target)
     head_commit = head.strip() if rc == 0 and head.strip() else None
     delivery = field_delivery_state(target, meta)
+    compile_reason = reason if reason in CAPSULE_COMPILE_REASONS else "manual"
+    freshness = _freshness_snapshot(target, events)
     capsule = {
         "capsule_meta": {
             "version": CAPSULE_VERSION,
             "compiled_at": utc_now_iso(),
+            "compile_reason": compile_reason,
             "source_commit": head_commit or STALE,
+            "freshness_snapshot": freshness,
             "ledger_events": len(events),
             "ledger_span": {
                 "first": events[0].get("ts") if events else None,
@@ -461,6 +528,82 @@ def compile_capsule(root: str | Path) -> dict[str, Any]:
     meta["last_compile_ts"] = capsule["capsule_meta"]["compiled_at"]
     _save_meta(store, meta)
     return capsule
+
+
+def capsule_status(root: str | Path) -> dict[str, Any]:
+    """Compare the last written capsule to current repo truth.
+
+    This is intentionally cheap and deterministic: it does not recompile the capsule,
+    it only computes freshness markers for the current repo and compares them to the
+    markers saved when current.json was last written.
+    """
+
+    target = Path(root).resolve()
+    current_path = target / CAPSULE_DIR_REL / "current.json"
+    current = _read_json(current_path)
+    ledger_lib, _store = _store_dir(target)
+    events = _read_events(target, ledger_lib)
+    now_snapshot = _freshness_snapshot(target, events)
+    if not isinstance(current, dict):
+        return {
+            "status": "stale",
+            "fresh": False,
+            "compiled_at": None,
+            "compile_reason": None,
+            "reasons": ["capsule current.json is missing or unreadable"],
+            "current": now_snapshot,
+            "compiled": None,
+        }
+    meta = current.get("capsule_meta") if isinstance(current.get("capsule_meta"), dict) else {}
+    compiled = meta.get("freshness_snapshot") if isinstance(meta.get("freshness_snapshot"), dict) else None
+    reasons: list[str] = []
+    if not compiled:
+        reasons.append("capsule lacks a freshness snapshot; recompile once with the current capsule runtime")
+        compiled = {}
+    labels = {
+        "branch": "branch changed",
+        "source_commit": "HEAD changed",
+        "taskmaster_hash": "Taskmaster state changed",
+        "brief_config_hash": "brief config changed",
+        "risk_seed_hash": "risk seed changed",
+        "worktree_status_hash": "worktree status changed",
+    }
+    for key, label in labels.items():
+        if compiled.get(key) != now_snapshot.get(key):
+            reasons.append(f"{label}: {compiled.get(key) or '<none>'} -> {now_snapshot.get(key) or '<none>'}")
+    for key, label in (
+        ("latest_gate_decision_ts", "new gate decisions recorded"),
+        ("latest_event_ts", "new ledger events recorded"),
+    ):
+        before = compiled.get(key)
+        after = now_snapshot.get(key)
+        if before and after and str(after) > str(before):
+            reasons.append(f"{label}: {before} -> {after}")
+        elif not before and after:
+            reasons.append(f"{label}: <none> -> {after}")
+    return {
+        "status": "fresh" if not reasons else "stale",
+        "fresh": not reasons,
+        "compiled_at": meta.get("compiled_at"),
+        "compile_reason": meta.get("compile_reason"),
+        "reasons": reasons,
+        "current": now_snapshot,
+        "compiled": compiled,
+    }
+
+
+def render_status(status: dict[str, Any]) -> str:
+    state = "fresh" if status.get("fresh") else "STALE"
+    lines = [
+        f"capsule status: {state}",
+        f"compiled_at: {status.get('compiled_at') or '<none>'}",
+        f"compile_reason: {status.get('compile_reason') or '<none>'}",
+    ]
+    reasons = status.get("reasons")
+    if isinstance(reasons, list) and reasons:
+        lines.append("stale reasons:")
+        lines.extend(f"- {reason}" for reason in reasons)
+    return "\n".join(lines) + "\n"
 
 
 def render_markdown(capsule: dict[str, Any]) -> str:
@@ -666,11 +809,14 @@ __all__ = [
     "CAPSULE_DIR_REL",
     "CHAR_BUDGET",
     "HOOK_HARD_CAP",
+    "CAPSULE_COMPILE_REASONS",
     "capsule_assignment",
+    "capsule_status",
     "check_capsule",
     "compile_capsule",
     "injection_enabled",
     "render_injection",
     "render_markdown",
+    "render_status",
     "write_capsule",
 ]

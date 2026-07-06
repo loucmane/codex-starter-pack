@@ -2918,7 +2918,9 @@ def session_start_hook() -> int:
     if not injected or brief_lib is None:
         return 0
     try:
-        capsule = brief_lib.compile_capsule(root)
+        source = str(data.get("source") or "")
+        reason = "session-start" if source == "startup" else "session-resume"
+        capsule = brief_lib.compile_capsule(root, reason=reason)
         text, _dropped = brief_lib.render_injection(capsule)
         brief_lib.write_capsule(root, capsule, brief_lib.render_markdown(capsule))
         print(text)
