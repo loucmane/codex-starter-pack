@@ -4326,11 +4326,13 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
         plan_status="completed",
     )
 
-    failed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+    failed = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
 
     assert failed["status"] == "failed"
+    assert failed["dry_run"] is True
+    assert failed["report_written"] is False
     assert failed["next_action"]["action"] == "repair_closeout_gates_before_retry"
-    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.closeout"
+    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.closeout_ready"
     repair_items = failed["repair_guidance"]["items"]
     changelog_repairs = [
         item
@@ -4342,6 +4344,17 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
     assert changelog_repairs
     assert "--surface changelog" in changelog_repairs[0]["command"]
     assert implementation_evidence in changelog_repairs[0]["command"]
+
+    passed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+    assert passed["status"] == "passed"
+    assert any(
+        item["surface"] == "changelog" and item["evidence"] == implementation_evidence
+        for item in passed["populate"]["updated_surfaces"]
+    )
+    changelog = (
+        target / passed["archived_work_tracking"]["to"] / "CHANGELOG.md"
+    ).read_text(encoding="utf-8")
+    assert implementation_evidence in changelog
 
 
 def test_closeout_evidence_tokenizer_preserves_table_escaped_compound_commands() -> None:
@@ -4789,7 +4802,15 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert strict_log["status"] == "logged"
 
     manifest_before_dry_run = (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
-    handoff_before_dry_run = (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8")
+    handoff_path = target / work_rel / "HANDOFF.md"
+    handoff_before_dry_run = handoff_path.read_text(encoding="utf-8")
+    handoff_before_dry_run = handoff_before_dry_run.replace(
+        "\n## Progress Log",
+        "\n## Current Issues/Blockers\n"
+        "- Operator-authored blocker context must remain intact.\n\n"
+        "## Progress Log",
+    )
+    handoff_path.write_text(handoff_before_dry_run, encoding="utf-8")
     dry_failed = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
     assert dry_failed["status"] == "failed"
     assert dry_failed["dry_run"] is True
@@ -4799,7 +4820,7 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert dry_failed["handoff"]["would_update"] is True
     assert not (target / AEGIS_CLOSEOUT_REPORT_REL).exists()
     assert (target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8") == manifest_before_dry_run
-    assert (target / work_rel / "HANDOFF.md").read_text(encoding="utf-8") == handoff_before_dry_run
+    assert handoff_path.read_text(encoding="utf-8") == handoff_before_dry_run
     concise_failed = run_cli(
         [
             "aegis",
@@ -4830,25 +4851,12 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert json_failed.returncode == 1
     assert json.loads(json_failed.stdout)["status"] == "failed"
 
-    failed = closeout(target, source_root=REPO_ROOT)
-    assert failed["status"] == "failed"
-    assert failed["next_action"]["action"] == "apply_handoff_repair_before_retry"
-    assert failed["next_action"]["suggested_mcp"]["tool"] == "aegis.handoff_repair"
-    assert failed["next_action"]["suggested_mcp"]["arguments"]["apply"] is True
-    assert (
-        "closeout.handoff.current_state"
-        in failed["next_action"]["details"]["failed_required_gates"]
-    )
-    assert any(
-        check["gate_id"] == "closeout.handoff.current_state" and check["status"] == "fail"
-        for check in failed["checks"]
-    )
-
-    passed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+    passed = closeout(target, source_root=REPO_ROOT)
     assert passed["status"] == "passed"
     assert passed["next_action"]["action"] == "run_post_closeout_doctor"
     assert passed["next_action"]["suggested_mcp"]["tool"] == "aegis.doctor"
     assert passed["summary"]["failed_required"] == 0
+    assert passed["handoff"]["updated"] is True
     assert passed["git"]["legacy_manual_only"] == ["gac"]
     assert 'git commit -m "<type(scope): summary>"' in passed["git"]["guidance"]
     concise_passed = aegis_installer.format_closeout_summary(passed)
@@ -4876,6 +4884,8 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert refreshed_work["task"]["status"] == "completed"
     assert refreshed_work["closeout_report"] == AEGIS_CLOSEOUT_REPORT_REL
     assert refreshed_work["paths"]["work_tracking"] == archive_rel
+    archived_handoff = (target / archive_rel / "HANDOFF.md").read_text(encoding="utf-8")
+    assert "Operator-authored blocker context must remain intact." in archived_handoff
     degraded_event = {
         "id": "degraded123",
         "created_at": "2026-06-01T17:00:00Z",
@@ -4937,6 +4947,170 @@ def test_closeout_requires_semantic_handoff_and_passes_with_update(tmp_path: Pat
     assert AEGIS_CLOSEOUT_REPORT_REL in handoff
     assert AEGIS_VERIFY_REPORT_REL in handoff
     assert report_rel in handoff
+
+
+def test_closeout_populates_path_lost_plan_evidence_before_final_closeout(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "path-lost-populate"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="path-lost", title="Path Lost")
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
+    session_rel = current_work["paths"]["session"]
+    work_rel = current_work["paths"]["work_tracking"]
+    report_rel = f"{current_work['paths']['reports']}/path-lost-evidence.txt"
+    (target / report_rel).write_text("path lost evidence\n", encoding="utf-8")
+
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed path-lost scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Write",
+        evidence=report_rel,
+        note="Recorded path-lost implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    strict = verify(target, source_root=REPO_ROOT, strict=True)
+    assert strict["status"] == "passed"
+    log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+
+    for path in (target / session_rel, target / work_rel / "TRACKER.md"):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        path.write_text(
+            "\n".join(line for line in lines if report_rel not in line).rstrip() + "\n",
+            encoding="utf-8",
+        )
+    session_before = (target / session_rel).read_text(encoding="utf-8")
+    tracker_before = (target / work_rel / "TRACKER.md").read_text(encoding="utf-8")
+    assert report_rel not in session_before
+    assert report_rel not in tracker_before
+    assert report_rel in (target / work_rel / "IMPLEMENTATION.md").read_text(encoding="utf-8")
+    assert report_rel in (target / work_rel / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    dry_run = closeout(target, source_root=REPO_ROOT, dry_run=True)
+    assert dry_run["status"] == "failed"
+    assert {
+        check["gate_id"]
+        for check in dry_run["checks"]
+        if check["required"] and check["status"] == "fail"
+    } >= {"closeout.evidence.session", "closeout.evidence.tracker"}
+    assert any(
+        item["surface"] == "session" and item["evidence"] == report_rel
+        for item in dry_run["populate"]["would_update_surfaces"]
+    )
+    assert (target / session_rel).read_text(encoding="utf-8") == session_before
+    assert (target / work_rel / "TRACKER.md").read_text(encoding="utf-8") == tracker_before
+
+    passed = closeout(target, source_root=REPO_ROOT)
+    assert passed["status"] == "passed"
+    assert any(
+        item["surface"] == "session" and item["evidence"] == report_rel
+        for item in passed["populate"]["updated_surfaces"]
+    )
+    assert any(
+        item["surface"] == "tracker" and item["evidence"] == report_rel
+        for item in passed["populate"]["updated_surfaces"]
+    )
+    archive_rel = passed["archived_work_tracking"]["to"]
+    assert report_rel in (target / session_rel).read_text(encoding="utf-8")
+    assert report_rel in (target / archive_rel / "TRACKER.md").read_text(encoding="utf-8")
+
+
+def test_closeout_populate_does_not_mask_pending_tracking_or_strict_verify(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "populate-negative"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="42", slug="populate-negative", title="Populate Negative")
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
+    work_rel = current_work["paths"]["work_tracking"]
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed populate-negative scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    pending_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "updated_at": "2026-06-13T12:00:00Z",
+                "events": [
+                    {
+                        "id": "pending-pop",
+                        "created_at": "2026-06-13T12:00:00Z",
+                        "updated_at": "2026-06-13T12:00:00Z",
+                        "tool": "Edit",
+                        "handler": "claude:Edit",
+                        "evidence": "src/example.py",
+                        "task": {"id": "42", "slug": "populate-negative"},
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = closeout(target, source_root=REPO_ROOT)
+
+    assert result["status"] == "failed"
+    failing = {
+        check["gate_id"]
+        for check in result["checks"]
+        if check["required"] and check["status"] == "fail"
+    }
+    assert "closeout.pending_tracking" in failing
+    assert "closeout.strict_verify" in failing
+    assert "closeout.handoff.implementation_evidence" not in failing
+    assert "closeout.handoff.verification_evidence" not in failing
+    assert result["populate"]["enabled"] is False
+    assert json.loads(pending_path.read_text(encoding="utf-8"))["events"][0]["id"] == "pending-pop"
 
 
 def test_handoff_repair_fixes_placeholder_handoff_before_closeout(tmp_path: Path) -> None:

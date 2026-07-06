@@ -10000,6 +10000,26 @@ def _replace_markdown_section(text: str, heading: str, body_lines: Sequence[str]
     return "\n".join(next_lines).rstrip() + "\n"
 
 
+def _replace_handoff_semantic_section(
+    text: str, heading: str, body_lines: Sequence[str]
+) -> str:
+    """Replace or insert a closeout-owned HANDOFF section before Progress Log."""
+
+    if any(line.strip() == heading for line in text.splitlines()):
+        return _replace_markdown_section(text, heading, body_lines)
+
+    lines = text.splitlines()
+    replacement = [heading, *body_lines]
+    for index, line in enumerate(lines):
+        if line.strip() == "## Progress Log":
+            insert_at = index
+            while insert_at > 0 and not lines[insert_at - 1].strip():
+                insert_at -= 1
+            next_lines = lines[:insert_at] + ["", *replacement] + lines[insert_at:]
+            return "\n".join(next_lines).rstrip() + "\n"
+    return _replace_markdown_section(text, heading, body_lines)
+
+
 def _first_markdown_title(text: str, fallback: str) -> str:
     for line in text.splitlines():
         if line.startswith("# "):
@@ -10032,13 +10052,44 @@ def _current_work_branch_name(current_work: Mapping[str, Any], paths: Mapping[st
     return path_branch if isinstance(path_branch, str) else ""
 
 
-def _render_closeout_handoff(
+def _strict_verify_report_is_green(target_root: Path) -> bool:
+    report = _read_json(target_root / AEGIS_VERIFY_REPORT_REL)
+    return (
+        isinstance(report, Mapping)
+        and report.get("mode") == "strict"
+        and report.get("status") == "passed"
+    )
+
+
+def _handoff_current_state_ok(current_state: str) -> bool:
+    return bool(current_state.strip()) and not (
+        "has been kicked off through Aegis" in current_state
+        and "ready for closeout validation" not in current_state
+    )
+
+
+_HANDOFF_KICKOFF_ONLY_PHRASES = (
+    "has been kicked off through Aegis",
+    "Confirm scope before implementation",
+    "Capture verification evidence",
+    "_Pending_",
+)
+
+
+def _handoff_next_steps_ok(next_steps: str) -> bool:
+    return bool(next_steps.strip()) and not any(
+        phrase in next_steps for phrase in _HANDOFF_KICKOFF_ONLY_PHRASES
+    )
+
+
+def _repair_closeout_handoff_text(
     existing_text: str,
     *,
     current_work: Mapping[str, Any],
     implementation_tokens: Sequence[str],
     verification_tokens: Sequence[str],
     strict_verify_rel: str,
+    strict_verify_report_green: bool,
 ) -> str:
     task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
@@ -10047,67 +10098,198 @@ def _render_closeout_handoff(
     title = str(task.get("title") or f"Task {task_id}")
     branch = _current_work_branch_name(current_work, paths)
     work_label = f"task{task_id}-{slug}" if task_id or slug else "current-work"
-    semantic_title = _first_markdown_title(
-        existing_text, f"# Task {task_id} {title} - Handoff Summary"
-    )
-    progress_log = _markdown_tail_from_heading(existing_text, "## Progress Log")
-    all_evidence = list(
-        dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel])
-    )
-    evidence_summary = (
-        ", ".join(f"`{token}`" for token in all_evidence) if all_evidence else "none available"
-    )
+    text = existing_text
+    if not text.strip():
+        text = _first_markdown_title(
+            existing_text, f"# Task {task_id} {title} - Handoff Summary"
+        )
 
-    lines = [
-        semantic_title,
-        "",
-        "## Current State",
-        f"- Task {task_id} `{slug}` is ready for closeout validation.",
-        f"- Title: {title}.",
-        f"- Branch: `{branch}`.",
-        f"- Current work: `{work_label}`.",
-        f"- Strict verification report: `{strict_verify_rel}`.",
-        f"- Closeout report target: `{AEGIS_CLOSEOUT_REPORT_REL}`.",
-        "",
-        "## What Was Done",
-        "- Completed scope, implementation, and verification plan steps through Aegis logging.",
-        "- Updated required workflow evidence across session, tracker, implementation, changelog, handoff, and plan surfaces.",
-        "- Prepared closeout evidence so final closeout can write the report without ad hoc handoff edits.",
-        "",
+    if not _handoff_current_state_ok(_markdown_section(text, "## Current State")):
+        text = _replace_handoff_semantic_section(
+            text,
+            "## Current State",
+            [
+                f"- Task {task_id} `{slug}` is ready for closeout validation.",
+                f"- Title: {title}.",
+                f"- Branch: `{branch}`.",
+                f"- Current work: `{work_label}`.",
+                f"- Strict verification report: `{strict_verify_rel}`.",
+                f"- Closeout report target: `{AEGIS_CLOSEOUT_REPORT_REL}`.",
+            ],
+        )
+
+    if not _handoff_next_steps_ok(_markdown_section(text, "## Next Steps")):
+        text = _replace_handoff_semantic_section(
+            text,
+            "## Next Steps",
+            [
+                f"1. Review `{AEGIS_CLOSEOUT_REPORT_REL}` after final closeout writes it.",
+                "2. Commit and open a pull request with normal git/GitHub commands when delegated.",
+                "3. Archive or continue the active work-tracking folder according to the project lifecycle.",
+            ],
+        )
+
+    handoff_verification_tokens = [
+        token
+        for token in verification_tokens
+        if token != strict_verify_rel or strict_verify_report_green
+    ]
+    text = _replace_handoff_semantic_section(
+        text,
         "## Implementation Evidence",
-        *_bullet_lines(
+        _bullet_lines(
             implementation_tokens, fallback="No implementation evidence tokens were available."
         ),
-        "",
+    )
+    text = _replace_handoff_semantic_section(
+        text,
         "## Verification Evidence",
-        *_bullet_lines(
-            verification_tokens,
+        _bullet_lines(
+            handoff_verification_tokens,
             fallback="No task-specific verification evidence tokens were available.",
         ),
-        "",
+    )
+    strict_lines = (
+        [f"- `{strict_verify_rel}`"]
+        if strict_verify_report_green
+        else ["- Strict verification report has not passed on disk."]
+    )
+    text = _replace_handoff_semantic_section(
+        text,
         "## Strict Verification Evidence",
-        f"- `{strict_verify_rel}`",
-        "",
-        "## Current Issues/Blockers",
-        "- None known at closeout.",
-        "",
-        "## Next Steps",
-        f"1. Review `{AEGIS_CLOSEOUT_REPORT_REL}` after final closeout writes it.",
-        "2. Commit and open a pull request with normal git/GitHub commands when delegated.",
-        "3. Archive or continue the active work-tracking folder according to the project lifecycle.",
-        "",
-        "## Important Context",
-        f"- Current work authority remains `{AEGIS_CURRENT_WORK_REL}` and final closeout marks it `completed`.",
-        f"- Session: `{paths.get('session', 'unknown')}`.",
-        f"- Plan: `{paths.get('plan', 'unknown')}`.",
-        f"- Active work-tracking: `{paths.get('work_tracking', 'unknown')}`.",
-        f"- Required closeout evidence: {evidence_summary}.",
-        "- Taskmaster and Serena are optional unless current work marks them required.",
-        "- Use normal git and GitHub commands by default. `gac` is legacy/manual only.",
-    ]
-    if progress_log:
-        lines.extend(["", progress_log])
-    return "\n".join(lines).rstrip() + "\n"
+        strict_lines,
+    )
+    return text.rstrip() + "\n"
+
+
+def _closeout_progress_line(
+    *,
+    now: datetime,
+    surface: str,
+    current_work: Mapping[str, Any],
+    handler: str,
+    evidence: str,
+    note: str,
+) -> str:
+    task = current_work.get("task") if isinstance(current_work.get("task"), Mapping) else {}
+    task_id = str(task.get("id") or "").strip()
+    slug = str(task.get("slug") or "").strip()
+    session_value = now.strftime("%Y%m%d")
+    work_context = f"task{task_id}-{slug}" if task_id or slug else "current-work"
+    swhe = f"[S:{session_value}|W:{work_context}|H:{handler}|E:{evidence}]"
+    if surface == "session":
+        return f"- **[{now.strftime('%H:%M')}]** - {swhe} {note}"
+    return f"- **{now.strftime('%Y-%m-%d %H:%M %Z').strip()}** - {swhe} {note}"
+
+
+def _populate_closeout_surfaces(
+    target_root: Path,
+    *,
+    current_work: Mapping[str, Any],
+    surface_paths: Mapping[str, Path],
+    surface_texts: MutableMapping[str, str],
+    evidence_matrix: Mapping[str, Mapping[str, bool]],
+    implementation_tokens: Sequence[str],
+    verification_tokens: Sequence[str],
+    strict_verify_rel: str,
+    strict_verify_report_green: bool,
+    dry_run: bool,
+) -> dict[str, Any]:
+    """Back-fill closeout-owned surface references from already-logged plan evidence."""
+
+    entries_by_evidence = _swhe_entries_by_evidence(surface_texts)
+    eligible_tokens = list(dict.fromkeys([*implementation_tokens, *verification_tokens]))
+    if strict_verify_rel in eligible_tokens and not strict_verify_report_green:
+        eligible_tokens = [token for token in eligible_tokens if token != strict_verify_rel]
+
+    report: dict[str, Any] = {
+        "dry_run": dry_run,
+        "strict_verify_report_green": strict_verify_report_green,
+        "eligible_tokens": eligible_tokens,
+        "updated_surfaces": [],
+        "would_update_surfaces": [],
+        "skipped": [],
+    }
+    now = datetime.now().astimezone().replace(microsecond=0)
+    progress_headings = {
+        "session": "### Progress Log",
+        "tracker": "## Progress Log",
+        "implementation": "## Progress Log",
+        "changelog": "## Progress Log",
+    }
+    for token in eligible_tokens:
+        present_entries = entries_by_evidence.get(token, [])
+        inferred = present_entries[0] if present_entries else {}
+        handler = str(inferred.get("handler") or "").strip()
+        note = str(inferred.get("note") or "").strip()
+        if not handler or not note:
+            report["skipped"].append(
+                {
+                    "evidence": token,
+                    "reason": "no_existing_swhe_entry_for_plan_evidence",
+                }
+            )
+            continue
+        for surface, heading in progress_headings.items():
+            if evidence_matrix.get(token, {}).get(surface):
+                continue
+            surface_path = surface_paths.get(surface)
+            if surface_path is None or not surface_path.is_file():
+                report["skipped"].append(
+                    {
+                        "surface": surface,
+                        "evidence": token,
+                        "reason": "surface_missing",
+                    }
+                )
+                continue
+            item = {"surface": surface, "evidence": token}
+            if dry_run:
+                report["would_update_surfaces"].append(item)
+                continue
+            line = _closeout_progress_line(
+                now=now,
+                surface=surface,
+                current_work=current_work,
+                handler=handler,
+                evidence=token,
+                note=note,
+            )
+            _append_progress_entry(surface_path, heading, line)
+            surface_texts[surface] = _read_text_or_empty(surface_path)
+            report["updated_surfaces"].append(item)
+
+    handoff_path = surface_paths.get("handoff")
+    if handoff_path is not None and handoff_path.is_file():
+        before = surface_texts.get("handoff", "")
+        repaired = _repair_closeout_handoff_text(
+            before,
+            current_work=current_work,
+            implementation_tokens=implementation_tokens,
+            verification_tokens=verification_tokens,
+            strict_verify_rel=strict_verify_rel,
+            strict_verify_report_green=strict_verify_report_green,
+        )
+        handoff_changed = repaired != before
+        report["handoff"] = {
+            "path": _repo_path(handoff_path, target_root),
+            "changed": handoff_changed,
+            "updated": handoff_changed and not dry_run,
+            "would_update": handoff_changed and dry_run,
+            "preserved_progress_log": "## Progress Log" in before,
+        }
+        if handoff_changed and not dry_run:
+            handoff_path.write_text(repaired, encoding="utf-8")
+            surface_texts["handoff"] = repaired
+    else:
+        report["handoff"] = {
+            "path": _repo_path(handoff_path, target_root) if handoff_path is not None else "",
+            "changed": False,
+            "updated": False,
+            "would_update": False,
+            "missing": True,
+        }
+    return report
 
 
 def _closeout_readiness(
@@ -10161,26 +10343,6 @@ def _closeout_readiness(
         "stderr": "",
         "checks": workflow_checks,
     }
-
-
-def _update_handoff_for_closeout(
-    target_root: Path,
-    *,
-    handoff_path: Path,
-    current_work: Mapping[str, Any],
-    implementation_tokens: Sequence[str],
-    verification_tokens: Sequence[str],
-    strict_verify_rel: str,
-) -> None:
-    text = _read_text_or_empty(handoff_path)
-    next_text = _render_closeout_handoff(
-        text,
-        current_work=current_work,
-        implementation_tokens=implementation_tokens,
-        verification_tokens=verification_tokens,
-        strict_verify_rel=strict_verify_rel,
-    )
-    handoff_path.write_text(next_text, encoding="utf-8")
 
 
 def _closeout_handoff_checks(
@@ -10592,12 +10754,13 @@ def repair_handoff(
     ]
     strict_verify_rel = _normalize_evidence(target_root, AEGIS_VERIFY_REPORT_REL)
     before_text = _read_text_or_empty(handoff_path)
-    repaired_text = _render_closeout_handoff(
+    repaired_text = _repair_closeout_handoff_text(
         before_text,
         current_work=current_work,
         implementation_tokens=implementation_tokens,
         verification_tokens=verification_tokens,
         strict_verify_rel=strict_verify_rel,
+        strict_verify_report_green=_strict_verify_report_is_green(target_root),
     )
     changed = repaired_text != before_text
     after: dict[str, Any] | None = None
@@ -10902,13 +11065,16 @@ def closeout(
         dict.fromkeys([*implementation_tokens, *verification_tokens, strict_verify_rel])
     )
 
+    surface_paths = {
+        "session": session_path,
+        "tracker": tracker_path,
+        "implementation": implementation_path,
+        "changelog": changelog_path,
+        "handoff": handoff_path,
+        "plan": plan_path,
+    }
     surface_texts = {
-        "session": _read_text_or_empty(session_path),
-        "tracker": _read_text_or_empty(tracker_path),
-        "implementation": _read_text_or_empty(implementation_path),
-        "changelog": _read_text_or_empty(changelog_path),
-        "handoff": _read_text_or_empty(handoff_path),
-        "plan": _read_text_or_empty(plan_path),
+        surface: _read_text_or_empty(path) for surface, path in surface_paths.items()
     }
     evidence_matrix = {
         token: {
@@ -10917,6 +11083,39 @@ def closeout(
         }
         for token in required_evidence
     }
+    strict_verify_report_green = _strict_verify_report_is_green(target_root)
+    populate_report: dict[str, Any] = {
+        "dry_run": dry_run,
+        "strict_verify_report_green": strict_verify_report_green,
+        "eligible_tokens": [],
+        "updated_surfaces": [],
+        "would_update_surfaces": [],
+        "skipped": [],
+        "enabled": False,
+        "reason": "strict verification must pass and pending tracking must be empty before population",
+    }
+    if not pending_events and strict_verify.get("status") == "passed":
+        populate_report = _populate_closeout_surfaces(
+            target_root,
+            current_work=current_work,
+            surface_paths=surface_paths,
+            surface_texts=surface_texts,
+            evidence_matrix=evidence_matrix,
+            implementation_tokens=implementation_tokens,
+            verification_tokens=verification_tokens,
+            strict_verify_rel=strict_verify_rel,
+            strict_verify_report_green=strict_verify_report_green,
+            dry_run=dry_run,
+        )
+        populate_report["enabled"] = True
+        if not dry_run:
+            evidence_matrix = {
+                token: {
+                    surface: _surface_contains_evidence(surface_texts[surface], token)
+                    for surface in surface_texts
+                }
+                for token in required_evidence
+            }
     for surface, text in surface_texts.items():
         missing = [
             token for token in required_evidence if not _surface_contains_evidence(text, token)
@@ -10932,43 +11131,6 @@ def closeout(
                 ),
                 category="evidence",
                 details={"missing": missing},
-            )
-        )
-
-    if update_handoff and not dry_run and handoff_path.is_file():
-        _update_handoff_for_closeout(
-            target_root,
-            handoff_path=handoff_path,
-            current_work=current_work,
-            implementation_tokens=implementation_tokens,
-            verification_tokens=verification_tokens,
-            strict_verify_rel=strict_verify_rel,
-        )
-        surface_texts["handoff"] = _read_text_or_empty(handoff_path)
-        evidence_matrix = {
-            token: {
-                surface: _surface_contains_evidence(surface_texts[surface], token)
-                for surface in surface_texts
-            }
-            for token in required_evidence
-        }
-        checks = [check for check in checks if check.get("gate_id") != "closeout.evidence.handoff"]
-        missing = [
-            token
-            for token in required_evidence
-            if not _surface_contains_evidence(surface_texts["handoff"], token)
-        ]
-        checks.append(
-            _closeout_check(
-                "closeout.evidence.handoff",
-                passed=not missing,
-                message=(
-                    "handoff references all required evidence"
-                    if not missing
-                    else "handoff is missing required evidence"
-                ),
-                category="evidence",
-                details={"missing": missing, "updated": True},
             )
         )
 
@@ -11052,9 +11214,11 @@ def closeout(
         "evidence_matrix": evidence_matrix,
         "handoff": {
             "path": _repo_path(handoff_path, target_root),
-            "updated": update_handoff and not dry_run,
-            "would_update": update_handoff and dry_run,
+            "updated": bool(populate_report.get("handoff", {}).get("updated")),
+            "would_update": bool(populate_report.get("handoff", {}).get("would_update")),
+            "update_handoff_requested": update_handoff,
         },
+        "populate": populate_report,
         "integrations": integration_report,
         "git": git_report,
         "repair_guidance": repair_guidance,
