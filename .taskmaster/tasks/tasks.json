@@ -7740,13 +7740,25 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-07-06T14:31:58.519Z"
+      },
+      {
+        "id": "227",
+        "title": "Wire capsule freshness boundary triggers",
+        "description": "Wire capsule compile reasons into real lifecycle boundaries so long-running sessions refresh the canonical capsule after delivery, task-status, verification, pre-delivery, and orientation events without per-mutation ceremony.",
+        "details": "Build on TM 226 / PR #244. Keep this additive: no PR-3 narration checkpoints, no surface retirement, no blocking gates. Add focused tests for boundary-triggered compile reasons and preserve read-only brief status behavior.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-07-06T15:25:26.040Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-06T14:31:58.519Z",
-      "taskCount": 225,
-      "completedCount": 217,
+      "lastModified": "2026-07-06T15:25:26.041Z",
+      "taskCount": 226,
+      "completedCount": 218,
       "tags": [
         "master"
       ]

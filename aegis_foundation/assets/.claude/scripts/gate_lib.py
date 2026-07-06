@@ -89,6 +89,10 @@ AEGIS_VERIFY_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+verify\b",
     re.IGNORECASE,
 )
+AEGIS_WITNESS_RE = re.compile(
+    r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+witness\b",
+    re.IGNORECASE,
+)
 AEGIS_CLOSEOUT_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+closeout\b",
     re.IGNORECASE,
@@ -2571,6 +2575,7 @@ DELIVERY_COMMAND_RE = re.compile(
     re.IGNORECASE,
 )
 TASKMASTER_TASKS_JSON_SUFFIX = ".taskmaster/tasks/tasks.json"
+CAPSULE_RISK_SEED_SUFFIX = ".aegis/capsule/risk-seed.json"
 AEGIS_BRIEF_REL = ".aegis/brief.json"
 TASK_BRANCH_RE = re.compile(r"task-?(\d+)", re.IGNORECASE)
 BARE_REDIRECT_OP_RE = re.compile(r"^(?:\d?>{1,2}|<|&>{1,2})$")
@@ -2754,6 +2759,45 @@ def _classify_record_event(data: dict[str, Any], payload: Payload | None, paths:
     return "unknown"
 
 
+def _bash_segment_is_any_pr_merge(segment: str) -> bool:
+    tokens = cleaned_shell_tokens(segment)
+    if len(tokens) < 3:
+        return False
+    if command_name(tokens[0]) != "gh" or tokens[1:3] != ["pr", "merge"]:
+        return False
+    args = tokens[3:]
+    if "--admin" in args or "--web" in args or option_value(tokens, "--repo") or "-R" in args:
+        return False
+    return any(method in args for method in {"--merge", "--squash", "--rebase"})
+
+
+def _capsule_compile_reason_for_event(
+    payload: Payload | None,
+    paths: list[str],
+    event_type: str,
+) -> str | None:
+    if any(path.endswith(CAPSULE_RISK_SEED_SUFFIX) for path in paths):
+        return "risk-register-change"
+    if any(path.endswith(TASKMASTER_TASKS_JSON_SUFFIX) for path in paths):
+        return "task-status-change"
+    if event_type == "verification":
+        return "verification"
+    if event_type == "task_truth":
+        return "task-status-change"
+    if payload is None or payload.tool_name != "Bash":
+        return None
+    command = bash_command(payload)
+    if AEGIS_WITNESS_RE.search(command):
+        return "pre-delivery"
+    if AEGIS_VERIFY_RE.search(command):
+        return "verification"
+    if TASKMASTER_SET_STATUS_RE.search(command):
+        return "task-status-change"
+    if any(_bash_segment_is_any_pr_merge(segment) for segment in command_segments(command)):
+        return "post-merge"
+    return None
+
+
 def ledger_record() -> int:
     """Append one passive ledger event for a hook payload (capsule PR-1b).
 
@@ -2818,6 +2862,9 @@ def ledger_record() -> int:
                 event_type = "verification"
                 extra["package"], extra["gate"] = matched
                 extra["commit"] = _record_head_commit(cwd_value)
+        capsule_reason = _capsule_compile_reason_for_event(payload, paths, event_type)
+        if capsule_reason:
+            extra["capsule_refresh_reason"] = capsule_reason
         event = {
             "session_id": data.get("session_id"),
             "branch": branch,
@@ -2845,6 +2892,8 @@ def ledger_record() -> int:
                     cwd=cwd_value,
                     brief=brief,
                 )
+            if capsule_reason:
+                _refresh_capsule_if_stale(root, reason=capsule_reason)
         finally:
             ledger.close()
     except Exception:  # noqa: BLE001 - the recorder must never break a session.
@@ -2862,6 +2911,22 @@ def _load_brief_lib_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _refresh_capsule_if_stale(root: Path, *, reason: str) -> None:
+    """Best-effort boundary refresh; never block hook execution."""
+
+    try:
+        brief_lib = _load_brief_lib_module()
+        if brief_lib is None:
+            return
+        status = brief_lib.capsule_status(root)
+        if status.get("fresh"):
+            return
+        capsule = brief_lib.compile_capsule(root, reason=reason)
+        brief_lib.write_capsule(root, capsule, brief_lib.render_markdown(capsule))
+    except Exception:  # noqa: BLE001 - capsule freshness must never break hooks.
+        return
 
 
 def session_start_hook() -> int:

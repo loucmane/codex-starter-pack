@@ -144,6 +144,21 @@ def _load_brief_lib(source_root: Path):
     return module
 
 
+def _refresh_capsule_if_stale(source_root: Path, target_dir: str, *, reason: str) -> dict[str, Any] | None:
+    """Refresh the computed capsule at workflow boundaries only when stale."""
+
+    try:
+        brief_lib = _load_brief_lib(source_root)
+        status = brief_lib.capsule_status(target_dir)
+        if status.get("fresh"):
+            return {"refreshed": False, "reason": reason, "status": status}
+        capsule = brief_lib.compile_capsule(target_dir, reason=reason)
+        brief_lib.write_capsule(target_dir, capsule, brief_lib.render_markdown(capsule))
+        return {"refreshed": True, "reason": reason, "status": status}
+    except Exception as exc:  # noqa: BLE001 - boundary refresh is advisory, never a gate.
+        return {"refreshed": False, "reason": reason, "error": str(exc)}
+
+
 def _load_witness_lib(source_root: Path):
     script = source_root / ".claude" / "scripts" / "witness_lib.py"
     spec = importlib.util.spec_from_file_location("_aegis_cli_witness_lib", script)
@@ -171,6 +186,7 @@ def handle_replay(args: argparse.Namespace) -> int:
 
 def handle_witness(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
+        _refresh_capsule_if_stale(source_root, args.target_dir, reason="pre-delivery")
         witness_lib = _load_witness_lib(source_root)
         report = witness_lib.run_witness(args.target_dir, base=args.base, ci_mode=args.ci)
         if args.json:
@@ -422,6 +438,7 @@ def handle_ledger(args: argparse.Namespace) -> int:
 
 def handle_next(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
+        _refresh_capsule_if_stale(source_root, args.target_dir, reason="orientation")
         payload = _aegis_installer.next_action(
             args.target_dir,
             source_root=source_root,
@@ -559,6 +576,7 @@ def handle_verify(args: argparse.Namespace) -> int:
             source_root=source_root,
             strict=args.strict,
         )
+        _refresh_capsule_if_stale(source_root, args.target_dir, reason="verification")
     _dump_json(payload)
     if payload.get("status") == "failed":
         print("Aegis verification failed", file=sys.stderr)
