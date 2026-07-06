@@ -2,7 +2,7 @@
 
 **Title:** One-shot closeout convergence for non-canonical usage (populate step)
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** None
 
