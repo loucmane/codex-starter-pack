@@ -20,11 +20,24 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GATE_LIB = REPO_ROOT / ".claude" / "scripts" / "gate_lib.py"
 LEDGER_LIB = REPO_ROOT / ".claude" / "scripts" / "ledger_lib.py"
+BRIEF_LIB = REPO_ROOT / ".claude" / "scripts" / "brief_lib.py"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "hook_payloads"
 
 sys.path.insert(0, str(REPO_ROOT))
 from scripts import _aegis_installer  # noqa: E402
 from aegis_foundation import cli  # noqa: E402
+
+
+def load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+brief_lib = load_module(BRIEF_LIB, "brief_lib_for_ledger_record_tests")
 
 
 def load_fixture_lines(name: str) -> list[dict[str, object]]:
@@ -147,6 +160,38 @@ def test_recorder_classifies_delivery_and_task_truth(tmp_path: Path) -> None:
     assert run_record(repo, state, json.dumps(tasks_json_edit)).returncode == 0
     kinds = [event["event_type"] for event in read_events(state) if event["event_type"] != "scope"]
     assert kinds == ["delivery", "task_truth", "task_truth"]
+
+
+def test_recorder_refreshes_capsule_for_boundary_events(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = make_repo(tmp_path)
+    state = tmp_path / "state"
+    monkeypatch.setenv("XDG_STATE_HOME", state.as_posix())
+    base = load_fixture_lines("PostToolUse")[0]
+
+    cases = (
+        ({"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=227 --status=done"}}, "task-status-change"),
+        ({"tool_name": "Bash", "tool_input": {"command": "aegis witness --target-dir ."}}, "pre-delivery"),
+        ({"tool_name": "Bash", "tool_input": {"command": "aegis verify --target-dir . --strict"}}, "verification"),
+        ({"tool_name": "Bash", "tool_input": {"command": "gh pr merge 244 --squash --delete-branch"}}, "post-merge"),
+        (
+            {
+                "tool_name": "Write",
+                "tool_input": {
+                    "file_path": (repo / ".aegis" / "capsule" / "risk-seed.json").as_posix(),
+                    "content": "[]",
+                },
+            },
+            "risk-register-change",
+        ),
+    )
+
+    for update, expected_reason in cases:
+        payload = dict(base)
+        payload.update(update)
+        assert run_record(repo, state, json.dumps(payload)).returncode == 0
+        capsule = json.loads((repo / ".aegis" / "capsule" / "current.json").read_text(encoding="utf-8"))
+        assert capsule["capsule_meta"]["compile_reason"] == expected_reason
+        assert brief_lib.capsule_status(repo)["status"] == "fresh"
 
 
 def test_recorder_records_session_boundaries(tmp_path: Path) -> None:

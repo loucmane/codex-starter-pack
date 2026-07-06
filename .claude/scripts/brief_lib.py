@@ -177,6 +177,18 @@ def _latest_ts(events: list[dict[str, Any]], *, event_type: str | None = None) -
     return max(values) if values else None
 
 
+def _latest_event_id(events: list[dict[str, Any]], *, event_type: str | None = None) -> str | None:
+    values = [
+        (
+            str(event.get("ts") or ""),
+            str(event.get("event_id") or ""),
+        )
+        for event in events
+        if event.get("event_id") and (event_type is None or event.get("event_type") == event_type)
+    ]
+    return max(values)[1] if values else None
+
+
 def _freshness_snapshot(root: Path, events: list[dict[str, Any]]) -> dict[str, Any]:
     rc, head = _run(["git", "rev-parse", "--short", "HEAD"], root)
     rc_branch, branch = _run(["git", "branch", "--show-current"], root)
@@ -187,8 +199,12 @@ def _freshness_snapshot(root: Path, events: list[dict[str, Any]]) -> dict[str, A
         "brief_config_hash": _hash_file(root / BRIEF_REL),
         "risk_seed_hash": _hash_file(root / RISK_SEED_REL),
         "worktree_status_hash": _worktree_status_hash(root),
+        "event_count": len(events),
         "latest_event_ts": _latest_ts(events),
+        "latest_event_id": _latest_event_id(events),
+        "gate_decision_count": sum(1 for event in events if event.get("event_type") == "gate_decision"),
         "latest_gate_decision_ts": _latest_ts(events, event_type="gate_decision"),
+        "latest_gate_decision_id": _latest_event_id(events, event_type="gate_decision"),
     }
 
 
@@ -567,20 +583,25 @@ def capsule_status(root: str | Path) -> dict[str, Any]:
         "brief_config_hash": "brief config changed",
         "risk_seed_hash": "risk seed changed",
         "worktree_status_hash": "worktree status changed",
+        "event_count": "new ledger events recorded",
+        "gate_decision_count": "new gate decisions recorded",
     }
     for key, label in labels.items():
         if compiled.get(key) != now_snapshot.get(key):
             reasons.append(f"{label}: {compiled.get(key) or '<none>'} -> {now_snapshot.get(key) or '<none>'}")
-    for key, label in (
-        ("latest_gate_decision_ts", "new gate decisions recorded"),
-        ("latest_event_ts", "new ledger events recorded"),
+    for ts_key, id_key, label in (
+        ("latest_gate_decision_ts", "latest_gate_decision_id", "new gate decisions recorded"),
+        ("latest_event_ts", "latest_event_id", "new ledger events recorded"),
     ):
-        before = compiled.get(key)
-        after = now_snapshot.get(key)
-        if before and after and str(after) > str(before):
-            reasons.append(f"{label}: {before} -> {after}")
-        elif not before and after:
-            reasons.append(f"{label}: <none> -> {after}")
+        before_ts = compiled.get(ts_key)
+        after_ts = now_snapshot.get(ts_key)
+        before_id = compiled.get(id_key)
+        after_id = now_snapshot.get(id_key)
+        if before_id != after_id:
+            reasons.append(
+                f"{label}: {before_ts or '<none>'}/{before_id or '<none>'} -> "
+                f"{after_ts or '<none>'}/{after_id or '<none>'}"
+            )
     return {
         "status": "fresh" if not reasons else "stale",
         "fresh": not reasons,
