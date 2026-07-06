@@ -2,7 +2,7 @@
 
 **Title:** Wire capsule freshness boundary triggers
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** None
 
