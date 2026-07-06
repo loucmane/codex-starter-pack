@@ -18,3 +18,7 @@
   safety regressions. Surfaced minor guidance/test-strength gaps (all-terminal ledger wording,
   absent+PRD signal, weak helper, bounded read) — folded in. Reusable: the suite is parallel-safe
   and the state machine is now the canonical place for fresh-project routing.
+- 2026-07-03 — Capsule dogfood finding: the owner workflow is resume-heavy rather than
+  cold-start-heavy, so the cold-start A/B falsifier is not the right blocking gate for this
+  deployment. The useful signal is resume-time drift refresh: stale branch/PR/task/test/risk state
+  corrected before continuing work.

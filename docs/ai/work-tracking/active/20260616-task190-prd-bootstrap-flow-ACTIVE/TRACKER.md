@@ -2,7 +2,7 @@
 
 **Started**: 2026-06-16
 **Status**: ACTIVE
-**Last Updated**: 2026-06-16
+**Last Updated**: 2026-07-03
 
 ## Goals
 - [x] next_action emits no_taskmaster / taskmaster_empty / prd_available_not_parsed / prd_parsed_tasks_pending / first_task_ready
@@ -19,6 +19,8 @@
 - **2026-06-16** — [S:20260616|W:task190-prd-bootstrap-flow|H:workflow:adversarial-review|E:docs/ai/work-tracking/active/20260616-task190-prd-bootstrap-flow-ACTIVE/DECISIONS.md] Adversarial review verdict ship (no must-fix); folded in cheap polish (bounded/binary PRD read, no_taskmaster surfaces PRD, softened wording, tighter test helper)
 - **2026-06-16** — [S:20260616|W:task190-prd-bootstrap-flow|H:pytest|E:docs/ai/work-tracking/active/20260616-task190-prd-bootstrap-flow-ACTIVE/reports/task190-prd-bootstrap-flow/tests-2026-06-16-final.txt] Verify: 12 new tests + 4 updated; full suite 1699 passed (parallel)
 - **2026-06-16** — [S:20260616|W:task190-prd-bootstrap-flow|H:serena/memory|E:.serena/memories/task190-prd-bootstrap-flow.md] Captured Task 190 Serena memory.
+- **2026-07-03** — [S:20260703|W:task190-prd-bootstrap-flow|H:task-master:update-task|E:.taskmaster/tasks/tasks.json] Updated Taskmaster roadmap tasks 208 and 210 to make capsule PR-3/PR-4 resume-drift gated for the owner workflow, with generated task files refreshed.
+- **2026-07-03** — [S:20260703|W:task190-prd-bootstrap-flow|H:serena/memory|E:.serena/memories/task190-prd-bootstrap-flow.md] Reused the Task 190 Serena memory context while recording the capsule resume-drift planning update.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Reconciled current bootstrap; design workflow; empty-state + PRD detection + 5-state dispatch

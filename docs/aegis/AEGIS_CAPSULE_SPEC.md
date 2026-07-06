@@ -116,9 +116,9 @@ dogfoodable. Cross-references elsewhere in this doc to "PR-1…PR-4" mean these 
 | **1d** Gate registry + verification classification | `.aegis/brief.json`, command-pattern matching, exit-class enum — isolated on purpose: command normalization is the subtle, riskier part | fixture suite incl. cd-prefix/`-C`/`--dir` variants |
 | **2a** Computed `aegis brief` | all computed fields + sentinel 5 + canary; no injection | `brief` output matches independently-checked HP-Coach reality |
 | **2b** SessionStart injection | hook + `--inject`, char budget, degradation, timeouts, falsifier stamping — first user-visible capsule | acceptance §8 items 1–4, 6 |
-| **3** Narration | deterministic Stop checkpoints + lazy per-session distill | only after the computed capsule proves useful |
+| **3** Narration | deterministic Stop checkpoints + lazy per-session distill | optional until computed capsules prove insufficient to preserve intent across real resumes |
 | **3.5** Delivery witness v0 | deterministic boundary check from ledger + git + scope records (§5.1): scope↔diff accounting, verification-on-record at HEAD, task-flip containment; wired as a **required GitHub check** | runs as a required check on a real PR; zero LLM |
-| **4** Retirement | §5.2, both repos | **gated on**: witness v0 live as a required PR check + ledger live + capsule in use + §7 falsifier window run |
+| **4** Retirement | §5.2, both repos | **gated on**: witness v0 live as a required PR check + ledger live + capsule in use + resume-drift evidence that old scaffolding can be retired without losing delivery discipline |
 
 Build order is strict: the passive ledger core ships first with zero behavior change;
 injection only once recording is reliable; and **boundary checks exist before the old
@@ -403,7 +403,9 @@ check before §5.2 ships.
 
 The capsule must not become the seventh rotting state surface. **Timing (dev-decided): ships
 LAST, gated on** witness v0 live as a required PR check + ledger live + capsule in real use +
-the §7 falsifier window run. Flipping defaults (including advisory-as-default for fresh
+resume-drift evidence that the old scaffolding can be retired without losing delivery
+discipline. Cold-start A/B is a secondary deployment gate for headless/new-user repos, not
+the owner-workflow blocker. Flipping defaults (including advisory-as-default for fresh
 installs) before the measurement and the boundary checks exist would repeat the exact
 "workflow changed before measurement" mistake this program convicts v1 of. Scope:
 
@@ -460,34 +462,63 @@ scope per §3.2 so it doesn't nag about surfaces this PR retired.
 - Sentinel breadth beyond the 5 checks (next up: mtime-direction sync pairs, script-name
   existence, path-exists, ~/.claude memory files as sentinel input).
 - Capsule-archive structured queries (keep last-N flat files keyed by session_id).
-- Richer narration (earn it after the falsifier proves the capsule is used — the §3.1
-  schema-level constraint is the v1 ceiling).
+- Richer narration (earn it only if computed capsules prove insufficient to preserve intent
+  across real resumes — the §3.1 schema-level constraint is the v1 ceiling).
 - Codex-adapter polish (Codex CLI hooks are near-isomorphic — PostToolUse ledger append +
   SessionStart injection port almost verbatim; Codex has NO SessionEnd, which the lazy
   compile-on-read design already tolerates by construction).
 
 ## 7. Metrics + the falsifier protocol (build FIRST, it gates everything)
 
-Instrument before investing in depth features:
-- **Cold-start cost:** tool calls (and tokens where visible) from session start to **first
-  meaningful action**, defined operationally: the first successful mutation event
-  (Edit/Write/NotebookEdit, or Bash classified as mutation) recorded for that session_id whose
-  target is outside `.aegis/` and `~/.claude/`. Computed retrospectively from the ledger;
-  SessionStart only stamps session_begin + the capsule_on/off flag. **Secondary metrics**
-  (recorded alongside — a tiny unrelated write can make the primary noisy): first
-  *source/project* mutation (target under the repo's declared `source_roots` in brief.json)
-  and first non-governance investigation command. **A/B mechanism (amended 2026-06-11,
-  owner-approved):** deterministic per-session assignment — `"ab_assignment": "session-hash"`
-  in brief.json makes SessionStart pick the arm from sha256(session_id) parity; the unit of
-  analysis is the genuine cold start (`session_begin` with source `startup`; resume/clear/
-  compact stamps are excluded). `AEGIS_CAPSULE` env remains the owner override and
-  `{"inject": false}` a hard off. **Stopping rule:** fixed-n, not fixed-time — decide once
-  each arm has ≥15 genuine cold starts (`aegis ab` reports per-arm counts and rule status);
-  this supersedes the original calendar-day alternation and 2-week window. Known biases,
-  accepted: carryover through handoff files attenuates the delta toward zero (harsher on the
-  capsule), and arms are unblinded. Baselines
-  on record: 30-50 reconnaissance calls on a normal morning; 378k tokens when trust collapsed
-  entirely.
+Instrument before investing in depth features. The capsule now has two evaluation tracks:
+
+### Track A — resume-heavy operator workflow (primary for this deployment)
+
+The owner normally resumes or compacts a long-running session. For that workflow, the capsule
+is not primarily a cold-start accelerator; it is a **resume-time drift refresh** that
+revalidates repo/task/PR/test/risk state before work continues.
+
+Primary question: on resume or compact, did the capsule correct stale conversation
+assumptions and help choose the right next action with less rediscovery?
+
+Signals:
+
+- stale verification state caught after HEAD moved
+- branch or PR state corrected
+- Taskmaster/task truth corrected
+- uncommitted or unshipped work surfaced
+- risk-register item re-surfaced with a useful close condition
+- drift sentinel caught stale docs or state
+- capsule changed or validated the next action
+- false/noisy capsule items stayed rare
+
+Keep criterion for this deployment: over real resumes/compactions, the capsule stays fast and
+small, surfaces meaningful drift or open loops with low noise, and preserves delivery
+discipline. PR-3 narration and PR-4 retirement are dogfood-gated follow-ons, not automatic
+next steps: narration ships only if computed capsules are insufficient to preserve intent;
+retirement ships only after witness v0 is a required PR check and resume-drift evidence shows
+old scaffolding is redundant.
+
+### Track B — cold-start/headless/new-agent workflow (secondary here, primary elsewhere)
+
+Cold-start cost remains a valid product metric for headless agents, scheduled agents, new
+users, and deployments that naturally start fresh sessions. Tool calls (and tokens where
+visible) are measured from session start to the first correct decision/action. The older
+tool-calls-to-first-mutation metric is retained only as a secondary signal because a
+well-oriented agent may correctly choose not to mutate.
+
+SessionStart stamps session_begin + capsule_on/off only; metrics are computed
+retrospectively from the ledger. Deterministic per-session assignment
+(`"ab_assignment": "session-hash"` in brief.json) remains available for cold-start-heavy
+deployments; `AEGIS_CAPSULE` env remains the owner override and `{"inject": false}` a hard
+off. Genuine cold-start analysis uses `session_begin` with source `startup`; resume/clear/
+compact stamps belong to Track A.
+
+**Stopping rule for Track B:** for cold-start-heavy deployments, decide only once each arm
+reaches the configured fixed-n threshold; this supersedes the original calendar-day alternation.
+
+Baselines on record: 30-50 reconnaissance calls on a normal morning; 378k tokens when trust
+collapsed entirely.
 - **Ceremony count:** governance tool-calls per session, target ≈0. Baselines: ~47% of tool
   calls during enforced-mode implementation were governance bookkeeping (the founding
   measurement — `docs/aegis/AEGIS_VNEXT_PROGRAM.md` §1, codex repo); advisory-era echo: ~51
@@ -496,11 +527,11 @@ Instrument before investing in depth features:
   days for STATUS.md; target: next session start).
 - **Overhead (G4):** hook p95 latency + ledger bytes/session, emitted from day one.
 
-**Kill criterion, stated in advance:** today's scan happened with THREE injected/available
-context surfaces already present (CLAUDE.md, auto-memory, STATUS.md on disk) — the burden of
-proof is on the capsule. If tool-calls-before-first-meaningful-action does not move by the
-time the fixed-n stopping rule is met, keep Loop 1 as a flight recorder and **kill Loop 3
-without sentiment**.
+**Kill criteria, stated in advance:** the burden of proof is on the capsule. For the owner's
+resume-heavy workflow, trim or disable Loop 3 if real resumes show mostly obvious/noisy output
+and no next-action effect. For cold-start-heavy deployments, keep the original fixed-n
+cold-start A/B as a deployment-specific gate. In either track, keep Loop 1 as a flight
+recorder even if Loop 3 fails.
 
 **The final test (dev-stated, governs the whole phase):** not whether the system feels
 elegant — whether "let's continue" starts producing useful work in fewer tool calls, with
