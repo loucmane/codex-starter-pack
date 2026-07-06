@@ -7662,13 +7662,14 @@
       {
         "id": "220",
         "title": "Closeout populate step for path-lost evidence sub-mode",
-        "description": "Follow-up to TM 218 (which shipped the demotion fix recovering the canonical HP-Coach case). Residual: the PATH-LOST sub-mode — where the changed-file path event itself was lost from session/tracker (path present only in IMPLEMENTATION/CHANGELOG, SHA only in CHANGELOG) — still fails closeout.evidence.session/.tracker because stable-key matching needs a candidate path/SHA already in the surface to match against, and those surfaces have neither. Per the TM 218 design+adversarial workflow (verdict needs-populate-step), the fix is a BOUNDED populate that back-fills session/tracker progress lines ONLY for plan-step evidence whose artifact exists on disk OR whose SHA is in git history (never free-text), idempotent, dry_run read-only. This is the same artifact-gated populate as TM 217; decide whether to subsume 217 or keep separate. Invariant unchanged: strict_verify + pending_tracking independently gate. Note: HP-Coach's actual task-80 incident is the canonical mode (recovered by TM 218 demotion), NOT this sub-mode, so this is robustness, not an active blocker.",
-        "details": "",
-        "testStrategy": "",
-        "status": "pending",
+        "description": "Resolution: no additional implementation is needed for this task. The path-lost closeout populate sub-mode was subsumed by Task 217 and shipped in PR #241 / commit c5cc544 (`fix: populate closeout evidence from logged plan rows`). Current production code already includes the bounded closeout surface populate path in `scripts/_aegis_installer.py` and the packaged asset mirror `aegis_foundation/assets/scripts/_aegis_installer.py`. Preserve this task as closed-by-existing-implementation evidence rather than adding duplicate code.",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
-        "subtasks": []
+        "details": "Codebase verification found `_populate_closeout_surfaces` in `scripts/_aegis_installer.py`. The function back-fills closeout-owned progress lines from already-logged plan evidence using existing S:W:H:E entries, updates only closeout evidence surfaces (`session`, `tracker`, `implementation`, `changelog`) plus deterministic handoff repair, and preserves dry-run read-only behavior through `would_update_surfaces`. The closeout flow invokes this populate step only when pending tracking is empty and strict verification has passed, preserving the invariant that `strict_verify` and `pending_tracking` independently gate final closeout. The same `_populate_closeout_surfaces` implementation is present in the packaged runtime asset at `aegis_foundation/assets/scripts/_aegis_installer.py`, so installed targets receive the shipped behavior. The exact path-lost regression exists at `tests/meta_workflow_guard/test_aegis_installer.py::test_closeout_populates_path_lost_plan_evidence_before_final_closeout`: it removes implementation evidence from session/tracker while leaving it in implementation/changelog, asserts dry-run reports session/tracker population without mutating files, then asserts normal closeout passes and records updated session/tracker surfaces. No new code should be added under Task 220; future work should only adjust this area if the existing Task 217/PR #241 implementation regresses.",
+        "testStrategy": "Verified with `pytest -q tests/meta_workflow_guard/test_aegis_installer.py::test_closeout_populates_path_lost_plan_evidence_before_final_closeout`; result: 1 passed. Keep this regression as the acceptance test for Task 220's path-lost sub-mode coverage, along with source/packaged asset parity for `_populate_closeout_surfaces`.",
+        "subtasks": [],
+        "updatedAt": "2026-07-06T17:47:25.483Z"
       },
       {
         "id": "221",
@@ -7786,9 +7787,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-06T17:02:53.300Z",
+      "lastModified": "2026-07-06T17:47:25.483Z",
       "taskCount": 228,
-      "completedCount": 220,
+      "completedCount": 221,
       "tags": [
         "master"
       ]
