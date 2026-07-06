@@ -293,6 +293,32 @@ def test_cli_brief_status_reports_freshness(repo: Path) -> None:
     assert "capsule status: fresh" in fresh.stdout
 
 
+def test_capsule_status_tracks_dirty_tracked_file_content_changes(repo: Path) -> None:
+    tracked = repo / "seed.txt"
+    tracked.write_text("dirty one\n", encoding="utf-8")
+    capsule = brief_lib.compile_capsule(repo, reason="manual")
+    brief_lib.write_capsule(repo, capsule, brief_lib.render_markdown(capsule))
+    assert brief_lib.capsule_status(repo)["status"] == "fresh"
+
+    tracked.write_text("dirty two\n", encoding="utf-8")
+    stale = brief_lib.capsule_status(repo)
+    assert stale["status"] == "stale"
+    assert any("worktree status changed" in reason for reason in stale["reasons"])
+
+
+def test_capsule_status_tracks_dirty_untracked_file_content_changes(repo: Path) -> None:
+    scratch = repo / "scratch.txt"
+    scratch.write_text("scratch one\n", encoding="utf-8")
+    capsule = brief_lib.compile_capsule(repo, reason="manual")
+    brief_lib.write_capsule(repo, capsule, brief_lib.render_markdown(capsule))
+    assert brief_lib.capsule_status(repo)["status"] == "fresh"
+
+    scratch.write_text("scratch two\n", encoding="utf-8")
+    stale = brief_lib.capsule_status(repo)
+    assert stale["status"] == "stale"
+    assert any("worktree status changed" in reason for reason in stale["reasons"])
+
+
 def test_check_fails_over_char_budget(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(brief_lib, "CHAR_BUDGET", 10)
     ok, problems = brief_lib.check_capsule(repo)

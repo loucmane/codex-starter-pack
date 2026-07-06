@@ -36,6 +36,7 @@ ENFORCEMENT_REL = ".aegis/state/enforcement.json"
 TASKS_JSON_REL = ".taskmaster/tasks/tasks.json"
 BRIEF_META_FILENAME = "brief-meta.json"
 STALE = "STALE — recheck"
+UNTRACKED_CONTENT_HASH_LIMIT_BYTES = 1_000_000
 CAPSULE_COMPILE_REASONS = (
     "session-start",
     "session-resume",
@@ -156,15 +157,43 @@ def _generated_capsule_status_path(rel: str) -> bool:
     return normalized.startswith(".aegis/")
 
 
+def _dirty_path_content_marker(root: Path, status: str, rel: str) -> str:
+    """Return a bounded content marker for a dirty path in the freshness hash."""
+    if "D" in status:
+        return "deleted"
+    path = root / rel
+    if not path.is_file():
+        return "not-file"
+    if status == "??":
+        try:
+            size = path.stat().st_size
+        except OSError:
+            return "untracked-unreadable"
+        if size > UNTRACKED_CONTENT_HASH_LIMIT_BYTES:
+            return f"untracked-oversize:{size}"
+        digest = _hash_file(path)
+        return f"untracked:{digest or 'unreadable'}"
+    rc, blob = _run(["git", "hash-object", "--", rel], root)
+    if rc == 0 and blob.strip():
+        return f"blob:{blob.strip()}"
+    return "tracked-unhashable"
+
+
 def _worktree_status_hash(root: Path) -> str | None:
     rc, porcelain = _run(["git", "status", "--porcelain"], root)
     if rc != 0:
         return None
     lines: list[str] = []
     for line in porcelain.splitlines():
-        if len(line) > 3 and _generated_capsule_status_path(line[3:].strip()):
+        if len(line) <= 3:
             continue
-        lines.append(line)
+        status = line[:2]
+        rel = line[3:].strip()
+        if " -> " in rel:
+            rel = rel.rsplit(" -> ", 1)[1]
+        if _generated_capsule_status_path(rel):
+            continue
+        lines.append(f"{line} {_dirty_path_content_marker(root, status, rel)}")
     return _sha256_text("\n".join(sorted(lines)))
 
 
