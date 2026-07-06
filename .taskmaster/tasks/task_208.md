@@ -2,7 +2,7 @@
 
 **Title:** Capsule PR-3: narration
 
-**Status:** pending
+**Status:** deferred
 
 **Dependencies:** 207 ✓
 
@@ -36,7 +36,7 @@ Cover acceptance section 8 items 5 and 7 only after the resume-drift gate is met
 
 ### 208.1. Collect resume-drift dogfood gate evidence
 
-**Status:** pending
+**Status:** done
 **Dependencies:** None
 
 Capture real resume/compact examples proving computed capsules are useful but insufficient for preserving intent or explaining next actions, with low-noise evidence recorded before implementation starts.
