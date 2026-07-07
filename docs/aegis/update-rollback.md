@@ -17,7 +17,10 @@ The dry-run form writes no target files. The apply form refuses unsafe overwrite
 manual-review install operations, writes `.aegis/reports/update-report.json`, preserves
 the target's current enforcement mode, and reports verification failures without hiding
 them. Verification failures caused by old workflow state are evidence to review; they do
-not make a successful managed-asset refresh look like a failed update.
+not make a successful managed-asset refresh look like a failed update. The update report
+also exposes those stale-state findings under `workflow_state_evidence` so operators can
+distinguish update failures from inherited residue such as stale current-work folders,
+branch/task mismatch, missing workflow report directories, or pending-tracking queues.
 
 Use the lower-level flow when you need to inspect each step manually.
 

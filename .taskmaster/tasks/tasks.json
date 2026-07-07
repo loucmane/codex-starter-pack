@@ -7811,13 +7811,27 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-07-07T10:44:39.666Z"
+      },
+      {
+        "id": "232",
+        "title": "Clarify update workflow-state evidence",
+        "description": "Expose strict workflow-state verification failures in Aegis project update reports as workflow_state_evidence so stale current-work or pending-tracking residue is clearly evidence, not a failed managed refresh.",
+        "details": "Keep the change scoped to the project_update report schema, docs, and tests. Add a workflow_state_evidence object derived from strict verification results; include only workflow-state residue gates such as workflow.* and mutation.pending_tracking_empty. Preserve project_update status semantics: managed refreshes still pass when runtime/install/capsule operations are safe and successful, even when strict workflow-state evidence is present. Do not implement fleet update.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "231"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-07-07T14:21:45.972Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-07T10:44:39.667Z",
-      "taskCount": 230,
-      "completedCount": 225,
+      "lastModified": "2026-07-07T14:21:45.972Z",
+      "taskCount": 231,
+      "completedCount": 226,
       "tags": [
         "master"
       ]

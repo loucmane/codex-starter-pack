@@ -1702,6 +1702,67 @@ def _update_product_file_safety(plan: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+WORKFLOW_STATE_EVIDENCE_GATE_IDS = {"mutation.pending_tracking_empty"}
+WORKFLOW_STATE_EVIDENCE_PREFIXES = ("workflow.",)
+
+
+def _is_workflow_state_evidence_check(check: Mapping[str, Any]) -> bool:
+    gate_id = str(check.get("gate_id") or check.get("id") or "")
+    category = str(check.get("category") or "")
+    return (
+        category == "workflow"
+        or gate_id.startswith(WORKFLOW_STATE_EVIDENCE_PREFIXES)
+        or gate_id in WORKFLOW_STATE_EVIDENCE_GATE_IDS
+    )
+
+
+def _update_workflow_state_evidence(verification: Mapping[str, Any] | None) -> dict[str, Any]:
+    note = (
+        "Strict workflow-state verification failures are update evidence only. They do not "
+        "change project_update status unless runtime, managed-asset, or capsule apply fails "
+        "or is refused."
+    )
+    if not isinstance(verification, Mapping):
+        return {
+            "status": "not_run",
+            "source": "aegis verify --strict",
+            "failed_required": 0,
+            "gate_ids": [],
+            "checks": [],
+            "note": note,
+        }
+
+    failed: list[dict[str, Any]] = []
+    checks = verification.get("checks")
+    if isinstance(checks, list):
+        for check in checks:
+            if not isinstance(check, Mapping):
+                continue
+            if check.get("required") is not True or check.get("status") != "fail":
+                continue
+            if not _is_workflow_state_evidence_check(check):
+                continue
+            details = check.get("details")
+            failed.append(
+                {
+                    "gate_id": str(check.get("gate_id") or check.get("id") or ""),
+                    "category": str(check.get("category") or ""),
+                    "status": str(check.get("status") or ""),
+                    "message": str(check.get("message") or ""),
+                    "details": dict(details) if isinstance(details, Mapping) else {},
+                }
+            )
+
+    return {
+        "status": "present" if failed else "clean",
+        "source": "aegis verify --strict",
+        "failed_required": len(failed),
+        "gate_ids": [item["gate_id"] for item in failed],
+        "checks": failed,
+        "note": note,
+    }
+
+
 def project_update(
     target_dir: str | Path,
     *,
@@ -1765,6 +1826,7 @@ def project_update(
         },
         "product_file_safety": safety,
         "verification": verification_preview,
+        "workflow_state_evidence": _update_workflow_state_evidence(verification_preview),
         "capsule": capsule,
         "enforcement": _read_enforcement_state(target_root),
         "report_path": AEGIS_UPDATE_REPORT_REL if apply else None,
@@ -1825,6 +1887,7 @@ def project_update(
             "applied": install_applied,
         },
         "verification": verification,
+        "workflow_state_evidence": _update_workflow_state_evidence(verification),
         "capsule": capsule_applied,
         "enforcement": _read_enforcement_state(target_root),
     }
