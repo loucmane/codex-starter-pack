@@ -34,6 +34,7 @@ RISK_SEED_REL = ".aegis/capsule/risk-seed.json"
 BRIEF_REL = ".aegis/brief.json"
 ENFORCEMENT_REL = ".aegis/state/enforcement.json"
 TASKS_JSON_REL = ".taskmaster/tasks/tasks.json"
+CURRENT_WORK_REL = ".aegis/state/current-work.json"
 BRIEF_META_FILENAME = "brief-meta.json"
 STALE = "STALE — recheck"
 UNTRACKED_CONTENT_HASH_LIMIT_BYTES = 1_000_000
@@ -62,6 +63,7 @@ CANARY_CONTENT = (
 PARENT_TASKS_CLAIM_RE = re.compile(r"(\d+)\s+parent tasks")
 STATUS_CLAIM_RE = re.compile(r"no open PRs|tree clean", re.IGNORECASE)
 DONE_FLIP_ADDED_RE = re.compile(r'^\+\s*"status":\s*"done"', re.MULTILINE)
+BRANCH_TASK_RE = re.compile(r"(?:^|/)feat/task-(\d+)(?:-|$)")
 
 
 def utc_now_iso() -> str:
@@ -248,6 +250,151 @@ def _tasks_payload(root: Path) -> list[dict[str, Any]] | None:
     return None
 
 
+def _task_id(value: Any) -> str:
+    return str(value).strip()
+
+
+def _task_summary(task: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": _task_id(task.get("id")),
+        "title": str(task.get("title") or "").strip() or None,
+        "status": str(task.get("status") or "unknown").strip() or "unknown",
+    }
+
+
+def _subtask_full_id(parent: dict[str, Any], subtask: dict[str, Any]) -> str:
+    raw = _task_id(subtask.get("id"))
+    if "." in raw:
+        return raw
+    parent_id = _task_id(subtask.get("parentTaskId") or parent.get("id"))
+    return f"{parent_id}.{raw}" if parent_id and raw else raw
+
+
+def _subtask_summary(parent: dict[str, Any], subtask: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": _subtask_full_id(parent, subtask),
+        "title": str(subtask.get("title") or "").strip() or None,
+        "status": str(subtask.get("status") or "unknown").strip() or "unknown",
+    }
+
+
+def _branch_task_id(root: Path) -> str | None:
+    rc, branch = _run(["git", "branch", "--show-current"], root)
+    if rc != 0:
+        return None
+    match = BRANCH_TASK_RE.search(branch.strip())
+    return match.group(1) if match else None
+
+
+def _current_work_task_id(root: Path) -> str | None:
+    work = _read_json(root / CURRENT_WORK_REL)
+    if not isinstance(work, dict):
+        return None
+    task = work.get("task") if isinstance(work.get("task"), dict) else {}
+    task_id = _task_id(task.get("id"))
+    return task_id or None
+
+
+def _find_task(tasks: list[dict[str, Any]], task_id: str | None) -> dict[str, Any] | None:
+    if not task_id:
+        return None
+    return next(
+        (
+            task
+            for task in tasks
+            if isinstance(task, dict) and _task_id(task.get("id")) == task_id
+        ),
+        None,
+    )
+
+
+def _first_task_with_status(tasks: list[dict[str, Any]], statuses: set[str]) -> dict[str, Any] | None:
+    return next(
+        (
+            task
+            for task in tasks
+            if isinstance(task, dict) and str(task.get("status") or "").strip() in statuses
+        ),
+        None,
+    )
+
+
+def _task_subtasks(task: dict[str, Any]) -> list[dict[str, Any]]:
+    subtasks = task.get("subtasks")
+    return [item for item in subtasks if isinstance(item, dict)] if isinstance(subtasks, list) else []
+
+
+def _active_subtask(task: dict[str, Any]) -> dict[str, Any] | None:
+    subtasks = _task_subtasks(task)
+    return next(
+        (
+            subtask
+            for subtask in subtasks
+            if str(subtask.get("status") or "").strip() == "in-progress"
+        ),
+        None,
+    )
+
+
+def _next_pending_subtask(task: dict[str, Any]) -> dict[str, Any] | None:
+    subtasks = _task_subtasks(task)
+    return next(
+        (
+            subtask
+            for subtask in subtasks
+            if str(subtask.get("status") or "").strip() == "pending"
+        ),
+        None,
+    )
+
+
+def _task_orientation(root: Path, tasks: list[dict[str, Any]] | None) -> dict[str, Any]:
+    if tasks is None:
+        return {
+            "active_task": None,
+            "active_subtask": None,
+            "next_action": "inspect_taskmaster_state",
+            "source": "tasks.json",
+        }
+
+    branch_task_id = _branch_task_id(root)
+    current_work_task_id = _current_work_task_id(root)
+    source = "branch" if branch_task_id else "current-work" if current_work_task_id else "taskmaster-status"
+    task = (
+        _find_task(tasks, branch_task_id)
+        or _find_task(tasks, current_work_task_id)
+        or _first_task_with_status(tasks, {"in-progress"})
+    )
+    if task is None:
+        pending = _first_task_with_status(tasks, {"pending"})
+        return {
+            "active_task": None,
+            "active_subtask": None,
+            "next_action": f"start_task_{_task_id(pending.get('id'))}" if pending else "run_task_master_next",
+            "source": source,
+        }
+
+    active_subtask = _active_subtask(task)
+    pending_subtask = _next_pending_subtask(task)
+    task_summary = _task_summary(task)
+    if active_subtask is not None:
+        next_action = f"continue_subtask_{_subtask_full_id(task, active_subtask)}"
+    elif pending_subtask is not None and task_summary["status"] == "in-progress":
+        next_action = f"start_subtask_{_subtask_full_id(task, pending_subtask)}"
+    elif task_summary["status"] == "pending":
+        next_action = f"set_task_{task_summary['id']}_in_progress"
+    elif task_summary["status"] == "in-progress":
+        next_action = f"continue_task_{task_summary['id']}"
+    else:
+        next_action = f"review_task_{task_summary['id']}_{task_summary['status']}"
+    return {
+        "active_task": task_summary,
+        "active_subtask": _subtask_summary(task, active_subtask) if active_subtask else None,
+        "next_action": next_action,
+        "source": source,
+    }
+
+
 def field_repo_pose(root: Path) -> dict[str, Any]:
     pose: dict[str, Any] = {"as_of": utc_now_iso()}
     rc, branch = _run(["git", "branch", "--show-current"], root)
@@ -338,6 +485,11 @@ def field_task_truth(root: Path, events: list[dict[str, Any]]) -> dict[str, Any]
             status = str(task.get("status") or "unknown") if isinstance(task, dict) else "unknown"
             counts[status] = counts.get(status, 0) + 1
         truth["counts"] = counts
+    orientation = _task_orientation(root, tasks)
+    truth["active_task"] = orientation["active_task"]
+    truth["active_subtask"] = orientation["active_subtask"]
+    truth["next_action"] = orientation["next_action"]
+    truth["orientation_source"] = orientation["source"]
     flips = [event for event in events if event.get("event_type") == "task_truth"]
     truth["recent_flips"] = [
         {"ts": event.get("ts"), "command": event.get("extra", {}).get("command")}
@@ -707,6 +859,25 @@ def render_markdown(capsule: dict[str, Any]) -> str:
         f"**Task truth:** counts {truth.get('counts')}; uncommitted done-flips: "
         f"{truth.get('uncommitted_done_flips')} [source: tasks.json + ledger]"
     )
+    active_task = truth.get("active_task")
+    active_subtask = truth.get("active_subtask")
+    if isinstance(active_task, dict):
+        task_label = f"#{active_task.get('id')} {active_task.get('title') or ''}".strip()
+        subtask_label = ""
+        if isinstance(active_subtask, dict):
+            subtask_label = (
+                f"; subtask #{active_subtask.get('id')} {active_subtask.get('title') or ''}".strip()
+            )
+        lines.append(
+            f"**Current work:** {task_label} ({active_task.get('status')}){subtask_label}; "
+            f"next_action `{truth.get('next_action')}` "
+            f"[source: {truth.get('orientation_source')}]"
+        )
+    else:
+        lines.append(
+            f"**Current work:** no active task; next_action `{truth.get('next_action')}` "
+            f"[source: {truth.get('orientation_source')}]"
+        )
     lines.append(
         f"**Governance:** mode {governance.get('mode')} (set by {governance.get('set_by')}); "
         f"decisions since last capsule: {governance.get('decisions_since_last_capsule')}"
