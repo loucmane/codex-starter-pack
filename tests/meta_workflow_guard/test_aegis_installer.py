@@ -2207,9 +2207,47 @@ def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(tmp
     assert operations[".claude/scripts/brief_lib.py"]["classification"] == "modify"
     assert operations[".claude/scripts/brief_lib.py"]["managed"] is True
     assert report["product_file_safety"]["safe"] is True
+    evidence = report["workflow_state_evidence"]
+    assert evidence["status"] == "present"
+    assert "workflow.current_work" in evidence["gate_ids"]
+    assert evidence["failed_required"] >= 1
     assert report["capsule"]["status"] == "preview"
     assert (target / AEGIS_UPDATE_REPORT_REL).exists() is False
     assert stale_path.read_text(encoding="utf-8") == "# stale installed managed asset\n"
+
+
+def test_project_update_workflow_state_evidence_filters_runtime_failures() -> None:
+    evidence = aegis_installer._update_workflow_state_evidence(
+        {
+            "checks": [
+                {
+                    "gate_id": "runtime.workflow_templates",
+                    "category": "runtime",
+                    "required": True,
+                    "status": "fail",
+                    "message": "runtime missing",
+                },
+                {
+                    "gate_id": "workflow.reports",
+                    "category": "workflow",
+                    "required": True,
+                    "status": "fail",
+                    "message": "path missing",
+                },
+                {
+                    "gate_id": "mutation.pending_tracking_empty",
+                    "category": "mutation",
+                    "required": True,
+                    "status": "fail",
+                    "message": "pending",
+                },
+            ]
+        }
+    )
+
+    assert evidence["status"] == "present"
+    assert evidence["gate_ids"] == ["workflow.reports", "mutation.pending_tracking_empty"]
+    assert evidence["failed_required"] == 2
 
 
 def test_project_update_apply_refreshes_assets_and_compiles_capsule(tmp_path: Path) -> None:
@@ -2240,6 +2278,9 @@ def test_project_update_apply_refreshes_assets_and_compiles_capsule(tmp_path: Pa
     assert (target / ".aegis" / "capsule" / "current.md").is_file()
     assert "failed_required" in report["verification"]["summary"]
     assert persisted["verification"]["summary"] == report["verification"]["summary"]
+    assert report["workflow_state_evidence"]["status"] == "present"
+    assert "workflow.current_work" in report["workflow_state_evidence"]["gate_ids"]
+    assert persisted["workflow_state_evidence"] == report["workflow_state_evidence"]
 
 
 def test_project_update_refuses_manual_review_install_plan(tmp_path: Path) -> None:
