@@ -8,17 +8,24 @@ the server returned by ``create_server``.
 from __future__ import annotations
 
 import argparse
+import asyncio
+from contextlib import asynccontextmanager
 import json
 import os
 import subprocess
+import sys
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, Literal, Sequence
 
+import anyio
 from jsonschema import ValidationError
+from mcp import types
 from mcp.server.fastmcp import FastMCP
+from mcp.shared.message import SessionMessage
 from pydantic import Field
 
 from aegis_foundation.resources import packaged_asset_root_path
@@ -34,6 +41,7 @@ AgentList = Annotated[list[AgentName], Field(json_schema_extra={"uniqueItems": T
 V1_TOOL_NAMES = (
     "aegis.inspect",
     "aegis.status",
+    "aegis.update",
     "aegis.next",
     "aegis.doctor",
     "aegis.reconcile",
@@ -325,6 +333,17 @@ def _client_reload_required_response(tool_name: str, report: dict[str, Any]) -> 
             if isinstance(report.get("install"), dict)
             else {}
         )
+    elif tool_name == "aegis.update":
+        install_report = (
+            report.get("install", {}).get("applied")
+            if isinstance(report.get("install"), dict)
+            else {}
+        )
+        client_reload = (
+            install_report.get("client_reload", {})
+            if isinstance(install_report, dict)
+            else {}
+        )
     else:
         client_reload = (
             report.get("client_reload", {}) if isinstance(report.get("client_reload"), dict) else {}
@@ -550,6 +569,53 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         return run_tool(
             "aegis.status",
             read_only=True,
+            callback=call_core,
+        )
+
+    @server.tool(name="aegis.update")
+    def aegis_update(target_dir: str, apply: bool = False) -> dict[str, Any]:
+        """Refresh installed runtime pointer, managed assets, verification report, and capsule state; dry-run is read-only."""
+
+        def call_core() -> dict[str, Any]:
+            target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
+            report = installer.project_update(
+                target,
+                source_root=config.source_root,
+                apply=apply,
+            )
+            if report.get("status") == "refused":
+                return _error_tool_response(
+                    "aegis.update",
+                    code="update_refused",
+                    message=str(report.get("reason") or "Aegis update refused."),
+                    status="refused",
+                    details={"report": report},
+                )
+            if report.get("status") == "failed":
+                return _error_tool_response(
+                    "aegis.update",
+                    code="update_failed",
+                    message=str(report.get("reason") or "Aegis update failed."),
+                    status="failed",
+                    details={"report": report},
+                )
+            applied_install = (
+                report.get("install", {}).get("applied")
+                if isinstance(report.get("install"), dict)
+                else None
+            )
+            client_reload = (
+                applied_install.get("client_reload")
+                if isinstance(applied_install, dict)
+                else None
+            )
+            if isinstance(client_reload, dict) and client_reload.get("required") is True:
+                return _client_reload_required_response("aegis.update", report)
+            return report
+
+        return run_tool(
+            "aegis.update",
+            read_only=not apply,
             callback=call_core,
         )
 
@@ -1610,6 +1676,107 @@ def register_resources_and_prompts(server: FastMCP) -> FastMCP:
     return server
 
 
+def _write_stdout_line(line: str) -> None:
+    """Write one MCP stdio frame without closing or re-wrapping stdout."""
+
+    sys.stdout.write(line + "\n")
+    sys.stdout.flush()
+
+
+def _stdio_debug(message: str) -> None:
+    if os.environ.get("AEGIS_MCP_STDIO_DEBUG"):
+        print(f"[aegis-stdio] {message}", file=sys.stderr, flush=True)
+
+
+@asynccontextmanager
+async def _threaded_stdio_server():
+    """MCP stdio transport compatible with environments where anyio.wrap_file hangs.
+
+    The upstream MCP stdio transport reads stdin through
+    ``anyio.wrap_file(TextIOWrapper(sys.stdin.buffer))``. In this environment that
+    async iterator opens but never yields pipe input, which makes initialization hang.
+    Reading lines through a worker thread preserves the same newline-delimited JSON-RPC
+    protocol while avoiding the broken file wrapper path.
+    """
+
+    read_stream_writer, read_stream = anyio.create_memory_object_stream(0)
+    write_stream, write_stream_reader = anyio.create_memory_object_stream(0)
+
+    async def stdin_reader() -> None:
+        loop = asyncio.get_running_loop()
+        lines: asyncio.Queue[str] = asyncio.Queue()
+        stop = threading.Event()
+
+        def read_stdin_lines() -> None:
+            while not stop.is_set():
+                line = sys.stdin.readline()
+                loop.call_soon_threadsafe(lines.put_nowait, line)
+                if line == "":
+                    break
+
+        thread = threading.Thread(
+            target=read_stdin_lines,
+            name="aegis-mcp-stdio-reader",
+            daemon=True,
+        )
+        thread.start()
+        await anyio.lowlevel.checkpoint()
+        try:
+            async with read_stream_writer:
+                while True:
+                    _stdio_debug("waiting for stdin line")
+                    line = await lines.get()
+                    if line == "":
+                        _stdio_debug("stdin eof")
+                        break
+                    _stdio_debug("read stdin line")
+                    try:
+                        message = types.JSONRPCMessage.model_validate_json(line)
+                    except Exception as exc:  # pragma: no cover - mirrors MCP stdio transport.
+                        await read_stream_writer.send(exc)
+                        continue
+                    await read_stream_writer.send(SessionMessage(message))
+                    _stdio_debug("sent stdin frame to server")
+                    await anyio.lowlevel.checkpoint()
+        except anyio.ClosedResourceError:  # pragma: no cover
+            await anyio.lowlevel.checkpoint()
+        finally:
+            stop.set()
+
+    async def stdout_writer() -> None:
+        try:
+            async with write_stream_reader:
+                async for session_message in write_stream_reader:
+                    _stdio_debug("writing stdout frame")
+                    payload = session_message.message.model_dump_json(
+                        by_alias=True,
+                        exclude_none=True,
+                    )
+                    _write_stdout_line(payload)
+                    await anyio.lowlevel.checkpoint()
+        except anyio.ClosedResourceError:  # pragma: no cover
+            await anyio.lowlevel.checkpoint()
+
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(stdin_reader)
+        tg.start_soon(stdout_writer)
+        try:
+            yield read_stream, write_stream
+        finally:
+            tg.cancel_scope.cancel()
+
+
+async def _run_stdio_compat(server: FastMCP) -> None:
+    """Run FastMCP over the compatibility stdio transport."""
+
+    async with _threaded_stdio_server() as (read_stream, write_stream):
+        await server._mcp_server.run(  # noqa: SLF001 - transport shim mirrors FastMCP.run_stdio_async.
+            read_stream,
+            write_stream,
+            server._mcp_server.create_initialization_options(),  # noqa: SLF001
+        )
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     """Build the stdio entrypoint parser."""
 
@@ -1661,7 +1828,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.describe_config:
         print(json.dumps(config.to_dict(), indent=2, sort_keys=True))
         return 0
-    create_server(config).run(transport=args.transport)
+    server = create_server(config)
+    if args.transport == "stdio":
+        anyio.run(_run_stdio_compat, server)
+    else:
+        server.run(transport=args.transport)
     return 0
 
 

@@ -34,6 +34,7 @@ from scripts._aegis_installer import (
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_RELEASE_CERT_REPORT_REL,
     AEGIS_REPAIR_REPORT_REL,
+    AEGIS_UPDATE_REPORT_REL,
     AEGIS_VERIFY_REPORT_REL,
     AegisError,
     certify_release_candidate,
@@ -48,6 +49,7 @@ from scripts._aegis_installer import (
     log_work,
     next_action,
     plan_install,
+    project_update,
     reconcile,
     repair,
     repair_handoff,
@@ -2177,6 +2179,93 @@ def test_install_refuses_to_overwrite_customized_bootstrap_files(tmp_path: Path)
     assert operations[customized_path]["classification"] == "manual-review"
     assert operations[customized_path]["safe_to_apply"] is False
     assert plan["summary"]["manual_reviews"] == 1
+
+
+def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(tmp_path: Path) -> None:
+    target = tmp_path / "project-update-dry-run-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    stale_path = target / ".claude" / "scripts" / "brief_lib.py"
+    stale_path.write_text("# stale installed managed asset\n", encoding="utf-8")
+
+    report = project_update(target, source_root=REPO_ROOT, apply=False)
+    operations = {
+        operation["path"]: operation
+        for operation in report["install"]["plan"]["operations"]
+    }
+
+    assert report["status"] == "preview"
+    assert report["mode"] == "dry_run"
+    assert report["runtime"]["plan"]["status"] == "preview"
+    assert operations[".claude/scripts/brief_lib.py"]["classification"] == "modify"
+    assert operations[".claude/scripts/brief_lib.py"]["managed"] is True
+    assert report["product_file_safety"]["safe"] is True
+    assert report["capsule"]["status"] == "preview"
+    assert (target / AEGIS_UPDATE_REPORT_REL).exists() is False
+    assert stale_path.read_text(encoding="utf-8") == "# stale installed managed asset\n"
+
+
+def test_project_update_apply_refreshes_assets_and_compiles_capsule(tmp_path: Path) -> None:
+    target = tmp_path / "project-update-apply-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    stale_rel = ".claude/scripts/brief_lib.py"
+    stale_path = target / stale_rel
+    stale_path.write_text("# stale installed managed asset\n", encoding="utf-8")
+
+    report = project_update(target, source_root=REPO_ROOT, apply=True)
+    persisted = json.loads((target / AEGIS_UPDATE_REPORT_REL).read_text(encoding="utf-8"))
+
+    assert report["status"] == "applied"
+    assert persisted["status"] == "applied"
+    assert report["install"]["applied"]["status"] == "applied"
+    assert stale_path.read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(encoding="utf-8")
+    assert report["capsule"]["compiled"] is True
+    assert report["capsule"]["check"]["ok"] is True
+    assert (target / ".aegis" / "capsule" / "current.json").is_file()
+    assert (target / ".aegis" / "capsule" / "current.md").is_file()
+    assert "failed_required" in report["verification"]["summary"]
+    assert persisted["verification"]["summary"] == report["verification"]["summary"]
+
+
+def test_project_update_refuses_manual_review_install_plan(tmp_path: Path) -> None:
+    target = tmp_path / "project-update-refuse-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    customized_path = ".claude/scripts/brief_lib.py"
+    (target / customized_path).write_text("# user customized brief lib\n", encoding="utf-8")
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["customized_files"] = [{"path": customized_path, "kind": "adapter"}]
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    report = project_update(target, source_root=REPO_ROOT, apply=True)
+
+    assert report["status"] == "refused"
+    assert customized_path in report["product_file_safety"]["manual_review_paths"]
+    assert (target / customized_path).read_text(encoding="utf-8") == "# user customized brief lib\n"
+    assert not (target / AEGIS_UPDATE_REPORT_REL).exists()
 
 
 def test_next_action_guides_not_installed_and_installed_states(tmp_path: Path) -> None:
@@ -5648,6 +5737,28 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     assert second_plan["summary"]["creates"] == 0
     assert second_plan["summary"]["manual_reviews"] == 0
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
+
+    stale_rel = ".claude/scripts/brief_lib.py"
+    (target / stale_rel).write_text("# stale installed managed asset\n", encoding="utf-8")
+
+    update_preview_result = run_cli(["aegis", "update", "--target-dir", str(target)])
+    assert update_preview_result.returncode == 0, update_preview_result.stderr
+    update_preview = json.loads(update_preview_result.stdout)
+    preview_operations = {
+        operation["path"]: operation
+        for operation in update_preview["install"]["plan"]["operations"]
+    }
+    assert update_preview["status"] == "preview"
+    assert preview_operations[stale_rel]["classification"] == "modify"
+    assert (target / stale_rel).read_text(encoding="utf-8") == "# stale installed managed asset\n"
+
+    update_apply_result = run_cli(["aegis", "update", "--target-dir", str(target), "--apply"])
+    assert update_apply_result.returncode == 0, update_apply_result.stderr
+    update_report = json.loads(update_apply_result.stdout)
+    assert update_report["status"] == "applied"
+    assert (target / stale_rel).read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(encoding="utf-8")
+    assert (target / AEGIS_UPDATE_REPORT_REL).is_file()
+    assert (target / ".aegis" / "capsule" / "current.json").is_file()
 
 
 def test_observation_report_stays_under_size_budget_with_huge_runtime_dir(tmp_path: Path) -> None:
