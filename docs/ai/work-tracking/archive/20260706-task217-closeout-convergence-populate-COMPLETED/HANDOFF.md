@@ -5,3 +5,4 @@
 
 ## Next Steps
 - _Pending_
+- Archived on 2026-07-07 11:23 CEST — Folder moved to archive and tracker marked COMPLETED.

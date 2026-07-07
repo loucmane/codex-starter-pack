@@ -1,8 +1,8 @@
 # Task 217 One-shot closeout convergence for non-canonical usage Tracker
 
 **Started**: 2026-07-06
-**Status**: ACTIVE
-**Last Updated**: 2026-07-06
+**Status**: COMPLETED
+**Last Updated**: 2026-07-07
 
 ## Goals
 - [x] Implement or validate the non-canonical closeout populate-step enhancement without weakening evidence gates

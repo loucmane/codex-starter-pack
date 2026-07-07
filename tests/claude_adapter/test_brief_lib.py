@@ -165,6 +165,79 @@ def test_stranded_done_flip_detected(repo: Path) -> None:
     assert any("stranded-flip" in item for item in capsule["drift_sentinel"]["drift"])
 
 
+def test_task_truth_surfaces_branch_task_and_active_subtask(repo: Path) -> None:
+    tasks = repo / ".taskmaster" / "tasks" / "tasks.json"
+    tasks.parent.mkdir(parents=True)
+    tasks.write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": 9,
+                            "title": "Computed brief task",
+                            "status": "in-progress",
+                            "subtasks": [
+                                {"id": 1, "title": "Done slice", "status": "done"},
+                                {"id": 2, "title": "Active slice", "status": "in-progress"},
+                            ],
+                        },
+                        {"id": 10, "title": "Other task", "status": "in-progress"},
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    capsule = brief_lib.compile_capsule(repo)
+    truth = capsule["task_truth"]
+
+    assert truth["active_task"] == {
+        "id": "9",
+        "title": "Computed brief task",
+        "status": "in-progress",
+    }
+    assert truth["active_subtask"] == {
+        "id": "9.2",
+        "title": "Active slice",
+        "status": "in-progress",
+    }
+    assert truth["next_action"] == "continue_subtask_9.2"
+    assert truth["orientation_source"] == "branch"
+    rendered = brief_lib.render_markdown(capsule)
+    assert "Computed brief task" in rendered
+    assert "next_action `continue_subtask_9.2`" in rendered
+
+
+def test_task_truth_next_action_starts_pending_branch_task(repo: Path) -> None:
+    tasks = repo / ".taskmaster" / "tasks" / "tasks.json"
+    tasks.parent.mkdir(parents=True)
+    tasks.write_text(
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {
+                            "id": "9",
+                            "title": "Pending branch task",
+                            "status": "pending",
+                            "subtasks": [],
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    truth = brief_lib.compile_capsule(repo)["task_truth"]
+
+    assert truth["active_task"]["id"] == "9"
+    assert truth["active_subtask"] is None
+    assert truth["next_action"] == "set_task_9_in_progress"
+
+
 def test_claude_md_task_count_claim_checked(repo: Path) -> None:
     tasks = repo / ".taskmaster" / "tasks" / "tasks.json"
     tasks.parent.mkdir(parents=True)

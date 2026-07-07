@@ -2,7 +2,7 @@
 
 **Title:** Computed capsule active-task orientation fields
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** None
 
