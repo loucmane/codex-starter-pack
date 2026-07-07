@@ -7799,13 +7799,25 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-07-07T09:29:13.332Z"
+      },
+      {
+        "id": "231",
+        "title": "Unified Aegis project update command",
+        "description": "Add a first-slice 'aegis update --target-dir . [--apply]' command for installed target repositories so operators can refresh runtime pointers, managed assets, verification, and computed capsule state through one safe workflow.",
+        "details": "Scope: implement single-repo update only, not fleet registry, update PR mode, PR-4 retirement, product cleanup, or broad MCP rewrite. Dry-run must report runtime pointer status, managed asset install-plan changes, verify status, capsule freshness/compile result, enforcement mode, and product-file safety. Apply must preserve advisory/strict mode, refuse unsafe/manual-review install plan items, touch only installer-managed Aegis assets and installer-owned reports/state, then compile the capsule. Include focused temp-target tests reproducing the HP-Fetcher stale installed brief_lib asset case after upstream #252: runtime source current but installed managed asset stale.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-07-07T10:44:39.666Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-07T09:29:13.332Z",
-      "taskCount": 229,
-      "completedCount": 224,
+      "lastModified": "2026-07-07T10:44:39.667Z",
+      "taskCount": 230,
+      "completedCount": 225,
       "tags": [
         "master"
       ]

@@ -122,6 +122,17 @@ def handle_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_update(args: argparse.Namespace) -> int:
+    with _resolve_source_root(args.source_root) as source_root:
+        payload = _aegis_installer.project_update(
+            args.target_dir,
+            source_root=source_root,
+            apply=args.apply,
+        )
+    _dump_json(payload)
+    return 1 if payload.get("status") in {"failed", "refused"} else 0
+
+
 def _load_ledger_lib(source_root: Path):
     """Import ledger_lib from the runtime source root, same pattern as aegis hook."""
 
@@ -1051,6 +1062,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     status_parser.set_defaults(func=handle_status)
+
+    update_parser = subparsers.add_parser(
+        "update",
+        help="Refresh installed runtime pointer, managed assets, verification report, and capsule state.",
+    )
+    update_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    update_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the safe managed update; omitted means dry-run JSON only.",
+    )
+    update_parser.set_defaults(func=handle_update)
 
     replay_parser = subparsers.add_parser(
         "replay",

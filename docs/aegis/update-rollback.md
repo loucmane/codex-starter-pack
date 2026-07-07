@@ -4,6 +4,23 @@ This guide defines the safe operational flow for updating Aegis in an installed 
 
 ## Update Flow
 
+For a normal installed project, use the composed update command first. It wraps the
+runtime pointer refresh, managed asset plan/apply, verification reporting, and capsule
+compile in one safety-checked flow.
+
+```bash
+uvx --from aegis-foundation==0.1.0 aegis update --target-dir .
+uvx --from aegis-foundation==0.1.0 aegis update --target-dir . --apply
+```
+
+The dry-run form writes no target files. The apply form refuses unsafe overwrites and
+manual-review install operations, writes `.aegis/reports/update-report.json`, preserves
+the target's current enforcement mode, and reports verification failures without hiding
+them. Verification failures caused by old workflow state are evidence to review; they do
+not make a successful managed-asset refresh look like a failed update.
+
+Use the lower-level flow when you need to inspect each step manually.
+
 1. Pin the package version you intend to test.
 
 ```bash
@@ -11,34 +28,35 @@ uvx --from aegis-foundation==0.1.0 aegis status --target-dir .
 uvx --from aegis-foundation==0.1.0 aegis doctor --target-dir .
 ```
 
-2. If `aegis status` reports `migration_required=false`, no package migration is required. Run verification after local environment or hook changes.
-
-```bash
-uvx --from aegis-foundation==0.1.0 aegis verify --target-dir .
-```
-
-3. If `aegis status` reports `migration_required=true`, inspect the target and generate a reviewed plan before applying anything.
+2. Inspect the target and generate a reviewed plan before applying anything.
 
 ```bash
 uvx --from aegis-foundation==0.1.0 aegis inspect --target-dir .
 uvx --from aegis-foundation==0.1.0 aegis plan-install --target-dir . --primary-agent claude --agent claude
 ```
 
-4. Review `.aegis/reports/install-plan.json`. Do not apply the plan if it contains unsafe overwrite or manual-review operations.
+3. Review `.aegis/reports/install-plan.json`. Do not apply the plan if it contains unsafe overwrite or manual-review operations.
 
-5. Apply only after review:
+4. Apply only after review:
 
 ```bash
 uvx --from aegis-foundation==0.1.0 aegis install --target-dir . --primary-agent claude --agent claude --apply
 ```
 
-6. Verify immediately:
+5. Verify immediately:
 
 ```bash
 uvx --from aegis-foundation==0.1.0 aegis verify --target-dir .
 ```
 
-7. Preserve `.aegis/reports/install-plan.json`, `.aegis/reports/install-report.json`, and `.aegis/reports/verification-report.json` as evidence.
+6. Refresh the computed capsule when the target installs capsule assets:
+
+```bash
+uvx --from aegis-foundation==0.1.0 aegis brief --target-dir . --reason manual >/dev/null
+uvx --from aegis-foundation==0.1.0 aegis brief --target-dir . --check
+```
+
+7. Preserve `.aegis/reports/update-report.json`, `.aegis/reports/install-plan.json`, `.aegis/reports/install-report.json`, and `.aegis/reports/verification-report.json` as evidence.
 
 ## Rollback Flow
 
@@ -79,6 +97,7 @@ Do not write `.aegis/` directly. Direct writes bypass the installer safety model
 
 Allowed mutation surfaces:
 
+- `aegis update --apply` after dry-run review
 - `aegis install --apply` after plan review
 - `aegis verify` after acknowledging report writes
 - project-owner Git rollback or backup restoration
@@ -88,6 +107,7 @@ Read-only surfaces:
 - `aegis inspect`
 - `aegis status`
 - `aegis doctor`
+- `aegis update` without `--apply`
 - `aegis repair` without `--apply`
 - `aegis plan-install`
 - MCP `aegis.inspect`
@@ -98,10 +118,10 @@ Read-only surfaces:
 
 ## Deferred Commands
 
-Task 113 keeps mutating update and rollback automation deferred:
+Single-repo `aegis update` is available. The broader fleet and rollback automation remain deferred:
 
 - `aegis.plan_update`
-- `aegis.update`
+- `aegis.fleet_update`
 - `aegis.rollback`
 
 These commands must not be documented as available until they reuse the installer safety model, require explicit apply confirmation for mutations, and produce evidence reports.

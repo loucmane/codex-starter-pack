@@ -1,7 +1,7 @@
 # Task 230 Computed capsule active-task orientation fields Tracker
 
 **Started**: 2026-07-07
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-07-07
 
 ## Goals

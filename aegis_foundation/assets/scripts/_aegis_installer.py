@@ -58,6 +58,7 @@ TASKMASTER_TASKS_REL = ".taskmaster/tasks/tasks.json"
 AEGIS_PLAN_REPORT_REL = ".aegis/reports/install-plan.json"
 AEGIS_INSTALL_REPORT_REL = ".aegis/reports/install-report.json"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
+AEGIS_UPDATE_REPORT_REL = ".aegis/reports/update-report.json"
 AEGIS_CLOSEOUT_REPORT_REL = ".aegis/reports/closeout-report.json"
 AEGIS_REPAIR_REPORT_REL = ".aegis/reports/repair-report.json"
 AEGIS_KICKOFF_REPORT_REL = ".aegis/reports/kickoff-report.json"
@@ -1617,6 +1618,219 @@ def runtime_update(
     _validate_with_schema(source, "foundation-manifest.schema.json", dict(manifest))
     _write_text(target_root, AEGIS_RUNTIME_ENV_REL, _render_runtime_env(source, updated_at=updated_at).decode("utf-8"))
     _write_text(target_root, AEGIS_MANIFEST_REL, _dump_json(dict(manifest)))
+    return report
+
+
+def _load_source_brief_lib(source_root: Path):
+    script = source_root / ".claude" / "scripts" / "brief_lib.py"
+    if not script.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("_aegis_update_brief_lib", script)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _capsule_update_step(target_root: Path, source_root: Path, *, apply: bool) -> dict[str, Any]:
+    brief_lib = _load_source_brief_lib(source_root)
+    if brief_lib is None:
+        return {
+            "status": "unavailable",
+            "reason": "source root does not provide .claude/scripts/brief_lib.py",
+            "compiled": False,
+        }
+    before = brief_lib.capsule_status(target_root)
+    if not apply:
+        return {
+            "status": "preview",
+            "compiled": False,
+            "fresh_before": bool(before.get("fresh")),
+            "status_before": before,
+            "would_compile": not bool(before.get("fresh")),
+        }
+    capsule = brief_lib.compile_capsule(target_root, reason="manual")
+    markdown = brief_lib.render_markdown(capsule)
+    brief_lib.write_capsule(target_root, capsule, markdown)
+    ok, problems = brief_lib.check_capsule(target_root)
+    return {
+        "status": "compiled",
+        "compiled": True,
+        "path_json": ".aegis/capsule/current.json",
+        "path_markdown": ".aegis/capsule/current.md",
+        "compiled_at": capsule.get("capsule_meta", {}).get("compiled_at"),
+        "compile_reason": capsule.get("capsule_meta", {}).get("compile_reason"),
+        "check": {"ok": ok, "problems": list(problems)},
+        "status_before": before,
+        "status_after": brief_lib.capsule_status(target_root),
+    }
+
+
+def _update_product_file_safety(plan: Mapping[str, Any]) -> dict[str, Any]:
+    operations = [op for op in plan.get("operations", []) if isinstance(op, Mapping)]
+    changed = [
+        str(op.get("path"))
+        for op in operations
+        if op.get("classification") in {"create", "modify", "manual-review", "conflict"}
+    ]
+    unsafe = [str(op.get("path")) for op in _unsafe_operations(plan)]
+    manual = [
+        str(op.get("path"))
+        for op in operations
+        if op.get("classification") in {"manual-review", "conflict"}
+    ]
+    non_managed = [
+        str(op.get("path"))
+        for op in operations
+        if op.get("classification") != "skip" and op.get("managed") is not True
+    ]
+    managed_entrypoints = [
+        path for path in changed if path in {"AGENTS.md", "CLAUDE.md", "CODEX.md"}
+    ]
+    return {
+        "safe": not unsafe and not manual and not non_managed,
+        "changed_paths": changed,
+        "unsafe_paths": unsafe,
+        "manual_review_paths": manual,
+        "non_managed_paths": non_managed,
+        "managed_entrypoint_paths": managed_entrypoints,
+        "note": (
+            "Only installer-managed assets are eligible for apply. Managed AGENTS.md/CLAUDE.md "
+            "entrypoint blocks preserve existing project instructions below the Aegis block."
+        ),
+    }
+
+
+def project_update(
+    target_dir: str | Path,
+    *,
+    source_root: str | Path,
+    apply: bool,
+    profile: str = PROFILE_GENERIC,
+    strict_verify: bool = True,
+) -> dict[str, Any]:
+    """One-command update flow for an already-installed target repository.
+
+    This composes the existing safe primitives instead of bypassing them:
+    runtime pointer preview/update, managed install plan/apply, strict verify, and capsule
+    compile. Verification failures are reported but do not make the managed update itself
+    fail; stale workflow-state is exactly what this command is meant to surface without
+    stranding the operator.
+    """
+
+    target_root = _resolve_target_root(target_dir)
+    source = Path(source_root).expanduser().resolve()
+    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    if not isinstance(manifest, Mapping):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "refused",
+            "reason": "Aegis update requires an installed foundation manifest",
+            "target_root": target_root.as_posix(),
+            "manifest_path": AEGIS_MANIFEST_REL,
+        }
+    primary_agent = _manifest_primary_agent(manifest)
+    enabled_agents = _manifest_enabled_agents(manifest)
+    runtime_before = runtime_status(target_root, source_root=source)
+    runtime_plan = runtime_update(target_root, source_root=source, apply=False)
+    install_plan = plan_install(
+        target_root,
+        source_root=source,
+        profile=profile,
+        primary_agent=primary_agent,
+        agents=enabled_agents,
+    )
+    safety = _update_product_file_safety(install_plan)
+    unsafe = _unsafe_operations(install_plan)
+    capsule = _capsule_update_step(target_root, source, apply=False)
+    verification_preview = verify(target_root, source_root=source, strict=strict_verify, dry_run=True)
+    base_report: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "preview" if not apply else "pending",
+        "mode": "apply" if apply else "dry_run",
+        "target_root": target_root.as_posix(),
+        "source_root": source.as_posix(),
+        "agent_selection": {
+            "primary_agent": primary_agent,
+            "enabled_agents": list(enabled_agents),
+        },
+        "runtime": {
+            "before": runtime_before,
+            "plan": runtime_plan,
+        },
+        "install": {
+            "plan": install_plan,
+            "summary": install_plan.get("summary", {}),
+        },
+        "product_file_safety": safety,
+        "verification": verification_preview,
+        "capsule": capsule,
+        "enforcement": _read_enforcement_state(target_root),
+        "report_path": AEGIS_UPDATE_REPORT_REL if apply else None,
+    }
+    if unsafe:
+        base_report.update(
+            {
+                "status": "refused",
+                "reason": "Unsafe overwrite or manual-review operation present in install plan.",
+                "unsafe_operations": list(unsafe),
+            }
+        )
+        return base_report
+    if not apply:
+        return base_report
+
+    runtime_applied = runtime_update(target_root, source_root=source, apply=True)
+    if runtime_applied.get("status") == "refused":
+        base_report.update(
+            {
+                "status": "refused",
+                "reason": "Runtime pointer update was refused.",
+                "runtime": {**base_report["runtime"], "applied": runtime_applied},
+            }
+        )
+        return base_report
+    install_applied = install(
+        target_root,
+        source_root=source,
+        profile=profile,
+        primary_agent=primary_agent,
+        agents=enabled_agents,
+        apply=True,
+    )
+    if install_applied.get("status") in {"refused", "failed"}:
+        base_report.update(
+            {
+                "status": install_applied.get("status"),
+                "reason": install_applied.get("reason", "Install apply did not complete."),
+                "runtime": {**base_report["runtime"], "applied": runtime_applied},
+                "install": {**base_report["install"], "applied": install_applied},
+            }
+        )
+        return base_report
+    verification = verify(target_root, source_root=source, strict=strict_verify)
+    capsule_applied = _capsule_update_step(target_root, source, apply=True)
+    report = {
+        **base_report,
+        "status": "applied",
+        "applied_at": _iso_now(),
+        "runtime": {
+            **base_report["runtime"],
+            "applied": runtime_applied,
+            "after": runtime_status(target_root, source_root=source),
+        },
+        "install": {
+            **base_report["install"],
+            "applied": install_applied,
+        },
+        "verification": verification,
+        "capsule": capsule_applied,
+        "enforcement": _read_enforcement_state(target_root),
+    }
+    reports_dir = target_root / AEGIS_REPORTS_REL
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    (target_root / AEGIS_UPDATE_REPORT_REL).write_text(_dump_json(report), encoding="utf-8")
     return report
 
 

@@ -14,3 +14,4 @@
 
 ## Next Steps
 - Commit the scoped diff, open a PR, and wait for CI.
+- Archived on 2026-07-07 12:34 CEST — Folder moved to archive and tracker marked COMPLETED.

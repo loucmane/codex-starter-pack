@@ -51,6 +51,7 @@ from _aegis_installer import (
     log_work as aegis_log_work,
     next_action as aegis_next_action,
     plan_install as aegis_plan_install,
+    project_update as aegis_project_update,
     reconcile as aegis_reconcile,
     repair as aegis_repair,
     repair_handoff as aegis_repair_handoff,
@@ -762,6 +763,20 @@ def handle_aegis_status(args: argparse.Namespace) -> None:
     except AegisError as exc:
         raise TaskError(str(exc)) from exc
     _print_json(payload)
+
+
+def handle_aegis_update(args: argparse.Namespace) -> None:
+    try:
+        payload = aegis_project_update(
+            args.target_dir,
+            source_root=REPO_ROOT,
+            apply=args.apply,
+        )
+    except AegisError as exc:
+        raise TaskError(str(exc)) from exc
+    _print_json(payload)
+    if payload.get("status") in {"failed", "refused"}:
+        raise TaskError("Aegis update failed or refused unsafe managed-asset operations")
 
 
 def handle_aegis_next(args: argparse.Namespace) -> None:
@@ -18367,6 +18382,18 @@ def build_parser() -> argparse.ArgumentParser:
     aegis_status_parser = aegis_sub.add_parser("status", help="Report installed Aegis release state without mutating the target")
     aegis_status_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
     aegis_status_parser.set_defaults(func=handle_aegis_status)
+
+    aegis_update_parser = aegis_sub.add_parser(
+        "update",
+        help="Refresh installed runtime pointer, managed assets, verification report, and capsule state",
+    )
+    aegis_update_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")
+    aegis_update_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply the safe managed update; omitted means dry-run JSON only",
+    )
+    aegis_update_parser.set_defaults(func=handle_aegis_update)
 
     aegis_next_parser = aegis_sub.add_parser("next", help="Report the next required Aegis workflow action without mutating the target")
     aegis_next_parser.add_argument("--target-dir", default=".", help="Target repository root (default: current repo)")

@@ -5,13 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import select
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from mcp import types as mcp_types
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 
@@ -36,6 +37,7 @@ from scripts._aegis_installer import (
     AEGIS_PENDING_TRACKING_REL,
     AEGIS_REPAIR_REPORT_REL,
     AEGIS_RUNTIME_ENV_REL,
+    AEGIS_UPDATE_REPORT_REL,
     AEGIS_VERIFY_REPORT_REL,
     closeout,
     install,
@@ -147,27 +149,112 @@ def get_prompt_text(server: FastMCP, name: str, arguments: dict | None = None) -
     return prompt.messages[0].content.text
 
 
-async def run_stdio_smoke(target: Path) -> tuple[set[str], set[str], set[str]]:
-    params = StdioServerParameters(
-        command=sys.executable,
-        args=[
+def run_stdio_smoke(target: Path) -> tuple[set[str], set[str], set[str]]:
+    """Exercise the real stdio entrypoint with bounded newline-JSON RPC frames.
+
+    The Python `mcp.client.stdio_client` currently hangs in this environment after the
+    initialize exchange. This smoke keeps the coverage on the server entrypoint and
+    transport without letting a client-side transport regression hang pytest forever.
+    """
+
+    server_env = {
+        key: value for key, value in os.environ.items() if not key.startswith("PYTEST_")
+    }
+    server_env["PYTHONUNBUFFERED"] = "1"
+
+    process = subprocess.Popen(
+        [
+            sys.executable,
             "scripts/aegis-mcp-server",
             "--source-root",
             REPO_ROOT.as_posix(),
             "--default-target-dir",
             target.as_posix(),
         ],
+        cwd=REPO_ROOT,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=server_env,
     )
-    async with stdio_client(params) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            tools = await session.list_tools()
-            resources = await session.list_resources()
-            prompts = await session.list_prompts()
+    assert process.stdin is not None
+    assert process.stdout is not None
+    assert process.stderr is not None
+    stopped = False
+
+    def stop_process() -> str:
+        nonlocal stopped
+        if stopped:
+            return ""
+        stopped = True
+        try:
+            if process.stdin is not None:
+                process.stdin.close()
+        except OSError:
+            pass
+        if process.poll() is None:
+            try:
+                process.terminate()
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=3)
+        return process.stderr.read() if process.stderr is not None else ""
+
+    frames = [
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": mcp_types.LATEST_PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "aegis-stdio-smoke", "version": "0"},
+            },
+        },
+        {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+        {"jsonrpc": "2.0", "id": 3, "method": "resources/list", "params": {}},
+        {"jsonrpc": "2.0", "id": 4, "method": "prompts/list", "params": {}},
+    ]
+    try:
+        for frame in frames:
+            process.stdin.write(json.dumps(frame) + "\n")
+        process.stdin.flush()
+
+        responses: dict[int, dict] = {}
+        timeout = 120 if os.environ.get("PYTEST_XDIST_WORKER") else 30
+        deadline = time.monotonic() + timeout
+        while {1, 2, 3, 4} - set(responses):
+            remaining = max(0, deadline - time.monotonic())
+            if remaining == 0:
+                returncode = process.poll()
+                stderr = stop_process()
+                raise AssertionError(
+                    f"stdio smoke timed out after {timeout}s waiting for responses; "
+                    f"got ids={sorted(responses)}; returncode={returncode}; stderr={stderr}"
+                )
+            ready, _, _ = select.select([process.stdout], [], [], remaining)
+            if not ready:
+                continue
+            line = process.stdout.readline()
+            if not line:
+                stderr = stop_process()
+                raise AssertionError(
+                    f"stdio server exited before expected responses; got ids={sorted(responses)}; "
+                    f"stderr={stderr}"
+                )
+            payload = json.loads(line)
+            if "id" in payload:
+                responses[int(payload["id"])] = payload
+    finally:
+        stop_process()
+
     return (
-        {tool.name for tool in tools.tools},
-        {str(resource.uri) for resource in resources.resources},
-        {prompt.name for prompt in prompts.prompts},
+        {tool["name"] for tool in responses[2]["result"]["tools"]},
+        {resource["uri"] for resource in responses[3]["result"]["resources"]},
+        {prompt["name"] for prompt in responses[4]["result"]["prompts"]},
     )
 
 
@@ -231,6 +318,7 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
     assert {tool.name for tool in tools} == {
         "aegis.inspect",
         "aegis.status",
+        "aegis.update",
         "aegis.next",
         "aegis.doctor",
         "aegis.reconcile",
@@ -254,7 +342,6 @@ def test_server_registers_exact_v1_tool_set(tmp_path: Path) -> None:
     }
     assert {
         "aegis.plan_update",
-        "aegis.update",
         "aegis.rollback",
     }.isdisjoint({tool.name for tool in tools})
 
@@ -863,6 +950,47 @@ def test_runtime_status_and_update_tools_do_not_reinstall_scaffold(tmp_path: Pat
     assert bootstrap_before == {
         rel: (target / rel).read_text(encoding="utf-8") for rel in bootstrap_before
     }
+
+
+def test_project_update_tool_refreshes_stale_managed_assets(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "project-update-target"
+    target.mkdir()
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+
+    stale_rel = ".claude/scripts/brief_lib.py"
+    (target / stale_rel).write_text("# stale installed managed asset\n", encoding="utf-8")
+
+    preview_payload = call_tool_payload(
+        server,
+        "aegis.update",
+        {"target_dir": target.as_posix(), "apply": False},
+    )
+    assert preview_payload["ok"] is True
+    assert preview_payload["read_only"] is True
+    assert preview_payload["result"]["status"] == "preview"
+    preview_operations = {
+        operation["path"]: operation
+        for operation in preview_payload["result"]["install"]["plan"]["operations"]
+    }
+    assert preview_operations[stale_rel]["classification"] == "modify"
+    assert (target / stale_rel).read_text(encoding="utf-8") == "# stale installed managed asset\n"
+
+    apply_payload = call_tool_payload(
+        server,
+        "aegis.update",
+        {"target_dir": target.as_posix(), "apply": True},
+    )
+    update_report = assert_client_reload_blocked(
+        apply_payload,
+        tool="aegis.update",
+        report_status="applied",
+    )
+    assert (target / stale_rel).read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(encoding="utf-8")
+    assert update_report["status"] == "applied"
+    assert (target / AEGIS_UPDATE_REPORT_REL).is_file()
+    assert (target / ".aegis" / "capsule" / "current.json").is_file()
 
 
 def test_doctor_and_repair_tools_preserve_read_only_preview_contract(tmp_path: Path) -> None:
@@ -1769,7 +1897,7 @@ def test_entrypoint_describe_config_does_not_start_server(tmp_path: Path) -> Non
 
 
 def test_direct_stdio_mcp_smoke_lists_aegis_surfaces(tmp_path: Path) -> None:
-    tools, resources, prompts = asyncio.run(run_stdio_smoke(tmp_path))
+    tools, resources, prompts = run_stdio_smoke(tmp_path)
 
     assert tools == set(V1_TOOL_NAMES)
     assert resources == set(RESOURCE_URIS)

@@ -58,6 +58,15 @@ Allowed retirement states:
   capsule, or ledger evidence demonstrates equivalent boundary discipline.
 - PR-4 remains per-surface and reversible. Big-bang retirement is rejected.
 
+## Dogfood Fixtures
+
+- HP-Fetcher Task 80 stale workflow-state residue is an active PR-4 fixture; see
+  `docs/aegis/decisions/2026-07-07-hp-fetcher-task80-pr4-fixture.md`. Do not repair,
+  close out, archive, or clear that residue merely to make strict verification green. It is
+  evidence that the capsule can surface legacy scaffold drift, and PR-4 must cite this
+  fixture when changing current-work, session, plan, work-tracking, pending-tracking, or
+  strict readiness behavior.
+
 ## Current Decision
 
 PR-4 is blocked. The replacement stack is promising and several surfaces are ready for shadow
