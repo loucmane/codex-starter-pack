@@ -1,8 +1,8 @@
 # Task 231 Unified Aegis project update command Tracker
 
 **Started**: 2026-07-07
-**Status**: ACTIVE
-**Last Updated**: 2026-07-07
+**Status**: COMPLETED
+**Last Updated**: 2026-07-09
 
 ## Goals
 - [x] Add a first-slice aegis update command that refreshes runtime pointer, managed assets, verification, and capsule state for one installed target repo

@@ -353,9 +353,32 @@ class _BaseLedger:
 class SQLiteLedger(_BaseLedger):
     backend = SQLITE_BACKEND
 
-    def __init__(self, path: str | Path, *, redact_patterns: Iterable[str] = ()) -> None:
+    def _open_read_only_connection(self, *, immutable: bool) -> sqlite3.Connection:
+        query = "mode=ro&immutable=1" if immutable else "mode=ro"
+        connection = sqlite3.connect(
+            f"{self.path.resolve().as_uri()}?{query}",
+            timeout=BUSY_TIMEOUT_MS / 1000,
+            uri=True,
+        )
+        connection.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
+        return connection
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        redact_patterns: Iterable[str] = (),
+        read_only: bool = False,
+    ) -> None:
         self.path = Path(path)
         self.redact_patterns = tuple(redact_patterns)
+        self.read_only = read_only
+        self._read_only_immutable = False
+        if read_only:
+            if not self.path.is_file():
+                raise LedgerError(f"ledger store does not exist: {self.path}")
+            self.connection = self._open_read_only_connection(immutable=False)
+            return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(self.path.as_posix(), timeout=BUSY_TIMEOUT_MS / 1000)
         self.connection.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
@@ -376,6 +399,8 @@ class SQLiteLedger(_BaseLedger):
         self.connection.commit()
 
     def append(self, event: Mapping[str, Any]) -> dict[str, Any]:
+        if self.read_only:
+            raise LedgerError("cannot append to a read-only ledger")
         normalized = normalize_event(event, redact_patterns=self.redact_patterns)
         row = dict(normalized)
         row["paths"] = json.dumps(normalized["paths"], sort_keys=True)
@@ -398,9 +423,24 @@ class SQLiteLedger(_BaseLedger):
         since_ts: str | None = None,
         limit: int | None = None,
     ) -> list[dict[str, Any]]:
-        cursor = self.connection.execute(
-            f"SELECT {', '.join(EVENT_FIELDS)} FROM events ORDER BY ts, event_id"
-        )
+        statement = f"SELECT {', '.join(EVENT_FIELDS)} FROM events ORDER BY ts, event_id"
+        try:
+            cursor = self.connection.execute(statement)
+        except sqlite3.OperationalError as exc:
+            # Sandboxed readers may be allowed to read the database file but not create the
+            # shared-memory sidecar SQLite normally uses for a WAL database. Fall back to an
+            # immutable snapshot only for that access failure; normal readers retain WAL-aware
+            # behavior and see concurrent commits.
+            if (
+                not self.read_only
+                or self._read_only_immutable
+                or "unable to open database file" not in str(exc).lower()
+            ):
+                raise
+            self.connection.close()
+            self.connection = self._open_read_only_connection(immutable=True)
+            self._read_only_immutable = True
+            cursor = self.connection.execute(statement)
         events = []
         for values in cursor.fetchall():
             event = dict(zip(EVENT_FIELDS, values))
@@ -427,16 +467,26 @@ class JsonlLedger(_BaseLedger):
 
     backend = JSONL_BACKEND
 
-    def __init__(self, directory: str | Path, *, redact_patterns: Iterable[str] = ()) -> None:
+    def __init__(
+        self,
+        directory: str | Path,
+        *,
+        redact_patterns: Iterable[str] = (),
+        read_only: bool = False,
+    ) -> None:
         self.directory = Path(directory)
         self.redact_patterns = tuple(redact_patterns)
-        self.directory.mkdir(parents=True, exist_ok=True)
+        self.read_only = read_only
+        if not read_only:
+            self.directory.mkdir(parents=True, exist_ok=True)
 
     def _shard_path(self, session_id: str | None) -> Path:
         token = re.sub(r"[^A-Za-z0-9._-]", "_", session_id or "unscoped") or "unscoped"
         return self.directory / f"{token}.jsonl"
 
     def append(self, event: Mapping[str, Any]) -> dict[str, Any]:
+        if self.read_only:
+            raise LedgerError("cannot append to a read-only ledger")
         normalized = normalize_event(event, redact_patterns=self.redact_patterns)
         line = json.dumps(normalized, sort_keys=True, default=str)
         with self._shard_path(normalized["session_id"]).open("a", encoding="utf-8") as handle:
@@ -482,6 +532,7 @@ def open_ledger(
     backend: str | None = None,
     path: str | Path | None = None,
     redact_patterns: Iterable[str] = (),
+    read_only: bool = False,
 ) -> _BaseLedger:
     """Open the repo's ledger store with the selected backend.
 
@@ -496,9 +547,17 @@ def open_ledger(
         raise LedgerError(f"unsupported ledger backend: {selected}")
     if selected == SQLITE_BACKEND:
         target = Path(path) if path is not None else store_path(cwd, environment)
-        return SQLiteLedger(target, redact_patterns=redact_patterns)
+        return SQLiteLedger(
+            target,
+            redact_patterns=redact_patterns,
+            read_only=read_only,
+        )
     target = Path(path) if path is not None else shards_dir(cwd, environment)
-    return JsonlLedger(target, redact_patterns=redact_patterns)
+    return JsonlLedger(
+        target,
+        redact_patterns=redact_patterns,
+        read_only=read_only,
+    )
 
 
 __all__ = [

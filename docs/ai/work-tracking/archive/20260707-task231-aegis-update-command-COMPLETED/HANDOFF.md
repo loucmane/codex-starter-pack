@@ -20,3 +20,4 @@
   `.aegis/`, `.agents/`, `.codex/agents/`, or `.codex/hooks.json`.
 - Later follow-ups: fleet registry/update, MCP restart orchestration, update PR mode,
   rollback automation, and PR-4 replacement/retirement.
+- Archived on 2026-07-09 20:39 CEST — Folder moved to archive and tracker marked COMPLETED.

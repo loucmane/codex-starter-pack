@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
-from aegis_foundation import mcp_registration
+from aegis_foundation import legacy_projection, mcp_registration
 from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
@@ -77,7 +77,11 @@ def _agents_from_args(args: argparse.Namespace) -> list[str]:
 
 
 def handle_inspect(args: argparse.Namespace) -> int:
-    payload = _aegis_installer.inspect_project(args.target_dir, profile=args.profile)
+    payload = _aegis_installer.inspect_project(
+        args.target_dir,
+        profile=args.profile,
+        invoking_agent=_aegis_installer.invoking_agent_from_environment(),
+    )
     _dump_json(payload)
     return 0
 
@@ -117,6 +121,7 @@ def handle_status(args: argparse.Namespace) -> int:
         payload = _aegis_installer.status(
             args.target_dir,
             source_root=source_root,
+            invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
     _dump_json(payload)
     return 0
@@ -168,6 +173,87 @@ def _refresh_capsule_if_stale(source_root: Path, target_dir: str, *, reason: str
         return {"refreshed": True, "reason": reason, "status": status}
     except Exception as exc:  # noqa: BLE001 - boundary refresh is advisory, never a gate.
         return {"refreshed": False, "reason": reason, "error": str(exc)}
+
+
+def _project_legacy_sweh(
+    ledger_lib: Any,
+    target_dir: str | Path,
+    output_paths: Sequence[Path],
+    *,
+    dry_run: bool = False,
+    read_limit: int = 500,
+    limit: int = 25,
+    include_mutations: bool = False,
+    include_gate_decisions: bool = False,
+) -> tuple[dict[str, Any], list[legacy_projection.ProjectionResult]]:
+    """Project selected ledger events into legacy S:W:H:E markdown surfaces."""
+
+    target = Path(target_dir).resolve()
+    ledger = ledger_lib.open_ledger(cwd=target, read_only=True)
+    try:
+        events = ledger.read(limit=read_limit)
+    finally:
+        ledger.close()
+    selected = legacy_projection.projectable_events(
+        events,
+        include_mutations=include_mutations,
+        include_gate_decisions=include_gate_decisions,
+        limit=limit,
+    )
+    deduped: list[Path] = []
+    seen: set[Path] = set()
+    for output_path in output_paths:
+        key = output_path.resolve() if output_path.exists() else output_path
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(output_path)
+    results = [
+        legacy_projection.project_to_file(selected, output_path, dry_run=dry_run)
+        for output_path in deduped
+    ]
+    payload = {
+        "status": "preview" if dry_run else "applied",
+        "output_path": results[0].output_path.as_posix() if len(results) == 1 else None,
+        "output_paths": [result.output_path.as_posix() for result in results],
+        "event_count": len(selected),
+        "last_event_id": str(selected[-1].get("event_id")) if selected else None,
+        "changed": any(result.changed for result in results),
+        "changed_paths": [result.output_path.as_posix() for result in results if result.changed],
+        "dry_run": dry_run,
+        "include_mutations": include_mutations,
+        "include_gate_decisions": include_gate_decisions,
+    }
+    return payload, results
+
+
+def _scope_ledger_context(target: Path) -> dict[str, str | None]:
+    """Resolve stable session/work identity from the active Aegis envelope."""
+
+    current_work_path = target / ".aegis" / "state" / "current-work.json"
+    try:
+        current_work = json.loads(current_work_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"session_id": None, "work_id": None}
+    if not isinstance(current_work, dict):
+        return {"session_id": None, "work_id": None}
+
+    task = current_work.get("task") if isinstance(current_work.get("task"), dict) else {}
+    paths = current_work.get("paths") if isinstance(current_work.get("paths"), dict) else {}
+    task_id = str(task.get("id") or "").strip()
+    slug = str(task.get("slug") or "").strip()
+    session_rel = str(paths.get("session") or "").strip()
+    session_id = Path(session_rel).stem if session_rel else task_id or None
+
+    if str(current_work.get("mode") or "").strip() == "observation" and slug:
+        work_id = f"observe-{slug}"
+    elif task_id and slug:
+        work_id = f"task-{task_id}-{slug}"
+    elif task_id:
+        work_id = f"task-{task_id}"
+    else:
+        work_id = None
+    return {"session_id": session_id, "work_id": work_id}
 
 
 def _load_witness_lib(source_root: Path):
@@ -413,6 +499,16 @@ def handle_scope(args: argparse.Namespace) -> int:
         if not branch:
             print("aegis scope set requires a git branch in the target repository", file=sys.stderr)
             return 1
+        scope_context = _scope_ledger_context(target)
+        invoking_agent = _aegis_installer.invoking_agent_from_environment()
+        scope_extra: dict[str, Any] = {
+            "task_id": str(args.task_id),
+            "path_globs": list(args.glob or []),
+            "inferred": False,
+            "confirmed": True,
+        }
+        if scope_context["work_id"]:
+            scope_extra["work_id"] = scope_context["work_id"]
         ledger = ledger_lib.open_ledger(cwd=target)
         try:
             ledger.append(
@@ -420,17 +516,42 @@ def handle_scope(args: argparse.Namespace) -> int:
                     "branch": branch,
                     "cwd": target.as_posix(),
                     "event_type": "scope",
-                    "extra": {
-                        "task_id": str(args.task_id),
-                        "path_globs": list(args.glob or []),
-                        "inferred": False,
-                        "confirmed": True,
-                    },
+                    "session_id": scope_context["session_id"],
+                    "agent_id": invoking_agent,
+                    "agent_type": invoking_agent,
+                    "paths": list(args.glob or []),
+                    "extra": scope_extra,
                 }
             )
         finally:
             ledger.close()
+        projection_payload = None
+        if args.project_sweh:
+            surfaces = legacy_projection.active_surface_paths(target)
+            if surfaces:
+                projection_payload, _ = _project_legacy_sweh(
+                    ledger_lib,
+                    target,
+                    surfaces,
+                    read_limit=args.project_read_limit,
+                    limit=args.project_limit,
+                )
+            else:
+                projection_payload = {
+                    "status": "skipped",
+                    "reason": "no existing active legacy surfaces",
+                    "output_paths": [],
+                    "event_count": 0,
+                    "changed": False,
+                }
         print(f"Scope recorded for branch {branch}: task {args.task_id}")
+        if projection_payload is not None:
+            print(
+                "Legacy S:W:H:E projection: "
+                f"{projection_payload['status']} "
+                f"({len(projection_payload['output_paths'])} surfaces, "
+                f"changed={projection_payload['changed']})"
+            )
         return 0
 
 
@@ -444,6 +565,49 @@ def handle_ledger(args: argparse.Namespace) -> int:
                 print(str(exc), file=sys.stderr)
                 return 1
             return 0
+        if args.ledger_subcommand == "project-sweh":
+            output_paths: list[Path] = []
+            if args.output:
+                output_path = Path(args.output)
+                if not output_path.is_absolute():
+                    output_path = Path(args.target_dir).resolve() / output_path
+                output_paths.append(output_path)
+            if args.active:
+                output_paths.extend(legacy_projection.active_surface_paths(Path(args.target_dir)))
+            if not output_paths:
+                print("ledger project-sweh requires --output or --active with existing legacy surfaces", file=sys.stderr)
+                return 1
+            try:
+                payload, results = _project_legacy_sweh(
+                    ledger_lib,
+                    args.target_dir,
+                    output_paths,
+                    dry_run=args.dry_run,
+                    read_limit=args.read_limit,
+                    limit=args.limit,
+                    include_mutations=args.include_mutations,
+                    include_gate_decisions=args.include_gate_decisions,
+                )
+            except ledger_lib.LedgerError as exc:
+                print(str(exc), file=sys.stderr)
+                return 1
+            payload["active"] = args.active
+            if args.json:
+                _dump_json(payload)
+            else:
+                print(
+                    "Aegis legacy S:W:H:E projection: "
+                    f"{payload['status']} ({payload['event_count']} events, "
+                    f"{len(results)} surfaces, changed={payload['changed']})"
+                )
+                for output_path in payload["output_paths"]:
+                    print(f"Output: {output_path}")
+                if args.dry_run:
+                    for result in results:
+                        print()
+                        print(f"--- {result.output_path.as_posix()} ---")
+                        print(result.section, end="")
+            return 0
     raise _aegis_installer.AegisError("unknown ledger subcommand")
 
 
@@ -453,6 +617,7 @@ def handle_next(args: argparse.Namespace) -> int:
         payload = _aegis_installer.next_action(
             args.target_dir,
             source_root=source_root,
+            invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
     if args.json:
         _dump_json(payload)
@@ -466,6 +631,7 @@ def handle_doctor(args: argparse.Namespace) -> int:
         payload = _aegis_installer.doctor(
             args.target_dir,
             source_root=source_root,
+            invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
     if args.json:
         _dump_json(payload)
@@ -657,6 +823,7 @@ def handle_kickoff(args: argparse.Namespace) -> int:
                 goals=list(args.goal or []),
                 create_branch=not args.no_create_branch,
                 source_root=source_root,
+                invoking_agent=_aegis_installer.invoking_agent_from_environment(),
             )
         else:
             missing = [name for name in ("task", "slug", "title") if not getattr(args, name)]
@@ -674,6 +841,7 @@ def handle_kickoff(args: argparse.Namespace) -> int:
                 goals=list(args.goal or []),
                 create_branch=not args.no_create_branch,
                 source_root=source_root,
+                invoking_agent=_aegis_installer.invoking_agent_from_environment(),
             )
     _dump_json(payload)
     return 0
@@ -688,6 +856,7 @@ def handle_start(args: argparse.Namespace) -> int:
             goals=list(args.goal or []),
             create_branch=not args.no_create_branch,
             source_root=source_root,
+            invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
     _dump_json(payload)
     return 0
@@ -702,6 +871,7 @@ def handle_observe(args: argparse.Namespace) -> int:
                 slug=args.slug or "",
                 goals=list(args.goal or []),
                 source_root=source_root,
+                invoking_agent=_aegis_installer.invoking_agent_from_environment(),
             )
             _dump_json(payload)
             return 0
@@ -1192,11 +1362,28 @@ def build_arg_parser() -> argparse.ArgumentParser:
     scope_set_parser.add_argument("task_id", help="Task id this branch's work belongs to.")
     scope_set_parser.add_argument("glob", nargs="*", help="Optional in-scope path globs.")
     scope_set_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    scope_set_parser.add_argument(
+        "--project-sweh",
+        action="store_true",
+        help="After recording scope, project the active legacy S:W:H:E surfaces if they exist.",
+    )
+    scope_set_parser.add_argument(
+        "--project-limit",
+        type=int,
+        default=25,
+        help="Maximum projectable events to render when --project-sweh is used.",
+    )
+    scope_set_parser.add_argument(
+        "--project-read-limit",
+        type=int,
+        default=500,
+        help="Maximum recent ledger events to scan when --project-sweh is used.",
+    )
     scope_set_parser.set_defaults(func=handle_scope)
 
     ledger_parser = subparsers.add_parser(
         "ledger",
-        help="Inspect the out-of-worktree Aegis ledger store (read-only).",
+        help="Inspect the out-of-worktree Aegis ledger store and generated projections.",
     )
     ledger_sub = ledger_parser.add_subparsers(dest="ledger_subcommand", required=True)
     ledger_path_parser = ledger_sub.add_parser(
@@ -1205,6 +1392,46 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     ledger_path_parser.add_argument("--target-dir", default=".", help="Target repository root.")
     ledger_path_parser.set_defaults(func=handle_ledger)
+    ledger_project_parser = ledger_sub.add_parser(
+        "project-sweh",
+        help="Project selected ledger events into a generated S:W:H:E block.",
+    )
+    ledger_project_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    ledger_project_parser.add_argument(
+        "--output",
+        default=None,
+        help="Legacy markdown surface to update, relative to target dir unless absolute.",
+    )
+    ledger_project_parser.add_argument(
+        "--active",
+        action="store_true",
+        help="Project into existing active session, plan, and work-tracking markdown surfaces.",
+    )
+    ledger_project_parser.add_argument(
+        "--limit",
+        type=int,
+        default=25,
+        help="Maximum projectable events to render after filtering.",
+    )
+    ledger_project_parser.add_argument(
+        "--read-limit",
+        type=int,
+        default=500,
+        help="Maximum recent ledger events to scan before filtering.",
+    )
+    ledger_project_parser.add_argument(
+        "--include-mutations",
+        action="store_true",
+        help="Also project low-level mutation events into the legacy surface.",
+    )
+    ledger_project_parser.add_argument(
+        "--include-gate-decisions",
+        action="store_true",
+        help="Also project advisory gate-decision events into the legacy surface.",
+    )
+    ledger_project_parser.add_argument("--dry-run", action="store_true", help="Render without writing.")
+    ledger_project_parser.add_argument("--json", action="store_true", help="Print structured result JSON.")
+    ledger_project_parser.set_defaults(func=handle_ledger)
 
     next_parser = subparsers.add_parser(
         "next",

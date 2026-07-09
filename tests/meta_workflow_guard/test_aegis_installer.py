@@ -2849,6 +2849,120 @@ def test_start_and_kickoff_are_blocked_until_claude_reload_hook_runs(tmp_path: P
     assert kickoff_report["task"]["id"] == "42"
 
 
+def test_invoking_agent_detection_is_explicit_and_conservative() -> None:
+    assert aegis_installer.invoking_agent_from_environment({}) is None
+    assert (
+        aegis_installer.invoking_agent_from_environment({"CODEX_THREAD_ID": "thread-123"})
+        == "codex"
+    )
+    assert aegis_installer.invoking_agent_from_environment({"CODEX_CI": "1"}) == "codex"
+    assert (
+        aegis_installer.invoking_agent_from_environment(
+            {
+                "CODEX_THREAD_ID": "thread-123",
+                "CLAUDE_PROJECT_DIR": "/tmp/project",
+            }
+        )
+        == "claude"
+    )
+    assert (
+        aegis_installer.invoking_agent_from_environment(
+            {
+                "AEGIS_INVOKING_AGENT": "gemini",
+                "CLAUDE_PROJECT_DIR": "/tmp/project",
+            }
+        )
+        == "gemini"
+    )
+
+
+def test_codex_can_start_observation_while_claude_adapter_reload_is_pending(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "multi-agent-codex-start"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="multi",
+        agents=["claude", "codex"],
+        apply=True,
+    )
+
+    marker = target / AEGIS_CLIENT_RELOAD_REL
+    assert marker.is_file()
+    assert next_action(target, source_root=REPO_ROOT)["state"] == "client_reload_required"
+    assert (
+        next_action(target, source_root=REPO_ROOT, invoking_agent="claude")["state"]
+        == "client_reload_required"
+    )
+
+    codex_guidance = next_action(
+        target,
+        source_root=REPO_ROOT,
+        invoking_agent="codex",
+    )
+    assert codex_guidance["state"] == "no_taskmaster"
+    pending_reload = codex_guidance["adapter_reload_pending"]
+    assert pending_reload["status"] == "required_for_other_agent"
+    assert pending_reload["agent"] == "claude"
+    assert pending_reload["invoking_agent"] == "codex"
+    assert pending_reload["blocks_invoking_agent"] is False
+    assert pending_reload["marker_path"] == AEGIS_CLIENT_RELOAD_REL
+    assert pending_reload["changed_paths"]
+    assert pending_reload["clearance"]["method"] == "installed_claude_pretooluse_hook"
+    assert codex_guidance["details"]["pending_adapter_reload"]["agent"] == "claude"
+    codex_status = status(
+        target,
+        source_root=REPO_ROOT,
+        invoking_agent="codex",
+    )
+    assert codex_status["workflow_guidance"]["state"] == "no_taskmaster"
+    assert codex_status["workflow_guidance"]["adapter_reload_pending"]["agent"] == "claude"
+
+    with pytest.raises(AegisError, match="restart Claude"):
+        start_observation(
+            target,
+            title="Blocked Claude observation",
+            source_root=REPO_ROOT,
+            invoking_agent="claude",
+        )
+
+    started = start_observation(
+        target,
+        title="Codex observation",
+        source_root=REPO_ROOT,
+        invoking_agent="codex",
+    )
+    assert started["status"] == "started"
+    assert marker.is_file()
+    active_codex_guidance = next_action(
+        target,
+        source_root=REPO_ROOT,
+        invoking_agent="codex",
+    )
+    assert active_codex_guidance["state"] == "observation_active"
+    assert active_codex_guidance["adapter_reload_pending"]["agent"] == "claude"
+    assert (
+        active_codex_guidance["continuation_brief"]["current_task_authority"]
+        == "observation-session"
+    )
+    assert (
+        next_action(target, source_root=REPO_ROOT, invoking_agent="claude")["state"]
+        == "client_reload_required"
+    )
+
+    simulate_claude_reload(target)
+    assert not marker.exists()
+
+
 def test_codex_primary_guidance_uses_explicit_agent_logs_and_normalized_task_slug(
     tmp_path: Path,
 ) -> None:
