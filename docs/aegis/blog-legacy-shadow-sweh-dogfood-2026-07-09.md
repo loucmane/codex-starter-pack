@@ -92,17 +92,47 @@ Post-run guidance initially labeled the observation as
 check. Observation mode now takes precedence and reports `observation-session` as its current
 authority.
 
+## TM-234 Witness And Delivery Follow-Up
+
+Draft blog PR [#6](https://github.com/loucmane/blog/pull/6) published the completed
+observation artifacts and provided a real GitHub boundary for the next projection slice.
+
+The follow-up ran on `chore/aegis-legacy-shadow-dogfood` after the target runtime was pinned
+to merged TM-233 commit `561def0`:
+
+1. `aegis scope set aegis-dogfood-6 ... --project-sweh` recorded confirmed infrastructure
+   scope and updated all eight archived surfaces.
+2. Local `aegis witness --base origin/main` passed all five deterministic checks, recorded
+   witness event `65bc73b60dae42878254a686f674c42b`, and projected it into all eight surfaces.
+3. `aegis delivery sync --pr 6` queried actual GitHub state, normalized it as `pr_draft`,
+   recorded delivery event `0f58ed16ff1e4b208a6e4bc579f83425`, and projected it into the
+   same surfaces.
+4. Repeating both commands reused those event IDs and returned `changed: false` for every
+   projection.
+5. Marker-stripped SHA-256 comparison against commit `6b65901` passed for all eight files;
+   no human-authored byte changed.
+6. Commit `5dc701c` published only those generated-block updates back to PR #6.
+
+The first synchronized delivery event correctly describes PR #6 at observed head `6b65901`.
+The later projection-only evidence commit creates a newer PR head but is not recursively
+synchronized by this explicit command slice; otherwise the audit view would create its own
+infinite update loop.
+
 ## Residual Findings
 
-- Automatic projection is currently integrated only with the explicit scope boundary.
-  Witness, delivery, merge, verification, and observation-stop projection remain future
-  boundary integrations.
+- Scope, local witness, and explicit GitHub delivery synchronization are integrated. Generic
+  verification-command and observation-stop projection remain future boundary integrations;
+  `pr_merged` is implemented in delivery sync but still needs live post-merge dogfood.
 - The Codex CLI path now supplies invocation identity. MCP registrations still need an
   explicit per-client identity before they can safely apply the same exception.
+- The old source-repository `codex-guard validate --include-untracked` still exits nonzero
+  when a completed observation has no ACTIVE folder, while `work-tracking audit` reports a
+  warning and Aegis strict verification correctly accepts the archived completed observation.
+  This remains coexistence evidence, not a reason to invent a replacement ACTIVE envelope.
 - Doctor proposes a cosmetic `normalize_plan_table` repair for `plan-step-emergency` even
   though the strict plan-table check passes. It was not applied during this run.
-- The target's tracked dogfood files are intentionally left uncommitted for review. No
-  product source or Taskmaster state was changed.
+- The target dogfood files are now isolated in draft PR #6. No product source or Taskmaster
+  state was changed.
 
 ## Verdict
 
@@ -111,4 +141,6 @@ can update the old human-readable surfaces without per-mutation `aegis log` call
 their existing content, survive observation archival, and remain idempotent. The run also
 proved that dogfood needs to include bootstrap and sandbox behavior, not only projection
 rendering: both defects appeared before or around the first useful event and are now covered
-by regression tests.
+by regression tests. TM-234 adds real boundary evidence without changing the verdict: witness
+and GitHub delivery truth stay machine-grounded, while legacy files remain derived, readable,
+and safe for human annotations.

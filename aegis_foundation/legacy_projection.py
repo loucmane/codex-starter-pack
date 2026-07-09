@@ -27,6 +27,7 @@ DEFAULT_EVENT_TYPES = {
     "task_truth",
     "tool_failure",
     "verification",
+    "witness",
 }
 
 ACTIVE_WORK_TRACKING_FILES = (
@@ -86,6 +87,8 @@ def _event_handler(event: Mapping[str, Any]) -> str:
     event_type = str(event.get("event_type") or "unknown")
     if event_type == "verification":
         return "verify"
+    if event_type == "witness":
+        return "witness"
     if event_type == "delivery":
         return "delivery"
     if event_type == "task_truth":
@@ -125,12 +128,27 @@ def _event_summary(event: Mapping[str, Any]) -> str:
     if event_type == "verification":
         package = _short(extra.get("package"), default="app", limit=40)
         gate = _short(extra.get("gate"), default="verification", limit=40)
-        exit_class = _short(event.get("exit_class") or extra.get("exit_class"), default="unknown", limit=20)
+        exit_class = _short(
+            event.get("exit_class") or extra.get("exit_class"), default="unknown", limit=20
+        )
         commit = _short(extra.get("commit"), default="unknown commit", limit=16)
         return f"{package}:{gate} verification recorded as {exit_class} at {commit}."
+    if event_type == "witness":
+        verdict = "PASS" if bool(extra.get("passed")) else "FAIL"
+        commit = _short(extra.get("head_commit"), default="unknown commit", limit=16)
+        report_path = _short(
+            extra.get("report_path"),
+            default=".aegis/reports/witness-report.json",
+            limit=80,
+        )
+        return f"Delivery witness {verdict} recorded at {commit}; report: {report_path}."
     if event_type == "delivery":
         action = _short(extra.get("action") or event.get("tool_name"), default="delivery", limit=60)
-        return f"Delivery event recorded: {action}."
+        pr_number = _short(extra.get("pr_number"), default="", limit=16)
+        commit = _short(extra.get("head_commit"), default="", limit=16)
+        pr_suffix = f" for PR #{pr_number}" if pr_number else ""
+        commit_suffix = f" at {commit}" if commit else ""
+        return f"Delivery state recorded: {action}{pr_suffix}{commit_suffix}."
     if event_type == "task_truth":
         task = _short(extra.get("task_id") or extra.get("task"), default="task truth", limit=50)
         status = _short(extra.get("status") or extra.get("to_status"), default="changed", limit=40)
@@ -286,7 +304,9 @@ def active_surface_paths(target_dir: Path) -> list[Path]:
                     candidates.append(root / rel_path)
             work_rel = str(paths.get("work_tracking") or "").strip()
             if work_rel:
-                candidates.extend(root / work_rel / filename for filename in ACTIVE_WORK_TRACKING_FILES)
+                candidates.extend(
+                    root / work_rel / filename for filename in ACTIVE_WORK_TRACKING_FILES
+                )
 
     candidates.extend(root / rel_path for rel_path in ("sessions/current", "plans/current"))
 

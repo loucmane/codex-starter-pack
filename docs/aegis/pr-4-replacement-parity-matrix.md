@@ -6,6 +6,9 @@ Status: design-only prerequisite for TM-210 (`Capsule PR-4: retirement`). This d
 not authorize or implement PR-4 retirement. TM-233
 (`Legacy-shadow S:W:H:E projection from passive ledger`) is an additional prerequisite for
 TM-210 because PR-4 must support coexistence before deleting or demoting old workflow surfaces.
+TM-234 (`Project witness and delivery boundaries into legacy S:W:H:E surfaces`) adds the first
+machine-grounded witness/PR boundary projection evidence, but it does not change any retirement
+decision by itself.
 
 ## Hard Rule
 
@@ -45,7 +48,7 @@ Allowed retirement states:
 | `.aegis/state/pending-tracking.json` | Force every mutation to be acknowledged by a manual log before next mutation/Stop. | PostToolUse pending tracker + PreToolUse/Stop gates. | Passive ledger events + boundary annotations/capsule + generated S:W:H:E projections + witness at delivery. | Mutations are recorded without per-mutation ceremony; witness catches unverified or out-of-scope changes; advisory-era pending events have an explicit non-ambush lifecycle. | Real tasks showing near-zero ceremony, complete ledger, generated projection, and witness correctly enforcing delivery. | Re-enable pending-tracking hard blocks. | `shadow` | NO-GO until witness catches a meaningful delivery miss, false blocks stay low, and TM-233 defines advisory-pending lifecycle. |
 | `posttooluse-tracking.sh` pending path | Create manual S:W:H:E pending entries after mutations. | Claude PostToolUse tracking hook. | PR-1b passive recorder hook, out-of-worktree ledger, and generated S:W:H:E projections. | Recorder covers mutation, failure, task-truth, delivery, and subagent events without blocking, and projection writes selected high-signal entries to legacy files. | Hook fixture tests plus live HP-Coach/Codex events in ledger and generated projection evidence. | Restore pending tracking hook while keeping recorder. | `shadow` | NO-GO for full retirement; recorder is live but projection/equivalence need longer dogfood. |
 | `tracking-stop-gate.sh` | Block session stop when pending S:W:H:E entries remain. | Claude Stop hook. | Boundary witness + capsule freshness + optional PR-3 checkpoints. | Missing evidence is caught at boundary without tail-chasing "log command creates log pending" loops. | Stop/resume dogfood with missing SessionEnd and no lost recovery context. | Restore Stop hard gate. | `keep` | NO-GO; PR-3 checkpoint substitute is not shipped. |
-| Closeout/handoff semantic gates | Require task summary, evidence, changelog, handoff sections before completion. | Aegis closeout/readiness gates. | `aegis witness` delivery report + capsule state + Taskmaster status containment. | Delivery report proves scope, tests-at-head, task flip containment, PR/CI, and evidence without prose-string reconciliation. | Required witness check passes on several real PRs and fails on at least one seeded bad case. | Restore closeout semantic gates. | `shadow` | NO-GO until witness has more real/negative evidence. |
+| Closeout/handoff semantic gates | Require task summary, evidence, changelog, handoff sections before completion. | Aegis closeout/readiness gates. | `aegis witness` delivery report + capsule state + Taskmaster status containment. | Delivery report proves scope, tests-at-head, task flip containment, PR/CI, and evidence without prose-string reconciliation. | Required witness check passes on several real PRs and fails on at least one seeded bad case. Blog PR #6 now proves one passing local witness plus generated boundary projection. | Restore closeout semantic gates. | `shadow` | NO-GO until witness has more real/negative evidence and post-merge proof. |
 | Strict readiness/current-work blocks | Prevent mutations outside an active envelope or in broken workflow state. | PreToolUse readiness gate. | Advisory mode + ledger decision recording + GitHub boundary protection/witness. | False-positive blocks disappear while protected actions and delivery discipline remain covered. | Real product work with advisory decisions recorded and no lost task/delivery discipline. | Set enforcement mode back to strict. | `shadow` | NO-GO for permanent demotion until advisory dogfood is longer. |
 | `aegis kickoff` required ceremony | Create branch/task/session/plan/work-tracking envelope before work starts. | Aegis lifecycle commands. | Taskmaster task + branch naming + inferred scope records + capsule orientation. | Work scope is recoverable and enforceable without requiring kickoff for every task. | Several normal branches where scope inference and witness mapping are correct, including ambiguity handling. | Require kickoff for source edits again. | `shadow` | NO-GO until scope inference handles non-standard work. |
 | `aegis closeout` required ceremony | Close task envelope, repair handoff, and prepare done status. | Aegis closeout command. | Witness delivery report + PR merge evidence + Taskmaster done containment. | Done status and merge state are reconstructable and protected without closeout ceremony. | Multiple merged PRs where witness + Taskmaster truth replace closeout without missing facts. | Restore closeout as required before done/merge. | `shadow` | NO-GO until delivery report is complete enough to replace closeout. |
@@ -83,11 +86,17 @@ Allowed retirement states:
   events into eight legacy surfaces, preserved existing content, remained idempotent after
   archival, and closed observation with zero unexpected changes. It also found and fixed the
   agent-scoped reload and read-only SQLite gaps.
+- Blog draft PR #6 is the first TM-234 witness/delivery fixture. It projected confirmed scope,
+  a passing local witness, and GitHub-observed `pr_draft` state into all eight archived surfaces;
+  repeated calls reused event IDs, every second projection was byte-stable, and marker-external
+  SHA-256 checks passed for all files. This is strong shadow evidence, but it is only one PR and
+  does not prove merged-state, negative-witness, interrupted-session, or unique-content parity.
 
 ## Current Decision
 
 PR-4 is blocked. The replacement stack is promising and several surfaces are ready for shadow
 comparison, but no legacy surface is currently authorized for full retirement by this matrix.
-TM-233 now defines the projection and has one clean-install dogfood run. TM-210 remains blocked
-until multiple real task/delivery runs, witness integration, and unique-content comparison prove
-that demotion is safe; no human-readable surface is authorized for retirement yet.
+TM-233 defines the projection, and TM-234 adds one clean witness/draft-delivery dogfood run.
+TM-210 remains blocked until multiple real task/delivery runs, merged-state and negative-witness
+evidence, interrupted-session handling, and unique-content comparison prove that demotion is
+safe; no human-readable surface is authorized for retirement yet.
