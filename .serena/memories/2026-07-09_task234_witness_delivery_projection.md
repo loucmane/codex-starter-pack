@@ -1,0 +1,26 @@
+# TM-234 Witness/Delivery Legacy Projection
+
+- Branch: feat/task-234-witness-delivery-projection
+- Taskmaster: Task 234, dependency TM-233.
+- Added local witness boundary recording and GitHub-backed `aegis delivery sync`.
+- Boundary events are machine-grounded, SHA-256 fingerprinted, and deduplicated before append.
+- Local witness projects existing legacy surfaces but keeps its original PASS/FAIL verdict when recording or projection warns.
+- CI witness skips persistent witness events and projections.
+- Delivery sync accepts only optional PR/branch selectors, derives canonical branch_pushed/pr_draft/pr_open/pr_merged/pr_closed state from git and gh, and performs no delivery action.
+- `witness` is now a default high-signal legacy projection event; human content outside Aegis markers remains untouched.
+- Packaged and live installer copies are byte-identical.
+- Blog draft PR #6 dogfood:
+  - scope event projected to 8 archived surfaces;
+  - witness PASS event 65bc73b60dae42878254a686f674c42b;
+  - delivery pr_draft event 0f58ed16ff1e4b208a6e4bc579f83425;
+  - repeated commands reused both event IDs and returned changed=false;
+  - marker-external SHA-256 checks passed for all 8 surfaces;
+  - projection evidence published as blog commit 5dc701c.
+- Validation:
+  - Ruff format/check passed.
+  - focused matrix: 125 passed, 1 opt-in smoke skipped.
+  - broader affected matrix: 266 passed, 3 opt-in smokes skipped.
+  - full suite: 1738 passed, 4 opt-in smokes skipped.
+  - Taskmaster health and dependency validation passed.
+- PR-4 remains blocked. This proves one passing witness and draft-delivery path only. Still needed: upstream PR CI, merged-state delivery sync dogfood, negative-witness evidence, interrupted-session handling, and multi-task unique-content parity.
+- The boundary is explicit and non-recursive: committing generated projections creates a newer PR head but does not automatically invoke delivery sync again, avoiding a self-generated audit loop.

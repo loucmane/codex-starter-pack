@@ -730,7 +730,7 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             'if [ -z "${AEGIS_SOURCE_ROOT:-}" ] && [ -f "$AEGIS_RUNTIME_ENV" ]; then',
             '  while IFS="=" read -r key value; do',
             '    case "$key" in',
-            '      AEGIS_SOURCE_ROOT|source_root)',
+            "      AEGIS_SOURCE_ROOT|source_root)",
             '        AEGIS_SOURCE_ROOT="$value"',
             "        ;;",
             "    esac",
@@ -1517,7 +1517,11 @@ def runtime_status(target_dir: str | Path, *, source_root: str | Path) -> dict[s
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
     env_values = _parse_runtime_env(target_root)
     recorded_source = env_values.get("AEGIS_SOURCE_ROOT") or env_values.get("source_root")
-    active_source = Path(recorded_source).expanduser().resolve() if recorded_source else Path(source_root).resolve()
+    active_source = (
+        Path(recorded_source).expanduser().resolve()
+        if recorded_source
+        else Path(source_root).resolve()
+    )
     runtime = manifest.get("runtime") if isinstance(manifest, Mapping) else None
     return {
         "schema_version": SCHEMA_VERSION,
@@ -1616,7 +1620,11 @@ def runtime_update(
     ):
         managed_files.append({"path": AEGIS_RUNTIME_ENV_REL, "kind": "runtime"})
     _validate_with_schema(source, "foundation-manifest.schema.json", dict(manifest))
-    _write_text(target_root, AEGIS_RUNTIME_ENV_REL, _render_runtime_env(source, updated_at=updated_at).decode("utf-8"))
+    _write_text(
+        target_root,
+        AEGIS_RUNTIME_ENV_REL,
+        _render_runtime_env(source, updated_at=updated_at).decode("utf-8"),
+    )
     _write_text(target_root, AEGIS_MANIFEST_REL, _dump_json(dict(manifest)))
     return report
 
@@ -1805,7 +1813,9 @@ def project_update(
     safety = _update_product_file_safety(install_plan)
     unsafe = _unsafe_operations(install_plan)
     capsule = _capsule_update_step(target_root, source, apply=False)
-    verification_preview = verify(target_root, source_root=source, strict=strict_verify, dry_run=True)
+    verification_preview = verify(
+        target_root, source_root=source, strict=strict_verify, dry_run=True
+    )
     base_report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "status": "preview" if not apply else "pending",
@@ -2168,9 +2178,7 @@ def invoking_agent_from_environment(
     return None
 
 
-def _client_reload_blocks_agent(
-    marker: Mapping[str, Any], invoking_agent: str | None
-) -> bool:
+def _client_reload_blocks_agent(marker: Mapping[str, Any], invoking_agent: str | None) -> bool:
     marker_agent = str(marker.get("agent") or "").strip().lower()
     normalized_invoker = str(invoking_agent or "").strip().lower()
     if marker_agent not in AGENT_CHOICES or normalized_invoker not in AGENT_CHOICES:
@@ -2280,7 +2288,9 @@ def _expected_manifest_summary(primary_agent: str, enabled_agents: Sequence[str]
                 "gate_ids": list(
                     CLAUDE_GATE_IDS
                     if agent == "claude"
-                    else CODEX_GATE_IDS if agent == "codex" else ()
+                    else CODEX_GATE_IDS
+                    if agent == "codex"
+                    else ()
                 ),
             }
             for agent in ("claude", "codex", "gemini")
@@ -2503,7 +2513,7 @@ def status(
     if payload["enforcement"].get("mode") == "advisory":
         payload["recommended_actions"] = [
             "Aegis enforcement is advisory: gates record would-block decisions but do not block.",
-            "Return to strict with `aegis enforce --mode strict --reason \"<reason>\"` after product work.",
+            'Return to strict with `aegis enforce --mode strict --reason "<reason>"` after product work.',
             *payload["recommended_actions"],
         ]
     return payload
@@ -2530,7 +2540,7 @@ AEGIS_CONTINUATION_LINES = (
     "- Run `aegis next` (or the `aegis.next` MCP tool) and perform its `next_safe_action` — "
     "the single sanctioned step. Run `aegis doctor` when `aegis next` reports a repair or "
     "blocked state.",
-    "- If readiness is BLOCKED, \"continue\" means fix workflow state, not mutate.",
+    '- If readiness is BLOCKED, "continue" means fix workflow state, not mutate.',
     "- When `.taskmaster/tasks/tasks.json` has available work, Taskmaster is the "
     "task-selection authority; do not start Aegis-local work to bypass it.",
     "- Perform the brief's one `next_safe_action`, then re-run `aegis next`. Do not chain "
@@ -2577,35 +2587,168 @@ _CONTINUATION_UNIVERSAL_STOP = (
     "a user-confirmation boundary is reached",
 )
 CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
-    "not_installed": {"continue_means": "initialize Aegis before any source edit", "next_safe_action": "initialize"},
-    "invalid_manifest": {"continue_means": "repair the Aegis manifest before mutating", "next_safe_action": "repair_manifest"},
-    "client_reload_required": {"continue_means": "restart the client so hooks load, then re-run aegis next", "next_safe_action": "restart_client"},
-    "installed_taskmaster_invalid": {"continue_means": "repair Taskmaster task state", "next_safe_action": "repair_taskmaster"},
-    "installed_taskmaster_present": {"continue_means": "select the next Taskmaster task and kickoff", "next_safe_action": "taskmaster_next_then_kickoff", "confirmation_boundary": ["switch the active task"]},
-    "installed_no_current_work": {"continue_means": "pick a Taskmaster task, or start tracked local work", "next_safe_action": "start_or_select", "confirmation_boundary": ["start a new task"]},
-    "no_taskmaster": {"continue_means": "no task ledger exists yet; initialize Taskmaster for task-driven planning, or start tracked local work — never bind or invent a task id before the ledger exists", "next_safe_action": "init_taskmaster_or_start_local", "confirmation_boundary": ["creating the Taskmaster ledger (task-master init) is a setup mutation; surface it first", "do not invent or pin a task id before the ledger exists"], "artifact_policy": "setup-only: init the ledger or start local tracked work; do not edit product source"},
-    "taskmaster_empty": {"continue_means": "the ledger is initialized but empty; seed planning by adding a task or authoring and parsing a PRD — never bind a fabricated task to begin work", "next_safe_action": "seed_tasks", "confirmation_boundary": ["parsing a PRD requires explicit user approval", "adding the first task is a planning mutation; surface it first", "do not bind a placeholder or fake task id"], "artifact_policy": "planning-only: write task entries into the ledger; do not edit product source"},
-    "prd_available_not_parsed": {"continue_means": "a PRD is present but not parsed; surface the PRD and the parse plan and get explicit approval before parsing — never assume task ids the parse has not created", "next_safe_action": "propose_parse_prd", "confirmation_boundary": ["running parse-prd requires explicit user approval before it generates tasks", "do not assume or fabricate task ids the parse has not created"], "artifact_policy": "read the PRD and present the parse plan; run the planning mutation only after explicit approval"},
-    "prd_parsed_tasks_pending": {"continue_means": "the PRD parsed into pending tasks and none is started; review and optionally expand the generated tasks, then select a real task — do not jump into product code", "next_safe_action": "review_then_select_task", "confirmation_boundary": ["selecting and kicking off a task is a workflow mutation; surface the task id first", "expanding a task is a planning mutation; surface it first", "switch the active task only with explicit confirmation"], "artifact_policy": "planning-only: read tasks and expand into subtasks; do not edit product source"},
-    "first_task_ready": {"continue_means": "a real ledger task is ready and none is started; kick off that specific task to open a tracked session — do not edit source before kickoff", "next_safe_action": "kickoff_first_task", "confirmation_boundary": ["kickoff binds and starts the selected task; surface the task id first", "switch to a different task only with explicit confirmation"], "artifact_policy": "setup-only: kickoff records the session/plan/tracker for the real task; do not edit product source"},
-    "pending_tracking": {"continue_means": "log the pending S:W:H:E event before any other mutation", "next_safe_action": "log_pending"},
-    "observation_completed": {"continue_means": "stop observation and proceed to implementation", "next_safe_action": "exit_observation"},
-    "observation_active": {"continue_means": "continue read-only observation; stop with aegis observe stop", "next_safe_action": "observe_stop", "artifact_policy": "save screenshots/notes under reports/; do not edit source"},
-    "closeout_passed": {"continue_means": "task complete; deliver only with confirmation", "next_safe_action": "deliver", "confirmation_boundary": ["push or open a PR", "merge requires explicit user approval"]},
-    "delivery_pending": {"continue_means": "the task is closed; deliver via git/GitHub only with explicit confirmation", "next_safe_action": "deliver_with_confirmation", "confirmation_boundary": ["push the branch", "open a PR", "merge requires explicit user approval"], "artifact_policy": "delivery is git/GitHub only; no source edits"},
-    "delivery_unknown": {"continue_means": "inspect git/branch state before any delivery step", "next_safe_action": "inspect_git_state", "confirmation_boundary": ["any push, PR, or merge requires explicit confirmation"], "artifact_policy": "read-only git inspection only"},
-    "workflow_scaffold_incomplete": {"continue_means": "repair the workflow scaffold (plan/tracker pointers)", "next_safe_action": "repair_scaffold"},
-    "safe_repair_available": {"continue_means": "review the repair plan (aegis doctor / aegis next), then apply only the safe repairs with aegis repair --apply after surfacing the plan", "next_safe_action": "review_repair_plan_then_apply_safe", "confirmation_boundary": ["applying repairs with aegis repair --apply (show the repair plan first)", "any manual-review action needs explicit user confirmation"], "artifact_policy": "aegis repair writes the changes; show the plan before applying and do not hand-edit .aegis/"},
-    "manual_review_repair": {"continue_means": "surface the repair plan only; manual-review actions need an explicit human decision and are never auto-applied", "next_safe_action": "surface_repair_plan_for_review", "confirmation_boundary": ["every manual-review repair action requires explicit user confirmation before it is applied", "manual-review actions are never applied by aegis repair --apply"], "artifact_policy": "read-only: present the plan; do not run aegis repair --apply and do not hand-edit .aegis/"},
-    "scope_required": {"continue_means": "log task scope, then begin the source change", "next_safe_action": "log_scope", "artifact_policy": "log scope evidence (e.g. FINDINGS.md)"},
-    "implementation_required": {"continue_means": "make the task-scoped change with native tools, then log the pending mutation", "next_safe_action": "implement_and_log", "confirmation_boundary": ["cross a protected/owned path", "switch the active task"], "artifact_policy": "log the changed file as evidence"},
-    "task_verification_required": {"continue_means": "run task verification and log it", "next_safe_action": "verify_and_log", "artifact_policy": "save verification under reports/, then log"},
-    "strict_verification_required": {"continue_means": "run aegis verify --strict and log the report", "next_safe_action": "strict_verify", "artifact_policy": "log the strict-verify report"},
-    "closeout_required": {"continue_means": "run aegis closeout --dry-run; run non-dry-run closeout only with explicit close-out intent", "next_safe_action": "run_closeout_dry_run", "confirmation_boundary": ["running non-dry-run aegis closeout"], "artifact_policy": "closeout writes the report; do not hand-edit .aegis/"},
+    "not_installed": {
+        "continue_means": "initialize Aegis before any source edit",
+        "next_safe_action": "initialize",
+    },
+    "invalid_manifest": {
+        "continue_means": "repair the Aegis manifest before mutating",
+        "next_safe_action": "repair_manifest",
+    },
+    "client_reload_required": {
+        "continue_means": "restart the client so hooks load, then re-run aegis next",
+        "next_safe_action": "restart_client",
+    },
+    "installed_taskmaster_invalid": {
+        "continue_means": "repair Taskmaster task state",
+        "next_safe_action": "repair_taskmaster",
+    },
+    "installed_taskmaster_present": {
+        "continue_means": "select the next Taskmaster task and kickoff",
+        "next_safe_action": "taskmaster_next_then_kickoff",
+        "confirmation_boundary": ["switch the active task"],
+    },
+    "installed_no_current_work": {
+        "continue_means": "pick a Taskmaster task, or start tracked local work",
+        "next_safe_action": "start_or_select",
+        "confirmation_boundary": ["start a new task"],
+    },
+    "no_taskmaster": {
+        "continue_means": "no task ledger exists yet; initialize Taskmaster for task-driven planning, or start tracked local work — never bind or invent a task id before the ledger exists",
+        "next_safe_action": "init_taskmaster_or_start_local",
+        "confirmation_boundary": [
+            "creating the Taskmaster ledger (task-master init) is a setup mutation; surface it first",
+            "do not invent or pin a task id before the ledger exists",
+        ],
+        "artifact_policy": "setup-only: init the ledger or start local tracked work; do not edit product source",
+    },
+    "taskmaster_empty": {
+        "continue_means": "the ledger is initialized but empty; seed planning by adding a task or authoring and parsing a PRD — never bind a fabricated task to begin work",
+        "next_safe_action": "seed_tasks",
+        "confirmation_boundary": [
+            "parsing a PRD requires explicit user approval",
+            "adding the first task is a planning mutation; surface it first",
+            "do not bind a placeholder or fake task id",
+        ],
+        "artifact_policy": "planning-only: write task entries into the ledger; do not edit product source",
+    },
+    "prd_available_not_parsed": {
+        "continue_means": "a PRD is present but not parsed; surface the PRD and the parse plan and get explicit approval before parsing — never assume task ids the parse has not created",
+        "next_safe_action": "propose_parse_prd",
+        "confirmation_boundary": [
+            "running parse-prd requires explicit user approval before it generates tasks",
+            "do not assume or fabricate task ids the parse has not created",
+        ],
+        "artifact_policy": "read the PRD and present the parse plan; run the planning mutation only after explicit approval",
+    },
+    "prd_parsed_tasks_pending": {
+        "continue_means": "the PRD parsed into pending tasks and none is started; review and optionally expand the generated tasks, then select a real task — do not jump into product code",
+        "next_safe_action": "review_then_select_task",
+        "confirmation_boundary": [
+            "selecting and kicking off a task is a workflow mutation; surface the task id first",
+            "expanding a task is a planning mutation; surface it first",
+            "switch the active task only with explicit confirmation",
+        ],
+        "artifact_policy": "planning-only: read tasks and expand into subtasks; do not edit product source",
+    },
+    "first_task_ready": {
+        "continue_means": "a real ledger task is ready and none is started; kick off that specific task to open a tracked session — do not edit source before kickoff",
+        "next_safe_action": "kickoff_first_task",
+        "confirmation_boundary": [
+            "kickoff binds and starts the selected task; surface the task id first",
+            "switch to a different task only with explicit confirmation",
+        ],
+        "artifact_policy": "setup-only: kickoff records the session/plan/tracker for the real task; do not edit product source",
+    },
+    "pending_tracking": {
+        "continue_means": "log the pending S:W:H:E event before any other mutation",
+        "next_safe_action": "log_pending",
+    },
+    "observation_completed": {
+        "continue_means": "stop observation and proceed to implementation",
+        "next_safe_action": "exit_observation",
+    },
+    "observation_active": {
+        "continue_means": "continue read-only observation; stop with aegis observe stop",
+        "next_safe_action": "observe_stop",
+        "artifact_policy": "save screenshots/notes under reports/; do not edit source",
+    },
+    "closeout_passed": {
+        "continue_means": "task complete; deliver only with confirmation",
+        "next_safe_action": "deliver",
+        "confirmation_boundary": ["push or open a PR", "merge requires explicit user approval"],
+    },
+    "delivery_pending": {
+        "continue_means": "the task is closed; deliver via git/GitHub only with explicit confirmation",
+        "next_safe_action": "deliver_with_confirmation",
+        "confirmation_boundary": [
+            "push the branch",
+            "open a PR",
+            "merge requires explicit user approval",
+        ],
+        "artifact_policy": "delivery is git/GitHub only; no source edits",
+    },
+    "delivery_unknown": {
+        "continue_means": "inspect git/branch state before any delivery step",
+        "next_safe_action": "inspect_git_state",
+        "confirmation_boundary": ["any push, PR, or merge requires explicit confirmation"],
+        "artifact_policy": "read-only git inspection only",
+    },
+    "workflow_scaffold_incomplete": {
+        "continue_means": "repair the workflow scaffold (plan/tracker pointers)",
+        "next_safe_action": "repair_scaffold",
+    },
+    "safe_repair_available": {
+        "continue_means": "review the repair plan (aegis doctor / aegis next), then apply only the safe repairs with aegis repair --apply after surfacing the plan",
+        "next_safe_action": "review_repair_plan_then_apply_safe",
+        "confirmation_boundary": [
+            "applying repairs with aegis repair --apply (show the repair plan first)",
+            "any manual-review action needs explicit user confirmation",
+        ],
+        "artifact_policy": "aegis repair writes the changes; show the plan before applying and do not hand-edit .aegis/",
+    },
+    "manual_review_repair": {
+        "continue_means": "surface the repair plan only; manual-review actions need an explicit human decision and are never auto-applied",
+        "next_safe_action": "surface_repair_plan_for_review",
+        "confirmation_boundary": [
+            "every manual-review repair action requires explicit user confirmation before it is applied",
+            "manual-review actions are never applied by aegis repair --apply",
+        ],
+        "artifact_policy": "read-only: present the plan; do not run aegis repair --apply and do not hand-edit .aegis/",
+    },
+    "scope_required": {
+        "continue_means": "log task scope, then begin the source change",
+        "next_safe_action": "log_scope",
+        "artifact_policy": "log scope evidence (e.g. FINDINGS.md)",
+    },
+    "implementation_required": {
+        "continue_means": "make the task-scoped change with native tools, then log the pending mutation",
+        "next_safe_action": "implement_and_log",
+        "confirmation_boundary": ["cross a protected/owned path", "switch the active task"],
+        "artifact_policy": "log the changed file as evidence",
+    },
+    "task_verification_required": {
+        "continue_means": "run task verification and log it",
+        "next_safe_action": "verify_and_log",
+        "artifact_policy": "save verification under reports/, then log",
+    },
+    "strict_verification_required": {
+        "continue_means": "run aegis verify --strict and log the report",
+        "next_safe_action": "strict_verify",
+        "artifact_policy": "log the strict-verify report",
+    },
+    "closeout_required": {
+        "continue_means": "run aegis closeout --dry-run; run non-dry-run closeout only with explicit close-out intent",
+        "next_safe_action": "run_closeout_dry_run",
+        "confirmation_boundary": ["running non-dry-run aegis closeout"],
+        "artifact_policy": "closeout writes the report; do not hand-edit .aegis/",
+    },
 }
 
 
-def _continuation_brief(state: str, phase: str, *, current_task_authority: str | None = None) -> dict[str, Any]:
+def _continuation_brief(
+    state: str, phase: str, *, current_task_authority: str | None = None
+) -> dict[str, Any]:
     """Build the per-state continuation brief (TM 189), derived from the TM 188 contract.
     read_only is always True — the brief proves `aegis next` grants no mutation authority."""
 
@@ -2614,10 +2757,14 @@ def _continuation_brief(state: str, phase: str, *, current_task_authority: str |
     brief: dict[str, Any] = {
         "workflow_phase": phase,
         "current_task_authority": current_task_authority or "none",
-        "continue_means": spec.get("continue_means", "perform the single next_safe_action, then re-run aegis next"),
+        "continue_means": spec.get(
+            "continue_means", "perform the single next_safe_action, then re-run aegis next"
+        ),
         "next_safe_action": spec.get("next_safe_action", state),
         "confirmation_boundary": list(spec.get("confirmation_boundary") or []),
-        "artifact_policy": spec.get("artifact_policy", "log evidence via aegis log; do not hand-edit .aegis/"),
+        "artifact_policy": spec.get(
+            "artifact_policy", "log evidence via aegis log; do not hand-edit .aegis/"
+        ),
         "stop_conditions": [*_CONTINUATION_UNIVERSAL_STOP, *extra_stop],
         "read_only": True,
     }
@@ -2762,7 +2909,9 @@ def _post_closeout_delivery_guidance(
         for pr in gh.get("prs", [])
         if isinstance(pr, Mapping) and str(pr.get("headRefName") or "") == branch
     ]
-    merged = [pr for pr in prs if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")]
+    merged = [
+        pr for pr in prs if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")
+    ]
     if merged:
         pr = merged[0]
         return {
@@ -3040,7 +3189,9 @@ _PRD_PLACEHOLDER_MARKERS = (
     "[Provide a high-level overview of your product here",
     "[List and describe the main features of your product",
 )
-_PRD_READ_LIMIT = 1_000_000  # PRDs are small text docs; bound the read so a pathological file can't OOM.
+_PRD_READ_LIMIT = (
+    1_000_000  # PRDs are small text docs; bound the read so a pathological file can't OOM.
+)
 
 
 def _prd_read_head(path: Path) -> str | None:
@@ -3594,7 +3745,10 @@ def next_action(
             details={"pending_event_ids": ids},
         )
 
-    if str(current_work.get("mode") or "") == "observation" and str(current_work.get("status") or "") == "completed":
+    if (
+        str(current_work.get("mode") or "") == "observation"
+        and str(current_work.get("status") or "") == "completed"
+    ):
         paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
         observation = (
             current_work.get("observation")
@@ -3633,7 +3787,9 @@ def next_action(
 
     if str(current_work.get("mode") or "") == "observation":
         paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
-        reports_rel = str(paths.get("reports") or "docs/ai/work-tracking/active/<folder>/reports").strip()
+        reports_rel = str(
+            paths.get("reports") or "docs/ai/work-tracking/active/<folder>/reports"
+        ).strip()
         observation = (
             current_work.get("observation")
             if isinstance(current_work.get("observation"), Mapping)
@@ -4469,7 +4625,7 @@ def _run_gh_pr_list(target_root: Path) -> dict[str, Any]:
             "--limit",
             "200",
             "--json",
-            "number,state,title,headRefName,baseRefName,mergedAt,url,isDraft",
+            "number,state,title,headRefName,headRefOid,baseRefName,mergedAt,closedAt,url,isDraft",
         ],
         cwd=target_root,
         text=True,
@@ -4507,7 +4663,7 @@ def _run_gh_pr_view(target_root: Path, number: Any) -> dict[str, Any]:
             "view",
             pr_number,
             "--json",
-            "number,state,title,headRefName,baseRefName,url,isDraft,mergeStateStatus,statusCheckRollup",
+            "number,state,title,headRefName,headRefOid,baseRefName,mergedAt,closedAt,url,isDraft,mergeStateStatus,statusCheckRollup",
         ],
         cwd=target_root,
         text=True,
@@ -4567,6 +4723,132 @@ def _summarize_pr_checks(pr: Mapping[str, Any]) -> dict[str, Any]:
     if passed:
         return {"state": "passed", "checks": checks, "passed": passed}
     return {"state": "unknown", "checks": checks, "reason": "no classifiable checks reported"}
+
+
+def delivery_snapshot(
+    target_dir: str | Path,
+    *,
+    pr_number: str | int | None = None,
+    branch: str | None = None,
+) -> dict[str, Any]:
+    """Return machine-observed git/GitHub delivery state without mutating the target."""
+
+    target_root = Path(target_dir).resolve()
+    selected_branch = str(branch or "").strip()
+    if not selected_branch:
+        try:
+            selected_branch = _current_branch(target_root)
+        except AegisError as exc:
+            return {
+                "available": False,
+                "reason": str(exc),
+                "recordable": False,
+            }
+
+    upstream_result = _run_target_git(
+        target_root,
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        f"{selected_branch}@{{upstream}}",
+    )
+    upstream = upstream_result.stdout.strip() if upstream_result.returncode == 0 else None
+
+    selected_pr: dict[str, Any] | None = None
+    requested_pr = str(pr_number or "").strip()
+    if requested_pr:
+        detail = _run_gh_pr_view(target_root, requested_pr)
+        if not detail.get("available") or not isinstance(detail.get("pr"), Mapping):
+            return {
+                "available": False,
+                "reason": str(detail.get("reason") or "GitHub PR state unavailable"),
+                "recordable": False,
+                "branch": selected_branch,
+                "upstream": upstream,
+                "pr_number": requested_pr,
+            }
+        selected_pr = dict(detail["pr"])
+        selected_branch = str(selected_pr.get("headRefName") or selected_branch)
+    else:
+        listing = _run_gh_pr_list(target_root)
+        if not listing.get("available"):
+            return {
+                "available": False,
+                "reason": str(listing.get("reason") or "GitHub PR state unavailable"),
+                "recordable": False,
+                "branch": selected_branch,
+                "upstream": upstream,
+            }
+        matches = [
+            dict(pr)
+            for pr in listing.get("prs", [])
+            if isinstance(pr, Mapping) and str(pr.get("headRefName") or "") == selected_branch
+        ]
+        if matches:
+            open_matches = [pr for pr in matches if str(pr.get("state") or "").upper() == "OPEN"]
+            selected_pr = (open_matches or matches)[0]
+            detail = _run_gh_pr_view(target_root, selected_pr.get("number"))
+            if detail.get("available") and isinstance(detail.get("pr"), Mapping):
+                selected_pr = {**selected_pr, **dict(detail["pr"])}
+
+    if selected_pr is None:
+        action = "branch_pushed" if upstream else "local_only"
+        return {
+            "available": True,
+            "recordable": bool(upstream),
+            "action": action,
+            "branch": selected_branch,
+            "upstream": upstream,
+            "head_commit": _git_commit_for_ref(target_root, selected_branch)
+            or _git_commit_for_ref(target_root, "HEAD"),
+            "pr": None,
+            "checks": {"state": "not_applicable", "checks": []},
+        }
+
+    # An exact post-merge PR lookup may start from main and then resolve the PR's deleted
+    # or non-current head branch. Recompute upstream against that observed branch so main's
+    # upstream is never attributed to the delivered branch.
+    upstream_result = _run_target_git(
+        target_root,
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        f"{selected_branch}@{{upstream}}",
+    )
+    upstream = upstream_result.stdout.strip() if upstream_result.returncode == 0 else None
+
+    state = str(selected_pr.get("state") or "").upper()
+    merged_at = selected_pr.get("mergedAt")
+    if state == "MERGED" or merged_at:
+        action = "pr_merged"
+    elif state == "OPEN" and bool(selected_pr.get("isDraft")):
+        action = "pr_draft"
+    elif state == "OPEN":
+        action = "pr_open"
+    elif state == "CLOSED":
+        action = "pr_closed"
+    else:
+        return {
+            "available": False,
+            "reason": f"unrecognized GitHub PR state: {state or '<empty>'}",
+            "recordable": False,
+            "branch": selected_branch,
+            "upstream": upstream,
+            "pr": selected_pr,
+        }
+
+    return {
+        "available": True,
+        "recordable": True,
+        "action": action,
+        "branch": selected_branch,
+        "upstream": upstream,
+        "head_commit": selected_pr.get("headRefOid")
+        or _git_commit_for_ref(target_root, selected_branch)
+        or _git_commit_for_ref(target_root, "HEAD"),
+        "pr": selected_pr,
+        "checks": _summarize_pr_checks(selected_pr),
+    }
 
 
 def _task_ids_for_pr(pr: Mapping[str, Any]) -> list[str]:
@@ -5000,7 +5282,9 @@ def reconcile(
     status_value = (
         "drift"
         if severity_counts["error"]
-        else "needs_review" if severity_counts["warning"] else "clean"
+        else "needs_review"
+        if severity_counts["warning"]
+        else "clean"
     )
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -5247,7 +5531,7 @@ def _replace_work_tracking_path_prefix(paths: MutableMapping[str, Any], old: str
         if value == old:
             paths[key] = new
         elif value.startswith(f"{old}/"):
-            paths[key] = f"{new}{value[len(old):]}"
+            paths[key] = f"{new}{value[len(old) :]}"
 
 
 def _archive_completed_observation_work_tracking_path(
@@ -5278,7 +5562,9 @@ def _archive_current_completed_work_tracking(
     target_root: Path,
     current_work: MutableMapping[str, Any],
 ) -> dict[str, str] | None:
-    paths = current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+    paths = (
+        current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+    )
     if paths is None:
         return None
     work_rel = str(paths.get("work_tracking") or "").strip()
@@ -5297,7 +5583,9 @@ def _archive_current_completed_observation_work_tracking(
         return None
     if str(current_work.get("status") or "") != "completed":
         return None
-    paths = current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+    paths = (
+        current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+    )
     if paths is None:
         return None
     work_rel = str(paths.get("work_tracking") or "").strip()
@@ -5384,7 +5672,9 @@ def _fingerprint_status_path(path: Path) -> str:
                     truncated = True
                     break
                 if child.is_symlink():
-                    digest.update(f"L\t{rel_child}\t{child.readlink().as_posix()}\n".encode("utf-8"))
+                    digest.update(
+                        f"L\t{rel_child}\t{child.readlink().as_posix()}\n".encode("utf-8")
+                    )
                     continue
                 if not child.is_file():
                     digest.update(f"O\t{rel_child}\n".encode("utf-8"))
@@ -5402,8 +5692,7 @@ def _fingerprint_status_path(path: Path) -> str:
         except OSError as exc:
             return f"dir-error:{exc}"
         return (
-            f"dir:{files_seen}:{bytes_seen}:{digest.hexdigest()}:"
-            f"truncated={str(truncated).lower()}"
+            f"dir:{files_seen}:{bytes_seen}:{digest.hexdigest()}:truncated={str(truncated).lower()}"
         )
     if path.exists():
         return "other"
@@ -5450,9 +5739,7 @@ def _observation_allowed_prefixes(current_work: Mapping[str, Any]) -> list[str]:
         if value:
             prefixes.add(value.rstrip("/"))
     artifact_root = str(
-        paths.get("observation_artifacts")
-        or observation.get("artifact_root")
-        or ""
+        paths.get("observation_artifacts") or observation.get("artifact_root") or ""
     ).strip()
     if artifact_root:
         prefixes.add(artifact_root.rstrip("/"))
@@ -5481,11 +5768,13 @@ def _observation_budget_config(target_root: Path) -> dict[str, Any]:
     brief = _read_json(target_root / AEGIS_BRIEF_REL)
     section = brief.get("observation") if isinstance(brief, Mapping) else None
     section = section if isinstance(section, Mapping) else {}
+
     def _int_or(value: Any, default: int) -> int:
         try:
             return max(1, int(value))
         except (TypeError, ValueError):
             return default
+
     return {
         "sample_cap": _int_or(section.get("sample_cap"), OBSERVATION_SAMPLE_CAP_DEFAULT),
         "prefix_cap": _int_or(section.get("prefix_cap"), OBSERVATION_PREFIX_CAP_DEFAULT),
@@ -5689,9 +5978,7 @@ def _observation_artifact_root_rel(current_work: Mapping[str, Any]) -> str:
         else {}
     )
     configured = str(
-        paths.get("observation_artifacts")
-        or observation.get("artifact_root")
-        or ""
+        paths.get("observation_artifacts") or observation.get("artifact_root") or ""
     ).strip()
     if configured:
         return configured.strip("/")
@@ -6207,7 +6494,10 @@ def start_observation(
     normalized_slug = _normalize_observation_slug(slug, clean_title)
 
     existing_current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
-    if isinstance(existing_current_work, Mapping) and str(existing_current_work.get("status") or "") == "in-progress":
+    if (
+        isinstance(existing_current_work, Mapping)
+        and str(existing_current_work.get("status") or "") == "in-progress"
+    ):
         return _already_started_report(target_root, existing_current_work)
     if isinstance(existing_current_work, MutableMapping):
         archived_observation_work = _archive_current_completed_observation_work_tracking(
@@ -6215,7 +6505,9 @@ def start_observation(
             existing_current_work,
         )
         if archived_observation_work is not None:
-            _update_observation_report_archived_work_tracking(target_root, archived_observation_work)
+            _update_observation_report_archived_work_tracking(
+                target_root, archived_observation_work
+            )
             _write_text(target_root, AEGIS_CURRENT_WORK_REL, _dump_json(existing_current_work))
 
     now = datetime.now().astimezone().replace(microsecond=0)
@@ -6536,7 +6828,9 @@ def stop_observation(
         current_status = _git_status_snapshot(target_root)
         current_fingerprints = _git_status_fingerprints(target_root, current_status)
         status_deltas = _observation_status_delta_lines(current_work, current_status)
-        fingerprint_deltas = _observation_fingerprint_delta_lines(current_work, current_fingerprints)
+        fingerprint_deltas = _observation_fingerprint_delta_lines(
+            current_work, current_fingerprints
+        )
         runtime_status_deltas = _observation_runtime_status_delta_lines(status_deltas)
         runtime_fingerprint_deltas = _observation_runtime_fingerprint_delta_lines(
             current_work,
@@ -6653,7 +6947,9 @@ def stop_observation(
         current_work,
     )
     if archived_observation_work is not None:
-        report_paths = report.get("paths") if isinstance(report.get("paths"), MutableMapping) else None
+        report_paths = (
+            report.get("paths") if isinstance(report.get("paths"), MutableMapping) else None
+        )
         if report_paths is not None:
             _replace_work_tracking_path_prefix(
                 report_paths,
@@ -6981,7 +7277,9 @@ AEGIS_PLAN_STEP_DEFAULTS: dict[str, dict[str, str]] = {
 def _pending_event_is_confident_implementation(pending_event: Mapping[str, Any] | None) -> bool:
     if not isinstance(pending_event, Mapping):
         return False
-    event_class_value = str(pending_event.get("event_class") or pending_event.get("classification") or "")
+    event_class_value = str(
+        pending_event.get("event_class") or pending_event.get("classification") or ""
+    )
     if event_class_value.strip().lower().replace("-", "_") == "implementation":
         return True
     tool_name = str(pending_event.get("tool") or pending_event.get("tool_name") or "")
@@ -7025,7 +7323,7 @@ def _infer_auto_plan_step(
     choices = ", ".join(AEGIS_PLAN_STEP_IDS)
     if not candidates:
         raise AegisError(
-            "plan-step auto could not infer a deterministic plan step; " f"pass one of: {choices}"
+            f"plan-step auto could not infer a deterministic plan step; pass one of: {choices}"
         )
     observed = ", ".join(f"{step} ({reason})" for step, reason in candidates.items())
     raise AegisError(
@@ -7197,7 +7495,9 @@ def _normalize_plan_table_text(
                 repaired_steps.append(step)
                 insertion += 1
     normalized = "\n".join(output).rstrip() + "\n"
-    return normalized, sorted(set(repaired_steps), key=lambda step: tuple(canonical_rows).index(step))
+    return normalized, sorted(
+        set(repaired_steps), key=lambda step: tuple(canonical_rows).index(step)
+    )
 
 
 def _plan_table_repair_preview(
@@ -7375,7 +7675,9 @@ def _stored_event_is_read_only(target_root: Path, event: Mapping[str, Any]) -> b
             return False
         tool = str(event.get("tool") or "")
         evidence = str(event.get("evidence") or "")
-        if tool in getattr(gl, "FILE_MUTATION_TOOLS", {"Edit", "Write", "MultiEdit", "NotebookEdit"}):
+        if tool in getattr(
+            gl, "FILE_MUTATION_TOOLS", {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+        ):
             return False
         if tool == "Bash":
             # The command is recoverable only when evidence kept the cmd`...` wrapper.
@@ -7732,7 +8034,9 @@ def log_work(
         evidence=evidence_rel,
         explicit_event_class=event_class,
     )
-    if normalized_event_class == "note" and _pending_event_is_confident_implementation(resolved_pending_event):
+    if normalized_event_class == "note" and _pending_event_is_confident_implementation(
+        resolved_pending_event
+    ):
         normalized_event_class = "implementation"
     normalized_plan_step, plan_step_inferred, plan_inference_reason = _resolve_plan_step_argument(
         plan_step,
@@ -8504,7 +8808,9 @@ def _strict_current_work_checks(
         malformed_steps = [
             step
             for step, row in plan_rows.items()
-            if str(step).startswith("plan-step-") and isinstance(row, Mapping) and row.get("malformed")
+            if str(step).startswith("plan-step-")
+            and isinstance(row, Mapping)
+            and row.get("malformed")
         ]
         checks.append(
             _strict_check(
@@ -8965,7 +9271,11 @@ def _mismatched_closeout_metadata_action(
         return None
     current_id = _current_work_task_id(current_work)
     report_id = _current_work_task_id(report_work)
-    if not current_id or not report_id or _closeout_report_matches_current_work(closeout_report, current_work):
+    if (
+        not current_id
+        or not report_id
+        or _closeout_report_matches_current_work(closeout_report, current_work)
+    ):
         return None
     return _doctor_action(
         "workflow.remove_mismatched_closeout_metadata",
@@ -9180,7 +9490,9 @@ def _classify_doctor_state(
     if summary["failed_required"]:
         return "installed_with_failures", "repairable" if repair_actions else "failed"
     if summary["warnings"]:
-        return ("observation_ready" if work_mode == "observation" else "in_progress_ready"), "degraded"
+        return (
+            "observation_ready" if work_mode == "observation" else "in_progress_ready"
+        ), "degraded"
     return ("observation_ready" if work_mode == "observation" else "in_progress_ready"), "healthy"
 
 
@@ -9548,7 +9860,11 @@ def _apply_repair_action(
             and str(current_work.get("mode") or "") == "observation"
             and str(current_work.get("status") or "") == "completed"
         ):
-            paths = current_work.get("paths") if isinstance(current_work.get("paths"), MutableMapping) else None
+            paths = (
+                current_work.get("paths")
+                if isinstance(current_work.get("paths"), MutableMapping)
+                else None
+            )
             if paths is not None:
                 _replace_work_tracking_path_prefix(paths, archived["from"], archived["to"])
             current_path.write_text(_dump_json(current_work), encoding="utf-8")
@@ -9562,7 +9878,11 @@ def _apply_repair_action(
         current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
         preview = _plan_table_repair_preview(target_root, current_work)
         if preview is None:
-            return {"id": action.get("id"), "status": "skipped", "reason": "plan table already clean"}
+            return {
+                "id": action.get("id"),
+                "status": "skipped",
+                "reason": "plan table already clean",
+            }
         plan_path = target_root / str(preview["path"])
         plan_path.write_text(str(preview["text"]), encoding="utf-8")
         return {
@@ -9858,7 +10178,11 @@ def _remove_path(target_root: Path, rel_path: str) -> dict[str, Any]:
 
 def _apply_uninstall_operation(target_root: Path, operation: Mapping[str, Any]) -> dict[str, Any]:
     if operation.get("safe_to_apply") is not True:
-        return {"path": operation.get("path"), "status": "skipped", "reason": "manual review action"}
+        return {
+            "path": operation.get("path"),
+            "status": "skipped",
+            "reason": "manual review action",
+        }
     action = str(operation.get("action") or "")
     rel_path = str(operation.get("path") or "")
     if action == "modify":
@@ -9888,7 +10212,9 @@ def uninstall(
         remove_hook_scripts=remove_hook_scripts,
         source_root=source,
     )
-    manual_review = [operation for operation in operations if operation.get("safe_to_apply") is not True]
+    manual_review = [
+        operation for operation in operations if operation.get("safe_to_apply") is not True
+    ]
     if not apply:
         return {
             "schema_version": SCHEMA_VERSION,
@@ -9974,13 +10300,17 @@ def format_next_summary(payload: Mapping[str, Any]) -> str:
     confirmation boundaries, then re-run `aegis next`. The full payload (--json) carries
     suggested CLI/MCP calls and copyable repairs."""
 
-    brief = payload.get("continuation_brief") if isinstance(payload.get("continuation_brief"), Mapping) else {}
+    brief = (
+        payload.get("continuation_brief")
+        if isinstance(payload.get("continuation_brief"), Mapping)
+        else {}
+    )
     boundaries = [str(item) for item in (brief.get("confirmation_boundary") or []) if str(item)]
     stops = [str(item) for item in (brief.get("stop_conditions") or []) if str(item)]
     lines = [
         f"Aegis next: {payload.get('state')} (phase: {payload.get('phase')})",
         f"Active authority: {brief.get('current_task_authority', 'none')}",
-        f"\"continue\" means: {brief.get('continue_means', '')}",
+        f'"continue" means: {brief.get("continue_means", "")}',
         f"Next safe action: {brief.get('next_safe_action', payload.get('next_required_action', ''))}",
         f"Required: {payload.get('next_required_action', '')}",
         f"Suggested: {payload.get('suggested_cli', '')}",
@@ -9990,7 +10320,9 @@ def format_next_summary(payload: Mapping[str, Any]) -> str:
     if stops:
         lines.append("Stop if: " + "; ".join(stops))
     lines.append(f"Artifact policy: {brief.get('artifact_policy', '')}")
-    lines.append("(read-only guidance — aegis next grants no mutation authority; re-run after the one step)")
+    lines.append(
+        "(read-only guidance — aegis next grants no mutation authority; re-run after the one step)"
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -10326,7 +10658,11 @@ def _split_evidence_tokens(raw_evidence: str) -> list[str]:
             in_backticks = not in_backticks
             current.append(char)
             continue
-        if char == ";" and not in_backticks and not _semicolon_closes_html_entity(raw_evidence, index):
+        if (
+            char == ";"
+            and not in_backticks
+            and not _semicolon_closes_html_entity(raw_evidence, index)
+        ):
             clean = _clean_evidence_token("".join(current))
             if clean and clean != "_TBD_":
                 tokens.append(clean)
@@ -10443,9 +10779,7 @@ def _replace_markdown_section(text: str, heading: str, body_lines: Sequence[str]
     return "\n".join(next_lines).rstrip() + "\n"
 
 
-def _replace_handoff_semantic_section(
-    text: str, heading: str, body_lines: Sequence[str]
-) -> str:
+def _replace_handoff_semantic_section(text: str, heading: str, body_lines: Sequence[str]) -> str:
     """Replace or insert a closeout-owned HANDOFF section before Progress Log."""
 
     if any(line.strip() == heading for line in text.splitlines()):
@@ -10543,9 +10877,7 @@ def _repair_closeout_handoff_text(
     work_label = f"task{task_id}-{slug}" if task_id or slug else "current-work"
     text = existing_text
     if not text.strip():
-        text = _first_markdown_title(
-            existing_text, f"# Task {task_id} {title} - Handoff Summary"
-        )
+        text = _first_markdown_title(existing_text, f"# Task {task_id} {title} - Handoff Summary")
 
     if not _handoff_current_state_ok(_markdown_section(text, "## Current State")):
         text = _replace_handoff_semantic_section(
@@ -11516,9 +11848,7 @@ def closeout(
         "handoff": handoff_path,
         "plan": plan_path,
     }
-    surface_texts = {
-        surface: _read_text_or_empty(path) for surface, path in surface_paths.items()
-    }
+    surface_texts = {surface: _read_text_or_empty(path) for surface, path in surface_paths.items()}
     evidence_matrix = {
         token: {
             surface: _surface_contains_evidence(text, token)

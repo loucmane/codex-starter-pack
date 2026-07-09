@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
+import hashlib
 import importlib.util
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 from aegis_foundation import legacy_projection, mcp_registration
 from aegis_foundation.resources import packaged_asset_root
@@ -160,7 +161,9 @@ def _load_brief_lib(source_root: Path):
     return module
 
 
-def _refresh_capsule_if_stale(source_root: Path, target_dir: str, *, reason: str) -> dict[str, Any] | None:
+def _refresh_capsule_if_stale(
+    source_root: Path, target_dir: str, *, reason: str
+) -> dict[str, Any] | None:
     """Refresh the computed capsule at workflow boundaries only when stale."""
 
     try:
@@ -256,6 +259,193 @@ def _scope_ledger_context(target: Path) -> dict[str, str | None]:
     return {"session_id": session_id, "work_id": work_id}
 
 
+def _boundary_fingerprint(payload: Mapping[str, Any]) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode(
+        "utf-8"
+    )
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def _normalized_witness_checks(report: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    checks = report.get("checks") if isinstance(report.get("checks"), Mapping) else {}
+    normalized: dict[str, dict[str, Any]] = {}
+    for name, raw_check in sorted(checks.items()):
+        check = raw_check if isinstance(raw_check, Mapping) else {}
+        normalized[str(name)] = {
+            "passed": bool(check.get("passed")),
+            "status": str(check.get("status") or "") or None,
+        }
+    return normalized
+
+
+def _record_boundary_event(
+    source_root: Path,
+    target: Path,
+    *,
+    event_type: str,
+    branch: str,
+    outcome: str,
+    handler: str,
+    extra: Mapping[str, Any],
+    paths: Sequence[str] = (),
+) -> tuple[Any, dict[str, Any]]:
+    """Append one normalized boundary event unless its state was already recorded."""
+
+    ledger_lib = _load_ledger_lib(source_root)
+    scope_context = _scope_ledger_context(target)
+    normalized_extra = dict(extra)
+    normalized_extra["boundary_kind"] = event_type
+    if scope_context["work_id"]:
+        normalized_extra["work_id"] = scope_context["work_id"]
+    fingerprint_payload = {
+        key: value for key, value in normalized_extra.items() if key != "boundary_fingerprint"
+    }
+    fingerprint_payload["branch"] = branch
+    fingerprint = _boundary_fingerprint(fingerprint_payload)
+    normalized_extra["boundary_fingerprint"] = fingerprint
+
+    ledger = ledger_lib.open_ledger(cwd=target)
+    try:
+        existing = ledger.read(event_type=event_type)
+        for event in reversed(existing):
+            event_extra = event.get("extra") if isinstance(event.get("extra"), Mapping) else {}
+            if (
+                str(event.get("branch") or "") == branch
+                and event_extra.get("boundary_kind") == event_type
+                and event_extra.get("boundary_fingerprint") == fingerprint
+            ):
+                return ledger_lib, {
+                    "status": "unchanged",
+                    "event_id": event.get("event_id"),
+                    "event_type": event_type,
+                    "boundary_fingerprint": fingerprint,
+                }
+
+        invoking_agent = _aegis_installer.invoking_agent_from_environment()
+        recorded = ledger.append(
+            {
+                "branch": branch,
+                "cwd": target.as_posix(),
+                "event_type": event_type,
+                "session_id": scope_context["session_id"],
+                "agent_id": invoking_agent,
+                "agent_type": invoking_agent,
+                "handler": handler,
+                "paths": list(paths),
+                "outcome": outcome,
+                "exit_class": outcome,
+                "payload_digest": fingerprint,
+                "extra": normalized_extra,
+            }
+        )
+        return ledger_lib, {
+            "status": "recorded",
+            "event_id": recorded.get("event_id"),
+            "event_type": event_type,
+            "boundary_fingerprint": fingerprint,
+        }
+    finally:
+        ledger.close()
+
+
+def _project_boundary_event(
+    ledger_lib: Any,
+    target: Path,
+    *,
+    read_limit: int = 500,
+    limit: int = 25,
+) -> dict[str, Any]:
+    surfaces = legacy_projection.active_surface_paths(target)
+    if not surfaces:
+        return {
+            "status": "skipped",
+            "reason": "no existing active legacy surfaces",
+            "output_paths": [],
+            "changed": False,
+        }
+    try:
+        payload, _results = _project_legacy_sweh(
+            ledger_lib,
+            target,
+            surfaces,
+            read_limit=read_limit,
+            limit=limit,
+        )
+        return payload
+    except Exception as exc:  # noqa: BLE001 - projection is advisory at boundaries.
+        return {
+            "status": "warning",
+            "reason": str(exc),
+            "error_type": type(exc).__name__,
+            "output_paths": [path.as_posix() for path in surfaces],
+            "changed": False,
+        }
+
+
+def _record_witness_boundary(
+    source_root: Path,
+    target: Path,
+    report: Mapping[str, Any],
+    *,
+    report_path: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    checks = _normalized_witness_checks(report)
+    passed = bool(report.get("passed"))
+    extra = {
+        "action": "witness",
+        "base": report.get("base"),
+        "checks": checks,
+        "escalations": list(report.get("escalations") or []),
+        "head_commit": report.get("head_commit"),
+        "mode": report.get("mode"),
+        "passed": passed,
+        "report_path": report_path,
+    }
+    ledger_lib, boundary = _record_boundary_event(
+        source_root,
+        target,
+        event_type="witness",
+        branch=str(report.get("branch") or ""),
+        outcome="pass" if passed else "fail",
+        handler="aegis:witness",
+        extra=extra,
+        paths=[report_path],
+    )
+    return boundary, _project_boundary_event(ledger_lib, target)
+
+
+def _record_delivery_boundary(
+    source_root: Path,
+    target: Path,
+    snapshot: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    pr = snapshot.get("pr") if isinstance(snapshot.get("pr"), Mapping) else {}
+    checks = snapshot.get("checks") if isinstance(snapshot.get("checks"), Mapping) else {}
+    extra = {
+        "action": snapshot.get("action"),
+        "upstream": snapshot.get("upstream"),
+        "head_commit": snapshot.get("head_commit"),
+        "pr_number": pr.get("number"),
+        "url": pr.get("url"),
+        "state": pr.get("state"),
+        "is_draft": bool(pr.get("isDraft")) if pr else None,
+        "merge_state": pr.get("mergeStateStatus"),
+        "merged_at": pr.get("mergedAt"),
+        "closed_at": pr.get("closedAt"),
+        "checks_state": checks.get("state"),
+    }
+    ledger_lib, boundary = _record_boundary_event(
+        source_root,
+        target,
+        event_type="delivery",
+        branch=str(snapshot.get("branch") or ""),
+        outcome="pass",
+        handler="aegis:delivery-sync",
+        extra=extra,
+    )
+    return boundary, _project_boundary_event(ledger_lib, target)
+
+
 def _load_witness_lib(source_root: Path):
     script = source_root / ".claude" / "scripts" / "witness_lib.py"
     spec = importlib.util.spec_from_file_location("_aegis_cli_witness_lib", script)
@@ -286,11 +476,103 @@ def handle_witness(args: argparse.Namespace) -> int:
         _refresh_capsule_if_stale(source_root, args.target_dir, reason="pre-delivery")
         witness_lib = _load_witness_lib(source_root)
         report = witness_lib.run_witness(args.target_dir, base=args.base, ci_mode=args.ci)
+        if args.ci:
+            report["boundary_event"] = {"status": "skipped", "reason": "ci_mode"}
+            report["legacy_projection"] = {"status": "skipped", "reason": "ci_mode"}
+        else:
+            try:
+                boundary, projection = _record_witness_boundary(
+                    source_root,
+                    Path(args.target_dir).resolve(),
+                    report,
+                    report_path=str(
+                        getattr(
+                            witness_lib, "WITNESS_REPORT_REL", ".aegis/reports/witness-report.json"
+                        )
+                    ),
+                )
+            except Exception as exc:  # noqa: BLE001 - recording cannot change witness verdict.
+                boundary = {
+                    "status": "warning",
+                    "reason": str(exc),
+                    "error_type": type(exc).__name__,
+                }
+                projection = {
+                    "status": "skipped",
+                    "reason": "boundary event was not recorded",
+                }
+            report["boundary_event"] = boundary
+            report["legacy_projection"] = projection
         if args.json:
             _dump_json(report)
         else:
             print(witness_lib.render_report(report), end="")
+            print(f"Boundary event: {report['boundary_event']['status']}")
+            print(f"Legacy S:W:H:E projection: {report['legacy_projection']['status']}")
         return 0 if report.get("passed") else 1
+
+
+def handle_delivery(args: argparse.Namespace) -> int:
+    if args.delivery_subcommand != "sync":
+        raise _aegis_installer.AegisError("unknown delivery subcommand")
+    with _resolve_source_root(args.source_root) as source_root:
+        snapshot = _aegis_installer.delivery_snapshot(
+            args.target_dir,
+            pr_number=args.pr_number,
+            branch=args.branch,
+        )
+        if not snapshot.get("available"):
+            payload = {
+                "status": "failed",
+                "snapshot": snapshot,
+                "boundary_event": {"status": "skipped"},
+                "legacy_projection": {"status": "skipped"},
+            }
+            if args.json:
+                _dump_json(payload)
+            else:
+                print(f"Aegis delivery sync failed: {snapshot.get('reason')}", file=sys.stderr)
+            return 1
+
+        reason = "post-merge" if snapshot.get("action") == "pr_merged" else "pre-delivery"
+        _refresh_capsule_if_stale(source_root, args.target_dir, reason=reason)
+        if not snapshot.get("recordable"):
+            boundary = {"status": "skipped", "reason": "no delivery state to record"}
+            projection = {"status": "skipped", "reason": "no delivery state to record"}
+        else:
+            try:
+                boundary, projection = _record_delivery_boundary(
+                    source_root,
+                    Path(args.target_dir).resolve(),
+                    snapshot,
+                )
+            except Exception as exc:  # noqa: BLE001 - return structured synchronization failure.
+                boundary = {
+                    "status": "warning",
+                    "reason": str(exc),
+                    "error_type": type(exc).__name__,
+                }
+                projection = {
+                    "status": "skipped",
+                    "reason": "boundary event was not recorded",
+                }
+        payload = {
+            "status": "synced"
+            if boundary.get("status") in {"recorded", "unchanged"}
+            else "no_change",
+            "snapshot": snapshot,
+            "boundary_event": boundary,
+            "legacy_projection": projection,
+        }
+        if args.json:
+            _dump_json(payload)
+        else:
+            pr = snapshot.get("pr") if isinstance(snapshot.get("pr"), Mapping) else {}
+            pr_suffix = f" for PR #{pr.get('number')}" if pr.get("number") else ""
+            print(f"Aegis delivery sync: {snapshot.get('action')}{pr_suffix}")
+            print(f"Boundary event: {boundary.get('status')}")
+            print(f"Legacy S:W:H:E projection: {projection.get('status')}")
+        return 0 if boundary.get("status") in {"recorded", "unchanged", "skipped"} else 1
 
 
 def handle_brief(args: argparse.Namespace) -> int:
@@ -335,7 +617,14 @@ def handle_coldstart(args: argparse.Namespace) -> int:
         fresh_null=args.fresh_null,
         note=args.note or "",
     )
-    out = Path(args.out) if args.out else Path(args.target_dir) / ".aegis" / "coldstart-scenarios" / f"{scenario['scenario_id']}.json"
+    out = (
+        Path(args.out)
+        if args.out
+        else Path(args.target_dir)
+        / ".aegis"
+        / "coldstart-scenarios"
+        / f"{scenario['scenario_id']}.json"
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(scenario, indent=2, sort_keys=True), encoding="utf-8")
     summary = {
@@ -349,7 +638,10 @@ def handle_coldstart(args: argparse.Namespace) -> int:
     }
     _dump_json(summary)
     if scenario["dirty_patch_truncated"]:
-        print("warning: dirty patch truncated at cap; scenario replay will be incomplete", file=sys.stderr)
+        print(
+            "warning: dirty patch truncated at cap; scenario replay will be incomplete",
+            file=sys.stderr,
+        )
     return 0
 
 
@@ -403,13 +695,17 @@ def handle_ab(args: argparse.Namespace) -> int:
         if args.json:
             _dump_json(payload)
         else:
-            print(f"Genuine cold starts (source=startup, in-repo): on={arms['on']} off={arms['off']}")
+            print(
+                f"Genuine cold starts (source=startup, in-repo): on={arms['on']} off={arms['off']}"
+            )
             print(
                 f"Excluded: {excluded_non_startup} non-startup, "
                 f"{excluded_other_cwd} out-of-repo (harness/capture) stamps"
             )
             if met:
-                print(f"Stopping rule MET (>= {args.min_n} per arm) — compute the §7 metric and decide.")
+                print(
+                    f"Stopping rule MET (>= {args.min_n} per arm) — compute the §7 metric and decide."
+                )
             else:
                 print(
                     f"Stopping rule not met (need {args.min_n}/arm): "
@@ -432,7 +728,9 @@ def handle_override(args: argparse.Namespace) -> int:
     target = Path(args.target_dir).resolve()
     reason_class = args.reason_class or "any"
     if reason_class not in {"any", "readiness_blocked", "pending_tracking"}:
-        print(f"override reason-class not eligible for break-glass: {reason_class}", file=sys.stderr)
+        print(
+            f"override reason-class not eligible for break-glass: {reason_class}", file=sys.stderr
+        )
         return 1
     state_dir = target / ".aegis" / "state"
     state_dir.mkdir(parents=True, exist_ok=True)
@@ -575,7 +873,10 @@ def handle_ledger(args: argparse.Namespace) -> int:
             if args.active:
                 output_paths.extend(legacy_projection.active_surface_paths(Path(args.target_dir)))
             if not output_paths:
-                print("ledger project-sweh requires --output or --active with existing legacy surfaces", file=sys.stderr)
+                print(
+                    "ledger project-sweh requires --output or --active with existing legacy surfaces",
+                    file=sys.stderr,
+                )
                 return 1
             try:
                 payload, results = _project_legacy_sweh(
@@ -1261,7 +1562,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Run the deterministic delivery witness (boundary check; zero LLM).",
     )
     witness_parser.add_argument("--target-dir", default=".", help="Target repository root.")
-    witness_parser.add_argument("--base", default=None, help="Base ref for the diff (default: origin/main).")
+    witness_parser.add_argument(
+        "--base", default=None, help="Base ref for the diff (default: origin/main)."
+    )
     witness_parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
     witness_parser.add_argument(
         "--ci",
@@ -1269,6 +1572,32 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="CI mode: git-derivable checks only; ledger checks reported not_derivable_in_ci.",
     )
     witness_parser.set_defaults(func=handle_witness)
+
+    delivery_parser = subparsers.add_parser(
+        "delivery",
+        help="Synchronize machine-observed git/GitHub delivery state into the ledger and legacy projections.",
+    )
+    delivery_sub = delivery_parser.add_subparsers(dest="delivery_subcommand", required=True)
+    delivery_sync_parser = delivery_sub.add_parser(
+        "sync",
+        help="Record the current pushed-branch or PR state without performing a delivery action.",
+    )
+    delivery_sync_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    delivery_sync_parser.add_argument(
+        "--pr",
+        dest="pr_number",
+        default=None,
+        help="Exact pull-request number to inspect, including after branch switching.",
+    )
+    delivery_sync_parser.add_argument(
+        "--branch",
+        default=None,
+        help="Branch to inspect; defaults to the current git branch.",
+    )
+    delivery_sync_parser.add_argument(
+        "--json", action="store_true", help="Print structured result JSON."
+    )
+    delivery_sync_parser.set_defaults(func=handle_delivery)
 
     brief_parser = subparsers.add_parser(
         "brief",
@@ -1303,9 +1632,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "capture",
         help="Capture the current in-progress state as a replayable cold-start scenario.",
     )
-    coldstart_capture_parser.add_argument("--target-dir", default=".", help="Target repository root.")
-    coldstart_capture_parser.add_argument("--id", default=None, help="Scenario id (default: capture-<sha>).")
-    coldstart_capture_parser.add_argument("--out", default=None, help="Output path (default: .aegis/coldstart-scenarios/<id>.json).")
+    coldstart_capture_parser.add_argument(
+        "--target-dir", default=".", help="Target repository root."
+    )
+    coldstart_capture_parser.add_argument(
+        "--id", default=None, help="Scenario id (default: capture-<sha>)."
+    )
+    coldstart_capture_parser.add_argument(
+        "--out", default=None, help="Output path (default: .aegis/coldstart-scenarios/<id>.json)."
+    )
     coldstart_capture_parser.add_argument(
         "--expect-class",
         choices=("continue", "do_nothing"),
@@ -1317,7 +1652,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Mark as a fresh-null control scenario (clean state; expected ~no capsule edge).",
     )
-    coldstart_capture_parser.add_argument("--note", default=None, help="Operator note stored in the scenario.")
+    coldstart_capture_parser.add_argument(
+        "--note", default=None, help="Operator note stored in the scenario."
+    )
     coldstart_capture_parser.set_defaults(func=handle_coldstart)
 
     ab_parser = subparsers.add_parser(
@@ -1338,7 +1675,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "override",
         help="Mint a one-shot break-glass token for workflow-state blocks (tier a/b only).",
     )
-    override_parser.add_argument("--reason", required=True, help="Why the break-glass is needed (audited).")
+    override_parser.add_argument(
+        "--reason", required=True, help="Why the break-glass is needed (audited)."
+    )
     override_parser.add_argument(
         "--reason-class",
         default="any",
@@ -1346,8 +1685,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Restrict the token to one block reason; default any eligible workflow-state block.",
     )
     override_parser.add_argument("--target-dir", default=".", help="Target repository root.")
-    override_parser.add_argument("--ttl-minutes", type=int, default=15, help="Token lifetime (default 15).")
-    override_parser.add_argument("--max-per-day", type=int, default=3, help="Rate limit per day (default 3).")
+    override_parser.add_argument(
+        "--ttl-minutes", type=int, default=15, help="Token lifetime (default 15)."
+    )
+    override_parser.add_argument(
+        "--max-per-day", type=int, default=3, help="Rate limit per day (default 3)."
+    )
     override_parser.set_defaults(func=handle_override)
 
     scope_parser = subparsers.add_parser(
@@ -1429,8 +1772,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also project advisory gate-decision events into the legacy surface.",
     )
-    ledger_project_parser.add_argument("--dry-run", action="store_true", help="Render without writing.")
-    ledger_project_parser.add_argument("--json", action="store_true", help="Print structured result JSON.")
+    ledger_project_parser.add_argument(
+        "--dry-run", action="store_true", help="Render without writing."
+    )
+    ledger_project_parser.add_argument(
+        "--json", action="store_true", help="Print structured result JSON."
+    )
     ledger_project_parser.set_defaults(func=handle_ledger)
 
     next_parser = subparsers.add_parser(

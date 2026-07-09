@@ -8,6 +8,7 @@ workflow operation.
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 
@@ -59,10 +60,52 @@ def test_cli_boundary_handlers_refresh_expected_capsule_reasons(
             "invoking_agent": invoking_agent,
         },
     )
-    monkeypatch.setattr(cli._aegis_installer, "verify", lambda *args, **kwargs: {"status": "passed"})
+    monkeypatch.setattr(
+        cli._aegis_installer, "verify", lambda *args, **kwargs: {"status": "passed"}
+    )
 
     assert cli.handle_next(_args(tmp_path)) == 0
     assert cli.handle_witness(_args(tmp_path)) == 0
     assert cli.handle_verify(_args(tmp_path)) == 0
 
     assert called == ["orientation", "pre-delivery", "verification"]
+
+
+def test_witness_projection_failure_does_not_change_witness_verdict(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    class FakeWitnessLib:
+        WITNESS_REPORT_REL = ".aegis/reports/witness-report.json"
+
+        @staticmethod
+        def run_witness(_target_dir: str, *, base: str | None, ci_mode: bool):
+            return {
+                "passed": True,
+                "base": base,
+                "mode": "ci" if ci_mode else "local",
+                "branch": "feat/task-234-witness-delivery-projection",
+                "head_commit": "abc1234",
+                "checks": {},
+                "escalations": [],
+            }
+
+        @staticmethod
+        def render_report(_report: dict[str, object]) -> str:
+            return "witness passed\n"
+
+    monkeypatch.setattr(cli, "_refresh_capsule_if_stale", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli, "_load_witness_lib", lambda _source_root: FakeWitnessLib)
+    monkeypatch.setattr(
+        cli,
+        "_record_witness_boundary",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("projection unavailable")),
+    )
+
+    assert cli.handle_witness(_args(tmp_path)) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["passed"] is True
+    assert payload["boundary_event"]["status"] == "warning"
+    assert payload["boundary_event"]["reason"] == "projection unavailable"
+    assert payload["legacy_projection"]["status"] == "skipped"

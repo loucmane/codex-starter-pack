@@ -1,7 +1,7 @@
 # Task 233 Legacy-shadow S:W:H:E projection from passive ledger Tracker
 
 **Started**: 2026-07-09
-**Status**: ACTIVE
+**Status**: COMPLETED
 **Last Updated**: 2026-07-09
 
 ## Goals

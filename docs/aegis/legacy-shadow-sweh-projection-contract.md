@@ -1,6 +1,6 @@
 # Legacy-Shadow S:W:H:E Projection Contract
 
-Task: TM-233
+Tasks: TM-233 (projection core), TM-234 (witness/delivery boundaries)
 
 Status: design prerequisite for TM-210 (`Capsule PR-4: retirement`). This document defines
 how the old workflow scaffolding and the new capsule/ledger/witness stack coexist. It does not
@@ -101,6 +101,8 @@ Implemented command surface:
 aegis ledger project-sweh --target-dir . --output docs/ai/work-tracking/active/<folder>/TRACKER.md
 aegis ledger project-sweh --target-dir . --active
 aegis scope set <task-id> <glob>... --project-sweh
+aegis witness --target-dir . --base origin/main
+aegis delivery sync --target-dir . [--pr <number>] [--branch <name>]
 ```
 
 `--output` updates one named legacy markdown surface. `--active` resolves existing legacy
@@ -110,6 +112,23 @@ write only inside the generated marker block. `scope set --project-sweh` is the 
 boundary integration: it records the scope event in the passive ledger, then projects existing
 active legacy surfaces as a follow-up view update. Projection is skipped if no legacy surfaces
 exist.
+
+TM-234 adds two explicit machine-grounded boundary integrations:
+
+- local `aegis witness` records a deduplicated `witness` event from the deterministic witness
+  report and projects it; `--ci` never appends a witness event or projection;
+- `aegis delivery sync` derives pushed-branch or PR state from git and `gh`, records only a
+  changed canonical delivery snapshot, and projects it. It never pushes, opens, closes, readies,
+  or merges a PR, and it accepts no caller-supplied delivery verdict.
+
+Witness and delivery fingerprints exclude observation timestamps but include the normalized
+boundary state. Repeating the same witness or delivery snapshot reuses its ledger event ID and
+must produce byte-stable projections. A later source or evidence commit is a genuinely new PR
+head, not an automatic recursive trigger: this explicit slice records only when invoked, so a
+projection-only evidence commit does not call delivery sync again by itself.
+
+Projection failure is advisory metadata. It never changes the deterministic witness verdict,
+and it never rewrites or rolls back an already appended boundary event.
 
 ## S:W:H:E Entry Shape
 
@@ -213,6 +232,12 @@ fixture. It proves that projection can:
 
 The fixture also preserves its first malformed `S:unknown` ledger event as evidence for the
 scope-context fix instead of rewriting append-only history.
+
+TM-234 followed up on the same clean-install fixture through blog draft PR #6. A confirmed
+infrastructure scope, passing local witness, and GitHub-observed draft-PR state were recorded as
+three new high-signal events and projected into all eight archived surfaces. Repeated witness
+and delivery calls reused the original event IDs and reported `changed: false`; SHA-256 checks
+proved every byte outside the generated marker blocks remained unchanged.
 
 ## PR-4 Implications
 

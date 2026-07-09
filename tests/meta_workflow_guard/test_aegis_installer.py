@@ -331,7 +331,9 @@ def test_build_parser_accepts_aegis_commands() -> None:
     assert doctor_args.target_dir == "/tmp/example"
     assert doctor_args.json is True
 
-    enforce_status_args = parser.parse_args(["aegis", "enforce", "status", "--target-dir", "/tmp/example"])
+    enforce_status_args = parser.parse_args(
+        ["aegis", "enforce", "status", "--target-dir", "/tmp/example"]
+    )
     assert enforce_status_args.subcommand == "enforce"
     assert enforce_status_args.enforce_subcommand == "status"
     assert enforce_status_args.target_dir == "/tmp/example"
@@ -1103,9 +1105,7 @@ def test_repair_archives_stale_completed_observation_active_folder(
         for path in (target / "docs/ai/work-tracking/active").glob("*-ACTIVE")
         if path.is_dir()
     )
-    updated_report = json.loads(
-        (target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8")
-    )
+    updated_report = json.loads((target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8"))
 
     assert applied["status"] == "applied"
     assert not stale.exists()
@@ -1135,7 +1135,9 @@ def test_repair_archives_orphaned_observation_active_folder_by_name(
         slug="dogfood-audit-followups",
         title="M4 dogfood iteration milestone",
     )
-    stale_rel = "docs/ai/work-tracking/active/20260608-observe-read-only-hp-coach-polish-audit-ACTIVE"
+    stale_rel = (
+        "docs/ai/work-tracking/active/20260608-observe-read-only-hp-coach-polish-audit-ACTIVE"
+    )
     stale = target / stale_rel
     stale.mkdir(parents=True)
     (stale / "TRACKER.md").write_text("Observation tracker\n", encoding="utf-8")
@@ -1174,9 +1176,7 @@ def test_repair_archives_orphaned_observation_active_folder_by_name(
         for path in (target / "docs/ai/work-tracking/active").glob("*-ACTIVE")
         if path.is_dir()
     )
-    updated_report = json.loads(
-        (target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8")
-    )
+    updated_report = json.loads((target / AEGIS_OBSERVATION_REPORT_REL).read_text(encoding="utf-8"))
 
     assert applied["status"] == "applied"
     assert not stale.exists()
@@ -1272,9 +1272,7 @@ def test_repair_archives_closed_task_tracker_and_restores_mismatched_current_wor
         if path.is_dir()
     )
     repaired_work = json.loads(current_path.read_text(encoding="utf-8"))
-    repaired_closeout = json.loads(
-        (target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8")
-    )
+    repaired_closeout = json.loads((target / AEGIS_CLOSEOUT_REPORT_REL).read_text(encoding="utf-8"))
 
     assert applied_kinds == {
         "workflow.remove_mismatched_closeout_metadata": "applied",
@@ -1506,16 +1504,21 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     assert current_work["mode"] == "observation"
     assert current_work["branch"]["requires_task_id"] is False
     observation_work_rel = current_work["paths"]["work_tracking"]
-    observation_archive_rel = observation_work_rel.replace(
-        "docs/ai/work-tracking/active/",
-        "docs/ai/work-tracking/archive/",
-    ).removesuffix("-ACTIVE") + "-COMPLETED"
+    observation_archive_rel = (
+        observation_work_rel.replace(
+            "docs/ai/work-tracking/active/",
+            "docs/ai/work-tracking/archive/",
+        ).removesuffix("-ACTIVE")
+        + "-COMPLETED"
+    )
 
     readiness = run_target_readiness(target)
     assert readiness.returncode == 0, readiness.stdout + readiness.stderr
     assert readiness.stdout.startswith("READY | task=obs-")
 
-    dev_gate = run_target_pretooluse(target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}})
+    dev_gate = run_target_pretooluse(
+        target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}}
+    )
     assert dev_gate.returncode == 0, dev_gate.stderr
     browser_gate = run_target_pretooluse(
         target,
@@ -1562,13 +1565,19 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
 
     edit_gate = run_target_pretooluse(
         target,
-        {"tool_name": "Write", "tool_input": {"file_path": "app/src/routes/audit.tsx", "content": "x"}},
+        {
+            "tool_name": "Write",
+            "tool_input": {"file_path": "app/src/routes/audit.tsx", "content": "x"},
+        },
     )
     assert edit_gate.returncode == 2
     assert "observation mode only permits observation tooling" in edit_gate.stderr
     taskmaster_gate = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": 'task-master add-task --title "Audit finding"'}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": 'task-master add-task --title "Audit finding"'},
+        },
     )
     assert taskmaster_gate.returncode == 2
     assert "observation mode only permits observation tooling" in taskmaster_gate.stderr
@@ -1589,7 +1598,9 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
     )
     assert stop_collect_gate.returncode == 0, stop_collect_gate.stderr
 
-    post = run_target_posttooluse(target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}})
+    post = run_target_posttooluse(
+        target, {"tool_name": "Bash", "tool_input": {"command": "pnpm -C app dev"}}
+    )
     assert post.returncode == 0, post.stderr
     assert not (target / AEGIS_PENDING_TRACKING_REL).exists()
 
@@ -1626,13 +1637,20 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
 
     completed_taskmaster_gate = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": 'task-master add-task --title "Audit finding"'}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": 'task-master add-task --title "Audit finding"'},
+        },
     )
     assert completed_taskmaster_gate.returncode == 2
     assert "Claude readiness is BLOCKED" in completed_taskmaster_gate.stderr
-    assert "observation mode only permits observation tooling" not in completed_taskmaster_gate.stderr
+    assert (
+        "observation mode only permits observation tooling" not in completed_taskmaster_gate.stderr
+    )
 
-    idempotent_stop = stop_observation(target, summary="Observed app shell again", source_root=REPO_ROOT)
+    idempotent_stop = stop_observation(
+        target, summary="Observed app shell again", source_root=REPO_ROOT
+    )
     assert idempotent_stop["status"] == "completed"
     assert idempotent_stop["idempotent"] is True
     assert idempotent_stop["already_completed"] is True
@@ -1799,8 +1817,7 @@ def test_observation_stop_allows_fallback_artifact_root_for_legacy_state(
     assert completed["status"] == "completed"
     assert completed["unexpected_changes"] == []
     assert completed["artifact_root"] == (
-        ".aegis/reports/observations/"
-        f"{started['task']['id']}/artifacts"
+        f".aegis/reports/observations/{started['task']['id']}/artifacts"
     )
     assert completed["collected_artifacts"] == [
         {
@@ -2166,7 +2183,9 @@ def test_install_refuses_to_overwrite_customized_bootstrap_files(tmp_path: Path)
     manifest_path = target / AEGIS_MANIFEST_REL
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["customized_files"] = [{"path": customized_path, "kind": "adapter"}]
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     plan = plan_install(
         target,
@@ -2181,7 +2200,9 @@ def test_install_refuses_to_overwrite_customized_bootstrap_files(tmp_path: Path)
     assert plan["summary"]["manual_reviews"] == 1
 
 
-def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(tmp_path: Path) -> None:
+def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(
+    tmp_path: Path,
+) -> None:
     target = tmp_path / "project-update-dry-run-target"
     target.mkdir()
     install(
@@ -2197,8 +2218,7 @@ def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(tmp
 
     report = project_update(target, source_root=REPO_ROOT, apply=False)
     operations = {
-        operation["path"]: operation
-        for operation in report["install"]["plan"]["operations"]
+        operation["path"]: operation for operation in report["install"]["plan"]["operations"]
     }
 
     assert report["status"] == "preview"
@@ -2271,7 +2291,9 @@ def test_project_update_apply_refreshes_assets_and_compiles_capsule(tmp_path: Pa
     assert report["status"] == "applied"
     assert persisted["status"] == "applied"
     assert report["install"]["applied"]["status"] == "applied"
-    assert stale_path.read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(encoding="utf-8")
+    assert stale_path.read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(
+        encoding="utf-8"
+    )
     assert report["capsule"]["compiled"] is True
     assert report["capsule"]["check"]["ok"] is True
     assert (target / ".aegis" / "capsule" / "current.json").is_file()
@@ -2299,7 +2321,9 @@ def test_project_update_refuses_manual_review_install_plan(tmp_path: Path) -> No
     manifest_path = target / AEGIS_MANIFEST_REL
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["customized_files"] = [{"path": customized_path, "kind": "adapter"}]
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     report = project_update(target, source_root=REPO_ROOT, apply=True)
 
@@ -2437,7 +2461,9 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
         status(target, source_root=REPO_ROOT),
         doctor(target, source_root=REPO_ROOT),
     ):
-        guidance = report["workflow_guidance"] if "workflow_guidance" in report else report["next_action"]
+        guidance = (
+            report["workflow_guidance"] if "workflow_guidance" in report else report["next_action"]
+        )
         assert guidance["state"] == "installed_taskmaster_present"
         assert guidance["details"]["taskmaster"]["aegis_task_selection"] == "suppressed"
         assert "task" not in guidance["details"]["taskmaster"]
@@ -2539,7 +2565,9 @@ def test_taskmaster_present_invalid_blocks_task_selection_across_surfaces(
         status(target, source_root=REPO_ROOT),
         doctor(target, source_root=REPO_ROOT),
     ):
-        guidance = report["workflow_guidance"] if "workflow_guidance" in report else report["next_action"]
+        guidance = (
+            report["workflow_guidance"] if "workflow_guidance" in report else report["next_action"]
+        )
         assert guidance["state"] == "installed_taskmaster_invalid"
         assert guidance["details"]["taskmaster"]["reason"] == reason
         assert "task" not in guidance["details"]["taskmaster"]
@@ -3158,6 +3186,183 @@ def test_post_closeout_delivery_guidance_classifies_passed_pr_checks(
     assert delivery["details"]["checks"]["state"] == "passed"
     assert delivery["details"]["merge_requires_explicit_user_approval"] is True
     assert not any("pr merge" in command for command in delivery["copyable_repairs"])
+
+
+def test_delivery_snapshot_normalizes_machine_observed_draft_pr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    branch = "feat/task-234-witness-delivery-projection"
+    base_pr = {
+        "number": 256,
+        "state": "OPEN",
+        "title": "Project witness and delivery boundaries",
+        "headRefName": branch,
+        "headRefOid": "abc1234",
+        "baseRefName": "main",
+        "mergedAt": None,
+        "closedAt": None,
+        "url": "https://example.invalid/pr/256",
+        "isDraft": True,
+    }
+    detailed_pr = {
+        **base_pr,
+        "mergeStateStatus": "CLEAN",
+        "statusCheckRollup": [
+            {
+                "name": "CI",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+                "detailsUrl": "https://example.invalid/check/1",
+            }
+        ],
+    }
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: branch)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        lambda *_args: subprocess.CompletedProcess(
+            args=["git", "rev-parse"],
+            returncode=0,
+            stdout=f"origin/{branch}\n",
+            stderr="",
+        ),
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": [base_pr]},
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_view",
+        lambda _target, _number: {"available": True, "reason": "", "pr": detailed_pr},
+    )
+
+    snapshot = aegis_installer.delivery_snapshot(tmp_path)
+
+    assert snapshot["available"] is True
+    assert snapshot["recordable"] is True
+    assert snapshot["action"] == "pr_draft"
+    assert snapshot["branch"] == branch
+    assert snapshot["head_commit"] == "abc1234"
+    assert snapshot["checks"]["state"] == "passed"
+
+
+def test_delivery_snapshot_records_pushed_branch_without_pr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    branch = "feat/task-234-witness-delivery-projection"
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: branch)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        lambda *_args: subprocess.CompletedProcess(
+            args=["git", "rev-parse"],
+            returncode=0,
+            stdout=f"origin/{branch}\n",
+            stderr="",
+        ),
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": []},
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_git_commit_for_ref",
+        lambda _target, _ref: "def5678",
+    )
+
+    snapshot = aegis_installer.delivery_snapshot(tmp_path)
+
+    assert snapshot["available"] is True
+    assert snapshot["recordable"] is True
+    assert snapshot["action"] == "branch_pushed"
+    assert snapshot["pr"] is None
+    assert snapshot["head_commit"] == "def5678"
+
+
+def test_delivery_snapshot_refuses_unavailable_github_truth(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    branch = "feat/task-234-witness-delivery-projection"
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: branch)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        lambda *_args: subprocess.CompletedProcess(
+            args=["git", "rev-parse"],
+            returncode=1,
+            stdout="",
+            stderr="no upstream",
+        ),
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": False, "reason": "gh authentication failed", "prs": []},
+    )
+
+    snapshot = aegis_installer.delivery_snapshot(tmp_path)
+
+    assert snapshot["available"] is False
+    assert snapshot["recordable"] is False
+    assert snapshot["reason"] == "gh authentication failed"
+
+
+def test_delivery_snapshot_exact_pr_supports_post_merge_sync(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    merged_pr = {
+        "number": 256,
+        "state": "MERGED",
+        "title": "Project witness and delivery boundaries",
+        "headRefName": "feat/task-234-witness-delivery-projection",
+        "headRefOid": "abc1234",
+        "baseRefName": "main",
+        "mergedAt": "2026-07-09T20:00:00Z",
+        "closedAt": "2026-07-09T20:00:00Z",
+        "url": "https://example.invalid/pr/256",
+        "isDraft": False,
+        "mergeStateStatus": "UNKNOWN",
+        "statusCheckRollup": [],
+    }
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: "main")
+
+    def fake_git(*args):
+        ref = str(args[-1])
+        upstream = (
+            "origin/feat/task-234-witness-delivery-projection"
+            if "task-234" in ref
+            else "origin/main"
+        )
+        return subprocess.CompletedProcess(
+            args=["git", "rev-parse"], returncode=0, stdout=f"{upstream}\n", stderr=""
+        )
+
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        fake_git,
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_view",
+        lambda _target, _number: {"available": True, "reason": "", "pr": merged_pr},
+    )
+
+    snapshot = aegis_installer.delivery_snapshot(tmp_path, pr_number=256)
+
+    assert snapshot["available"] is True
+    assert snapshot["action"] == "pr_merged"
+    assert snapshot["branch"] == "feat/task-234-witness-delivery-projection"
+    assert snapshot["head_commit"] == "abc1234"
+    assert snapshot["upstream"] == "origin/feat/task-234-witness-delivery-projection"
 
 
 def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Path) -> None:
@@ -4060,7 +4265,10 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
 
     blocked = run_target_readiness(target)
     assert blocked.returncode == 2
-    assert "branch 'chore/taskmaster-ledger-reconciliation' does not contain a task ID" in blocked.stdout
+    assert (
+        "branch 'chore/taskmaster-ledger-reconciliation' does not contain a task ID"
+        in blocked.stdout
+    )
 
     ordinary_write = run_target_pretooluse(
         target,
@@ -4071,7 +4279,10 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
 
     blocked_verify = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": "./.aegis/bin/aegis verify --target-dir ."}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "./.aegis/bin/aegis verify --target-dir ."},
+        },
     )
     assert blocked_verify.returncode == 2
     assert "Claude readiness is BLOCKED" in blocked_verify.stderr
@@ -4102,7 +4313,10 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
 
     uninstall_preview = run_target_pretooluse(
         target,
-        {"tool_name": "Bash", "tool_input": {"command": "./.aegis/bin/aegis uninstall --target-dir ."}},
+        {
+            "tool_name": "Bash",
+            "tool_input": {"command": "./.aegis/bin/aegis uninstall --target-dir ."},
+        },
     )
     assert uninstall_preview.returncode == 0, uninstall_preview.stderr
 
@@ -4235,7 +4449,9 @@ def test_log_work_sanitizes_multiline_plan_table_evidence(tmp_path: Path) -> Non
     )
     assert scope["plan"]["evidence"] == scope_evidence
     plan_text = plan_path.read_text(encoding="utf-8")
-    scope_row = next(line for line in plan_text.splitlines() if line.startswith("| plan-step-scope |"))
+    scope_row = next(
+        line for line in plan_text.splitlines() if line.startswith("| plan-step-scope |")
+    )
     assert scope_row.count("|") == 5
     assert "scope &#124; evidence" in scope_row
     assert "print('scope | evidence')" not in scope_row
@@ -4255,7 +4471,9 @@ def test_log_work_sanitizes_multiline_plan_table_evidence(tmp_path: Path) -> Non
     assert verification["status"] == "logged"
     assert verification["plan"]["evidence"] == verify_evidence
     plan_text = plan_path.read_text(encoding="utf-8")
-    verify_row = next(line for line in plan_text.splitlines() if line.startswith("| plan-step-verify |"))
+    verify_row = next(
+        line for line in plan_text.splitlines() if line.startswith("| plan-step-verify |")
+    )
     assert verify_row.count("|") == 5
     assert "uv run &#124; tee verification.txt" in verify_row
     rows = aegis_installer._parse_plan_rows(plan_path)
@@ -4483,7 +4701,9 @@ def test_read_only_aegis_cli_does_not_create_pending_tracking(tmp_path: Path) ->
 
     payload = {
         "tool_name": "Bash",
-        "tool_input": {"command": "./.aegis/bin/aegis reconcile --target-dir . --preview-candidates"},
+        "tool_input": {
+            "command": "./.aegis/bin/aegis reconcile --target-dir . --preview-candidates"
+        },
     }
 
     pretool = run_target_pretooluse(target, payload)
@@ -4595,9 +4815,9 @@ def test_closeout_reports_missing_evidence_repair_guidance(tmp_path: Path) -> No
         item["surface"] == "changelog" and item["evidence"] == implementation_evidence
         for item in passed["populate"]["updated_surfaces"]
     )
-    changelog = (
-        target / passed["archived_work_tracking"]["to"] / "CHANGELOG.md"
-    ).read_text(encoding="utf-8")
+    changelog = (target / passed["archived_work_tracking"]["to"] / "CHANGELOG.md").read_text(
+        encoding="utf-8"
+    )
     assert implementation_evidence in changelog
 
 
@@ -4611,8 +4831,7 @@ def test_closeout_evidence_tokenizer_preserves_table_escaped_compound_commands()
 
     assert aegis_installer._split_evidence_tokens(raw_evidence) == [
         "cmd`git diff -- app/src | grep -E '^\\+' | tail -25`",
-        'cmd`python3 -c "import sys,json; data=json.load(sys.stdin); '
-        "print(data.get('status'))\"`",
+        "cmd`python3 -c \"import sys,json; data=json.load(sys.stdin); print(data.get('status'))\"`",
         "reports/verification.txt",
     ]
 
@@ -4641,7 +4860,7 @@ def test_handoff_repair_converges_with_compound_bash_closeout_evidence(tmp_path:
         "| grep -E '^\\+' | tail -25`"
     )
     verification_evidence = (
-        'cmd`./.aegis/bin/aegis verify --target-dir . --strict 2>&1 | '
+        "cmd`./.aegis/bin/aegis verify --target-dir . --strict 2>&1 | "
         'python3 -c "import sys,json; data=json.load(sys.stdin); '
         "print(data.get('status'))\"`"
     )
@@ -4727,7 +4946,9 @@ def test_is_closeout_required_evidence_demotes_command_tokens() -> None:
         assert aegis_installer._is_closeout_required_evidence(token) is True, token
 
 
-def test_closeout_recovers_when_command_evidence_absent_from_progress_surfaces(tmp_path: Path) -> None:
+def test_closeout_recovers_when_command_evidence_absent_from_progress_surfaces(
+    tmp_path: Path,
+) -> None:
     # HP-Coach 2026-06-13: a committed, strict-verify-green task whose implementation
     # evidence is a command token NOT present on session/tracker/implementation/changelog
     # (its originating pending event was consumed during the pre-216 churn era). Before TM
@@ -4736,31 +4957,50 @@ def test_closeout_recovers_when_command_evidence_absent_from_progress_surfaces(t
     target = tmp_path / "command-evidence-recovery"
     target.mkdir()
     git_init = subprocess.run(
-        ["git", "init", "-b", "main"], cwd=target, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
     )
     assert git_init.returncode == 0, git_init.stderr
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
     simulate_claude_reload(target)
     kickoff(target, task_id="80", slug="recovery", title="Recovery")
-    current_work = json.loads((target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8"))
+    current_work = json.loads(
+        (target / ".aegis" / "state" / "current-work.json").read_text(encoding="utf-8")
+    )
     work_rel = current_work["paths"]["work_tracking"]
 
     log_work(
-        target, handler="claude:scope", evidence=f"{work_rel}/FINDINGS.md",
-        note="Confirmed recovery scope", plan_step="plan-step-scope", plan_status="completed",
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed recovery scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
     )
     # Implementation evidence is a command token, logged ONLY to handoff — it never reaches
     # session/tracker/implementation/changelog, exactly the lost-pending-event state.
     log_work(
-        target, handler="claude:Bash", evidence='cmd`git commit -m "feat: recovery"`',
-        note="Recorded the implementation commit command", surfaces=["handoff"],
-        plan_step="plan-step-implement", plan_status="completed",
+        target,
+        handler="claude:Bash",
+        evidence='cmd`git commit -m "feat: recovery"`',
+        note="Recorded the implementation commit command",
+        surfaces=["handoff"],
+        plan_step="plan-step-implement",
+        plan_status="completed",
     )
     strict = verify(target, source_root=REPO_ROOT, strict=True)
     assert strict["status"] == "passed"
     log_work(
-        target, handler="aegis:verify", evidence=AEGIS_VERIFY_REPORT_REL,
-        note="Recorded strict verification evidence", plan_step="plan-step-verify", plan_status="completed",
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
     )
 
     result = closeout(target, source_root=REPO_ROOT, update_handoff=True)
@@ -4787,7 +5027,7 @@ def test_compound_bash_mutation_still_records_pending_tracking(tmp_path: Path) -
     simulate_claude_reload(target)
     kickoff(target, task_id="42", slug="compound-track", title="Compound Track")
     command = (
-        "python3 -c \"from pathlib import Path; "
+        'python3 -c "from pathlib import Path; '
         "Path('proof.txt').write_text('x', encoding='utf-8')\" | cat"
     )
 
@@ -5911,7 +6151,9 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     assert update_apply_result.returncode == 0, update_apply_result.stderr
     update_report = json.loads(update_apply_result.stdout)
     assert update_report["status"] == "applied"
-    assert (target / stale_rel).read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(encoding="utf-8")
+    assert (target / stale_rel).read_text(encoding="utf-8") == (REPO_ROOT / stale_rel).read_text(
+        encoding="utf-8"
+    )
     assert (target / AEGIS_UPDATE_REPORT_REL).is_file()
     assert (target / ".aegis" / "capsule" / "current.json").is_file()
 

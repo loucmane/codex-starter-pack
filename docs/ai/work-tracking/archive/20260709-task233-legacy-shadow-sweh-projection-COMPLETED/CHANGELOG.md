@@ -5,3 +5,4 @@
 ## Progress Log
 
 - **2026-07-09 20:59** — [S:20260709|W:task233-legacy-shadow-sweh-projection|H:codex:ci-fix|E:tests/claude_adapter/test_capsule_boundary_triggers.py] Updated the next_action test double for the invoking-agent contract after both CI matrix jobs exposed the stale mock; the affected suite passed with 188 tests and one opt-in skip.
+- 2026-07-09 21:22 CEST — Archived active work-tracking folder.
