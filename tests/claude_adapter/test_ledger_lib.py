@@ -257,6 +257,45 @@ def test_open_ledger_backend_selection(tmp_path: Path) -> None:
         ledger_lib.open_ledger(cwd=repo, env=env, backend="postgres")
 
 
+def test_sqlite_read_only_open_reads_without_initializing_or_writing(tmp_path: Path) -> None:
+    db_path = tmp_path / "ledger.db"
+    writer = ledger_lib.SQLiteLedger(db_path)
+    writer.append({"event_type": "scope", "session_id": "session-1"})
+    writer.close()
+    before_mtime = db_path.stat().st_mtime_ns
+
+    reader = ledger_lib.open_ledger(path=db_path, read_only=True)
+    assert [event["session_id"] for event in reader.read()] == ["session-1"]
+    with pytest.raises(ledger_lib.LedgerError, match="read-only"):
+        reader.append({"event_type": "scope"})
+    reader.close()
+
+    assert db_path.stat().st_mtime_ns == before_mtime
+    missing = tmp_path / "missing" / "ledger.db"
+    with pytest.raises(ledger_lib.LedgerError, match="does not exist"):
+        ledger_lib.open_ledger(path=missing, read_only=True)
+    assert not missing.parent.exists()
+
+
+def test_jsonl_read_only_open_does_not_create_or_append(tmp_path: Path) -> None:
+    shards = tmp_path / "shards"
+    writer = ledger_lib.JsonlLedger(shards)
+    writer.append({"event_type": "scope", "session_id": "session-1"})
+    writer.close()
+
+    reader = ledger_lib.open_ledger(path=shards, backend="jsonl", read_only=True)
+    assert [event["session_id"] for event in reader.read()] == ["session-1"]
+    with pytest.raises(ledger_lib.LedgerError, match="read-only"):
+        reader.append({"event_type": "scope"})
+    reader.close()
+
+    missing = tmp_path / "missing-shards"
+    empty_reader = ledger_lib.open_ledger(path=missing, backend="jsonl", read_only=True)
+    assert empty_reader.read() == []
+    empty_reader.close()
+    assert not missing.exists()
+
+
 def test_rotate_if_needed(tmp_path: Path) -> None:
     db_path = tmp_path / "ledger.db"
     ledger = ledger_lib.SQLiteLedger(db_path)

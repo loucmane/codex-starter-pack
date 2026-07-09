@@ -105,3 +105,5 @@ def test_pr4_task_depends_on_parity_matrix_task() -> None:
     assert "229" in tasks
     assert "210" in tasks
     assert "229" in {str(dep) for dep in tasks["210"].get("dependencies", [])}
+    assert "233" in tasks
+    assert "233" in {str(dep) for dep in tasks["210"].get("dependencies", [])}

@@ -7,3 +7,4 @@
   refresh through the MCP surface.
 - 2026-07-07 12:40 CEST — Updated update/rollback docs and archived completed Task 230
   tracking through the sanctioned archive helper.
+- 2026-07-09 20:39 CEST — Archived active work-tracking folder.

@@ -2147,6 +2147,37 @@ def _client_reload_marker(target_root: Path) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def invoking_agent_from_environment(
+    env: Mapping[str, str] | None = None,
+) -> str | None:
+    """Identify a supported agent only when the process environment is explicit."""
+
+    values = os.environ if env is None else env
+    explicit = str(values.get("AEGIS_INVOKING_AGENT") or "").strip().lower()
+    if explicit in AGENT_CHOICES:
+        return explicit
+
+    # Prefer the most specific client marker when nested environments expose more than one.
+    claude_markers = ("CLAUDE_PROJECT_DIR", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
+    if any(values.get(name) for name in claude_markers):
+        return "claude"
+    if values.get("CODEX_THREAD_ID") or values.get("CODEX_CI") == "1":
+        return "codex"
+    if values.get("GEMINI_CLI") or values.get("GEMINI_PROJECT_DIR"):
+        return "gemini"
+    return None
+
+
+def _client_reload_blocks_agent(
+    marker: Mapping[str, Any], invoking_agent: str | None
+) -> bool:
+    marker_agent = str(marker.get("agent") or "").strip().lower()
+    normalized_invoker = str(invoking_agent or "").strip().lower()
+    if marker_agent not in AGENT_CHOICES or normalized_invoker not in AGENT_CHOICES:
+        return True
+    return marker_agent == normalized_invoker
+
+
 def _write_client_reload_marker(target_root: Path, report: Mapping[str, Any]) -> None:
     changed_paths = [
         str(path) for path in report.get("changed_paths", []) if isinstance(path, str) and path
@@ -2277,6 +2308,7 @@ def inspect_project(
     source_root: str | Path | None = None,
     default_primary_agent: str = "claude",
     default_agents: Sequence[str] | None = None,
+    invoking_agent: str | None = None,
 ) -> dict[str, Any]:
     if profile != PROFILE_GENERIC:
         raise AegisError(f"Unsupported Aegis profile in V1: {profile}")
@@ -2309,6 +2341,7 @@ def inspect_project(
             source_root=source,
             default_primary_agent=default_primary_agent,
             default_agents=default_agents,
+            invoking_agent=invoking_agent,
         ),
     }
 
@@ -2354,6 +2387,7 @@ def status(
     source_root: str | Path,
     default_primary_agent: str = "claude",
     default_agents: Sequence[str] | None = None,
+    invoking_agent: str | None = None,
 ) -> dict[str, Any]:
     """Report installed Aegis release state without mutating the target."""
 
@@ -2396,6 +2430,7 @@ def status(
             source_root=source,
             default_primary_agent=default_primary_agent,
             default_agents=default_agents,
+            invoking_agent=invoking_agent,
         )
         payload["workflow_guidance"]["enforcement"] = payload["enforcement"]
         return payload
@@ -2462,6 +2497,7 @@ def status(
         source_root=source,
         default_primary_agent=default_primary_agent,
         default_agents=default_agents,
+        invoking_agent=invoking_agent,
     )
     payload["workflow_guidance"]["enforcement"] = payload["enforcement"]
     if payload["enforcement"].get("mode") == "advisory":
@@ -3128,6 +3164,8 @@ def next_action(
     source_root: str | Path,
     default_primary_agent: str = "claude",
     default_agents: Sequence[str] | None = None,
+    invoking_agent: str | None = None,
+    _ignore_client_reload: bool = False,
 ) -> dict[str, Any]:
     """Return read-only workflow guidance for the next Aegis action."""
 
@@ -3211,31 +3249,57 @@ def next_action(
         )
 
     current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
-    if not isinstance(current_work, Mapping):
-        reload_marker = _client_reload_marker(target_root)
-        if reload_marker is not None:
-            return _workflow_guidance_payload(
-                phase="bootstrap",
-                state="client_reload_required",
-                next_required_action=(
-                    "restart Claude before start/kickoff or source edits so newly installed hooks are active"
-                ),
-                suggested_cli="Restart Claude Code in this project, then run ./.aegis/bin/aegis next --target-dir .",
-                suggested_mcp_tool="aegis.next",
-                suggested_mcp_arguments={"target_dir": "."},
-                missing_gates=["claude.client_reload"],
-                copyable_repairs=[
-                    "Exit this Claude session.",
-                    "Start Claude again in this same project directory.",
-                    "./.aegis/bin/aegis next --target-dir .",
-                ],
-                details={
-                    "client_reload_required": True,
-                    "marker_path": AEGIS_CLIENT_RELOAD_REL,
-                    "changed_paths": reload_marker.get("changed_paths", []),
-                    "clearance": reload_marker.get("clearance", {}),
-                },
+    reload_marker = _client_reload_marker(target_root)
+    if reload_marker is not None and not _ignore_client_reload:
+        if not _client_reload_blocks_agent(reload_marker, invoking_agent):
+            payload = next_action(
+                target_root,
+                source_root=source_root,
+                default_primary_agent=default_primary_agent,
+                default_agents=default_agents,
+                invoking_agent=invoking_agent,
+                _ignore_client_reload=True,
             )
+            marker_agent = str(reload_marker.get("agent") or "unknown")
+            pending_reload = {
+                "status": "required_for_other_agent",
+                "agent": marker_agent,
+                "invoking_agent": invoking_agent,
+                "blocks_invoking_agent": False,
+                "marker_path": AEGIS_CLIENT_RELOAD_REL,
+                "changed_paths": reload_marker.get("changed_paths", []),
+                "clearance": reload_marker.get("clearance", {}),
+            }
+            payload["adapter_reload_pending"] = pending_reload
+            details = payload.get("details")
+            if not isinstance(details, dict):
+                details = {}
+                payload["details"] = details
+            details["pending_adapter_reload"] = pending_reload
+            return payload
+        return _workflow_guidance_payload(
+            phase="bootstrap",
+            state="client_reload_required",
+            next_required_action=(
+                "restart Claude before start/kickoff or source edits so newly installed hooks are active"
+            ),
+            suggested_cli="Restart Claude Code in this project, then run ./.aegis/bin/aegis next --target-dir .",
+            suggested_mcp_tool="aegis.next",
+            suggested_mcp_arguments={"target_dir": "."},
+            missing_gates=["claude.client_reload"],
+            copyable_repairs=[
+                "Exit this Claude session.",
+                "Start Claude again in this same project directory.",
+                "./.aegis/bin/aegis next --target-dir .",
+            ],
+            details={
+                "client_reload_required": True,
+                "marker_path": AEGIS_CLIENT_RELOAD_REL,
+                "changed_paths": reload_marker.get("changed_paths", []),
+                "clearance": reload_marker.get("clearance", {}),
+            },
+        )
+    if not isinstance(current_work, Mapping):
         taskmaster = _taskmaster_state(target_root)
         prd_path = _prd_state(target_root)
         if taskmaster.state == "absent":
@@ -3498,10 +3562,10 @@ def next_action(
     # An active work record exists from here on: a bare "continue" must not be read as
     # "switch tasks". Name the authoritative task/session so the continuation brief can say so.
     active_task_id = _current_work_task_id(current_work)
-    if active_task_id:
-        current_task_authority = f"taskmaster:{active_task_id}"
-    elif str(current_work.get("mode") or "") == "observation":
+    if str(current_work.get("mode") or "") == "observation":
         current_task_authority = "observation-session"
+    elif active_task_id:
+        current_task_authority = f"taskmaster:{active_task_id}"
     else:
         current_task_authority = "local-tracked-work"
 
@@ -5885,14 +5949,21 @@ def _update_manifest_after_kickoff(target_root: Path) -> None:
     manifest_path.write_text(_dump_json(manifest), encoding="utf-8")
 
 
-def _ensure_client_reload_cleared(target_root: Path, operation: str) -> None:
+def _ensure_client_reload_cleared(
+    target_root: Path,
+    operation: str,
+    *,
+    invoking_agent: str | None = None,
+) -> None:
     marker = _client_reload_marker(target_root)
-    if marker is None:
+    if marker is None or not _client_reload_blocks_agent(marker, invoking_agent):
         return
+    marker_agent = str(marker.get("agent") or "Claude").strip().title()
     raise AegisError(
-        f"Aegis {operation} is blocked because Claude must restart before workflow mutations. "
-        f"Marker: {AEGIS_CLIENT_RELOAD_REL}. Please restart Claude in this project so the installed "
-        ".claude/settings.json hooks run, then call aegis.next and retry."
+        f"Aegis {operation} is blocked because the {marker_agent} adapter must reload before "
+        f"that agent performs workflow mutations. Marker: {AEGIS_CLIENT_RELOAD_REL}. Please "
+        f"restart {marker_agent} in this project so its installed hooks run, then call "
+        "aegis.next and retry."
     )
 
 
@@ -5905,6 +5976,7 @@ def kickoff(
     goals: Sequence[str] | None = None,
     create_branch: bool = True,
     source_root: str | Path | None = None,
+    invoking_agent: str | None = None,
 ) -> dict[str, Any]:
     """Create Aegis-native current work state for an installed target project."""
 
@@ -5912,7 +5984,11 @@ def kickoff(
     resolved_source = Path(source_root).resolve() if source_root is not None else None
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
         raise AegisError("Aegis kickoff requires an installed .aegis/foundation-manifest.json")
-    _ensure_client_reload_cleared(target_root, "kickoff")
+    _ensure_client_reload_cleared(
+        target_root,
+        "kickoff",
+        invoking_agent=invoking_agent,
+    )
     _ensure_git_work_tree(target_root)
 
     normalized_task_id = _normalize_task_id(task_id)
@@ -6110,6 +6186,7 @@ def start_observation(
     slug: str = "",
     goals: Sequence[str] | None = None,
     source_root: str | Path | None = None,
+    invoking_agent: str | None = None,
 ) -> dict[str, Any]:
     """Start a non-task observation window for audits, screenshots, and app-driving."""
 
@@ -6117,7 +6194,11 @@ def start_observation(
     resolved_source = Path(source_root).resolve() if source_root is not None else None
     if not (target_root / AEGIS_MANIFEST_REL).is_file():
         raise AegisError("Aegis observe requires an installed .aegis/foundation-manifest.json")
-    _ensure_client_reload_cleared(target_root, "observe start")
+    _ensure_client_reload_cleared(
+        target_root,
+        "observe start",
+        invoking_agent=invoking_agent,
+    )
     _ensure_git_work_tree(target_root)
 
     clean_title = title.strip()
@@ -6650,6 +6731,7 @@ def start_local_work(
     goals: Sequence[str] | None = None,
     create_branch: bool = True,
     source_root: str | Path | None = None,
+    invoking_agent: str | None = None,
 ) -> dict[str, Any]:
     """Allocate a local task id and reuse kickoff for projects without Taskmaster."""
 
@@ -6658,7 +6740,11 @@ def start_local_work(
         raise AegisError(
             "Aegis start requires an installed .aegis/foundation-manifest.json; run aegis init first"
         )
-    _ensure_client_reload_cleared(target_root, "start")
+    _ensure_client_reload_cleared(
+        target_root,
+        "start",
+        invoking_agent=invoking_agent,
+    )
     _ensure_git_work_tree(target_root)
     clean_title = title.strip()
     if not clean_title:
@@ -6717,6 +6803,7 @@ def start_local_work(
         goals=goals,
         create_branch=create_branch,
         source_root=source_root,
+        invoking_agent=invoking_agent,
     )
     current_work_path = target_root / AEGIS_CURRENT_WORK_REL
     current_work = _read_json(current_work_path)
@@ -9103,6 +9190,7 @@ def doctor(
     source_root: str | Path,
     default_primary_agent: str = "claude",
     default_agents: Sequence[str] | None = None,
+    invoking_agent: str | None = None,
 ) -> dict[str, Any]:
     """Diagnose installed Aegis state without mutating the target repository."""
 
@@ -9253,6 +9341,7 @@ def doctor(
             source_root=source,
             default_primary_agent=default_primary_agent,
             default_agents=default_agents,
+            invoking_agent=invoking_agent,
         ),
     }
 

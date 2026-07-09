@@ -53,7 +53,11 @@ def test_cli_boundary_handlers_refresh_expected_capsule_reasons(
     monkeypatch.setattr(
         cli._aegis_installer,
         "next_action",
-        lambda target_dir, *, source_root: {"target_dir": target_dir, "source_root": source_root.as_posix()},
+        lambda target_dir, *, source_root, invoking_agent=None: {
+            "target_dir": target_dir,
+            "source_root": source_root.as_posix(),
+            "invoking_agent": invoking_agent,
+        },
     )
     monkeypatch.setattr(cli._aegis_installer, "verify", lambda *args, **kwargs: {"status": "passed"})
 
@@ -62,4 +66,3 @@ def test_cli_boundary_handlers_refresh_expected_capsule_reasons(
     assert cli.handle_verify(_args(tmp_path)) == 0
 
     assert called == ["orientation", "pre-delivery", "verification"]
-
