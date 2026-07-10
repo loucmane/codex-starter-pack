@@ -6,7 +6,6 @@ import argparse
 import importlib.machinery
 import importlib.util
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -439,6 +438,203 @@ def test_between_sessions_state_rejects_active_work_tracking(monkeypatch, tmp_pa
     monkeypatch.setattr(module, 'WORK_TRACKING_PREFIX', active_dir)
 
     assert not module.is_between_sessions_state()
+
+
+def _configure_tracker_resolution_fixture(module, monkeypatch, tmp_path):
+    repo_root = tmp_path / 'repo'
+    active_root = repo_root / 'docs' / 'ai' / 'work-tracking' / 'active'
+    archive_root = repo_root / 'docs' / 'ai' / 'work-tracking' / 'archive'
+    current_work = repo_root / '.aegis' / 'state' / 'current-work.json'
+    archive_root.mkdir(parents=True)
+    current_work.parent.mkdir(parents=True)
+    monkeypatch.setattr(module, 'REPO_ROOT', repo_root)
+    monkeypatch.setattr(module, 'WORK_TRACKING_PREFIX', active_root)
+    monkeypatch.setattr(module, 'WORK_TRACKING_ARCHIVE_BASE', archive_root)
+    monkeypatch.setattr(module, 'CURRENT_WORK_STATE_PATH', current_work)
+    monkeypatch.setattr(
+        module,
+        'WORK_TRACKING_RELATIVE',
+        Path('docs/ai/work-tracking/active'),
+    )
+    monkeypatch.setattr(
+        module,
+        'WORK_TRACKING_ARCHIVE_RELATIVE',
+        Path('docs/ai/work-tracking/archive'),
+    )
+    return repo_root, active_root, archive_root, current_work
+
+
+def test_get_active_tracker_path_prefers_active_folder(monkeypatch, tmp_path) -> None:
+    module = load_guard_module()
+    _repo_root, active_root, archive_root, current_work = _configure_tracker_resolution_fixture(
+        module, monkeypatch, tmp_path
+    )
+    active_tracker = active_root / '20300102-task99-current-ACTIVE' / 'TRACKER.md'
+    active_tracker.parent.mkdir(parents=True)
+    active_tracker.write_text('# Active tracker\n', encoding='utf-8')
+    completed_tracker = archive_root / '20300101-task98-old-COMPLETED' / 'TRACKER.md'
+    completed_tracker.parent.mkdir(parents=True)
+    completed_tracker.write_text('# Completed tracker\n', encoding='utf-8')
+    current_work.write_text(
+        json.dumps(
+            {
+                'status': 'completed',
+                'paths': {
+                    'work_tracking': completed_tracker.parent.relative_to(
+                        _repo_root
+                    ).as_posix()
+                },
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    assert module.get_active_tracker_path() == active_tracker
+
+
+@pytest.mark.parametrize('create_active_root', [False, True])
+def test_get_active_tracker_path_falls_back_to_completed_current_work(
+    monkeypatch, tmp_path, create_active_root
+) -> None:
+    module = load_guard_module()
+    repo_root, active_root, archive_root, current_work = _configure_tracker_resolution_fixture(
+        module, monkeypatch, tmp_path
+    )
+    if create_active_root:
+        active_root.mkdir(parents=True)
+    completed_tracker = archive_root / '20300101-task98-old-COMPLETED' / 'TRACKER.md'
+    completed_tracker.parent.mkdir(parents=True)
+    completed_tracker.write_text('# Completed tracker\n', encoding='utf-8')
+    current_work.write_text(
+        json.dumps(
+            {
+                'status': 'completed',
+                'paths': {
+                    'work_tracking': completed_tracker.parent.relative_to(repo_root).as_posix()
+                },
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    assert module.get_active_tracker_path() == completed_tracker
+
+
+def test_get_active_tracker_path_rejects_completed_path_outside_archive(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_guard_module()
+    repo_root, _active_root, _archive_root, current_work = _configure_tracker_resolution_fixture(
+        module, monkeypatch, tmp_path
+    )
+    outside = repo_root / 'docs' / 'ai' / 'work-tracking' / 'elsewhere' / 'task-COMPLETED'
+    outside.mkdir(parents=True)
+    (outside / 'TRACKER.md').write_text('# Outside tracker\n', encoding='utf-8')
+    current_work.write_text(
+        json.dumps(
+            {
+                'status': 'completed',
+                'paths': {'work_tracking': outside.relative_to(repo_root).as_posix()},
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    with pytest.raises(SystemExit, match='must stay under'):
+        module.get_active_tracker_path()
+
+
+def test_get_active_tracker_path_rejects_non_completed_archive_folder(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_guard_module()
+    repo_root, _active_root, archive_root, current_work = _configure_tracker_resolution_fixture(
+        module, monkeypatch, tmp_path
+    )
+    archived_active = archive_root / '20300101-task98-old-ACTIVE'
+    archived_active.mkdir(parents=True)
+    (archived_active / 'TRACKER.md').write_text('# Invalid tracker\n', encoding='utf-8')
+    current_work.write_text(
+        json.dumps(
+            {
+                'status': 'completed',
+                'paths': {'work_tracking': archived_active.relative_to(repo_root).as_posix()},
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    with pytest.raises(SystemExit, match='end with -COMPLETED'):
+        module.get_active_tracker_path()
+
+
+def test_get_active_tracker_path_rejects_non_completed_current_work(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_guard_module()
+    repo_root, _active_root, archive_root, current_work = _configure_tracker_resolution_fixture(
+        module, monkeypatch, tmp_path
+    )
+    completed = archive_root / '20300101-task98-old-COMPLETED'
+    completed.mkdir(parents=True)
+    (completed / 'TRACKER.md').write_text('# Completed tracker\n', encoding='utf-8')
+    current_work.write_text(
+        json.dumps(
+            {
+                'status': 'in-progress',
+                'paths': {'work_tracking': completed.relative_to(repo_root).as_posix()},
+            }
+        ),
+        encoding='utf-8',
+    )
+
+    with pytest.raises(SystemExit, match='no completed Aegis work-tracking path'):
+        module.get_active_tracker_path()
+
+
+def test_collect_validation_issues_includes_archived_tracker(
+    monkeypatch, tmp_path
+) -> None:
+    module = load_guard_module()
+    archive_relative = Path('docs/ai/work-tracking/archive')
+    archive_folder = tmp_path / archive_relative / '20300101-task98-old-COMPLETED'
+    tracker = archive_folder / 'TRACKER.md'
+    archive_folder.mkdir(parents=True)
+    tracker.write_text('# Completed tracker\n', encoding='utf-8')
+    validated_folders = []
+    evaluated_files = []
+
+    monkeypatch.setattr(module, 'REPO_ROOT', tmp_path)
+    monkeypatch.setattr(module, 'WORK_TRACKING_RELATIVE', Path('docs/ai/work-tracking/active'))
+    monkeypatch.setattr(module, 'WORK_TRACKING_ARCHIVE_RELATIVE', archive_relative)
+    monkeypatch.setattr(module, 'collect_git_status_entries', lambda _include: [])
+    monkeypatch.setattr(module, 'compute_changed_files', lambda _entries, _include: [tracker])
+    monkeypatch.setattr(module, 'validate_session_state', lambda _entries, _paths: [])
+    monkeypatch.setattr(module, 'validate_runtime_artifacts', lambda _paths: [])
+    monkeypatch.setattr(module, 'validate_taskmaster_activity', lambda _paths: [])
+    monkeypatch.setattr(module, 'validate_active_folder_edits', lambda _paths: [])
+    monkeypatch.setattr(module, 'validate_session_edit_dates', lambda _paths: [])
+    monkeypatch.setattr(module, 'detect_tracked_active_deletions', lambda _entries: [])
+    monkeypatch.setattr(module, 'validate_work_tracking_folder_names', lambda _entries: [])
+    monkeypatch.setattr(
+        module,
+        'validate_work_tracking_documents',
+        lambda folder: validated_folders.append(folder) or [],
+    )
+    monkeypatch.setattr(
+        module,
+        'evaluate_file',
+        lambda path: evaluated_files.append(path) or [],
+    )
+    monkeypatch.setattr(module, 'resolve_plan_path', lambda: None)
+    monkeypatch.setattr(module, 'is_between_sessions_state', lambda: True)
+
+    issues, changed = module.collect_validation_issues(include_untracked=False)
+
+    assert issues == []
+    assert changed == [tracker]
+    assert validated_folders == [archive_folder]
+    assert evaluated_files == [tracker]
 
 
 def test_validate_taskmaster_activity_requires_session_and_tracker_entries(monkeypatch, tmp_path) -> None:

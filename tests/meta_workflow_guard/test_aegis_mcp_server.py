@@ -45,6 +45,7 @@ from scripts._aegis_installer import (
     log_work,
     verify,
 )
+from scripts._aegis_installer import _content_checksum
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RECONCILE_MUTATION_PARAMETER_NAMES = {
@@ -960,7 +961,19 @@ def test_project_update_tool_refreshes_stale_managed_assets(tmp_path: Path) -> N
     install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
 
     stale_rel = ".claude/scripts/brief_lib.py"
-    (target / stale_rel).write_text("# stale installed managed asset\n", encoding="utf-8")
+    stale_content = b"# stale installed managed asset\n"
+    (target / stale_rel).write_bytes(stale_content)
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    record = next(
+        item
+        for item in manifest["managed_files"]
+        if isinstance(item, dict) and item.get("path") == stale_rel
+    )
+    record["checksum"] = _content_checksum(stale_content)
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     preview_payload = call_tool_payload(
         server,
@@ -991,6 +1004,34 @@ def test_project_update_tool_refreshes_stale_managed_assets(tmp_path: Path) -> N
     assert update_report["status"] == "applied"
     assert (target / AEGIS_UPDATE_REPORT_REL).is_file()
     assert (target / ".aegis" / "capsule" / "current.json").is_file()
+
+
+def test_project_update_tool_refuses_locally_diverged_managed_asset(tmp_path: Path) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    target = tmp_path / "project-update-diverged-target"
+    target.mkdir()
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+
+    diverged_rel = ".claude/scripts/brief_lib.py"
+    diverged_content = "# locally hardened managed asset\n"
+    (target / diverged_rel).write_text(diverged_content, encoding="utf-8")
+
+    payload = call_tool_payload(
+        server,
+        "aegis.update",
+        {"target_dir": target.as_posix(), "apply": False},
+    )
+
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "update_refused"
+    report = payload["error"]["details"]["report"]
+    operations = {
+        operation["path"]: operation for operation in report["install"]["plan"]["operations"]
+    }
+    assert report["status"] == "refused"
+    assert operations[diverged_rel]["classification"] == "manual-review"
+    assert (target / diverged_rel).read_text(encoding="utf-8") == diverged_content
 
 
 def test_doctor_and_repair_tools_preserve_read_only_preview_contract(tmp_path: Path) -> None:

@@ -7855,13 +7855,25 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-07-09T20:04:31.374Z"
+      },
+      {
+        "id": "235",
+        "title": "Prevent semantic regression in managed Aegis updates",
+        "description": "Restore completed-archive tracker parity in the canonical Codex guard and make Aegis update detect locally diverged managed governance assets before overwrite.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "details": "Promote the loucmane/blog project Task 56 completed-archive fallback into scripts/codex-guard. Add regression coverage for active tracker preference, completed current-work fallback with absent or empty active root, archive containment and -COMPLETED suffix, and rejection of non-completed state. Extend foundation manifest managed-file records with content checksums. During update planning, compare installed bytes with the recorded checksum; for legacy manifests without checksums, recover the previous expected same-path asset from runtime.source_root/runtime.source_commit when available. Classify a locally diverged managed governance asset as manual-review instead of safe modify. Preserve safe upgrades for pristine stale assets. Add an end-to-end fixture reproducing the blog update from 43e9a66 to current, require a second preview with zero managed changes, and document retry evidence.",
+        "testStrategy": "",
+        "subtasks": [],
+        "updatedAt": "2026-07-10T14:38:49.223Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-09T20:04:31.374Z",
-      "taskCount": 233,
-      "completedCount": 228,
+      "lastModified": "2026-07-10T14:38:49.224Z",
+      "taskCount": 234,
+      "completedCount": 229,
       "tags": [
         "master"
       ]
