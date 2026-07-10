@@ -1809,6 +1809,7 @@ def project_update(
         profile=profile,
         primary_agent=primary_agent,
         agents=enabled_agents,
+        baseline_manifest=manifest,
     )
     safety = _update_product_file_safety(install_plan)
     unsafe = _unsafe_operations(install_plan)
@@ -1870,6 +1871,7 @@ def project_update(
         primary_agent=primary_agent,
         agents=enabled_agents,
         apply=True,
+        baseline_manifest=manifest,
     )
     if install_applied.get("status") in {"refused", "failed"}:
         base_report.update(
@@ -1914,8 +1916,11 @@ def _manifest_payload(
     enabled_agents: Sequence[str],
     *,
     installed_at: str,
+    assets: Sequence[Asset] | None = None,
 ) -> dict[str, Any]:
-    assets = _managed_assets(source_root, primary_agent, enabled_agents)
+    managed_assets = list(assets) if assets is not None else _managed_assets(
+        source_root, primary_agent, enabled_agents
+    )
     existing = _read_json(target_root / AEGIS_MANIFEST_REL)
     verification = (
         existing.get("verification")
@@ -1962,7 +1967,7 @@ def _manifest_payload(
             "write_interface": "aegis_cli_or_mcp",
             "direct_aegis_writes": False,
         },
-        "agents": _agent_records(enabled_agents, assets),
+        "agents": _agent_records(enabled_agents, managed_assets),
         "capabilities": {
             "taskmaster": (target_root / ".taskmaster").exists(),
             "work_tracking": (target_root / "docs" / "ai" / "work-tracking").exists(),
@@ -1972,7 +1977,14 @@ def _manifest_payload(
         "gates": _gates(enabled_agents),
         "managed_files": [
             {"path": AEGIS_MANIFEST_REL, "kind": "managed"},
-            *({"path": asset.path, "kind": asset.kind} for asset in assets),
+            *(
+                {
+                    "path": asset.path,
+                    "kind": asset.kind,
+                    "checksum": _content_checksum(asset.content),
+                }
+                for asset in managed_assets
+            ),
         ],
         "customized_files": [],
         "verification": verification,
@@ -2005,6 +2017,104 @@ def _manifest_path_set(manifest: Mapping[str, Any], key: str) -> set[str]:
     return paths
 
 
+def _content_checksum(content: bytes) -> str:
+    return f"sha256:{hashlib.sha256(content).hexdigest()}"
+
+
+def _manifest_file_record(
+    manifest: Mapping[str, Any], key: str, path: str
+) -> Mapping[str, Any] | None:
+    records = manifest.get(key)
+    if not isinstance(records, list):
+        return None
+    for record in records:
+        if isinstance(record, Mapping) and record.get("path") == path:
+            return record
+    return None
+
+
+def _recorded_managed_checksum(manifest: Mapping[str, Any], path: str) -> str | None:
+    record = _manifest_file_record(manifest, "managed_files", path)
+    if record is None:
+        return None
+    checksum = record.get("checksum")
+    if not isinstance(checksum, str):
+        return None
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", checksum):
+        return None
+    return checksum
+
+
+def _source_path_for_managed_asset(path: str) -> str | None:
+    if path in SHARED_SCHEMA_FILES or path in CLAUDE_SUPPORT_FILES:
+        return path
+    if path in CODEX_REQUIRED_FILES and path != "CODEX.md":
+        return path
+    template_prefix = f"{AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT}/"
+    if path.startswith(template_prefix):
+        template_name = path.removeprefix(template_prefix)
+        if template_name in AEGIS_WORKFLOW_TEMPLATE_NAMES:
+            return f"{AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT}/{template_name}"
+    return None
+
+
+def _git_blob_checksum(source_root: Path, commit: str, source_path: str) -> str | None:
+    if not re.fullmatch(r"[0-9a-fA-F]{7,64}", commit):
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(source_root), "show", f"{commit}:{source_path}"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return _content_checksum(result.stdout)
+
+
+def _legacy_managed_checksum(
+    manifest: Mapping[str, Any], current_source_root: Path, path: str
+) -> str | None:
+    source_path = _source_path_for_managed_asset(path)
+    runtime = manifest.get("runtime")
+    if source_path is None or not isinstance(runtime, Mapping):
+        return None
+    commit = runtime.get("source_commit")
+    if not isinstance(commit, str):
+        return None
+
+    roots: list[Path] = []
+    recorded_root = runtime.get("source_root")
+    if isinstance(recorded_root, str):
+        roots.append(Path(recorded_root).expanduser())
+    roots.append(current_source_root)
+    seen: set[Path] = set()
+    for candidate in roots:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        checksum = _git_blob_checksum(resolved, commit, source_path)
+        if checksum is not None:
+            return checksum
+    return None
+
+
+def _managed_baseline_checksum(
+    manifest: Mapping[str, Any], current_source_root: Path, path: str
+) -> tuple[str | None, str | None]:
+    checksum = _recorded_managed_checksum(manifest, path)
+    if checksum is not None:
+        return checksum, "manifest checksum"
+    checksum = _legacy_managed_checksum(manifest, current_source_root, path)
+    if checksum is not None:
+        return checksum, "legacy source commit"
+    return None, None
+
+
 def _install_ownership(target_root: Path) -> tuple[set[str], set[str]]:
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
     if not isinstance(manifest, Mapping):
@@ -2015,10 +2125,21 @@ def _install_ownership(target_root: Path) -> tuple[set[str], set[str]]:
 
 
 def _plan_operations(
-    target_root: Path, assets: Sequence[Asset], manifest_bytes: bytes
+    target_root: Path,
+    assets: Sequence[Asset],
+    manifest_bytes: bytes,
+    *,
+    source_root: Path,
+    baseline_manifest: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     all_assets = [*assets, Asset(AEGIS_MANIFEST_REL, manifest_bytes)]
-    managed_paths, customized_paths = _install_ownership(target_root)
+    installed_manifest = baseline_manifest
+    if not isinstance(installed_manifest, Mapping):
+        installed_manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
+    if not isinstance(installed_manifest, Mapping):
+        installed_manifest = {}
+    managed_paths = _manifest_path_set(installed_manifest, "managed_files")
+    customized_paths = _manifest_path_set(installed_manifest, "customized_files")
     operations: list[dict[str, Any]] = []
     for asset in all_assets:
         target = target_root / asset.path
@@ -2107,6 +2228,41 @@ def _plan_operations(
             )
             continue
         if asset.path in managed_paths and asset.path not in customized_paths:
+            baseline_checksum, baseline_source = _managed_baseline_checksum(
+                installed_manifest, source_root, asset.path
+            )
+            if baseline_checksum is not None:
+                installed_checksum = _content_checksum(target.read_bytes())
+                if installed_checksum != baseline_checksum:
+                    operations.append(
+                        {
+                            "action": "manual-review",
+                            "path": asset.path,
+                            "classification": "manual-review",
+                            "safe_to_apply": False,
+                            "managed": True,
+                            "reason": (
+                                "Installed Aegis-managed file diverged from its "
+                                f"{baseline_source}; refusing semantic overwrite."
+                            ),
+                        }
+                    )
+                    continue
+            elif _source_path_for_managed_asset(asset.path) is not None:
+                operations.append(
+                    {
+                        "action": "manual-review",
+                        "path": asset.path,
+                        "classification": "manual-review",
+                        "safe_to_apply": False,
+                        "managed": True,
+                        "reason": (
+                            "A legacy source-backed managed file differs, but its prior "
+                            "expected bytes cannot be recovered; refusing semantic overwrite."
+                        ),
+                    }
+                )
+                continue
             operations.append(
                 {
                     "action": "modify",
@@ -4180,6 +4336,7 @@ def plan_install(
     agents: Sequence[str] | None,
     mode: str = "dry_run",
     apply_confirmed: bool = False,
+    baseline_manifest: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if profile != PROFILE_GENERIC:
         raise AegisError(f"Unsupported Aegis profile in V1: {profile}")
@@ -4191,10 +4348,21 @@ def plan_install(
     installed_at = _installed_at_for_plan(target_root)
     assets = _assets_for_target(target_root, _managed_assets(source, primary_agent, enabled_agents))
     manifest = _manifest_payload(
-        source, target_root, primary_agent, enabled_agents, installed_at=installed_at
+        source,
+        target_root,
+        primary_agent,
+        enabled_agents,
+        installed_at=installed_at,
+        assets=assets,
     )
     manifest_bytes = _dump_json(manifest).encode("utf-8")
-    operations = _plan_operations(target_root, assets, manifest_bytes)
+    operations = _plan_operations(
+        target_root,
+        assets,
+        manifest_bytes,
+        source_root=source,
+        baseline_manifest=baseline_manifest,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "plan_id": f"aegis-{profile}-{_utc_now().strftime('%Y%m%d%H%M%S')}",
@@ -8266,6 +8434,7 @@ def install(
     primary_agent: str,
     agents: Sequence[str] | None,
     apply: bool,
+    baseline_manifest: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not apply:
         return plan_install(
@@ -8276,6 +8445,7 @@ def install(
             agents=agents,
             mode="dry_run",
             apply_confirmed=False,
+            baseline_manifest=baseline_manifest,
         )
     target_root = _resolve_target_root(target_dir)
     target_root.mkdir(parents=True, exist_ok=True)
@@ -8289,6 +8459,7 @@ def install(
         agents=enabled_agents,
         mode="apply",
         apply_confirmed=True,
+        baseline_manifest=baseline_manifest,
     )
     unsafe = _unsafe_operations(plan)
     if unsafe:
@@ -8303,7 +8474,12 @@ def install(
     installed_at = _installed_at_for_plan(target_root)
     assets = _assets_for_target(target_root, _managed_assets(source, primary_agent, enabled_agents))
     manifest = _manifest_payload(
-        source, target_root, primary_agent, enabled_agents, installed_at=installed_at
+        source,
+        target_root,
+        primary_agent,
+        enabled_agents,
+        installed_at=installed_at,
+        assets=assets,
     )
     manifest_asset = Asset(AEGIS_MANIFEST_REL, _dump_json(manifest).encode("utf-8"))
     created_plan_paths = [

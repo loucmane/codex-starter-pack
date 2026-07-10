@@ -73,6 +73,7 @@ WORK_TRACKING_REQUIRED_DOCS = (
     "CHANGELOG.md",
 )
 WORK_TRACKING_ARCHIVE_BASE = REPO_STRUCTURE.work_tracking_archive_root
+CURRENT_WORK_STATE_PATH = REPO_ROOT / '.aegis/state/current-work.json'
 SESSIONS_CURRENT_REL = REPO_STRUCTURE.current_session_link.relative_to(REPO_ROOT).as_posix()
 SESSION_STATE_REL = REPO_STRUCTURE.session_state_path.relative_to(REPO_ROOT).as_posix()
 PLAN_CURRENT_REL = REPO_STRUCTURE.current_plan_link.relative_to(REPO_ROOT).as_posix()
@@ -1410,13 +1411,37 @@ def get_current_branch() -> Optional[str]:
 
 
 def get_active_tracker_path() -> Path:
-    candidates = [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
-    if not candidates:
-        raise SystemExit(f'No ACTIVE work-tracking folder found under {WORK_TRACKING_RELATIVE.as_posix()}/')
+    candidates = (
+        [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
+        if WORK_TRACKING_PREFIX.is_dir()
+        else []
+    )
     if len(candidates) > 1:
         names = ", ".join(p.name for p in candidates)
         raise SystemExit(f"Multiple ACTIVE work-tracking folders found ({names}); specify via override or clean up")
-    tracker = candidates[0] / 'TRACKER.md'
+    if candidates:
+        tracker = candidates[0] / 'TRACKER.md'
+    else:
+        try:
+            current_work = json.loads(CURRENT_WORK_STATE_PATH.read_text(encoding='utf-8'))
+        except (FileNotFoundError, json.JSONDecodeError):
+            current_work = {}
+
+        work_tracking = current_work.get('paths', {}).get('work_tracking')
+        if current_work.get('status') != 'completed' or not isinstance(work_tracking, str):
+            raise SystemExit(
+                f'No ACTIVE work-tracking folder found under {WORK_TRACKING_RELATIVE.as_posix()}/ '
+                'and no completed Aegis work-tracking path is available'
+            )
+
+        archive_root = WORK_TRACKING_ARCHIVE_BASE.resolve()
+        completed_folder = (REPO_ROOT / work_tracking).resolve()
+        if not completed_folder.is_relative_to(archive_root) or not completed_folder.name.endswith('-COMPLETED'):
+            raise SystemExit(
+                f'Completed Aegis work-tracking path must stay under '
+                f'{WORK_TRACKING_ARCHIVE_RELATIVE.as_posix()}/ and end with -COMPLETED'
+            )
+        tracker = completed_folder / 'TRACKER.md'
     if not tracker.exists():
         raise SystemExit(f'Tracker file missing at {tracker}')
     return tracker
@@ -2206,14 +2231,19 @@ def collect_validation_issues(include_untracked: bool) -> Tuple[List[ValidationI
             relevant.append(file_path)
         elif relative.parts[0] == "templates":
             relevant.append(file_path)
-        elif (
-            len(relative.parts) >= len(WORK_TRACKING_RELATIVE.parts) + 1
-            and tuple(relative.parts[: len(WORK_TRACKING_RELATIVE.parts)]) == WORK_TRACKING_RELATIVE.parts
-        ):
-            active_folder = REPO_ROOT.joinpath(*relative.parts[: len(WORK_TRACKING_RELATIVE.parts) + 1])
-            active_folders.add(active_folder)
-            if relative.name in GUARDED_WORKTRACKING_FILES:
-                relevant.append(file_path)
+        else:
+            for work_tracking_root in (WORK_TRACKING_RELATIVE, WORK_TRACKING_ARCHIVE_RELATIVE):
+                if (
+                    len(relative.parts) >= len(work_tracking_root.parts) + 1
+                    and tuple(relative.parts[: len(work_tracking_root.parts)]) == work_tracking_root.parts
+                ):
+                    work_tracking_folder = REPO_ROOT.joinpath(
+                        *relative.parts[: len(work_tracking_root.parts) + 1]
+                    )
+                    active_folders.add(work_tracking_folder)
+                    if relative.name in GUARDED_WORKTRACKING_FILES:
+                        relevant.append(file_path)
+                    break
 
     if not relevant and not baseline_issues and not folder_name_issues and not active_folders:
         return [], changed_files

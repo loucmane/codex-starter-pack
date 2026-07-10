@@ -99,6 +99,23 @@ def validate_schema(schema_name: str, payload: dict) -> None:
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(payload)
 
 
+def write_managed_baseline(target: Path, rel_path: str, content: bytes) -> None:
+    """Simulate bytes installed by an older Aegis manifest."""
+
+    (target / rel_path).write_bytes(content)
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    record = next(
+        item
+        for item in manifest["managed_files"]
+        if isinstance(item, dict) and item.get("path") == rel_path
+    )
+    record["checksum"] = aegis_installer._content_checksum(content)
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
 def run_cli(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["python3", "scripts/codex-task", *args],
@@ -2028,6 +2045,16 @@ def test_install_verify_and_second_plan_are_idempotent(tmp_path: Path) -> None:
     validate_schema("foundation-manifest.schema.json", manifest)
     assert manifest["primary_agent"] == "claude"
     assert manifest["agents"]["claude"]["enabled"] is True
+    managed_records = {
+        record["path"]: record
+        for record in manifest["managed_files"]
+        if isinstance(record, dict)
+    }
+    assert managed_records[".claude/scripts/gate_lib.py"]["checksum"] == (
+        aegis_installer._content_checksum(
+            (target / ".claude/scripts/gate_lib.py").read_bytes()
+        )
+    )
     assert {gate["id"] for gate in manifest["gates"] if gate["required"]} >= {
         "claude.readiness",
         "claude.pretooluse",
@@ -2137,8 +2164,9 @@ def test_install_upgrades_existing_manifest_owned_bootstrap_files(tmp_path: Path
         "schemas/aegis/foundation-manifest.schema.json",
     ]
     for rel_path in stale_paths:
-        path = target / rel_path
-        path.write_text("# old Aegis-managed bootstrap content\n", encoding="utf-8")
+        write_managed_baseline(
+            target, rel_path, b"# old Aegis-managed bootstrap content\n"
+        )
 
     plan = plan_install(
         target,
@@ -2200,7 +2228,7 @@ def test_install_refuses_to_overwrite_customized_bootstrap_files(tmp_path: Path)
     assert plan["summary"]["manual_reviews"] == 1
 
 
-def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(
+def test_project_update_dry_run_reports_pristine_stale_managed_asset_without_mutation(
     tmp_path: Path,
 ) -> None:
     target = tmp_path / "project-update-dry-run-target"
@@ -2213,8 +2241,9 @@ def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(
         apply=True,
     )
 
-    stale_path = target / ".claude" / "scripts" / "brief_lib.py"
-    stale_path.write_text("# stale installed managed asset\n", encoding="utf-8")
+    stale_rel = ".claude/scripts/brief_lib.py"
+    stale_path = target / stale_rel
+    write_managed_baseline(target, stale_rel, b"# stale installed managed asset\n")
 
     report = project_update(target, source_root=REPO_ROOT, apply=False)
     operations = {
@@ -2234,6 +2263,39 @@ def test_project_update_dry_run_reports_stale_managed_asset_without_mutation(
     assert report["capsule"]["status"] == "preview"
     assert (target / AEGIS_UPDATE_REPORT_REL).exists() is False
     assert stale_path.read_text(encoding="utf-8") == "# stale installed managed asset\n"
+
+
+def test_project_update_dry_run_refuses_locally_diverged_managed_asset(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "project-update-diverged-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+
+    diverged_rel = ".claude/scripts/brief_lib.py"
+    diverged_path = target / diverged_rel
+    diverged_path.write_text("# locally hardened managed asset\n", encoding="utf-8")
+
+    report = project_update(target, source_root=REPO_ROOT, apply=False)
+    operations = {
+        operation["path"]: operation for operation in report["install"]["plan"]["operations"]
+    }
+
+    assert report["status"] == "refused"
+    assert operations[diverged_rel]["classification"] == "manual-review"
+    assert operations[diverged_rel]["safe_to_apply"] is False
+    assert operations[diverged_rel]["managed"] is True
+    assert "diverged from its manifest checksum" in operations[diverged_rel]["reason"]
+    assert report["product_file_safety"]["safe"] is False
+    assert report["product_file_safety"]["manual_review_paths"] == [diverged_rel]
+    assert (target / AEGIS_UPDATE_REPORT_REL).exists() is False
+    assert diverged_path.read_text(encoding="utf-8") == "# locally hardened managed asset\n"
 
 
 def test_project_update_workflow_state_evidence_filters_runtime_failures() -> None:
@@ -2283,7 +2345,7 @@ def test_project_update_apply_refreshes_assets_and_compiles_capsule(tmp_path: Pa
 
     stale_rel = ".claude/scripts/brief_lib.py"
     stale_path = target / stale_rel
-    stale_path.write_text("# stale installed managed asset\n", encoding="utf-8")
+    write_managed_baseline(target, stale_rel, b"# stale installed managed asset\n")
 
     report = project_update(target, source_root=REPO_ROOT, apply=True)
     persisted = json.loads((target / AEGIS_UPDATE_REPORT_REL).read_text(encoding="utf-8"))
@@ -2303,6 +2365,105 @@ def test_project_update_apply_refreshes_assets_and_compiles_capsule(tmp_path: Pa
     assert report["workflow_state_evidence"]["status"] == "present"
     assert "workflow.current_work" in report["workflow_state_evidence"]["gate_ids"]
     assert persisted["workflow_state_evidence"] == report["workflow_state_evidence"]
+
+    second_preview = project_update(target, source_root=REPO_ROOT, apply=False)
+    assert second_preview["status"] == "preview"
+    assert second_preview["install"]["summary"]["modifies"] == 0
+    assert second_preview["install"]["summary"]["manual_reviews"] == 0
+
+
+def test_legacy_manifest_recovers_source_backed_checksum_from_recorded_commit(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "legacy-baseline-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    guard_record = next(
+        record
+        for record in manifest["managed_files"]
+        if isinstance(record, dict) and record.get("path") == "scripts/codex-guard"
+    )
+    guard_record.pop("checksum")
+    manifest["runtime"]["source_root"] = REPO_ROOT.as_posix()
+    manifest["runtime"]["source_commit"] = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    checksum = aegis_installer._legacy_managed_checksum(
+        manifest, REPO_ROOT, "scripts/codex-guard"
+    )
+
+    expected = subprocess.run(
+        [
+            "git",
+            "show",
+            f"{manifest['runtime']['source_commit']}:scripts/codex-guard",
+        ],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout
+    assert checksum == aegis_installer._content_checksum(expected)
+
+
+def test_project_update_apply_keeps_pre_runtime_legacy_baseline(
+    monkeypatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "legacy-project-update-target"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    stale_rel = ".claude/scripts/brief_lib.py"
+    stale_content = b"# pristine legacy managed asset\n"
+    (target / stale_rel).write_bytes(stale_content)
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    record = next(
+        item
+        for item in manifest["managed_files"]
+        if isinstance(item, dict) and item.get("path") == stale_rel
+    )
+    record.pop("checksum")
+    legacy_commit = "1" * 40
+    manifest["runtime"]["source_commit"] = legacy_commit
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    observed_commits: list[str | None] = []
+
+    def fake_legacy_checksum(installed_manifest, _source_root, path):
+        if path != stale_rel:
+            return None
+        runtime = installed_manifest.get("runtime", {})
+        observed_commits.append(runtime.get("source_commit"))
+        return aegis_installer._content_checksum(stale_content)
+
+    monkeypatch.setattr(
+        aegis_installer, "_legacy_managed_checksum", fake_legacy_checksum
+    )
+
+    report = project_update(target, source_root=REPO_ROOT, apply=True)
+
+    assert report["status"] == "applied"
+    assert observed_commits and set(observed_commits) == {legacy_commit}
+    assert (target / stale_rel).read_bytes() == (REPO_ROOT / stale_rel).read_bytes()
 
 
 def test_project_update_refuses_manual_review_install_plan(tmp_path: Path) -> None:
@@ -6134,7 +6295,7 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
 
     stale_rel = ".claude/scripts/brief_lib.py"
-    (target / stale_rel).write_text("# stale installed managed asset\n", encoding="utf-8")
+    write_managed_baseline(target, stale_rel, b"# stale installed managed asset\n")
 
     update_preview_result = run_cli(["aegis", "update", "--target-dir", str(target)])
     assert update_preview_result.returncode == 0, update_preview_result.stderr
@@ -6156,6 +6317,20 @@ def test_aegis_cli_smoke_installs_and_verifies_generic_claude_profile(tmp_path: 
     )
     assert (target / AEGIS_UPDATE_REPORT_REL).is_file()
     assert (target / ".aegis" / "capsule" / "current.json").is_file()
+
+    (target / stale_rel).write_text("# locally diverged managed asset\n", encoding="utf-8")
+    refused_result = run_cli(["aegis", "update", "--target-dir", str(target)])
+    assert refused_result.returncode == 1
+    refused_report = json.loads(refused_result.stdout)
+    refused_operations = {
+        operation["path"]: operation
+        for operation in refused_report["install"]["plan"]["operations"]
+    }
+    assert refused_report["status"] == "refused"
+    assert refused_operations[stale_rel]["classification"] == "manual-review"
+    assert (target / stale_rel).read_text(encoding="utf-8") == (
+        "# locally diverged managed asset\n"
+    )
 
 
 def test_observation_report_stays_under_size_budget_with_huge_runtime_dir(tmp_path: Path) -> None:
