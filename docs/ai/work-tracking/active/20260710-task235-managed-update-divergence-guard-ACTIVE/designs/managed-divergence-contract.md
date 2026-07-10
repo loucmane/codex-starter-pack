@@ -7,9 +7,10 @@ file at some point; it does not prove the bytes still equal the last installed v
 result, `aegis update` can label a locally hardened governance asset as a safe managed upgrade
 and silently replace behavior that the target repository relies on.
 
-HP-Blog Task 56 reproduced this with `scripts/codex-guard`: the update preview was mechanically
-safe, but applying it removed completed-archive tracker resolution and failed all five target
-regressions.
+Task 56 in the independent `loucmane/blog` project reproduced this with `scripts/codex-guard`:
+the update preview was mechanically safe, but applying it removed completed-archive tracker
+resolution and failed all five target regressions. HP-Fetcher/HP-Coach is a separate project; the
+blog reuses Aegis dogfood lessons and adapted CI patterns from it, not its product identity.
 
 ## Contract
 

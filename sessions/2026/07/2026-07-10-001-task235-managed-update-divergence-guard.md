@@ -9,7 +9,7 @@ title: Task 235 - Prevent semantic regression in managed Aegis updates Continuat
 **AI Assistant**: Codex GPT-5.4
 **Developer**: loucmane
 **Task**: Continue Task 235 using the existing task-scoped plan and work-tracking folder for Prevent semantic regression in managed Aegis updates.
-**Task Source**: HP-Blog Task 56 managed-update semantic regression handoff
+**Task Source**: `loucmane/blog` Task 56 managed-update semantic regression handoff
 
 ### Session Validation
 - [x] Date confirmed (`date '+%Y-%m-%d %H:%M:%S %Z %z'` -> `2026-07-10 15:48:33 CEST +0200`)
@@ -42,3 +42,4 @@ Task 235 continuation was created via `python3 scripts/codex-task sessions conti
 - **[16:11]** — [S:20260710|W:task235-managed-update-divergence-guard|H:pytest:full-suite|E:docs/ai/work-tracking/active/20260710-task235-managed-update-divergence-guard-ACTIVE/reports/managed-update-divergence-guard/verification.md] Passed all 1,749 repository tests with four explicit opt-in distribution/certification smokes skipped
 - **[16:13]** — [S:20260710|W:task235-managed-update-divergence-guard|H:task-master:set-status|E:.taskmaster/tasks/task_235.md] Marked Taskmaster Task 235 done and regenerated only its task file after all implementation and verification gates passed
 - **[16:14]** — [S:20260710|W:task235-managed-update-divergence-guard|H:aegis:closeout-dry-run|E:docs/ai/work-tracking/active/20260710-task235-managed-update-divergence-guard-ACTIVE/reports/managed-update-divergence-guard/verification.md] Confirmed installed-target closeout is not applicable to this upstream source checkout and did not mutate unrelated untracked runtime state
+- **[16:39]** — [S:20260710|W:task235-managed-update-divergence-guard|H:task-master:update-task|E:.taskmaster/tasks/task_235.md] Corrected Task 235 terminology so `loucmane/blog` remains independent and HP-Fetcher/HP-Coach appears only as separate dogfood and adapted-CI provenance

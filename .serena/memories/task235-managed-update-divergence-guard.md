@@ -2,7 +2,7 @@
 
 ## Context
 
-HP-Blog Task 56 proved that path-based manifest ownership was insufficient: a safe-looking
+Task 56 in the independent `loucmane/blog` project proved that path-based manifest ownership was insufficient: a safe-looking
 managed update replaced a committed, locally hardened `scripts/codex-guard` and removed its
 completed-archive tracker fallback.
 
@@ -21,7 +21,7 @@ completed-archive tracker fallback.
 
 - Guard tests: 83 passed.
 - Installer/schema/asset parity tests: 138 passed, one opt-in certification smoke skipped.
-- Live HP-Blog Task 56 dry-run: zero conflicts, zero manual reviews, five safe modifications,
+- Live `loucmane/blog` Task 56 dry-run: zero conflicts, zero manual reviews, five safe modifications,
   byte-identical guard skip, and no target-tree mutation.
 - Authoritative MCP/schema/installer suite: 188 passed, one opt-in smoke skipped.
 - Full repository suite: 1,749 passed, four explicit opt-in smokes skipped.
@@ -29,6 +29,6 @@ completed-archive tracker fallback.
 ## Continuation Boundary
 
 Task 235 implementation, authoritative integration, full-suite, and repository guard checks are
-complete. Deliver it upstream, then retry the blocked HP-Blog Task 56 update only from the stable
+complete. Deliver it upstream, then retry the blocked `loucmane/blog` Task 56 update only from the stable
 merged commit. The downstream retry must pass all completed-state regressions and produce a
 second update preview with zero managed changes.

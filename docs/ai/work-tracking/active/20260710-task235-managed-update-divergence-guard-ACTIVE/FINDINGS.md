@@ -11,5 +11,5 @@
 - 2026-07-10 — `project_update --apply` advances runtime metadata before reinstalling assets.
   It must retain the original manifest for classification or a legacy baseline silently changes
   from the installed commit to the new commit mid-operation.
-- 2026-07-10 — The completed-archive implementation from HP-Blog is otherwise byte-compatible
+- 2026-07-10 — The completed-archive implementation from `loucmane/blog` is otherwise byte-compatible
   with upstream. Promoting it canonically makes the live blog guard a skip on the retry.
