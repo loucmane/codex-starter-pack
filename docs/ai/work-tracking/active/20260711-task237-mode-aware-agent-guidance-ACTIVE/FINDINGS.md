@@ -25,3 +25,7 @@
 - 2026-07-11 - Combined managed guidance fell from 6,939 to 4,220 bytes in Blog. The main saving
   is Claude's strict payload reduction; Codex and Agents intentionally gained missing mode
   semantics.
+- 2026-07-11 - PR #259 full-suite CI found that source `CODEX.md` had one blank line between the
+  rendered continuation summary and end marker. Fresh installs copied that byte, while the next
+  plan rendered the canonical block without it, producing one spurious `modify` plus a manifest
+  update on both Python 3.11 and 3.12.

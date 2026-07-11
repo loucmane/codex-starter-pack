@@ -6374,6 +6374,14 @@ def test_fresh_install_renders_bounded_mode_aware_agent_entrypoints(
         assert end_marker in text
         assert_mode_aware_entrypoint(managed_entrypoint_content(text, begin_marker, end_marker))
 
+    second_plan = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent=primary_agent,
+        agents=agents,
+    )
+    assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
+
 
 def test_repeat_multi_agent_install_refreshes_only_managed_blocks(
     tmp_path: Path,

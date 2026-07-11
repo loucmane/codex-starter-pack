@@ -96,6 +96,33 @@ globally Black-normalized and it introduced unrelated formatting churn. The Task
 changes were reconstructed onto the original formatting, AST-equivalence checked, and then
 retested.
 
+## PR #259 CI Correction
+
+The first PR head passed the focused Task 237 suites but failed the complete Python 3.11 and 3.12
+jobs on the same existing fixture:
+
+`test_generic_profile_installs_verifies_and_stays_idempotent_for_fixture_shapes[basic-python-tool-multi]`
+
+Fresh Codex installs copied one source-only blank line immediately before the managed end marker.
+The second plan rendered the canonical block without that blank line, so it classified
+`CODEX.md` and the manifest as `modify` once instead of skipping every asset.
+
+Correction:
+
+- Removed the source-only blank line so source `CODEX.md` exactly matches the renderer.
+- Extended the fresh Claude-, Codex-, and multi-agent test to require an all-skip second plan.
+- Reproduced and passed the previously failing fixture locally.
+- Ran the same complete parallel suite as CI:
+
+```text
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -n auto --dist loadgroup -q
+
+1755 passed, 4 skipped in 53.04s
+```
+
+The four skips are the existing opt-in release, wheel, and MCP distribution smokes. Python 3.11
+is not installed locally; the refreshed GitHub matrix remains the cross-version authority.
+
 ## Residual Acceptance
 
 After Task 237 merges and Blog Task 65 reaches a clean boundary, Blog should run its normal Aegis

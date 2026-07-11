@@ -3,8 +3,9 @@
 ## Current State
 
 - Task 237 implementation is complete on `feat/task-237-mode-aware-guidance`.
-- Taskmaster Task 237 is done; this completed folder remains under `active/` for source-checkout
-  compatibility until the next kickoff or Task 244 archive fallback.
+- Taskmaster Task 237 is done again after PR #259's fresh Codex install idempotence correction.
+- The correction passes the formerly failing fixture and the full CI-equivalent local suite:
+  1,755 passed, four opt-in distribution smokes skipped.
 - Canonical and packaged installers are byte-identical.
 - Combined regression result: 225 passed, 2 opt-in distribution smokes skipped.
 - Live Blog update preview is safe; isolated Blog advisory apply and second-run idempotence pass.
@@ -14,8 +15,10 @@
 
 ## Next Steps
 
-1. Publish the feature branch for review.
-2. After merge and a clean Blog task boundary, update Blog and record one real orientation
+1. Push the CI-fix commit to PR #259.
+2. Watch the new exact-head checks, mark the PR ready, and merge only after every required check
+   passes.
+3. After merge and a clean Blog task boundary, update Blog and record one real orientation
    canary confirming agents no longer apologize for skipped strict ceremony.
 
 ## Primary Evidence

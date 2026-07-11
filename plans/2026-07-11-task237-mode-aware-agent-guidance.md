@@ -54,6 +54,8 @@ emergency_bypass: false
 - 2026-07-11 - Replaced the generic wizard plan with the Task 237 mode-aware managed-guidance contract; no enforcement behavior change is authorized.
 - 2026-07-11 - Added checksum-backed migration for exact manifest-owned markerless Claude
   runtimes after isolated Blog dogfood exposed obsolete ceremony preservation.
+- 2026-07-11 - Reopened verification after PR #259 CI showed that fresh Codex installs retained
+  one source-only blank line that the second plan normalized.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
