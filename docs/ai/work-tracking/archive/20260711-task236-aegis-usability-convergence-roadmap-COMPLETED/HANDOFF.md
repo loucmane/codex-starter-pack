@@ -17,3 +17,4 @@
 - Keep this completed Task 236 folder as the sole ACTIVE compatibility projection until Task 244
   supplies a tested archive fallback for the upstream source checkout.
 - Archived on 2026-07-11 16:45 CEST — Folder moved to archive and tracker marked COMPLETED.
+- Archived on 2026-07-11 17:34 CEST — Folder moved to archive and tracker marked COMPLETED.

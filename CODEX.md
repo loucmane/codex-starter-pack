@@ -6,10 +6,32 @@
 - Treat every section as an executable checklist, not passive docs.
 
 <!-- AEGIS:BEGIN codex-runtime -->
-## Aegis Continuation
+## Aegis Runtime
 
-Continuation contract: a short intent (continue / go / proceed / next / resume) advances the Aegis workflow by exactly ONE safe step — resolved from `aegis next` (its `next_safe_action`), never from memory — then re-consult. It is not new authority. Surface and ask before repairs (`aegis repair --apply`), non-dry-run `closeout`, protected/owned paths, switching tasks, or push/PR. Never automatic: merge, force-push, history rewrite, `.aegis/` writes, BLOCKED-readiness bypass, skipping S:W:H:E. "Finish this" still stops at these boundaries. Full text in `.aegis/contract.md`.
+This project uses Aegis Foundation.
 
+At orientation, inspect enforcement mode once:
+`aegis enforce status` (or `./.aegis/bin/aegis enforce status`).
+
+## Advisory mode
+- Work normally: hooks record evidence and would-block decisions passively; no per-mutation logging or pending-event reconciliation is required.
+- Use `aegis brief` for current orientation and `aegis witness` before delivery.
+- Do not manually drain advisory pending events or run handoff repair/closeout as routine ceremony.
+
+## Strict mode
+- `.aegis/contract.md` is authoritative for readiness, kickoff, logging, verification, and closeout.
+- Use `aegis next` to resolve the single sanctioned workflow step.
+
+## Always
+- Use native agent tools for source edits, tests, and Git inspection; use Aegis CLI/MCP only for workflow state.
+- When Taskmaster is configured, use `task-master next` and `task-master show <id>` for task selection.
+- Never write `.aegis/` directly.
+- If install/update reports a required client reload, restart that client before mutations.
+- Missing hooks or unsupported clients are degraded coverage, not successful capture.
+
+## Continuation
+
+Continuation contract: resolve continue / go / next from live `aegis next`, perform exactly one safe step, then re-consult. It never authorizes repair, push, merge, protected-path edits, or bypass. Full text in `.aegis/contract.md`.
 <!-- AEGIS:END codex-runtime -->
 
 ## 🚦 CODEx READINESS CHECK

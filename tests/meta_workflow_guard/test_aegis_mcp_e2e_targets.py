@@ -1087,19 +1087,22 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     _simulate_claude_reload(target)
     claude_entrypoint = (target / "CLAUDE.md").read_text(encoding="utf-8")
     contract_text = (target / ".aegis/contract.md").read_text(encoding="utf-8")
-    assert "Normal feature-work loop:" in claude_entrypoint
+    assert "aegis enforce status" in claude_entrypoint
+    assert "## Advisory mode" in claude_entrypoint
+    assert "would-block decisions passively" in claude_entrypoint
+    assert "aegis witness" in claude_entrypoint
+    assert "## Strict mode" in claude_entrypoint
+    assert ".aegis/contract.md` is authoritative" in claude_entrypoint
     assert "aegis next" in claude_entrypoint
-    assert "--plan-step auto" in claude_entrypoint
-    assert "aegis verify --strict" in claude_entrypoint
-    assert "aegis closeout --dry-run --update-handoff" in claude_entrypoint
-    assert "aegis closeout --update-handoff" in claude_entrypoint
-    assert "do not report the task complete until closeout passes" in claude_entrypoint
-    assert "Tool routing:" in claude_entrypoint
-    assert "Use Aegis MCP tools for Aegis workflow state" in claude_entrypoint
-    assert "Use native Claude tools for normal implementation work" in claude_entrypoint
+    assert "per-mutation logging" in claude_entrypoint
+    assert "handoff repair/closeout as routine ceremony" in claude_entrypoint
+    assert "--plan-step auto" not in claude_entrypoint
+    assert "aegis verify --strict" not in claude_entrypoint
+    assert "aegis closeout --dry-run --update-handoff" not in claude_entrypoint
     assert "Normal feature work is:" in contract_text
     assert "Control Plane vs Implementation Tools" in contract_text
     assert "The installed Aegis runtime, not the MCP session, is responsible for enforcement." in contract_text
+    assert "--plan-step auto" in contract_text
     assert "aegis verify --strict" in contract_text
     assert "aegis closeout" in contract_text
 

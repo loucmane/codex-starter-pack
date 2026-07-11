@@ -10,3 +10,4 @@
 - 2026-07-11 16:47 CEST - Restored Task 236 as the sole completed ACTIVE compatibility projection after the source guard proved unable to resolve an archive without installed target state; created Task 244 and gated Task 243 on it.
 - 2026-07-11 16:49 CEST - Revalidated the amended 243-task graph and all workflow checks after adding Task 244.
 - 2026-07-11 16:50 CEST - Marked Task 236 done after the amended validation and retained its completed ACTIVE projection pending Task 244.
+- 2026-07-11 17:34 CEST — Archived active work-tracking folder.

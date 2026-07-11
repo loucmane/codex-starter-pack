@@ -2,7 +2,7 @@
 
 **Title:** Make Managed Agent Guidance Truthful And Mode-Aware
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 236 ✓
 
