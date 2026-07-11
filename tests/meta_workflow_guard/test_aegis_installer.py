@@ -116,6 +116,52 @@ def write_managed_baseline(target: Path, rel_path: str, content: bytes) -> None:
     )
 
 
+def managed_entrypoint_content(text: str, begin_marker: str, end_marker: str) -> str:
+    """Return marker-delimited guidance, or the complete fresh entrypoint."""
+
+    if begin_marker not in text or end_marker not in text:
+        return text
+    return text.split(begin_marker, 1)[1].split(end_marker, 1)[0].strip("\n")
+
+
+def replace_managed_entrypoint_content(
+    text: str,
+    begin_marker: str,
+    end_marker: str,
+    replacement: str,
+) -> str:
+    before, marker, remainder = text.partition(begin_marker)
+    assert marker, f"missing begin marker {begin_marker}"
+    _managed, marker, after = remainder.partition(end_marker)
+    assert marker, f"missing end marker {end_marker}"
+    return f"{before}{begin_marker}\n{replacement.rstrip()}\n{end_marker}{after}"
+
+
+def assert_mode_aware_entrypoint(text: str) -> None:
+    assert "At orientation, inspect enforcement mode once" in text
+    assert "aegis enforce status" in text
+    assert "## Advisory mode" in text
+    assert "## Strict mode" in text
+    assert "`aegis brief`" in text
+    assert "`aegis witness`" in text
+    assert "Do not manually drain advisory pending events" in text
+    assert ".aegis/contract.md" in text
+    assert "readiness, kickoff, logging, verification, and closeout" in text
+    assert "Missing hooks or unsupported clients are degraded coverage" in text
+
+    advisory = text.split("## Advisory mode", 1)[1].split("## Strict mode", 1)[0]
+    for commanded_ceremony in (
+        "aegis log --",
+        "aegis handoff repair",
+        "aegis closeout --",
+        "--pending-id",
+    ):
+        assert commanded_ceremony not in advisory
+
+    nonblank_lines = [line for line in text.splitlines() if line.strip()]
+    assert len(nonblank_lines) <= aegis_installer.AEGIS_MANAGED_ENTRYPOINT_MAX_NONBLANK_LINES
+
+
 def run_cli(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["python3", "scripts/codex-task", *args],
@@ -2615,7 +2661,10 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
     claude_entry = (target / "CLAUDE.md").read_text(encoding="utf-8")
     assert "task-master next" in claude_entry
     assert "task-master show <id>" in claude_entry
-    assert "Taskmaster done only after Aegis closeout and doctor pass" in claude_entry
+    assert "Taskmaster done only after Aegis closeout and doctor pass" not in claude_entry
+    assert ".aegis/contract.md` is authoritative" in claude_entry
+    strict_contract = (target / ".aegis" / "contract.md").read_text(encoding="utf-8")
+    assert "Taskmaster done only after Aegis closeout and doctor pass" in strict_contract
 
     for report in (
         inspect_project(target, source_root=REPO_ROOT),
@@ -2628,7 +2677,8 @@ def test_next_action_defers_task_selection_to_taskmaster_when_tasks_json_is_pres
         assert guidance["state"] == "installed_taskmaster_present"
         assert guidance["details"]["taskmaster"]["aegis_task_selection"] == "suppressed"
         assert "task" not in guidance["details"]["taskmaster"]
-    assert "task-master generate" in claude_entry
+    assert "task-master generate" not in claude_entry
+    assert "task-master generate" in strict_contract
     claude_settings = json.loads((target / ".claude" / "settings.json").read_text(encoding="utf-8"))
     allowed = claude_settings["permissions"]["allow"]
     assert "Bash(task-master *)" in allowed
@@ -6101,15 +6151,102 @@ def test_install_merges_existing_claude_entrypoint_without_losing_project_contex
     text = claude.read_text(encoding="utf-8")
     assert aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN in text
     assert aegis_installer.AEGIS_CLAUDE_BLOCK_END in text
-    assert "Before persistent mutation, Claude must be in a READY state" in text
+    assert_mode_aware_entrypoint(
+        managed_entrypoint_content(
+            text,
+            aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CLAUDE_BLOCK_END,
+        )
+    )
     assert "## Existing Project Instructions" in text
-    assert "# Existing Claude instructions" in text
+    assert text.split("## Existing Project Instructions\n\n", 1)[1] == (
+        "# Existing Claude instructions\n"
+    )
     claude_operation = next(
         operation for operation in report["plan"]["operations"] if operation["path"] == "CLAUDE.md"
     )
     assert claude_operation["classification"] == "modify"
     assert claude_operation["safe_to_apply"] is True
     assert (target / AEGIS_MANIFEST_REL).exists()
+
+
+def test_install_replaces_exact_recorded_markerless_claude_runtime(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "legacy-markerless-claude-runtime"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    legacy_runtime = (
+        b"# Claude Runtime Entry\n\n"
+        b"Before persistent mutation, Claude must be in a READY state.\n"
+        b"Run `aegis log --pending-id current` after every mutation.\n"
+        b"Run handoff repair and closeout before completion.\n"
+    )
+    write_managed_baseline(target, "CLAUDE.md", legacy_runtime)
+    baseline_manifest = json.loads((target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+        baseline_manifest=baseline_manifest,
+    )
+
+    assert report["status"] == "applied"
+    text = (target / "CLAUDE.md").read_text(encoding="utf-8")
+    assert aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN in text
+    assert aegis_installer.AEGIS_CLAUDE_BLOCK_END in text
+    assert_mode_aware_entrypoint(
+        managed_entrypoint_content(
+            text,
+            aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CLAUDE_BLOCK_END,
+        )
+    )
+    assert "Before persistent mutation" not in text
+    assert "aegis log --pending-id current" not in text
+    assert "## Existing Project Instructions" not in text
+
+
+def test_install_preserves_modified_markerless_claude_runtime_conservatively(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "modified-markerless-claude-runtime"
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+    )
+    legacy_runtime = b"# Legacy Aegis Claude runtime\n"
+    write_managed_baseline(target, "CLAUDE.md", legacy_runtime)
+    customized = legacy_runtime + b"\n# Project rule\nKeep this owner-authored rule.\n"
+    (target / "CLAUDE.md").write_bytes(customized)
+    baseline_manifest = json.loads((target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        apply=True,
+        baseline_manifest=baseline_manifest,
+    )
+
+    assert report["status"] == "applied"
+    text = (target / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "## Existing Project Instructions" in text
+    assert text.split("## Existing Project Instructions\n\n", 1)[1].encode("utf-8") == customized
 
 
 def test_install_merges_existing_codex_entrypoint_without_losing_project_context(
@@ -6132,10 +6269,17 @@ def test_install_merges_existing_codex_entrypoint_without_losing_project_context
     text = codex.read_text(encoding="utf-8")
     assert aegis_installer.AEGIS_CODEX_BLOCK_BEGIN in text
     assert aegis_installer.AEGIS_CODEX_BLOCK_END in text
-    assert "Continuation contract:" in text
-    assert ".aegis/contract.md" in text
+    assert_mode_aware_entrypoint(
+        managed_entrypoint_content(
+            text,
+            aegis_installer.AEGIS_CODEX_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CODEX_BLOCK_END,
+        )
+    )
     assert "## Existing Codex Instructions" in text
-    assert "# Existing Codex instructions" in text
+    assert text.split("## Existing Codex Instructions\n\n", 1)[1] == (
+        "# Existing Codex instructions\n"
+    )
     codex_operation = next(
         operation for operation in report["plan"]["operations"] if operation["path"] == "CODEX.md"
     )
@@ -6164,15 +6308,164 @@ def test_install_merges_existing_agents_entrypoint_without_losing_project_contex
     text = agents.read_text(encoding="utf-8")
     assert aegis_installer.AEGIS_AGENTS_BLOCK_BEGIN in text
     assert aegis_installer.AEGIS_AGENTS_BLOCK_END in text
-    assert "Aegis Foundation" in text
+    assert_mode_aware_entrypoint(
+        managed_entrypoint_content(
+            text,
+            aegis_installer.AEGIS_AGENTS_BLOCK_BEGIN,
+            aegis_installer.AEGIS_AGENTS_BLOCK_END,
+        )
+    )
     assert "## Existing Agent Instructions" in text
-    assert "# Existing agent instructions" in text
+    assert text.split("## Existing Agent Instructions\n\n", 1)[1] == (
+        "# Existing agent instructions\n"
+    )
     agents_operation = next(
         operation for operation in report["plan"]["operations"] if operation["path"] == "AGENTS.md"
     )
     assert agents_operation["classification"] == "modify"
     assert agents_operation["safe_to_apply"] is True
     assert (target / AEGIS_MANIFEST_REL).exists()
+
+
+@pytest.mark.parametrize(
+    ("primary_agent", "agents", "expected_entrypoints"),
+    [
+        ("claude", ["claude"], ("CLAUDE.md", "AGENTS.md")),
+        ("codex", ["codex"], ("CODEX.md", "AGENTS.md")),
+        ("multi", ["claude", "codex"], ("CLAUDE.md", "CODEX.md", "AGENTS.md")),
+    ],
+)
+def test_fresh_install_renders_bounded_mode_aware_agent_entrypoints(
+    tmp_path: Path,
+    primary_agent: str,
+    agents: list[str],
+    expected_entrypoints: tuple[str, ...],
+) -> None:
+    target = tmp_path / f"fresh-{primary_agent}"
+    target.mkdir()
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent=primary_agent,
+        agents=agents,
+        apply=True,
+    )
+
+    assert report["status"] == "applied"
+    markers = {
+        "CLAUDE.md": (
+            aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CLAUDE_BLOCK_END,
+        ),
+        "CODEX.md": (
+            aegis_installer.AEGIS_CODEX_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CODEX_BLOCK_END,
+        ),
+        "AGENTS.md": (
+            aegis_installer.AEGIS_AGENTS_BLOCK_BEGIN,
+            aegis_installer.AEGIS_AGENTS_BLOCK_END,
+        ),
+    }
+    for rel_path in expected_entrypoints:
+        text = (target / rel_path).read_text(encoding="utf-8")
+        begin_marker, end_marker = markers[rel_path]
+        assert begin_marker in text
+        assert end_marker in text
+        assert_mode_aware_entrypoint(managed_entrypoint_content(text, begin_marker, end_marker))
+
+
+def test_repeat_multi_agent_install_refreshes_only_managed_blocks(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "repeat-multi-agent"
+    target.mkdir()
+    project_content = {
+        "CLAUDE.md": "# Project Claude\n\nClaude-owned rule.\n",
+        "CODEX.md": "# Project Codex\n\nCodex-owned rule.\n",
+        "AGENTS.md": "# Project Agents\n\nShared project rule.\n",
+    }
+    headings = {
+        "CLAUDE.md": "Existing Project Instructions",
+        "CODEX.md": "Existing Codex Instructions",
+        "AGENTS.md": "Existing Agent Instructions",
+    }
+    markers = {
+        "CLAUDE.md": (
+            aegis_installer.AEGIS_CLAUDE_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CLAUDE_BLOCK_END,
+        ),
+        "CODEX.md": (
+            aegis_installer.AEGIS_CODEX_BLOCK_BEGIN,
+            aegis_installer.AEGIS_CODEX_BLOCK_END,
+        ),
+        "AGENTS.md": (
+            aegis_installer.AEGIS_AGENTS_BLOCK_BEGIN,
+            aegis_installer.AEGIS_AGENTS_BLOCK_END,
+        ),
+    }
+    for rel_path, content in project_content.items():
+        (target / rel_path).write_text(content, encoding="utf-8")
+
+    first = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="multi",
+        agents=["claude", "codex"],
+        apply=True,
+    )
+    assert first["status"] == "applied"
+
+    expected_project_content: dict[str, str] = {}
+    for rel_path, initial_content in project_content.items():
+        local_content = f"{initial_content}Local post-install rule for {rel_path}.\n"
+        expected_project_content[rel_path] = local_content
+        path = target / rel_path
+        text = path.read_text(encoding="utf-8")
+        heading = headings[rel_path]
+        prefix = text.split(f"## {heading}\n\n", 1)[0]
+        text = f"{prefix}## {heading}\n\n{local_content}"
+        begin_marker, end_marker = markers[rel_path]
+        path.write_text(
+            replace_managed_entrypoint_content(
+                text,
+                begin_marker,
+                end_marker,
+                "# Legacy strict ceremony\n\nRun `aegis log --pending-id current` after every mutation.",
+            ),
+            encoding="utf-8",
+        )
+
+    second = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="multi",
+        agents=["claude", "codex"],
+        apply=True,
+    )
+    assert second["status"] == "applied"
+
+    installed_bytes: dict[str, bytes] = {}
+    for rel_path, expected_content in expected_project_content.items():
+        path = target / rel_path
+        text = path.read_text(encoding="utf-8")
+        begin_marker, end_marker = markers[rel_path]
+        managed = managed_entrypoint_content(text, begin_marker, end_marker)
+        assert_mode_aware_entrypoint(managed)
+        assert "Legacy strict ceremony" not in text
+        assert text.split(f"## {headings[rel_path]}\n\n", 1)[1] == expected_content
+        installed_bytes[rel_path] = path.read_bytes()
+
+    third = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="multi",
+        agents=["claude", "codex"],
+        apply=True,
+    )
+    assert third["status"] == "applied"
+    for rel_path, expected_bytes in installed_bytes.items():
+        assert (target / rel_path).read_bytes() == expected_bytes
 
 
 def test_verify_fails_when_required_claude_gate_file_is_missing(tmp_path: Path) -> None:

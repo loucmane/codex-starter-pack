@@ -129,6 +129,7 @@ AEGIS_CODEX_BLOCK_BEGIN = "<!-- AEGIS:BEGIN codex-runtime -->"
 AEGIS_CODEX_BLOCK_END = "<!-- AEGIS:END codex-runtime -->"
 AEGIS_AGENTS_BLOCK_BEGIN = "<!-- AEGIS:BEGIN agents-runtime -->"
 AEGIS_AGENTS_BLOCK_END = "<!-- AEGIS:END agents-runtime -->"
+AEGIS_MANAGED_ENTRYPOINT_MAX_NONBLANK_LINES = 25
 
 CLAUDE_PRETOOLUSE_MATCHER = "^(Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*)$"
 CLAUDE_PRETOOLUSE_COMMAND = "bash $CLAUDE_PROJECT_DIR/.claude/scripts/pretooluse-gate.sh"
@@ -418,28 +419,55 @@ def profile_payload() -> dict[str, Any]:
     }
 
 
-def _render_agents_doc(primary_agent: str, enabled_agents: Sequence[str]) -> bytes:
-    agents = ", ".join(enabled_agents) if enabled_agents else "none"
+def _render_mode_aware_entrypoint(
+    title: str,
+    *,
+    identity_lines: Sequence[str] = (),
+) -> bytes:
     text = "\n".join(
         [
-            "# Agents",
+            title,
             "",
-            "This project is managed by Aegis Foundation.",
+            "This project uses Aegis Foundation.",
+            *identity_lines,
             "",
-            f"- Primary agent: `{primary_agent}`",
-            f"- Enabled adapters: `{agents}`",
-            "- Shared contract: `.aegis/contract.md`",
-            "- Agents may read `.aegis/` directly.",
-            "- Agents must not write `.aegis/` directly; use Aegis MCP tools or the project-local Aegis CLI.",
-            "- Aegis MCP/CLI is the workflow control plane. Use native agent tools for normal source edits, test runs, and git inspection.",
+            "At orientation, inspect enforcement mode once:",
+            "`aegis enforce status` (or `./.aegis/bin/aegis enforce status`).",
+            "",
+            "## Advisory mode",
+            "- Work normally: hooks record evidence and would-block decisions passively; no per-mutation logging or pending-event reconciliation is required.",
+            "- Use `aegis brief` for current orientation and `aegis witness` before delivery.",
+            "- Do not manually drain advisory pending events or run handoff repair/closeout as routine ceremony.",
+            "",
+            "## Strict mode",
+            "- `.aegis/contract.md` is authoritative for readiness, kickoff, logging, verification, and closeout.",
+            "- Use `aegis next` to resolve the single sanctioned workflow step.",
+            "",
+            "## Always",
+            "- Use native agent tools for source edits, tests, and Git inspection; use Aegis CLI/MCP only for workflow state.",
+            "- When Taskmaster is configured, use `task-master next` and `task-master show <id>` for task selection.",
+            "- Never write `.aegis/` directly.",
+            "- If install/update reports a required client reload, restart that client before mutations.",
+            "- Missing hooks or unsupported clients are degraded coverage, not successful capture.",
             "",
             "## Continuation",
             "",
-            AEGIS_CONTINUATION_SUMMARY,
+            AEGIS_ENTRYPOINT_CONTINUATION_SUMMARY,
             "",
         ]
     )
     return text.encode("utf-8")
+
+
+def _render_agents_doc(primary_agent: str, enabled_agents: Sequence[str]) -> bytes:
+    agents = ", ".join(enabled_agents) if enabled_agents else "none"
+    return _render_mode_aware_entrypoint(
+        "# Agents",
+        identity_lines=(
+            f"- Primary agent: `{primary_agent}`",
+            f"- Enabled adapters: `{agents}`",
+        ),
+    )
 
 
 def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes:
@@ -508,93 +536,11 @@ def _render_contract(primary_agent: str, enabled_agents: Sequence[str]) -> bytes
 
 
 def _render_claude_entrypoint() -> bytes:
-    text = "\n".join(
-        [
-            "# Claude Runtime Entry",
-            "",
-            "This project uses Aegis Foundation with Claude as an adapter.",
-            "",
-            "Before persistent mutation, Claude must be in a READY state:",
-            "",
-            "```bash",
-            "bash .claude/scripts/readiness.sh --quick",
-            "```",
-            "",
-            "If this project is not initialized yet, run:",
-            "",
-            "```bash",
-            "aegis init",
-            "```",
-            "",
-            "If this `aegis init` created or changed `.claude/settings.json` or `.claude/scripts/*`, stop before source edits and restart Claude Code in this project. Claude loads hooks at session start; after restart, run `aegis next` and continue.",
-            "",
-            "If readiness is BLOCKED because no current work exists and `.taskmaster/` is present, use Taskmaster as the task authority first:",
-            "",
-            "```bash",
-            "task-master next",
-            "task-master show <id>",
-            'aegis kickoff --task <id> --slug <slug> --title "<title>"',
-            "```",
-            "",
-            "Taskmaster done only after Aegis closeout and doctor pass.",
-            "After marking Taskmaster done, refresh generated task files with the project helper when present; otherwise run `task-master generate` deliberately and mention that broad refresh in the final report.",
-            "",
-            "If no Taskmaster numeric task is available, infer a short task title from the user's request and start tracked local work with:",
-            "",
-            "```bash",
-            'aegis start "<task title>"',
-            "```",
-            "",
-            "If `aegis` is not on PATH, use the installed project-local shim: `./.aegis/bin/aegis ...`.",
-            "",
-            "Project hooks route mutation tools through `.claude/scripts/pretooluse-gate.sh`.",
-            "",
-            "Tool routing:",
-            "",
-            "- Use Aegis MCP tools for Aegis workflow state when they are available: inspect, status, next, plan_install, install, start, kickoff for explicit external numeric task ids, log, verify, closeout_ready, closeout, and future reconciliation.",
-            "- If Taskmaster is installed and has available work, run `task-master next` and `task-master show <id>` or the Taskmaster MCP equivalent before `aegis kickoff`.",
-            '- Use `aegis init` for first-time project setup and `aegis start "<task title>"` for local task kickoff only when no external task id exists.',
-            "- Use `aegis ...` or `./.aegis/bin/aegis ...` for the same workflow operations when MCP is unavailable.",
-            "- Use native Claude tools for normal implementation work: reading files, editing source, running tests, and inspecting git status or diffs.",
-            "- Do not use MCP as a replacement for normal source editing. The installed hooks enforce the workflow around native tool use.",
-            "- If `aegis.init` or `aegis.install` reports `client_reload.required=true`, restart Claude before any source edits; then run `aegis next` after the reload.",
-            "",
-            "Normal feature-work loop:",
-            "",
-            '1. Confirm readiness. If Aegis is missing, run `aegis init`. If no current work exists, run `aegis next` or `./.aegis/bin/aegis next`; use Taskmaster next/show plus `aegis kickoff` when Taskmaster provides a numeric task, otherwise infer a task title and run `aegis start "<task title>"`.',
-            '2. Record scope with `aegis log --handler claude:scope --evidence <scope-doc-or-file> --note "Confirmed task scope" --plan-step auto --plan-status completed`.',
-            "3. Make the task-scoped source change requested by the user with native Edit/Write tools.",
-            '4. After the hook records pending tracking, run `aegis log --pending-id current --note "<past-tense note>" --plan-step auto --plan-status completed`.',
-            "5. Run task-specific verification and log it with `--plan-step auto --plan-status completed`.",
-            '6. Run `aegis verify --strict` or `./.aegis/bin/aegis verify --strict`, then log the strict verification pending event with `aegis log --pending-id current --note "Recorded strict verification evidence" --plan-step auto --plan-status completed`.',
-            "7. Run `aegis closeout --dry-run --update-handoff` or call MCP `aegis.closeout_ready` before final closeout.",
-            "8. If handoff semantic gates fail, run `aegis handoff repair` or call MCP `aegis.handoff_repair apply=true`, then re-run closeout readiness.",
-            "9. Run `aegis closeout --update-handoff` or `./.aegis/bin/aegis closeout --update-handoff`; do not report the task complete until closeout passes.",
-            "10. Run read-only `aegis doctor --target-dir .` or call MCP `aegis.doctor` once after closeout; include the health result in the final report.",
-            "11. If Taskmaster is in use, run `task-master set-status --id=<id> --status=done` only after closeout and doctor pass. Then refresh generated task files with `python3 scripts/codex-task taskmaster generate-one --id <id>` when that project helper exists; otherwise run `task-master generate` deliberately and report the broad refresh.",
-            "",
-            'After any mutation, use `aegis log --pending-id <id> --note "<past-tense note>" --plan-step auto` before attempting the next mutation. Use explicit `--handler`, `--evidence`, and explicit plan step only when no pending event exists or auto inference reports ambiguity.',
-            "Read `.aegis/contract.md` for the shared contract and access policy.",
-            "",
-            "## Continuation",
-            "",
-            AEGIS_CONTINUATION_SUMMARY,
-            "",
-        ]
-    )
-    return text.encode("utf-8")
+    return _render_mode_aware_entrypoint("# Claude Runtime Entry")
 
 
 def _render_codex_continuation_block() -> bytes:
-    text = "\n".join(
-        [
-            "## Aegis Continuation",
-            "",
-            AEGIS_CONTINUATION_SUMMARY,
-            "",
-        ]
-    )
-    return text.encode("utf-8")
+    return _render_mode_aware_entrypoint("## Aegis Runtime")
 
 
 def _render_claude_settings() -> bytes:
@@ -1061,13 +1007,28 @@ def _strip_agents_entrypoint(existing: bytes) -> bytes | None:
 def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset]:
     """Materialize target-specific assets such as merged Claude entrypoints."""
 
+    baseline_manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
     materialized: list[Asset] = []
-    managed_paths, customized_paths = _install_ownership(target_root)
     for asset in assets:
         if asset.path == "CLAUDE.md" and asset.kind == "adapter":
             target = target_root / asset.path
             if target.exists() and target.is_file():
-                merged = _merge_claude_entrypoint(target.read_bytes(), asset.content)
+                existing = target.read_bytes()
+                recorded_checksum = (
+                    _recorded_managed_checksum(baseline_manifest, asset.path)
+                    if isinstance(baseline_manifest, Mapping)
+                    else None
+                )
+                if (
+                    AEGIS_CLAUDE_BLOCK_BEGIN.encode("utf-8") not in existing
+                    and recorded_checksum == _content_checksum(existing)
+                ):
+                    # Older Aegis releases owned the whole markerless entrypoint. Migrate
+                    # those exact recorded bytes instead of preserving obsolete ceremony
+                    # as if it were project-authored context.
+                    merged = _claude_runtime_block(asset.content).encode("utf-8")
+                else:
+                    merged = _merge_claude_entrypoint(existing, asset.content)
                 if merged is not None:
                     materialized.append(
                         Asset(
@@ -1078,13 +1039,19 @@ def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset
                         )
                     )
                     continue
+            else:
+                materialized.append(
+                    Asset(
+                        path=asset.path,
+                        content=_claude_runtime_block(asset.content).encode("utf-8"),
+                        executable=asset.executable,
+                        kind=asset.kind,
+                    )
+                )
+                continue
         if asset.path == "CODEX.md" and asset.kind == "adapter":
             target = target_root / asset.path
-            if (
-                target.exists()
-                and target.is_file()
-                and (asset.path not in managed_paths or asset.path in customized_paths)
-            ):
+            if target.exists() and target.is_file():
                 merged = _merge_codex_entrypoint(
                     target.read_bytes(),
                     _render_codex_continuation_block(),
@@ -1113,6 +1080,20 @@ def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset
                         )
                     )
                     continue
+            else:
+                materialized.append(
+                    Asset(
+                        path=asset.path,
+                        content=_managed_runtime_block(
+                            begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+                            end_marker=AEGIS_AGENTS_BLOCK_END,
+                            entrypoint=asset.content,
+                        ).encode("utf-8"),
+                        executable=asset.executable,
+                        kind=asset.kind,
+                    )
+                )
+                continue
         materialized.append(asset)
     return materialized
 
@@ -2115,15 +2096,6 @@ def _managed_baseline_checksum(
     return None, None
 
 
-def _install_ownership(target_root: Path) -> tuple[set[str], set[str]]:
-    manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
-    if not isinstance(manifest, Mapping):
-        return set(), set()
-    return _manifest_path_set(manifest, "managed_files"), _manifest_path_set(
-        manifest, "customized_files"
-    )
-
-
 def _plan_operations(
     target_root: Path,
     assets: Sequence[Asset],
@@ -2728,6 +2700,11 @@ AEGIS_CONTINUATION_SUMMARY = (
     "protected/owned paths, switching tasks, or push/PR. Never automatic: merge, force-push, "
     'history rewrite, `.aegis/` writes, BLOCKED-readiness bypass, skipping S:W:H:E. "Finish '
     'this" still stops at these boundaries. Full text in `.aegis/contract.md`.'
+)
+AEGIS_ENTRYPOINT_CONTINUATION_SUMMARY = (
+    "Continuation contract: resolve continue / go / next from live `aegis next`, perform "
+    "exactly one safe step, then re-consult. It never authorizes repair, push, merge, "
+    "protected-path edits, or bypass. Full text in `.aegis/contract.md`."
 )
 
 
