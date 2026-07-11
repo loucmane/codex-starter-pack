@@ -1,5 +1,9 @@
 # Findings
 
+- 2026-07-11 - Task 235 was complete in Taskmaster and implementation evidence, but its work-
+  tracking directory remained under `active/`. The Task 236 kickoff correctly required the stale
+  projection to be archived; no Task 235 runtime or verification result changed.
+
 - 2026-07-10 — Manifest ownership was path-only. A target could commit a hardened managed
   governance asset and still receive a `safe_to_apply=true` overwrite because the updater had
   no record of the bytes Aegis originally installed.

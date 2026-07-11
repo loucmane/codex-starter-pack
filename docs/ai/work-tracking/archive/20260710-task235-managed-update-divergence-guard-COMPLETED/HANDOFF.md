@@ -13,3 +13,4 @@
 - PR #257 is open and all required checks pass; await explicit merge approval.
 - After stable upstream merge, retry `loucmane/blog` Task 56 from that exact commit, apply, run all
   completed-state regressions, and require a second update preview with zero managed changes.
+- Archived on 2026-07-11 16:25 CEST — Folder moved to archive and tracker marked COMPLETED.

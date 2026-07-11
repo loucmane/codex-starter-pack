@@ -1,8 +1,8 @@
 # Task 235 Prevent semantic regression in managed Aegis updates Tracker
 
 **Started**: 2026-07-10
-**Status**: ACTIVE
-**Last Updated**: 2026-07-10
+**Status**: COMPLETED
+**Last Updated**: 2026-07-11
 
 ## Goals
 - [x] Restore completed-archive tracker parity in the canonical guard
@@ -25,6 +25,8 @@
 - **2026-07-10 16:13** — [S:20260710|W:task235-managed-update-divergence-guard|H:task-master:set-status|E:.taskmaster/tasks/task_235.md] Marked Taskmaster Task 235 done and regenerated only its authoritative task document after all acceptance and regression gates passed.
 - **2026-07-10 16:14** — [S:20260710|W:task235-managed-update-divergence-guard|H:aegis:closeout-dry-run|E:docs/ai/work-tracking/active/20260710-task235-managed-update-divergence-guard-ACTIVE/reports/managed-update-divergence-guard/verification.md] Confirmed installed-target closeout is not applicable to the upstream source checkout and left unrelated untracked runtime state untouched.
 - **2026-07-10 16:39** — [S:20260710|W:task235-managed-update-divergence-guard|H:task-master:update-task|E:.taskmaster/tasks/task_235.md] Corrected an invented combined project label to the independent `loucmane/blog` project and explicitly retained HP-Fetcher/HP-Coach only as separate dogfood and adapted-CI provenance.
+- **2026-07-11 16:25** - [S:20260711|W:task236-aegis-usability-convergence-roadmap|H:scripts/codex-task:work-tracking-archive|E:docs/ai/work-tracking/archive/20260710-task235-managed-update-divergence-guard-COMPLETED/TRACKER.md] Archived the stale Task 235 ACTIVE projection before the owner-approved Task 236 kickoff; Task 235 remained done and no implementation state changed
+- **2026-07-11 16:38** - [S:20260711|W:task236-aegis-usability-convergence-roadmap|H:serena/memory|E:.serena/memories/2026-07-11_task236_aegis_usability_convergence_roadmap.md] Linked the Task 236 convergence memory that records why the completed Task 235 projection was archived
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Defined the checksum and legacy-source baseline contract

@@ -7543,7 +7543,8 @@
         "dependencies": [
           "209",
           "229",
-          "233"
+          "233",
+          "243"
         ],
         "priority": "medium",
         "details": "Align the implementation with the current capsule spec and resume-drift decision, not the older section 7 HP-Coach cold-start A/B gate. Codebase analysis found the binding language in docs/aegis/AEGIS_CAPSULE_SPEC.md sections 5.1, 5.2, and 7; the 2026-07-03 decision record in docs/aegis/decisions/2026-07-03-capsule-resume-drift-gate.md; the program-level summary in docs/aegis/AEGIS_VNEXT_PROGRAM.md; and Task #229 in .taskmaster/tasks/tasks.json, which defines the design-only replacement parity matrix. Treat those as the task's gate source of truth, with #229 as an explicit hard prerequisite and reviewer gate.\n\nBefore removing any ceremony path, collect and cite resume-drift evidence from real owner resumes/compactions showing stale assumptions corrected or validated with low noise: verification state after HEAD moved, branch/PR state, Taskmaster/task truth, uncommitted/unshipped work, risk-register resurfacing, drift sentinel findings, and next-action correction/validation. This evidence replaces the old mandatory two-week HP-Coach A/B falsifier window. Keep tests and docs for cold-start A/B support where they already exist (for example aegis_foundation/replay_coldstart.py and tests/claude_adapter/test_replay_coldstart.py), but do not make them a blocker for this owner workflow.\n\nAdd the PR-4 replacement parity matrix as the required change-control layer for this task. Before removing, demoting, stopping validation of, or stopping generation of any old workflow surface, cite the exact Task #229 matrix row for that surface. The row must define: old surface, current job performed, current enforcement/advisory owner, replacement surface in the capsule/ledger/witness stack, proof required for equal-or-better behavior, dogfood evidence required, rollback path, retirement state (`keep`, `shadow`, `demote`, or `retire`), and PR-4 go/no-go decision. If the row is missing, incomplete, marked `keep`/`shadow`, or lacks proof/dogfood/rollback evidence, PR-4 must preserve the surface or keep it in shadow mode. No broad deletion pass is allowed; implement PR-4 as a sequence of small reversible per-surface changes.\n\nCodex-side retirement should touch the existing surfaces rather than adding parallel machinery, but each touched surface must be backed by a #229 row: .claude/scripts/gate_lib.py and aegis_foundation/assets/.claude/scripts/gate_lib.py for advisory-only readiness/current-work behavior, protected-path/settings integrity hard blocks, WORKFLOW_LINK_PREFIXES removal, closeout alias behavior, Stop/PostToolUse handling, pending-tracking behavior, and sentinel scope; scripts/_aegis_installer.py plus aegis_foundation/assets/scripts/_aegis_installer.py for installer defaults, generated settings/hooks, managed files, doctor output, client_reload_required removal, CLI-version checks, and any guidance that still requires ceremony; aegis_foundation/cli.py for command surface changes such as closeout printing the witness delivery report; .claude/scripts/witness_lib.py and aegis_foundation/assets/.claude/scripts/witness_lib.py for the delivery-report source that replaces hand-fed closeout; .claude/scripts/ledger-record.sh and ledger_lib.py for the remaining PostToolUse recorder path.\n\nUpdate docs that still describe retired ceremony as required, including CLAUDE.md, .claude/AGENTS.md, .claude/engine/runtime-contract.md, docs/aegis/invocation-contract.md, docs/aegis/live-acceptance-matrix.md, aegis_foundation/assets/docs/aegis/invocation-contract.md, and aegis_foundation/assets/docs/aegis/live-acceptance-matrix.md. The new wording should say kickoff may still generate HANDOFF/TRACKER as voluntary projections only for surfaces whose #229 rows say generation remains useful; no required gate may check or repair them after PR-4 unless the matrix marks that surface `keep` or `shadow`.\n\nCompanion target-repo PRs should remove that repo's old ceremony scaffolding and hand-maintained computed-facts docs only where the deployment doc and #229 matrix row prove parity and define rollback. Slim CLAUDE.md/AGENTS.md to point at the compiled capsule/witness path, keep only repo-specific deployment facts, and leave unproven surfaces in keep or shadow state. For HP-Coach specifically, the blocker is resume-drift dogfood evidence plus required witness plus approved #229 parity rows, not a fixed cold-start A/B window.",
@@ -7867,13 +7868,142 @@
         "testStrategy": "",
         "subtasks": [],
         "updatedAt": "2026-07-10T14:38:49.223Z"
+      },
+      {
+        "id": "236",
+        "title": "Define Aegis Usability Convergence Roadmap",
+        "description": "Create the evidence-backed roadmap and Taskmaster dependency graph that makes Aegis truthful, context-bounded, worktree-aware, and witness-driven before Capsule PR-4 retirement.",
+        "details": "Inspect the capsule specification, PR-4 parity matrix, HP-Fetcher and Blog dogfood, managed agent guidance, ledger, capsule, witness, installer, and Tasks 208/210/229/233/234/235. Write docs/aegis/aegis-usability-convergence-roadmap.md. Create independently deliverable follow-up tasks through supported Taskmaster commands for mode-aware guidance, bounded command output, worktree/subagent capture audit, worktree attribution, quiet witness integration, incremental installer decomposition, and PR-4 evidence refresh. Update Task 210 dependencies so retirement cannot begin before required convergence evidence. This planning task must not implement retirement or production behavior.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "235"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-11T14:50:31.536Z"
+      },
+      {
+        "id": "237",
+        "title": "Make Managed Agent Guidance Truthful And Mode-Aware",
+        "description": "Replace strict-only managed Claude, Codex, and multi-agent startup guidance with a compact contract that accurately distinguishes advisory and strict enforcement without changing gate behavior.",
+        "details": "Implement roadmap workstream C1. Render mode-aware managed blocks for CLAUDE.md, AGENTS.md, and CODEX.md. Advisory guidance must state that passive recording is automatic, forbid manual pending-event draining, use aegis brief for orientation, and use aegis witness at delivery. Strict guidance must retain the detailed kickoff/log/verify/closeout contract by reference. Preserve project-owned text byte-for-byte and cap each managed startup block at 25 nonblank lines. Add clean-install, update, local-divergence, Claude-only, Codex-only, and multi-agent fixtures. Negative tests must prove advisory guidance does not command logging, handoff repair, pending draining, or required closeout. Capture Blog dogfood showing child agents no longer apologize for correctly skipping strict ceremony. Record output size, governance-call, and rollback metrics.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "236"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "238",
+        "title": "Enforce Universal Context Budgets Across Aegis Commands",
+        "description": "Create a shared rendering contract that keeps default Aegis command output within an agent-safe context budget while preserving complete details in report artifacts.",
+        "details": "Implement roadmap workstream C2 for status, next, doctor, verify, update, witness, replay, and closeout failures. Default text and JSON output must remain at or below 60 lines and 8 KiB, report exact category counts, show bounded samples and truncation markers, provide one copyable next action, and link full-detail artifacts. Add explicit bounded verbose and intentional full-detail modes. Cover 0, 10, 3500, and 100000 event fixtures; assert byte and line budgets; prove CI failures remain bounded while artifacts retain complete detail; and dogfood HP-Fetcher pending-event status as a one-screen result. Do not delete or drain pending events. Record latency, output size, governance-call, and rollback metrics.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "236"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "239",
+        "title": "Audit Aegis Capture Across Worktrees And Subagents",
+        "description": "Build a diagnostic evidence harness that identifies why child worktree activity is missing or misattributed before changing recorder behavior.",
+        "details": "Implement roadmap workstream C3 as diagnostics only. Distinguish pre-install checkout age, missing tracked assets, unloaded client hooks, source-root resolution failure, Git-common-dir store mismatch, absent attribution, parent orchestration mistaken for child activity, and loss after ephemeral worktree removal. Record client/version, parent and child identity, worktree/branch/HEAD/common-dir, asset checksums, resolved ledger path, hook capabilities, before/after event IDs and counts, attribution fields, and supported/degraded/failed status. Exercise two linked worktrees, an actual Claude child, a Codex worktree or explicit unsupported result, success, command failure, verification, and teardown. Check in a secret-free coverage report and replay fixture. Do not select or implement a runtime fix in this task.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "236"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "240",
+        "title": "Make Worktree And Child-Agent Evidence First-Class",
+        "description": "Implement the narrowly selected correction from the capture audit so supported child work is recorded once with reliable repository, branch, worktree, and parent-child attribution.",
+        "details": "Implement roadmap workstream C4 only after Task 239 identifies the causal gap. Ensure all worktrees resolve the intended shared ledger; events record repository identity, worktree root, branch, HEAD, agent_id, agent_type, and parent_agent_id where supported; parent orchestration and child implementation remain distinguishable; concurrent writers do not lose, duplicate, or cross-attribute events; branch-scoped witness and replay queries exclude unrelated traffic; and teardown preserves history. Explicitly report unsupported hook surfaces. Test two concurrent child worktrees with mutations and failures, WAL contention/retry, teardown ownership, and cross-branch verification-at-HEAD isolation. Compare measured coverage before and after, and document a parent-only rollback.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "239"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "241",
+        "title": "Deliver A Quiet Deterministic Witness Shipping Interface",
+        "description": "Make aegis witness the concise canonical local pre-delivery command for scope, diff, verification-at-HEAD, task containment, and native-CI delegation.",
+        "details": "Implement roadmap workstream C5 using the Task 238 output contract and Task 240 branch/worktree attribution. Default output must fit one screen and expose stable pass, fail, unsupported, and not-derivable-in-CI exit classes. Filter to the intended branch/worktree, account for every diff path, escalate test deletion, require verification at HEAD, validate task-flip containment, and delegate native CI honestly. Generate a complete delivery report artifact suitable for PR bodies or CI attachments without LLM calls or prose reconciliation. Dogfood a real dispatch-wave shipping step and seed stale-verification, out-of-scope, test-deletion, and stranded-done-flip failures. Record latency, output size, false results, and rollback.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "238",
+          "240"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "242",
+        "title": "Extract The Managed-Update Slice From The Aegis Installer",
+        "description": "Incrementally separate managed-asset planning, rendering, and update-safety logic from the installer monolith while preserving generated behavior and fail-closed divergence handling.",
+        "details": "Implement roadmap workstream C6 after user-facing guidance, output, and recorder contracts are characterized. Extract one authoritative managed-update implementation with compatibility adapters for source-root and packaged operation. Preserve byte-identical generated assets unless a fixture explicitly authorizes a change; keep semantic local-divergence detection fail-closed; and avoid migrations or a broad rewrite. Test golden install and update plans for Codex, HP-Fetcher, and Blog; live-versus-packaged parity; generated bytes; safe update, manual review, unsafe overwrite, and rollback. Report installer line count and changed surface before and after. Revertability must require no target-repository migration.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "235",
+          "237",
+          "238",
+          "240"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "243",
+        "title": "Refresh The PR-4 Replacement Parity Evidence",
+        "description": "Re-evaluate every legacy workflow surface after convergence dogfood and issue explicit keep, shadow, demote, or retire decisions without changing runtime retirement behavior.",
+        "details": "Implement roadmap workstream C7 after Tasks 237-242. Refresh the parity matrix with HP-Fetcher post-update capsule, ledger, bounded-status, and residue evidence; Blog merged-state, denial, recovery, dependency, controlled-auto-merge, and semantic-manifest evidence; an ordinary autonomous-delivery canary; worktree capture and attribution results; unique-content comparisons; interrupted-session and teardown recovery; positive and negative witness cases; and an explicit advisory-pending lifecycle. Every row must name current job, replacement owner, proof, dogfood, remaining unique legacy content, rollback, final state, and Task 210 go/no-go. Add guards for missing proof, placeholder dogfood, missing rollback, and unsupported coverage. No runtime surface may be retired in this task.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "237",
+          "238",
+          "239",
+          "240",
+          "241",
+          "242",
+          "244"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": "244",
+        "title": "Make Upstream Source Closeout State Derivable",
+        "description": "Allow the Aegis source repository to archive completed work tracking without retaining a stale ACTIVE folder or fabricating installed-target current-work state.",
+        "details": "Implement the source-checkout lifecycle gap discovered during Task 236 closeout. When no ACTIVE folder exists and the upstream source checkout intentionally has no installed .aegis/state/current-work.json, derive the completed tracker only from fail-closed repository evidence such as a task-bearing branch, a done Taskmaster task, an unambiguous matching -COMPLETED archive, and tracker/task identity parity. Reject ambiguous archives, non-done tasks, mismatched task IDs, paths outside the archive root, and installed targets that should use current-work state. Keep installed-target behavior unchanged. Add focused guard, readiness, kickoff, archive, CI-clean-checkout, and next-task handoff tests. Dogfood by archiving a completed upstream planning task with no fabricated runtime state and proving guard passes. Document rollback to the current sole-completed-ACTIVE compatibility state.",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          "236",
+          "235"
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-10T14:38:49.224Z",
-      "taskCount": 234,
-      "completedCount": 229,
+      "lastModified": "2026-07-11T14:50:31.536Z",
+      "taskCount": 243,
+      "completedCount": 230,
       "tags": [
         "master"
       ]

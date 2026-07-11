@@ -1,5 +1,8 @@
 # Decisions
 
+- 2026-07-11 - Archive the completed Task 235 projection through the supported work-tracking
+  helper before starting Task 236. Preserve every Task 235 evidence file and its done state.
+
 - 2026-07-10 — Record `sha256:<hex>` on each materialized managed asset, excluding the
   self-referential manifest record.
 - 2026-07-10 — Treat a target checksum that differs from the installed baseline as a managed
