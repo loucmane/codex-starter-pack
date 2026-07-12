@@ -1097,6 +1097,30 @@ def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, t
     assert sync_entries[-1]["tracker_hash"] == module._compute_sha256(tracker)
 
 
+def test_source_checkout_branch_prefers_attached_git_branch(monkeypatch) -> None:
+    module = load_task_module()
+    monkeypatch.setenv("GITHUB_HEAD_REF", "feat/task-244-ci-head")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: FakeCompletedProcess(stdout="feat/task-42-local-branch\n"),
+    )
+
+    assert module._source_checkout_branch() == "feat/task-42-local-branch"
+
+
+def test_source_checkout_branch_falls_back_to_github_head_when_detached(monkeypatch) -> None:
+    module = load_task_module()
+    monkeypatch.setenv("GITHUB_HEAD_REF", "feat/task-244-ci-head")
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *args, **kwargs: FakeCompletedProcess(stdout=""),
+    )
+
+    assert module._source_checkout_branch() == "feat/task-244-ci-head"
+
+
 def test_resolve_current_session_fails_closed_when_state_exists_without_current(monkeypatch, tmp_path) -> None:
     module = load_task_module()
     repo = tmp_path

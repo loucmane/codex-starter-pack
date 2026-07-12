@@ -2,7 +2,7 @@
 
 **Started**: 2026-07-11
 **Status**: COMPLETED
-**Last Updated**: 2026-07-11
+**Last Updated**: 2026-07-12
 
 ## Goals
 - [x] Derive completed source tracking from fail-closed repository evidence without installed-target state
@@ -30,6 +30,7 @@
 - **2026-07-12 02:11** — [S:20260712|W:task244-derivable-source-closeout|H:serena/memory|E:.serena/memories/2026-07-11_task244_derivable_source_closeout.md] Refreshed compaction-safe continuity with the completed-source daily rollover proof and final verification split.
 - **2026-07-12 02:19** — [S:20260712|W:task244-derivable-source-closeout|H:github-actions:guard-feedback|E:docs/ai/work-tracking/archive/20260711-task244-derivable-source-closeout-COMPLETED/reports/derivable-source-closeout/task-verification.md] Fixed hosted guard run 29173410573 by routing default no-argument plan sync through the same completed-source tracker derivation; exact CI command and regression matrices passed locally.
 - **2026-07-12 02:23** — [S:20260712|W:task244-derivable-source-closeout|H:github-actions:detached-head|E:docs/ai/work-tracking/archive/20260711-task244-derivable-source-closeout-COMPLETED/reports/derivable-source-closeout/task-verification.md] Aligned `codex-task` with the guard's trusted GitHub branch environment fallback after PR checks exposed detached HEAD; the simulated PR-context plan sync passed.
+- **2026-07-12 02:36** — [S:20260712|W:task244-derivable-source-closeout|H:github-actions:python-matrix|E:docs/ai/work-tracking/archive/20260711-task244-derivable-source-closeout-COMPLETED/reports/derivable-source-closeout/task-verification.md] Corrected branch-resolution precedence after hosted Python 3.11/3.12 inherited `GITHUB_HEAD_REF` inside attached-branch unit fixtures; attached Git now wins and GitHub metadata is a detached-checkout fallback. The exact environment regression, 226 scoped tests, and all 1,774 full-suite tests passed locally with four unchanged opt-in skips.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define fail-closed source archive derivation and installed-target exclusion

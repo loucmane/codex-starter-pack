@@ -1509,10 +1509,6 @@ def _work_tracking_folder_matches_task(folder: Path, task_id: str) -> bool:
 
 
 def _source_checkout_branch() -> str:
-    for variable in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
-        value = os.environ.get(variable, "").strip()
-        if value and value != "HEAD":
-            return value
     branch = subprocess.run(
         ["git", "branch", "--show-current"],
         cwd=str(REPO_ROOT),
@@ -1520,7 +1516,13 @@ def _source_checkout_branch() -> str:
         text=True,
         check=False,
     ).stdout.strip()
-    return "" if branch == "HEAD" else branch
+    if branch and branch != "HEAD":
+        return branch
+    for variable in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
+        value = os.environ.get(variable, "").strip()
+        if value and value != "HEAD":
+            return value
+    return ""
 
 
 def _derive_current_completed_source_work():

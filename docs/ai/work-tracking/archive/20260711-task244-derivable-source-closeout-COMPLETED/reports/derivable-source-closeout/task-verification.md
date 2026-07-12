@@ -20,7 +20,7 @@ Date: 2026-07-11
 | Archive and kickoff focused tests | 2 passed |
 | Post-dogfood workflow regression set | 307 passed |
 | Complete installer suite | 121 passed, 1 opt-in certification smoke skipped |
-| Final CI-equivalent coverage | 1,771 passed under xdist plus 1 stdio smoke passed in isolation; 4 existing opt-in distribution smokes skipped |
+| Final CI-equivalent coverage | 1,774 passed under xdist with the hosted `GITHUB_HEAD_REF` environment reproduced; 4 existing opt-in distribution smokes skipped |
 | Ruff for new helper and fixture | Passed |
 | Canonical/package readiness parity | Byte-identical |
 | Canonical/package guard parity | Byte-identical |
@@ -95,6 +95,15 @@ readiness plus the scoped guard remained green.
 
 The first PR-context rerun then showed that GitHub checks out a detached commit. `codex-task`
 supplied an empty branch to the fail-closed resolver, while `codex-guard` already used
-`GITHUB_HEAD_REF`/`GITHUB_REF_NAME`. The task helper now follows that existing identity order.
-A detached-checkout simulation with `GITHUB_HEAD_REF=feat/task-244-derivable-source-closeout`
-passes the exact no-argument plan-sync command.
+`GITHUB_HEAD_REF`/`GITHUB_REF_NAME`. A detached-checkout simulation with
+`GITHUB_HEAD_REF=feat/task-244-derivable-source-closeout` then passed the exact no-argument
+plan-sync command.
+
+The first implementation of that fallback put GitHub metadata ahead of attached Git state. The
+hosted Python 3.11 and 3.12 jobs therefore injected Task 244's `GITHUB_HEAD_REF` into two unit
+fixtures that deliberately supplied attached Task 42 and Task 99 branches. Both jobs failed the
+same two branch-policy assertions. The resolver now uses an attached Git branch when one exists
+and consults `GITHUB_HEAD_REF` or `GITHUB_REF_NAME` only when Git reports a detached checkout.
+Focused regressions prove both precedence cases. With the hosted environment reproduced locally,
+all 226 `codex-task`/source-closeout tests and the complete 1,774-test xdist suite passed; the four
+unchanged release/distribution smokes remained opt-in skips.
