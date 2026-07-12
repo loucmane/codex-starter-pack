@@ -11,6 +11,7 @@ evidence_summary:
   - aegis.delivery-policy.json
   - .github/workflows/aegis-autonomous-delivery.yml
   - .codex/deep-work.config.toml
+  - .aegis/brief.json
   - scripts/_aegis_installer.py
   - .taskmaster/tasks/task_246.md
 plan_version: v1
@@ -25,7 +26,7 @@ emergency_bypass: false
 - **Handler Target (H)**: scripts/_source_workflow_state.py
 - **Task IDs**: 246
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260712-task246-evidence-gated-autonomy-bootstrap-COMPLETED/, scripts/_source_workflow_state.py, scripts/aegis-delivery-policy, aegis.delivery-policy.json, .github/workflows/aegis-autonomous-delivery.yml, .codex/deep-work.config.toml, scripts/_aegis_installer.py, .taskmaster/tasks/task_246.md
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260712-task246-evidence-gated-autonomy-bootstrap-COMPLETED/, scripts/_source_workflow_state.py, scripts/aegis-delivery-policy, aegis.delivery-policy.json, .github/workflows/aegis-autonomous-delivery.yml, .codex/deep-work.config.toml, .aegis/brief.json, scripts/_aegis_installer.py, .taskmaster/tasks/task_246.md
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
@@ -47,6 +48,7 @@ emergency_bypass: false
 - `aegis_foundation/assets/schemas/aegis/delivery-policy.schema.json`
 - `.github/workflows/aegis-autonomous-delivery.yml`
 - `.codex/deep-work.config.toml`
+- `.aegis/brief.json`
 - `scripts/_aegis_installer.py`
 - `aegis_foundation/assets/scripts/_aegis_installer.py`
 - `.taskmaster/tasks/task_246.md`

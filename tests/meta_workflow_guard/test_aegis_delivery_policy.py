@@ -14,6 +14,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 POLICY_PATH = REPO_ROOT / "aegis.delivery-policy.json"
+BRIEF_PATH = REPO_ROOT / ".aegis" / "brief.json"
 CODEX_PROFILE_PATH = REPO_ROOT / ".codex" / "deep-work.config.toml"
 SCRIPT_PATH = REPO_ROOT / "scripts" / "aegis-delivery-policy"
 PACKAGED_SCRIPT_PATH = (
@@ -129,6 +130,14 @@ def test_codex_profile_enables_scoped_autonomy_without_full_access() -> None:
         "**.pythonhosted.org",
         "**.openai.com",
     } <= domains.keys()
+
+
+def test_witness_scope_accounts_for_delivery_authority_surfaces() -> None:
+    brief = json.loads(BRIEF_PATH.read_text(encoding="utf-8"))
+    always_in_scope = set(brief["witness"]["always_in_scope"])
+
+    assert ".codex/" in always_in_scope
+    assert "aegis.delivery-policy.json" in always_in_scope
 
 
 def test_routine_exact_head_with_complete_evidence_is_allowed() -> None:

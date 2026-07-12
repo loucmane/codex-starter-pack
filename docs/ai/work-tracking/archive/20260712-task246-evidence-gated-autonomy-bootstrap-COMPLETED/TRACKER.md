@@ -28,6 +28,7 @@
 - **2026-07-12 19:23** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:codex-permission-profile|E:.codex/deep-work.config.toml;tests/meta_workflow_guard/test_aegis_delivery_policy.py] Replaced recurring `.git` sandbox escalation and quota-backed Auto-review with the tested `aegis-autonomous` profile; signed commit, GitHub network, Git staging, and protected `.codex` probes passed.
 - **2026-07-12 19:31** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:pytest:full-ci-equivalent|E:pytest`1832-passed-4-skipped`] Passed the complete repository suite after the Codex execution-profile contract was added.
 - **2026-07-12 19:32** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:owner-authority|E:aegis.delivery-policy.json;DECISIONS.md;HANDOFF.md] Persisted the owner's informed standing authorization to publish and merge the exact-head-green bootstrap without another phrase-matched approval request.
+- **2026-07-12 19:37** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:github-actions:aegis-witness|E:.aegis/brief.json;tests/meta_workflow_guard/test_aegis_delivery_policy.py] Diagnosed PR #262 witness failure as missing tracked CI fallback scope for `.codex/` and `aegis.delivery-policy.json`; added both paths and a regression test.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define main derivation and evidence-gated authority contract
