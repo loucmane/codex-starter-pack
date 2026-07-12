@@ -29,3 +29,5 @@
   rendered continuation summary and end marker. Fresh installs copied that byte, while the next
   plan rendered the canonical block without it, producing one spurious `modify` plus a manifest
   update on both Python 3.11 and 3.12.
+- 2026-07-12 - Task 244 moved the preserved Task 237 bundle to `archive/` and proved the source
+  checkout can derive it without installed state or a stale completed folder under `active/`.

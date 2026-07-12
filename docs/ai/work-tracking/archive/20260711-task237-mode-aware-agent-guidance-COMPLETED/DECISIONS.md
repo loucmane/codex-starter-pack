@@ -18,3 +18,5 @@
   and preserved conservatively.
 - 2026-07-11 - Do not apply Task 237 to a dirty live dogfood branch. Use the live repository for
   preview evidence and an isolated clone for apply/idempotence evidence.
+- 2026-07-12 - Preserve Task 237 as a completed archive and use Task 244's fail-closed source
+  derivation for terminal readiness; do not recreate the former ACTIVE compatibility projection.

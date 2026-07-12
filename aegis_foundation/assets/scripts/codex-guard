@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -1410,6 +1411,42 @@ def get_current_branch() -> Optional[str]:
     return branch or None
 
 
+def _load_source_workflow_state():
+    """Load the source-only resolver only from an uninstalled Aegis source tree."""
+
+    if (REPO_ROOT / '.aegis/foundation-manifest.json').exists():
+        return None
+    if CURRENT_WORK_STATE_PATH.exists():
+        return None
+    markers = (
+        REPO_ROOT / 'schemas/aegis/foundation-manifest.schema.json',
+        REPO_ROOT / 'scripts/_aegis_installer.py',
+        REPO_ROOT / '.claude/scripts/readiness.sh',
+        REPO_ROOT / 'aegis_foundation/assets/.claude/scripts/readiness.sh',
+        REPO_ROOT / 'aegis_foundation/assets/scripts/codex-guard',
+    )
+    if not all(path.is_file() for path in markers):
+        return None
+    try:
+        pyproject_text = (REPO_ROOT / 'pyproject.toml').read_text(encoding='utf-8')
+    except OSError:
+        return None
+    if not re.search(r'^name\s*=\s*["\']aegis-foundation["\']\s*$', pyproject_text, re.MULTILINE):
+        return None
+
+    helper_path = REPO_ROOT / 'scripts/_source_workflow_state.py'
+    if not helper_path.is_file():
+        return None
+    module_name = '_aegis_source_workflow_state_guard'
+    spec = importlib.util.spec_from_file_location(module_name, helper_path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f'Could not load source workflow helper: {helper_path}')
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def get_active_tracker_path() -> Path:
     candidates = (
         [p for p in WORK_TRACKING_PREFIX.iterdir() if p.is_dir() and p.name.endswith('-ACTIVE')]
@@ -1422,26 +1459,44 @@ def get_active_tracker_path() -> Path:
     if candidates:
         tracker = candidates[0] / 'TRACKER.md'
     else:
+        current_work_exists = CURRENT_WORK_STATE_PATH.exists()
         try:
             current_work = json.loads(CURRENT_WORK_STATE_PATH.read_text(encoding='utf-8'))
         except (FileNotFoundError, json.JSONDecodeError):
             current_work = {}
 
         work_tracking = current_work.get('paths', {}).get('work_tracking')
-        if current_work.get('status') != 'completed' or not isinstance(work_tracking, str):
+        if current_work.get('status') == 'completed' and isinstance(work_tracking, str):
+            archive_root = WORK_TRACKING_ARCHIVE_BASE.resolve()
+            completed_folder = (REPO_ROOT / work_tracking).resolve()
+            if not completed_folder.is_relative_to(archive_root) or not completed_folder.name.endswith('-COMPLETED'):
+                raise SystemExit(
+                    f'Completed Aegis work-tracking path must stay under '
+                    f'{WORK_TRACKING_ARCHIVE_RELATIVE.as_posix()}/ and end with -COMPLETED'
+                )
+            tracker = completed_folder / 'TRACKER.md'
+        elif not current_work_exists:
+            try:
+                source_module = _load_source_workflow_state()
+                branch = get_current_branch() or ''
+                source_work = (
+                    source_module.derive_completed_source_work(REPO_ROOT, branch)
+                    if source_module is not None
+                    else None
+                )
+            except Exception as exc:  # noqa: BLE001 - source contradictions fail closed.
+                raise SystemExit(f'Source closeout derivation failed: {exc}') from exc
+            if source_work is None:
+                raise SystemExit(
+                    f'No ACTIVE work-tracking folder found under {WORK_TRACKING_RELATIVE.as_posix()}/ '
+                    'and no completed Aegis work-tracking path is available'
+                )
+            tracker = Path(source_work.tracker_path)
+        else:
             raise SystemExit(
                 f'No ACTIVE work-tracking folder found under {WORK_TRACKING_RELATIVE.as_posix()}/ '
                 'and no completed Aegis work-tracking path is available'
             )
-
-        archive_root = WORK_TRACKING_ARCHIVE_BASE.resolve()
-        completed_folder = (REPO_ROOT / work_tracking).resolve()
-        if not completed_folder.is_relative_to(archive_root) or not completed_folder.name.endswith('-COMPLETED'):
-            raise SystemExit(
-                f'Completed Aegis work-tracking path must stay under '
-                f'{WORK_TRACKING_ARCHIVE_RELATIVE.as_posix()}/ and end with -COMPLETED'
-            )
-        tracker = completed_folder / 'TRACKER.md'
     if not tracker.exists():
         raise SystemExit(f'Tracker file missing at {tracker}')
     return tracker

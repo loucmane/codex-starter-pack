@@ -606,6 +606,19 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     plans_dir.mkdir(parents=True)
     active_dir.mkdir(parents=True)
     task_dir.mkdir(parents=True)
+    completed_archive = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20260423-task95-prior-work-COMPLETED"
+    )
+    completed_archive.mkdir(parents=True)
+    (completed_archive / "TRACKER.md").write_text(
+        "# Task 95 Tracker\n\n**Status**: COMPLETED\n",
+        encoding="utf-8",
+    )
 
     task_file = task_dir / "task_096.txt"
     task_file.write_text(
@@ -667,6 +680,7 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     assert (sessions_dir / "current").resolve() == session_path
     assert (plans_dir / "current").resolve() == plan_path
     assert (repo / ".plan_state" / "sync.log").exists()
+    assert completed_archive.exists()
 
     state = json.loads((sessions_dir / "state.json").read_text(encoding="utf-8"))
     assert state["current"] == session_path.name
@@ -684,6 +698,151 @@ def test_handle_wizard_kickoff_creates_artifacts(monkeypatch, tmp_path) -> None:
     assert ["task-master", "set-status", "--id=96", "--status=in-progress"] in commands
     assert ["task-master", "generate"] not in commands
     assert any(cmd[:2] == ["task-master", "generate"] and "--output" in cmd for cmd in commands)
+
+
+def test_handle_work_tracking_archive_preserves_completed_bundle(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_root = repo / "docs" / "ai" / "work-tracking" / "active"
+    active = active_root / "20300101-task99-source-closeout-ACTIVE"
+    active_reference = active.relative_to(repo).as_posix()
+    active.mkdir(parents=True)
+    (active / "TRACKER.md").write_text(
+        f"""# Task 99 Tracker
+
+**Status**: ACTIVE
+
+## Progress Log
+- [S:test|W:task99|H:test|E:{active_reference}/reports/source-closeout/evidence.md] Verified archive evidence.
+
+## Plan Compliance Checklist
+- [x] plan-step-scope - Scope
+- [x] plan-step-implement - Implement
+- [x] plan-step-verify - Verify
+""",
+        encoding="utf-8",
+    )
+    (active / "CHANGELOG.md").write_text("# Changelog\n", encoding="utf-8")
+    (active / "HANDOFF.md").write_text("# Handoff\n", encoding="utf-8")
+    evidence = active / "reports" / "source-closeout" / "evidence.md"
+    evidence.parent.mkdir(parents=True)
+    evidence.write_text("evidence\n", encoding="utf-8")
+
+    plan_state_dir = repo / ".plan_state"
+    plans_dir = repo / "plans"
+    plan = plans_dir / "2030-01-01-task99-source-closeout.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        f"""# Task 99 Plan
+
+| Step ID | Description | Evidence | Status |
+|---|---|---|---|
+| plan-step-scope | Scope | {active_reference}/DECISIONS.md | completed |
+| plan-step-implement | Implement | scripts/codex-task | completed |
+| plan-step-verify | Verify | {active_reference}/reports/source-closeout/evidence.md | completed |
+""",
+        encoding="utf-8",
+    )
+    (plans_dir / "current").symlink_to(plan.name)
+
+    session = repo / "sessions" / "2030" / "01" / "2030-01-01-001-task99-source-closeout.md"
+    session.parent.mkdir(parents=True)
+    session.write_text(f"Evidence: {active_reference}/TRACKER.md\n", encoding="utf-8")
+    session_link = repo / "sessions" / "current"
+    session_link.parent.mkdir(parents=True, exist_ok=True)
+    session_link.symlink_to(session.relative_to(session_link.parent))
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_root)
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state_dir)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state_dir / "sync.log")
+    monkeypatch.setattr(module, "_is_uninstalled_source_checkout_for_archive", lambda: True)
+    module.handle_work_tracking_archive(
+        argparse.Namespace(folder=active.name, dry_run=False)
+    )
+
+    archived = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20300101-task99-source-closeout-COMPLETED"
+    )
+    assert not active.exists()
+    assert archived.is_dir()
+    assert "**Status**: COMPLETED" in (archived / "TRACKER.md").read_text(encoding="utf-8")
+    assert (archived / "reports" / "source-closeout" / "evidence.md").read_text(
+        encoding="utf-8"
+    ) == "evidence\n"
+    archive_reference = archived.relative_to(repo).as_posix()
+    assert active_reference not in plan.read_text(encoding="utf-8")
+    assert archive_reference in plan.read_text(encoding="utf-8")
+    assert active_reference not in session.read_text(encoding="utf-8")
+    assert archive_reference in session.read_text(encoding="utf-8")
+    assert active_reference not in (archived / "TRACKER.md").read_text(encoding="utf-8")
+    assert archive_reference in (archived / "TRACKER.md").read_text(encoding="utf-8")
+
+    sync_entries = json.loads((plan_state_dir / "sync.log").read_text(encoding="utf-8"))
+    assert sync_entries[-1]["plan"] == plan.relative_to(repo).as_posix()
+    assert sync_entries[-1]["plan_hash"] == module._compute_sha256(plan)
+    assert sync_entries[-1]["tracker_hash"] == module._compute_sha256(archived / "TRACKER.md")
+
+
+def test_handle_work_tracking_archive_keeps_installed_target_behavior(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    active_root = repo / "docs" / "ai" / "work-tracking" / "active"
+    active = active_root / "20300101-task99-installed-closeout-ACTIVE"
+    active.mkdir(parents=True)
+    active_reference = active.relative_to(repo).as_posix()
+    (active / "TRACKER.md").write_text(
+        "# Task 99 Tracker\n\n**Status**: ACTIVE\n",
+        encoding="utf-8",
+    )
+
+    plan = repo / "plans" / "2030-01-01-task99-installed-closeout.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(f"Evidence: {active_reference}/TRACKER.md\n", encoding="utf-8")
+    (plan.parent / "current").symlink_to(plan.name)
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_root)
+    monkeypatch.setattr(module, "_is_uninstalled_source_checkout_for_archive", lambda: False)
+
+    module.handle_work_tracking_archive(argparse.Namespace(folder=active.name, dry_run=False))
+
+    archived = (
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "archive"
+        / "20300101-task99-installed-closeout-COMPLETED"
+    )
+    assert archived.is_dir()
+    assert active_reference in plan.read_text(encoding="utf-8")
+    assert not (repo / ".plan_state" / "sync.log").exists()
+
+
+def test_archive_source_detector_loads_only_repo_local_helper(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    helper = tmp_path / "scripts" / "_source_workflow_state.py"
+    helper.parent.mkdir(parents=True)
+    helper.write_text(
+        "def is_uninstalled_aegis_source_checkout(root):\n    return root.name == 'source'\n",
+        encoding="utf-8",
+    )
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    (source_root / "scripts").mkdir()
+    (source_root / "scripts" / helper.name).write_text(helper.read_text(encoding="utf-8"), encoding="utf-8")
+
+    monkeypatch.setattr(module, "REPO_ROOT", source_root)
+
+    assert module._is_uninstalled_source_checkout_for_archive() is True
+    (source_root / "scripts" / helper.name).unlink()
+    assert module._is_uninstalled_source_checkout_for_archive() is False
 
 
 def test_handle_sessions_continue_reuses_active_work_tracking_and_plan(monkeypatch, tmp_path) -> None:
@@ -796,6 +955,136 @@ def test_handle_sessions_continue_reuses_active_work_tracking_and_plan(monkeypat
     assert "sessions continue" in new_session.read_text(encoding="utf-8")
     tracker_text = tracker.read_text(encoding="utf-8")
     assert "Created a fresh daily Task 42 continuation session" in tracker_text
+    assert (plan_state_dir / "sync.log").exists()
+
+
+def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, tmp_path) -> None:
+    module = load_task_module()
+    repo = tmp_path
+    sessions_dir = repo / "sessions"
+    plans_dir = repo / "plans"
+    active_dir = repo / "docs" / "ai" / "work-tracking" / "active"
+    archive_dir = repo / "docs" / "ai" / "work-tracking" / "archive"
+    task_dir = repo / ".taskmaster" / "tasks"
+    plan_state_dir = repo / ".plan_state"
+    sessions_dir.mkdir(parents=True)
+    plans_dir.mkdir(parents=True)
+    active_dir.mkdir(parents=True)
+    task_dir.mkdir(parents=True)
+
+    task_file = task_dir / "task_099.txt"
+    task_file.write_text(
+        "# Task ID: 99\n# Title: Source Closeout\n# Description: Publish completed source work.\n",
+        encoding="utf-8",
+    )
+    old_session = sessions_dir / "2026" / "04" / "2026-04-23-001-task99-source-closeout.md"
+    old_session.parent.mkdir(parents=True)
+    old_session.write_text("---\nsession_id: 2026-04-23-001\n---\n", encoding="utf-8")
+    (sessions_dir / "current").symlink_to(
+        Path("2026/04/2026-04-23-001-task99-source-closeout.md")
+    )
+    (sessions_dir / "state.json").write_text(
+        '{"current":"2026-04-23-001-task99-source-closeout.md","paused":[],"updated_at":"2026-04-23T23:59:00+02:00"}\n',
+        encoding="utf-8",
+    )
+
+    plan_file = plans_dir / "2026-04-23-task99-source-closeout.md"
+    plan_file.write_text(
+        "\n".join(
+            [
+                "# Plan - Task 99",
+                "",
+                "| Step ID | Description | Evidence | Status |",
+                "| --- | --- | --- | --- |",
+                "| plan-step-scope | Scope | evidence | completed |",
+                "| plan-step-implement | Implement | evidence | completed |",
+                "| plan-step-verify | Verify | evidence | completed |",
+                "| plan-step-emergency | Optional | evidence | n/a |",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (plans_dir / "current").symlink_to(plan_file.name)
+
+    archive_folder = archive_dir / "20260423-task99-source-closeout-COMPLETED"
+    archive_folder.mkdir(parents=True)
+    tracker = archive_folder / "TRACKER.md"
+    tracker.write_text(
+        "\n".join(
+            [
+                "# Task 99 Tracker",
+                "",
+                "**Status**: COMPLETED",
+                "",
+                "## Progress Log",
+                "",
+                "## Plan Compliance Checklist",
+                "- [x] plan-step-scope",
+                "- [x] plan-step-implement",
+                "- [x] plan-step-verify",
+                "- [ ] plan-step-emergency",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    class SourceModule:
+        @staticmethod
+        def is_uninstalled_aegis_source_checkout(_root):
+            return True
+
+        @staticmethod
+        def derive_completed_source_work(_root, _branch):
+            return type(
+                "CompletedWork",
+                (),
+                {"task_id": "99", "archive_folder": archive_folder},
+            )()
+
+    monkeypatch.setattr(module, "REPO_ROOT", repo)
+    monkeypatch.setattr(module, "SESSIONS_DIR", sessions_dir)
+    monkeypatch.setattr(module, "PLANS_DIR", plans_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_BASE", active_dir)
+    monkeypatch.setattr(module, "WORK_TRACKING_ACTIVE_REL", "docs/ai/work-tracking/active")
+    monkeypatch.setattr(module, "PLAN_CURRENT", plans_dir / "current")
+    monkeypatch.setattr(module, "PLAN_STATE_DIR", plan_state_dir)
+    monkeypatch.setattr(module, "PLAN_SYNC_LOG", plan_state_dir / "sync.log")
+    monkeypatch.setattr(module, "SESSION_STATE_PATH", sessions_dir / "state.json")
+    monkeypatch.setattr(module, "TASKMASTER_TASKS_DIR", task_dir)
+    monkeypatch.setattr(module, "datetime", FixedDatetime)
+    monkeypatch.setattr(module, "_load_source_workflow_state_module", lambda: SourceModule)
+
+    def fake_run(cmd, cwd=None, capture_output=False, text=False, check=False):
+        if cmd[:3] == ["git", "branch", "--show-current"]:
+            return FakeCompletedProcess(stdout="feat/task-99-source-closeout\n")
+        return FakeCompletedProcess(stdout="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    module.handle_sessions_continue(
+        argparse.Namespace(
+            task="99",
+            slug="source-closeout-publication",
+            title="Source Closeout",
+            work=None,
+            folder=None,
+            plan=None,
+            task_source="Completed source publication",
+            dry_run=False,
+        )
+    )
+
+    new_session = sessions_dir / "2026" / "04" / "2026-04-24-001-task99-source-closeout-publication.md"
+    assert new_session.exists()
+    assert (sessions_dir / "current").resolve() == new_session
+    assert archive_folder.is_dir()
+    assert not list(active_dir.iterdir())
+    session_text = new_session.read_text(encoding="utf-8")
+    assert "completed source archive" in session_text
+    assert "publication and terminal verification" in session_text
+    assert "completed source archive" in tracker.read_text(encoding="utf-8")
     assert (plan_state_dir / "sync.log").exists()
 
 
