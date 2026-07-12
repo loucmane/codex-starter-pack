@@ -52,6 +52,8 @@ AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
 AEGIS_DEGRADED_EVENTS_REL = ".aegis/state/degraded-events.json"
 AEGIS_ENFORCEMENT_REL = ".aegis/state/enforcement.json"
+AEGIS_DELIVERY_POLICY_REL = "aegis.delivery-policy.json"
+AEGIS_DELIVERY_POLICY_SCHEMA_REL = "schemas/aegis/delivery-policy.schema.json"
 AEGIS_GATE_DECISIONS_REL = ".aegis/reports/gate-decisions.jsonl"
 AEGIS_LOCAL_TASKS_REL = ".aegis/state/local-tasks.json"
 TASKMASTER_TASKS_REL = ".taskmaster/tasks/tasks.json"
@@ -123,6 +125,14 @@ AEGIS_OBSERVATION_RUNTIME_PREFIXES = (
 AEGIS_PENDING_EVENT_SENTINELS = {"current", "latest"}
 AEGIS_PLAN_STATUS_CHOICES = {"pending", "in-progress", "completed", "done", "n/a"}
 AEGIS_ENFORCEMENT_MODES = {"strict", "advisory"}
+AEGIS_DELIVERY_POLICY_MODES = {"attended", "evidence-gated"}
+AEGIS_ROUTINE_AUTHORITY_FIELDS = (
+    "allow_taskmaster_transitions",
+    "allow_safe_repairs",
+    "allow_verified_closeout",
+    "allow_commit_push_pr",
+    "allow_ci_remediation",
+)
 AEGIS_CLAUDE_BLOCK_BEGIN = "<!-- AEGIS:BEGIN claude-runtime -->"
 AEGIS_CLAUDE_BLOCK_END = "<!-- AEGIS:END claude-runtime -->"
 AEGIS_CODEX_BLOCK_BEGIN = "<!-- AEGIS:BEGIN codex-runtime -->"
@@ -171,6 +181,7 @@ CLAUDE_GATE_IDS = (
 CODEX_REQUIRED_FILES = (
     "CODEX.md",
     "scripts/_aegis_installer.py",
+    "scripts/aegis-delivery-policy",
     "scripts/codex-task",
     "scripts/codex-guard",
     "scripts/_repo_structure.py",
@@ -194,6 +205,7 @@ CLAUDE_RUNTIME_HOOK_PHASES = {
     ".claude/scripts/session-brief.sh": "sessionstart",
 }
 SHARED_SCHEMA_FILES = (
+    AEGIS_DELIVERY_POLICY_SCHEMA_REL,
     "schemas/aegis/foundation-manifest.schema.json",
     "schemas/aegis/profile.schema.json",
     "schemas/aegis/install-plan.schema.json",
@@ -1411,6 +1423,83 @@ def _read_enforcement_state(target_root: Path) -> dict[str, Any]:
     return state
 
 
+def _read_delivery_policy_state(target_root: Path) -> dict[str, Any]:
+    path = target_root / AEGIS_DELIVERY_POLICY_REL
+    state: dict[str, Any] = {
+        "mode": "attended",
+        "configured": path.exists(),
+        "valid": not path.exists(),
+        "active": False,
+        "policy_id": None,
+        "path": AEGIS_DELIVERY_POLICY_REL,
+        "requires_per_pr_approval": True,
+        "autonomous_delivery": False,
+        "routine_authority": {key: False for key in AEGIS_ROUTINE_AUTHORITY_FIELDS},
+        "reason": "delivery policy is absent; attended mode is the backward-compatible default",
+    }
+    if not path.exists():
+        return state
+    if not path.is_file() or path.is_symlink():
+        state["reason"] = "delivery policy must be a regular file"
+        return state
+    raw = _read_json(path)
+    if not isinstance(raw, Mapping):
+        state["reason"] = "delivery policy is invalid JSON or not an object"
+        return state
+    schema = _read_json(target_root / AEGIS_DELIVERY_POLICY_SCHEMA_REL)
+    if not isinstance(schema, Mapping):
+        state["reason"] = "delivery policy schema is unavailable; failing closed to attended mode"
+        return state
+    try:
+        Draft202012Validator(schema, format_checker=FormatChecker()).validate(raw)
+    except Exception as exc:  # noqa: BLE001 - status must stay non-fatal and fail closed.
+        message = exc.message if isinstance(exc, ValidationError) else str(exc)
+        state["reason"] = f"delivery policy is malformed; failing closed: {message}"
+        return state
+    mode = str(raw.get("mode") or "").strip()
+    policy_id = str(raw.get("policy_id") or "").strip()
+    repository = raw.get("repository")
+    authority = raw.get("authority")
+    if (
+        mode not in AEGIS_DELIVERY_POLICY_MODES
+        or not policy_id
+        or not isinstance(repository, Mapping)
+        or not isinstance(authority, Mapping)
+    ):
+        state["reason"] = "delivery policy normalization failed; failing closed to attended mode"
+        return state
+    active = authority.get("status") == "active"
+    effective_mode = mode if active else "attended"
+    autonomous = effective_mode == "evidence-gated"
+    routine = raw.get("routine") if isinstance(raw.get("routine"), Mapping) else {}
+    return {
+        "mode": effective_mode,
+        "configured": True,
+        "valid": True,
+        "active": active,
+        "policy_id": policy_id,
+        "path": AEGIS_DELIVERY_POLICY_REL,
+        "repository": {
+            "full_name": str(repository.get("full_name") or ""),
+            "default_branch": str(repository.get("default_branch") or ""),
+        },
+        "requires_per_pr_approval": not autonomous,
+        "autonomous_delivery": autonomous,
+        "routine_authority": {
+            key: autonomous and bool(routine.get(key)) for key in AEGIS_ROUTINE_AUTHORITY_FIELDS
+        },
+        "reason": (
+            "trusted evidence-gated delivery is active"
+            if autonomous
+            else (
+                "delivery authority is revoked; attended mode is active"
+                if not active
+                else "attended delivery policy is active"
+            )
+        ),
+    }
+
+
 def _pending_events_by_mode(target_root: Path, mode: str) -> list[dict[str, Any]]:
     return [
         event
@@ -1821,6 +1910,7 @@ def project_update(
         "workflow_state_evidence": _update_workflow_state_evidence(verification_preview),
         "capsule": capsule,
         "enforcement": _read_enforcement_state(target_root),
+        "delivery_policy": _read_delivery_policy_state(target_root),
         "report_path": AEGIS_UPDATE_REPORT_REL if apply else None,
     }
     if unsafe:
@@ -2550,6 +2640,7 @@ def status(
         "migration_required": False,
         "status": "not_installed",
         "enforcement": _read_enforcement_state(target_root),
+        "delivery_policy": _read_delivery_policy_state(target_root),
         "ledger": _ledger_status_block(target_root, source),
         "checks": [],
         "recommended_actions": [
@@ -2571,6 +2662,7 @@ def status(
             invoking_agent=invoking_agent,
         )
         payload["workflow_guidance"]["enforcement"] = payload["enforcement"]
+        payload["workflow_guidance"]["delivery_policy"] = payload["delivery_policy"]
         return payload
 
     installed_versions = {
@@ -2638,6 +2730,7 @@ def status(
         invoking_agent=invoking_agent,
     )
     payload["workflow_guidance"]["enforcement"] = payload["enforcement"]
+    payload["workflow_guidance"]["delivery_policy"] = payload["delivery_policy"]
     if payload["enforcement"].get("mode") == "advisory":
         payload["recommended_actions"] = [
             "Aegis enforcement is advisory: gates record would-block decisions but do not block.",
@@ -2657,8 +2750,8 @@ AEGIS_ARCHITECTURE_NOTES = (
 # installed-guidance renderers (contract.md / AGENTS.md / CLAUDE.md) and, via the brief
 # (TM 189), by `aegis next`. It describes how an agent INTERPRETS a short continuation
 # intent and where it STOPS for confirmation — it grants no authority to bypass any gate.
-# Policy (owner-set 2026-06-15): a bare continuation = exactly one safe step then re-consult;
-# repairs and non-dry-run closeout require confirmation; merge/push/destructive git never auto.
+# A bare continuation advances one safe step and then re-consults. Delivery authority is
+# resolved from aegis.delivery-policy.json; attended remains the backward-compatible default.
 AEGIS_CONTINUATION_LINES = (
     'A short continuation intent — "continue", "go", "proceed", "next", "keep going", '
     '"resume" — is NOT a new authority. It means: advance the current Aegis workflow by '
@@ -2678,33 +2771,43 @@ AEGIS_CONTINUATION_LINES = (
     "tests; edit task-scoped source files; `aegis log`; `aegis verify`; "
     "`aegis closeout --dry-run`; `aegis doctor`; advance one plan step.",
     "",
-    "SURFACE and ASK before: applying repairs (`aegis repair --apply` — show the repair plan "
-    "first); running non-dry-run `aegis closeout` (needs an explicit close-out intent or "
-    "confirmation — it records completion and arms delivery); crossing a protected or owned "
-    "path; switching the active task; pushing or opening a PR (only after closeout passes).",
+    "SURFACE before mutation: safe repair plans, closeout preflight, task transitions, "
+    "delivery scope, and CI remediation. A valid active evidence-gated policy may authorize "
+    "routine Taskmaster transitions, deterministic safe repairs, verified closeout, "
+    "commit/push/PR, and CI remediation without another chat approval. Absent, invalid, "
+    "revoked, attended, disabled-capability, manual-review, or protected/owned-path cases "
+    "require explicit confirmation. Merge authority comes only from trusted GitHub policy "
+    "after closeout passes.",
     "",
-    "NEVER automatic on any intent: merge, force-push, `reset --hard`, `branch -D`, history "
-    "rewrite, direct `.aegis/` writes, bypassing BLOCKED readiness, or skipping S:W:H:E "
-    "tracking.",
+    "NEVER automatic on any intent: force-push, `reset --hard`, `branch -D`, history "
+    "rewrite, direct `.aegis/` writes, bypassing BLOCKED readiness, skipping S:W:H:E "
+    "tracking, or delivery outside the active repository policy. A valid active "
+    "evidence-gated policy may authorize an eligible exact-head merge through trusted CI; "
+    "absent, invalid, revoked, or attended policy requires owner approval.",
     "",
     'Completion-flavored intents ("finish this", "wrap up", "done") advance one safe step '
-    "like any continuation. They do NOT authorize skipping closeout, the push confirmation, "
-    "or merge.",
+    "like any continuation. They do NOT authorize skipping closeout or the active delivery "
+    "policy.",
 )
 AEGIS_CONTINUATION_CONTRACT = "\n".join(AEGIS_CONTINUATION_LINES)
 AEGIS_CONTINUATION_SUMMARY = (
     "Continuation contract: a short intent (continue / go / proceed / next / resume) advances "
     "the Aegis workflow by exactly ONE safe step — resolved from `aegis next` (its "
     "`next_safe_action`), never from memory — then re-consult. It is not new authority. "
-    "Surface and ask before repairs (`aegis repair --apply`), non-dry-run `closeout`, "
-    "protected/owned paths, switching tasks, or push/PR. Never automatic: merge, force-push, "
-    'history rewrite, `.aegis/` writes, BLOCKED-readiness bypass, skipping S:W:H:E. "Finish '
-    'this" still stops at these boundaries. Full text in `.aegis/contract.md`.'
+    "Surface routine workflow mutations and follow the active repository policy. A valid "
+    "evidence-gated policy may authorize safe repairs, verified closeout, task transitions, "
+    "commit/push/PR, CI remediation, and trusted exact-head merge; attended/default policy "
+    "requires confirmation. Never automatic: manual-review repair, force-push, history "
+    "rewrite, direct `.aegis/` writes, "
+    'BLOCKED-readiness bypass, or skipping S:W:H:E. "Finish this" still stops at these '
+    "boundaries. Full text in `.aegis/contract.md`."
 )
 AEGIS_ENTRYPOINT_CONTINUATION_SUMMARY = (
     "Continuation contract: resolve continue / go / next from live `aegis next`, perform "
-    "exactly one safe step, then re-consult. It never authorizes repair, push, merge, "
-    "protected-path edits, or bypass. Full text in `.aegis/contract.md`."
+    "exactly one safe step, then re-consult. Routine repair/closeout/delivery authority "
+    "comes only from the active repository policy; manual review, protected-path edits, and "
+    "bypass remain attended. Full text in "
+    "`.aegis/contract.md`."
 )
 
 
@@ -2739,7 +2842,9 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
     "installed_taskmaster_present": {
         "continue_means": "select the next Taskmaster task and kickoff",
         "next_safe_action": "taskmaster_next_then_kickoff",
-        "confirmation_boundary": ["switch the active task"],
+        "confirmation_boundary": [
+            "active evidence-gated policy may authorize a routine transition; attended/default policy requires confirmation"
+        ],
     },
     "installed_no_current_work": {
         "continue_means": "pick a Taskmaster task, or start tracked local work",
@@ -2789,7 +2894,7 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
         "next_safe_action": "kickoff_first_task",
         "confirmation_boundary": [
             "kickoff binds and starts the selected task; surface the task id first",
-            "switch to a different task only with explicit confirmation",
+            "active evidence-gated policy may authorize the routine kickoff; attended/default policy requires confirmation",
         ],
         "artifact_policy": "setup-only: kickoff records the session/plan/tracker for the real task; do not edit product source",
     },
@@ -2807,24 +2912,28 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
         "artifact_policy": "save screenshots/notes under reports/; do not edit source",
     },
     "closeout_passed": {
-        "continue_means": "task complete; deliver only with confirmation",
+        "continue_means": "task complete; deliver under the active repository authority policy",
         "next_safe_action": "deliver",
-        "confirmation_boundary": ["push or open a PR", "merge requires explicit user approval"],
+        "confirmation_boundary": [
+            "aegis.delivery-policy.json controls delivery authority",
+            "absent, invalid, revoked, or attended policy requires confirmation",
+        ],
     },
     "delivery_pending": {
-        "continue_means": "the task is closed; deliver via git/GitHub only with explicit confirmation",
-        "next_safe_action": "deliver_with_confirmation",
+        "continue_means": "the task is closed; advance delivery under the active repository authority policy",
+        "next_safe_action": "deliver_under_policy",
         "confirmation_boundary": [
-            "push the branch",
-            "open a PR",
-            "merge requires explicit user approval",
+            "attended mode requires confirmation",
+            "evidence-gated mode delegates eligible exact-head merge to trusted GitHub policy",
         ],
         "artifact_policy": "delivery is git/GitHub only; no source edits",
     },
     "delivery_unknown": {
         "continue_means": "inspect git/branch state before any delivery step",
         "next_safe_action": "inspect_git_state",
-        "confirmation_boundary": ["any push, PR, or merge requires explicit confirmation"],
+        "confirmation_boundary": [
+            "do not deliver until git state is resolved and the active repository policy can evaluate it"
+        ],
         "artifact_policy": "read-only git inspection only",
     },
     "workflow_scaffold_incomplete": {
@@ -2835,7 +2944,8 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
         "continue_means": "review the repair plan (aegis doctor / aegis next), then apply only the safe repairs with aegis repair --apply after surfacing the plan",
         "next_safe_action": "review_repair_plan_then_apply_safe",
         "confirmation_boundary": [
-            "applying repairs with aegis repair --apply (show the repair plan first)",
+            "active evidence-gated policy may authorize deterministic safe repairs after the plan is surfaced",
+            "attended/default or disabled safe-repair authority requires confirmation",
             "any manual-review action needs explicit user confirmation",
         ],
         "artifact_policy": "aegis repair writes the changes; show the plan before applying and do not hand-edit .aegis/",
@@ -2871,9 +2981,11 @@ CONTINUATION_BRIEF_BY_STATE: dict[str, dict[str, Any]] = {
         "artifact_policy": "log the strict-verify report",
     },
     "closeout_required": {
-        "continue_means": "run aegis closeout --dry-run; run non-dry-run closeout only with explicit close-out intent",
+        "continue_means": "run aegis closeout --dry-run; after strict verification, active evidence-gated policy may authorize non-dry-run closeout",
         "next_safe_action": "run_closeout_dry_run",
-        "confirmation_boundary": ["running non-dry-run aegis closeout"],
+        "confirmation_boundary": [
+            "attended/default or disabled verified-closeout authority requires confirmation before non-dry-run closeout"
+        ],
         "artifact_policy": "closeout writes the report; do not hand-edit .aegis/",
     },
 }
@@ -3056,6 +3168,8 @@ def _post_closeout_delivery_guidance(
     target_root: Path,
     current_work: Mapping[str, Any],
 ) -> dict[str, Any]:
+    delivery_policy = _read_delivery_policy_state(target_root)
+    requires_approval = bool(delivery_policy.get("requires_per_pr_approval", True))
     paths = current_work.get("paths") if isinstance(current_work.get("paths"), Mapping) else {}
     recorded_branch = _current_work_branch_name(current_work, paths).strip()
     try:
@@ -3108,6 +3222,7 @@ def _post_closeout_delivery_guidance(
                             "recorded_branch": recorded_branch,
                             "pr": pr,
                             "delivery_proof": proof,
+                            "delivery_policy": delivery_policy,
                         },
                     }
             else:
@@ -3128,6 +3243,7 @@ def _post_closeout_delivery_guidance(
                 "current_branch": branch,
                 "recorded_branch": recorded_branch,
                 "delivery_proof": proof,
+                "delivery_policy": delivery_policy,
             },
         }
 
@@ -3150,7 +3266,8 @@ def _post_closeout_delivery_guidance(
                 "current_branch": branch,
                 "upstream": None,
                 "sanctioned_after_closeout": True,
-                "merge_requires_explicit_user_approval": True,
+                "merge_requires_explicit_user_approval": requires_approval,
+                "delivery_policy": delivery_policy,
             },
         }
 
@@ -3169,7 +3286,8 @@ def _post_closeout_delivery_guidance(
                 "current_branch": branch,
                 "upstream": upstream.stdout.strip(),
                 "github": {"available": False, "reason": gh.get("reason")},
-                "merge_requires_explicit_user_approval": True,
+                "merge_requires_explicit_user_approval": requires_approval,
+                "delivery_policy": delivery_policy,
             },
         }
 
@@ -3206,7 +3324,8 @@ def _post_closeout_delivery_guidance(
             "upstream": upstream.stdout.strip(),
             "pr": pr,
             "checks": checks,
-            "merge_requires_explicit_user_approval": True,
+            "merge_requires_explicit_user_approval": requires_approval,
+            "delivery_policy": delivery_policy,
         }
         if not detail.get("available"):
             details["github_detail"] = {"available": False, "reason": detail.get("reason")}
@@ -3221,6 +3340,18 @@ def _post_closeout_delivery_guidance(
                     ),
                     "suggested_cli": command,
                     "copyable_repairs": [command, checks_command, view_command],
+                    "details": details,
+                }
+            if not requires_approval:
+                return {
+                    "state": "delivery_pending",
+                    "next_safe_action": "await_evidence_gated_merge",
+                    "next_required_action": (
+                        "trusted GitHub delivery policy must revalidate and merge the exact head; "
+                        "no per-PR owner approval is required"
+                    ),
+                    "suggested_cli": checks_command,
+                    "copyable_repairs": [checks_command, view_command],
                     "details": details,
                 }
             return {
@@ -3247,7 +3378,7 @@ def _post_closeout_delivery_guidance(
             "state": "delivery_pending",
             "next_safe_action": "wait_for_ci",
             "next_required_action": (
-                "PR is open; check CI and ask before merging when checks are green"
+                "PR is open; wait for CI and then follow the active delivery policy"
             ),
             "suggested_cli": command,
             "copyable_repairs": [command, view_command],
@@ -3265,7 +3396,8 @@ def _post_closeout_delivery_guidance(
             "current_branch": branch,
             "upstream": upstream.stdout.strip(),
             "matching_prs": prs,
-            "merge_requires_explicit_user_approval": True,
+            "merge_requires_explicit_user_approval": requires_approval,
+            "delivery_policy": delivery_policy,
         },
     }
 

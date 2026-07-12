@@ -190,6 +190,134 @@ def test_pretooluse_allows_read_only_bash_when_readiness_blocked(tmp_path: Path)
 @pytest.mark.parametrize(
     "command",
     [
+        "git reset --hard HEAD~1",
+        "env AEGIS_TEST=1 git -C . reset --merge HEAD~1",
+        "bash -lc 'git clean -fdx'",
+        "echo ok && git push --force-with-lease origin feat/task-103-claude-runtime-adapter",
+        "/usr/bin/git push -f origin feat/task-103-claude-runtime-adapter",
+        "git push origin main",
+        "git push origin HEAD:main",
+        "git push origin :main",
+        "git push --delete origin old-feature",
+        "git remote set-url origin git@github.com:attacker/repo.git",
+        "git config remote.origin.url git@github.com:attacker/repo.git",
+        "git checkout -- README.md",
+        "git restore README.md",
+        "git switch --discard-changes main",
+        "git branch -D abandoned-work",
+        "gh api --method DELETE repos/example/project/branches/main/protection",
+        "gh api repos/example/project/rulesets -f name=unsafe",
+        "curl -X DELETE https://api.github.com/repos/example/project/branches/main/protection",
+    ],
+)
+def test_pretooluse_hard_blocks_destructive_git_and_governance_commands(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 2
+    assert "Non-overridable violation" in result.stderr
+    assert "destructive Git or repository-governance safety" in result.stderr
+    assert "NOT override-eligible" in result.stderr
+
+
+def test_pretooluse_hard_blocks_implicit_push_from_protected_branch(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    assert run(["git", "checkout", "-q", "-b", "main"], repo).returncode == 0
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command="git push"))
+
+    assert result.returncode == 2
+    assert "implicit push from protected branch 'main'" in result.stderr
+
+
+def test_pretooluse_destructive_git_policy_remains_hard_in_advisory_mode(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "enforcement.json",
+        json.dumps(
+            {
+                "mode": "advisory",
+                "set_at": "2026-07-12T18:00:00Z",
+                "set_by": "test",
+                "reason": "prove hard-policy independence",
+            }
+        ),
+    )
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command="git reset --hard HEAD"))
+
+    assert result.returncode == 2
+    assert "ADVISORY" not in result.stderr
+    decisions = read_gate_decisions(repo)
+    assert decisions[-1]["verdict"] == "block"
+    assert decisions[-1]["reason"] == "destructive_git_operation"
+    assert decisions[-1]["mode"] == "advisory"
+
+
+def test_pretooluse_hard_policy_classifier_failure_denies_in_advisory_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+    write(
+        repo / ".aegis" / "state" / "enforcement.json",
+        json.dumps({"mode": "advisory", "set_by": "test", "reason": "fail-closed regression"}),
+    )
+    gate_lib = load_gate_lib_module()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+
+    def fail_classifier(*_args: object, **_kwargs: object) -> list[str]:
+        raise RuntimeError("simulated classifier failure")
+
+    monkeypatch.setattr(gate_lib, "hard_policy_violations", fail_classifier)
+
+    result = gate_lib.pretooluse_gate(payload("Bash", command="git status --short"))
+
+    assert result == 2
+    assert "classifier failed closed" in capsys.readouterr().err
+    decisions = read_gate_decisions(repo)
+    assert decisions[-1]["verdict"] == "block"
+    assert decisions[-1]["mode"] == "advisory"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git status --short",
+        "git add README.md",
+        "git commit -S -m 'test commit'",
+        "git push origin feat/task-103-claude-runtime-adapter",
+        "git push -u origin HEAD",
+        "git restore --staged README.md",
+        "git clean -ndx",
+        "git checkout feat/task-103-claude-runtime-adapter",
+        "git switch feat/task-103-claude-runtime-adapter",
+        "git config --get remote.origin.url",
+        "gh api --method GET repos/example/project/branches/main/protection",
+        "curl https://api.github.com/repos/example/project/rulesets",
+        "echo 'git reset --hard is blocked by policy'",
+    ],
+)
+def test_pretooluse_hard_policy_preserves_normal_delivery_and_inspection(
+    tmp_path: Path,
+    command: str,
+) -> None:
+    repo = make_repo(tmp_path, ready=True)
+
+    result = run_gate(PRETOOLUSE, repo, payload("Bash", command=command))
+
+    assert result.returncode == 0
+    assert "Non-overridable violation" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
         "ls -la",
         "cat sessions/state.json",
         "sed -n '1,40p' README.md",

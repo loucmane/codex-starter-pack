@@ -17,10 +17,10 @@ from scripts._source_workflow_state import (
     derive_completed_source_work,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 READINESS_SOURCE = REPO_ROOT / ".claude" / "scripts" / "readiness.sh"
 HELPER_SOURCE = REPO_ROOT / "scripts" / "_source_workflow_state.py"
+POLICY_EVALUATOR_SOURCE = REPO_ROOT / "scripts" / "aegis-delivery-policy"
 
 
 def _write(path: Path, text: str = "") -> Path:
@@ -76,9 +76,12 @@ def _write_source_markers(root: Path) -> None:
     _write(root / "scripts" / "_aegis_installer.py", "# source marker\n")
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     shutil.copy2(HELPER_SOURCE, root / "scripts" / "_source_workflow_state.py")
+    shutil.copy2(POLICY_EVALUATOR_SOURCE, root / "scripts" / "aegis-delivery-policy")
     (root / ".claude" / "scripts").mkdir(parents=True, exist_ok=True)
     shutil.copy2(READINESS_SOURCE, root / ".claude" / "scripts" / "readiness.sh")
-    packaged_readiness = root / "aegis_foundation" / "assets" / ".claude" / "scripts" / "readiness.sh"
+    packaged_readiness = (
+        root / "aegis_foundation" / "assets" / ".claude" / "scripts" / "readiness.sh"
+    )
     packaged_readiness.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(READINESS_SOURCE, packaged_readiness)
     _write(root / "aegis_foundation" / "assets" / "scripts" / "codex-guard", "# source marker\n")
@@ -110,10 +113,28 @@ def _write_completed_state(root: Path, task_id: int = 99) -> Path:
         + "\n",
     )
 
-    plan = _write(root / "plans" / f"2030-01-01-task{task_id}-source-closeout.md", _plan_text(task_id))
+    plan = _write(
+        root / "plans" / f"2030-01-01-task{task_id}-source-closeout.md", _plan_text(task_id)
+    )
     plan_link = root / "plans" / "current"
     plan_link.symlink_to(plan.name)
     return tracker
+
+
+def _write_delivery_policy(root: Path, *, default_branch: str = "main") -> None:
+    policy = json.loads((REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8"))
+    policy["policy_id"] = "fixture-evidence-gated-v1"
+    policy["repository"] = {
+        "full_name": "example/aegis",
+        "default_branch": default_branch,
+        "task_branch_pattern": r"^feat/task-[0-9]+-[a-z0-9-]+$",
+    }
+    policy["authority"]["issued_by"] = "fixture-owner"
+    policy["authority"]["source"] = "source-checkout fixture"
+    _write(
+        root / "aegis.delivery-policy.json",
+        json.dumps(policy, indent=2) + "\n",
+    )
 
 
 def _init_source_repo(tmp_path: Path, task_id: int = 99) -> tuple[Path, Path]:
@@ -184,6 +205,86 @@ def test_completed_source_work_requires_all_authorities(tmp_path: Path) -> None:
     assert state is not None
     assert state.task_id == "99"
     assert state.tracker_path == tracker.resolve()
+
+
+def test_completed_source_work_derives_taskless_default_branch_from_current_pointers(
+    tmp_path: Path,
+) -> None:
+    root, tracker = _init_source_repo(tmp_path)
+    _write_delivery_policy(root)
+
+    state = derive_completed_source_work(root, "main")
+
+    assert state is not None
+    assert state.task_id == "99"
+    assert state.branch == "main"
+    assert state.tracker_path == tracker.resolve()
+
+
+def test_taskless_default_branch_derivation_requires_policy_opt_in(tmp_path: Path) -> None:
+    root, _tracker = _init_source_repo(tmp_path)
+
+    assert derive_completed_source_work(root, "main") is None
+
+
+def test_taskless_default_branch_derivation_rejects_invalid_or_inactive_policy(
+    tmp_path: Path,
+) -> None:
+    root, _tracker = _init_source_repo(tmp_path)
+    _write(root / "aegis.delivery-policy.json", "not-json\n")
+    with pytest.raises(SourceWorkflowStateError, match="invalid JSON"):
+        derive_completed_source_work(root, "main")
+
+    _write_delivery_policy(root)
+    policy_path = root / "aegis.delivery-policy.json"
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    policy["authority"]["status"] = "revoked"
+    policy_path.write_text(json.dumps(policy) + "\n", encoding="utf-8")
+    with pytest.raises(SourceWorkflowStateError, match="authority is not active"):
+        derive_completed_source_work(root, "main")
+
+
+def test_taskless_default_branch_derivation_rejects_schema_invalid_policy(
+    tmp_path: Path,
+) -> None:
+    root, _tracker = _init_source_repo(tmp_path)
+    _write_delivery_policy(root)
+    policy_path = root / "aegis.delivery-policy.json"
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    policy["unexpected_authority"] = True
+    policy_path.write_text(json.dumps(policy) + "\n", encoding="utf-8")
+
+    with pytest.raises(SourceWorkflowStateError, match="unknown fields"):
+        derive_completed_source_work(root, "main")
+
+
+def test_taskless_default_branch_derivation_rejects_stale_session_identity(
+    tmp_path: Path,
+) -> None:
+    root, _tracker = _init_source_repo(tmp_path)
+    _write_delivery_policy(root)
+    session_link = root / "sessions" / "current"
+    session_link.unlink()
+    stale_session = _write(
+        root / "sessions" / "2030" / "01" / "2030-01-01-002-task98-stale.md",
+        "# Session for Task 98\n",
+    )
+    session_link.symlink_to(stale_session.relative_to(session_link.parent))
+
+    with pytest.raises(SourceWorkflowStateError, match="does not reference Task 99"):
+        derive_completed_source_work(root, "main")
+
+
+def test_taskless_default_branch_derivation_rejects_pointer_escape(tmp_path: Path) -> None:
+    root, _tracker = _init_source_repo(tmp_path)
+    _write_delivery_policy(root)
+    outside = _write(tmp_path / "outside-plan.md", _plan_text(99))
+    plan_link = root / "plans" / "current"
+    plan_link.unlink()
+    plan_link.symlink_to(outside)
+
+    with pytest.raises(SourceWorkflowStateError, match="resolves outside plans"):
+        derive_completed_source_work(root, "main")
 
 
 def test_completed_source_work_rejects_non_done_task(tmp_path: Path) -> None:
@@ -273,6 +374,27 @@ def test_clean_source_checkout_readiness_accepts_completed_archive(tmp_path: Pat
         text=True,
     )
     assert status.stdout == ""
+
+
+def test_clean_source_checkout_readiness_accepts_completed_archive_on_default_branch(
+    tmp_path: Path,
+) -> None:
+    root, _tracker = _init_source_repo(tmp_path)
+    _write_delivery_policy(root)
+    subprocess.run(
+        ["git", "branch", "-m", "main"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _commit_fixture(root)
+
+    result = _run_readiness(root)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "STATE: READY" in result.stdout
+    assert "completed source tracker derived" in result.stdout
 
 
 def test_installed_target_readiness_does_not_use_source_archive(tmp_path: Path) -> None:

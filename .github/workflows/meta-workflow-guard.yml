@@ -11,12 +11,27 @@ on:
       - 'sessions/**'
   push:
     branches: [main]
+  repository_dispatch:
+    types: [aegis-autonomous-delivery]
 
 jobs:
   guard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.client_payload.merge_sha || github.sha }}
+
+      - name: Bind repository-dispatch branch identity
+        if: github.event_name == 'repository_dispatch'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          MERGE_SHA: ${{ github.event.client_payload.merge_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$DEFAULT_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git switch -C "$DEFAULT_BRANCH" "$MERGE_SHA"
 
       - name: Set up Python
         uses: actions/setup-python@v6

@@ -1,0 +1,272 @@
+name: Aegis Autonomous Delivery
+
+on:
+  workflow_run:
+    workflows: [CI, Codex Guard, Meta Workflow Guard, aegis-witness]
+    types: [completed]
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+
+permissions: {}
+
+concurrency:
+  group: aegis-autonomous-delivery-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  delivery:
+    name: evidence-gated delivery
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      # pull_request_target is privileged. Checkout is therefore pinned to the current
+      # default branch and PR code, artifacts, actions, and scripts are never executed.
+      - name: Checkout trusted default branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate trusted delivery policy
+        run: >-
+          python3 trusted/scripts/aegis-delivery-policy validate
+          --policy trusted/aegis.delivery-policy.json
+
+      - name: Resolve one candidate pull request
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          event_name="$GITHUB_EVENT_NAME"
+          if [[ "$event_name" == "pull_request_target" ]]; then
+            number="$(jq -r '.pull_request.number // empty' "$GITHUB_EVENT_PATH")"
+            expected_head="$(jq -r '.pull_request.head.sha // empty' "$GITHUB_EVENT_PATH")"
+          elif [[ "$event_name" == "workflow_run" ]]; then
+            expected_head="$(jq -r '.workflow_run.head_sha // empty' "$GITHUB_EVENT_PATH")"
+            if [[ ! "$expected_head" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              echo "No valid workflow-run head SHA was available." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${REPOSITORY}/commits/${expected_head}/pulls?per_page=100" \
+              > "$RUNNER_TEMP/commit-pulls.json"
+            mapfile -t candidates < <(
+              jq -r --arg sha "$expected_head" \
+                '.[] | select(.state == "open" and .head.sha == $sha) | .number' \
+                "$RUNNER_TEMP/commit-pulls.json"
+            )
+            if [[ "${#candidates[@]}" -ne 1 ]]; then
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              echo "Workflow head resolves to ${#candidates[@]} open pull requests; no action taken." \
+                >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            number="${candidates[0]}"
+          else
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ! "$number" =~ ^[1-9][0-9]*$ ]] || [[ ! "$expected_head" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            echo "Candidate pull request identity was malformed; no action taken." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "eligible=true"
+            echo "number=$number"
+            echo "expected_head=$expected_head"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Collect exact-head repository evidence
+        if: steps.candidate.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.candidate.outputs.number }}
+          EXPECTED_HEAD: ${{ steps.candidate.outputs.expected_head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5; do
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${REPOSITORY}/pulls/${PR_NUMBER}" \
+              > "$RUNNER_TEMP/pull-request.json"
+            if jq -e '.mergeable != null' "$RUNNER_TEMP/pull-request.json" > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" \
+            > "$RUNNER_TEMP/file-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/file-pages.jsonl" > "$RUNNER_TEMP/files.json"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs?event=pull_request&head_sha=${EXPECTED_HEAD}&per_page=100" \
+            --jq '.workflow_runs' \
+            > "$RUNNER_TEMP/workflow-run-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/workflow-run-pages.jsonl" \
+            > "$RUNNER_TEMP/workflow-runs.json"
+
+          owner="${REPOSITORY%%/*}"
+          name="${REPOSITORY#*/}"
+          gh api graphql --paginate \
+            -f query='query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $number) {
+                  reviewDecision
+                  reviewThreads(first: 100, after: $endCursor) {
+                    nodes { isResolved }
+                    pageInfo { hasNextPage endCursor }
+                  }
+                }
+              }
+            }' \
+            -F owner="$owner" \
+            -F name="$name" \
+            -F number="$PR_NUMBER" \
+            > "$RUNNER_TEMP/review-pages.jsonl"
+          jq -s '{
+            unresolved_threads: ([
+              .[].data.repository.pullRequest.reviewThreads.nodes[]
+              | select(.isResolved != true)
+            ] | length),
+            threads_truncated: (last.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage // true),
+            decision: (last.data.repository.pullRequest.reviewDecision // "")
+          }' "$RUNNER_TEMP/review-pages.jsonl" > "$RUNNER_TEMP/review.json"
+
+          current_default_sha="$(git -C trusted rev-parse HEAD)"
+          jq -n \
+            --arg repository "$REPOSITORY" \
+            --arg expected_head_sha "$EXPECTED_HEAD" \
+            --arg current_default_sha "$current_default_sha" \
+            --slurpfile pr "$RUNNER_TEMP/pull-request.json" \
+            --slurpfile files "$RUNNER_TEMP/files.json" \
+            --slurpfile runs "$RUNNER_TEMP/workflow-runs.json" \
+            --slurpfile review "$RUNNER_TEMP/review.json" \
+            '{
+              repository: $repository,
+              expected_head_sha: $expected_head_sha,
+              current_default_sha: $current_default_sha,
+              pull_request: {
+                number: $pr[0].number,
+                state: $pr[0].state,
+                draft: $pr[0].draft,
+                labels: $pr[0].labels,
+                changed_files: $pr[0].changed_files,
+                mergeable: $pr[0].mergeable,
+                mergeable_state: $pr[0].mergeable_state,
+                base: {ref: $pr[0].base.ref, sha: $pr[0].base.sha},
+                head: {
+                  ref: $pr[0].head.ref,
+                  sha: $pr[0].head.sha,
+                  repo: {full_name: $pr[0].head.repo.full_name}
+                }
+              },
+              files: ($files[0] | map({
+                filename,
+                status,
+                previous_filename: (.previous_filename // "")
+              })),
+              workflow_runs: $runs[0],
+              review: $review[0]
+            }' > "$RUNNER_TEMP/aegis-delivery-evidence.json"
+
+      - name: Evaluate trusted evidence
+        id: policy
+        if: steps.candidate.outputs.eligible == 'true'
+        env:
+          PR_NUMBER: ${{ steps.candidate.outputs.number }}
+          EXPECTED_HEAD: ${{ steps.candidate.outputs.expected_head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 trusted/scripts/aegis-delivery-policy evaluate \
+            --policy trusted/aegis.delivery-policy.json \
+            --input "$RUNNER_TEMP/aegis-delivery-evidence.json" \
+            > "$RUNNER_TEMP/aegis-delivery-result.json"
+          decision="$(jq -r '.decision' "$RUNNER_TEMP/aegis-delivery-result.json")"
+          case "$decision" in
+            allow|attended|defer|deny) ;;
+            *) echo "Unexpected policy decision: $decision" >&2; exit 1 ;;
+          esac
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Aegis autonomous delivery"
+            echo "- PR: #${PR_NUMBER}"
+            echo "- Exact head: \`${EXPECTED_HEAD}\`"
+            echo "- Decision: \`${decision}\`"
+            echo "- Policy: \`$(jq -r '.policy_id' "$RUNNER_TEMP/aegis-delivery-result.json")\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Squash-merge policy-authorized exact head
+        if: steps.policy.outputs.decision == 'allow'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.candidate.outputs.number }}
+          EXPECTED_HEAD: ${{ steps.candidate.outputs.expected_head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}" \
+            > "$RUNNER_TEMP/final-pull-request.json"
+          final_head="$(jq -r '.head.sha' "$RUNNER_TEMP/final-pull-request.json")"
+          final_base="$(jq -r '.base.sha' "$RUNNER_TEMP/final-pull-request.json")"
+          trusted_base="$(git -C trusted rev-parse HEAD)"
+          if [[ "$final_head" != "$EXPECTED_HEAD" ]] || [[ "$final_base" != "$trusted_base" ]]; then
+            echo "Head or base moved after policy evaluation; refusing merge." >&2
+            exit 1
+          fi
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}/merge" \
+            -f merge_method=squash \
+            -f sha="$EXPECTED_HEAD" \
+            > "$RUNNER_TEMP/merge-result.json"
+          jq -e '.merged == true' "$RUNNER_TEMP/merge-result.json" > /dev/null
+          merge_sha="$(jq -r '.sha' "$RUNNER_TEMP/merge-result.json")"
+          if [[ ! "$merge_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "GitHub returned an invalid merge SHA; refusing post-merge dispatch." >&2
+            exit 1
+          fi
+          jq -n \
+            --arg merge_sha "$merge_sha" \
+            --arg pull_request "$PR_NUMBER" \
+            --arg reviewed_head "$EXPECTED_HEAD" \
+            '{
+              event_type: "aegis-autonomous-delivery",
+              client_payload: {
+                merge_sha: $merge_sha,
+                pull_request: $pull_request,
+                reviewed_head: $reviewed_head
+              }
+            }' > "$RUNNER_TEMP/post-merge-dispatch.json"
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/dispatches" \
+            --input "$RUNNER_TEMP/post-merge-dispatch.json"
+          echo "Policy-authorized squash merge completed for exact head \`${EXPECTED_HEAD}\`." \
+            >> "$GITHUB_STEP_SUMMARY"

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+import runpy
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
-
 
 SOURCE_MARKERS = (
     Path("schemas/aegis/foundation-manifest.schema.json"),
@@ -22,6 +22,11 @@ CURRENT_WORK_RELATIVE = Path(".aegis/state/current-work.json")
 TASKS_RELATIVE = Path(".taskmaster/tasks/tasks.json")
 ACTIVE_RELATIVE = Path("docs/ai/work-tracking/active")
 ARCHIVE_RELATIVE = Path("docs/ai/work-tracking/archive")
+DELIVERY_POLICY_RELATIVE = Path("aegis.delivery-policy.json")
+PLANS_RELATIVE = Path("plans")
+PLANS_CURRENT_RELATIVE = PLANS_RELATIVE / "current"
+SESSIONS_RELATIVE = Path("sessions")
+SESSIONS_CURRENT_RELATIVE = SESSIONS_RELATIVE / "current"
 
 
 class SourceWorkflowStateError(RuntimeError):
@@ -78,6 +83,115 @@ def _find_task(tasks: Iterable[dict[str, object]], task_id: str) -> dict[str, ob
     return None
 
 
+def _read_delivery_default_branch(root: Path) -> str | None:
+    policy_path = root / DELIVERY_POLICY_RELATIVE
+    if not policy_path.exists():
+        return None
+    if not policy_path.is_file() or policy_path.is_symlink():
+        raise SourceWorkflowStateError("delivery policy must be a regular file")
+    try:
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SourceWorkflowStateError(f"delivery policy is invalid JSON: {exc}") from exc
+    if not isinstance(policy, dict):
+        raise SourceWorkflowStateError("delivery policy must be a JSON object")
+    evaluator_path = root / "scripts" / "aegis-delivery-policy"
+    if not evaluator_path.is_file() or evaluator_path.is_symlink():
+        raise SourceWorkflowStateError("trusted delivery-policy evaluator is missing")
+    try:
+        evaluator = runpy.run_path(evaluator_path.as_posix())
+        validate_policy = evaluator["validate_policy"]
+        policy = validate_policy(policy)
+    except Exception as exc:  # noqa: BLE001 - normalize trusted evaluator failures.
+        raise SourceWorkflowStateError(f"delivery policy is invalid: {exc}") from exc
+    repository = policy.get("repository")
+    if not isinstance(repository, dict):
+        raise SourceWorkflowStateError("delivery policy repository block is missing")
+    default_branch = repository.get("default_branch")
+    if not isinstance(default_branch, str) or not re.fullmatch(r"[A-Za-z0-9._/-]+", default_branch):
+        raise SourceWorkflowStateError("delivery policy default_branch is invalid")
+    authority = policy.get("authority")
+    if not isinstance(authority, dict) or authority.get("status") != "active":
+        raise SourceWorkflowStateError("delivery policy authority is not active")
+    return default_branch
+
+
+def _resolve_contained_pointer(
+    root: Path,
+    *,
+    pointer_relative: Path,
+    container_relative: Path,
+    label: str,
+) -> Path:
+    pointer = root / pointer_relative
+    if not pointer.is_symlink():
+        raise SourceWorkflowStateError(
+            f"{label} pointer must be a symlink: {pointer_relative.as_posix()}"
+        )
+    try:
+        resolved = pointer.resolve(strict=True)
+    except (FileNotFoundError, OSError) as exc:
+        raise SourceWorkflowStateError(f"{label} pointer is broken") from exc
+    container = (root / container_relative).resolve()
+    if not resolved.is_relative_to(container):
+        raise SourceWorkflowStateError(
+            f"{label} pointer resolves outside {container_relative.as_posix()}"
+        )
+    if not resolved.is_file() or resolved.is_symlink():
+        raise SourceWorkflowStateError(f"{label} pointer target must be a regular file")
+    return resolved
+
+
+def _task_id_from_current_pointers(root: Path) -> str:
+    plan = _resolve_contained_pointer(
+        root,
+        pointer_relative=PLANS_CURRENT_RELATIVE,
+        container_relative=PLANS_RELATIVE,
+        label="current plan",
+    )
+    plan_text = plan.read_text(encoding="utf-8")
+    if not plan_text.startswith("---"):
+        raise SourceWorkflowStateError("current plan is missing front matter")
+    front_matter_parts = plan_text.split("---", 2)
+    if len(front_matter_parts) < 3:
+        raise SourceWorkflowStateError("current plan front matter is incomplete")
+    task_ids_match = re.search(
+        r"^task_ids:\s*\[([^\]]*)\]\s*$",
+        front_matter_parts[1],
+        flags=re.MULTILINE,
+    )
+    if not task_ids_match:
+        raise SourceWorkflowStateError("current plan must declare exactly one task_ids entry")
+    task_items = [item.strip().strip("'\"") for item in task_ids_match.group(1).split(",")]
+    if len(task_items) != 1 or not re.fullmatch(r"\d+", task_items[0]):
+        raise SourceWorkflowStateError("current plan must declare exactly one numeric task ID")
+    task_id = task_items[0]
+
+    session = _resolve_contained_pointer(
+        root,
+        pointer_relative=SESSIONS_CURRENT_RELATIVE,
+        container_relative=SESSIONS_RELATIVE,
+        label="current session",
+    )
+    session_relative = session.relative_to((root / SESSIONS_RELATIVE).resolve()).as_posix()
+    session_text = session.read_text(encoding="utf-8")
+    if not _task_token_pattern(task_id).search(session_relative):
+        raise SourceWorkflowStateError(f"current session path does not reference Task {task_id}")
+    if not _tracker_references_task(session_text, task_id):
+        raise SourceWorkflowStateError(f"current session content does not reference Task {task_id}")
+    return task_id
+
+
+def _source_task_id(root: Path, branch: str) -> str | None:
+    task_id = task_id_from_branch(branch)
+    if task_id:
+        return task_id
+    default_branch = _read_delivery_default_branch(root)
+    if default_branch is None or branch != default_branch:
+        return None
+    return _task_id_from_current_pointers(root)
+
+
 def is_uninstalled_aegis_source_checkout(root: Path) -> bool:
     root = root.resolve()
     if (root / MANIFEST_RELATIVE).exists():
@@ -108,14 +222,18 @@ def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork
 
     active_root = root / ACTIVE_RELATIVE
     active_folders = (
-        sorted(path for path in active_root.iterdir() if path.is_dir() and path.name.endswith("-ACTIVE"))
+        sorted(
+            path
+            for path in active_root.iterdir()
+            if path.is_dir() and path.name.endswith("-ACTIVE")
+        )
         if active_root.is_dir()
         else []
     )
     if active_folders:
         return None
 
-    task_id = task_id_from_branch(branch)
+    task_id = _source_task_id(root, branch)
     if not task_id:
         return None
 
@@ -145,7 +263,9 @@ def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork
     candidates = sorted(
         path
         for path in archive_root.iterdir()
-        if path.name.endswith("-COMPLETED") and token.search(path.name) and (path.is_dir() or path.is_symlink())
+        if path.name.endswith("-COMPLETED")
+        and token.search(path.name)
+        and (path.is_dir() or path.is_symlink())
     )
     if len(candidates) != 1:
         names = ", ".join(path.name for path in candidates) or "none"
@@ -163,7 +283,9 @@ def derive_completed_source_work(root: Path, branch: str) -> CompletedSourceWork
 
     tracker_path = completed_folder / "TRACKER.md"
     if not tracker_path.is_file() or tracker_path.is_symlink():
-        raise SourceWorkflowStateError(f"completed tracker is missing or not a regular file: {tracker_path}")
+        raise SourceWorkflowStateError(
+            f"completed tracker is missing or not a regular file: {tracker_path}"
+        )
     tracker_resolved = tracker_path.resolve()
     if not tracker_resolved.is_relative_to(completed_folder):
         raise SourceWorkflowStateError("completed tracker resolves outside its archive folder")

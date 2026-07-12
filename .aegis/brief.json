@@ -24,6 +24,7 @@
       ".taskmaster/",
       ".serena/",
       ".github/",
+      ".codex/",
       "CLAUDE.md",
       "AGENTS.md",
       "CODEX.md",
@@ -34,7 +35,8 @@
       ".gitignore",
       ".pre-commit-config.yaml",
       ".claude.json",
-      "conftest.py"
+      "conftest.py",
+      "aegis.delivery-policy.json"
     ]
   },
   "thresholds": {

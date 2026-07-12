@@ -1,21 +1,33 @@
 model = "gpt-5.5"
 model_provider = "openai"
-approval_policy = "on-request"
-sandbox_mode = "workspace-write"
+approval_policy = "never"
+default_permissions = "aegis-autonomous"
 model_reasoning_effort = "xhigh"
 model_reasoning_summary = "detailed"
 model_verbosity = "high"
 personality = "pragmatic"
 
-[sandbox_workspace_write]
-network_access = true
-writable_roots = ["/home/loucmane/codex", "/tmp"]
-exclude_tmpdir_env_var = false
-exclude_slash_tmp = false
-
 [shell_environment_policy]
 inherit = "core"
-include_only = ["PATH", "HOME", "USER", "SHELL", "CODEX_HOME", "OPENAI_API_KEY"]
+include_only = ["PATH", "HOME", "USER", "SHELL", "CODEX_HOME", "OPENAI_API_KEY", "SSH_AUTH_SOCK", "GPG_TTY", "PNPM_HOME", "XDG_RUNTIME_DIR"]
+
+[permissions.aegis-autonomous]
+description = "Trusted Aegis development with autonomous, evidence-gated Git delivery."
+extends = ":workspace"
+
+[permissions.aegis-autonomous.filesystem.":workspace_roots"]
+".git" = "write"
+
+[permissions.aegis-autonomous.network]
+enabled = true
+
+[permissions.aegis-autonomous.network.domains]
+"**.github.com" = "allow"
+"**.githubusercontent.com" = "allow"
+"**.npmjs.org" = "allow"
+"**.pypi.org" = "allow"
+"**.pythonhosted.org" = "allow"
+"**.openai.com" = "allow"
 
 [notice.model_migrations]
 "gpt-5.4" = "gpt-5.5"

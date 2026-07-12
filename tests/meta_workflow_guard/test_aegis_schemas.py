@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_ROOT = REPO_ROOT / "schemas" / "aegis"
 
@@ -421,6 +420,7 @@ def valid_install_plan() -> dict:
         "foundation-manifest.schema.json",
         "profile.schema.json",
         "install-plan.schema.json",
+        "delivery-policy.schema.json",
     ],
 )
 def test_aegis_schemas_are_valid_draft_2020_12(schema_name: str) -> None:
@@ -431,6 +431,19 @@ def test_valid_aegis_payloads_match_schemas() -> None:
     validate("foundation-manifest.schema.json", valid_manifest())
     validate("profile.schema.json", valid_profile())
     validate("install-plan.schema.json", valid_install_plan())
+    validate(
+        "delivery-policy.schema.json",
+        json.loads((REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8")),
+    )
+
+
+def test_delivery_policy_rejects_unknown_authority_and_merge_modes() -> None:
+    payload = json.loads((REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8"))
+    payload["mode"] = "unrestricted"
+    payload["merge"]["method"] = "merge"
+
+    with pytest.raises(ValidationError):
+        validate("delivery-policy.schema.json", payload)
 
 
 def test_manifest_rejects_unknown_top_level_properties() -> None:

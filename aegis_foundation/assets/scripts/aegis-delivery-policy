@@ -1,0 +1,548 @@
+#!/usr/bin/env python3
+"""Deterministic evaluator for trusted Aegis delivery evidence."""
+
+from __future__ import annotations
+
+import argparse
+import fnmatch
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+
+SCHEMA_VERSION = "1.0.0"
+SHA_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+TEST_PATH_PATTERN = re.compile(
+    r"(?:^|/)(?:__tests__|tests?|specs?)(?:/|$)|"
+    r"(?:^|/)[^/]+\.(?:test|spec)\.[^/]+$|"
+    r"(?:^|/)(?:test_[^/]+|[^/]+_test)\.[^/]+$",
+    re.IGNORECASE,
+)
+
+
+class PolicyError(ValueError):
+    """Raised when policy or evidence is malformed or contradictory."""
+
+
+def _object(value: Any, label: str) -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise PolicyError(f"{label} must be an object")
+    return value
+
+
+def _exact_keys(
+    value: Mapping[str, Any],
+    label: str,
+    *,
+    required: set[str],
+    optional: set[str] | None = None,
+) -> None:
+    optional = optional or set()
+    missing = sorted(required - set(value))
+    unknown = sorted(set(value) - required - optional)
+    if missing:
+        raise PolicyError(f"{label} is missing required fields: {', '.join(missing)}")
+    if unknown:
+        raise PolicyError(f"{label} has unknown fields: {', '.join(unknown)}")
+
+
+def _string(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise PolicyError(f"{label} must be a non-empty string")
+    return value.strip()
+
+
+def _string_list(value: Any, label: str) -> list[str]:
+    if not isinstance(value, list) or not value:
+        raise PolicyError(f"{label} must be a non-empty array")
+    result = [_string(item, f"{label} item") for item in value]
+    if len(result) != len(set(result)):
+        raise PolicyError(f"{label} must not contain duplicates")
+    return result
+
+
+def _normalize_path(value: Any, label: str) -> str:
+    path = _string(value, label).replace("\\", "/")
+    if path.startswith("/") or "\0" in path:
+        raise PolicyError(f"{label} is not a repository-relative path")
+    segments = path.split("/")
+    if any(segment in {"", ".", ".."} for segment in segments):
+        raise PolicyError(f"{label} contains an unsafe segment")
+    return path
+
+
+def load_json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise PolicyError(f"missing JSON input: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise PolicyError(f"invalid JSON in {path}: {exc}") from exc
+
+
+def validate_policy(raw_policy: Any) -> dict[str, Any]:
+    policy = dict(_object(raw_policy, "policy"))
+    _exact_keys(
+        policy,
+        "policy",
+        required={
+            "schema_version",
+            "policy_id",
+            "mode",
+            "repository",
+            "authority",
+            "routine",
+            "merge",
+            "attended",
+        },
+        optional={"$schema"},
+    )
+    if "$schema" in policy:
+        _string(policy["$schema"], "$schema")
+    if policy.get("schema_version") != SCHEMA_VERSION:
+        raise PolicyError(f"policy schema_version must be {SCHEMA_VERSION!r}")
+    policy_id = _string(policy.get("policy_id"), "policy_id")
+    if not re.fullmatch(r"[a-z][a-z0-9._-]+", policy_id):
+        raise PolicyError("policy_id has an invalid format")
+    mode = policy.get("mode")
+    if mode not in {"attended", "evidence-gated"}:
+        raise PolicyError("mode must be 'attended' or 'evidence-gated'")
+
+    repository = dict(_object(policy.get("repository"), "repository"))
+    _exact_keys(
+        repository,
+        "repository",
+        required={"full_name", "default_branch", "task_branch_pattern"},
+    )
+    full_name = _string(repository.get("full_name"), "repository.full_name")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", full_name):
+        raise PolicyError("repository.full_name must use owner/name form")
+    default_branch = _string(repository.get("default_branch"), "repository.default_branch")
+    if not re.fullmatch(r"[A-Za-z0-9._/-]+", default_branch):
+        raise PolicyError("repository.default_branch has an invalid format")
+    task_branch_pattern = _string(
+        repository.get("task_branch_pattern"),
+        "repository.task_branch_pattern",
+    )
+    try:
+        re.compile(task_branch_pattern)
+    except re.error as exc:
+        raise PolicyError(f"repository.task_branch_pattern is invalid: {exc}") from exc
+
+    authority = dict(_object(policy.get("authority"), "authority"))
+    _exact_keys(
+        authority,
+        "authority",
+        required={"status", "issued_by", "source", "issued_at", "expires_on"},
+    )
+    if authority.get("status") not in {"active", "revoked"}:
+        raise PolicyError("authority.status must be 'active' or 'revoked'")
+    _string(authority.get("issued_by"), "authority.issued_by")
+    _string(authority.get("source"), "authority.source")
+    issued_at = _string(authority.get("issued_at"), "authority.issued_at")
+    try:
+        parsed_issued_at = datetime.fromisoformat(issued_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PolicyError("authority.issued_at must be an ISO-8601 timestamp") from exc
+    if parsed_issued_at.tzinfo is None:
+        raise PolicyError("authority.issued_at must include a timezone")
+    _string_list(authority.get("expires_on"), "authority.expires_on")
+
+    routine = dict(_object(policy.get("routine"), "routine"))
+    routine_fields = {
+        "allow_taskmaster_transitions",
+        "allow_safe_repairs",
+        "allow_verified_closeout",
+        "allow_commit_push_pr",
+        "allow_ci_remediation",
+    }
+    _exact_keys(routine, "routine", required=routine_fields)
+    for key in routine_fields:
+        if not isinstance(routine.get(key), bool):
+            raise PolicyError(f"routine.{key} must be boolean")
+
+    merge = dict(_object(policy.get("merge"), "merge"))
+    _exact_keys(
+        merge,
+        "merge",
+        required={
+            "method",
+            "required_workflows",
+            "require_exact_head",
+            "require_current_base",
+            "require_clean_mergeability",
+            "require_complete_file_inventory",
+            "require_no_unresolved_threads",
+        },
+    )
+    if merge.get("method") != "squash":
+        raise PolicyError("merge.method must be 'squash'")
+    required_workflows = _string_list(
+        merge.get("required_workflows"),
+        "merge.required_workflows",
+    )
+    for key in (
+        "require_exact_head",
+        "require_current_base",
+        "require_clean_mergeability",
+        "require_complete_file_inventory",
+        "require_no_unresolved_threads",
+    ):
+        if not isinstance(merge.get(key), bool):
+            raise PolicyError(f"merge.{key} must be boolean")
+
+    attended = dict(_object(policy.get("attended"), "attended"))
+    _exact_keys(
+        attended,
+        "attended",
+        required={"labels", "path_patterns", "test_deletions"},
+    )
+    labels = _string_list(attended.get("labels"), "attended.labels")
+    path_patterns = _string_list(
+        attended.get("path_patterns"),
+        "attended.path_patterns",
+    )
+    if not isinstance(attended.get("test_deletions"), bool):
+        raise PolicyError("attended.test_deletions must be boolean")
+
+    return {
+        **policy,
+        "policy_id": policy_id,
+        "mode": mode,
+        "repository": {
+            **repository,
+            "full_name": full_name,
+            "default_branch": default_branch,
+            "task_branch_pattern": task_branch_pattern,
+        },
+        "authority": authority,
+        "routine": routine,
+        "merge": {**merge, "required_workflows": required_workflows},
+        "attended": {
+            **attended,
+            "labels": labels,
+            "path_patterns": path_patterns,
+        },
+    }
+
+
+def _result(
+    policy: Mapping[str, Any],
+    decision: str,
+    reasons: Sequence[Mapping[str, Any]],
+    **evidence: Any,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "policy_id": policy["policy_id"],
+        "mode": policy["mode"],
+        "decision": decision,
+        "reasons": [dict(reason) for reason in reasons],
+        "evidence": evidence,
+    }
+
+
+def _label_names(raw_labels: Any) -> list[str]:
+    if not isinstance(raw_labels, list):
+        raise PolicyError("pull_request.labels must be an array")
+    labels: list[str] = []
+    for raw_label in raw_labels:
+        if isinstance(raw_label, str):
+            label = raw_label
+        else:
+            label = _string(_object(raw_label, "pull_request label").get("name"), "label.name")
+        normalized = label.strip().lower()
+        if normalized:
+            labels.append(normalized)
+    return sorted(set(labels))
+
+
+def _file_inventory(raw_files: Any) -> list[dict[str, str]]:
+    if not isinstance(raw_files, list):
+        raise PolicyError("files must be an array")
+    files: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for raw_file in raw_files:
+        entry = _object(raw_file, "file entry")
+        filename = _normalize_path(entry.get("filename"), "file filename")
+        if filename in seen:
+            raise PolicyError(f"duplicate file inventory entry: {filename}")
+        seen.add(filename)
+        status = _string(entry.get("status"), f"file {filename} status").lower()
+        previous = ""
+        if entry.get("previous_filename"):
+            previous = _normalize_path(
+                entry.get("previous_filename"),
+                f"file {filename} previous_filename",
+            )
+        files.append({"filename": filename, "status": status, "previous_filename": previous})
+    return files
+
+
+def _latest_required_workflows(
+    raw_runs: Any,
+    *,
+    required: Sequence[str],
+    head_sha: str,
+) -> tuple[dict[str, Mapping[str, Any]], list[dict[str, Any]]]:
+    if not isinstance(raw_runs, list):
+        raise PolicyError("workflow_runs must be an array")
+    selected: dict[str, Mapping[str, Any]] = {}
+    for raw_run in raw_runs:
+        run = _object(raw_run, "workflow run")
+        if str(run.get("head_sha") or "") != head_sha:
+            continue
+        if str(run.get("event") or "") != "pull_request":
+            continue
+        name = str(run.get("name") or "")
+        if name not in required:
+            continue
+        rank = (
+            str(run.get("run_started_at") or run.get("created_at") or ""),
+            int(run.get("run_attempt") or 0),
+            int(run.get("id") or run.get("databaseId") or 0),
+        )
+        current = selected.get(name)
+        if current is None:
+            selected[name] = run
+            continue
+        current_rank = (
+            str(current.get("run_started_at") or current.get("created_at") or ""),
+            int(current.get("run_attempt") or 0),
+            int(current.get("id") or current.get("databaseId") or 0),
+        )
+        if rank > current_rank:
+            selected[name] = run
+
+    reasons: list[dict[str, Any]] = []
+    for name in required:
+        run = selected.get(name)
+        if run is None:
+            reasons.append({"category": "workflow-missing", "workflow": name})
+            continue
+        status = str(run.get("status") or "").lower()
+        conclusion = str(run.get("conclusion") or "").lower()
+        if status != "completed":
+            reasons.append(
+                {"category": "workflow-pending", "workflow": name, "status": status}
+            )
+        elif conclusion != "success":
+            reasons.append(
+                {
+                    "category": "workflow-not-successful",
+                    "workflow": name,
+                    "conclusion": conclusion,
+                }
+            )
+    return selected, reasons
+
+
+def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
+    policy = validate_policy(policy_input)
+    evidence = _object(evidence_input, "evidence")
+    pull_request = _object(evidence.get("pull_request"), "pull_request")
+    repository = _string(evidence.get("repository"), "repository")
+    expected_head = _string(evidence.get("expected_head_sha"), "expected_head_sha")
+    current_default_sha = _string(
+        evidence.get("current_default_sha"),
+        "current_default_sha",
+    )
+    if not SHA_PATTERN.fullmatch(expected_head) or not SHA_PATTERN.fullmatch(current_default_sha):
+        raise PolicyError("expected_head_sha and current_default_sha must be Git object IDs")
+
+    base = _object(pull_request.get("base"), "pull_request.base")
+    head = _object(pull_request.get("head"), "pull_request.head")
+    head_repo = _object(head.get("repo"), "pull_request.head.repo")
+    head_sha = _string(head.get("sha"), "pull_request.head.sha")
+    if not SHA_PATTERN.fullmatch(head_sha):
+        raise PolicyError("pull_request.head.sha must be a Git object ID")
+    base_ref = _string(base.get("ref"), "pull_request.base.ref")
+    base_sha = _string(base.get("sha"), "pull_request.base.sha")
+    head_ref = _string(head.get("ref"), "pull_request.head.ref")
+    head_repository = _string(head_repo.get("full_name"), "pull_request.head.repo.full_name")
+    changed_files = pull_request.get("changed_files")
+    if not isinstance(changed_files, int) or changed_files < 0:
+        raise PolicyError("pull_request.changed_files must be a non-negative integer")
+    files = _file_inventory(evidence.get("files"))
+    labels = _label_names(pull_request.get("labels", []))
+
+    core_reasons: list[dict[str, Any]] = []
+    attended_reasons: list[dict[str, Any]] = []
+    if repository != policy["repository"]["full_name"]:
+        attended_reasons.append({"category": "repository-mismatch", "actual": repository})
+    if policy["authority"].get("status") != "active":
+        attended_reasons.append({"category": "authority-inactive"})
+    if policy["mode"] != "evidence-gated":
+        attended_reasons.append({"category": "attended-mode"})
+    if str(pull_request.get("state") or "").lower() != "open":
+        core_reasons.append({"category": "pull-request-not-open"})
+    if bool(pull_request.get("draft")):
+        core_reasons.append({"category": "pull-request-draft"})
+    if base_ref != policy["repository"]["default_branch"]:
+        core_reasons.append({"category": "base-branch-mismatch", "actual": base_ref})
+    if head_repository != repository:
+        attended_reasons.append({"category": "fork-head", "actual": head_repository})
+    if not re.fullmatch(policy["repository"]["task_branch_pattern"], head_ref):
+        attended_reasons.append({"category": "task-branch-mismatch", "actual": head_ref})
+    if policy["merge"]["require_exact_head"] and head_sha != expected_head:
+        core_reasons.append({"category": "head-moved", "actual": head_sha})
+    if policy["merge"]["require_current_base"] and base_sha != current_default_sha:
+        core_reasons.append({"category": "base-not-current", "actual": base_sha})
+    if policy["merge"]["require_complete_file_inventory"] and len(files) != changed_files:
+        return _result(
+            policy,
+            "deny",
+            [
+                {
+                    "category": "incomplete-file-inventory",
+                    "declared": changed_files,
+                    "fetched": len(files),
+                }
+            ],
+            head_sha=head_sha,
+            base_sha=base_sha,
+            files=len(files),
+        )
+
+    review = _object(evidence.get("review", {}), "review")
+    unresolved_threads = review.get("unresolved_threads", 0)
+    if not isinstance(unresolved_threads, int) or unresolved_threads < 0:
+        raise PolicyError("review.unresolved_threads must be a non-negative integer")
+    if review.get("threads_truncated"):
+        core_reasons.append({"category": "review-threads-truncated"})
+    if policy["merge"]["require_no_unresolved_threads"] and unresolved_threads:
+        core_reasons.append(
+            {"category": "unresolved-review-threads", "count": unresolved_threads}
+        )
+    if str(review.get("decision") or "").upper() == "CHANGES_REQUESTED":
+        core_reasons.append({"category": "changes-requested"})
+
+    mergeable = pull_request.get("mergeable")
+    mergeable_state = str(pull_request.get("mergeable_state") or "").lower()
+    if policy["merge"]["require_clean_mergeability"]:
+        if mergeable is not True or mergeable_state != "clean":
+            core_reasons.append(
+                {
+                    "category": "mergeability-not-clean",
+                    "mergeable": mergeable,
+                    "state": mergeable_state,
+                }
+            )
+
+    _selected_runs, workflow_reasons = _latest_required_workflows(
+        evidence.get("workflow_runs"),
+        required=policy["merge"]["required_workflows"],
+        head_sha=head_sha,
+    )
+    core_reasons.extend(workflow_reasons)
+
+    attended_labels = set(policy["attended"]["labels"])
+    for label in labels:
+        if label in attended_labels:
+            attended_reasons.append({"category": "attended-label", "label": label})
+    for entry in files:
+        paths = [entry["filename"]]
+        if entry["previous_filename"]:
+            paths.append(entry["previous_filename"])
+        for path in paths:
+            matching = [
+                pattern
+                for pattern in policy["attended"]["path_patterns"]
+                if fnmatch.fnmatchcase(path, pattern)
+            ]
+            if matching:
+                attended_reasons.append(
+                    {
+                        "category": "attended-path",
+                        "path": path,
+                        "patterns": matching,
+                    }
+                )
+        if (
+            policy["attended"]["test_deletions"]
+            and entry["status"] in {"removed", "deleted"}
+            and TEST_PATH_PATTERN.search(entry["filename"])
+        ):
+            attended_reasons.append(
+                {"category": "test-deletion", "path": entry["filename"]}
+            )
+
+    if attended_reasons:
+        return _result(
+            policy,
+            "attended",
+            [*core_reasons, *attended_reasons],
+            head_sha=head_sha,
+            base_sha=base_sha,
+            files=len(files),
+            labels=labels,
+        )
+    if core_reasons:
+        return _result(
+            policy,
+            "defer",
+            core_reasons,
+            head_sha=head_sha,
+            base_sha=base_sha,
+            files=len(files),
+            labels=labels,
+        )
+    return _result(
+        policy,
+        "allow",
+        [],
+        head_sha=head_sha,
+        base_sha=base_sha,
+        files=len(files),
+        labels=labels,
+        required_workflows=policy["merge"]["required_workflows"],
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    validate_parser = subparsers.add_parser("validate", help="Validate one policy file")
+    validate_parser.add_argument("--policy", required=True, type=Path)
+
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate trusted PR evidence")
+    evaluate_parser.add_argument("--policy", required=True, type=Path)
+    evaluate_parser.add_argument("--input", required=True, type=Path)
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        policy = validate_policy(load_json(args.policy))
+        if args.command == "validate":
+            payload = {
+                "schema_version": SCHEMA_VERSION,
+                "status": "valid",
+                "policy_id": policy["policy_id"],
+                "mode": policy["mode"],
+            }
+        else:
+            payload = evaluate(policy, load_json(args.input))
+    except PolicyError as exc:
+        print(
+            json.dumps(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "invalid",
+                    "decision": "deny",
+                    "error": str(exc),
+                },
+                sort_keys=True,
+            )
+        )
+        return 2
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

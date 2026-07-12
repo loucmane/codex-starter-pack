@@ -479,12 +479,7 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
                 checks.append(Check(BLOCKED, f"Aegis observation status is {status!r}, expected 'in-progress' or 'completed'"))
                 return None, checks
 
-    task_id = task_id_from_branch(branch)
-    if not task_id:
-        checks.append(Check(BLOCKED, f"branch '{branch}' does not contain a task ID"))
-        return None, checks
-    checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
-
+    source_work = None
     if not aegis_work_path.is_file():
         try:
             source_module = load_source_workflow_state(root)
@@ -495,9 +490,27 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
             )
         except Exception as exc:  # noqa: BLE001 - source contradictions fail closed.
             checks.append(Check(BLOCKED, f"source closeout derivation failed: {exc}"))
-            return task_id, checks
+            return task_id_from_branch(branch), checks
         if source_work is not None:
+            task_id = str(source_work.task_id)
+            branch_task_id = task_id_from_branch(branch)
+            checks.append(
+                Check(
+                    READY,
+                    (
+                        f"branch '{branch}' maps to Task {task_id}"
+                        if branch_task_id
+                        else f"default branch '{branch}' derives completed source Task {task_id}"
+                    ),
+                )
+            )
             return build_completed_source_checks(root, task_id, source_work, checks)
+
+    task_id = task_id_from_branch(branch)
+    if not task_id:
+        checks.append(Check(BLOCKED, f"branch '{branch}' does not contain a task ID"))
+        return None, checks
+    checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
 
     if aegis_work_path.is_file() and not ignore_current_work_for_readiness:
         try:
