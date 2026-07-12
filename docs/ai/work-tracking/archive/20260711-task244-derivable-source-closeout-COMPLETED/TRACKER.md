@@ -28,6 +28,7 @@
 - **2026-07-12 02:05** — [S:20260712|W:task244-derivable-source-closeout|H:task-master:health|E:.taskmaster/tasks/tasks.json] Revalidated the terminal Taskmaster graph before publication: 243 tasks, 383 subtasks, 428 valid dependency references, and zero invalid references.
 - **2026-07-12 02:10** — [S:20260712|W:task244-derivable-source-closeout|H:pytest:terminal-rollover|E:docs/ai/work-tracking/archive/20260711-task244-derivable-source-closeout-COMPLETED/reports/derivable-source-closeout/task-verification.md] Passed 307 focused workflow regressions and 1,771 non-stdio tests under xdist; the bounded stdio smoke passed in isolation, with its recurring parallel text-buffer/select race recorded as separate follow-up work.
 - **2026-07-12 02:11** — [S:20260712|W:task244-derivable-source-closeout|H:serena/memory|E:.serena/memories/2026-07-11_task244_derivable_source_closeout.md] Refreshed compaction-safe continuity with the completed-source daily rollover proof and final verification split.
+- **2026-07-12 02:19** — [S:20260712|W:task244-derivable-source-closeout|H:github-actions:guard-feedback|E:docs/ai/work-tracking/archive/20260711-task244-derivable-source-closeout-COMPLETED/reports/derivable-source-closeout/task-verification.md] Fixed hosted guard run 29173410573 by routing default no-argument plan sync through the same completed-source tracker derivation; exact CI command and regression matrices passed locally.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define fail-closed source archive derivation and installed-target exclusion

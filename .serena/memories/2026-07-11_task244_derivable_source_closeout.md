@@ -32,3 +32,7 @@ Task 244 was set to done and archived through the supported helper. The first gu
 
 ## Publication and follow-up
 Publish Task 244 through its reviewed branch and hosted CI. Separately plan an Obsidian-compatible knowledge-vault projection over authoritative Aegis/Taskmaster evidence; the vault complements rather than replaces the ledger or human workflow surfaces.
+
+The first hosted branch guard exposed one final resolver gap: no-argument `codex-task plan sync`
+still required ACTIVE work. It now uses the same completed-source tracker derivation, with the exact
+CI invocation covered by the completed-source continuation fixture.

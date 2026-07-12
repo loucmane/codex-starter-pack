@@ -1508,6 +1508,23 @@ def _work_tracking_folder_matches_task(folder: Path, task_id: str) -> bool:
     return f"-task{int(task_id)}-" in folder.name
 
 
+def _derive_current_completed_source_work():
+    source_module = _load_source_workflow_state_module()
+    if source_module is None or not source_module.is_uninstalled_aegis_source_checkout(REPO_ROOT):
+        return None
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout.strip()
+    try:
+        return source_module.derive_completed_source_work(REPO_ROOT, branch)
+    except Exception as exc:
+        raise TaskError(f"Completed source work-tracking derivation failed: {exc}") from exc
+
+
 def _resolve_task_work_tracking(task_id: str, explicit: Optional[str] = None) -> Path:
     if explicit:
         folder = _resolve_active_work_tracking(explicit)
@@ -1526,25 +1543,13 @@ def _resolve_task_work_tracking(task_id: str, explicit: Optional[str] = None) ->
         if path.is_dir() and path.name.endswith("-ACTIVE") and _work_tracking_folder_matches_task(path, task_id)
     ]
     if not candidates:
-        source_module = _load_source_workflow_state_module()
-        if source_module is not None and source_module.is_uninstalled_aegis_source_checkout(REPO_ROOT):
-            branch = subprocess.run(
-                ["git", "branch", "--show-current"],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout.strip()
-            try:
-                completed_work = source_module.derive_completed_source_work(REPO_ROOT, branch)
-            except Exception as exc:
-                raise TaskError(f"Completed source work-tracking derivation failed: {exc}") from exc
-            if completed_work is not None:
-                if str(completed_work.task_id) != str(int(task_id)):
-                    raise TaskError(
-                        f"Completed source archive resolves Task {completed_work.task_id}, expected Task {task_id}."
-                    )
-                return Path(completed_work.archive_folder)
+        completed_work = _derive_current_completed_source_work()
+        if completed_work is not None:
+            if str(completed_work.task_id) != str(int(task_id)):
+                raise TaskError(
+                    f"Completed source archive resolves Task {completed_work.task_id}, expected Task {task_id}."
+                )
+            return Path(completed_work.archive_folder)
         raise TaskError(
             f"No ACTIVE work-tracking folder found for Task {task_id}; use `wizard kickoff` for new tasks or restore the task folder before continuing."
         )
@@ -1895,8 +1900,16 @@ def _resolve_active_work_tracking(explicit: Optional[str] = None) -> Path:
 
 
 def _get_tracker_path(explicit: Optional[str] = None) -> Path:
-    folder = _resolve_active_work_tracking(explicit)
-    tracker = folder / "TRACKER.md"
+    if explicit:
+        tracker = _resolve_active_work_tracking(explicit) / "TRACKER.md"
+    else:
+        try:
+            tracker = _resolve_active_work_tracking() / "TRACKER.md"
+        except TaskError as active_error:
+            completed_work = _derive_current_completed_source_work()
+            if completed_work is None:
+                raise active_error
+            tracker = Path(completed_work.tracker_path)
     if not tracker.exists():
         raise TaskError(f"Tracker file missing at {tracker}")
     return tracker

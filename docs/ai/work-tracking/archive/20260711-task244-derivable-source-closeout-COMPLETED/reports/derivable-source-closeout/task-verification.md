@@ -80,3 +80,15 @@ fourth request had been processed. The exact smoke passed immediately in isolati
 recurred after the rollover fixture was added, while the other 1,771 tests passed under xdist.
 This is a `select` plus `TextIOWrapper` buffering defect in the smoke harness, not evidence of a
 server failure; it remains a separate follow-up rather than an unrelated Task 244 code change.
+
+## Hosted Guard Feedback
+
+The first branch guard run failed before validation because CI invokes
+`python3 scripts/codex-task plan sync` without an explicit tracker. Its default resolver still
+required an ACTIVE folder even though readiness, guard, archive, and session continuation already
+used the completed-source authority. The default tracker resolver now consumes the same derivation,
+and the completed-source continuation fixture executes that exact no-argument plan-sync path.
+
+After the correction, the exact CI command passed locally, the focused 307-test set passed, the
+1,771-test non-stdio xdist matrix passed, the bounded stdio smoke passed in isolation, and source
+readiness plus the scoped guard remained green.

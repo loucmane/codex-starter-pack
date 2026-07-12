@@ -1040,7 +1040,11 @@ def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, t
             return type(
                 "CompletedWork",
                 (),
-                {"task_id": "99", "archive_folder": archive_folder},
+                {
+                    "task_id": "99",
+                    "archive_folder": archive_folder,
+                    "tracker_path": tracker,
+                },
             )()
 
     monkeypatch.setattr(module, "REPO_ROOT", repo)
@@ -1086,6 +1090,10 @@ def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, t
     assert "publication and terminal verification" in session_text
     assert "completed source archive" in tracker.read_text(encoding="utf-8")
     assert (plan_state_dir / "sync.log").exists()
+
+    module.handle_plan_sync(argparse.Namespace(plan=None, tracker=None, dry_run=False))
+    sync_entries = json.loads((plan_state_dir / "sync.log").read_text(encoding="utf-8"))
+    assert sync_entries[-1]["tracker_hash"] == module._compute_sha256(tracker)
 
 
 def test_resolve_current_session_fails_closed_when_state_exists_without_current(monkeypatch, tmp_path) -> None:
