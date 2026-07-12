@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codex.local/schemas/aegis/delivery-policy.schema.json",
+  "title": "Aegis Evidence-Gated Delivery Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_id",
+    "mode",
+    "repository",
+    "authority",
+    "routine",
+    "merge",
+    "attended"
+  ],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"const": "1.0.0"},
+    "policy_id": {"type": "string", "pattern": "^[a-z][a-z0-9._-]+$"},
+    "mode": {"enum": ["attended", "evidence-gated"]},
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["full_name", "default_branch", "task_branch_pattern"],
+      "properties": {
+        "full_name": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "default_branch": {"type": "string", "minLength": 1},
+        "task_branch_pattern": {"type": "string", "minLength": 1}
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issued_by", "source", "issued_at", "expires_on"],
+      "properties": {
+        "status": {"enum": ["active", "revoked"]},
+        "issued_by": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "issued_at": {"type": "string", "format": "date-time"},
+        "expires_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "routine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allow_taskmaster_transitions",
+        "allow_safe_repairs",
+        "allow_verified_closeout",
+        "allow_commit_push_pr",
+        "allow_ci_remediation"
+      ],
+      "properties": {
+        "allow_taskmaster_transitions": {"type": "boolean"},
+        "allow_safe_repairs": {"type": "boolean"},
+        "allow_verified_closeout": {"type": "boolean"},
+        "allow_commit_push_pr": {"type": "boolean"},
+        "allow_ci_remediation": {"type": "boolean"}
+      }
+    },
+    "merge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "required_workflows",
+        "require_exact_head",
+        "require_current_base",
+        "require_clean_mergeability",
+        "require_complete_file_inventory",
+        "require_no_unresolved_threads"
+      ],
+      "properties": {
+        "method": {"const": "squash"},
+        "required_workflows": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "require_exact_head": {"type": "boolean"},
+        "require_current_base": {"type": "boolean"},
+        "require_clean_mergeability": {"type": "boolean"},
+        "require_complete_file_inventory": {"type": "boolean"},
+        "require_no_unresolved_threads": {"type": "boolean"}
+      }
+    },
+    "attended": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["labels", "path_patterns", "test_deletions"],
+      "properties": {
+        "labels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "path_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "test_deletions": {"type": "boolean"}
+      }
+    }
+  }
+}

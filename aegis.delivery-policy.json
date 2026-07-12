@@ -1,0 +1,90 @@
+{
+  "$schema": "./schemas/aegis/delivery-policy.schema.json",
+  "schema_version": "1.0.0",
+  "policy_id": "aegis-source-evidence-gated-v1",
+  "mode": "evidence-gated",
+  "repository": {
+    "full_name": "loucmane/codex-starter-pack",
+    "default_branch": "main",
+    "task_branch_pattern": "^feat/task-[0-9]+-[a-z0-9-]+$"
+  },
+  "authority": {
+    "status": "active",
+    "issued_by": "project-owner",
+    "source": "Taskmaster Task 246 owner authorization",
+    "issued_at": "2026-07-12T11:00:00Z",
+    "expires_on": [
+      "explicit-owner-revocation",
+      "repository-identity-change",
+      "attended-policy-replacement"
+    ]
+  },
+  "routine": {
+    "allow_taskmaster_transitions": true,
+    "allow_safe_repairs": true,
+    "allow_verified_closeout": true,
+    "allow_commit_push_pr": true,
+    "allow_ci_remediation": true
+  },
+  "merge": {
+    "method": "squash",
+    "required_workflows": [
+      "CI",
+      "Codex Guard",
+      "Meta Workflow Guard",
+      "aegis-witness"
+    ],
+    "require_exact_head": true,
+    "require_current_base": true,
+    "require_clean_mergeability": true,
+    "require_complete_file_inventory": true,
+    "require_no_unresolved_threads": true
+  },
+  "attended": {
+    "labels": [
+      "authority-change",
+      "branch-protection",
+      "ci-governance",
+      "database-migration",
+      "deployment",
+      "destructive",
+      "high-risk",
+      "manual-merge",
+      "production-deployment",
+      "secrets",
+      "security-sensitive",
+      "workflow-permissions"
+    ],
+    "path_patterns": [
+      "aegis.delivery-policy.json",
+      ".github/workflows/**",
+      ".github/actions/**",
+      ".github/CODEOWNERS",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "CODEX.md",
+      ".codex/**",
+      ".claude/settings.json",
+      "requirements.toml",
+      "scripts/_aegis_installer.py",
+      "aegis_foundation/assets/scripts/_aegis_installer.py",
+      "scripts/aegis-delivery-policy",
+      "aegis_foundation/assets/scripts/aegis-delivery-policy",
+      "schemas/aegis/delivery-policy.schema.json",
+      "aegis_foundation/assets/schemas/aegis/delivery-policy.schema.json",
+      "scripts/_source_workflow_state.py",
+      "scripts/codex-guard",
+      "scripts/codex-task",
+      ".claude/scripts/readiness.sh",
+      ".claude/scripts/pretooluse-gate.sh",
+      ".claude/scripts/tracking-stop-gate.sh",
+      ".claude/scripts/witness_lib.py",
+      "aegis_foundation/assets/.claude/scripts/readiness.sh",
+      "aegis_foundation/assets/.claude/scripts/pretooluse-gate.sh",
+      "aegis_foundation/assets/.claude/scripts/tracking-stop-gate.sh",
+      "aegis_foundation/assets/.claude/scripts/witness_lib.py",
+      "docs/aegis/evidence-gated-autonomous-delivery.md"
+    ],
+    "test_deletions": true
+  }
+}

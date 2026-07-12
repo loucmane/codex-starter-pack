@@ -31,7 +31,7 @@ At orientation, inspect enforcement mode once:
 
 ## Continuation
 
-Continuation contract: resolve continue / go / next from live `aegis next`, perform exactly one safe step, then re-consult. It never authorizes repair, push, merge, protected-path edits, or bypass. Full text in `.aegis/contract.md`.
+Continuation contract: resolve continue / go / next from live `aegis next`, perform exactly one safe step, then re-consult. Routine repair/closeout/delivery authority comes only from the active repository policy; manual review, protected-path edits, and bypass remain attended. Full text in `.aegis/contract.md`.
 <!-- AEGIS:END codex-runtime -->
 
 ## 🚦 CODEx READINESS CHECK

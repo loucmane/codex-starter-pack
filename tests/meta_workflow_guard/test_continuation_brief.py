@@ -38,7 +38,10 @@ FORBIDDEN_ACTIONS = {"merge", "push", "force_push", "force-push", "reset", "rese
 
 
 def all_table_briefs() -> dict[str, dict]:
-    return {state: inst._continuation_brief(state, "phase") for state in inst.CONTINUATION_BRIEF_BY_STATE}
+    return {
+        state: inst._continuation_brief(state, "phase")
+        for state in inst.CONTINUATION_BRIEF_BY_STATE
+    }
 
 
 def test_payload_always_carries_a_read_only_brief() -> None:
@@ -90,7 +93,9 @@ def test_brief_never_authorises_an_irreversible_action() -> None:
     for state, brief in briefs.items():
         action_text = f"{brief['continue_means']} {brief['next_safe_action']}".lower()
         for forbidden in ("merge", "force-push", "force push", "auto-merge", "automatically"):
-            assert forbidden not in action_text, f"{state}: '{forbidden}' must not be an auto action"
+            assert (
+                forbidden not in action_text
+            ), f"{state}: '{forbidden}' must not be an auto action"
         assert brief["next_safe_action"] not in FORBIDDEN_ACTIONS, state
         boundary = [b.lower() for b in brief["confirmation_boundary"]]
         if any("merge" in b for b in boundary):
@@ -98,24 +103,30 @@ def test_brief_never_authorises_an_irreversible_action() -> None:
             assert "approval" in joined or "confirmation" in joined or "explicit" in joined, state
 
 
-def test_delivery_and_completion_states_are_confirmation_gated() -> None:
-    # After closeout the task is shippable, but delivery (push/PR/merge) must stay behind an
-    # explicit confirmation boundary, never be presented as the next "safe" auto step.
+def test_delivery_and_completion_states_follow_repository_authority_policy() -> None:
+    # After closeout, attended/default policy still requires confirmation. A valid active
+    # evidence-gated policy may delegate only an eligible exact-head merge to trusted CI.
     for state in ("closeout_passed", "delivery_pending"):
         brief = inst._continuation_brief(state, "deliver")
         boundary = " ".join(brief["confirmation_boundary"]).lower()
-        assert "merge" in boundary and "approval" in boundary, state
+        assert "attended" in boundary and "confirmation" in boundary, state
+        assert "policy" in boundary, state
         assert brief["next_safe_action"] not in FORBIDDEN_ACTIONS, state
+    pending = inst._continuation_brief("delivery_pending", "deliver")
+    boundary = " ".join(pending["confirmation_boundary"]).lower()
+    assert "evidence-gated" in boundary
+    assert "eligible exact-head merge" in boundary
     unknown = inst._continuation_brief("delivery_unknown", "deliver")
     assert unknown["next_safe_action"] == "inspect_git_state"
 
 
 def test_closeout_brief_tracks_the_contract_vocabulary() -> None:
-    # Single-source discipline: the closeout brief speaks the same boundary the TM 188 contract
-    # documents — non-dry-run closeout needs explicit close-out intent.
+    # Single-source discipline: dry-run remains the next safe step; only an active policy can
+    # authorize verified non-dry-run closeout without a new chat approval.
     brief = inst._continuation_brief("closeout_required", "closeout")
     assert "dry-run" in brief["continue_means"]
-    assert "explicit close-out intent" in brief["continue_means"]
+    assert "evidence-gated policy may authorize" in brief["continue_means"]
+    assert "attended/default" in " ".join(brief["confirmation_boundary"])
     # The contract constant is the upstream source the doc renders from.
     assert "exactly ONE safe step" in inst.AEGIS_CONTINUATION_SUMMARY
 
@@ -158,7 +169,9 @@ def test_format_next_summary_is_actionable_and_read_only() -> None:
     assert "taskmaster:189" in text
     assert payload["continuation_brief"]["continue_means"] in text
     assert "read-only guidance" in text
-    assert "merge" not in text.lower().split("stop if")[0]  # no merge instruction before the stop line
+    assert (
+        "merge" not in text.lower().split("stop if")[0]
+    )  # no merge instruction before the stop line
 
 
 def test_next_cli_defaults_to_summary_json_flag_emits_payload(tmp_path: Path) -> None:
@@ -168,7 +181,9 @@ def test_next_cli_defaults_to_summary_json_flag_emits_payload(tmp_path: Path) ->
     assert summary.stdout.startswith("Aegis next:"), summary.stdout[:80]
     assert not summary.stdout.lstrip().startswith("{")
 
-    raw = subprocess.run(base + ["--json"], cwd=REPO_ROOT, capture_output=True, text=True, check=False)
+    raw = subprocess.run(
+        base + ["--json"], cwd=REPO_ROOT, capture_output=True, text=True, check=False
+    )
     assert raw.returncode == 0, raw.stderr
     payload = json.loads(raw.stdout)
     assert "continuation_brief" in payload

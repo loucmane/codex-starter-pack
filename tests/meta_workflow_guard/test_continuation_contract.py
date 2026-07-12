@@ -4,8 +4,8 @@ A short continuation intent (continue/go/proceed/next/resume) means "advance the
 workflow by exactly one safe step, then re-consult" — it grants no authority to bypass a
 gate. These tests lock both that the contract reaches every agent surface (via the shared
 .aegis/contract.md plus the AGENTS.md/CLAUDE.md/CODEX.md summaries) and that its autonomy
-boundaries stay conservative (no auto-merge/push, repairs and non-dry-run closeout require
-confirmation).
+boundaries stay policy-controlled (manual-review/high-risk work remains attended; explicit
+evidence-gated capabilities may authorize routine safe repair, verified closeout, and delivery).
 """
 
 from __future__ import annotations
@@ -46,13 +46,13 @@ def test_agents_claude_and_codex_surfaces_carry_the_summary() -> None:
     assert inst.AEGIS_CODEX_BLOCK_END in codex_entrypoint
 
 
-def test_contract_requires_confirmation_for_repair_and_closeout() -> None:
-    # Owner policy: surface-and-ask before `aegis repair --apply`; non-dry-run closeout needs
-    # an explicit close-out intent / confirmation.
+def test_contract_controls_repair_and_closeout_through_active_policy() -> None:
     text = contract_md()
-    assert "aegis repair --apply` — show the repair plan" in text
-    assert "non-dry-run `aegis closeout`" in text
-    assert "explicit close-out intent or confirmation" in text
+    assert "deterministic safe repairs" in text
+    assert "verified closeout" in text
+    assert "valid active evidence-gated policy may authorize" in text
+    assert "manual-review" in text
+    assert "require explicit confirmation" in text
 
 
 def test_contract_never_authorizes_irreversible_actions() -> None:

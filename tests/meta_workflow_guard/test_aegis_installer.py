@@ -3407,6 +3407,128 @@ def test_post_closeout_delivery_guidance_classifies_passed_pr_checks(
     assert not any("pr merge" in command for command in delivery["copyable_repairs"])
 
 
+def test_post_closeout_delivery_guidance_defers_green_pr_to_evidence_policy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    branch = "feat/task-247-routine-change"
+    current_work = {"branch": {"current": branch}, "paths": {}}
+    policy = json.loads((REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8"))
+    (tmp_path / "aegis.delivery-policy.json").write_text(
+        json.dumps(policy) + "\n",
+        encoding="utf-8",
+    )
+    policy_schema = tmp_path / "schemas" / "aegis" / "delivery-policy.schema.json"
+    policy_schema.parent.mkdir(parents=True)
+    shutil.copy2(SCHEMA_ROOT / "delivery-policy.schema.json", policy_schema)
+    base_pr = {
+        "number": 247,
+        "state": "OPEN",
+        "headRefName": branch,
+        "baseRefName": "main",
+        "mergedAt": None,
+        "isDraft": False,
+    }
+    detailed_pr = {
+        **base_pr,
+        "mergeStateStatus": "CLEAN",
+        "statusCheckRollup": [
+            {
+                "__typename": "CheckRun",
+                "name": "CI",
+                "status": "COMPLETED",
+                "conclusion": "SUCCESS",
+            }
+        ],
+    }
+
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: branch)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        lambda *_args: subprocess.CompletedProcess(
+            args=["git", "rev-parse"],
+            returncode=0,
+            stdout=f"origin/{branch}\n",
+            stderr="",
+        ),
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": [base_pr]},
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_view",
+        lambda _target, _number: {"available": True, "reason": "", "pr": detailed_pr},
+    )
+
+    delivery = aegis_installer._post_closeout_delivery_guidance(tmp_path, current_work)
+
+    assert delivery["state"] == "delivery_pending"
+    assert delivery["next_safe_action"] == "await_evidence_gated_merge"
+    assert "no per-PR owner approval is required" in delivery["next_required_action"]
+    assert delivery["details"]["merge_requires_explicit_user_approval"] is False
+    assert delivery["details"]["delivery_policy"]["policy_id"] == policy["policy_id"]
+    assert not any("pr merge" in command for command in delivery["copyable_repairs"])
+
+
+@pytest.mark.parametrize(
+    ("policy_state", "expected_mode", "expected_valid", "expected_active"),
+    [
+        ("absent", "attended", True, False),
+        ("invalid", "attended", False, False),
+        ("schema-invalid", "attended", False, False),
+        ("revoked", "attended", True, False),
+        ("active", "evidence-gated", True, True),
+    ],
+)
+def test_status_surfaces_fail_closed_delivery_policy_state(
+    tmp_path: Path,
+    policy_state: str,
+    expected_mode: str,
+    expected_valid: bool,
+    expected_active: bool,
+) -> None:
+    target = tmp_path / policy_state
+    target.mkdir()
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="none",
+        agents=[],
+        apply=True,
+    )
+    policy_path = target / "aegis.delivery-policy.json"
+    if policy_state == "invalid":
+        policy_path.write_text("{not-json}\n", encoding="utf-8")
+    elif policy_state in {"schema-invalid", "revoked", "active"}:
+        policy = json.loads(
+            (REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8")
+        )
+        if policy_state == "revoked":
+            policy["authority"]["status"] = "revoked"
+        elif policy_state == "schema-invalid":
+            policy["unknown"] = True
+        policy_path.write_text(json.dumps(policy) + "\n", encoding="utf-8")
+
+    report = status(target, source_root=REPO_ROOT)
+    delivery_policy = report["delivery_policy"]
+
+    assert delivery_policy["mode"] == expected_mode
+    assert delivery_policy["valid"] is expected_valid
+    assert delivery_policy["active"] is expected_active
+    assert delivery_policy["requires_per_pr_approval"] is (expected_mode == "attended")
+    assert set(delivery_policy["routine_authority"]) == set(
+        aegis_installer.AEGIS_ROUTINE_AUTHORITY_FIELDS
+    )
+    assert all(delivery_policy["routine_authority"].values()) is (
+        expected_mode == "evidence-gated"
+    )
+    assert report["workflow_guidance"]["delivery_policy"] == delivery_policy
+
+
 def test_post_closeout_delivery_guidance_recognizes_blog_task67_on_synchronized_main(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
