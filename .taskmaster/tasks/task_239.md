@@ -2,7 +2,7 @@
 
 **Title:** Audit Aegis Capture Across Worktrees And Subagents
 
-**Status:** pending
+**Status:** in-progress
 
 **Dependencies:** 236 ✓
 

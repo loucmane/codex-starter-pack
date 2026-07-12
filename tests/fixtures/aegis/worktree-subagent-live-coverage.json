@@ -1,0 +1,193 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "task239-live-2026-07-13",
+  "repository": {
+    "identity": "sha256:3a62fc637142cc8e57a5235477a737d8552ffd32f6e4b7295b7c63166a191d4e",
+    "git_common_dir": "<repo-common-dir>",
+    "head": "8bf1f1871ff259987fa1b8d66d875b1adaf8d99e"
+  },
+  "assets": {
+    "settings": "sha256:76bb3f30de71d905e0451335d49b422688516417a3a89dc39c63225a86e2ccf9",
+    "gate_lib": "sha256:c27b9be81c668ae0906c5b8d38a268dacfae363874bfa6e14530e26533bf2882",
+    "ledger_lib": "sha256:7945eb42a39615250b6c2ac65b2f8da6bb19af195c7fc5a90344dbe263f742f4",
+    "recorder": "sha256:acd931fd8490c345c1a6366340a64d5d335f2e02d4b14b4eb5fa365577e03fb9"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "shared-store-lifecycle",
+      "client": {
+        "name": "multi",
+        "versions": [
+          "claude 2.1.207",
+          "codex-cli 0.144.0"
+        ]
+      },
+      "worktrees": {
+        "active_linked_count": 2,
+        "labels": [
+          "<worktree-claude>",
+          "<worktree-codex>"
+        ],
+        "shared_repository_identity": true,
+        "shared_ledger_path": true
+      },
+      "event_window": {
+        "parent_initial_count": 10111,
+        "pre_teardown_count": 10159,
+        "post_teardown_count": 10165
+      },
+      "teardown": {
+        "worktrees_removed_without_force": true,
+        "preserved_event_count": 10159,
+        "missing_event_count": 0,
+        "repository_identity_unchanged": true,
+        "ledger_path_unchanged": true
+      },
+      "result": {
+        "status": "supported",
+        "causes": [
+          "capture_ok"
+        ]
+      },
+      "limitations": [
+        "The live clients ran sequentially while both linked worktrees were registered; concurrent SQLite writers are covered by a deterministic regression."
+      ]
+    },
+    {
+      "scenario_id": "claude-default-state",
+      "client": {
+        "name": "claude",
+        "version": "2.1.207",
+        "mode": "actual-child"
+      },
+      "worktree": {
+        "path": "<worktree-claude>",
+        "branch": "task239-audit-claude"
+      },
+      "actions": {
+        "mutation": "passed",
+        "expected_missing_read": "attempted",
+        "verification": "passed"
+      },
+      "artifacts": {
+        "mutation_digest": "sha256:2bc2989657669e2c6f76f7d2b59288869a4bdc5e20d10c7a65507f12aa483163"
+      },
+      "hooks": {
+        "loaded": true,
+        "session_state_writable": false
+      },
+      "capture": {
+        "before_event_count": 10113,
+        "after_event_count": 10118,
+        "nested_session_events": 0,
+        "attributable_child_events": 0,
+        "observed_rows": "parent-only"
+      },
+      "result": {
+        "status": "failed",
+        "causes": [
+          "parent_only_traffic"
+        ]
+      },
+      "limitations": [
+        "The nested client inherited a read-only home state; SessionStart reported a normalized session-state write failure."
+      ]
+    },
+    {
+      "scenario_id": "claude-writable-state",
+      "client": {
+        "name": "claude",
+        "version": "2.1.207",
+        "mode": "actual-child"
+      },
+      "worktree": {
+        "path": "<worktree-claude>",
+        "branch": "task239-audit-claude"
+      },
+      "actions": {
+        "mutation": "passed",
+        "expected_missing_read": "attempted",
+        "verification": "passed"
+      },
+      "artifacts": {
+        "mutation_digest": "sha256:5c4174b4bf5a37862c43d5a89919e7fd6927c68b4cdd25a8cd5a3ce335d200e9"
+      },
+      "event_window": {
+        "before_count": 0,
+        "after_count": 23
+      },
+      "capture": {
+        "session_begin": 4,
+        "gate_decision": 15,
+        "scope": 1,
+        "child_mutations": 2,
+        "child_tool_failures": 1,
+        "expected_missing_read_events": 0,
+        "child_agent_type": "general-purpose"
+      },
+      "attribution": {
+        "branch": "present",
+        "agent_id": "present",
+        "agent_type": "present",
+        "repository_identity": "missing",
+        "worktree_root": "missing",
+        "head": "missing",
+        "parent_agent_id": "missing"
+      },
+      "result": {
+        "status": "degraded",
+        "causes": [
+          "attribution_missing"
+        ]
+      },
+      "limitations": [
+        "The successful pytest Bash call is recorded as a generic mutation rather than typed verification.",
+        "The expected missing Read produced no failure row."
+      ]
+    },
+    {
+      "scenario_id": "codex-linked-worktree",
+      "client": {
+        "name": "codex",
+        "version": "0.144.0",
+        "mode": "actual-ephemeral"
+      },
+      "worktree": {
+        "path": "<worktree-codex>",
+        "branch": "task239-audit-codex"
+      },
+      "actions": {
+        "mutation": "passed",
+        "expected_missing_read": "passed",
+        "verification": "passed"
+      },
+      "artifacts": {
+        "mutation_digest": "sha256:5c98b7e3b6c020e4599ee155fd1c5216d8bc825f8575712d14d360426a18bb6f"
+      },
+      "capture": {
+        "before_event_count": 10113,
+        "after_event_count": 10126,
+        "nested_session_events": 0,
+        "attributable_child_events": 0,
+        "observed_rows": "parent-only"
+      },
+      "result": {
+        "status": "unsupported",
+        "causes": [
+          "unsupported_surface"
+        ]
+      },
+      "limitations": [
+        "The installed Aegis integration exposes no Codex hook or child-identity recorder surface for the ephemeral client."
+      ]
+    }
+  ],
+  "safety": {
+    "raw_prompts_included": false,
+    "raw_transcripts_included": false,
+    "absolute_repository_paths_included": false,
+    "credential_material_included": false,
+    "runtime_behavior_changed": false,
+    "ledger_schema_changed": false
+  }
+}
