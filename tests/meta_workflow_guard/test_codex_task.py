@@ -1091,6 +1091,7 @@ def test_handle_sessions_continue_reuses_completed_source_archive(monkeypatch, t
     assert "completed source archive" in tracker.read_text(encoding="utf-8")
     assert (plan_state_dir / "sync.log").exists()
 
+    monkeypatch.setenv("GITHUB_HEAD_REF", "feat/task-99-source-closeout")
     module.handle_plan_sync(argparse.Namespace(plan=None, tracker=None, dry_run=False))
     sync_entries = json.loads((plan_state_dir / "sync.log").read_text(encoding="utf-8"))
     assert sync_entries[-1]["tracker_hash"] == module._compute_sha256(tracker)

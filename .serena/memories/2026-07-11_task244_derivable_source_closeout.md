@@ -35,4 +35,6 @@ Publish Task 244 through its reviewed branch and hosted CI. Separately plan an O
 
 The first hosted branch guard exposed one final resolver gap: no-argument `codex-task plan sync`
 still required ACTIVE work. It now uses the same completed-source tracker derivation, with the exact
-CI invocation covered by the completed-source continuation fixture.
+CI invocation covered by the completed-source continuation fixture. PR checks also use detached
+HEAD, so `codex-task` now follows the existing guard rule of preferring `GITHUB_HEAD_REF` and
+`GITHUB_REF_NAME` before local Git branch discovery.

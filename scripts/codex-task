@@ -1508,10 +1508,11 @@ def _work_tracking_folder_matches_task(folder: Path, task_id: str) -> bool:
     return f"-task{int(task_id)}-" in folder.name
 
 
-def _derive_current_completed_source_work():
-    source_module = _load_source_workflow_state_module()
-    if source_module is None or not source_module.is_uninstalled_aegis_source_checkout(REPO_ROOT):
-        return None
+def _source_checkout_branch() -> str:
+    for variable in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
+        value = os.environ.get(variable, "").strip()
+        if value and value != "HEAD":
+            return value
     branch = subprocess.run(
         ["git", "branch", "--show-current"],
         cwd=str(REPO_ROOT),
@@ -1519,6 +1520,14 @@ def _derive_current_completed_source_work():
         text=True,
         check=False,
     ).stdout.strip()
+    return "" if branch == "HEAD" else branch
+
+
+def _derive_current_completed_source_work():
+    source_module = _load_source_workflow_state_module()
+    if source_module is None or not source_module.is_uninstalled_aegis_source_checkout(REPO_ROOT):
+        return None
+    branch = _source_checkout_branch()
     try:
         return source_module.derive_completed_source_work(REPO_ROOT, branch)
     except Exception as exc:
@@ -1599,13 +1608,7 @@ def handle_sessions_continue(args: argparse.Namespace) -> None:
     source = args.task_source or f"Continuation session for Task {task_id}"
     work_context = args.work or f"task{task_id}-{slug}"
     task_file_relative = task_meta["path"]
-    branch = subprocess.run(
-        ["git", "branch", "--show-current"],
-        cwd=str(REPO_ROOT),
-        capture_output=True,
-        text=True,
-        check=False,
-    ).stdout.strip() or f"feat/task-{task_id}-{slug}"
+    branch = _source_checkout_branch() or f"feat/task-{task_id}-{slug}"
     _validate_branch_for_task(branch, task_id)
 
     work_folder = _resolve_task_work_tracking(task_id, args.folder)

@@ -92,3 +92,9 @@ and the completed-source continuation fixture executes that exact no-argument pl
 After the correction, the exact CI command passed locally, the focused 307-test set passed, the
 1,771-test non-stdio xdist matrix passed, the bounded stdio smoke passed in isolation, and source
 readiness plus the scoped guard remained green.
+
+The first PR-context rerun then showed that GitHub checks out a detached commit. `codex-task`
+supplied an empty branch to the fail-closed resolver, while `codex-guard` already used
+`GITHUB_HEAD_REF`/`GITHUB_REF_NAME`. The task helper now follows that existing identity order.
+A detached-checkout simulation with `GITHUB_HEAD_REF=feat/task-244-derivable-source-closeout`
+passes the exact no-argument plan-sync command.
