@@ -4145,7 +4145,9 @@ def test_installed_gate_allows_taskmaster_completion_after_closeout(tmp_path: Pa
         },
     )
     assert force_push_gate.returncode == 2
-    assert "readiness is BLOCKED" in force_push_gate.stderr
+    assert "Non-overridable violation" in force_push_gate.stderr
+    assert "force-pushing is prohibited" in force_push_gate.stderr
+    assert "NOT override-eligible" in force_push_gate.stderr
 
     wrong_branch_push_gate = run_target_pretooluse(
         target,

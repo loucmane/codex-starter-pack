@@ -9,6 +9,7 @@
 - [x] Replace hardcoded per-PR chat approval with base-controlled evidence-gated delivery policy
 - [x] Keep policy changes and high-risk operations attended while routine proven delivery becomes autonomous
 - [x] Pass full local validation and preserve hosted PR/protected-main acceptance as publication gates without weakening guards
+- [x] Deny destructive Git and GitHub governance mutations independently of advisory mode while retaining the routine feature-branch delivery path
 
 ## Progress Log
 - **2026-07-12 13:03** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-07-12 13:03 CEST`
@@ -29,11 +30,13 @@
 - **2026-07-12 19:31** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:pytest:full-ci-equivalent|E:pytest`1832-passed-4-skipped`] Passed the complete repository suite after the Codex execution-profile contract was added.
 - **2026-07-12 19:32** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:owner-authority|E:aegis.delivery-policy.json;DECISIONS.md;HANDOFF.md] Persisted the owner's informed standing authorization to publish and merge the exact-head-green bootstrap without another phrase-matched approval request.
 - **2026-07-12 19:37** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:github-actions:aegis-witness|E:.aegis/brief.json;tests/meta_workflow_guard/test_aegis_delivery_policy.py] Diagnosed PR #262 witness failure as missing tracked CI fallback scope for `.codex/` and `aegis.delivery-policy.json`; added both paths and a regression test.
+- **2026-07-12 20:16** — [S:20260712|W:task246-evidence-gated-autonomy-bootstrap|H:.claude/scripts/gate_lib.py|E:tests/claude_adapter/test_pretooluse_gates.py;tests/meta_workflow_guard/test_aegis_installer.py;pytest`1867-passed-4-skipped`] Added a non-overridable destructive Git/GitHub governance command policy, proved advisory mode cannot downgrade it, preserved normal feature delivery, synchronized the packaged asset, and passed focused, installed-target, lint, parity, and full-suite verification.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define main derivation and evidence-gated authority contract
 - [x] plan-step-implement — Update workflow/guard/docs and capture tests
 - [x] plan-step-verify — Full local evidence stored; hosted and protected-main checks remain publication gates
+- [x] plan-step-hardening — Non-overridable destructive-operation guard and adversarial tests
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes

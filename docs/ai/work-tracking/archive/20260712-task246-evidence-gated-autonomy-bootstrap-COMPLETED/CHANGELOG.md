@@ -11,3 +11,4 @@
 - 2026-07-12 19:23 CEST — Closed the remaining Codex execution-layer approval loop with a tested, repository-scoped permission profile; added deterministic profile assertions and corrected the earlier Auto-review assumption without using `danger-full-access`.
 - 2026-07-12 19:31 CEST — Passed the complete post-profile repository suite: 1,832 tests passed and four documented opt-in smoke tests skipped.
 - 2026-07-12 19:37 CEST — Remediated hosted witness diff accounting by adding `.codex/` and the root delivery policy to tracked CI fallback scope, with a deterministic regression assertion.
+- 2026-07-12 20:16 CEST — Added a non-overridable destructive-operation command policy shared by source and installed targets; passed 168 focused gate tests, 180 installed-target/policy/schema tests, Ruff, byte parity, and the complete 1,867-test repository suite.

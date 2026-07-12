@@ -61,6 +61,23 @@ metadata only for the primary checkout, and avoids wildcard network access. Link
 worktrees whose common Git directory resolves outside their workspace remain a separate
 first-class-worktree requirement; this bootstrap does not claim that case is solved.
 
+The shared PreToolUse command guard adds a non-overridable tier-c policy above ordinary
+strict/advisory enforcement. It blocks destructive reset/clean/restore/checkout modes,
+force or deleting pushes, direct or implicit pushes to the configured default branch,
+forced branch deletion, remote replacement, and GitHub branch-protection/ruleset
+mutation. Advisory mode still records and allows ordinary workflow-state findings, but
+it cannot downgrade these operations to `would_block`. Normal feature-branch commits and
+pushes, protected PR merges, `git clean --dry-run`, read-only governance inspection, and
+index-only `git restore --staged` remain available.
+
+This command policy is defense in depth, not an OS security boundary. It understands
+direct Git/GitHub commands, compound shell commands, environment wrappers, and bounded
+shell `-c` nesting; it does not claim to interpret arbitrary programs that themselves
+write `.git` or invoke an API. The scoped sandbox, attended authority paths, protected
+GitHub branch, and trusted-base delivery workflow remain the authoritative containment
+layers. A future broker can make local Git mutation non-bypassable without broadening
+this bootstrap.
+
 The profile is loaded at process start. A running Codex session must be restarted once
 after the profile changes; compaction and later resumptions do not remove the persisted
 authority.
@@ -221,6 +238,8 @@ Changes to this mechanism must preserve:
 - installer idempotence and backward-compatible attended behavior when policy is absent.
 - Codex profile tests proving no Auto-review dependency, no legacy sandbox overlap, no
   `danger-full-access`, scoped Git writes, and a finite network-domain allowlist.
+- adversarial command-guard tests proving tier-c destructive operations remain denied in
+  advisory mode while the normal feature-branch delivery path remains available.
 
 No future optimization may weaken these checks merely to make more pull requests merge
 automatically. A category becomes routine only through an attended policy change backed
