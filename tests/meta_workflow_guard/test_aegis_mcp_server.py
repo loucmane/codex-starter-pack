@@ -978,7 +978,7 @@ def test_project_update_tool_refreshes_stale_managed_assets(tmp_path: Path) -> N
     preview_payload = call_tool_payload(
         server,
         "aegis.update",
-        {"target_dir": target.as_posix(), "apply": False},
+        {"target_dir": target.as_posix(), "apply": False, "detail": "all"},
     )
     assert preview_payload["ok"] is True
     assert preview_payload["read_only"] is True
@@ -993,7 +993,7 @@ def test_project_update_tool_refreshes_stale_managed_assets(tmp_path: Path) -> N
     apply_payload = call_tool_payload(
         server,
         "aegis.update",
-        {"target_dir": target.as_posix(), "apply": True},
+        {"target_dir": target.as_posix(), "apply": True, "detail": "all"},
     )
     update_report = assert_client_reload_blocked(
         apply_payload,
@@ -1020,7 +1020,7 @@ def test_project_update_tool_refuses_locally_diverged_managed_asset(tmp_path: Pa
     payload = call_tool_payload(
         server,
         "aegis.update",
-        {"target_dir": target.as_posix(), "apply": False},
+        {"target_dir": target.as_posix(), "apply": False, "detail": "all"},
     )
 
     assert payload["ok"] is False
@@ -1050,7 +1050,11 @@ def test_doctor_and_repair_tools_preserve_read_only_preview_contract(tmp_path: P
     shim = target / ".aegis" / "bin" / "aegis"
     shim.unlink()
 
-    doctor_payload = call_tool_payload(server, "aegis.doctor", {"target_dir": target.as_posix()})
+    doctor_payload = call_tool_payload(
+        server,
+        "aegis.doctor",
+        {"target_dir": target.as_posix(), "detail": "all"},
+    )
 
     assert doctor_payload["ok"] is True
     assert doctor_payload["read_only"] is True
@@ -1322,6 +1326,7 @@ def test_verify_strict_flag_passes_through_to_core_report(tmp_path: Path) -> Non
             "target_dir": target.as_posix(),
             "acknowledge_report_write": True,
             "strict": True,
+            "detail": "all",
         },
     )
 
@@ -1361,7 +1366,11 @@ def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None
         if path.is_file()
     }
 
-    payload = call_tool_payload(server, "aegis.status", {"target_dir": target.as_posix()})
+    payload = call_tool_payload(
+        server,
+        "aegis.status",
+        {"target_dir": target.as_posix(), "detail": "all"},
+    )
 
     after = {
         path.relative_to(target).as_posix(): path.read_bytes()
@@ -1379,6 +1388,122 @@ def test_status_reports_current_install_without_mutation(tmp_path: Path) -> None
     assert payload["result"]["workflow_guidance"]["suggested_mcp_call"]["tool"] == "aegis.next"
 
 
+def test_agent_facing_mcp_status_obeys_context_budget_and_explicit_all_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    event_count = 3_500
+
+    def huge_status(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return {
+            "schema_version": "1.0.0",
+            "status": "current",
+            "installed": True,
+            "workflow_guidance": {
+                "status": "blocked",
+                "details": {
+                    "pending_event_ids": [f"event-{index}" for index in range(event_count)]
+                },
+            },
+        }
+
+    monkeypatch.setattr(server.aegis_installer, "status", huge_status)  # type: ignore[attr-defined]
+
+    content, structured = asyncio.run(
+        server.call_tool("aegis.status", {"target_dir": tmp_path.as_posix()})
+    )
+    assert len(content) == 1
+    default = json.loads(content[0].text)
+    assert structured == default
+    assert len(content[0].text.splitlines()) <= 60
+    assert len(content[0].text.encode("utf-8")) <= 8 * 1024
+    assert default["ok"] is True
+    assert default["result"]["status"] == "current"
+    metadata = default["_aegis_output"]
+    assert (
+        metadata["collection_counts"]["$.result.workflow_guidance.details.pending_event_ids"]
+        == event_count
+    )
+    assert metadata["next_action"] == "./.aegis/bin/aegis next --target-dir ."
+    assert metadata["actual"] == (
+        f"lines={len(content[0].text.splitlines())}; bytes={len(content[0].text.encode('utf-8'))}"
+    )
+
+    verbose_content, _verbose_structured = asyncio.run(
+        server.call_tool(
+            "aegis.status",
+            {"target_dir": tmp_path.as_posix(), "detail": "verbose"},
+        )
+    )
+    verbose = json.loads(verbose_content[0].text)
+    assert len(verbose_content[0].text.splitlines()) <= 120
+    assert len(verbose_content[0].text.encode("utf-8")) <= 32 * 1024
+    assert len(verbose["result"]["workflow_guidance"]["details"]["pending_event_ids"]) == 20
+
+    complete = call_tool_payload(
+        server,
+        "aegis.status",
+        {"target_dir": tmp_path.as_posix(), "detail": "all"},
+    )
+    assert "_aegis_output" not in complete
+    assert (
+        len(complete["result"]["workflow_guidance"]["details"]["pending_event_ids"]) == event_count
+    )
+
+
+def test_failed_mcp_report_is_bounded_but_explicit_all_retains_every_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
+    server = create_server(config)
+    failure_count = 3_500
+
+    def failed_verify(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return {
+            "status": "failed",
+            "passed": False,
+            "checks": [
+                {"status": "fail", "gate_id": f"fixture.gate.{index}"}
+                for index in range(failure_count)
+            ],
+        }
+
+    monkeypatch.setattr(server.aegis_installer, "verify", failed_verify)  # type: ignore[attr-defined]
+    content, _structured = asyncio.run(
+        server.call_tool(
+            "aegis.verify",
+            {
+                "target_dir": tmp_path.as_posix(),
+                "acknowledge_report_write": True,
+            },
+        )
+    )
+    bounded = json.loads(content[0].text)
+    assert len(content[0].text.splitlines()) <= 60
+    assert len(content[0].text.encode("utf-8")) <= 8 * 1024
+    assert bounded["ok"] is False
+    assert bounded["error"]["code"] == "verification_failed"
+    assert bounded["error"]["details"]["report"]["status"] == "failed"
+    assert (
+        bounded["_aegis_output"]["collection_counts"]["$.error.details.report.checks"]
+        == failure_count
+    )
+
+    complete = call_tool_payload(
+        server,
+        "aegis.verify",
+        {
+            "target_dir": tmp_path.as_posix(),
+            "acknowledge_report_write": True,
+            "detail": "all",
+        },
+    )
+    assert len(complete["error"]["details"]["report"]["checks"]) == failure_count
+
+
 def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
     config = AegisMCPConfig.from_paths(source_root=REPO_ROOT, default_target_dir=tmp_path)
     server = create_server(config)
@@ -1390,7 +1515,11 @@ def test_next_reports_guidance_without_mutation(tmp_path: Path) -> None:
         if path.is_file()
     }
 
-    payload = call_tool_payload(server, "aegis.next", {"target_dir": target.as_posix()})
+    payload = call_tool_payload(
+        server,
+        "aegis.next",
+        {"target_dir": target.as_posix(), "detail": "all"},
+    )
 
     after = {
         path.relative_to(target).as_posix(): path.read_bytes()
@@ -1460,7 +1589,11 @@ def test_closeout_ready_reports_without_mutation(tmp_path: Path) -> None:
         if path.is_file()
     }
 
-    payload = call_tool_payload(server, "aegis.closeout_ready", {"target_dir": target.as_posix()})
+    payload = call_tool_payload(
+        server,
+        "aegis.closeout_ready",
+        {"target_dir": target.as_posix(), "detail": "all"},
+    )
 
     after = {
         path.relative_to(target).as_posix(): path.read_bytes()
@@ -1877,7 +2010,11 @@ def test_codex_mcp_config_drives_not_installed_guidance_defaults(tmp_path: Path)
     )
     server = create_server(config)
 
-    payload = call_tool_payload(server, "aegis.next", {"target_dir": target.as_posix()})
+    payload = call_tool_payload(
+        server,
+        "aegis.next",
+        {"target_dir": target.as_posix(), "detail": "all"},
+    )
 
     guidance = payload["result"]
     assert guidance["suggested_cli"] == "aegis init --primary-agent codex --agent codex"

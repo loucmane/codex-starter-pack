@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aegis_foundation import legacy_projection, mcp_registration
+from aegis_foundation import legacy_projection, mcp_registration, output_budget
 from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
@@ -37,6 +37,70 @@ BRIEF_REASON_CHOICES = (
 
 def _dump_json(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def _add_output_budget_arguments(
+    parser: argparse.ArgumentParser,
+    *,
+    add_json: bool = False,
+    json_help: str = "Print structured JSON output.",
+) -> None:
+    detail = parser.add_mutually_exclusive_group()
+    detail.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print a larger but still bounded diagnostic sample (120 lines / 32 KiB).",
+    )
+    detail.add_argument(
+        "--all",
+        dest="all_output",
+        action="store_true",
+        help="Print intentional full detail without a renderer cap.",
+    )
+    if add_json:
+        parser.add_argument("--json", action="store_true", help=json_help)
+
+
+def _print_budgeted_json(
+    payload: Mapping[str, Any],
+    args: argparse.Namespace,
+    *,
+    command: str,
+    artifact_paths: Sequence[str] = (),
+    next_action: str | None = None,
+) -> None:
+    print(
+        output_budget.render_json(
+            payload,
+            command=command,
+            mode=output_budget.mode_from_args(args),
+            artifact_paths=artifact_paths,
+            next_action=next_action,
+        ),
+        end="",
+    )
+
+
+def _print_budgeted_text(
+    text: str,
+    payload: Mapping[str, Any],
+    args: argparse.Namespace,
+    *,
+    command: str,
+    artifact_paths: Sequence[str] = (),
+    next_action: str | None = None,
+) -> None:
+    print(
+        output_budget.render_text(
+            text,
+            payload,
+            command=command,
+            mode=output_budget.mode_from_args(args),
+            artifact_paths=artifact_paths,
+            next_action=next_action,
+        ),
+        end="",
+    )
 
 
 def _candidate_source_roots(explicit_source_root: str | None) -> list[Path]:
@@ -124,7 +188,19 @@ def handle_status(args: argparse.Namespace) -> int:
             source_root=source_root,
             invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
-    _dump_json(payload)
+    _print_budgeted_json(
+        payload,
+        args,
+        command="status",
+        artifact_paths=(
+            _aegis_installer.AEGIS_MANIFEST_REL,
+            _aegis_installer.AEGIS_CURRENT_WORK_REL,
+            _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+            _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+        ),
+        next_action="./.aegis/bin/aegis next --target-dir .",
+    )
     return 0
 
 
@@ -135,7 +211,17 @@ def handle_update(args: argparse.Namespace) -> int:
             source_root=source_root,
             apply=args.apply,
         )
-    _dump_json(payload)
+    _print_budgeted_json(
+        payload,
+        args,
+        command="update",
+        artifact_paths=(
+            _aegis_installer.AEGIS_PLAN_REPORT_REL,
+            _aegis_installer.AEGIS_UPDATE_REPORT_REL,
+            _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+        ),
+        next_action="./.aegis/bin/aegis status --target-dir .",
+    )
     return 1 if payload.get("status") in {"failed", "refused"} else 0
 
 
@@ -464,10 +550,24 @@ def handle_replay(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         work_dir = args.work_dir or tempfile.mkdtemp(prefix="aegis-replay-")
         report = replay.run_corpus(args.corpus, source_root=source_root, work_dir=work_dir)
+        artifact_paths = (str(report.get("report_path") or "aegis-replay-report.json"),)
         if args.json:
-            _dump_json({key: value for key, value in report.items() if key != "results"})
+            _print_budgeted_json(
+                report,
+                args,
+                command="replay",
+                artifact_paths=artifact_paths,
+                next_action=f"python3 -m json.tool {artifact_paths[0]}",
+            )
         else:
-            print(replay.render_report(report), end="")
+            _print_budgeted_text(
+                replay.render_report(report),
+                report,
+                args,
+                command="replay",
+                artifact_paths=artifact_paths,
+                next_action=f"python3 -m json.tool {artifact_paths[0]}",
+            )
         return 0 if report.get("passed") else 1
 
 
@@ -503,12 +603,29 @@ def handle_witness(args: argparse.Namespace) -> int:
                 }
             report["boundary_event"] = boundary
             report["legacy_projection"] = projection
+        artifact_paths = (
+            str(getattr(witness_lib, "WITNESS_REPORT_REL", ".aegis/reports/witness-report.json")),
+        )
         if args.json:
-            _dump_json(report)
+            _print_budgeted_json(
+                report,
+                args,
+                command="witness",
+                artifact_paths=artifact_paths,
+                next_action="git status --short",
+            )
         else:
-            print(witness_lib.render_report(report), end="")
-            print(f"Boundary event: {report['boundary_event']['status']}")
-            print(f"Legacy S:W:H:E projection: {report['legacy_projection']['status']}")
+            rendered = witness_lib.render_report(report)
+            rendered += f"Boundary event: {report['boundary_event']['status']}\n"
+            rendered += f"Legacy S:W:H:E projection: {report['legacy_projection']['status']}\n"
+            _print_budgeted_text(
+                rendered,
+                report,
+                args,
+                command="witness",
+                artifact_paths=artifact_paths,
+                next_action="git status --short",
+            )
         return 0 if report.get("passed") else 1
 
 
@@ -921,9 +1038,28 @@ def handle_next(args: argparse.Namespace) -> int:
             invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
     if args.json:
-        _dump_json(payload)
+        _print_budgeted_json(
+            payload,
+            args,
+            command="next",
+            artifact_paths=(
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+            ),
+        )
     else:
-        print(_aegis_installer.format_next_summary(payload), end="")
+        _print_budgeted_text(
+            _aegis_installer.format_next_summary(payload),
+            payload,
+            args,
+            command="next",
+            artifact_paths=(
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+            ),
+        )
     return 0
 
 
@@ -935,9 +1071,32 @@ def handle_doctor(args: argparse.Namespace) -> int:
             invoking_agent=_aegis_installer.invoking_agent_from_environment(),
         )
     if args.json:
-        _dump_json(payload)
+        _print_budgeted_json(
+            payload,
+            args,
+            command="doctor",
+            artifact_paths=(
+                _aegis_installer.AEGIS_MANIFEST_REL,
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            ),
+            next_action="./.aegis/bin/aegis next --target-dir .",
+        )
     else:
-        print(_aegis_installer.format_doctor_summary(payload), end="")
+        _print_budgeted_text(
+            _aegis_installer.format_doctor_summary(payload),
+            payload,
+            args,
+            command="doctor",
+            artifact_paths=(
+                _aegis_installer.AEGIS_MANIFEST_REL,
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            ),
+            next_action="./.aegis/bin/aegis next --target-dir .",
+        )
     if payload.get("status") == "failed":
         print("Aegis doctor found required failures", file=sys.stderr)
         return 1
@@ -1055,7 +1214,13 @@ def handle_verify(args: argparse.Namespace) -> int:
             strict=args.strict,
         )
         _refresh_capsule_if_stale(source_root, args.target_dir, reason="verification")
-    _dump_json(payload)
+    _print_budgeted_json(
+        payload,
+        args,
+        command="verify",
+        artifact_paths=(_aegis_installer.AEGIS_VERIFY_REPORT_REL,),
+        next_action="./.aegis/bin/aegis next --target-dir .",
+    )
     if payload.get("status") == "failed":
         print("Aegis verification failed", file=sys.stderr)
         return 1
@@ -1073,9 +1238,20 @@ def handle_closeout(args: argparse.Namespace) -> int:
             dry_run=args.dry_run,
         )
     if args.json:
-        _dump_json(payload)
+        _print_budgeted_json(
+            payload,
+            args,
+            command="closeout",
+            artifact_paths=(_aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,),
+        )
     else:
-        print(_aegis_installer.format_closeout_summary(payload), end="")
+        _print_budgeted_text(
+            _aegis_installer.format_closeout_summary(payload),
+            payload,
+            args,
+            command="closeout",
+            artifact_paths=(_aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,),
+        )
     if payload.get("status") == "failed":
         print("Aegis closeout failed", file=sys.stderr)
         return 1
@@ -1532,6 +1708,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Report installed Aegis release state without mutating the target.",
     )
     status_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    _add_output_budget_arguments(
+        status_parser,
+        add_json=True,
+        json_help="Accepted for cross-command consistency; status output is structured JSON.",
+    )
     status_parser.set_defaults(func=handle_status)
 
     update_parser = subparsers.add_parser(
@@ -1544,6 +1725,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Apply the safe managed update; omitted means dry-run JSON only.",
     )
+    _add_output_budget_arguments(
+        update_parser,
+        add_json=True,
+        json_help="Accepted for cross-command consistency; update output is structured JSON.",
+    )
     update_parser.set_defaults(func=handle_update)
 
     replay_parser = subparsers.add_parser(
@@ -1554,7 +1740,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--corpus", action="append", required=True, help="Corpus JSONL path; repeatable."
     )
     replay_parser.add_argument("--work-dir", default=None, help="Scratch dir for state fixtures.")
-    replay_parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    _add_output_budget_arguments(
+        replay_parser,
+        add_json=True,
+        json_help="Print the bounded report as JSON.",
+    )
     replay_parser.set_defaults(func=handle_replay)
 
     witness_parser = subparsers.add_parser(
@@ -1565,7 +1755,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     witness_parser.add_argument(
         "--base", default=None, help="Base ref for the diff (default: origin/main)."
     )
-    witness_parser.add_argument("--json", action="store_true", help="Print the report as JSON.")
+    _add_output_budget_arguments(
+        witness_parser,
+        add_json=True,
+        json_help="Print the bounded report as JSON.",
+    )
     witness_parser.add_argument(
         "--ci",
         action="store_true",
@@ -1788,8 +1982,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     next_parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit the full next-action payload as JSON instead of the concise summary.",
+        help="Emit a bounded next-action payload as JSON instead of the concise summary.",
     )
+    _add_output_budget_arguments(next_parser)
     next_parser.set_defaults(func=handle_next)
 
     doctor_parser = subparsers.add_parser(
@@ -1800,8 +1995,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument(
         "--json",
         action="store_true",
-        help="Print the full structured doctor report instead of a concise summary.",
+        help="Print the bounded structured doctor report instead of a concise summary.",
     )
+    _add_output_budget_arguments(doctor_parser)
     doctor_parser.set_defaults(func=handle_doctor)
 
     enforce_parser = subparsers.add_parser(
@@ -1941,6 +2137,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Require release-certification runtime, workflow, hook, and tracking checks.",
     )
+    _add_output_budget_arguments(
+        verify_parser,
+        add_json=True,
+        json_help="Accepted for cross-command consistency; verify output is structured JSON.",
+    )
     verify_parser.set_defaults(func=handle_verify)
 
     closeout_parser = subparsers.add_parser(
@@ -1971,8 +2172,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     closeout_parser.add_argument(
         "--json",
         action="store_true",
-        help="Print the full structured closeout report instead of the concise human summary.",
+        help="Print the bounded structured closeout report instead of the concise human summary.",
     )
+    _add_output_budget_arguments(closeout_parser)
     closeout_parser.set_defaults(func=handle_closeout)
 
     handoff_parser = subparsers.add_parser(

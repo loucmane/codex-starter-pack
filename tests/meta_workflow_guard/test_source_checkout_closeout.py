@@ -176,7 +176,13 @@ def _commit_fixture(root: Path) -> None:
 
 def _run_readiness(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", str(root / ".claude" / "scripts" / "readiness.sh"), "--root", str(root)],
+        [
+            "bash",
+            str(root / ".claude" / "scripts" / "readiness.sh"),
+            "--root",
+            str(root),
+            "--all",
+        ],
         cwd=root,
         check=False,
         capture_output=True,

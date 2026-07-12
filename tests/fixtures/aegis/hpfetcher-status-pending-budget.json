@@ -1,0 +1,9 @@
+{
+  "captured_at": "2026-07-12T23:22:00+02:00",
+  "description": "Sanitized cardinality fixture from the HP-Fetcher advisory status dogfood; event IDs and payloads are intentionally excluded.",
+  "pending_event_count": 4151,
+  "expected_artifact": ".aegis/state/pending-tracking.json",
+  "expected_default_max_bytes": 8192,
+  "expected_default_max_lines": 60,
+  "source": "HP-Fetcher advisory pending-tracking status"
+}
