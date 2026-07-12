@@ -5,7 +5,7 @@ handler_target: aegis_foundation/output_budget.py
 task_ids: [238]
 branch_policy: feature-required
 evidence_summary:
-  - docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/
+  - docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/
   - aegis_foundation/output_budget.py
   - .taskmaster/tasks/task_238.md
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: aegis_foundation/output_budget.py
 - **Task IDs**: 238
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/, aegis_foundation/output_budget.py, .taskmaster/tasks/task_238.md, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/, aegis_foundation/output_budget.py, .taskmaster/tasks/task_238.md, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
-| plan-step-scope | Define the universal output-budget contract, compatibility boundary, detail modes, artifact ownership, and fail-closed hard caps | docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/designs/context-budget-contract.md | completed |
-| plan-step-implement | Implement the shared renderer and integrate status, next, readiness, doctor, verify, update, witness, replay, and closeout failure surfaces without changing command semantics | aegis_foundation/output_budget.py; aegis_foundation/cli.py; aegis_mcp/server.py; .claude/scripts/readiness.sh; aegis_foundation/replay.py; docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Prove 60-line/8-KiB defaults, bounded verbose and intentional full detail, exact category counts, complete artifacts, 0/10/3500/100000 fixtures, HP-Fetcher one-screen dogfood, rollback, and hosted CI | tests/; docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/reports/universal-context-budgets/task-verification.md; docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/HANDOFF.md | in-progress |
+| plan-step-scope | Define the universal output-budget contract, compatibility boundary, detail modes, artifact ownership, and fail-closed hard caps | docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/designs/context-budget-contract.md | completed |
+| plan-step-implement | Implement the shared renderer and integrate status, next, readiness, doctor, verify, update, witness, replay, and closeout failure surfaces without changing command semantics | aegis_foundation/output_budget.py; aegis_foundation/cli.py; aegis_mcp/server.py; .claude/scripts/readiness.sh; aegis_foundation/replay.py; docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Prove 60-line/8-KiB defaults, bounded verbose and intentional full detail, exact category counts, complete artifacts, 0/10/3500/100000 fixtures, HP-Fetcher one-screen dogfood, rollback, and hosted CI | tests/; docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/reports/universal-context-budgets/task-verification.md; docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/HANDOFF.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260712-task238-universal-context-budgets-ACTIVE/`
+- `docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/`
 - `aegis_foundation/output_budget.py`
 - `aegis_foundation/cli.py`
 - `aegis_foundation/replay.py`

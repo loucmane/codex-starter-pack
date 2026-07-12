@@ -7903,13 +7903,13 @@
         "description": "Create a shared rendering contract that keeps default Aegis command output within an agent-safe context budget while preserving complete details in report artifacts.",
         "details": "Implement roadmap workstream C2 for status, next, doctor, verify, update, witness, replay, and closeout failures. Default text and JSON output must remain at or below 60 lines and 8 KiB, report exact category counts, show bounded samples and truncation markers, provide one copyable next action, and link full-detail artifacts. Add explicit bounded verbose and intentional full-detail modes. Cover 0, 10, 3500, and 100000 event fixtures; assert byte and line budgets; prove CI failures remain bounded while artifacts retain complete detail; and dogfood HP-Fetcher pending-event status as a one-screen result. Do not delete or drain pending events. Record latency, output size, governance-call, and rollback metrics.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "236"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-07-12T21:00:56.846Z"
+        "updatedAt": "2026-07-12T22:22:23.219Z"
       },
       {
         "id": "239",
@@ -8032,9 +8032,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-12T21:00:56.846Z",
+      "lastModified": "2026-07-12T22:22:23.219Z",
       "taskCount": 245,
-      "completedCount": 234,
+      "completedCount": 235,
       "tags": [
         "master"
       ]

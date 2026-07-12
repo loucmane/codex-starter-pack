@@ -6,7 +6,8 @@ Branch: `feat/task-238-universal-context-budgets`
 
 ## State
 
-Implementation is complete and final local verification is in progress. Aegis CLI
+Implementation, local verification, implementation-head hosted CI, Taskmaster closeout,
+and supported source archive are complete. Aegis CLI
 status/update/next/doctor/verify/closeout/witness/replay output is bounded by default,
 MCP applies the same budget to complete success/error envelopes, and standalone
 readiness uses the same numeric modes. `--all --json` and MCP `detail=all` retain
@@ -29,9 +30,13 @@ fingerprints were identical before and after; no repair, update, or drain ran.
 - Taskmaster health and dependency validation pass;
 - managed readiness and installer source/package mirrors are byte-identical.
 
-## Next
+## Delivery
 
-Create the final verification report, pass source guard/Aegis closeout, deliver through
-hosted CI, and record the exact merged head. Preserve unrelated `.codex`, `.agents`, and
-local `.aegis` drift. The next program slice after Task 238 is Task 239, the diagnostic
-worktree/subagent capture audit; no PR-4 retirement is authorized.
+Draft PR #263 passed all seven hosted checks at exact signed implementation head
+`5d8b95566cda37f325ef69d4543b49895998d0f7`. Taskmaster Task 238 is done and its
+tracking bundle is archived at
+`docs/ai/work-tracking/archive/20260712-task238-universal-context-budgets-COMPLETED/`.
+The terminal lifecycle commit still needs exact-head hosted revalidation and protected
+merge. Preserve unrelated `.codex`, `.agents`, and local `.aegis` drift. The next
+program slice is Task 239, the diagnostic worktree/subagent capture audit; no PR-4
+retirement is authorized.
