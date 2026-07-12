@@ -81,6 +81,14 @@ RECONCILE_MUTATION_FLAGS = (
 )
 
 
+def load_blog_completed_delivery_fixture() -> dict[str, Any]:
+    return json.loads(
+        (REPO_ROOT / "tests/fixtures/aegis/blog-task67-completed-delivery.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
 def load_task_module():
     name = "codex_task_aegis_test_module"
     if name in sys.modules:
@@ -3397,6 +3405,303 @@ def test_post_closeout_delivery_guidance_classifies_passed_pr_checks(
     assert delivery["details"]["checks"]["state"] == "passed"
     assert delivery["details"]["merge_requires_explicit_user_approval"] is True
     assert not any("pr merge" in command for command in delivery["copyable_repairs"])
+
+
+def test_post_closeout_delivery_guidance_recognizes_blog_task67_on_synchronized_main(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = load_blog_completed_delivery_fixture()["completed_main"]
+    pull_request = fixture["pull_request"]
+
+    monkeypatch.setattr(
+        aegis_installer,
+        "_current_branch",
+        lambda _target: fixture["current_branch"],
+    )
+
+    def fake_git(_target: Path, *args: str) -> subprocess.CompletedProcess[str]:
+        if args == (
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{u}",
+        ):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="origin/main\n", stderr="")
+        if args == (
+            "merge-base",
+            "--is-ancestor",
+            pull_request["mergeCommit"]["oid"],
+            "HEAD",
+        ):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+        if args == ("rev-list", "--left-right", "--count", "HEAD...@{u}"):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="0\t0\n", stderr="")
+        raise AssertionError(f"unexpected git invocation: {args!r}")
+
+    monkeypatch.setattr(aegis_installer, "_run_target_git", fake_git)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": [pull_request]},
+    )
+
+    delivery = aegis_installer._post_closeout_delivery_guidance(
+        tmp_path,
+        fixture["current_work"],
+    )
+
+    assert delivery["state"] == "merged_complete"
+    assert delivery["next_safe_action"] == "merged_complete"
+    assert delivery["details"]["current_branch"] == "main"
+    assert delivery["details"]["recorded_branch"] == pull_request["headRefName"]
+    assert delivery["details"]["delivery_proof"] == {
+        "ahead": 0,
+        "base_branch": "main",
+        "behind": 0,
+        "current_branch": "main",
+        "merge_commit": pull_request["mergeCommit"]["oid"],
+        "merge_commit_in_head": True,
+        "status": "synchronized",
+        "upstream": "origin/main",
+    }
+
+
+def test_next_action_replays_blog_task67_as_complete_on_synchronized_main(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = load_blog_completed_delivery_fixture()["completed_main"]
+    pull_request = fixture["pull_request"]
+    target = tmp_path / "blog-task67"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    (target / AEGIS_CLIENT_RELOAD_REL).unlink(missing_ok=True)
+    current_work_path = target / AEGIS_CURRENT_WORK_REL
+    current_work_path.parent.mkdir(parents=True, exist_ok=True)
+    current_work_path.write_text(
+        json.dumps(fixture["current_work"], indent=2) + "\n",
+        encoding="utf-8",
+    )
+    closeout_path = target / AEGIS_CLOSEOUT_REPORT_REL
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(fixture["closeout_report"], indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: "main")
+
+    def fake_git(_target: Path, *args: str) -> subprocess.CompletedProcess[str]:
+        if args == (
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{u}",
+        ):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="origin/main\n", stderr="")
+        if args == (
+            "merge-base",
+            "--is-ancestor",
+            pull_request["mergeCommit"]["oid"],
+            "HEAD",
+        ):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="", stderr="")
+        if args == ("rev-list", "--left-right", "--count", "HEAD...@{u}"):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="0\t0\n", stderr="")
+        raise AssertionError(f"unexpected git invocation: {args!r}")
+
+    monkeypatch.setattr(aegis_installer, "_run_target_git", fake_git)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": [pull_request]},
+    )
+
+    guidance = next_action(target, source_root=REPO_ROOT)
+
+    assert guidance["phase"] == "complete"
+    assert guidance["state"] == "closeout_passed"
+    assert guidance["next_required_action"] == "no workflow action required"
+    assert guidance["missing_gates"] == []
+
+
+@pytest.mark.parametrize(
+    ("merge_commit", "ancestor_returncode", "sync_output", "expected_reason"),
+    [
+        (None, 0, "0\t0\n", "missing_merge_commit"),
+        ("81511aa10bfa13191f95bd15b80d4d889ce2e0e8", 1, "0\t0\n", "merge_commit_not_in_head"),
+        ("81511aa10bfa13191f95bd15b80d4d889ce2e0e8", 0, "0\t1\n", "upstream_not_synchronized"),
+    ],
+)
+def test_post_closeout_delivery_guidance_fails_closed_without_complete_merged_main_proof(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    merge_commit: str | None,
+    ancestor_returncode: int,
+    sync_output: str,
+    expected_reason: str,
+) -> None:
+    fixture = load_blog_completed_delivery_fixture()["completed_main"]
+    pull_request = json.loads(json.dumps(fixture["pull_request"]))
+    if merge_commit is None:
+        pull_request.pop("mergeCommit", None)
+    else:
+        pull_request["mergeCommit"] = {"oid": merge_commit}
+
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: "main")
+
+    def fake_git(_target: Path, *args: str) -> subprocess.CompletedProcess[str]:
+        if args == (
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{u}",
+        ):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout="origin/main\n", stderr="")
+        if args[:2] == ("merge-base", "--is-ancestor"):
+            return subprocess.CompletedProcess(
+                args=args,
+                returncode=ancestor_returncode,
+                stdout="",
+                stderr="",
+            )
+        if args == ("rev-list", "--left-right", "--count", "HEAD...@{u}"):
+            return subprocess.CompletedProcess(args=args, returncode=0, stdout=sync_output, stderr="")
+        raise AssertionError(f"unexpected git invocation: {args!r}")
+
+    monkeypatch.setattr(aegis_installer, "_run_target_git", fake_git)
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {"available": True, "reason": "", "prs": [pull_request]},
+    )
+
+    delivery = aegis_installer._post_closeout_delivery_guidance(
+        tmp_path,
+        fixture["current_work"],
+    )
+
+    assert delivery["state"] == "delivery_unknown"
+    assert delivery["next_safe_action"] == "inspect_git_state"
+    assert delivery["details"]["delivery_proof"]["status"] == "unproven"
+    assert delivery["details"]["delivery_proof"]["reason"] == expected_reason
+
+
+def test_post_closeout_delivery_guidance_fails_closed_when_github_is_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = load_blog_completed_delivery_fixture()["completed_main"]
+    monkeypatch.setattr(aegis_installer, "_current_branch", lambda _target: "main")
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_gh_pr_list",
+        lambda _target: {
+            "available": False,
+            "reason": "gh authentication failed",
+            "prs": [],
+        },
+    )
+    monkeypatch.setattr(
+        aegis_installer,
+        "_run_target_git",
+        lambda *_args: pytest.fail("git proof must not run without matching GitHub truth"),
+    )
+
+    delivery = aegis_installer._post_closeout_delivery_guidance(
+        tmp_path,
+        fixture["current_work"],
+    )
+
+    assert delivery["state"] == "delivery_unknown"
+    assert delivery["details"]["delivery_proof"] == {
+        "status": "unproven",
+        "reason": "github_unavailable",
+        "github_reason": "gh authentication failed",
+    }
+
+
+def test_closeout_passed_binds_report_to_current_work_identity(tmp_path: Path) -> None:
+    fixture = load_blog_completed_delivery_fixture()
+    completed = fixture["completed_main"]
+    current_task = fixture["stale_report_new_task"]["current_work"]
+    report_path = tmp_path / AEGIS_CLOSEOUT_REPORT_REL
+    report_path.parent.mkdir(parents=True)
+    report_path.write_text(
+        json.dumps(completed["closeout_report"], indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    assert aegis_installer._closeout_passed(tmp_path, completed["current_work"]) is True
+    assert aegis_installer._closeout_passed(tmp_path, current_task) is False
+
+    own_closeout = json.loads(json.dumps(current_task))
+    own_closeout["status"] = "completed"
+    own_closeout["closeout_passed_at"] = "2026-07-12T01:00:00Z"
+    assert aegis_installer._closeout_passed(tmp_path, own_closeout) is False
+
+    report_path.unlink()
+    assert aegis_installer._closeout_passed(tmp_path, own_closeout) is True
+
+
+def test_next_action_does_not_use_stale_task67_closeout_for_active_task38(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fixture = load_blog_completed_delivery_fixture()
+    target = tmp_path / "blog-task38"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    (target / AEGIS_CLIENT_RELOAD_REL).unlink(missing_ok=True)
+    current_work_path = target / AEGIS_CURRENT_WORK_REL
+    current_work_path.parent.mkdir(parents=True, exist_ok=True)
+    current_work_path.write_text(
+        json.dumps(fixture["stale_report_new_task"]["current_work"], indent=2) + "\n",
+        encoding="utf-8",
+    )
+    closeout_path = target / AEGIS_CLOSEOUT_REPORT_REL
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(fixture["completed_main"]["closeout_report"], indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    def fail_if_called(*_args: object, **_kwargs: object) -> dict[str, Any]:
+        pytest.fail("stale Task 67 report armed post-closeout delivery for active Task 38")
+
+    monkeypatch.setattr(aegis_installer, "_post_closeout_delivery_guidance", fail_if_called)
+
+    guidance = next_action(target, source_root=REPO_ROOT)
+
+    assert guidance["phase"] not in {"deliver", "complete"}
+    assert guidance["state"] != "delivery_unknown"
 
 
 def test_delivery_snapshot_normalizes_machine_observed_draft_pr(

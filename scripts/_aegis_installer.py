@@ -2958,12 +2958,98 @@ def _strict_verify_passed(target_root: Path) -> bool:
     return report.get("mode") == "strict" and report.get("status") == "passed"
 
 
-def _closeout_passed(target_root: Path) -> bool:
+def _closeout_passed(
+    target_root: Path,
+    current_work: Mapping[str, Any] | None,
+) -> bool:
     report = _read_json(target_root / AEGIS_CLOSEOUT_REPORT_REL)
     if isinstance(report, Mapping) and report.get("status") == "passed":
-        return True
-    current_work = _read_json(target_root / AEGIS_CURRENT_WORK_REL)
+        return _closeout_report_matches_current_work(report, current_work)
     return isinstance(current_work, Mapping) and bool(current_work.get("closeout_passed_at"))
+
+
+def _pr_merge_commit_oid(pr: Mapping[str, Any]) -> str:
+    merge_commit = pr.get("mergeCommit")
+    if not isinstance(merge_commit, Mapping):
+        return ""
+    return str(merge_commit.get("oid") or "").strip()
+
+
+def _merged_delivery_proof(
+    target_root: Path,
+    *,
+    current_branch: str,
+    pr: Mapping[str, Any],
+) -> dict[str, Any]:
+    base_branch = str(pr.get("baseRefName") or "").strip()
+    merge_commit = _pr_merge_commit_oid(pr)
+    proof: dict[str, Any] = {
+        "status": "unproven",
+        "current_branch": current_branch,
+        "base_branch": base_branch,
+        "merge_commit": merge_commit or None,
+    }
+    if not merge_commit:
+        proof["reason"] = "missing_merge_commit"
+        return proof
+    if not base_branch or current_branch != base_branch:
+        proof["reason"] = "current_branch_is_not_pr_base"
+        return proof
+
+    upstream_result = _run_target_git(
+        target_root,
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        "@{u}",
+    )
+    upstream = upstream_result.stdout.strip() if upstream_result.returncode == 0 else ""
+    proof["upstream"] = upstream or None
+    if not upstream:
+        proof["reason"] = "missing_upstream"
+        return proof
+    if upstream != base_branch and not upstream.endswith(f"/{base_branch}"):
+        proof["reason"] = "upstream_does_not_match_pr_base"
+        return proof
+
+    ancestor = _run_target_git(
+        target_root,
+        "merge-base",
+        "--is-ancestor",
+        merge_commit,
+        "HEAD",
+    )
+    proof["merge_commit_in_head"] = ancestor.returncode == 0
+    if ancestor.returncode != 0:
+        proof["reason"] = "merge_commit_not_in_head"
+        return proof
+
+    synchronized = _run_target_git(
+        target_root,
+        "rev-list",
+        "--left-right",
+        "--count",
+        "HEAD...@{u}",
+    )
+    if synchronized.returncode != 0:
+        proof["reason"] = "upstream_comparison_failed"
+        return proof
+    counts = synchronized.stdout.strip().split()
+    if len(counts) != 2:
+        proof["reason"] = "invalid_upstream_comparison"
+        return proof
+    try:
+        ahead, behind = (int(value) for value in counts)
+    except ValueError:
+        proof["reason"] = "invalid_upstream_comparison"
+        return proof
+    proof["ahead"] = ahead
+    proof["behind"] = behind
+    if ahead != 0 or behind != 0:
+        proof["reason"] = "upstream_not_synchronized"
+        return proof
+    proof["status"] = "synchronized"
+    return proof
 
 
 def _post_closeout_delivery_guidance(
@@ -2984,6 +3070,52 @@ def _post_closeout_delivery_guidance(
             "details": {"reason": str(exc), "recorded_branch": recorded_branch},
         }
     if recorded_branch and recorded_branch != branch:
+        gh = _run_gh_pr_list(target_root)
+        if not gh.get("available"):
+            proof = {
+                "status": "unproven",
+                "reason": "github_unavailable",
+                "github_reason": gh.get("reason"),
+            }
+        else:
+            matching_prs = [
+                dict(pr)
+                for pr in gh.get("prs", [])
+                if isinstance(pr, Mapping)
+                and str(pr.get("headRefName") or "") == recorded_branch
+            ]
+            merged_prs = [
+                pr
+                for pr in matching_prs
+                if str(pr.get("state") or "").upper() == "MERGED" or pr.get("mergedAt")
+            ]
+            if merged_prs:
+                pr = merged_prs[0]
+                proof = _merged_delivery_proof(
+                    target_root,
+                    current_branch=branch,
+                    pr=pr,
+                )
+                if proof.get("status") == "synchronized":
+                    return {
+                        "state": "merged_complete",
+                        "next_safe_action": "merged_complete",
+                        "next_required_action": "no workflow action required",
+                        "suggested_cli": "./.aegis/bin/aegis status --target-dir .",
+                        "copyable_repairs": [],
+                        "details": {
+                            "current_branch": branch,
+                            "recorded_branch": recorded_branch,
+                            "pr": pr,
+                            "delivery_proof": proof,
+                        },
+                    }
+            else:
+                proof = {
+                    "status": "unproven",
+                    "reason": "matching_merged_pr_not_found",
+                    "matching_prs": matching_prs,
+                }
         return {
             "state": "delivery_unknown",
             "next_safe_action": "inspect_git_state",
@@ -2992,7 +3124,11 @@ def _post_closeout_delivery_guidance(
             ),
             "suggested_cli": "git status --short --branch",
             "copyable_repairs": ["git status --short --branch"],
-            "details": {"current_branch": branch, "recorded_branch": recorded_branch},
+            "details": {
+                "current_branch": branch,
+                "recorded_branch": recorded_branch,
+                "delivery_proof": proof,
+            },
         }
 
     upstream = _run_target_git(
@@ -3973,7 +4109,7 @@ def next_action(
             },
         )
 
-    if _closeout_passed(target_root):
+    if _closeout_passed(target_root, current_work):
         delivery = _post_closeout_delivery_guidance(target_root, current_work)
         if delivery.get("state") != "merged_complete":
             return _workflow_guidance_payload(
@@ -4770,7 +4906,7 @@ def _run_gh_pr_list(target_root: Path) -> dict[str, Any]:
             "--limit",
             "200",
             "--json",
-            "number,state,title,headRefName,headRefOid,baseRefName,mergedAt,closedAt,url,isDraft",
+            "number,state,title,headRefName,headRefOid,baseRefName,mergeCommit,mergedAt,closedAt,url,isDraft",
         ],
         cwd=target_root,
         text=True,
@@ -4808,7 +4944,7 @@ def _run_gh_pr_view(target_root: Path, number: Any) -> dict[str, Any]:
             "view",
             pr_number,
             "--json",
-            "number,state,title,headRefName,headRefOid,baseRefName,mergedAt,closedAt,url,isDraft,mergeStateStatus,statusCheckRollup",
+            "number,state,title,headRefName,headRefOid,baseRefName,mergeCommit,mergedAt,closedAt,url,isDraft,mergeStateStatus,statusCheckRollup",
         ],
         cwd=target_root,
         text=True,
