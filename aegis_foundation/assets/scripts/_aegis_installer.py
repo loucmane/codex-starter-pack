@@ -10718,7 +10718,7 @@ def format_next_summary(payload: Mapping[str, Any]) -> str:
     """TM 189: concise human rendering of `aegis next`, leading with the continuation brief.
 
     A bare "continue" means: do exactly the one next_safe_action below, honour the
-    confirmation boundaries, then re-run `aegis next`. The full payload (--json) carries
+    confirmation boundaries, then re-run `aegis next`. The full payload (`--all --json`) carries
     suggested CLI/MCP calls and copyable repairs."""
 
     brief = (
@@ -11859,7 +11859,7 @@ def format_closeout_summary(report: Mapping[str, Any]) -> str:
     suggested_cli = str(next_action.get("suggested_cli") or "").strip()
     if suggested_cli:
         lines.append(f"next: {suggested_cli}")
-    lines.append("json: rerun with --json for the full structured report")
+    lines.append("json: rerun with --all --json for the full structured report")
     return "\n".join(lines) + "\n"
 
 

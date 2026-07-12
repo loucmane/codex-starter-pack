@@ -73,6 +73,20 @@ aegis repair --target-dir .
 aegis closeout --target-dir . --update-handoff
 ```
 
+The agent-facing `status`, `next`, readiness, `doctor`, `verify`, `update`, `witness`,
+`replay`, and `closeout` surfaces use one context-budget contract. Default output is at
+most 60 lines and 8 KiB of UTF-8; it reports exact aggregate counts, bounded samples,
+truncation, full-detail artifact paths, and one copyable next action. `--verbose`
+expands the sample while remaining bounded at 120 lines and 32 KiB. `--all` is the
+explicit unbounded operator/debug mode. `--json` selects representation and remains
+bounded; use `--all --json` only when complete structured stdout is intentional. These
+flags change presentation only: checks, exit codes, stored state, and report artifacts
+always use the complete payload.
+
+The corresponding MCP tools apply the budget to the complete MCP response envelope.
+Their `detail` argument accepts `default`, `verbose`, or `all`; `detail=all` is the
+MCP equivalent of CLI `--all --json`.
+
 Start tracked local work without requiring Taskmaster or Serena:
 
 ```bash
@@ -120,7 +134,7 @@ aegis log --target-dir . --pending-id current --note "Recorded strict verificati
 aegis closeout --target-dir . --update-handoff
 ```
 
-`aegis closeout` prints a concise human summary by default, writes `.aegis/reports/closeout-report.json` during final closeout, and exits non-zero unless readiness is READY, pending S:W:H:E tracking is empty, strict verification passes, plan/tracker scope/implement/verify steps are complete and ordered, required evidence is cross-referenced in session/tracker/implementation/changelog/handoff/plan, and `HANDOFF.md` has semantic current-state and next-step sections. Use `--json` when automation needs the full structured report on stdout. `--update-handoff` rewrites only the Aegis-owned semantic sections and preserves `## Progress Log`. A passed final closeout marks `.aegis/state/current-work.json` as `completed` while retaining the closeout evidence path.
+`aegis closeout` prints a concise bounded human summary by default, writes `.aegis/reports/closeout-report.json` during final closeout, and exits non-zero unless readiness is READY, pending S:W:H:E tracking is empty, strict verification passes, plan/tracker scope/implement/verify steps are complete and ordered, required evidence is cross-referenced in session/tracker/implementation/changelog/handoff/plan, and `HANDOFF.md` has semantic current-state and next-step sections. Use `--json` for bounded structured output or `--all --json` for intentional complete stdout; the stored report is always complete. `--update-handoff` rewrites only the Aegis-owned semantic sections and preserves `## Progress Log`. A passed final closeout marks `.aegis/state/current-work.json` as `completed` while retaining the closeout evidence path.
 
 The closeout report may include normal git/GitHub command guidance (`git status`, `git add`, `git commit`, `git push`, `gh pr create`). `gac` is legacy/manual only and is not the default generated path.
 

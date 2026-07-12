@@ -28,6 +28,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.shared.message import SessionMessage
 from pydantic import Field
 
+from aegis_foundation import output_budget
 from aegis_foundation.resources import packaged_asset_root_path
 from scripts import _aegis_installer
 
@@ -37,6 +38,7 @@ COMPATIBILITY_MATRIX_REL = "templates/registry/agent-compatibility-matrix.json"
 ProfileName = Literal["generic"]
 PrimaryAgentName = Literal["claude", "codex", "gemini", "multi", "none"]
 AgentName = Literal["claude", "codex", "gemini"]
+DetailMode = Literal["default", "verbose", "all"]
 AgentList = Annotated[list[AgentName], Field(json_schema_extra={"uniqueItems": True})]
 V1_TOOL_NAMES = (
     "aegis.inspect",
@@ -374,6 +376,174 @@ def _json_text(payload: dict[str, Any]) -> str:
     return json.dumps(payload, indent=2, sort_keys=True)
 
 
+def _budget_mcp_response(
+    payload: dict[str, Any],
+    *,
+    tool_name: str,
+    detail: DetailMode,
+    artifact_paths: Sequence[str] = (),
+    next_action: str | None = None,
+) -> dict[str, Any]:
+    modes = {
+        "default": output_budget.DEFAULT_MODE,
+        "verbose": output_budget.VERBOSE_MODE,
+        "all": output_budget.ALL_MODE,
+    }
+    rendered = output_budget.render_json(
+        payload,
+        command=tool_name,
+        mode=modes[detail],
+        artifact_paths=artifact_paths,
+        next_action=next_action,
+    )
+    projected = json.loads(rendered)
+    if not isinstance(projected, dict):
+        raise AegisMCPInputError("context-budget renderer returned a non-object response")
+    if detail == "all":
+        return projected
+
+    metadata = projected.get("_aegis_output")
+    if not isinstance(metadata, dict):
+        return projected
+
+    def compact_metadata(record_limit: int) -> dict[str, Any]:
+        collections = {
+            str(item.get("path")): int(item.get("items") or 0)
+            for item in metadata.get("collection_counts", [])[:record_limit]
+            if isinstance(item, dict) and item.get("path")
+        }
+        categories: dict[str, str] = {}
+        for field_name, counts in list(metadata.get("category_counts", {}).items())[:record_limit]:
+            if not isinstance(counts, dict):
+                continue
+            values = counts.get("values") if isinstance(counts.get("values"), dict) else {}
+            rendered_values = ", ".join(
+                f"{name}={count}" for name, count in list(values.items())[:record_limit]
+            )
+            categories[str(field_name)] = (
+                f"total={counts.get('total', 0)}; {rendered_values}; "
+                f"other={counts.get('other', 0)}"
+            )
+        truncations = {
+            str(item.get("path")): (
+                f"{item.get('kind')}: total={item.get('total')}, "
+                f"shown={item.get('shown')}, omitted={item.get('omitted')}"
+            )
+            for item in metadata.get("truncations", [])[:record_limit]
+            if isinstance(item, dict) and item.get("path")
+        }
+        return {
+            "command": metadata.get("command"),
+            "detail_mode": metadata.get("detail_mode"),
+            "limits": f"lines={modes[detail].max_lines}; bytes={modes[detail].max_bytes}",
+            "actual": "pending wire serialization",
+            "collection_counts": collections,
+            "collection_paths_total": metadata.get("collection_paths_total", 0),
+            "category_counts": categories,
+            "category_fields_total": metadata.get("category_fields_total", 0),
+            "truncations": truncations,
+            "truncations_total": metadata.get("truncations_total", 0),
+            "artifact_paths": list(metadata.get("artifact_paths", []))[:3],
+            "next_action": metadata.get("next_action"),
+            "full_output": "Call the same MCP tool with detail=all for intentional full output.",
+        }
+
+    limits = modes[detail]
+    assert limits.max_lines is not None and limits.max_bytes is not None
+    compact = compact_metadata(3)
+    projected["_aegis_output"] = compact
+    for _ in range(4):
+        wire = _json_text(projected)
+        actual = f"lines={len(wire.splitlines())}; bytes={len(wire.encode('utf-8'))}"
+        if compact["actual"] == actual:
+            break
+        compact["actual"] = actual
+    wire = _json_text(projected)
+    if len(wire.splitlines()) > limits.max_lines or len(wire.encode("utf-8")) > limits.max_bytes:
+        compact = compact_metadata(1)
+        compact["category_counts"] = "; ".join(
+            f"{name}: {counts}" for name, counts in compact["category_counts"].items()
+        )
+        compact["truncations"] = "; ".join(
+            f"{path}: {counts}" for path, counts in compact["truncations"].items()
+        )
+        compact["artifact_paths"] = ", ".join(compact["artifact_paths"])
+        projected["_aegis_output"] = compact
+        for _ in range(4):
+            wire = _json_text(projected)
+            actual = f"lines={len(wire.splitlines())}; bytes={len(wire.encode('utf-8'))}"
+            if compact["actual"] == actual:
+                break
+            compact["actual"] = actual
+        wire = _json_text(projected)
+
+    if len(wire.splitlines()) > limits.max_lines or len(wire.encode("utf-8")) > limits.max_bytes:
+
+        def scalar_projection(value: Any) -> Any:
+            if value is None or isinstance(value, (bool, int, float)):
+                return value
+            if isinstance(value, str):
+                return value if len(value) <= 320 else value[:319] + "…"
+            return None
+
+        minimal: dict[str, Any] = {}
+        for key in ("ok", "schema_version", "tool", "read_only"):
+            if key in projected:
+                minimal[key] = scalar_projection(projected[key])
+        result = projected.get("result")
+        if isinstance(result, dict):
+            minimal["result"] = {
+                key: scalar_projection(result[key])
+                for key in (
+                    "status",
+                    "installed",
+                    "passed",
+                    "read_only",
+                    "dry_run",
+                    "migration_required",
+                    "mode",
+                    "state",
+                    "phase",
+                )
+                if key in result
+            }
+        error = projected.get("error")
+        if isinstance(error, dict):
+            minimal_error = {
+                key: scalar_projection(error[key])
+                for key in ("code", "message", "status")
+                if key in error
+            }
+            details = error.get("details")
+            if isinstance(details, dict):
+                report = details.get("report")
+                if isinstance(report, dict):
+                    minimal_error["details"] = {
+                        "report": {
+                            key: scalar_projection(report[key])
+                            for key in (
+                                "status",
+                                "passed",
+                                "read_only",
+                                "dry_run",
+                                "mode",
+                            )
+                            if key in report
+                        }
+                    }
+            minimal["error"] = minimal_error
+        compact["minimal_projection"] = True
+        minimal["_aegis_output"] = compact
+        projected = minimal
+        for _ in range(4):
+            wire = _json_text(projected)
+            actual = f"lines={len(wire.splitlines())}; bytes={len(wire.encode('utf-8'))}"
+            if compact["actual"] == actual:
+                break
+            compact["actual"] = actual
+    return projected
+
+
 def _read_json_file(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -475,59 +645,90 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         *,
         read_only: bool,
         callback,
+        detail: DetailMode | None = None,
+        artifact_paths: Sequence[str] = (),
+        next_action: str | None = None,
     ) -> dict[str, Any]:
+        def finalize(payload: dict[str, Any]) -> dict[str, Any]:
+            if detail is None:
+                return payload
+            return _budget_mcp_response(
+                payload,
+                tool_name=tool_name,
+                detail=detail,
+                artifact_paths=artifact_paths,
+                next_action=next_action,
+            )
+
         stale = runtime_staleness()
         if stale is not None and not read_only:
-            return _error_tool_response(
-                tool_name,
-                code="runtime_stale_reload_required",
-                status="blocked",
-                message=(
-                    "HARD STOP: the Aegis source changed after this MCP server started, so "
-                    "state-mutating tools are refused to prevent stale-logic decisions "
-                    "(the HP-Coach empty-repair-plan class). Restart the Aegis MCP server, "
-                    "or run the equivalent fresh-reading CLI command instead."
-                ),
-                details=stale,
+            return finalize(
+                _error_tool_response(
+                    tool_name,
+                    code="runtime_stale_reload_required",
+                    status="blocked",
+                    message=(
+                        "HARD STOP: the Aegis source changed after this MCP server started, so "
+                        "state-mutating tools are refused to prevent stale-logic decisions "
+                        "(the HP-Coach empty-repair-plan class). Restart the Aegis MCP server, "
+                        "or run the equivalent fresh-reading CLI command instead."
+                    ),
+                    details=stale,
+                )
             )
         try:
             result = callback()
         except AegisMCPToolError as exc:
-            return _error_tool_response(
-                tool_name,
-                code=exc.code,
-                message=str(exc),
-                status=exc.status,
-                details=exc.details,
+            return finalize(
+                _error_tool_response(
+                    tool_name,
+                    code=exc.code,
+                    message=str(exc),
+                    status=exc.status,
+                    details=exc.details,
+                )
             )
         except AegisMCPInputError as exc:
-            return _error_tool_response(
-                tool_name,
-                code="invalid_input",
-                message=str(exc),
-                status="invalid_request",
+            return finalize(
+                _error_tool_response(
+                    tool_name,
+                    code="invalid_input",
+                    message=str(exc),
+                    status="invalid_request",
+                )
             )
         except installer.AegisError as exc:
-            return _error_tool_response(
-                tool_name,
-                code="aegis_error",
-                message=str(exc),
-                status="invalid_request",
+            return finalize(
+                _error_tool_response(
+                    tool_name,
+                    code="aegis_error",
+                    message=str(exc),
+                    status="invalid_request",
+                )
             )
         except ValidationError as exc:
-            return _error_tool_response(
-                tool_name,
-                code="schema_validation_failed",
-                message=exc.message,
-                status="invalid_response",
-                details={
-                    "path": list(exc.path),
-                    "schema_path": list(exc.schema_path),
-                },
+            return finalize(
+                _error_tool_response(
+                    tool_name,
+                    code="schema_validation_failed",
+                    message=exc.message,
+                    status="invalid_response",
+                    details={
+                        "path": list(exc.path),
+                        "schema_path": list(exc.schema_path),
+                    },
+                )
             )
         if isinstance(result, dict) and result.get("ok") is False and "error" in result:
-            return result
-        return _ok_tool_response(tool_name, result=result, read_only=read_only, runtime_stale=stale)
+            return finalize(result)
+        return finalize(
+            _ok_tool_response(
+                tool_name,
+                result=result,
+                read_only=read_only,
+                runtime_stale=stale,
+            )
+        )
 
     @server.tool(name="aegis.inspect")
     def aegis_inspect(
@@ -554,8 +755,11 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         )
 
     @server.tool(name="aegis.status")
-    def aegis_status(target_dir: str) -> dict[str, Any]:
-        """Report installed Aegis release state and embedded next workflow guidance without mutating the target."""
+    def aegis_status(
+        target_dir: str,
+        detail: DetailMode = "default",
+    ) -> dict[str, Any]:
+        """Report installed Aegis release state and embedded next workflow guidance in a bounded response; use detail=all only for intentional full output."""
 
         def call_core() -> dict[str, Any]:
             target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
@@ -570,11 +774,24 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.status",
             read_only=True,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(
+                _aegis_installer.AEGIS_MANIFEST_REL,
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+                _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+            ),
+            next_action="./.aegis/bin/aegis next --target-dir .",
         )
 
     @server.tool(name="aegis.update")
-    def aegis_update(target_dir: str, apply: bool = False) -> dict[str, Any]:
-        """Refresh installed runtime pointer, managed assets, verification report, and capsule state; dry-run is read-only."""
+    def aegis_update(
+        target_dir: str,
+        apply: bool = False,
+        detail: DetailMode = "default",
+    ) -> dict[str, Any]:
+        """Refresh managed runtime state and return bounded evidence; dry-run is read-only."""
 
         def call_core() -> dict[str, Any]:
             target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
@@ -617,11 +834,21 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.update",
             read_only=not apply,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(
+                _aegis_installer.AEGIS_PLAN_REPORT_REL,
+                _aegis_installer.AEGIS_UPDATE_REPORT_REL,
+                _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            ),
+            next_action="./.aegis/bin/aegis status --target-dir .",
         )
 
     @server.tool(name="aegis.next")
-    def aegis_next(target_dir: str) -> dict[str, Any]:
-        """Tell the agent the next required Aegis workflow action for a normal request; read-only, no source edits, no .aegis writes."""
+    def aegis_next(
+        target_dir: str,
+        detail: DetailMode = "default",
+    ) -> dict[str, Any]:
+        """Tell the agent the next required Aegis workflow action for a normal request in a bounded read-only response; detail=all is explicit."""
 
         def call_core() -> dict[str, Any]:
             target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
@@ -636,11 +863,20 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.next",
             read_only=True,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+            ),
         )
 
     @server.tool(name="aegis.doctor")
-    def aegis_doctor(target_dir: str) -> dict[str, Any]:
-        """Read-only state diagnostic with a safe repair plan for installed Aegis projects."""
+    def aegis_doctor(
+        target_dir: str,
+        detail: DetailMode = "default",
+    ) -> dict[str, Any]:
+        """Read-only state diagnostic with a safe repair plan, bounded default, and explicit full-detail mode."""
 
         def call_core() -> dict[str, Any]:
             target = _resolve_confined_target_dir(target_dir, config.default_target_dir)
@@ -655,6 +891,14 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.doctor",
             read_only=True,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(
+                _aegis_installer.AEGIS_MANIFEST_REL,
+                _aegis_installer.AEGIS_CURRENT_WORK_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+                _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            ),
+            next_action="./.aegis/bin/aegis next --target-dir .",
         )
 
     @server.tool(name="aegis.reconcile")
@@ -859,6 +1103,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         target_dir: str,
         acknowledge_report_write: bool,
         strict: bool = False,
+        detail: DetailMode = "default",
     ) -> dict[str, Any]:
         """Write an Aegis verification report; after strict pass, log its pending event before closeout."""
 
@@ -894,6 +1139,9 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.verify",
             read_only=False,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(_aegis_installer.AEGIS_VERIFY_REPORT_REL,),
+            next_action="./.aegis/bin/aegis next --target-dir .",
         )
 
     @server.tool(name="aegis.closeout")
@@ -903,6 +1151,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         update_handoff: bool = False,
         require_clean_git: bool = False,
         include_git_guidance: bool = True,
+        detail: DetailMode = "default",
     ) -> dict[str, Any]:
         """Run the final completion gate after scope, implement, verify, and pending tracking are complete."""
 
@@ -938,6 +1187,8 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.closeout",
             read_only=False,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(_aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,),
         )
 
     @server.tool(name="aegis.closeout_ready")
@@ -946,6 +1197,7 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
         update_handoff: bool = False,
         require_clean_git: bool = False,
         include_git_guidance: bool = True,
+        detail: DetailMode = "default",
     ) -> dict[str, Any]:
         """Read-only pre-closeout gate check; reports whether closeout would pass without writing state."""
 
@@ -964,6 +1216,8 @@ def register_v1_tools(server: FastMCP) -> FastMCP:
             "aegis.closeout_ready",
             read_only=True,
             callback=call_core,
+            detail=detail,
+            artifact_paths=(_aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,),
         )
 
     @server.tool(name="aegis.handoff_repair")

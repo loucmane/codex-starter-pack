@@ -1280,7 +1280,17 @@ def test_installed_web_target_real_feature_change_updates_full_workflow(tmp_path
     )
     assert strict_verify_log.returncode == 0, strict_verify_log.stdout + strict_verify_log.stderr
 
-    closeout = _run_target_aegis_shim(target, ["closeout", "--target-dir", ".", "--update-handoff", "--json"])
+    closeout = _run_target_aegis_shim(
+        target,
+        [
+            "closeout",
+            "--target-dir",
+            ".",
+            "--update-handoff",
+            "--all",
+            "--json",
+        ],
+    )
     assert closeout.returncode == 0, closeout.stdout + closeout.stderr
     closeout_payload = json.loads(closeout.stdout)
     assert closeout_payload["status"] == "passed"

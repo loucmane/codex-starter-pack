@@ -248,6 +248,12 @@ def run_corpus(
     ]
     report = evaluate(results)
     report["results"] = results
+    report_path = fixtures_dir / "aegis-replay-report.json"
+    report["report_path"] = report_path.as_posix()
+    report_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return report
 
 

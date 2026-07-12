@@ -2,7 +2,7 @@
 
 **Title:** Enforce Universal Context Budgets Across Aegis Commands
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 236 ✓
 

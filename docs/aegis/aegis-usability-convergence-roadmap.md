@@ -108,6 +108,9 @@ Rollback: reinstall the previous managed entry blocks while retaining advisory e
 Introduce one shared output-budget contract for `status`, `next`, `doctor`, `verify`, `update`,
 `witness`, `replay`, and closeout failures.
 
+The contract covers both CLI stdout and complete MCP response envelopes; MCP exposes
+`detail=default|verbose|all` rather than leaving a second unbounded agent-facing path.
+
 Default contract:
 
 - at most 60 lines;

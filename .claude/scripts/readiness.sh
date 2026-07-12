@@ -22,6 +22,12 @@ from typing import Iterable
 READY = "READY"
 WARN = "WARN"
 BLOCKED = "BLOCKED"
+DEFAULT_MAX_LINES = 60
+DEFAULT_MAX_BYTES = 8 * 1024
+DEFAULT_SAMPLE_SIZE = 5
+VERBOSE_MAX_LINES = 120
+VERBOSE_MAX_BYTES = 32 * 1024
+VERBOSE_SAMPLE_SIZE = 20
 
 
 @dataclass
@@ -36,6 +42,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--quick", action="store_true", help="Emit one machine-friendly status line.")
     parser.add_argument("--root", help="Repository root override for tests.")
+    detail = parser.add_mutually_exclusive_group()
+    detail.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Emit a larger but bounded readiness sample (120 lines / 32 KiB).",
+    )
+    detail.add_argument(
+        "--all",
+        dest="all_output",
+        action="store_true",
+        help="Emit every readiness check without a renderer cap.",
+    )
     return parser.parse_args()
 
 
@@ -280,7 +298,12 @@ def load_source_workflow_state(root: Path):
         raise RuntimeError(f"could not load source workflow helper: {helper_path}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
-    spec.loader.exec_module(module)
+    previous_dont_write_bytecode = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous_dont_write_bytecode
     return module
 
 
@@ -646,24 +669,115 @@ def print_quick(state: str, task_id: str | None, checks: list[Check]) -> None:
     print(" | ".join(parts))
 
 
-def print_full(root: Path, state: str, task_id: str | None, checks: list[Check]) -> None:
+def _clip_utf8(value: str, maximum: int) -> str:
+    encoded = value.encode("utf-8")
+    if len(encoded) <= maximum:
+        return value
+    clipped = encoded[: max(0, maximum - 3)]
+    while clipped:
+        try:
+            return clipped.decode("utf-8") + "…"
+        except UnicodeDecodeError:
+            clipped = clipped[:-1]
+    return ""
+
+
+def _select_checks(checks: list[Check], sample_size: int) -> list[Check]:
+    ordered = [
+        check
+        for status in (BLOCKED, WARN, READY)
+        for check in checks
+        if check.status == status
+    ]
+    if len(ordered) <= sample_size:
+        return ordered
+    head = (sample_size + 1) // 2
+    tail = sample_size - head
+    return ordered[:head] + (ordered[-tail:] if tail else [])
+
+
+def _emit_bounded(lines: list[str], *, max_lines: int, max_bytes: int) -> None:
+    selected: list[str] = []
+    used = 0
+    for line in lines[:max_lines]:
+        remaining = max_bytes - used
+        if remaining <= 1:
+            break
+        rendered = (line + "\n").encode("utf-8")
+        if len(rendered) <= remaining:
+            selected.append(line)
+            used += len(rendered)
+            continue
+        selected.append(_clip_utf8(line, remaining - 1))
+        break
+    print("\n".join(selected))
+
+
+def print_full(
+    root: Path,
+    state: str,
+    task_id: str | None,
+    checks: list[Check],
+    *,
+    verbose: bool = False,
+    all_output: bool = False,
+) -> None:
     now = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z %z")
-    print(f"# CLAUDE READINESS - {now}")
-    print(f"STATE: {state}")
-    print(f"TASK: {task_id or 'unknown'}")
-    print(f"ROOT: {root}")
-    print()
-    print("## Checks")
+    lines = [
+        f"# CLAUDE READINESS - {now}",
+        f"STATE: {state}",
+        f"TASK: {task_id or 'unknown'}",
+        f"ROOT: {root}",
+        "",
+        "## Checks",
+    ]
     prefixes = {READY: "[ok]", WARN: "[warn]", BLOCKED: "[blocked]"}
-    for check in checks:
-        print(f"{prefixes[check.status]} {check.message}")
+    if all_output:
+        selected_checks = checks
+        max_lines = max(1, len(checks) + 32)
+        max_bytes = max(1, sum(len(check.message.encode("utf-8")) for check in checks) + 16_384)
+        message_limit = None
+    else:
+        sample_size = VERBOSE_SAMPLE_SIZE if verbose else DEFAULT_SAMPLE_SIZE
+        max_lines = VERBOSE_MAX_LINES if verbose else DEFAULT_MAX_LINES
+        max_bytes = VERBOSE_MAX_BYTES if verbose else DEFAULT_MAX_BYTES
+        message_limit = 1_200 if verbose else 600
+        selected_checks = _select_checks(checks, sample_size)
+    for check in selected_checks:
+        message = check.message if message_limit is None else _clip_utf8(check.message, message_limit)
+        lines.append(f"{prefixes[check.status]} {message}")
+
+    counts = {
+        READY: sum(check.status == READY for check in checks),
+        WARN: sum(check.status == WARN for check in checks),
+        BLOCKED: sum(check.status == BLOCKED for check in checks),
+    }
+    lines.append(
+        f"Counts: total={len(checks)}, ready={counts[READY]}, warn={counts[WARN]}, "
+        f"blocked={counts[BLOCKED]}"
+    )
+    omitted = len(checks) - len(selected_checks)
+    if omitted:
+        lines.append(f"Truncated: {omitted} checks omitted from stdout; no check state was discarded.")
+    lines.append(
+        "Artifacts: .aegis/state/current-work.json, plans/current, sessions/current, "
+        "docs/ai/work-tracking/active/"
+    )
 
     if state == BLOCKED:
-        print()
-        print("## Remediation")
-        print("- Start or repair the workflow before Claude performs persistent mutations.")
-        print("- Required state: task branch, Aegis current work or Taskmaster in-progress task, sessions/current, plans/current, and one ACTIVE tracker for the same task.")
-        print("- Use `aegis kickoff --task <id> --slug <slug> --title \"<title>\"` or the project kickoff workflow instead of writing files or memory by hand.")
+        lines.extend(
+            [
+                "",
+                "## Remediation",
+                "- Start or repair the workflow before Claude performs persistent mutations.",
+                "- Required state: task branch, Aegis current work or Taskmaster in-progress task, sessions/current, plans/current, and one ACTIVE tracker for the same task.",
+                "- Use the project kickoff workflow instead of writing files or memory by hand.",
+            ]
+        )
+    lines.append("Next: ./.aegis/bin/aegis next --target-dir .")
+    if omitted:
+        lines.append("Full stdout: rerun readiness.sh with --all.")
+    _emit_bounded(lines, max_lines=max_lines, max_bytes=max_bytes)
 
 
 def main() -> int:
@@ -674,7 +788,14 @@ def main() -> int:
     if args.quick:
         print_quick(state, task_id, checks)
     else:
-        print_full(root, state, task_id, checks)
+        print_full(
+            root,
+            state,
+            task_id,
+            checks,
+            verbose=args.verbose,
+            all_output=args.all_output,
+        )
     return 2 if state == BLOCKED else 0
 
 

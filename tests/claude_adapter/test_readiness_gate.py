@@ -139,6 +139,24 @@ def test_ready_when_task_session_plan_and_tracker_align(tmp_path: Path) -> None:
     assert "plan-step statuses align" in result.stdout
 
 
+def test_readiness_default_verbose_and_all_detail_modes(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+
+    default = readiness(repo)
+    verbose = readiness(repo, "--verbose")
+    complete = readiness(repo, "--all")
+
+    assert default.returncode == verbose.returncode == complete.returncode == 0
+    assert len(default.stdout.splitlines()) <= 60
+    assert len(default.stdout.encode("utf-8")) <= 8 * 1024
+    assert len(verbose.stdout.splitlines()) <= 120
+    assert len(verbose.stdout.encode("utf-8")) <= 32 * 1024
+    assert "Counts: total=" in default.stdout
+    assert "Full stdout: rerun readiness.sh with --all." in default.stdout
+    assert "Truncated:" not in complete.stdout
+    assert complete.stdout.count("[ok]") > default.stdout.count("[ok]")
+
+
 def test_ready_inside_linked_git_worktree(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     assert run(["git", "config", "user.email", "test@example.com"], repo).returncode == 0
