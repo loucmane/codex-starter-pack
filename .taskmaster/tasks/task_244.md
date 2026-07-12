@@ -2,7 +2,7 @@
 
 **Title:** Make Upstream Source Closeout State Derivable
 
-**Status:** pending
+**Status:** done
 
 **Dependencies:** 236 ✓, 235 ✓
 

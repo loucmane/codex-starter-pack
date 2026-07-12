@@ -16,6 +16,12 @@ Claude may perform persistent mutations only when all required pointers align:
 - the plan and tracker agree on required plan-step checkboxes;
 - readiness returns `READY`.
 
+The uninstalled Aegis source checkout also has a terminal completed-state projection. A done
+task branch may resolve one matching completed archive when no installed manifest, current-work
+state, or ACTIVE folder exists and Taskmaster/session/plan/tracker evidence agrees. This keeps
+source closeout and the next guided kickoff possible without weakening installed-target rules.
+The full fail-closed contract is `docs/aegis/source-checkout-closeout-contract.md`.
+
 ## Gate Chain
 1. PreToolUse invokes `.claude/scripts/pretooluse-gate.sh` for mutation-capable file, Bash, and MCP tools.
 2. The gate invokes `.claude/scripts/readiness.sh --quick`.
@@ -29,7 +35,7 @@ Claude may perform persistent mutations only when all required pointers align:
 7. Every guard emits an actionable remediation message instead of a silent warning.
 
 ## Implemented Gate Components
-- `.claude/scripts/readiness.sh` verifies branch, Taskmaster, session, plan, ACTIVE tracker, and plan/tracker alignment.
+- `.claude/scripts/readiness.sh` verifies branch, Taskmaster, session, plan, tracker, and plan/tracker alignment; source-only completed archives use the Task 244 derivation contract.
 - `.claude/scripts/pretooluse-gate.sh` is the dispatcher registered for `Edit|Write|MultiEdit|NotebookEdit|Bash`.
 - `.claude/scripts/posttooluse-tracking.sh` records pending S:W:H:E tracking after successful persistent mutations.
 - `.claude/scripts/tracking-stop-gate.sh` blocks session stop until pending S:W:H:E tracking is logged.

@@ -28,3 +28,4 @@
 - `scripts/_aegis_installer.py`
 - `tests/meta_workflow_guard/test_aegis_installer.py`
 - `tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py`
+- Archived on 2026-07-11 22:59 CEST — Folder moved to archive and tracker marked COMPLETED.

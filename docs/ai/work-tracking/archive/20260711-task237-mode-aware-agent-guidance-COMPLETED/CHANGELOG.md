@@ -13,3 +13,6 @@
 - 2026-07-11 21:20 CEST — Passed the formerly failing fixture and the complete 1,755-test local
   suite after the idempotence correction.
 - 2026-07-11 21:21 CEST — Returned Taskmaster Task 237 to done after the CI correction passed.
+- 2026-07-11 22:59 CEST — Archived active work-tracking folder.
+- 2026-07-12 02:11 CEST — Revalidated archive references and publication continuity through the
+  Task 244 completed-source derivation path.

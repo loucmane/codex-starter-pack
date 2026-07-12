@@ -8,6 +8,7 @@ python3 - "$@" <<'PY'
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -247,6 +248,125 @@ def check_taskmaster_task(root: Path, task_id: str, *, required: bool, checks: l
     checks.append(Check(READY, f"{prefix} Task {task_id} is in-progress"))
 
 
+def load_source_workflow_state(root: Path):
+    """Load the source-only resolver only from an uninstalled Aegis source tree."""
+
+    if (root / ".aegis" / "foundation-manifest.json").exists():
+        return None
+    if (root / ".aegis" / "state" / "current-work.json").exists():
+        return None
+    markers = (
+        root / "schemas" / "aegis" / "foundation-manifest.schema.json",
+        root / "scripts" / "_aegis_installer.py",
+        root / ".claude" / "scripts" / "readiness.sh",
+        root / "aegis_foundation" / "assets" / ".claude" / "scripts" / "readiness.sh",
+        root / "aegis_foundation" / "assets" / "scripts" / "codex-guard",
+    )
+    if not all(path.is_file() for path in markers):
+        return None
+    try:
+        pyproject_text = read_text(root / "pyproject.toml")
+    except OSError:
+        return None
+    if not re.search(r'^name\s*=\s*["\']aegis-foundation["\']\s*$', pyproject_text, re.MULTILINE):
+        return None
+
+    helper_path = root / "scripts" / "_source_workflow_state.py"
+    if not helper_path.is_file():
+        return None
+    module_name = "_aegis_source_workflow_state_runtime"
+    spec = importlib.util.spec_from_file_location(module_name, helper_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"could not load source workflow helper: {helper_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def build_completed_source_checks(
+    root: Path,
+    task_id: str,
+    source_work: object,
+    checks: list[Check],
+) -> tuple[str | None, list[Check]]:
+    tracker_path = Path(getattr(source_work, "tracker_path"))
+    archive_folder = Path(getattr(source_work, "archive_folder"))
+    checks.append(Check(READY, f"Taskmaster Task {task_id} is done for derived source closeout"))
+    checks.append(
+        Check(
+            READY,
+            f"completed source tracker derived from {archive_folder.relative_to(root).as_posix()}",
+        )
+    )
+
+    session_current = root / "sessions" / "current"
+    session_path, session_target = symlink_target(session_current)
+    if session_path is None or session_target is None:
+        checks.append(Check(BLOCKED, "sessions/current symlink missing"))
+    elif not session_path.is_file():
+        checks.append(Check(BLOCKED, f"sessions/current points to missing file: {session_target}"))
+    else:
+        session_text = read_text(session_path)
+        if not text_references_task(session_text, task_id):
+            checks.append(Check(BLOCKED, f"current session does not reference completed Task {task_id}"))
+        else:
+            checks.append(Check(READY, f"current session references completed Task {task_id}"))
+
+        state_path = root / "sessions" / "state.json"
+        if not state_path.is_file():
+            checks.append(Check(BLOCKED, "sessions/state.json missing"))
+        else:
+            try:
+                state = read_json(state_path)
+            except Exception as exc:  # noqa: BLE001 - surface exact readiness failure.
+                checks.append(Check(BLOCKED, f"sessions/state.json invalid: {exc}"))
+            else:
+                current_value = state.get("current") if isinstance(state, dict) else None
+                if current_value != session_path.name:
+                    checks.append(
+                        Check(
+                            BLOCKED,
+                            f"sessions/state.json current is {current_value!r}, expected {session_path.name!r}",
+                        )
+                    )
+                else:
+                    checks.append(Check(READY, "sessions/state.json current matches sessions/current"))
+
+    plan_current = root / "plans" / "current"
+    plan_path, plan_target = symlink_target(plan_current)
+    plan_text: str | None = None
+    if plan_path is None or plan_target is None:
+        checks.append(Check(BLOCKED, "plans/current symlink missing"))
+    elif not plan_path.is_file():
+        checks.append(Check(BLOCKED, f"plans/current points to missing file: {plan_target}"))
+    else:
+        plan_text = read_text(plan_path)
+        if not text_references_task(plan_text, task_id):
+            checks.append(Check(BLOCKED, f"current plan does not reference completed Task {task_id}"))
+        else:
+            checks.append(Check(READY, f"current plan references completed Task {task_id}"))
+
+    tracker_text = read_text(tracker_path)
+    checks.append(Check(READY, f"completed tracker references Task {task_id}"))
+    if plan_text is not None:
+        alignment_issues = check_plan_tracker_alignment(plan_text, tracker_text)
+        plan_statuses = parse_plan_statuses(plan_text)
+        tracker_statuses = parse_tracker_statuses(tracker_text)
+        for step in ("plan-step-scope", "plan-step-implement", "plan-step-verify"):
+            if plan_statuses.get(step) != "completed":
+                alignment_issues.append(f"completed source plan has {step}={plan_statuses.get(step)!r}")
+            if tracker_statuses.get(step) != "completed":
+                alignment_issues.append(f"completed source tracker has {step}={tracker_statuses.get(step)!r}")
+        if alignment_issues:
+            for issue in alignment_issues:
+                checks.append(Check(BLOCKED, f"completed plan/tracker alignment failure: {issue}"))
+        else:
+            checks.append(Check(READY, "completed plan and tracker steps align"))
+
+    return task_id, checks
+
+
 def build_observation_checks(root: Path, branch: str, aegis_work: object) -> tuple[str | None, list[Check]]:
     checks: list[Check] = []
     task = aegis_work_task(aegis_work)
@@ -364,6 +484,20 @@ def build_checks(root: Path) -> tuple[str | None, list[Check]]:
         checks.append(Check(BLOCKED, f"branch '{branch}' does not contain a task ID"))
         return None, checks
     checks.append(Check(READY, f"branch '{branch}' maps to Task {task_id}"))
+
+    if not aegis_work_path.is_file():
+        try:
+            source_module = load_source_workflow_state(root)
+            source_work = (
+                source_module.derive_completed_source_work(root, branch)
+                if source_module is not None
+                else None
+            )
+        except Exception as exc:  # noqa: BLE001 - source contradictions fail closed.
+            checks.append(Check(BLOCKED, f"source closeout derivation failed: {exc}"))
+            return task_id, checks
+        if source_work is not None:
+            return build_completed_source_checks(root, task_id, source_work, checks)
 
     if aegis_work_path.is_file() and not ignore_current_work_for_readiness:
         try:

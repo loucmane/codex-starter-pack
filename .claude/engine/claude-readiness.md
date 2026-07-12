@@ -14,7 +14,7 @@ bash .claude/scripts/readiness.sh --quick
 `--quick` is intended for PreToolUse hooks. It returns the same exit code as the full command but emits a single status line.
 
 ## States
-- `READY` exits `0`: branch, Taskmaster parent task, active session, active plan, ACTIVE work-tracking folder, and plan/tracker checklist state all align.
+- `READY` exits `0`: ordinary in-progress state aligns, or the uninstalled Aegis source checkout derives one completed archive from matching branch, Taskmaster, session, plan, and tracker evidence.
 - `WARN` exits `0`: soft issues are present but mutation can proceed. No soft warnings are currently emitted by the first implementation.
 - `BLOCKED` exits `2`: required workflow state is missing or inconsistent. Hookable persistent mutations must be refused.
 
@@ -30,6 +30,15 @@ Readiness blocks unless all of these are true:
 - exactly one `docs/ai/work-tracking/active/*-ACTIVE` folder exists;
 - that ACTIVE folder and its `TRACKER.md` reference the task;
 - `plan-step-scope`, `plan-step-implement`, and `plan-step-verify` statuses match between the plan table and tracker checklist.
+
+### Completed Aegis Source Checkout
+
+The Aegis source checkout has one fail-closed terminal exception to the ACTIVE-folder rule. When
+there is no installed manifest or current-work state, no ACTIVE folder, the branch task is
+`done`, and exactly one in-root `archive/*-COMPLETED` tracker has matching task identity and
+completed plan/checklist state, readiness may derive that tracker. This supports truthful archive
+and next-task handoff without fabricating installed-target state. Installed projects never use
+this path. See `docs/aegis/source-checkout-closeout-contract.md`.
 
 ## Multimodal Role
 Readiness does not inspect every mutation surface directly. It gives the runtime a single truth source that other gates can call before handling Claude file tools, Bash commands, MCP actions, memory writes, Git/GitHub actions, and future tool surfaces.
