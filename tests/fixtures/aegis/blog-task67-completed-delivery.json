@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "source": {
+    "captured_at": "2026-07-12",
+    "repository": "loucmane/blog",
+    "provenance": [
+      "docs/ai/MORNING_CONTINUATION_REPORT.md",
+      ".aegis/reports/closeout-report.json",
+      "docs/ai/work-tracking/archive/20260711-task67-gitleaks-repository-dispatch-COMPLETED/",
+      "https://github.com/loucmane/blog/pull/28"
+    ],
+    "redacted": true
+  },
+  "completed_main": {
+    "current_branch": "main",
+    "head_commit": "81511aa10bfa13191f95bd15b80d4d889ce2e0e8",
+    "upstream": "origin/main",
+    "ahead": 0,
+    "behind": 0,
+    "current_work": {
+      "branch": {
+        "current": "feat/task-67-gitleaks-repository-dispatch"
+      },
+      "closeout_passed_at": "2026-07-11T20:14:24Z",
+      "paths": {
+        "plan": "plans/2026-07-11-task67-gitleaks-repository-dispatch.md",
+        "session": "sessions/2026/07/2026-07-11-001-task67-gitleaks-repository-dispatch.md",
+        "work_tracking": "docs/ai/work-tracking/archive/20260711-task67-gitleaks-repository-dispatch-COMPLETED"
+      },
+      "status": "completed",
+      "task": {
+        "id": "67",
+        "slug": "gitleaks-repository-dispatch",
+        "status": "completed",
+        "title": "Support Gitleaks on trusted post-merge dispatch"
+      }
+    },
+    "closeout_report": {
+      "checked_at": "2026-07-11T20:14:24Z",
+      "closed_at": "2026-07-11T20:14:24Z",
+      "current_work": {
+        "branch": {
+          "current": "feat/task-67-gitleaks-repository-dispatch"
+        },
+        "paths": {
+          "plan": "plans/2026-07-11-task67-gitleaks-repository-dispatch.md",
+          "session": "sessions/2026/07/2026-07-11-001-task67-gitleaks-repository-dispatch.md",
+          "work_tracking": "docs/ai/work-tracking/archive/20260711-task67-gitleaks-repository-dispatch-COMPLETED"
+        },
+        "status": "completed",
+        "task": {
+          "id": "67",
+          "slug": "gitleaks-repository-dispatch",
+          "status": "completed",
+          "title": "Support Gitleaks on trusted post-merge dispatch"
+        }
+      },
+      "status": "passed"
+    },
+    "pull_request": {
+      "baseRefName": "main",
+      "closedAt": "2026-07-11T20:51:18Z",
+      "headRefName": "feat/task-67-gitleaks-repository-dispatch",
+      "headRefOid": "0833414a8faa469c34ea26846e36eb85da277876",
+      "isDraft": false,
+      "mergeCommit": {
+        "oid": "81511aa10bfa13191f95bd15b80d4d889ce2e0e8"
+      },
+      "mergedAt": "2026-07-11T20:51:18Z",
+      "number": 28,
+      "state": "MERGED",
+      "title": "ci: support gitleaks on trusted post-merge dispatch",
+      "url": "https://github.com/loucmane/blog/pull/28"
+    }
+  },
+  "stale_report_new_task": {
+    "current_branch": "feat/task-38-modernize-node-pnpm-ci-runtime",
+    "current_work": {
+      "branch": {
+        "current": "feat/task-38-modernize-node-pnpm-ci-runtime"
+      },
+      "paths": {
+        "plan": "plans/2026-07-12-task38-modernize-node-pnpm-ci-runtime.md",
+        "session": "sessions/2026/07/2026-07-12-001-task38-modernize-node-pnpm-ci-runtime.md",
+        "work_tracking": "docs/ai/work-tracking/active/20260712-task38-modernize-node-pnpm-ci-runtime-ACTIVE"
+      },
+      "status": "in-progress",
+      "task": {
+        "id": "38",
+        "slug": "modernize-node-pnpm-ci-runtime",
+        "status": "in-progress",
+        "title": "Modernize Node pnpm and CI Runtime"
+      }
+    },
+    "closeout_report_ref": "completed_main.closeout_report"
+  }
+}
