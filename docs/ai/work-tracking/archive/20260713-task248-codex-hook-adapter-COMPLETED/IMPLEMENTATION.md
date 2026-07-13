@@ -47,3 +47,12 @@
 - Ran a real Codex 0.144.3 smoke after reviewing and trusting the exact hook hashes through
   `/hooks`; evidence is in
   `reports/codex-hook-adapter/live-codex-0.144.3-smoke.md`.
+
+## Hosted delivery
+
+- PR #273 passed the complete Python 3.11 and 3.12 matrices, both source guards, the Aegis
+  witness, and evidence-gated delivery evaluation at exact head `498b430`.
+- The attended installer/hook-authority change was owner-approved and squash-merged through
+  the normal protected path as `340523a`; its tree exactly matches the reviewed head tree.
+- Push CI and both guards passed again at the exact merge SHA. The terminal evidence packet
+  is stored at `reports/codex-hook-adapter/task-verification.md`.

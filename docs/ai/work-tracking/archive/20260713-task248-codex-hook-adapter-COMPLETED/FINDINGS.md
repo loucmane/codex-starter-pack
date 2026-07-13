@@ -23,3 +23,7 @@
   the full source serialization. The repository's guided kickoff then performs a supported
   `set-status` transition that restores the established string-ID form; the final Task 248
   source diff is semantic and task-scoped. No manual `tasks.json` edit was used.
+- 2026-07-13 — Hosted CI exercised the one location-sensitive security-boundary assertion
+  excluded from the `/tmp` worktree run. Both Python 3.11 and 3.12 completed the unfiltered
+  suite with 1,955 passes and four documented opt-in skips, confirming the local exclusion
+  was environmental rather than a product defect.

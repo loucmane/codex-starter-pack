@@ -2,7 +2,7 @@
 
 **Title:** Implement First-Class Codex Hook Adapter
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 247 ✓
 
