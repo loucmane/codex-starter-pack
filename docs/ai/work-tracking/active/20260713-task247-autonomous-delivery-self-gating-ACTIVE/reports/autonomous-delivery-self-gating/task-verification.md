@@ -134,3 +134,49 @@ Remediation integrity:
   `44d3518e8df81f9f1e2b4421cb49dff9905ba3aeaa316f713c8dd1955f773005`
 - PR #269 replay fixture SHA-256:
   `c7f43dbe2a08fe16d53b471c56e204d6c42fffc1d2e6ff0e157eb50824e32574`
+
+## Hosted Delivery and Live Canary Attempt 2
+
+- PR #270 merged the first canary remediation normally at exact reviewed head
+  `d0d1c3f1d361635c2675d407fefcac80a707243d` as
+  `94439ab2c74085c3968b12ac1a60473eb3664d14`; the full hosted Python 3.11/3.12 matrix,
+  guards, witness, and attended evaluator passed.
+- Because PR #269's previous base SHA was no longer current, `main` was merged into its
+  branch without rebasing or force-pushing. The signed head became
+  `1f5d9492d0dfeb0197656982137337ca27aa441a`, while the pull-request diff remained the
+  same single canary evidence file.
+- All four required workflows passed at that exact head: CI run `29272753114`, Codex
+  Guard `29272753089`, Meta Workflow Guard `29272753086`, and witness `29272753090`.
+- Trusted post-CI run `29273244399` completed evaluator job `86895876331` but skipped
+  executor job `86895930119`; PR #269 remained open and clean.
+- Recollection with the workflow's exact GitHub commands and current trusted policy
+  returned `defer` with one reason: `review-threads-truncated`. The raw GraphQL page had
+  zero threads and `hasNextPage=false`.
+- The collector expression `hasNextPage // true` was the deterministic cause because jq
+  coalesces boolean `false` as well as null. Both trusted collectors now use an explicit
+  null test. The exact embedded filters are executed against the captured page, and an
+  empty-input regression proves missing page data still fails closed.
+
+Task 247 remains incomplete until the review-pagination remediation merges and PR #269
+autonomously squash-merges with successful exact-merge-SHA post-merge dispatch.
+
+### Review-Pagination Remediation Local Verification
+
+- Focused delivery-policy and privileged-workflow contracts: PASS — 57 passed.
+- Full repository suite in the isolated worktree: PASS — 1,915 passed and four
+  documented opt-in smoke skips, with the same unrelated `/tmp`-location assertion
+  deselected; that exact assertion passed separately with a non-overlapping temp root.
+- The corrected exact workflow aggregation applied to current PR #269 GitHub evidence
+  returns `allow` with no reasons at head
+  `1f5d9492d0dfeb0197656982137337ca27aa441a` and base
+  `94439ab2c74085c3968b12ac1a60473eb3664d14`.
+- Complete-page fixture result: zero unresolved threads,
+  `threads_truncated=false`, empty review decision.
+- Missing-page fixture result: zero unresolved threads,
+  `threads_truncated=true`, empty review decision.
+- Ruff, plan sync, work-tracking audit, Taskmaster health, S:W:H:E guard, CI-mode
+  witness, and diff checks passed.
+- Workflow SHA-256:
+  `69f0e59c5fcf0b294d0ae1e7929dd2a7eb18798d8af9467918c45f5730f44231`
+- PR #269 review-page fixture SHA-256:
+  `0fbf050ca1dc7c3d04f946d97f10f0955f3b7160e0e83ee8e307479c4fccc624`

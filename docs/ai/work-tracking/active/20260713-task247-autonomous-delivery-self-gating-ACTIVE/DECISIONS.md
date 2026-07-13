@@ -19,3 +19,9 @@
   evaluator's reason list in the GitHub job summary. Never use the PR #269 inference as
   evidence that a merge occurred; the same unchanged canary must prove the remediation
   live after the attended policy PR merges.
+- 2026-07-13 — Preserve GraphQL `hasNextPage=false` with an explicit null test in both
+  trusted collectors. Missing final-page data remains fail-closed as truncated; do not
+  replace the check with a permissive default or skip review-thread evidence.
+- 2026-07-13 — Test the exact jq filter extracted from the workflow, not a Python
+  reimplementation. This binds the regression to the privileged bytes that execute in
+  GitHub Actions.

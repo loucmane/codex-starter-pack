@@ -27,6 +27,23 @@ consistent with the live skip, not a claim of direct telemetry. The remediation 
 prints deterministic reasons into the evaluator job summary so future skips are directly
 auditable.
 
+After PR #270 merged the bounded mergeability remediation as
+`94439ab2c74085c3968b12ac1a60473eb3664d14`, the same canary was synchronized without
+rewriting history at signed head `1f5d9492d0dfeb0197656982137337ca27aa441a`.
+All four exact-head workflows passed, but trusted run `29273244399` again completed the
+evaluator and skipped the executor. Replaying the workflow's exact evidence collector
+against current GitHub data produced a single deterministic reason:
+`review-threads-truncated`.
+
+The collector used
+`hasNextPage // true`. In jq, `//` falls back for both `null` and boolean `false`, so a
+complete GraphQL page with `hasNextPage=false` was converted to `true`. This made every
+otherwise eligible pull request look truncated. Both evaluator and executor collectors
+must instead preserve `false` and fall back to `true` only when the final page value is
+actually null. An executable regression runs the exact jq filter embedded in each job
+against the secret-free PR #269 review-page fixture and separately proves missing input
+still fails closed.
+
 ## Security Invariant
 
 No intermediate state may authorize a merge. A merge occurs only after a trusted-base
@@ -100,12 +117,17 @@ If GitHub remains blocked or any fact changes, the executor fails closed without
 - Workflow contracts prove the evaluator has no write permission or merge call, executor
   alone has write permission, both use trusted default-branch code, executor recollects
   evidence, and only fresh `allow` reaches an exact-head merge.
+- The exact jq review aggregation embedded in both jobs preserves final-page
+  `hasNextPage=false`, counts unresolved threads, and returns `threads_truncated=true`
+  when no page was returned.
 - Source and packaged policy bytes remain identical.
 - An ordinary canary PR proves evaluator provisional/allow, executor fresh allow, squash
   merge, and exact-merge-SHA post-merge dispatch.
 
 ## Rollback
 
-Revert the Task 247 commit through a reviewed PR. This restores the single-job clean-only
-policy, causing routine PRs to stop safely at manual protected merge. No branch-protection,
-repository setting, data, target installation, ledger, or Taskmaster migration is needed.
+Revert the latest Task 247 remediation through a reviewed PR to restore the previous
+safe-defer behavior. To undo the entire Task 247 mechanism, revert its pagination,
+mergeability, and evaluator/executor commits in reverse order through reviewed protected
+PRs. No branch-protection, repository setting, data, target installation, ledger, or
+Taskmaster migration is needed.
