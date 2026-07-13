@@ -2,7 +2,7 @@
 
 **Title:** Deliver A Quiet Deterministic Witness Shipping Interface
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 238 ✓, 240 ✓
 

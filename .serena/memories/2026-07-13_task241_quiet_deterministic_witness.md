@@ -23,7 +23,7 @@ narration as complementary context.
 
 ## Evidence
 
-- Contract: `docs/ai/work-tracking/active/20260713-task241-quiet-deterministic-witness-ACTIVE/designs/quiet-witness-contract.md`
+- Contract: `docs/ai/work-tracking/archive/20260713-task241-quiet-deterministic-witness-COMPLETED/designs/quiet-witness-contract.md`
 - Runtime: `.claude/scripts/witness_lib.py`
 - Packaged mirror: `aegis_foundation/assets/.claude/scripts/witness_lib.py`
 - CLI: `aegis_foundation/cli.py`
@@ -31,7 +31,12 @@ narration as complementary context.
 
 ## Continuation
 
-Implement the contract in the isolated Task 241 worktree, run focused and broad tests,
-dogfood the real branch, store measurements and rollback evidence, then complete and
-publish Task 241 through normal exact-head policy. Preserve all unrelated primary-checkout
-drift.
+Signed implementation commit `9fd71b5734c9ada5cea48942ad5f65d6ab588746`
+passes the exact registered gate with 1,772 tests and four documented opt-in skips.
+The real witness passed at exact HEAD in 0.18 seconds with 17 lines / 797 bytes,
+58/58 paths accounted, complete JSON/Markdown artifacts, and a generated legacy
+projection. The canonical ledger is readable but not writable in the current Remote
+Control sandbox, so the successful local dogfood used a clearly labelled isolated
+out-of-worktree store and did not claim canonical capture. Complete Taskmaster/source
+closeout, create a signed terminal commit, publish through normal exact-head policy,
+and require hosted CI. Preserve all unrelated primary-checkout drift.
