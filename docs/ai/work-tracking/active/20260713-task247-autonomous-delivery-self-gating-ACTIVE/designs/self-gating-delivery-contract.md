@@ -15,6 +15,18 @@ job. While that job evaluates, GitHub reports the otherwise mergeable pull reque
 state as a reason to defer, so the check cannot become green before the decision that
 requires it to be green.
 
+After the attended fix merged as PR #265 at `f65bf35b11f4d38dc8a0d72edad5c8b4ba2ca763`,
+ordinary canary PR #269 reached exact head
+`2f01675029765e6e99a6a784ce9d397f1388dcdf`. CI, Codex Guard, Meta Workflow Guard,
+witness, inventory, reviews, branch, and path classification were green. The
+`workflow_run` evaluation in run `29270554173` succeeded but skipped the executor; the
+same pull request immediately reported `mergeable=true/state=clean` afterward. The old
+workflow did not persist its decision or reasons, so the exact transient evaluator input
+cannot be recovered. A secret-free `state=unstable` fixture is therefore a bounded replay
+consistent with the live skip, not a claim of direct telemetry. The remediation also
+prints deterministic reasons into the evaluator job summary so future skips are directly
+auditable.
+
 ## Security Invariant
 
 No intermediate state may authorize a merge. A merge occurs only after a trusted-base
@@ -33,17 +45,17 @@ The deterministic policy has five decisions:
 | Decision | Meaning | May merge? |
 | --- | --- | --- |
 | `allow` | Every gate is current and mergeability is clean. | yes, executor only |
-| `provisional` | Every non-mergeability gate passes; GitHub reports `mergeable=true/state=blocked`. | no |
+| `provisional` | Every non-mergeability gate passes; GitHub reports `mergeable=true` with `state=blocked` or `state=unstable`. | no |
 | `defer` | Evidence is incomplete, stale, pending, failed, review-required, conflicting, dirty, or otherwise non-clean. | no |
 | `attended` | A protected path/label, fork, policy/governance surface, or other attended category is present. | no |
 | `deny` | Evidence is malformed or structurally incomplete. | no |
 
 `provisional` is not an authorization. It exists only to let the required evaluator job
-finish successfully so GitHub can clear that job's own protection context. It is returned
-only when:
+finish successfully while GitHub clears the job's protection context or finishes its
+mergeability recomputation. It is returned only when:
 
 - `mergeable` is exactly `true`;
-- `mergeable_state` is exactly `blocked`;
+- `mergeable_state` is exactly `blocked` or `unstable`;
 - all policy-required external workflow runs at the exact head are completed successfully;
 - head, base, repository, branch, inventory, review threads/decision, labels, paths, and
   deletion checks produce no other reason.
@@ -79,6 +91,8 @@ If GitHub remains blocked or any fact changes, the executor fails closed without
 ## Required Tests
 
 - PR #264 replay: blocked/true plus otherwise complete evidence returns `provisional`.
+- PR #269 replay: unstable/true plus otherwise complete evidence returns `provisional`,
+  with provenance explicitly limited to a minimal replay consistent with the live skip.
 - Clean equivalent returns `allow`.
 - False/dirty, unknown, stale base/head, incomplete inventory, pending/failed workflow,
   review-required/changes-requested, unresolved threads, fork, attended path/label, and

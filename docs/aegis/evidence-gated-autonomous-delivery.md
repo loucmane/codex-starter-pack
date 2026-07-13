@@ -138,9 +138,9 @@ GitHub's normal protected merge API without `--admin` or any bypass.
 
 - `allow`: all routine evidence is complete and current; trusted CI may merge.
 - `provisional`: every non-mergeability gate is complete and current, but GitHub reports
-  `mergeable=true` and `mergeable_state=blocked` while the required evaluator itself is
-  still running. This result may complete the required check but never authorizes a
-  merge.
+  `mergeable=true` with `mergeable_state=blocked` or `mergeable_state=unstable` while
+  the required evaluator or GitHub's mergeability recomputation is still settling. This
+  result may complete the required check but never authorizes a merge.
 - `attended`: the change is valid but requires an owner decision because its category
   can alter authority, security, deployment, destructive behavior, or governance.
 - `defer`: evidence is incomplete, pending, stale, conflicted, or not green; do not
@@ -171,7 +171,9 @@ The required `evidence-gated delivery` evaluator:
 7. Runs the evaluator from `trusted/scripts/aegis-delivery-policy` against
    `trusted/aegis.delivery-policy.json`.
 8. Has read-only permissions and never calls the merge or repository-dispatch endpoint.
-9. May emit `provisional` only for the evaluator's own transient required-check blocker.
+9. May emit `provisional` only for the bounded `blocked`/`unstable` mergeability race
+   after every independent gate passes, and records the deterministic reasons in the job
+   summary.
 
 The downstream `policy-authorized merge` executor:
 

@@ -219,6 +219,7 @@ jobs:
             echo "- PR: #${PR_NUMBER}"
             echo "- Exact head: \`${EXPECTED_HEAD}\`"
             echo "- Decision: \`${decision}\`"
+            echo "- Reasons: \`$(jq -c '.reasons' "$RUNNER_TEMP/aegis-delivery-result.json")\`"
             echo "- Policy: \`$(jq -r '.policy_id' "$RUNNER_TEMP/aegis-delivery-result.json")\`"
           } >> "$GITHUB_STEP_SUMMARY"
 

@@ -144,6 +144,7 @@ def test_provisional_result_cannot_authorize_a_merge() -> None:
     )
 
     assert "allow|provisional|attended|defer|deny" in evaluator_text
+    assert "jq -c '.reasons'" in evaluator_text
     assert 'if [[ "$decision" != "allow" ]]' in executor_text
     assert "Fresh executor decision was ${decision}; refusing merge." in executor_text
     assert executor_text.index("aegis-delivery-policy evaluate") < executor_text.index(

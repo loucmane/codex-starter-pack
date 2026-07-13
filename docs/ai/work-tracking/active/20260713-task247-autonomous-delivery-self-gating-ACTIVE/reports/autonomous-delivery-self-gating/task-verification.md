@@ -74,3 +74,63 @@ authoritative gates here.
    GitHub performs the exact-head squash, and post-merge guards run at the exact merge SHA.
 
 Task 247 is not complete until those hosted and live-canary items pass.
+
+## Hosted Delivery and Live Canary Attempt 1
+
+- The attended governance PR #265 merged normally at reviewed head
+  `a21f9719b603fbb3c2b5c3bc54a6f8e094cbad4b` as
+  `f65bf35b11f4d38dc8a0d72edad5c8b4ba2ca763`. Local `main` synchronized exactly and
+  its post-merge CI passed.
+- Ordinary canary PR #269 remains unchanged at exact signed head
+  `2f01675029765e6e99a6a784ce9d397f1388dcdf`, with one task-evidence file, no labels,
+  no reviews or unresolved threads, current base
+  `f65bf35b11f4d38dc8a0d72edad5c8b4ba2ca763`, and all four required
+  pull-request workflows successful.
+- Trusted `workflow_run` `29270554173` completed evaluator job `86886878595`
+  successfully but skipped executor job `86886920814`. PR #269 remained open and
+  immediately reported `MERGEABLE/CLEAN` afterward.
+- The old job summary omitted both decision and reasons from retrievable API output.
+  Therefore the new `state=unstable` fixture is a minimal replay consistent with this
+  path; it is not direct evidence of the transient evaluator payload. This limitation is
+  encoded in the fixture's provenance field and in the Task 247 findings.
+- The remediation permits `blocked` or `unstable` to become only `provisional` after
+  every independent gate is clear. It does not authorize a merge. A fresh executor
+  recollection must still produce exact-head/current-base `allow` with clean
+  mergeability.
+- Current primary-checkout protected drift SHA-256 is
+  `f5c579c39b7655ca3078e484ffdce007229618f44a08d7a28b63c65dc96a6708`; the isolated
+  remediation has not staged, overwritten, or reverted it.
+
+Task 247 remains incomplete until the remediation merges and the same unchanged PR #269
+autonomously squash-merges with successful exact-merge-SHA post-merge dispatch.
+
+## Remediation Local Verification
+
+| Check | Result |
+| --- | --- |
+| Focused policy + privileged-workflow contracts | PASS — 55 passed |
+| Full repository suite in isolated worktree | PASS — 1,912 passed, 4 documented opt-in smoke skips, with one location-sensitive assertion deselected as described below |
+| Location-sensitive reconcile assertion | PASS when run with a temp root outside the `/tmp` Git worktree |
+| Changed-file Ruff | PASS |
+| Source/package policy byte parity | PASS |
+| Policy schema validation | PASS — `aegis-source-evidence-gated-v1` |
+| Plan sync, work-tracking audit, Taskmaster health, S:W:H:E guard | PASS |
+| `git diff --check` | PASS |
+
+The isolated remediation worktree itself is under `/tmp`. One unrelated reconcile test
+uses `tempfile.gettempdir()` as the security boundary and therefore classifies the
+worktree's repository root as a permitted test target, observing
+`candidate_already_done` instead of the expected pre-validation
+`target_not_isolated_temp`. The exact test passes when its process temp root is moved
+outside the `/tmp` worktree. The complete suite passes with only that environmental
+assertion deselected; hosted CI must run it unmodified from GitHub's normal non-`/tmp`
+checkout before merge.
+
+Remediation integrity:
+
+- Workflow SHA-256:
+  `aaeb4c38fd0ea8eb21e867a4f6b17ff492e3474114f797b857c3a0ae3c961132`
+- Source and packaged policy SHA-256:
+  `44d3518e8df81f9f1e2b4421cb49dff9905ba3aeaa316f713c8dd1955f773005`
+- PR #269 replay fixture SHA-256:
+  `c7f43dbe2a08fe16d53b471c56e204d6c42fffc1d2e6ff0e157eb50824e32574`

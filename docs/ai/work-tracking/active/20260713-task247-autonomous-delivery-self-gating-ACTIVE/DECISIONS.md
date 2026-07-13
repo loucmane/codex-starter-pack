@@ -12,3 +12,10 @@
 - 2026-07-13 — Require a real ordinary canary after the attended governance PR merges;
   deterministic replay and hosted CI are necessary but do not prove GitHub's live
   mergeability transition or exact-merge-SHA dispatch.
+- 2026-07-13 — Treat `mergeable=true/state=unstable` as provisional only after every
+  independent gate passes. Preserve `dirty`, `behind`, `unknown`, `mergeable=false`, and
+  every failed/pending/review/attended condition as non-merging.
+- 2026-07-13 — Keep fresh clean `allow` as the sole executor authorization and expose the
+  evaluator's reason list in the GitHub job summary. Never use the PR #269 inference as
+  evidence that a merge occurred; the same unchanged canary must prove the remediation
+  live after the attended policy PR merges.
