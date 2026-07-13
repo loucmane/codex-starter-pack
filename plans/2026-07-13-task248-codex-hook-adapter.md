@@ -5,7 +5,7 @@ handler_target: .claude/scripts/gate_lib.py
 task_ids: [248]
 branch_policy: feature-required
 evidence_summary:
-  - docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/
+  - docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/
   - .claude/scripts/gate_lib.py
   - .taskmaster/tasks/task_248.md
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: .claude/scripts/gate_lib.py
 - **Task IDs**: 248
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/, .claude/scripts/gate_lib.py, .taskmaster/tasks/task_248.md, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/, .claude/scripts/gate_lib.py, .taskmaster/tasks/task_248.md, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
-| plan-step-scope | Define the canonical Codex hook, parser, policy, evidence, installer, trust, and rollout contract | docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/designs/codex-hook-adapter-scope.md | completed |
-| plan-step-implement | Implement first-class apply_patch handling and the managed Codex adapter with source/package parity | .claude/scripts/gate_lib.py; aegis_foundation/assets/.claude/scripts/gate_lib.py; scripts/_aegis_installer.py; docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Define the canonical Codex hook, parser, policy, evidence, installer, trust, and rollout contract | docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/designs/codex-hook-adapter-scope.md | completed |
+| plan-step-implement | Implement first-class apply_patch handling and the managed Codex adapter with source/package parity | .claude/scripts/gate_lib.py; aegis_foundation/assets/.claude/scripts/gate_lib.py; scripts/_aegis_installer.py; docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/`
+- `docs/ai/work-tracking/archive/20260713-task248-codex-hook-adapter-COMPLETED/`
 - `.claude/scripts/gate_lib.py`
 - `aegis_foundation/assets/.claude/scripts/gate_lib.py`
 - `scripts/_aegis_installer.py`
