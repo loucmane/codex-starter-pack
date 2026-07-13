@@ -10,14 +10,19 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import sqlite3
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ASSETS_LEDGER_LIB = REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "ledger_lib.py"
+ASSETS_LEDGER_LIB = (
+    REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "ledger_lib.py"
+)
 LIVE_LEDGER_LIB = REPO_ROOT / ".claude" / "scripts" / "ledger_lib.py"
 LIVE_GATE_LIB = REPO_ROOT / ".claude" / "scripts" / "gate_lib.py"
 
@@ -34,7 +39,9 @@ def load_module(path: Path, name: str):
 ledger_lib = load_module(ASSETS_LEDGER_LIB, "ledger_lib_under_test")
 
 
-def run(cmd: list[str], cwd: Path, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def run(
+    cmd: list[str], cwd: Path, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, check=False)
 
 
@@ -50,10 +57,16 @@ def commit_something(repo: Path) -> None:
     result = run(
         [
             "git",
-            "-c", "user.email=test@example.com",
-            "-c", "user.name=test",
-            "-c", "commit.gpgsign=false",
-            "commit", "-q", "-m", "seed",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=test",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-q",
+            "-m",
+            "seed",
         ],
         repo,
     )
@@ -95,7 +108,10 @@ def test_schema_round_trip(ledger) -> None:
         {
             "event_type": "mutation",
             "session_id": "sess-1",
+            "repository_identity": "sha256:repo-1",
+            "worktree_root": "/tmp/repo",
             "branch": "feat/task-202-capsule-ledger-core",
+            "head": "a" * 40,
             "cwd": "/tmp/repo",
             "tool_name": "Edit",
             "handler": "claude:Edit",
@@ -104,6 +120,7 @@ def test_schema_round_trip(ledger) -> None:
             "duration_ms": "42",
             "agent_id": "agent-7",
             "agent_type": "explore",
+            "parent_agent_id": "agent-parent",
             "payload_digest": "abc123",
             "unknown_key": "kept",
             "extra": {"detail": "x"},
@@ -118,12 +135,17 @@ def test_schema_round_trip(ledger) -> None:
     assert event["event_id"] == appended["event_id"]
     assert event["ts"].endswith("Z")
     assert event["session_id"] == "sess-1"
+    assert event["repository_identity"] == "sha256:repo-1"
+    assert event["worktree_root"] == "/tmp/repo"
+    assert event["branch"] == "feat/task-202-capsule-ledger-core"
+    assert event["head"] == "a" * 40
     assert event["event_type"] == "mutation"
     assert event["paths"] == ["app/src/main.ts"]
     assert event["outcome"] == "pass"
     assert event["exit_class"] == "pass"
     assert event["duration_ms"] == 42
     assert event["agent_id"] == "agent-7"
+    assert event["parent_agent_id"] == "agent-parent"
     assert event["extra"]["detail"] == "x"
     assert event["extra"]["unknown_key"] == "kept", "unknown top-level keys must fold into extra"
 
@@ -174,12 +196,22 @@ def test_read_filters_and_limit(ledger) -> None:
                 "event_type": "mutation" if index % 2 == 0 else "delivery",
                 "session_id": "sess-a" if index < 3 else "sess-b",
                 "agent_id": "agent-1" if index == 0 else None,
+                "repository_identity": "sha256:repo-a" if index < 4 else "sha256:repo-b",
+                "worktree_root": "/tmp/repo-a" if index < 3 else "/tmp/repo-b",
+                "branch": "main" if index % 2 == 0 else "feat/task-240",
+                "head": f"head-{index}",
+                "parent_agent_id": "parent-1" if index in {1, 2} else None,
                 "ts": f"2026-06-10T10:0{index}:00Z",
             }
         )
     assert len(ledger.read(session_id="sess-a")) == 3
     assert len(ledger.read(event_type="delivery")) == 2
     assert len(ledger.read(agent_id="agent-1")) == 1
+    assert len(ledger.read(repository_identity="sha256:repo-a")) == 4
+    assert len(ledger.read(worktree_root="/tmp/repo-a")) == 3
+    assert len(ledger.read(branch="main")) == 3
+    assert len(ledger.read(head="head-4")) == 1
+    assert len(ledger.read(parent_agent_id="parent-1")) == 2
     assert len(ledger.read(since_ts="2026-06-10T10:03:00Z")) == 2
     recent = ledger.read(limit=2)
     assert [event["ts"] for event in recent] == ["2026-06-10T10:03:00Z", "2026-06-10T10:04:00Z"]
@@ -228,13 +260,194 @@ def test_store_path_keyed_on_git_common_dir_shared_across_worktrees(tmp_path: Pa
     repo = make_git_repo(tmp_path / "repo")
     commit_something(repo)
     worktree = tmp_path / "wt"
-    assert run(["git", "worktree", "add", "-q", worktree.as_posix(), "-b", "wt-branch"], repo).returncode == 0
+    assert (
+        run(
+            ["git", "worktree", "add", "-q", worktree.as_posix(), "-b", "wt-branch"], repo
+        ).returncode
+        == 0
+    )
     env = {"XDG_STATE_HOME": (tmp_path / "state").as_posix()}
     repo_store = ledger_lib.store_path(cwd=repo, env=env)
     worktree_store = ledger_lib.store_path(cwd=worktree, env=env)
     assert repo_store == worktree_store, "worktrees must share one store (git common dir key)"
     assert repo_store.as_posix().startswith((tmp_path / "state").as_posix())
     assert repo_store.name == ledger_lib.LEDGER_FILENAME
+
+
+@pytest.mark.parametrize("backend", ["sqlite", "jsonl"])
+def test_open_ledger_captures_repository_and_agent_context(
+    tmp_path: Path,
+    backend: str,
+) -> None:
+    repo = make_git_repo(tmp_path / "repo")
+    commit_something(repo)
+    head = run(["git", "rev-parse", "HEAD"], repo).stdout.strip()
+    branch = run(["git", "branch", "--show-current"], repo).stdout.strip()
+    env = {
+        "XDG_STATE_HOME": (tmp_path / "state").as_posix(),
+        ledger_lib.SESSION_ID_ENV_VAR: "session-parent",
+        ledger_lib.AGENT_ID_ENV_VAR: "agent-child",
+        ledger_lib.AGENT_TYPE_ENV_VAR: "worker",
+        ledger_lib.PARENT_AGENT_ID_ENV_VAR: "agent-parent",
+    }
+
+    instance = ledger_lib.open_ledger(cwd=repo, env=env, backend=backend)
+    event = instance.append({"event_type": "mutation"})
+    explicit = instance.append(
+        {
+            "event_type": "mutation",
+            "agent_id": "agent-explicit",
+            "parent_agent_id": "parent-explicit",
+        }
+    )
+    instance.close()
+
+    assert event["repository_identity"] == ledger_lib.repository_identity(
+        ledger_lib.git_common_dir(repo)
+    )
+    assert event["worktree_root"] == repo.resolve().as_posix()
+    assert event["branch"] == branch
+    assert event["head"] == head
+    assert event["cwd"] == repo.resolve().as_posix()
+    assert event["session_id"] == "session-parent"
+    assert event["agent_id"] == "agent-child"
+    assert event["agent_type"] == "worker"
+    assert event["parent_agent_id"] == "agent-parent"
+    assert explicit["agent_id"] == "agent-explicit", "event payload must override adapter defaults"
+    assert explicit["parent_agent_id"] == "parent-explicit"
+
+
+@pytest.mark.parametrize("backend", ["sqlite", "jsonl"])
+def test_worktrees_share_store_but_retain_distinct_context_after_teardown(
+    tmp_path: Path,
+    backend: str,
+) -> None:
+    repo = make_git_repo(tmp_path / "repo")
+    commit_something(repo)
+    worktree = tmp_path / "worktree"
+    assert (
+        run(
+            ["git", "worktree", "add", "-q", worktree.as_posix(), "-b", "feat/task-240-child"],
+            repo,
+        ).returncode
+        == 0
+    )
+    env = {"XDG_STATE_HOME": (tmp_path / "state").as_posix()}
+
+    parent = ledger_lib.open_ledger(cwd=repo, env=env, backend=backend)
+    child = ledger_lib.open_ledger(cwd=worktree, env=env, backend=backend)
+    parent_event = parent.append({"event_type": "mutation", "agent_id": "parent"})
+    child_event = child.append(
+        {
+            "event_type": "mutation",
+            "agent_id": "child",
+            "parent_agent_id": "parent",
+        }
+    )
+    child.close()
+    parent.close()
+
+    assert parent_event["repository_identity"] == child_event["repository_identity"]
+    assert parent_event["worktree_root"] != child_event["worktree_root"]
+    assert parent_event["branch"] != child_event["branch"]
+    assert child_event["parent_agent_id"] == "parent"
+    assert run(["git", "worktree", "remove", worktree.as_posix()], repo).returncode == 0
+
+    reopened = ledger_lib.open_ledger(cwd=repo, env=env, backend=backend, read_only=True)
+    events = reopened.read(repository_identity=parent_event["repository_identity"])
+    reopened.close()
+    assert {event["agent_id"] for event in events} == {"parent", "child"}
+    assert any(event["worktree_root"] == child_event["worktree_root"] for event in events)
+
+
+def test_sqlite_additive_migration_preserves_old_rows_and_read_only_compatibility(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "ledger.db"
+    connection = sqlite3.connect(db_path)
+    connection.execute("""
+        CREATE TABLE events (
+            seq INTEGER PRIMARY KEY AUTOINCREMENT,
+            schema_version TEXT NOT NULL,
+            event_id TEXT NOT NULL UNIQUE,
+            ts TEXT NOT NULL,
+            session_id TEXT,
+            branch TEXT,
+            cwd TEXT,
+            event_type TEXT NOT NULL,
+            tool_name TEXT,
+            handler TEXT,
+            paths TEXT NOT NULL DEFAULT '[]',
+            outcome TEXT,
+            exit_class TEXT,
+            duration_ms INTEGER,
+            agent_id TEXT,
+            agent_type TEXT,
+            payload_digest TEXT,
+            extra TEXT NOT NULL DEFAULT '{}'
+        )
+        """)
+    connection.execute("""
+        INSERT INTO events (
+            schema_version, event_id, ts, session_id, branch, cwd, event_type,
+            paths, outcome, exit_class, extra
+        ) VALUES ('1', 'legacy-event', '2026-07-01T00:00:00Z', 'legacy-session',
+                  'main', '/tmp/repo', 'mutation', '[]', 'pass', 'pass', '{}')
+        """)
+    connection.commit()
+    connection.close()
+
+    reader = ledger_lib.SQLiteLedger(db_path, read_only=True)
+    legacy_read = reader.read()
+    reader.close()
+    assert legacy_read[0]["event_id"] == "legacy-event"
+    assert legacy_read[0]["repository_identity"] is None
+    assert legacy_read[0]["worktree_root"] is None
+    assert legacy_read[0]["head"] is None
+    assert legacy_read[0]["parent_agent_id"] is None
+
+    writer = ledger_lib.SQLiteLedger(
+        db_path,
+        defaults={
+            "repository_identity": "sha256:migrated",
+            "worktree_root": "/tmp/worktree",
+            "head": "b" * 40,
+            "parent_agent_id": "parent-after-migration",
+        },
+    )
+    migrated = writer.append({"event_type": "mutation"})
+    rows = writer.read()
+    columns = writer._table_columns()
+    writer.close()
+
+    assert set(ledger_lib._ADDITIVE_COLUMNS).issubset(columns)
+    assert [event["event_id"] for event in rows][0] == "legacy-event"
+    assert migrated["repository_identity"] == "sha256:migrated"
+    assert migrated["parent_agent_id"] == "parent-after-migration"
+
+
+def test_sqlite_writer_waits_for_transient_lock(tmp_path: Path) -> None:
+    db_path = tmp_path / "ledger.db"
+    ledger = ledger_lib.SQLiteLedger(db_path)
+    ledger.append({"event_type": "mutation", "session_id": "before-lock"})
+    blocker = sqlite3.connect(db_path, timeout=0.1, check_same_thread=False)
+    blocker.execute("BEGIN IMMEDIATE")
+    blocker.execute("UPDATE events SET event_type = event_type WHERE event_id IS NOT NULL")
+
+    def release() -> None:
+        time.sleep(0.15)
+        blocker.commit()
+        blocker.close()
+
+    release_thread = threading.Thread(target=release)
+    release_thread.start()
+    appended = ledger.append({"event_type": "mutation", "session_id": "after-lock"})
+    release_thread.join(timeout=5)
+    events = ledger.read()
+    ledger.close()
+
+    assert appended["session_id"] == "after-lock"
+    assert {event["session_id"] for event in events} == {"before-lock", "after-lock"}
 
 
 def test_store_path_outside_git_raises(tmp_path: Path) -> None:
@@ -320,7 +533,15 @@ def test_cli_ledger_path_prints_resolved_store(tmp_path: Path) -> None:
     env = dict(os.environ)
     env["XDG_STATE_HOME"] = (tmp_path / "state").as_posix()
     result = run(
-        [sys.executable, "-m", "aegis_foundation.cli", "ledger", "path", "--target-dir", repo.as_posix()],
+        [
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "ledger",
+            "path",
+            "--target-dir",
+            repo.as_posix(),
+        ],
         REPO_ROOT,
         env=env,
     )
@@ -335,7 +556,15 @@ def test_cli_ledger_path_fails_cleanly_outside_git(tmp_path: Path) -> None:
     env = dict(os.environ)
     env["XDG_STATE_HOME"] = (tmp_path / "state").as_posix()
     result = run(
-        [sys.executable, "-m", "aegis_foundation.cli", "ledger", "path", "--target-dir", plain.as_posix()],
+        [
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "ledger",
+            "path",
+            "--target-dir",
+            plain.as_posix(),
+        ],
         REPO_ROOT,
         env=env,
     )

@@ -42,7 +42,9 @@ brief_lib = load_module(BRIEF_LIB, "brief_lib_for_ledger_record_tests")
 
 def load_fixture_lines(name: str) -> list[dict[str, object]]:
     path = FIXTURES / f"{name}.jsonl"
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
 
 
 def make_repo(tmp_path: Path) -> Path:
@@ -52,12 +54,18 @@ def make_repo(tmp_path: Path) -> Path:
     return repo
 
 
-def run_record(repo: Path, state_home: Path, payload: str) -> subprocess.CompletedProcess[str]:
+def run_record(
+    repo: Path,
+    state_home: Path,
+    payload: str,
+    *,
+    phase: str = "record",
+) -> subprocess.CompletedProcess[str]:
     env = dict(os.environ)
     env["XDG_STATE_HOME"] = state_home.as_posix()
     env["CLAUDE_PROJECT_DIR"] = repo.as_posix()
     return subprocess.run(
-        [sys.executable, GATE_LIB.as_posix(), "record"],
+        [sys.executable, GATE_LIB.as_posix(), phase],
         cwd=repo,
         input=payload,
         text=True,
@@ -73,7 +81,8 @@ def read_events(state_home: Path) -> list[dict[str, object]]:
         connection = sqlite3.connect(db.as_posix())
         cursor = connection.execute(
             "SELECT event_type, tool_name, outcome, session_id, agent_id, agent_type, "
-            "duration_ms, paths, extra, handler FROM events ORDER BY seq"
+            "duration_ms, paths, extra, handler, repository_identity, worktree_root, "
+            "branch, head, parent_agent_id FROM events ORDER BY seq"
         )
         for row in cursor.fetchall():
             events.append(
@@ -88,6 +97,11 @@ def read_events(state_home: Path) -> list[dict[str, object]]:
                     "paths": json.loads(row[7]),
                     "extra": json.loads(row[8]),
                     "handler": row[9],
+                    "repository_identity": row[10],
+                    "worktree_root": row[11],
+                    "branch": row[12],
+                    "head": row[13],
+                    "parent_agent_id": row[14],
                 }
             )
         connection.close()
@@ -138,6 +152,114 @@ def test_recorder_keeps_subagent_attribution(tmp_path: Path) -> None:
     event = read_events(state)[0]
     assert event["agent_id"] == subagent_fixtures[0]["agent_id"]
     assert event["agent_type"] == subagent_fixtures[0]["agent_type"]
+    assert event["parent_agent_id"] == f"session:{subagent_fixtures[0]['session_id']}"
+
+
+def test_codex_posttooluse_records_patch_paths_failure_and_repository_context(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path)
+    (repo / "README.md").write_text("seed\n", encoding="utf-8")
+    assert subprocess.run(["git", "add", "README.md"], cwd=repo, check=False).returncode == 0
+    assert (
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=test",
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "-qm",
+                "seed",
+            ],
+            cwd=repo,
+            check=False,
+        ).returncode
+        == 0
+    )
+    state = tmp_path / "state"
+    payload = {
+        "session_id": "codex-session",
+        "transcript_path": None,
+        "cwd": repo.as_posix(),
+        "hook_event_name": "PostToolUse",
+        "model": "gpt-5-codex",
+        "permission_mode": "default",
+        "turn_id": "turn-1",
+        "agent_id": "child-1",
+        "agent_type": "worker",
+        "tool_name": "apply_patch",
+        "tool_use_id": "call-1",
+        "tool_input": {"command": """*** Begin Patch
+*** Update File: README.md
+*** Move to: docs/README.md
+*** Add File: docs/new.md
+*** Delete File: old.md
+*** End Patch"""},
+        "tool_response": {"metadata": {"exit_code": 1}, "output": "patch failed"},
+    }
+
+    result = run_record(repo, state, json.dumps(payload))
+    assert result.returncode == 0
+    event = read_events(state)[0]
+    assert event["event_type"] == "tool_failure"
+    assert event["outcome"] == "fail"
+    assert event["handler"] == "codex:apply_patch"
+    assert event["agent_id"] == "child-1"
+    assert event["parent_agent_id"] == "session:codex-session"
+    assert event["repository_identity"].startswith("sha256:")
+    assert event["worktree_root"] == repo.resolve().as_posix()
+    assert (
+        event["head"]
+        == subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True, check=False
+        ).stdout.strip()
+    )
+    assert set(event["paths"]) == {
+        "README.md",
+        "docs/README.md",
+        "docs/new.md",
+        "old.md",
+    }
+    assert event["extra"]["adapter"] == "codex"
+    assert event["extra"]["turn_id"] == "turn-1"
+
+
+def test_codex_subagent_lifecycle_records_session_root_parent(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    state = tmp_path / "state"
+    base = {
+        "session_id": "parent-session",
+        "transcript_path": None,
+        "cwd": repo.as_posix(),
+        "model": "gpt-5-codex",
+        "permission_mode": "default",
+        "turn_id": "turn-2",
+        "agent_id": "child-agent",
+        "agent_type": "worker",
+    }
+    start = {**base, "hook_event_name": "SubagentStart"}
+    stop = {
+        **base,
+        "hook_event_name": "SubagentStop",
+        "agent_transcript_path": "/tmp/child-transcript.jsonl",
+        "stop_hook_active": False,
+        "last_assistant_message": "done",
+    }
+
+    assert run_record(repo, state, json.dumps(start)).returncode == 0
+    stop_result = run_record(repo, state, json.dumps(stop), phase="recordjson")
+    assert stop_result.returncode == 0
+    assert json.loads(stop_result.stdout) == {}
+    events = read_events(state)
+    assert [event["event_type"] for event in events] == ["subagent_begin", "subagent_end"]
+    assert all(event["agent_id"] == "child-agent" for event in events)
+    assert all(event["parent_agent_id"] == "session:parent-session" for event in events)
+    assert events[1]["extra"]["agent_transcript_path"] == "/tmp/child-transcript.jsonl"
+    assert events[0]["handler"] == "codex:subagentstart"
 
 
 def test_recorder_classifies_delivery_and_task_truth(tmp_path: Path) -> None:
@@ -162,17 +284,40 @@ def test_recorder_classifies_delivery_and_task_truth(tmp_path: Path) -> None:
     assert kinds == ["delivery", "task_truth", "task_truth"]
 
 
-def test_recorder_refreshes_capsule_for_boundary_events(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_recorder_refreshes_capsule_for_boundary_events(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repo = make_repo(tmp_path)
     state = tmp_path / "state"
     monkeypatch.setenv("XDG_STATE_HOME", state.as_posix())
     base = load_fixture_lines("PostToolUse")[0]
 
     cases = (
-        ({"tool_name": "Bash", "tool_input": {"command": "task-master set-status --id=227 --status=done"}}, "task-status-change"),
-        ({"tool_name": "Bash", "tool_input": {"command": "aegis witness --target-dir ."}}, "pre-delivery"),
-        ({"tool_name": "Bash", "tool_input": {"command": "aegis verify --target-dir . --strict"}}, "verification"),
-        ({"tool_name": "Bash", "tool_input": {"command": "gh pr merge 244 --squash --delete-branch"}}, "post-merge"),
+        (
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "task-master set-status --id=227 --status=done"},
+            },
+            "task-status-change",
+        ),
+        (
+            {"tool_name": "Bash", "tool_input": {"command": "aegis witness --target-dir ."}},
+            "pre-delivery",
+        ),
+        (
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "aegis verify --target-dir . --strict"},
+            },
+            "verification",
+        ),
+        (
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "gh pr merge 244 --squash --delete-branch"},
+            },
+            "post-merge",
+        ),
         (
             {
                 "tool_name": "Write",
@@ -189,7 +334,9 @@ def test_recorder_refreshes_capsule_for_boundary_events(tmp_path: Path, monkeypa
         payload = dict(base)
         payload.update(update)
         assert run_record(repo, state, json.dumps(payload)).returncode == 0
-        capsule = json.loads((repo / ".aegis" / "capsule" / "current.json").read_text(encoding="utf-8"))
+        capsule = json.loads(
+            (repo / ".aegis" / "capsule" / "current.json").read_text(encoding="utf-8")
+        )
         assert capsule["capsule_meta"]["compile_reason"] == expected_reason
         assert brief_lib.capsule_status(repo)["status"] == "fresh"
 
@@ -293,7 +440,7 @@ def test_managed_assets_include_recorder_files() -> None:
 
 def test_hook_dispatcher_accepts_new_phases() -> None:
     parser = cli.build_arg_parser()
-    for phase in ("record", "posttoolusefailure", "sessionstart", "sessionend"):
+    for phase in ("record", "recordjson", "posttoolusefailure", "sessionstart", "sessionend"):
         args = parser.parse_args(["hook", phase])
         assert args.phase == phase
 
@@ -319,7 +466,10 @@ def test_fixture_corpus_covers_documented_fields() -> None:
     posttool = load_fixture_lines("PostToolUse")
     assert any("duration_ms" in fixture for fixture in posttool)
     assert any(fixture.get("agent_id") for fixture in posttool)
-    assert all("session_id" in fixture and "transcript_path" in fixture and "cwd" in fixture for fixture in posttool)
+    assert all(
+        "session_id" in fixture and "transcript_path" in fixture and "cwd" in fixture
+        for fixture in posttool
+    )
     failure = load_fixture_lines("PostToolUseFailure")[0]
     assert "error" in failure and "is_interrupt" in failure
     assert load_fixture_lines("SubagentStop")[0]["agent_type"] == "Explore"
@@ -328,7 +478,11 @@ def test_fixture_corpus_covers_documented_fields() -> None:
 
 
 def test_assets_and_live_recorder_copies_identical() -> None:
-    for rel in (".claude/scripts/gate_lib.py", ".claude/scripts/ledger_lib.py", ".claude/scripts/ledger-record.sh"):
+    for rel in (
+        ".claude/scripts/gate_lib.py",
+        ".claude/scripts/ledger_lib.py",
+        ".claude/scripts/ledger-record.sh",
+    ):
         live = (REPO_ROOT / rel).read_bytes()
         asset = (REPO_ROOT / "aegis_foundation" / "assets" / rel).read_bytes()
         assert live == asset, f"assets/live copies diverge for {rel}"

@@ -13,11 +13,10 @@ state), read-only-ness, and that detection does not recurse through doctor().
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
@@ -33,6 +32,33 @@ from scripts._aegis_installer import (  # noqa: E402
 )
 
 
+def _simulate_codex_reload(target: Path, state_home: Path) -> None:
+    result = subprocess.run(
+        [str(target / ".aegis" / "bin" / "aegis"), "hook", "sessionstart"],
+        cwd=target,
+        input=json.dumps(
+            {
+                "session_id": "repair-next-test",
+                "turn_id": "turn-1",
+                "cwd": target.as_posix(),
+                "source": "startup",
+                "model": "gpt-5-codex",
+                "hook_event_name": "SessionStart",
+            }
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={
+            **os.environ,
+            "CODEX_THREAD_ID": "repair-next-test",
+            "XDG_STATE_HOME": state_home.as_posix(),
+        },
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def _kickoff_target(tmp_path: Path) -> Path:
     target = tmp_path / "repair-states"
     target.mkdir()
@@ -40,6 +66,7 @@ def _kickoff_target(tmp_path: Path) -> Path:
     (target / "src").mkdir()
     (target / "src" / "main.ts").write_text("export const ready = true;\n", encoding="utf-8")
     install(target, source_root=REPO_ROOT, primary_agent="codex", agents=["codex"], apply=True)
+    _simulate_codex_reload(target, tmp_path / "state")
     kickoff(target, task_id="42", slug="task-42-x", title="X", source_root=REPO_ROOT)
     return target
 
@@ -99,7 +126,9 @@ def test_pending_tracking_outranks_repair(tmp_path: Path) -> None:
     target = _kickoff_target(tmp_path)
     _induce_safe_drift(target)
     (target / AEGIS_PENDING_TRACKING_REL).write_text(
-        json.dumps({"events": [{"id": "p1", "tool_name": "Edit", "paths": ["src/main.ts"]}]}, indent=2)
+        json.dumps(
+            {"events": [{"id": "p1", "tool_name": "Edit", "paths": ["src/main.ts"]}]}, indent=2
+        )
         + "\n",
         encoding="utf-8",
     )

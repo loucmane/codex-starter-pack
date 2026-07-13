@@ -73,14 +73,24 @@ def _load_ledger_lib():
     return module
 
 
-def _read_events(root: Path) -> list[dict[str, Any]]:
+def _read_events(root: Path, branch: str) -> list[dict[str, Any]]:
     ledger_lib = _load_ledger_lib()
     if ledger_lib is None:
         return []
     try:
         ledger = ledger_lib.open_ledger(cwd=root)
         try:
-            return ledger.read()
+            context = ledger_lib.repository_context(root)
+            repository = context.get("repository_identity")
+            # Branch is the isolation boundary. Repository identity is additive in v1,
+            # so legacy rows with a matching branch and a null identity remain readable.
+            events = ledger.read(branch=branch) if branch else []
+            return [
+                event
+                for event in events
+                if not event.get("repository_identity")
+                or event.get("repository_identity") == repository
+            ]
         finally:
             ledger.close()
     except Exception:  # noqa: BLE001 - CI and fresh machines have no store.
@@ -140,7 +150,11 @@ def _scope_for_branch(
     if chosen is not None:
         task_id = chosen.get("extra", {}).get("task_id")
         globs = [g for g in chosen.get("extra", {}).get("path_globs", []) if isinstance(g, str)]
-        source = "scope_record_confirmed" if chosen.get("extra", {}).get("confirmed") else "scope_record_inferred"
+        source = (
+            "scope_record_confirmed"
+            if chosen.get("extra", {}).get("confirmed")
+            else "scope_record_inferred"
+        )
     if task_id is None and match:
         task_id = match.group(1)
         source = source if source != "none" else "branch_convention"
@@ -154,7 +168,9 @@ def _scope_for_branch(
     return {"task_id": task_id, "path_globs": globs, "source": source}
 
 
-def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = False) -> dict[str, Any]:
+def run_witness(
+    root: str | Path, *, base: str | None = None, ci_mode: bool = False
+) -> dict[str, Any]:
     """Run the four deterministic delivery checks; never raises."""
 
     target = Path(root).resolve()
@@ -165,11 +181,13 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
         branch = os.environ.get("GITHUB_HEAD_REF", "").strip()
     rc, head_out = _run(["git", "rev-parse", "--short", "HEAD"], target)
     head = head_out.strip() if rc == 0 else None
+    rc, head_full_out = _run(["git", "rev-parse", "HEAD"], target)
+    head_full = head_full_out.strip() if rc == 0 else None
     resolved_base = _resolve_base(target, base)
     diff = _diff_files(target, resolved_base)
     brief = _read_json(target / BRIEF_REL)
     brief = brief if isinstance(brief, dict) else {}
-    events = [] if ci_mode else _read_events(target)
+    events = [] if ci_mode else _read_events(target, branch)
     scope = _scope_for_branch(target, branch, events, brief)
     checks: dict[str, Any] = {}
 
@@ -198,7 +216,9 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
         }
     else:
         unaccounted = [
-            path for _status, path in diff if not any(_matches_glob(path, glob) for glob in scope["path_globs"])
+            path
+            for _status, path in diff
+            if not any(_matches_glob(path, glob) for glob in scope["path_globs"])
         ]
         checks["diff_accounting"] = {
             "passed": not unaccounted and not deleted_tests,
@@ -239,7 +259,8 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
                 and event.get("extra", {}).get("gate") == gate
                 and event.get("exit_class") == "pass"
                 and (
-                    event.get("extra", {}).get("commit") == head
+                    event.get("head") == head_full
+                    or event.get("extra", {}).get("commit") in {head, head_full}
                     or (
                         _parse_ts(head_time) is not None
                         and _parse_ts(event.get("ts")) is not None
@@ -255,6 +276,8 @@ def run_witness(root: str | Path, *, base: str | None = None, ci_mode: bool = Fa
             "required": required,
             "missing_pass_at_head": missing,
             "head": head,
+            "head_full": head_full,
+            "branch": branch,
             "detail": "registered gates need pass runs on record at the head commit",
         }
 
@@ -310,7 +333,9 @@ def render_report(report: dict[str, Any]) -> str:
                     lines.append(f"  - {key}: {check[key]}")
     if report.get("escalations"):
         lines.append(f"- ESCALATION (human review required): {report['escalations']}")
-    lines.append(f"Result: {'PASS' if report.get('passed') else 'FAIL'} — report at {WITNESS_REPORT_REL}")
+    lines.append(
+        f"Result: {'PASS' if report.get('passed') else 'FAIL'} — report at {WITNESS_REPORT_REL}"
+    )
     return "\n".join(lines) + "\n"
 
 

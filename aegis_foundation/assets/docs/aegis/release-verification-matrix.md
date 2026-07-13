@@ -13,6 +13,7 @@ Live workflow acceptance details live in `docs/aegis/live-acceptance-matrix.md`;
 | Command surface | `aegis`, `aegis-mcp-server` |
 | CLI operations | `aegis --version`, `aegis inspect`, `aegis status`, `aegis next`, `aegis plan-install`, `aegis install --apply`, `aegis verify`, `aegis verify --strict`, `aegis closeout --dry-run`, `aegis certify-release`, `aegis start`, `aegis kickoff`, `aegis log` |
 | MCP operations | native `claude mcp add`, native `codex mcp add`, `aegis mcp generate-registration`, `aegis mcp execute-registration`, `aegis mcp verify-registration`, `aegis mcp smoke-registration`, `aegis-mcp-server --describe-config`, stdio startup, `aegis.inspect`, `aegis.status`, `aegis.next`, `aegis.start`, `aegis.kickoff`, `aegis.log`, `aegis.closeout_ready`, `aegis.closeout`, `aegis://work/current`, tool/resource/prompt discovery |
+| Agent lifecycle | Claude hook dispatchers; Codex `.codex/hooks.json` structural merge, trust/reload, SessionStart, PostToolUse, SubagentStart, and SubagentStop |
 | Asset origin | `package`, `source` |
 | Connectivity | online package resolution, offline/local wheel |
 | Target shape | empty repo, Python/library repo, web/app repo, docs-heavy Task 101-style repo, partial existing Aegis install |
@@ -32,6 +33,11 @@ Every release candidate must prove:
 - native `claude mcp add --scope user aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers Aegis without editing `.mcp.json`
 - native `claude mcp add --scope project aegis -e UV_CACHE_DIR=.aegis/uv-cache -e UV_TOOL_DIR=.aegis/uv-tools -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers project-scoped Aegis without editing `.mcp.json`
 - native `codex mcp add --env UV_CACHE_DIR=.aegis/uv-cache --env UV_TOOL_DIR=.aegis/uv-tools aegis -- uvx --from aegis-foundation aegis-mcp-server --default-target-dir . --transport stdio` registers Aegis without hand-editing Codex config
+- Codex-only and multi-agent installs structurally merge four synchronous passive Aegis handlers into `.codex/hooks.json`, preserve unrelated hooks/top-level keys, remain idempotent, and refuse invalid or non-object JSON without overwrite
+- Codex install/update emits adapter-specific restart and `/hooks` trust guidance; a trusted SessionStart clears only the Codex marker, while Claude PreToolUse/SessionStart clears only the Claude marker
+- installed Codex hooks record main plus two linked child worktrees into one Git-common-dir ledger with distinct branch/worktree/HEAD context, successful and failed tool outcomes, child lifecycle attribution, no per-worktree mutable state, and history retained after teardown
+- Codex `SubagentStop` handlers emit valid JSON on stdout; no installed Codex handler carries `async` while asynchronous command hooks remain unsupported by the client
+- delivery witness and replay tests prove sibling-branch verification cannot satisfy current-branch HEAD and cross-branch replay requires an explicit option
 - Aegis registration generation covers package, pinned package, GitHub URL/ref, local wheel, and source checkout source modes
 - `aegis mcp smoke-registration` proves native Codex and Claude registration in isolated temporary homes/config directories, pre-creates `CODEX_HOME` for Codex, verifies the registered command, and emits structured evidence without touching real user config
 - missing native MCP clients return structured `missing_client` evidence without writing fallback config files

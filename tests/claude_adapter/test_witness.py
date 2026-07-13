@@ -12,7 +12,9 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ASSETS_WITNESS_LIB = REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "witness_lib.py"
+ASSETS_WITNESS_LIB = (
+    REPO_ROOT / "aegis_foundation" / "assets" / ".claude" / "scripts" / "witness_lib.py"
+)
 LEDGER_LIB = REPO_ROOT / ".claude" / "scripts" / "ledger_lib.py"
 
 sys.path.insert(0, str(REPO_ROOT))
@@ -134,10 +136,57 @@ def test_stale_verification_fails_and_after_head_passes(repo: Path) -> None:
     seed_verification(repo, old_head, ts="2000-01-01T00:00:00Z")
     commit_change(repo, "app/feature.py")
     report = witness_lib.run_witness(repo, base="main")
-    assert report["checks"]["verification_at_head"]["passed"] is False, "old-commit run with old ts is stale"
+    assert (
+        report["checks"]["verification_at_head"]["passed"] is False
+    ), "old-commit run with old ts is stale"
     seed_verification(repo, "unrelated", ts="2099-01-01T00:00:00Z")
     report = witness_lib.run_witness(repo, base="main")
-    assert report["checks"]["verification_at_head"]["passed"] is True, "pass recorded after head counts"
+    assert (
+        report["checks"]["verification_at_head"]["passed"] is True
+    ), "pass recorded after head counts"
+
+
+def test_sibling_worktree_verification_cannot_satisfy_current_branch(
+    repo: Path,
+    tmp_path: Path,
+) -> None:
+    commit_change(repo, "app/feature.py")
+    sibling = tmp_path / "sibling"
+    assert (
+        git(
+            repo,
+            "worktree",
+            "add",
+            "-q",
+            sibling.as_posix(),
+            "-b",
+            "feat/task-32-sibling",
+            "main",
+        ).returncode
+        == 0
+    )
+    ledger = ledger_lib.open_ledger(cwd=sibling)
+    try:
+        ledger.append(
+            {
+                "event_type": "verification",
+                "exit_class": "pass",
+                "outcome": "pass",
+                "ts": "2099-01-01T00:00:00Z",
+                "extra": {"package": "app", "gate": "test", "commit": "unrelated"},
+            }
+        )
+    finally:
+        ledger.close()
+
+    report = witness_lib.run_witness(repo, base="main")
+    assert report["checks"]["verification_at_head"]["passed"] is False
+    assert report["checks"]["verification_at_head"]["branch"] == "feat/task-31-widget"
+
+    seed_verification(repo, head_short(repo))
+    report = witness_lib.run_witness(repo, base="main")
+    assert report["checks"]["verification_at_head"]["passed"] is True
+    assert git(repo, "worktree", "remove", sibling.as_posix()).returncode == 0
 
 
 def test_confirmed_scope_record_beats_branch_convention(repo: Path) -> None:
@@ -162,10 +211,15 @@ def test_confirmed_scope_record_beats_branch_convention(repo: Path) -> None:
 def test_uncommitted_done_flip_fails_containment(repo: Path) -> None:
     tasks = repo / ".taskmaster" / "tasks" / "tasks.json"
     tasks.parent.mkdir(parents=True)
-    tasks.write_text(json.dumps({"master": {"tasks": [{"id": 31, "status": "pending"}]}}), encoding="utf-8")
+    tasks.write_text(
+        json.dumps({"master": {"tasks": [{"id": 31, "status": "pending"}]}}), encoding="utf-8"
+    )
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "tasks")
-    tasks.write_text(json.dumps({"master": {"tasks": [{"id": 31, "status": "done"}]}}, indent=1), encoding="utf-8")
+    tasks.write_text(
+        json.dumps({"master": {"tasks": [{"id": 31, "status": "done"}]}}, indent=1),
+        encoding="utf-8",
+    )
     seed_verification(repo, head_short(repo))
     report = witness_lib.run_witness(repo, base="main")
     assert report["checks"]["done_flip_containment"]["passed"] is False
@@ -187,7 +241,16 @@ def test_cli_exit_codes_and_render(repo: Path, tmp_path: Path) -> None:
     env = dict(os.environ)
     env["XDG_STATE_HOME"] = os.environ["XDG_STATE_HOME"]
     result = subprocess.run(
-        [sys.executable, "-m", "aegis_foundation.cli", "witness", "--target-dir", repo.as_posix(), "--base", "main"],
+        [
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "witness",
+            "--target-dir",
+            repo.as_posix(),
+            "--base",
+            "main",
+        ],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -205,7 +268,9 @@ def test_ci_greenness_is_delegated_never_reimplemented(repo: Path) -> None:
 
 
 def test_gate_classifies_witness_read_only() -> None:
-    gate_lib = load_module(REPO_ROOT / ".claude" / "scripts" / "gate_lib.py", "gate_lib_for_witness")
+    gate_lib = load_module(
+        REPO_ROOT / ".claude" / "scripts" / "gate_lib.py", "gate_lib_for_witness"
+    )
     assert gate_lib.bash_is_read_only("python3 -m aegis_foundation.cli witness --ci") is True
 
 

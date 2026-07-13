@@ -33,7 +33,13 @@ def test_corpora_exist_and_cover_all_labels() -> None:
     assert CORPORA, "committed replay corpora required"
     entries = replay.load_corpus(CORPORA)
     labels = {entry["label"] for entry in entries}
-    assert {"fp_workflow_state", "ceremony_interior", "must_allow", "must_fire", "adversarial_must_block"} <= labels
+    assert {
+        "fp_workflow_state",
+        "ceremony_interior",
+        "must_allow",
+        "must_fire",
+        "adversarial_must_block",
+    } <= labels
     for entry in entries:
         assert entry["label"] in replay.LABELS
         assert entry["state"] in replay.STATES
@@ -93,48 +99,87 @@ def test_known_gaps_are_exactly_the_documented_ones(report: dict[str, object]) -
 
 def test_adversarial_blocks_hold(report: dict[str, object]) -> None:
     results = {result["id"]: result for result in report["results"]}
-    for blocked_id in ("ADV-settings-write", "ADV-gate-edit", "ADV-state-edit", "ADV-template-sed", "ADV-taskmaster-blocked", "ADV-workflow-owned"):
+    for blocked_id in (
+        "ADV-settings-write",
+        "ADV-gate-edit",
+        "ADV-state-edit",
+        "ADV-template-sed",
+        "ADV-taskmaster-blocked",
+        "ADV-workflow-owned",
+    ):
         assert results[blocked_id]["verdict"] == "block", f"{blocked_id} must block"
 
 
 def test_e29_stop_gate_must_fire(report: dict[str, object]) -> None:
     results = {result["id"]: result for result in report["results"]}
-    assert results["E29a"]["verdict"] == "block", "the trailing-pending Stop gate is the must-fire set"
+    assert (
+        results["E29a"]["verdict"] == "block"
+    ), "the trailing-pending Stop gate is the must-fire set"
     assert results["OK-stop-clean"]["verdict"] == "allow", "clean stop must not fire"
 
 
-def test_e01_observe_stop_refuses_dirty_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_e01_observe_stop_refuses_dirty_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("XDG_STATE_HOME", (tmp_path / "state").as_posix())
     target = tmp_path / "target"
     target.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=target, check=False)
     subprocess.run(
-        ["git", "-c", "user.email=t@e.c", "-c", "user.name=t", "-c", "commit.gpgsign=false",
-         "commit", "-q", "--allow-empty", "-m", "seed"],
+        [
+            "git",
+            "-c",
+            "user.email=t@e.c",
+            "-c",
+            "user.name=t",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-q",
+            "--allow-empty",
+            "-m",
+            "seed",
+        ],
         cwd=target,
         check=False,
     )
     init = _aegis_installer.initialize_project(
-        target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], verify_after_install=False
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="claude",
+        agents=["claude"],
+        verify_after_install=False,
     )
     assert init.get("status") == "initialized", init.get("status")
     reload_marker = target / ".aegis" / "state" / "client-reload-required.json"
     if reload_marker.exists():
         reload_marker.unlink()  # simulate the post-install Claude restart
     started = _aegis_installer.start_observation(
-        target, title="Replay E01 observation", slug="replay-e01", goals=["observe"], source_root=REPO_ROOT
+        target,
+        title="Replay E01 observation",
+        slug="replay-e01",
+        goals=["observe"],
+        source_root=REPO_ROOT,
     )
     assert started.get("status") not in {"refused", "failed"}, started
     (target / "stray-screenshot.png").write_bytes(b"PNG")
     stopped = _aegis_installer.stop_observation(
-        target, summary="replay E01", allow_dirty=False, collect_artifacts=False, source_root=REPO_ROOT
+        target,
+        summary="replay E01",
+        allow_dirty=False,
+        collect_artifacts=False,
+        source_root=REPO_ROOT,
     )
-    assert stopped.get("status") in {"blocked", "refused", "failed"}, (
-        "E01 golden: observe-stop must refuse a dirty tree (the deployment's one true positive)"
-    )
+    assert stopped.get("status") in {
+        "blocked",
+        "refused",
+        "failed",
+    }, "E01 golden: observe-stop must refuse a dirty tree (the deployment's one true positive)"
 
 
-def test_ledger_ingestion_produces_replayable_candidates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ledger_ingestion_produces_replayable_candidates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("XDG_STATE_HOME", (tmp_path / "state").as_posix())
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -148,7 +193,9 @@ def test_ledger_ingestion_produces_replayable_candidates(tmp_path: Path, monkeyp
     spec.loader.exec_module(module)
     ledger = module.open_ledger(cwd=repo)
     try:
-        ledger.append({"event_type": "mutation", "tool_name": "Bash", "extra": {"command": "touch x"}})
+        ledger.append(
+            {"event_type": "mutation", "tool_name": "Bash", "extra": {"command": "touch x"}}
+        )
         ledger.append({"event_type": "mutation", "tool_name": "Edit", "paths": ["src/a.py"]})
         ledger.append({"event_type": "mutation", "tool_name": "mcp__x__y", "extra": {}})
         ledger.append({"event_type": "gate_decision", "extra": {"verdict": "allow"}})
@@ -160,12 +207,86 @@ def test_ledger_ingestion_produces_replayable_candidates(tmp_path: Path, monkeyp
     assert all(candidate["label"] == "recorded" for candidate in candidates)
 
 
+def test_ledger_ingestion_is_branch_scoped_with_explicit_all_branch_escape_hatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("XDG_STATE_HOME", (tmp_path / "state").as_posix())
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=False)
+    (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+    subprocess.run(["git", "add", "seed.txt"], cwd=repo, check=False)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "user.name=test",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-qm",
+            "seed",
+        ],
+        cwd=repo,
+        check=False,
+    )
+    subprocess.run(["git", "checkout", "-qb", "feat/task-240-current"], cwd=repo, check=False)
+    sibling = tmp_path / "sibling"
+    subprocess.run(
+        ["git", "worktree", "add", "-q", sibling.as_posix(), "-b", "feat/task-241-sibling", "main"],
+        cwd=repo,
+        check=False,
+    )
+
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "ledger_for_branch_ingest", REPO_ROOT / ".claude" / "scripts" / "ledger_lib.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    current = module.open_ledger(cwd=repo)
+    sibling_ledger = module.open_ledger(cwd=sibling)
+    try:
+        current.append(
+            {"event_type": "mutation", "tool_name": "Bash", "extra": {"command": "touch current"}}
+        )
+        sibling_ledger.append(
+            {"event_type": "mutation", "tool_name": "Bash", "extra": {"command": "touch sibling"}}
+        )
+    finally:
+        current.close()
+        sibling_ledger.close()
+
+    current_candidates, _ = replay.ingest_ledger(repo)
+    sibling_candidates, _ = replay.ingest_ledger(repo, branch="feat/task-241-sibling")
+    all_candidates, _ = replay.ingest_ledger(repo, all_branches=True)
+    assert [candidate["payload"]["tool_input"]["command"] for candidate in current_candidates] == [
+        "touch current"
+    ]
+    assert [candidate["payload"]["tool_input"]["command"] for candidate in sibling_candidates] == [
+        "touch sibling"
+    ]
+    assert {candidate["payload"]["tool_input"]["command"] for candidate in all_candidates} == {
+        "touch current",
+        "touch sibling",
+    }
+
+
 def test_cli_replay_runs_and_reports(tmp_path: Path) -> None:
     result = subprocess.run(
         [
-            sys.executable, "-m", "aegis_foundation.cli", "replay",
-            "--corpus", (REPO_ROOT / "tests" / "fixtures" / "replay" / "must-allow.jsonl").as_posix(),
-            "--work-dir", (tmp_path / "work").as_posix(),
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "replay",
+            "--corpus",
+            (REPO_ROOT / "tests" / "fixtures" / "replay" / "must-allow.jsonl").as_posix(),
+            "--work-dir",
+            (tmp_path / "work").as_posix(),
         ],
         cwd=REPO_ROOT,
         capture_output=True,
@@ -185,7 +306,10 @@ def test_cli_replay_fails_on_regression(tmp_path: Path) -> None:
                 "label": "must_allow",
                 "state": "blocked_strict",
                 "hook": "pretooluse",
-                "payload": {"tool_name": "Bash", "tool_input": {"command": "git checkout -b feat/task-1-x"}},
+                "payload": {
+                    "tool_name": "Bash",
+                    "tool_input": {"command": "git checkout -b feat/task-1-x"},
+                },
                 "notes": "deliberately mislabeled: blocked mutation as must_allow",
             }
         )
@@ -194,8 +318,14 @@ def test_cli_replay_fails_on_regression(tmp_path: Path) -> None:
     )
     result = subprocess.run(
         [
-            sys.executable, "-m", "aegis_foundation.cli", "replay",
-            "--corpus", bad.as_posix(), "--work-dir", (tmp_path / "work").as_posix(),
+            sys.executable,
+            "-m",
+            "aegis_foundation.cli",
+            "replay",
+            "--corpus",
+            bad.as_posix(),
+            "--work-dir",
+            (tmp_path / "work").as_posix(),
         ],
         cwd=REPO_ROOT,
         capture_output=True,

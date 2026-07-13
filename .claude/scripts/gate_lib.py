@@ -15,14 +15,14 @@ from hashlib import sha1, sha256
 from pathlib import Path
 from typing import Any
 
-
-FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
 HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
 REQUIRED_TOOL_INPUT_FIELDS = {
     "Edit": ("file_path",),
     "Write": ("file_path",),
     "MultiEdit": ("file_path",),
     "NotebookEdit": ("notebook_path",),
+    "apply_patch": ("command",),
     "Bash": ("command",),
 }
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
@@ -97,12 +97,19 @@ AEGIS_CLOSEOUT_RE = re.compile(
     r"(^|[;&|]\s*)(aegis|(?:\./)?\.aegis/bin/aegis|python3?\s+-m\s+aegis_foundation\.cli)\s+closeout\b",
     re.IGNORECASE,
 )
-LOCALHOST_URL_RE = re.compile(r"^https?://(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:/|$)", re.IGNORECASE)
+LOCALHOST_URL_RE = re.compile(
+    r"^https?://(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:/|$)", re.IGNORECASE
+)
 OBSERVATION_BROWSER_MCP_RE = re.compile(
     r"^mcp__(?:playwright|browser|puppeteer|chrome(?:[-_]devtools)?|chromium)__",
     re.IGNORECASE,
 )
 REDIRECT_RE = re.compile(r"(?<![<])(?:>>|>)(?![>&])\s*([\"']?)([^\"'\s;&|]+)\1")
+APPLY_PATCH_PATH_RE = re.compile(
+    r"^\*\*\*\s+(?:Add|Update|Delete)\s+File:\s*(.+?)\s*$",
+    re.MULTILINE,
+)
+APPLY_PATCH_MOVE_RE = re.compile(r"^\*\*\*\s+Move\s+to:\s*(.+?)\s*$", re.MULTILINE)
 SHELL_CONTROL_SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
 HARD_POLICY_SHELL_CONTROL_TOKENS = {"&", "&&", "(", ")", ";", "|", "||"}
 HARD_POLICY_SHELLS = {"bash", "dash", "ksh", "sh", "zsh"}
@@ -332,7 +339,10 @@ def payload_required_field_issue(payload: Payload) -> str | None:
     required_fields = REQUIRED_TOOL_INPUT_FIELDS.get(payload.tool_name)
     if not required_fields:
         return None
-    if any(isinstance(payload.tool_input.get(field), str) and payload.tool_input.get(field) for field in required_fields):
+    if any(
+        isinstance(payload.tool_input.get(field), str) and payload.tool_input.get(field)
+        for field in required_fields
+    ):
         return None
     fields = ", ".join(required_fields)
     return f"{payload.tool_name} payload missing required input field(s): {fields}"
@@ -490,15 +500,15 @@ RECOVERY_CONTRACT: dict[str, dict[str, str]] = {
         "repair": "./.aegis/bin/aegis repair --target-dir . --apply",
         "alt_repair": "python3 scripts/codex-task wizard kickoff --task <id> --slug <slug> --title '<title>'",
         "audit": ".aegis/reports/gate-decisions.jsonl + ledger",
-        "escalation": "If repair/kickoff cannot resolve it, break glass: aegis override --reason \"<why>\" (workflow-state only).",
+        "escalation": 'If repair/kickoff cannot resolve it, break glass: aegis override --reason "<why>" (workflow-state only).',
         "override_eligible": "true",
     },
     "pending_tracking": {
         "tier": "a",
-        "repair": "aegis log --pending-id current   # or: aegis log --handler <h> --evidence <e> --note \"<past-tense>\"",
+        "repair": 'aegis log --pending-id current   # or: aegis log --handler <h> --evidence <e> --note "<past-tense>"',
         "alt_repair": "",
         "audit": "sessions/current + active TRACKER.md + ledger",
-        "escalation": "If the pending event is unmatchable, break glass: aegis override --reason \"<why>\".",
+        "escalation": 'If the pending event is unmatchable, break glass: aegis override --reason "<why>".',
         "override_eligible": "true",
     },
     "observation_mode_disallowed_mutation": {
@@ -646,7 +656,9 @@ def gate_hard_block(
     return block(message + "\n" + recovery_block_suffix(reason))
 
 
-def _record_override_use(root: Path, payload: Payload, *, reason: str, token: dict[str, Any]) -> None:
+def _record_override_use(
+    root: Path, payload: Payload, *, reason: str, token: dict[str, Any]
+) -> None:
     ledger_lib = _load_ledger_lib_module()
     if ledger_lib is None:
         return
@@ -762,7 +774,9 @@ def mcp_is_read_only_taskmaster_discovery(payload: Payload) -> bool:
     if not is_mcp_tool(payload.tool_name) or not mcp_is_taskmaster_tool(payload.tool_name):
         return False
     normalized = normalized_mcp_tool_name(payload.tool_name)
-    return any(normalized.endswith(f"__{suffix}") for suffix in TASKMASTER_READ_ONLY_MCP_TOOL_SUFFIXES)
+    return any(
+        normalized.endswith(f"__{suffix}") for suffix in TASKMASTER_READ_ONLY_MCP_TOOL_SUFFIXES
+    )
 
 
 def is_hookable_tool(tool_name: str) -> bool:
@@ -778,7 +792,14 @@ def file_paths_from_payload(payload: Payload, root: Path | None = None) -> list[
     for candidate in candidates:
         if isinstance(candidate, str) and candidate:
             paths.append(normalize_path(candidate, root))
-    return paths
+    if payload.tool_name == "apply_patch":
+        patch = payload.tool_input.get("command")
+        if isinstance(patch, str):
+            for candidate in APPLY_PATCH_PATH_RE.findall(patch) + APPLY_PATCH_MOVE_RE.findall(
+                patch
+            ):
+                paths.append(normalize_path(candidate, root))
+    return list(dict.fromkeys(paths))
 
 
 def mcp_path_values(value: Any) -> list[str]:
@@ -849,7 +870,9 @@ def option_value(tokens: list[str], option: str) -> str | None:
     return None
 
 
-def target_dir_confinement_violation(target_dir: str | None, root: Path | None = None) -> str | None:
+def target_dir_confinement_violation(
+    target_dir: str | None, root: Path | None = None
+) -> str | None:
     if not target_dir:
         return None
     root = (root or project_root()).resolve()
@@ -982,7 +1005,11 @@ def git_invocation(tokens: list[str], root: Path) -> tuple[Path, str, list[str]]
         if token == "-C" and index + 1 < len(tokens):
             candidate = safe_expanduser(tokens[index + 1])
             try:
-                git_root = (git_root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+                git_root = (
+                    (git_root / candidate).resolve()
+                    if not candidate.is_absolute()
+                    else candidate.resolve()
+                )
             except (OSError, RuntimeError, ValueError):
                 pass
             index += 2
@@ -990,7 +1017,11 @@ def git_invocation(tokens: list[str], root: Path) -> tuple[Path, str, list[str]]
         if token.startswith("-C") and token != "-C":
             candidate = safe_expanduser(token[2:])
             try:
-                git_root = (git_root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+                git_root = (
+                    (git_root / candidate).resolve()
+                    if not candidate.is_absolute()
+                    else candidate.resolve()
+                )
             except (OSError, RuntimeError, ValueError):
                 pass
             index += 1
@@ -998,7 +1029,11 @@ def git_invocation(tokens: list[str], root: Path) -> tuple[Path, str, list[str]]
         if token in options_with_values:
             index += 2
             continue
-        if any(token.startswith(f"{option}=") for option in options_with_values if option.startswith("--")):
+        if any(
+            token.startswith(f"{option}=")
+            for option in options_with_values
+            if option.startswith("--")
+        ):
             index += 1
             continue
         if token.startswith("-"):
@@ -1046,7 +1081,9 @@ def option_positionals(args: list[str], value_options: set[str]) -> list[str]:
         if token in value_options:
             index += 2
             continue
-        if any(token.startswith(f"{option}=") for option in value_options if option.startswith("--")):
+        if any(
+            token.startswith(f"{option}=") for option in value_options if option.startswith("--")
+        ):
             index += 1
             continue
         if token.startswith("-"):
@@ -1111,7 +1148,9 @@ def git_config_remote_violation(args: list[str]) -> str | None:
     sensitive_indexes = [
         index
         for index, token in enumerate(positionals)
-        if re.fullmatch(r"(?:remote\.[^.]+\.(?:pushurl|url)|url\..+\.insteadof)", token, re.IGNORECASE)
+        if re.fullmatch(
+            r"(?:remote\.[^.]+\.(?:pushurl|url)|url\..+\.insteadof)", token, re.IGNORECASE
+        )
     ]
     if not sensitive_indexes:
         return None
@@ -1165,7 +1204,12 @@ def option_argument(tokens: list[str], *options: str) -> str | None:
         for option in options:
             if token.startswith(f"{option}="):
                 return token[len(option) + 1 :]
-            if option.startswith("-") and not option.startswith("--") and token.startswith(option) and token != option:
+            if (
+                option.startswith("-")
+                and not option.startswith("--")
+                and token.startswith(option)
+                and token != option
+            ):
                 return token[len(option) :]
     return None
 
@@ -1195,8 +1239,21 @@ def github_governance_violation(tokens: list[str]) -> str | None:
     if name == "curl":
         method = (option_argument(tokens[1:], "--request", "-X") or "").upper()
         has_data = any(
-            token in {"--data", "--data-binary", "--data-raw", "--form", "--json", "--upload-file", "-d", "-F", "-T"}
-            or token.startswith(("--data=", "--data-binary=", "--data-raw=", "--form=", "--json=", "-d", "-F", "-T"))
+            token
+            in {
+                "--data",
+                "--data-binary",
+                "--data-raw",
+                "--form",
+                "--json",
+                "--upload-file",
+                "-d",
+                "-F",
+                "-T",
+            }
+            or token.startswith(
+                ("--data=", "--data-binary=", "--data-raw=", "--form=", "--json=", "-d", "-F", "-T")
+            )
             for token in tokens[1:]
         )
         effective_method = method or ("POST" if has_data else "GET")
@@ -1288,7 +1345,9 @@ def read_only_taskmaster_segment(tokens: list[str]) -> bool:
     return len(tokens) >= 2 and tokens[1] in READ_ONLY_TASKMASTER_SUBCOMMANDS
 
 
-def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_bare: bool = False) -> list[str] | None:
+def aegis_cli_remainder(
+    tokens: list[str], root: Path | None = None, *, allow_bare: bool = False
+) -> list[str] | None:
     if not tokens:
         return None
     root = root or project_root()
@@ -1300,10 +1359,15 @@ def aegis_cli_remainder(tokens: list[str], root: Path | None = None, *, allow_ba
         if resolved and normalize_path(resolved, root) == AEGIS_LOCAL_BIN_REL:
             return tokens[1:]
         return tokens[1:] if allow_bare else None
-    if len(tokens) >= 4 and command_name(executable) in {"python", "python3"} and tokens[1:3] == [
-        "-m",
-        "aegis_foundation.cli",
-    ]:
+    if (
+        len(tokens) >= 4
+        and command_name(executable) in {"python", "python3"}
+        and tokens[1:3]
+        == [
+            "-m",
+            "aegis_foundation.cli",
+        ]
+    ):
         return tokens[3:]
     return None
 
@@ -1336,7 +1400,9 @@ def aegis_cli_target_dir_violation_from_remainder(
 def aegis_cli_target_dir_violations(command: str, root: Path | None = None) -> list[str]:
     root = root or project_root()
     violations: list[str] = []
-    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+    for segment in [
+        segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()
+    ]:
         tokens = strip_shell_prefixes(shlex_tokens(segment))
         remainder = aegis_cli_remainder(tokens, root, allow_bare=True)
         if remainder is None:
@@ -1351,7 +1417,9 @@ def read_only_aegis_segment(tokens: list[str]) -> bool:
     remainder = aegis_cli_remainder(tokens, allow_bare=True)
     if remainder is None:
         return False
-    return read_only_aegis_remainder(remainder) and not aegis_cli_target_dir_violation_from_remainder(remainder)
+    return read_only_aegis_remainder(
+        remainder
+    ) and not aegis_cli_target_dir_violation_from_remainder(remainder)
 
 
 def read_only_node_segment(tokens: list[str]) -> bool:
@@ -1373,14 +1441,23 @@ def read_only_python_test_segment(tokens: list[str]) -> bool:
     if tokens[0] == "pytest":
         return not has_read_only_test_output_option(tokens)
     if command_name(tokens[0]) in {"python", "python3"}:
-        return len(tokens) >= 3 and tokens[1:3] == ["-m", "pytest"] and not has_read_only_test_output_option(tokens)
+        return (
+            len(tokens) >= 3
+            and tokens[1:3] == ["-m", "pytest"]
+            and not has_read_only_test_output_option(tokens)
+        )
     if tokens[0] == "uv" and len(tokens) >= 3 and tokens[1] == "run":
         return read_only_python_test_segment(tokens[2:])
     return False
 
 
 def read_only_find_segment(tokens: list[str]) -> bool:
-    return tokens[0] == "find" and "-delete" not in tokens and "-exec" not in tokens and "-execdir" not in tokens
+    return (
+        tokens[0] == "find"
+        and "-delete" not in tokens
+        and "-exec" not in tokens
+        and "-execdir" not in tokens
+    )
 
 
 def command_has_write_flag(arg_tokens: list[str], write_flags: tuple[str, ...]) -> bool:
@@ -1390,7 +1467,11 @@ def command_has_write_flag(arg_tokens: list[str], write_flags: tuple[str, ...]) 
     a long flag like ``--inplace`` must match a whole token. Scanning stops at a literal
     ``--`` end-of-options terminator, after which tokens are operands, not flags."""
 
-    short_letters = {flag[1:] for flag in write_flags if flag.startswith("-") and not flag.startswith("--") and len(flag) == 2}
+    short_letters = {
+        flag[1:]
+        for flag in write_flags
+        if flag.startswith("-") and not flag.startswith("--") and len(flag) == 2
+    }
     long_flags = {flag for flag in write_flags if flag.startswith("--")}
     for token in arg_tokens:
         if token == "--":
@@ -1488,7 +1569,12 @@ def localhost_probe_segment(tokens: list[str]) -> bool:
                 return False
             if token in {"-D", "-J", "-K", "-O", "-o", "-c"}:
                 return False
-            if token.startswith("-D") or token.startswith("-K") or token.startswith("-o") or token.startswith("-c"):
+            if (
+                token.startswith("-D")
+                or token.startswith("-K")
+                or token.startswith("-o")
+                or token.startswith("-c")
+            ):
                 return False
             if token.startswith("-") and "O" in token[1:]:
                 return False
@@ -1547,7 +1633,9 @@ def bash_is_observation_tooling(command: str) -> bool:
     if any(is_persistent_redirect_target(target) for target in redirect_targets(command)):
         return False
     segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
-    return bool(segments) and all(bash_segment_is_observation_tooling(segment) for segment in segments)
+    return bool(segments) and all(
+        bash_segment_is_observation_tooling(segment) for segment in segments
+    )
 
 
 def degraded_bash_segment_is_non_destructive(segment: str) -> bool:
@@ -1572,7 +1660,9 @@ def degraded_payload_is_non_destructive(payload: Payload) -> bool:
 
 
 def bash_is_aegis_bootstrap(command: str) -> bool:
-    return bash_has_trusted_aegis_subcommand(command, {"start", "kickoff"}) or bash_is_aegis_observe_start(command)
+    return bash_has_trusted_aegis_subcommand(
+        command, {"start", "kickoff"}
+    ) or bash_is_aegis_observe_start(command)
 
 
 def bash_is_aegis_log(command: str) -> bool:
@@ -1607,7 +1697,11 @@ def codex_task_remainder(tokens: list[str], root: Path | None = None) -> list[st
 def _segment_is_codex_task_logging(segment: str) -> bool:
     tokens = strip_shell_prefixes(shlex_tokens(segment))
     remainder = codex_task_remainder(tokens)
-    return bool(remainder) and len(remainder) >= 2 and (remainder[0], remainder[1]) in CODEX_TASK_LOGGING_SUBCOMMANDS
+    return (
+        bool(remainder)
+        and len(remainder) >= 2
+        and (remainder[0], remainder[1]) in CODEX_TASK_LOGGING_SUBCOMMANDS
+    )
 
 
 def bash_is_codex_task_logging(command: str) -> bool:
@@ -1617,7 +1711,9 @@ def bash_is_codex_task_logging(command: str) -> bool:
     mutation escape (TM 216 adversarial review)."""
 
     saw_logging = False
-    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+    for segment in [
+        segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()
+    ]:
         if _segment_is_codex_task_logging(segment):
             saw_logging = True
         elif not bash_is_read_only(segment):
@@ -1737,7 +1833,9 @@ def bash_has_trusted_aegis_subcommand(
 
     root = project_root()
     saw_trusted = False
-    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+    for segment in [
+        segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()
+    ]:
         if _segment_is_trusted_aegis(
             segment,
             subcommands,
@@ -1771,7 +1869,9 @@ def bash_has_trusted_aegis_nested_subcommand(
 
     root = project_root()
     saw_trusted = False
-    for segment in [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]:
+    for segment in [
+        segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()
+    ]:
         tokens = strip_shell_prefixes(shlex_tokens(segment))
         remainder = aegis_cli_remainder(tokens, root, allow_bare=False)
         if len(remainder or []) >= 2 and remainder[0] == first and remainder[1] in seconds:
@@ -1882,7 +1982,9 @@ def path_guard() -> int:
     if payload is None:
         return 0
     root = project_root()
-    protected = [path for path in file_paths_from_payload(payload, root) if is_protected_path(path, root)]
+    protected = [
+        path for path in file_paths_from_payload(payload, root) if is_protected_path(path, root)
+    ]
     if not protected:
         return 0
     paths = "\n".join(f"  - {path}" for path in protected)
@@ -1945,7 +2047,9 @@ def degraded_events(root: Path) -> list[dict[str, Any]]:
     if not payload:
         return []
     events = payload.get("events")
-    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    return (
+        [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    )
 
 
 def degraded_event_hash(event: dict[str, Any]) -> str:
@@ -1968,7 +2072,9 @@ def write_degraded_event(
     existing_events = degraded_events(root)
     previous_hash = str(existing_events[-1].get("event_hash") or "") if existing_events else ""
     event = {
-        "id": sha1(f"{now}|{payload.tool_name}|{reason}|{raw_payload_preview(raw_payload)}".encode("utf-8")).hexdigest()[:12],
+        "id": sha1(
+            f"{now}|{payload.tool_name}|{reason}|{raw_payload_preview(raw_payload)}".encode("utf-8")
+        ).hexdigest()[:12],
         "created_at": now,
         "gate": "pretooluse",
         "mode": mode,
@@ -1999,7 +2105,11 @@ def current_work(root: Path) -> dict[str, Any] | None:
 
 def current_work_is_observation(root: Path) -> bool:
     work = current_work(root)
-    return isinstance(work, dict) and work.get("mode") == "observation" and work.get("status") == "in-progress"
+    return (
+        isinstance(work, dict)
+        and work.get("mode") == "observation"
+        and work.get("status") == "in-progress"
+    )
 
 
 def current_work_closeout_completed(root: Path) -> dict[str, Any] | None:
@@ -2031,10 +2141,60 @@ def current_work_branch_name(work: dict[str, Any]) -> str:
     return ""
 
 
-def clear_client_reload_marker(root: Path) -> None:
+def clear_client_reload_marker(root: Path, *, agent: str | None = None) -> None:
     marker = root / AEGIS_CLIENT_RELOAD_REL
-    if marker.exists():
+    if not marker.exists():
+        return
+    normalized_agent = str(agent or "").strip().lower()
+    payload = read_json(marker)
+    if normalized_agent not in {"claude", "codex", "gemini"} or not isinstance(payload, dict):
         marker.unlink()
+        return
+    raw_agents = payload.get("agents")
+    agents = (
+        [
+            str(value).strip().lower()
+            for value in raw_agents
+            if str(value).strip().lower() in {"claude", "codex", "gemini"}
+        ]
+        if isinstance(raw_agents, list)
+        else []
+    )
+    legacy_agent = str(payload.get("agent") or "").strip().lower()
+    if legacy_agent in {"claude", "codex", "gemini"}:
+        agents.append(legacy_agent)
+    agents = list(dict.fromkeys(agents))
+    if not agents or normalized_agent not in agents:
+        return
+    remaining = [value for value in agents if value != normalized_agent]
+    if not remaining:
+        marker.unlink()
+        return
+    payload["agents"] = remaining
+    payload["agent"] = remaining[0]
+    changed_by_agent = payload.get("changed_paths_by_agent")
+    if isinstance(changed_by_agent, dict):
+        changed_by_agent = {
+            key: value for key, value in changed_by_agent.items() if key in remaining
+        }
+        payload["changed_paths_by_agent"] = changed_by_agent
+        payload["changed_paths"] = sorted(
+            {
+                str(path)
+                for paths in changed_by_agent.values()
+                if isinstance(paths, list)
+                for path in paths
+                if isinstance(path, str) and path
+            }
+        )
+    clearance_by_agent = payload.get("clearance_by_agent")
+    if isinstance(clearance_by_agent, dict):
+        clearance_by_agent = {
+            key: value for key, value in clearance_by_agent.items() if key in remaining
+        }
+        payload["clearance_by_agent"] = clearance_by_agent
+        payload["clearance"] = clearance_by_agent.get(remaining[0], {})
+    write_json(marker, payload)
 
 
 def pending_tracking_path(root: Path) -> Path:
@@ -2046,7 +2206,9 @@ def pending_tracking_events(root: Path) -> list[dict[str, Any]]:
     if not payload:
         return []
     events = payload.get("events")
-    return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    return (
+        [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
+    )
 
 
 def write_pending_tracking_events(root: Path, events: list[dict[str, Any]]) -> None:
@@ -2059,7 +2221,10 @@ def write_pending_tracking_events(root: Path, events: list[dict[str, Any]]) -> N
         path,
         {
             "schema_version": "1.0.0",
-            "updated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            "updated_at": datetime.now(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z"),
             "events": events,
         },
     )
@@ -2305,7 +2470,11 @@ def payload_is_aegis_uninstall_apply(payload: Payload) -> bool:
         return bash_is_aegis_uninstall_apply(bash_command(payload))
     if is_mcp_tool(payload.tool_name):
         normalized = payload.tool_name.lower().replace(".", "_").replace("-", "_")
-        return "aegis" in normalized and normalized.endswith("uninstall") and payload.tool_input.get("apply") is True
+        return (
+            "aegis" in normalized
+            and normalized.endswith("uninstall")
+            and payload.tool_input.get("apply") is True
+        )
     return False
 
 
@@ -2564,7 +2733,9 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     task = work.get("task") if isinstance(work.get("task"), dict) else {}
     task_id = str(task.get("id") or "")
     slug = str(task.get("slug") or "")
-    event_id = sha1(f"{now}|{payload.tool_name}|{handler}|{evidence}".encode("utf-8")).hexdigest()[:12]
+    event_id = sha1(f"{now}|{payload.tool_name}|{handler}|{evidence}".encode("utf-8")).hexdigest()[
+        :12
+    ]
     events = pending_tracking_events(root)
     for event in events:
         if event.get("evidence") == evidence and event.get("handler") == handler:
@@ -2606,7 +2777,7 @@ def format_pending_tracking(events: list[dict[str, Any]]) -> str:
             lines.append(f"    location: {location['display']} ({confidence})")
         lines.append(
             "    repair: ./.aegis/bin/aegis log --pending-id "
-            f"{event_id} --note \"<past-tense note>\" "
+            f'{event_id} --note "<past-tense note>" '
             "--plan-step <plan-step-id> --plan-status completed"
         )
     return "\n".join(lines)
@@ -2617,7 +2788,10 @@ def degraded_pretooluse_fallback(raw_payload: str, exc: BaseException) -> int:
     reason = f"{type(exc).__name__}: {exc}"
     trace = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))[-4000:]
     if isinstance(loaded, PayloadLoadError):
-        return block_unclassifiable_payload(f"gate infrastructure failed after an unclassifiable payload: {reason}", loaded.raw_preview)
+        return block_unclassifiable_payload(
+            f"gate infrastructure failed after an unclassifiable payload: {reason}",
+            loaded.raw_preview,
+        )
     root = project_root()
     if degraded_payload_is_non_destructive(loaded):
         event = write_degraded_event(root, loaded, reason, raw_payload, trace=trace)
@@ -2697,7 +2871,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
     if payload.tool_name == "Bash":
         try:
             hard_violations = hard_policy_violations(bash_command(payload), root)
-        except Exception as exc:  # noqa: BLE001 - safety classifier failures deny, even in advisory mode.
+        except (
+            Exception
+        ) as exc:  # noqa: BLE001 - safety classifier failures deny, even in advisory mode.
             hard_violations = [
                 f"destructive-operation classifier failed closed ({type(exc).__name__}: {exc})"
             ]
@@ -2713,7 +2889,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
                 reason="destructive_git_operation",
             )
 
-    clear_client_reload_marker(root)
+    clear_client_reload_marker(root, agent="claude")
     aegis_target_violations: list[str] = []
     if payload.tool_name == "Bash":
         aegis_target_violations = aegis_cli_target_dir_violations(bash_command(payload), root)
@@ -2736,7 +2912,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         return gate_allow_or_record(root, payload, reason="read_only")
     is_mutation = payload_is_mutation(payload)
     readiness = run_readiness(root)
-    post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(root, payload)
+    post_closeout_taskmaster_completion = payload_is_post_closeout_taskmaster_completion(
+        root, payload
+    )
     post_closeout_delivery = payload_is_post_closeout_delivery(root, payload)
     if current_work_is_observation(root) and is_mutation:
         if payload_is_observation_allowed(payload):
@@ -2749,7 +2927,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             "Reason: Aegis observation mode only permits observation tooling.\n\n"
             "Allowed while observing: read-only inspection, dev servers, localhost probes, browser/screenshot MCP tools, aegis log, and aegis observe stop.\n"
             "Blocked while observing: source edits, Taskmaster mutations, git mutations, Aegis closeout/apply paths, and unclassified persistent mutations.\n\n"
-            "Stop observation with `./.aegis/bin/aegis observe stop --target-dir . --summary \"<summary>\"` before implementation work.",
+            'Stop observation with `./.aegis/bin/aegis observe stop --target-dir . --summary "<summary>"` before implementation work.',
             reason="observation_mode_disallowed_mutation",
         )
     if (
@@ -2798,7 +2976,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             "Reason: pending S:W:H:E tracking must be logged before another persistent mutation.\n\n"
             f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
             "Run the pending-id repair command above, or use the explicit fallback "
-            "`aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"`, "
+            '`aegis log --handler <handler> --evidence <path-or-command> --note "<past-tense note>"`, '
             "so the active session, tracker, plan, implementation log, changelog, "
             "and handoff all contain the required S:W:H:E entry.",
             reason="pending_tracking",
@@ -2806,7 +2984,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
         )
 
     if payload.tool_name in FILE_MUTATION_TOOLS:
-        protected = [path for path in file_paths_from_payload(payload, root) if is_protected_path(path, root)]
+        protected = [
+            path for path in file_paths_from_payload(payload, root) if is_protected_path(path, root)
+        ]
         if protected:
             paths = "\n".join(f"  - {path}" for path in protected)
             return gate_block_or_record(
@@ -2819,7 +2999,9 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
                 reason="protected_path",
             )
         workflow_owned = [
-            path for path in file_paths_from_payload(payload, root) if is_workflow_owned_path(path, root)
+            path
+            for path in file_paths_from_payload(payload, root)
+            if is_workflow_owned_path(path, root)
         ]
         if workflow_owned:
             paths = "\n".join(f"  - {path}" for path in workflow_owned)
@@ -3006,7 +3188,9 @@ def normalized_command_segments(command: str) -> list[str]:
     """
 
     raw_segments = [segment for segment in SHELL_CONTROL_SPLIT_RE.split(command) if segment.strip()]
-    normalized = [form for form in (_normalize_command_text(segment) for segment in raw_segments) if form]
+    normalized = [
+        form for form in (_normalize_command_text(segment) for segment in raw_segments) if form
+    ]
     candidates = list(normalized)
     for index in range(len(normalized) - 1):
         if normalized[index].startswith("cd "):
@@ -3064,6 +3248,9 @@ def _ensure_scope_record(
     branch: str | None,
     session_id: Any,
     cwd: Any,
+    agent_id: str | None,
+    agent_type: str | None,
+    parent_agent_id: str | None,
     brief: dict[str, Any],
 ) -> None:
     """Capsule PR-1d (spec section 2.1): infer a scope record at the first recorded
@@ -3084,6 +3271,9 @@ def _ensure_scope_record(
             "branch": branch,
             "cwd": cwd,
             "event_type": "scope",
+            "agent_id": agent_id,
+            "agent_type": agent_type,
+            "parent_agent_id": parent_agent_id,
             "extra": {
                 "task_id": task_id,
                 "path_globs": list(source_roots),
@@ -3128,7 +3318,102 @@ def _record_branch(cwd: str | None) -> str | None:
     return branch or None
 
 
-def _classify_record_event(data: dict[str, Any], payload: Payload | None, paths: list[str]) -> str:
+def _hook_adapter(data: dict[str, Any]) -> str:
+    return "codex" if data.get("model") or data.get("turn_id") else "claude"
+
+
+def _response_mappings(value: Any):
+    if isinstance(value, dict):
+        yield value
+        for nested in value.values():
+            yield from _response_mappings(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _response_mappings(nested)
+
+
+def _hook_outcome(data: dict[str, Any]) -> str:
+    hook_event = str(data.get("hook_event_name") or "")
+    if hook_event == "PostToolUseFailure":
+        return "fail"
+    if data.get("is_interrupt") is True:
+        return "interrupted"
+    response = data.get("tool_response")
+    for mapping in _response_mappings(response):
+        if mapping.get("interrupted") is True or mapping.get("is_interrupt") is True:
+            return "interrupted"
+        if mapping.get("is_error") is True or mapping.get("isError") is True:
+            return "fail"
+        if mapping.get("success") is False or mapping.get("ok") is False:
+            return "fail"
+        status = str(mapping.get("status") or "").strip().lower()
+        if status in {"cancelled", "canceled", "interrupted"}:
+            return "interrupted"
+        if status in {"error", "failed", "failure"}:
+            return "fail"
+        for key in ("exit_code", "exitCode", "returncode", "return_code"):
+            value = mapping.get(key)
+            if isinstance(value, int) and not isinstance(value, bool) and value != 0:
+                return "fail"
+            if isinstance(value, str) and value.strip().lstrip("-").isdigit() and int(value) != 0:
+                return "fail"
+    return "pass" if hook_event == "PostToolUse" else "unknown"
+
+
+def _hook_agent_identity(data: dict[str, Any]) -> tuple[str | None, str | None, str | None, str]:
+    adapter = _hook_adapter(data)
+    session_id = str(data.get("session_id") or os.environ.get("AEGIS_SESSION_ID") or "").strip()
+    payload_agent = str(data.get("agent_id") or "").strip()
+    env_agent = str(os.environ.get("AEGIS_AGENT_ID") or "").strip()
+    agent_id = payload_agent or env_agent or (f"session:{session_id}" if session_id else None)
+    payload_parent = str(data.get("parent_agent_id") or "").strip()
+    env_parent = str(os.environ.get("AEGIS_PARENT_AGENT_ID") or "").strip()
+    root_agent = f"session:{session_id}" if session_id else None
+    parent_agent_id = payload_parent or env_parent or None
+    if parent_agent_id is None and agent_id is not None and root_agent and agent_id != root_agent:
+        parent_agent_id = root_agent
+    agent_type = (
+        str(
+            data.get("agent_type")
+            or os.environ.get("AEGIS_AGENT_TYPE")
+            or (f"{adapter}-session" if agent_id == root_agent else "")
+        ).strip()
+        or None
+    )
+    if payload_parent:
+        source = "payload-parent"
+    elif env_parent:
+        source = "environment-parent"
+    elif parent_agent_id:
+        source = "session-root-parent"
+    elif agent_id == root_agent:
+        source = "session-root"
+    elif payload_agent:
+        source = "payload-agent"
+    elif env_agent:
+        source = "environment-agent"
+    else:
+        source = "unavailable"
+    return agent_id, agent_type, parent_agent_id, source
+
+
+def _record_handler(data: dict[str, Any], payload: Payload | None) -> str:
+    adapter = _hook_adapter(data)
+    if payload is None:
+        hook_event = str(data.get("hook_event_name") or "unknown").lower()
+        return f"{adapter}:{hook_event}"
+    handler = payload_handler(payload)
+    if adapter == "codex" and handler.startswith("claude:"):
+        return "codex:" + handler.split(":", 1)[1]
+    return handler
+
+
+def _classify_record_event(
+    data: dict[str, Any],
+    payload: Payload | None,
+    paths: list[str],
+    outcome: str,
+) -> str:
     hook_event = str(data.get("hook_event_name") or "")
     if hook_event == "PostToolUseFailure":
         return "tool_failure"
@@ -3136,6 +3421,10 @@ def _classify_record_event(data: dict[str, Any], payload: Payload | None, paths:
         return "session_begin"
     if hook_event == "SessionEnd":
         return "session_end"
+    if hook_event == "SubagentStart":
+        return "subagent_begin"
+    if hook_event == "SubagentStop":
+        return "subagent_end"
     if payload is not None and payload.tool_name == "Bash":
         command = bash_command(payload)
         if DELIVERY_COMMAND_RE.search(command):
@@ -3145,7 +3434,7 @@ def _classify_record_event(data: dict[str, Any], payload: Payload | None, paths:
     if any(path.endswith(TASKMASTER_TASKS_JSON_SUFFIX) for path in paths):
         return "task_truth"
     if hook_event == "PostToolUse":
-        return "mutation"
+        return "tool_failure" if outcome in {"fail", "interrupted"} else "mutation"
     return "unknown"
 
 
@@ -3213,21 +3502,19 @@ def ledger_record() -> int:
             else None
         )
         paths = file_paths_from_payload(payload, root) if payload is not None else []
-        tool_response = data.get("tool_response") if isinstance(data.get("tool_response"), dict) else {}
         hook_event = str(data.get("hook_event_name") or "")
-        if hook_event == "PostToolUseFailure":
-            outcome = "fail"
-        elif tool_response.get("interrupted") is True:
-            outcome = "interrupted"
-        elif hook_event == "PostToolUse":
-            outcome = "pass"
-        else:
-            outcome = "unknown"
+        outcome = _hook_outcome(data)
+        agent_id, agent_type, parent_agent_id, attribution_source = _hook_agent_identity(data)
         extra: dict[str, Any] = {
             "hook_event_name": hook_event or None,
             "tool_use_id": data.get("tool_use_id"),
+            "turn_id": data.get("turn_id"),
+            "model": data.get("model"),
             "permission_mode": data.get("permission_mode"),
             "transcript_path": data.get("transcript_path"),
+            "agent_transcript_path": data.get("agent_transcript_path"),
+            "agent_attribution_source": attribution_source,
+            "adapter": _hook_adapter(data),
             "error": data.get("error"),
             "source": data.get("source"),
             "reason": data.get("reason"),
@@ -3238,10 +3525,12 @@ def ledger_record() -> int:
                 extra["command"] = bash_command(payload)
         brief = load_brief(root)
         gates = brief.get("gates") if isinstance(brief.get("gates"), dict) else {}
-        redact_extra = brief.get("redact_extra") if isinstance(brief.get("redact_extra"), list) else []
+        redact_extra = (
+            brief.get("redact_extra") if isinstance(brief.get("redact_extra"), list) else []
+        )
         cwd_value = data.get("cwd") if isinstance(data.get("cwd"), str) else None
         branch = _record_branch(cwd_value)
-        event_type = _classify_record_event(data, payload, paths)
+        event_type = _classify_record_event(data, payload, paths, outcome)
         if (
             payload is not None
             and payload.tool_name == "Bash"
@@ -3261,17 +3550,20 @@ def ledger_record() -> int:
             "cwd": data.get("cwd"),
             "event_type": event_type,
             "tool_name": tool_name if isinstance(tool_name, str) else None,
-            "handler": payload_handler(payload) if payload is not None else None,
+            "handler": _record_handler(data, payload),
             "paths": paths,
             "outcome": outcome,
             "exit_class": outcome,
             "duration_ms": data.get("duration_ms"),
-            "agent_id": data.get("agent_id"),
-            "agent_type": data.get("agent_type"),
+            "agent_id": agent_id,
+            "agent_type": agent_type,
+            "parent_agent_id": parent_agent_id,
             "payload_digest": payload_digest(payload) if payload is not None else None,
             "extra": {key: value for key, value in extra.items() if value is not None},
         }
-        ledger = ledger_lib.open_ledger(cwd=root, redact_patterns=[p for p in redact_extra if isinstance(p, str)])
+        ledger = ledger_lib.open_ledger(
+            cwd=root, redact_patterns=[p for p in redact_extra if isinstance(p, str)]
+        )
         try:
             ledger.append(event)
             if hook_event == "PostToolUse" and extra.get("is_mutation"):
@@ -3280,6 +3572,9 @@ def ledger_record() -> int:
                     branch=branch,
                     session_id=data.get("session_id"),
                     cwd=cwd_value,
+                    agent_id=agent_id,
+                    agent_type=agent_type,
+                    parent_agent_id=parent_agent_id,
                     brief=brief,
                 )
             if capsule_reason:
@@ -3340,6 +3635,7 @@ def session_start_hook() -> int:
             data = {}
     except Exception:  # noqa: BLE001 - a malformed payload must not block a session.
         data = {}
+    clear_client_reload_marker(root, agent=_hook_adapter(data))
     if brief_lib is not None and hasattr(brief_lib, "capsule_assignment"):
         assignment = brief_lib.capsule_assignment(root, session_id=data.get("session_id"))
     elif brief_lib is not None:
@@ -3350,6 +3646,7 @@ def session_start_hook() -> int:
     try:
         ledger_lib = _load_ledger_lib_module()
         if ledger_lib is not None:
+            agent_id, agent_type, parent_agent_id, attribution_source = _hook_agent_identity(data)
             ledger = ledger_lib.open_ledger(cwd=root)
             try:
                 ledger.append(
@@ -3358,9 +3655,17 @@ def session_start_hook() -> int:
                         "branch": _record_branch(str(root)),
                         "cwd": data.get("cwd"),
                         "event_type": "session_begin",
+                        "handler": f"{_hook_adapter(data)}:sessionstart",
+                        "agent_id": agent_id,
+                        "agent_type": agent_type,
+                        "parent_agent_id": parent_agent_id,
                         "extra": {
                             "hook_event_name": "SessionStart",
                             "source": data.get("source"),
+                            "turn_id": data.get("turn_id"),
+                            "model": data.get("model"),
+                            "adapter": _hook_adapter(data),
+                            "agent_attribution_source": attribution_source,
                             "capsule_injected": injected,
                             "assignment": assignment.get("mode"),
                         },
@@ -3402,7 +3707,7 @@ def stop_gate() -> int:
         "Reason: pending S:W:H:E tracking remains before session stop.\n\n"
         f"Pending tracking:\n{format_pending_tracking(pending_events)}\n\n"
         "Run the pending-id repair command above, or use the explicit fallback "
-        "`aegis log --handler <handler> --evidence <path-or-command> --note \"<past-tense note>\"`, "
+        '`aegis log --handler <handler> --evidence <path-or-command> --note "<past-tense note>"`, '
         "before ending the session."
     )
     if advisory_enabled(root):
@@ -3453,7 +3758,8 @@ def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
         and any(
             isinstance(hook, dict)
             and hook.get("type") == "command"
-            and hook.get("command") == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
+            and hook.get("command")
+            == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/posttooluse-tracking.sh"
             for hook in group.get("hooks", [])
             if isinstance(group.get("hooks"), list)
         )
@@ -3480,7 +3786,8 @@ def settings_has_required_hooks(settings_path: Path) -> tuple[bool, list[str]]:
         and any(
             isinstance(hook, dict)
             and hook.get("type") == "command"
-            and hook.get("command") == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
+            and hook.get("command")
+            == "bash $CLAUDE_PROJECT_DIR/.claude/scripts/tracking-stop-gate.sh"
             for hook in group.get("hooks", [])
             if isinstance(group.get("hooks"), list)
         )
@@ -3531,7 +3838,10 @@ def config_change_guard() -> int:
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print("usage: gate_lib.py <pretooluse|posttooluse|stop|path|bash>", file=sys.stderr)
+        print(
+            "usage: gate_lib.py <pretooluse|posttooluse|stop|path|bash|record|recordjson>",
+            file=sys.stderr,
+        )
         return 1
     command = sys.argv[1]
     if command == "pretooluse":
@@ -3550,6 +3860,10 @@ def main() -> int:
         return session_start_hook()
     if command in {"record", "posttoolusefailure", "sessionend"}:
         return ledger_record()
+    if command == "recordjson":
+        result = ledger_record()
+        print("{}")
+        return result
     print(f"unknown gate command: {command}", file=sys.stderr)
     return 1
 
