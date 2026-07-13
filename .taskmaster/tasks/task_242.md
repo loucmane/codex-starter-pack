@@ -2,9 +2,9 @@
 
 **Title:** Extract The Managed-Update Slice From The Aegis Installer
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 235 ✓, 237, 238, 240
+**Dependencies:** 235 ✓, 237 ✓, 238 ✓, 240 ✓
 
 **Priority:** high
 

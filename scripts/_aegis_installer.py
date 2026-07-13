@@ -30,6 +30,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if _REPO_ROOT.as_posix() not in sys.path:
     sys.path.insert(0, _REPO_ROOT.as_posix())
 
+from aegis_foundation import managed_update as _managed_update  # noqa: E402
 from aegis_foundation.version import (  # noqa: E402
     FOUNDATION_NAME,
     FOUNDATION_VERSION,
@@ -238,14 +239,7 @@ class AegisError(ValueError):
     """Raised for predictable Aegis installer failures."""
 
 
-@dataclass(frozen=True)
-class Asset:
-    """Single target file that Aegis can manage."""
-
-    path: str
-    content: bytes
-    executable: bool = False
-    kind: str = "managed"
+Asset = _managed_update.Asset
 
 
 @dataclass(frozen=True)
@@ -961,12 +955,44 @@ def _render_claude_runtime_dispatcher(phase: str) -> bytes:
     return text.encode("utf-8")
 
 
+def _managed_asset_build_policy() -> _managed_update.AssetBuildPolicy:
+    return _managed_update.AssetBuildPolicy(
+        contract_rel=AEGIS_CONTRACT_REL,
+        local_bin_rel=AEGIS_LOCAL_BIN_REL,
+        runtime_env_rel=AEGIS_RUNTIME_ENV_REL,
+        brief_rel=AEGIS_BRIEF_REL,
+        shared_schema_files=tuple(SHARED_SCHEMA_FILES),
+        workflow_template_source_root=AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT,
+        workflow_template_target_root=AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        workflow_template_names=tuple(AEGIS_WORKFLOW_TEMPLATE_NAMES),
+        claude_required_files=tuple(CLAUDE_REQUIRED_FILES),
+        claude_support_files=tuple(CLAUDE_SUPPORT_FILES),
+        claude_runtime_hook_phases=CLAUDE_RUNTIME_HOOK_PHASES,
+        codex_required_files=tuple(CODEX_REQUIRED_FILES),
+        codex_hooks_rel=CODEX_HOOKS_REL,
+    )
+
+
+def _managed_asset_renderers() -> _managed_update.AssetRenderers:
+    return _managed_update.AssetRenderers(
+        read_bytes=_read_bytes,
+        render_agents_doc=_render_agents_doc,
+        render_contract=_render_contract,
+        render_local_cli_shim=_render_local_cli_shim,
+        render_runtime_env=_render_runtime_env,
+        render_default_brief=_render_default_brief,
+        render_claude_entrypoint=_render_claude_entrypoint,
+        render_claude_settings=_render_claude_settings,
+        render_claude_runtime_dispatcher=_render_claude_runtime_dispatcher,
+        render_codex_hooks=_render_codex_hooks,
+    )
+
+
 def _asset_from_source(source_root: Path, rel_path: str, *, kind: str = "managed") -> Asset:
-    path = source_root / rel_path
-    return Asset(
-        path=rel_path,
-        content=_read_bytes(source_root, rel_path),
-        executable=os.access(path, os.X_OK),
+    return _managed_update.asset_from_source(
+        source_root,
+        rel_path,
+        read_bytes=_read_bytes,
         kind=kind,
     )
 
@@ -974,11 +1000,11 @@ def _asset_from_source(source_root: Path, rel_path: str, *, kind: str = "managed
 def _asset_from_source_as(
     source_root: Path, source_rel_path: str, target_rel_path: str, *, kind: str = "managed"
 ) -> Asset:
-    path = source_root / source_rel_path
-    return Asset(
-        path=target_rel_path,
-        content=_read_bytes(source_root, source_rel_path),
-        executable=os.access(path, os.X_OK),
+    return _managed_update.asset_from_source_as(
+        source_root,
+        source_rel_path,
+        target_rel_path,
+        read_bytes=_read_bytes,
         kind=kind,
     )
 
@@ -1004,74 +1030,36 @@ def _render_default_brief() -> bytes:
 def _base_assets(
     source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
 ) -> list[Asset]:
-    assets = [
-        Asset("AGENTS.md", _render_agents_doc(primary_agent, enabled_agents)),
-        Asset(AEGIS_CONTRACT_REL, _render_contract(primary_agent, enabled_agents)),
-        Asset(AEGIS_LOCAL_BIN_REL, _render_local_cli_shim(source_root), executable=True),
-        Asset(AEGIS_RUNTIME_ENV_REL, _render_runtime_env(source_root), kind="runtime"),
-        Asset(AEGIS_BRIEF_REL, _render_default_brief(), kind="config"),
-    ]
-    for rel_path in SHARED_SCHEMA_FILES:
-        assets.append(_asset_from_source(source_root, rel_path))
-    for template_name in AEGIS_WORKFLOW_TEMPLATE_NAMES:
-        assets.append(
-            _asset_from_source_as(
-                source_root,
-                f"{AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT}/{template_name}",
-                f"{AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT}/{template_name}",
-            )
-        )
-    return assets
+    return _managed_update.build_base_assets(
+        source_root,
+        primary_agent,
+        enabled_agents,
+        policy=_managed_asset_build_policy(),
+        renderers=_managed_asset_renderers(),
+    )
 
 
 def _adapter_assets(
     source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
 ) -> list[Asset]:
-    assets: list[Asset] = []
-    if "claude" in enabled_agents:
-        assets.extend(
-            [
-                Asset("CLAUDE.md", _render_claude_entrypoint(), kind="adapter"),
-                Asset(".claude/settings.json", _render_claude_settings(), kind="adapter"),
-            ]
-        )
-        for rel_path in CLAUDE_REQUIRED_FILES:
-            if rel_path in {"CLAUDE.md", ".claude/settings.json"}:
-                continue
-            phase = CLAUDE_RUNTIME_HOOK_PHASES.get(rel_path)
-            if phase is not None:
-                assets.append(
-                    Asset(
-                        rel_path,
-                        _render_claude_runtime_dispatcher(phase),
-                        executable=True,
-                        kind="adapter",
-                    )
-                )
-                continue
-            assets.append(_asset_from_source(source_root, rel_path, kind="adapter"))
-        for rel_path in CLAUDE_SUPPORT_FILES:
-            assets.append(_asset_from_source(source_root, rel_path, kind="adapter"))
-    if "codex" in enabled_agents:
-        for rel_path in CODEX_REQUIRED_FILES:
-            if rel_path == CODEX_HOOKS_REL:
-                assets.append(
-                    Asset(
-                        rel_path,
-                        _render_codex_hooks(),
-                        kind="adapter",
-                    )
-                )
-                continue
-            assets.append(_asset_from_source(source_root, rel_path, kind="adapter"))
-    return assets
+    del primary_agent  # Preserved for compatibility with existing private callers.
+    return _managed_update.build_adapter_assets(
+        source_root,
+        enabled_agents,
+        policy=_managed_asset_build_policy(),
+        renderers=_managed_asset_renderers(),
+    )
 
 
 def _managed_assets(
     source_root: Path, primary_agent: str, enabled_agents: Sequence[str]
 ) -> list[Asset]:
-    return _base_assets(source_root, primary_agent, enabled_agents) + _adapter_assets(
-        source_root, primary_agent, enabled_agents
+    return _managed_update.build_managed_assets(
+        source_root,
+        primary_agent,
+        enabled_agents,
+        policy=_managed_asset_build_policy(),
+        renderers=_managed_asset_renderers(),
     )
 
 
@@ -1222,108 +1210,27 @@ def _strip_agents_entrypoint(existing: bytes) -> bytes | None:
 def _assets_for_target(target_root: Path, assets: Sequence[Asset]) -> list[Asset]:
     """Materialize target-specific assets such as merged Claude entrypoints."""
 
-    baseline_manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
-    materialized: list[Asset] = []
-    for asset in assets:
-        if asset.path == "CLAUDE.md" and asset.kind == "adapter":
-            target = target_root / asset.path
-            if target.exists() and target.is_file():
-                existing = target.read_bytes()
-                recorded_checksum = (
-                    _recorded_managed_checksum(baseline_manifest, asset.path)
-                    if isinstance(baseline_manifest, Mapping)
-                    else None
-                )
-                if AEGIS_CLAUDE_BLOCK_BEGIN.encode(
-                    "utf-8"
-                ) not in existing and recorded_checksum == _content_checksum(existing):
-                    # Older Aegis releases owned the whole markerless entrypoint. Migrate
-                    # those exact recorded bytes instead of preserving obsolete ceremony
-                    # as if it were project-authored context.
-                    merged = _claude_runtime_block(asset.content).encode("utf-8")
-                else:
-                    merged = _merge_claude_entrypoint(existing, asset.content)
-                if merged is not None:
-                    materialized.append(
-                        Asset(
-                            path=asset.path,
-                            content=merged,
-                            executable=asset.executable,
-                            kind=asset.kind,
-                        )
-                    )
-                    continue
-            else:
-                materialized.append(
-                    Asset(
-                        path=asset.path,
-                        content=_claude_runtime_block(asset.content).encode("utf-8"),
-                        executable=asset.executable,
-                        kind=asset.kind,
-                    )
-                )
-                continue
-        if asset.path == "CODEX.md" and asset.kind == "adapter":
-            target = target_root / asset.path
-            if target.exists() and target.is_file():
-                merged = _merge_codex_entrypoint(
-                    target.read_bytes(),
-                    _render_codex_continuation_block(),
-                )
-                if merged is not None:
-                    materialized.append(
-                        Asset(
-                            path=asset.path,
-                            content=merged,
-                            executable=asset.executable,
-                            kind=asset.kind,
-                        )
-                    )
-                    continue
-        if asset.path == CODEX_HOOKS_REL and asset.kind == "adapter":
-            target = target_root / asset.path
-            if target.exists() and target.is_file():
-                merged = _merge_codex_hooks(target.read_bytes(), asset.content)
-                if merged is not None:
-                    materialized.append(
-                        Asset(
-                            path=asset.path,
-                            content=merged,
-                            executable=False,
-                            kind=asset.kind,
-                        )
-                    )
-                    continue
-        if asset.path == "AGENTS.md":
-            target = target_root / asset.path
-            if target.exists() and target.is_file():
-                merged = _merge_agents_entrypoint(target.read_bytes(), asset.content)
-                if merged is not None:
-                    materialized.append(
-                        Asset(
-                            path=asset.path,
-                            content=merged,
-                            executable=asset.executable,
-                            kind=asset.kind,
-                        )
-                    )
-                    continue
-            else:
-                materialized.append(
-                    Asset(
-                        path=asset.path,
-                        content=_managed_runtime_block(
-                            begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
-                            end_marker=AEGIS_AGENTS_BLOCK_END,
-                            entrypoint=asset.content,
-                        ).encode("utf-8"),
-                        executable=asset.executable,
-                        kind=asset.kind,
-                    )
-                )
-                continue
-        materialized.append(asset)
-    return materialized
+    return _managed_update.materialize_assets_for_target(
+        target_root,
+        assets,
+        manifest_rel=AEGIS_MANIFEST_REL,
+        codex_hooks_rel=CODEX_HOOKS_REL,
+        claude_block_begin=AEGIS_CLAUDE_BLOCK_BEGIN,
+        materializers=_managed_update.TargetMaterializers(
+            read_json=_read_json,
+            wrap_claude_entrypoint=lambda content: _claude_runtime_block(content).encode("utf-8"),
+            merge_claude_entrypoint=_merge_claude_entrypoint,
+            render_codex_continuation_block=_render_codex_continuation_block,
+            merge_codex_entrypoint=_merge_codex_entrypoint,
+            merge_codex_hooks=_merge_codex_hooks,
+            merge_agents_entrypoint=_merge_agents_entrypoint,
+            wrap_agents_entrypoint=lambda content: _managed_runtime_block(
+                begin_marker=AEGIS_AGENTS_BLOCK_BEGIN,
+                end_marker=AEGIS_AGENTS_BLOCK_END,
+                entrypoint=content,
+            ).encode("utf-8"),
+        ),
+    )
 
 
 def _agent_records(
@@ -2348,106 +2255,56 @@ def _installed_at_for_plan(target_root: Path) -> str:
 
 
 def _manifest_path_set(manifest: Mapping[str, Any], key: str) -> set[str]:
-    records = manifest.get(key)
-    if not isinstance(records, list):
-        return set()
-    paths: set[str] = set()
-    for record in records:
-        if isinstance(record, str) and record:
-            paths.add(record)
-            continue
-        if not isinstance(record, Mapping):
-            continue
-        path = record.get("path")
-        if isinstance(path, str) and path:
-            paths.add(path)
-    return paths
+    return _managed_update.manifest_path_set(manifest, key)
 
 
 def _content_checksum(content: bytes) -> str:
-    return f"sha256:{hashlib.sha256(content).hexdigest()}"
+    return _managed_update.content_checksum(content)
 
 
 def _manifest_file_record(
     manifest: Mapping[str, Any], key: str, path: str
 ) -> Mapping[str, Any] | None:
-    records = manifest.get(key)
-    if not isinstance(records, list):
-        return None
-    for record in records:
-        if isinstance(record, Mapping) and record.get("path") == path:
-            return record
-    return None
+    return _managed_update.manifest_file_record(manifest, key, path)
 
 
 def _recorded_managed_checksum(manifest: Mapping[str, Any], path: str) -> str | None:
-    record = _manifest_file_record(manifest, "managed_files", path)
-    if record is None:
-        return None
-    checksum = record.get("checksum")
-    if not isinstance(checksum, str):
-        return None
-    if not re.fullmatch(r"sha256:[0-9a-f]{64}", checksum):
-        return None
-    return checksum
+    return _managed_update.recorded_managed_checksum(manifest, path)
+
+
+def _managed_plan_policy() -> _managed_update.PlanPolicy:
+    return _managed_update.PlanPolicy(
+        manifest_rel=AEGIS_MANIFEST_REL,
+        codex_hooks_rel=CODEX_HOOKS_REL,
+        shared_schema_files=tuple(SHARED_SCHEMA_FILES),
+        claude_support_files=tuple(CLAUDE_SUPPORT_FILES),
+        codex_required_files=tuple(CODEX_REQUIRED_FILES),
+        workflow_template_source_root=AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT,
+        workflow_template_target_root=AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT,
+        workflow_template_names=tuple(AEGIS_WORKFLOW_TEMPLATE_NAMES),
+    )
 
 
 def _source_path_for_managed_asset(path: str) -> str | None:
-    if path in SHARED_SCHEMA_FILES or path in CLAUDE_SUPPORT_FILES:
-        return path
-    if path in CODEX_REQUIRED_FILES and path not in {"CODEX.md", CODEX_HOOKS_REL}:
-        return path
-    template_prefix = f"{AEGIS_WORKFLOW_TEMPLATE_TARGET_ROOT}/"
-    if path.startswith(template_prefix):
-        template_name = path.removeprefix(template_prefix)
-        if template_name in AEGIS_WORKFLOW_TEMPLATE_NAMES:
-            return f"{AEGIS_WORKFLOW_TEMPLATE_SOURCE_ROOT}/{template_name}"
-    return None
+    return _managed_update.source_path_for_managed_asset(
+        path,
+        policy=_managed_plan_policy(),
+    )
 
 
 def _git_blob_checksum(source_root: Path, commit: str, source_path: str) -> str | None:
-    if not re.fullmatch(r"[0-9a-fA-F]{7,64}", commit):
-        return None
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(source_root), "show", f"{commit}:{source_path}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            check=False,
-        )
-    except OSError:
-        return None
-    if result.returncode != 0:
-        return None
-    return _content_checksum(result.stdout)
+    return _managed_update.git_blob_checksum(source_root, commit, source_path)
 
 
 def _legacy_managed_checksum(
     manifest: Mapping[str, Any], current_source_root: Path, path: str
 ) -> str | None:
-    source_path = _source_path_for_managed_asset(path)
-    runtime = manifest.get("runtime")
-    if source_path is None or not isinstance(runtime, Mapping):
-        return None
-    commit = runtime.get("source_commit")
-    if not isinstance(commit, str):
-        return None
-
-    roots: list[Path] = []
-    recorded_root = runtime.get("source_root")
-    if isinstance(recorded_root, str):
-        roots.append(Path(recorded_root).expanduser())
-    roots.append(current_source_root)
-    seen: set[Path] = set()
-    for candidate in roots:
-        resolved = candidate.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        checksum = _git_blob_checksum(resolved, commit, source_path)
-        if checksum is not None:
-            return checksum
-    return None
+    return _managed_update.legacy_managed_checksum(
+        manifest,
+        current_source_root,
+        path,
+        policy=_managed_plan_policy(),
+    )
 
 
 def _managed_baseline_checksum(
@@ -2470,206 +2327,23 @@ def _plan_operations(
     source_root: Path,
     baseline_manifest: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    all_assets = [*assets, Asset(AEGIS_MANIFEST_REL, manifest_bytes)]
-    installed_manifest = baseline_manifest
-    if not isinstance(installed_manifest, Mapping):
-        installed_manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
-    if not isinstance(installed_manifest, Mapping):
-        installed_manifest = {}
-    managed_paths = _manifest_path_set(installed_manifest, "managed_files")
-    customized_paths = _manifest_path_set(installed_manifest, "customized_files")
-    operations: list[dict[str, Any]] = []
-    for asset in all_assets:
-        target = target_root / asset.path
-        if not target.exists():
-            operations.append(
-                {
-                    "action": "create",
-                    "path": asset.path,
-                    "classification": "create",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Target file is missing.",
-                }
-            )
-            continue
-        if target.is_dir():
-            operations.append(
-                {
-                    "action": "conflict",
-                    "path": asset.path,
-                    "classification": "conflict",
-                    "safe_to_apply": False,
-                    "managed": False,
-                    "reason": "Target path is a directory.",
-                }
-            )
-            continue
-        if target.read_bytes() == asset.content:
-            operations.append(
-                {
-                    "action": "skip",
-                    "path": asset.path,
-                    "classification": "skip",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Target file already matches expected content.",
-                }
-            )
-            continue
-        if asset.kind == "config":
-            operations.append(
-                {
-                    "action": "skip",
-                    "path": asset.path,
-                    "classification": "skip",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Per-repo Aegis configuration is owner-maintained; seeded only when missing.",
-                }
-            )
-            continue
-        if asset.path == "CLAUDE.md" and asset.kind == "adapter":
-            operations.append(
-                {
-                    "action": "modify",
-                    "path": asset.path,
-                    "classification": "modify",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Existing Claude instructions will be preserved below an Aegis-managed runtime block.",
-                }
-            )
-            continue
-        if asset.path == "CODEX.md" and asset.kind == "adapter":
-            operations.append(
-                {
-                    "action": "modify",
-                    "path": asset.path,
-                    "classification": "modify",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Existing Codex instructions will be preserved below an Aegis-managed continuation block.",
-                }
-            )
-            continue
-        if asset.path == CODEX_HOOKS_REL and asset.kind == "adapter":
-            if _merge_codex_hooks(target.read_bytes(), _render_codex_hooks()) is None:
-                operations.append(
-                    {
-                        "action": "manual-review",
-                        "path": asset.path,
-                        "classification": "manual-review",
-                        "safe_to_apply": False,
-                        "managed": False,
-                        "reason": (
-                            "Existing Codex hooks are not a mergeable JSON hooks object; "
-                            "refusing to replace project-owned hook configuration."
-                        ),
-                    }
-                )
-            else:
-                operations.append(
-                    {
-                        "action": "modify",
-                        "path": asset.path,
-                        "classification": "modify",
-                        "safe_to_apply": True,
-                        "managed": True,
-                        "reason": (
-                            "Merge Aegis Codex recorders structurally while preserving "
-                            "all unrelated project hook registrations."
-                        ),
-                    }
-                )
-            continue
-        if asset.path == "AGENTS.md":
-            operations.append(
-                {
-                    "action": "modify",
-                    "path": asset.path,
-                    "classification": "modify",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Existing agent instructions will be preserved below an Aegis-managed runtime block.",
-                }
-            )
-            continue
-        if asset.path in managed_paths and asset.path not in customized_paths:
-            baseline_checksum, baseline_source = _managed_baseline_checksum(
-                installed_manifest, source_root, asset.path
-            )
-            if baseline_checksum is not None:
-                installed_checksum = _content_checksum(target.read_bytes())
-                if installed_checksum != baseline_checksum:
-                    operations.append(
-                        {
-                            "action": "manual-review",
-                            "path": asset.path,
-                            "classification": "manual-review",
-                            "safe_to_apply": False,
-                            "managed": True,
-                            "reason": (
-                                "Installed Aegis-managed file diverged from its "
-                                f"{baseline_source}; refusing semantic overwrite."
-                            ),
-                        }
-                    )
-                    continue
-            elif _source_path_for_managed_asset(asset.path) is not None:
-                operations.append(
-                    {
-                        "action": "manual-review",
-                        "path": asset.path,
-                        "classification": "manual-review",
-                        "safe_to_apply": False,
-                        "managed": True,
-                        "reason": (
-                            "A legacy source-backed managed file differs, but its prior "
-                            "expected bytes cannot be recovered; refusing semantic overwrite."
-                        ),
-                    }
-                )
-                continue
-            operations.append(
-                {
-                    "action": "modify",
-                    "path": asset.path,
-                    "classification": "modify",
-                    "safe_to_apply": True,
-                    "managed": True,
-                    "reason": "Existing Aegis-managed file will be upgraded to the current managed asset.",
-                }
-            )
-            continue
-        operations.append(
-            {
-                "action": "manual-review",
-                "path": asset.path,
-                "classification": "manual-review",
-                "safe_to_apply": False,
-                "managed": False,
-                "reason": "Existing file differs and Aegis V1 refuses unsafe overwrites.",
-            }
-        )
-    return operations
+    return _managed_update.plan_operations(
+        target_root,
+        assets,
+        manifest_bytes,
+        source_root=source_root,
+        policy=_managed_plan_policy(),
+        read_json=_read_json,
+        render_codex_hooks=_render_codex_hooks,
+        merge_codex_hooks=_merge_codex_hooks,
+        managed_baseline_checksum_fn=_managed_baseline_checksum,
+        source_path_for_managed_asset_fn=_source_path_for_managed_asset,
+        baseline_manifest=baseline_manifest,
+    )
 
 
 def _summary(operations: Sequence[Mapping[str, Any]]) -> dict[str, int]:
-    counts = {key: 0 for key in ("creates", "modifies", "skips", "conflicts", "manual_reviews")}
-    for operation in operations:
-        classification = operation.get("classification")
-        if classification == "create":
-            counts["creates"] += 1
-        elif classification == "modify":
-            counts["modifies"] += 1
-        elif classification == "skip":
-            counts["skips"] += 1
-        elif classification == "conflict":
-            counts["conflicts"] += 1
-        elif classification == "manual-review":
-            counts["manual_reviews"] += 1
-    return counts
+    return _managed_update.summarize_operations(operations)
 
 
 def _client_reload_marker_path(target_root: Path) -> Path:
