@@ -2214,16 +2214,6 @@ def project_update(
     if not apply:
         return base_report
 
-    runtime_applied = runtime_update(target_root, source_root=source, apply=True)
-    if runtime_applied.get("status") == "refused":
-        base_report.update(
-            {
-                "status": "refused",
-                "reason": "Runtime pointer update was refused.",
-                "runtime": {**base_report["runtime"], "applied": runtime_applied},
-            }
-        )
-        return base_report
     install_applied = install(
         target_root,
         source_root=source,
@@ -2238,6 +2228,16 @@ def project_update(
             {
                 "status": install_applied.get("status"),
                 "reason": install_applied.get("reason", "Install apply did not complete."),
+                "install": {**base_report["install"], "applied": install_applied},
+            }
+        )
+        return base_report
+    runtime_applied = runtime_update(target_root, source_root=source, apply=True)
+    if runtime_applied.get("status") == "refused":
+        base_report.update(
+            {
+                "status": "refused",
+                "reason": "Runtime pointer update was refused after managed install.",
                 "runtime": {**base_report["runtime"], "applied": runtime_applied},
                 "install": {**base_report["install"], "applied": install_applied},
             }

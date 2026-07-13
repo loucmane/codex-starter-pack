@@ -40,6 +40,40 @@ def _operation(report: dict[str, object], rel_path: str) -> dict[str, object]:
     )
 
 
+def _write_pre_adapter_codex_manifest(target: Path) -> bytes:
+    """Downgrade a current install to the Blog pre-Task-248 manifest shape."""
+
+    manifest_path = target / installer.AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    codex = manifest["agents"]["codex"]
+    codex["gate_ids"] = ["codex.guard", "codex.work_tracking_audit"]
+    codex["managed_files"] = [
+        path
+        for path in codex["managed_files"]
+        if path
+        not in {
+            HOOKS_REL.as_posix(),
+            ".claude/scripts/gate_lib.py",
+            ".claude/scripts/pretooluse-gate.sh",
+            ".claude/scripts/posttooluse-tracking.sh",
+        }
+    ]
+    manifest["gates"] = [
+        gate
+        for gate in manifest["gates"]
+        if gate["id"] not in set(installer.CODEX_GATE_IDS)
+        or gate["id"] in {"codex.guard", "codex.work_tracking_audit"}
+    ]
+    manifest["managed_files"] = [
+        record
+        for record in manifest["managed_files"]
+        if record["path"] != HOOKS_REL.as_posix()
+    ]
+    payload = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    manifest_path.write_bytes(payload)
+    return payload
+
+
 def test_rendered_codex_hooks_use_canonical_apply_patch_and_git_root_dispatch() -> None:
     payload = json.loads(installer._render_codex_hooks())
     hooks = payload["hooks"]
@@ -215,6 +249,104 @@ def test_modified_managed_codex_hooks_require_manual_review_and_update_refuses(
         HOOKS_REL.as_posix()
     ]
     assert hooks_path.read_bytes() == customized
+
+
+@pytest.mark.parametrize(
+    ("primary_agent", "agents"),
+    [("codex", ["codex"]), ("multi", ["claude", "codex"])],
+)
+def test_project_update_migrates_pre_adapter_codex_manifest_before_runtime_refresh(
+    tmp_path: Path,
+    primary_agent: str,
+    agents: list[str],
+) -> None:
+    target = tmp_path / f"pre-adapter-{primary_agent}"
+    target.mkdir()
+    installer.install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent=primary_agent,
+        agents=agents,
+        apply=True,
+    )
+    _write_pre_adapter_codex_manifest(target)
+    (target / HOOKS_REL).unlink()
+
+    current_schema = json.loads(
+        (REPO_ROOT / "schemas/aegis/foundation-manifest.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    legacy_manifest = json.loads(
+        (target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
+    )
+    with pytest.raises(ValidationError):
+        Draft202012Validator(current_schema).validate(legacy_manifest)
+    with pytest.raises(ValidationError):
+        installer.runtime_update(target, source_root=REPO_ROOT, apply=True)
+
+    preview = installer.project_update(target, source_root=REPO_ROOT, apply=False)
+    hook_operation = _operation(preview["install"]["plan"], HOOKS_REL.as_posix())
+    assert preview["status"] == "preview"
+    assert hook_operation["classification"] == "create"
+    assert hook_operation["safe_to_apply"] is True
+    assert preview["install"]["summary"]["manual_reviews"] == 0
+
+    report = installer.project_update(target, source_root=REPO_ROOT, apply=True)
+
+    assert report["status"] == "applied"
+    assert report["install"]["applied"]["status"] == "applied"
+    assert report["runtime"]["applied"]["status"] == "applied"
+    assert (target / HOOKS_REL).read_bytes() == installer._render_codex_hooks()
+    migrated = json.loads(
+        (target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
+    )
+    Draft202012Validator(current_schema).validate(migrated)
+    assert HOOKS_REL.as_posix() in migrated["agents"]["codex"]["managed_files"]
+    assert set(installer.CODEX_GATE_IDS).issubset(
+        migrated["agents"]["codex"]["gate_ids"]
+    )
+
+    second_preview = installer.project_update(target, source_root=REPO_ROOT, apply=False)
+    assert second_preview["status"] == "preview"
+    assert second_preview["install"]["summary"]["creates"] == 0
+    assert second_preview["install"]["summary"]["modifies"] == 0
+    assert second_preview["install"]["summary"]["manual_reviews"] == 0
+
+
+def test_pre_adapter_divergent_codex_hooks_refuse_before_any_update_write(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "pre-adapter-divergent-hooks"
+    target.mkdir()
+    installer.install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="multi",
+        agents=["claude", "codex"],
+        apply=True,
+    )
+    _write_pre_adapter_codex_manifest(target)
+    hooks_path = target / HOOKS_REL
+    customized = b'{"hooks":{"PreToolUse":[]}}\n'
+    hooks_path.write_bytes(customized)
+    manifest_path = target / installer.AEGIS_MANIFEST_REL
+    runtime_path = target / installer.AEGIS_RUNTIME_ENV_REL
+    manifest_before = manifest_path.read_bytes()
+    runtime_before = runtime_path.read_bytes()
+
+    report = installer.project_update(target, source_root=REPO_ROOT, apply=True)
+
+    hook_operation = _operation(report["install"]["plan"], HOOKS_REL.as_posix())
+    assert report["status"] == "refused"
+    assert hook_operation["classification"] == "manual-review"
+    assert hook_operation["managed"] is False
+    assert report["product_file_safety"]["manual_review_paths"] == [
+        HOOKS_REL.as_posix()
+    ]
+    assert hooks_path.read_bytes() == customized
+    assert manifest_path.read_bytes() == manifest_before
+    assert runtime_path.read_bytes() == runtime_before
 
 
 def test_new_codex_reload_requirement_preserves_existing_claude_marker(
