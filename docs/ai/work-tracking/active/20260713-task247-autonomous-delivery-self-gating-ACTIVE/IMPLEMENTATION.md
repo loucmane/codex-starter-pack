@@ -26,3 +26,15 @@
   except a freshly recollected ordinary `allow` with clean mergeability.
 - Added evaluator reason output to the GitHub step summary so future non-merge decisions
   are inspectable without reconstructing transient API state.
+
+## Review-Pagination Remediation
+- Synchronized canary PR #269 with remediation merge `94439ab...` at signed head
+  `1f5d949...`; every required workflow passed, but run `29273244399` still skipped the
+  executor.
+- Recollected the same PR, files, exact-head workflows, and review pages with the trusted
+  workflow commands. The policy returned only `review-threads-truncated`.
+- Replaced jq's boolean-coalescing `hasNextPage // true` in both evaluator and executor
+  with an explicit null test. A real `false` is preserved; absent final-page data remains
+  fail-closed as `true`.
+- Added a secret-free PR #269 GraphQL page fixture and executable tests that extract and
+  run both exact workflow filters, including the no-page fail-closed case.

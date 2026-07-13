@@ -23,11 +23,19 @@
   and immediately reported `mergeable=true/state=clean` afterward.
 - 2026-07-13 — The pre-remediation workflow did not persist evaluator decisions or
   reasons, so `state=unstable` during run `29270554173` is a bounded inference from the
-  skipped executor plus post-run clean evidence, not direct telemetry. Confidence is
-  medium: it is the only remaining non-attended gate consistent with the observed path,
-  but the ephemeral input is unavailable. The fixture records that provenance rather
-  than overstating certainty.
+  skipped executor plus post-run clean evidence, not direct telemetry. Confidence was
+  medium at capture time, but exact replay after the next canary falsified it as the
+  causal explanation. The fixture remains a bounded mergeability regression and records
+  its provenance rather than being rewritten as observed fact.
 - 2026-07-13 — Extending the non-authorizing provisional class to `unstable` does not
   broaden merge authority. Any other failed gate still dominates, and the executor still
   recollects everything and requires a fresh `mergeable=true/state=clean` `allow` before
   calling the exact-head merge endpoint.
+- 2026-07-13 — Canary attempt 2 at signed head
+  `1f5d9492d0dfeb0197656982137337ca27aa441a` passed all four workflows, but trusted run
+  `29273244399` skipped the executor. Exact current-evidence replay returned only
+  `review-threads-truncated`.
+- 2026-07-13 — Root cause is jq boolean coalescing, not pagination loss:
+  `hasNextPage // true` maps a valid `false` to `true`. An explicit null check preserves
+  complete final pages while still treating a missing page as truncated. The defect
+  existed in both evaluator and executor collectors.
