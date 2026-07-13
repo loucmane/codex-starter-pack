@@ -38,3 +38,12 @@
   fail-closed as `true`.
 - Added a secret-free PR #269 GraphQL page fixture and executable tests that extract and
   run both exact workflow filters, including the no-page fail-closed case.
+
+## Live Acceptance
+- PR #271 delivered the trusted collector fix through the attended exact-head path.
+- The unchanged ordinary canary was synchronized at signed head `4c0ada5...`; its diff
+  remained one evidence document with no labels or review threads.
+- Trusted run `29275024874` passed evaluator and executor, then exact-head squash-merged
+  PR #269 as `4407c914...` without a manual merge or bypass.
+- Repository-dispatch CI, Meta Workflow Guard, and Codex Guard all passed against the
+  exact merge SHA, completing the Task 247 acceptance contract.

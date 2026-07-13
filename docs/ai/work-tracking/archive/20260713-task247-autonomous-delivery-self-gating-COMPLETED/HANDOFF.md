@@ -12,8 +12,9 @@
   required workflows passed, but trusted run `29273244399` again skipped the executor.
 - Exact evidence replay identified the remaining blocker as
   `review-threads-truncated`: jq's `hasNextPage // true` converted a valid final-page
-  `false` to `true`. The second bounded remediation is in progress on
-  `feat/task-247-review-pagination-remediation` for both trusted collectors.
+  `false` to `true`. The second bounded remediation merged through PR #271 at exact
+  signed head `284859b4ba7a88eee803c06c1ddb3c29f19d88a5` as
+  `195d5a94d7e06bc10ff6f07c21c1a68fd1a3c2c4` after all hosted gates passed.
 - Current remediation policy/workflow tests: 57 passed. The repository suite passed 1,915 tests
   with four documented opt-in release/MCP smoke skips and one unrelated `/tmp`-location
   assertion deselected; that exact assertion passes with a non-overlapping process temp
@@ -25,11 +26,17 @@
 - Advisory enforcement and all attended categories remain unchanged.
 - Local evidence and the intentional source-checkout strict-verification limitation are
   recorded at `reports/autonomous-delivery-self-gating/task-verification.md`.
+- Ordinary one-file canary PR #269 was synchronized without rewriting history at signed
+  head `4c0ada5a6816daddf30d22e0662ab852b9a02de7`. Trusted run `29275024874` completed both
+  the read-only evaluator and fresh-evidence executor, and GitHub Actions autonomously
+  squash-merged it as `4407c9141e350ad113baebce3792a805bf380216`.
+- Post-merge repository dispatch ran CI `29275056303`, Meta Workflow Guard `29275056589`,
+  and Codex Guard `29275056833` against that exact merge SHA; every job passed.
+- Taskmaster Task 247 is done. This evidence bundle is ready for supported archival.
 
 ## Next Steps
-1. Publish and merge this second attended workflow remediation through the normal
-   exact-head protected path.
-2. Synchronize PR #269 to the new current base if required and prove autonomous squash plus
-   exact-merge-SHA post-merge dispatch.
-3. Only then mark Taskmaster Task 247 done, close out through supported source paths, and
-   merge its terminal evidence.
+1. Archive this completed Task 247 bundle through the supported source helper and deliver
+   the terminal closeout PR.
+2. Begin the separately scoped Task 248 Codex hook adapter only after Task 247 closeout is
+   merged and `main` is synchronized.
+- Archived on 2026-07-13 20:44 CEST — Folder moved to archive and tracker marked COMPLETED.

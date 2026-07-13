@@ -39,3 +39,8 @@
   `hasNextPage // true` maps a valid `false` to `true`. An explicit null check preserves
   complete final pages while still treating a missing page as truncated. The defect
   existed in both evaluator and executor collectors.
+- 2026-07-13 — The corrected path passed the live falsifier. Trusted run `29275024874`
+  recollected exact-head evidence, obtained a fresh `allow`, and autonomously merged
+  one-file PR #269. All three repository-dispatch workflows bound to merge SHA
+  `4407c9141e350ad113baebce3792a805bf380216` and passed, proving the mechanism rather
+  than only its local contracts.

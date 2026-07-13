@@ -180,3 +180,21 @@ autonomously squash-merges with successful exact-merge-SHA post-merge dispatch.
   `69f0e59c5fcf0b294d0ae1e7929dd2a7eb18798d8af9467918c45f5730f44231`
 - PR #269 review-page fixture SHA-256:
   `0fbf050ca1dc7c3d04f946d97f10f0955f3b7160e0e83ee8e307479c4fccc624`
+
+## Terminal Hosted Acceptance
+
+- Attended remediation PR #271 merged at exact signed head
+  `284859b4ba7a88eee803c06c1ddb3c29f19d88a5` as
+  `195d5a94d7e06bc10ff6f07c21c1a68fd1a3c2c4`. Both Python matrices, witness,
+  Codex Guard, Meta Workflow Guard, and the attended delivery evaluator passed.
+- Ordinary one-file PR #269 was synchronized without rewriting history at signed head
+  `4c0ada5a6816daddf30d22e0662ab852b9a02de7`; its base was current, inventory complete,
+  labels/reviews/threads empty, and all seven required checks successful.
+- Trusted workflow-run `29275024874` passed evaluator job `86901864517`, recollected all
+  evidence in executor job `86901903350`, obtained a fresh `allow`, and autonomously
+  squash-merged the exact head as `4407c9141e350ad113baebce3792a805bf380216`.
+- The merge emitted three repository-dispatch runs bound to the exact merge SHA:
+  CI `29275056303`, Meta Workflow Guard `29275056589`, and Codex Guard `29275056833`.
+  Both CI matrices and both guard workflows passed.
+- No admin bypass, force operation, manual canary merge, policy override, or unrelated
+  primary-checkout drift mutation occurred. Task 247's live acceptance is complete.
