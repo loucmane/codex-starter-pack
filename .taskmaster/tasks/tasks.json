@@ -7931,13 +7931,13 @@
         "description": "Implement the narrowly selected correction from the capture audit so supported child work is recorded once with reliable repository, branch, worktree, and parent-child attribution.",
         "details": "Implement roadmap workstream C4 only after Task 239 identifies the causal gap. Ensure all worktrees resolve the intended shared ledger; events record repository identity, worktree root, branch, HEAD, agent_id, agent_type, and parent_agent_id where supported; parent orchestration and child implementation remain distinguishable; concurrent writers do not lose, duplicate, or cross-attribute events; branch-scoped witness and replay queries exclude unrelated traffic; and teardown preserves history. Explicitly report unsupported hook surfaces. Test two concurrent child worktrees with mutations and failures, WAL contention/retry, teardown ownership, and cross-branch verification-at-HEAD isolation. Compare measured coverage before and after, and document a parent-only rollback.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "239"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-07-13T08:55:17.459Z"
+        "updatedAt": "2026-07-13T10:26:05.597Z"
       },
       {
         "id": "241",
@@ -8034,9 +8034,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-13T08:55:17.459Z",
+      "lastModified": "2026-07-13T10:26:05.597Z",
       "taskCount": 245,
-      "completedCount": 236,
+      "completedCount": 237,
       "tags": [
         "master"
       ]

@@ -5,7 +5,7 @@ handler_target: .claude/scripts/ledger_lib.py
 task_ids: [240]
 branch_policy: feature-required
 evidence_summary:
-  - docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/
+  - docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/
   - .claude/scripts/ledger_lib.py
   - .claude/scripts/gate_lib.py
   - .claude/scripts/witness_lib.py
@@ -24,20 +24,20 @@ emergency_bypass: false
 - **Handler Target (H)**: .claude/scripts/ledger_lib.py
 - **Task IDs**: 240
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/, .claude/scripts/ledger_lib.py, .claude/scripts/gate_lib.py, .claude/scripts/witness_lib.py, aegis_foundation/replay.py, scripts/_aegis_installer.py, .taskmaster/tasks/task_240.md
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/, .claude/scripts/ledger_lib.py, .claude/scripts/gate_lib.py, .claude/scripts/witness_lib.py, aegis_foundation/replay.py, scripts/_aegis_installer.py, .taskmaster/tasks/task_240.md
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
-| plan-step-scope | Pin the additive event schema, native-hook capability boundary, query-isolation rules, migration contract, and rollback | docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/designs/worktree-child-evidence-contract.md | completed |
+| plan-step-scope | Pin the additive event schema, native-hook capability boundary, query-isolation rules, migration contract, and rollback | docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/designs/worktree-child-evidence-contract.md | completed |
 | plan-step-implement | Implement context-enriched ledger rows, Codex lifecycle recording, branch-safe witness/replay queries, installer integration, and docs | .claude/scripts/ledger_lib.py; .claude/scripts/gate_lib.py; .claude/scripts/witness_lib.py; aegis_foundation/replay.py; scripts/_aegis_installer.py | completed |
-| plan-step-verify | Prove migration, concurrent writers, child ownership, failures, verification isolation, teardown, installed-target parity, and measured coverage | tests/claude_adapter/; tests/meta_workflow_guard/; docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/reports/ | completed |
+| plan-step-verify | Prove migration, concurrent writers, child ownership, failures, verification isolation, teardown, installed-target parity, and measured coverage | tests/claude_adapter/; tests/meta_workflow_guard/; docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/reports/ | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/`
+- `docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/`
 - `.claude/scripts/ledger_lib.py`
 - `.claude/scripts/gate_lib.py`
 - `.claude/scripts/witness_lib.py`
@@ -64,7 +64,7 @@ emergency_bypass: false
   2. Review Taskmaster Task 240 and its subtasks.
   3. Review the worktree/child evidence contract before changing recorder behavior.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: run final-head governance/closeout checks, publish the task branch, and retain explicit degraded results for untrusted hooks, unsupported clients, and ancestry deeper than client-provided identity.
+- Outstanding risks/todos: commit/push the archived terminal lifecycle delta, require fresh exact-head hosted checks, deliver PR #266 through repository policy, and retain explicit degraded results for untrusted hooks, unsupported clients, and ancestry deeper than client-provided identity.
 
 ## Conflict & Scope Declaration
 - Related plans: Task 239 capture audit, Task 241 quiet witness shipping interface.

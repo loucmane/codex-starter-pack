@@ -72,6 +72,20 @@ was preserved.
 
 ## Hosted Evidence
 
-Pending implementation commit and draft PR. The implementation head must pass the
-ordinary Python 3.11/3.12, source guard, meta-workflow guard, Aegis witness, and
-evidence-gated delivery checks before Taskmaster completion/archive.
+Draft PR: `https://github.com/loucmane/codex-starter-pack/pull/266`
+
+Exact signed implementation head:
+`b4110a85a5622230f571abb166c2ae44f71be878`
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Python tests (3.11) | passed in 6m47s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29242261361/job/86790836617` |
+| Python tests (3.12) | passed in 7m00s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29242261361/job/86790836574` |
+| Aegis witness | passed in 18s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29242261386/job/86790836682` |
+| evidence-gated delivery | passed in 7s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29242261470/job/86790837233` |
+| source guard | passed in 31s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29242261358/job/86790836536` |
+| meta-workflow guard | passed in 24s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29242261373/job/86790836567` |
+
+Hosted Python executed the unchanged governed-repository temp-isolation safety test in
+the normal non-temp checkout, closing the sole local environment exception. All required
+checks passed at the exact implementation head before Taskmaster completion/archive.

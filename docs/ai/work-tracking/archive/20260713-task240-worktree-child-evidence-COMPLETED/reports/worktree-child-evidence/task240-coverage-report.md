@@ -133,6 +133,7 @@ installed rather than source-only path:
 | Taskmaster graph health | 245 tasks, 383 subtasks, 430 valid dependency references, 0 invalid |
 | Plan/tracker sync | passed |
 | Source meta-workflow pipeline | timestamp, guard, zero drift, six scanners, reference-fix, monitoring, performance, cost, and migration commands passed |
+| Hosted exact-head matrix | Python 3.11/3.12, witness, evidence-delivery, source guard, and meta-workflow guard passed at `b4110a8` |
 | `git diff --check` | passed at the completed implementation/evidence head |
 
 The installer suite's single skip is the existing opt-in full release certification

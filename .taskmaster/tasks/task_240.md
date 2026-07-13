@@ -2,7 +2,7 @@
 
 **Title:** Make Worktree And Child-Agent Evidence First-Class
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 239 ✓
 

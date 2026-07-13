@@ -23,8 +23,8 @@ S:W:H:E narration.
 
 ## Evidence
 
-- Contract: `docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/designs/worktree-child-evidence-contract.md`
-- Coverage: `docs/ai/work-tracking/active/20260713-task240-worktree-child-evidence-ACTIVE/reports/worktree-child-evidence/task240-coverage-report.md`
+- Contract: `docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/designs/worktree-child-evidence-contract.md`
+- Coverage: `docs/ai/work-tracking/archive/20260713-task240-worktree-child-evidence-COMPLETED/reports/worktree-child-evidence/task240-coverage-report.md`
 - Regression results: 92 core tests, 139 installer tests with one opt-in smoke skipped,
   43 schema/parity tests, plus Black, Ruff, mirror parity, Taskmaster health, and plan
   sync.
