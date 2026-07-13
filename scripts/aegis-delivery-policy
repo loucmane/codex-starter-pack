@@ -416,13 +416,19 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
         core_reasons.append(
             {"category": "unresolved-review-threads", "count": unresolved_threads}
         )
-    if str(review.get("decision") or "").upper() == "CHANGES_REQUESTED":
+    review_decision = str(review.get("decision") or "").upper()
+    if review_decision == "CHANGES_REQUESTED":
         core_reasons.append({"category": "changes-requested"})
+    elif review_decision == "REVIEW_REQUIRED":
+        core_reasons.append({"category": "review-required"})
 
     mergeable = pull_request.get("mergeable")
     mergeable_state = str(pull_request.get("mergeable_state") or "").lower()
+    provisional_mergeability = False
     if policy["merge"]["require_clean_mergeability"]:
-        if mergeable is not True or mergeable_state != "clean":
+        if mergeable is True and mergeable_state == "blocked":
+            provisional_mergeability = True
+        elif mergeable is not True or mergeable_state != "clean":
             core_reasons.append(
                 {
                     "category": "mergeability-not-clean",
@@ -488,6 +494,24 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
             base_sha=base_sha,
             files=len(files),
             labels=labels,
+        )
+    if provisional_mergeability:
+        return _result(
+            policy,
+            "provisional",
+            [
+                {
+                    "category": "mergeability-self-check-pending",
+                    "mergeable": mergeable,
+                    "state": mergeable_state,
+                }
+            ],
+            head_sha=head_sha,
+            base_sha=base_sha,
+            files=len(files),
+            labels=labels,
+            required_workflows=policy["merge"]["required_workflows"],
+            mergeability_recheck_required=True,
         )
     return _result(
         policy,

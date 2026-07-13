@@ -20,10 +20,15 @@ jobs:
       github.event_name == 'pull_request_target' ||
       github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
+    outputs:
+      candidate_eligible: ${{ steps.candidate.outputs.eligible }}
+      pr_number: ${{ steps.candidate.outputs.number }}
+      expected_head: ${{ steps.candidate.outputs.expected_head }}
+      decision: ${{ steps.policy.outputs.decision }}
     permissions:
       actions: read
-      contents: write
-      pull-requests: write
+      contents: read
+      pull-requests: read
     steps:
       # pull_request_target is privileged. Checkout is therefore pinned to the current
       # default branch and PR code, artifacts, actions, and scripts are never executed.
@@ -205,7 +210,7 @@ jobs:
             > "$RUNNER_TEMP/aegis-delivery-result.json"
           decision="$(jq -r '.decision' "$RUNNER_TEMP/aegis-delivery-result.json")"
           case "$decision" in
-            allow|attended|defer|deny) ;;
+            allow|provisional|attended|defer|deny) ;;
             *) echo "Unexpected policy decision: $decision" >&2; exit 1 ;;
           esac
           echo "decision=$decision" >> "$GITHUB_OUTPUT"
@@ -217,13 +222,165 @@ jobs:
             echo "- Policy: \`$(jq -r '.policy_id' "$RUNNER_TEMP/aegis-delivery-result.json")\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Squash-merge policy-authorized exact head
-        if: steps.policy.outputs.decision == 'allow'
+  merge:
+    name: policy-authorized merge
+    needs: delivery
+    if: >-
+      needs.delivery.outputs.candidate_eligible == 'true' &&
+      (needs.delivery.outputs.decision == 'allow' ||
+       needs.delivery.outputs.decision == 'provisional')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate trusted delivery policy
+        run: >-
+          python3 trusted/scripts/aegis-delivery-policy validate
+          --policy trusted/aegis.delivery-policy.json
+
+      - name: Recollect exact-head repository evidence after required check
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ steps.candidate.outputs.number }}
-          EXPECTED_HEAD: ${{ steps.candidate.outputs.expected_head }}
+          PR_NUMBER: ${{ needs.delivery.outputs.pr_number }}
+          EXPECTED_HEAD: ${{ needs.delivery.outputs.expected_head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${REPOSITORY}/pulls/${PR_NUMBER}" \
+              > "$RUNNER_TEMP/pull-request.json"
+            mergeable="$(jq -r '.mergeable' "$RUNNER_TEMP/pull-request.json")"
+            mergeable_state="$(jq -r '.mergeable_state // "unknown"' "$RUNNER_TEMP/pull-request.json")"
+            if [[ "$mergeable" == "true" && "$mergeable_state" == "clean" ]]; then
+              break
+            fi
+            if [[ "$mergeable" == "false" || "$mergeable_state" == "dirty" ]]; then
+              break
+            fi
+            sleep 3
+          done
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" \
+            > "$RUNNER_TEMP/file-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/file-pages.jsonl" > "$RUNNER_TEMP/files.json"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs?event=pull_request&head_sha=${EXPECTED_HEAD}&per_page=100" \
+            --jq '.workflow_runs' \
+            > "$RUNNER_TEMP/workflow-run-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/workflow-run-pages.jsonl" \
+            > "$RUNNER_TEMP/workflow-runs.json"
+
+          owner="${REPOSITORY%%/*}"
+          name="${REPOSITORY#*/}"
+          gh api graphql --paginate \
+            -f query='query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $number) {
+                  reviewDecision
+                  reviewThreads(first: 100, after: $endCursor) {
+                    nodes { isResolved }
+                    pageInfo { hasNextPage endCursor }
+                  }
+                }
+              }
+            }' \
+            -F owner="$owner" \
+            -F name="$name" \
+            -F number="$PR_NUMBER" \
+            > "$RUNNER_TEMP/review-pages.jsonl"
+          jq -s '{
+            unresolved_threads: ([
+              .[].data.repository.pullRequest.reviewThreads.nodes[]
+              | select(.isResolved != true)
+            ] | length),
+            threads_truncated: (last.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage // true),
+            decision: (last.data.repository.pullRequest.reviewDecision // "")
+          }' "$RUNNER_TEMP/review-pages.jsonl" > "$RUNNER_TEMP/review.json"
+
+          current_default_sha="$(git -C trusted rev-parse HEAD)"
+          jq -n \
+            --arg repository "$REPOSITORY" \
+            --arg expected_head_sha "$EXPECTED_HEAD" \
+            --arg current_default_sha "$current_default_sha" \
+            --slurpfile pr "$RUNNER_TEMP/pull-request.json" \
+            --slurpfile files "$RUNNER_TEMP/files.json" \
+            --slurpfile runs "$RUNNER_TEMP/workflow-runs.json" \
+            --slurpfile review "$RUNNER_TEMP/review.json" \
+            '{
+              repository: $repository,
+              expected_head_sha: $expected_head_sha,
+              current_default_sha: $current_default_sha,
+              pull_request: {
+                number: $pr[0].number,
+                state: $pr[0].state,
+                draft: $pr[0].draft,
+                labels: $pr[0].labels,
+                changed_files: $pr[0].changed_files,
+                mergeable: $pr[0].mergeable,
+                mergeable_state: $pr[0].mergeable_state,
+                base: {ref: $pr[0].base.ref, sha: $pr[0].base.sha},
+                head: {
+                  ref: $pr[0].head.ref,
+                  sha: $pr[0].head.sha,
+                  repo: {full_name: $pr[0].head.repo.full_name}
+                }
+              },
+              files: ($files[0] | map({
+                filename,
+                status,
+                previous_filename: (.previous_filename // "")
+              })),
+              workflow_runs: $runs[0],
+              review: $review[0]
+            }' > "$RUNNER_TEMP/aegis-delivery-evidence.json"
+
+      - name: Require fresh trusted allow decision
+        env:
+          PR_NUMBER: ${{ needs.delivery.outputs.pr_number }}
+          EXPECTED_HEAD: ${{ needs.delivery.outputs.expected_head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 trusted/scripts/aegis-delivery-policy evaluate \
+            --policy trusted/aegis.delivery-policy.json \
+            --input "$RUNNER_TEMP/aegis-delivery-evidence.json" \
+            > "$RUNNER_TEMP/aegis-delivery-result.json"
+          decision="$(jq -r '.decision' "$RUNNER_TEMP/aegis-delivery-result.json")"
+          if [[ "$decision" != "allow" ]]; then
+            echo "Fresh executor decision was ${decision}; refusing merge." >&2
+            jq -c '.reasons' "$RUNNER_TEMP/aegis-delivery-result.json" >&2
+            exit 1
+          fi
+          {
+            echo "### Aegis policy-authorized merge"
+            echo "- PR: #${PR_NUMBER}"
+            echo "- Exact head: \`${EXPECTED_HEAD}\`"
+            echo "- Fresh decision: \`allow\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Squash-merge freshly authorized exact head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.delivery.outputs.pr_number }}
+          EXPECTED_HEAD: ${{ needs.delivery.outputs.expected_head }}
         shell: bash
         run: |
           set -euo pipefail
@@ -235,7 +392,16 @@ jobs:
           final_base="$(jq -r '.base.sha' "$RUNNER_TEMP/final-pull-request.json")"
           trusted_base="$(git -C trusted rev-parse HEAD)"
           if [[ "$final_head" != "$EXPECTED_HEAD" ]] || [[ "$final_base" != "$trusted_base" ]]; then
-            echo "Head or base moved after policy evaluation; refusing merge." >&2
+            echo "Head or base moved after fresh policy evaluation; refusing merge." >&2
+            exit 1
+          fi
+          if ! jq -e '
+            .state == "open" and
+            (.draft | not) and
+            .mergeable == true and
+            .mergeable_state == "clean"
+          ' "$RUNNER_TEMP/final-pull-request.json" > /dev/null; then
+            echo "Pull request stopped being clean and mergeable; refusing merge." >&2
             exit 1
           fi
           gh api \
