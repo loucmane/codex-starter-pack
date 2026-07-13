@@ -1,0 +1,218 @@
+{
+  "run_id": "task239-cause-matrix-v1",
+  "scenarios": [
+    {
+      "scenario_id": "pre-install-checkout",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {"shim": "absent"},
+        "client": {"name": "claude", "hooks_loaded": null, "source_resolved": null},
+        "events": [],
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {
+        "pre_install_checkout": true,
+        "expected_capture": false,
+        "required_assets": ["shim"]
+      }
+    },
+    {
+      "scenario_id": "tracked-recorder-missing",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {"recorder": "absent"},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": true},
+        "events": [],
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {"expected_capture": true, "required_assets": ["recorder"]}
+    },
+    {
+      "scenario_id": "hooks-not-loaded",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": false, "source_resolved": true},
+        "events": [],
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {"expected_capture": true, "required_assets": []}
+    },
+    {
+      "scenario_id": "source-root-failure",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": false},
+        "events": [],
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {"expected_capture": true, "required_assets": []}
+    },
+    {
+      "scenario_id": "store-mismatch",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/parent/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": true},
+        "events": [
+          {
+            "event_id": "event-store",
+            "repository_identity": "sha256:repo",
+            "worktree_root": "<event-worktree>",
+            "branch": "fixture/store",
+            "head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "agent_id": "agent:sha256:child",
+            "agent_type": "Explore",
+            "parent_agent_id": "agent:sha256:parent"
+          }
+        ],
+        "event_window": {"event_ids": ["event-store"], "event_count": 1},
+        "ledger": {"resolved_path": "<state-root>/child/ledger.db"}
+      },
+      "metadata": {"expected_capture": true, "required_assets": []}
+    },
+    {
+      "scenario_id": "attribution-incomplete",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": true},
+        "events": [
+          {
+            "event_id": "event-attribution",
+            "branch": "fixture/attribution",
+            "agent_id": "agent:sha256:child",
+            "agent_type": "Explore"
+          }
+        ],
+        "event_window": {"event_ids": ["event-attribution"], "event_count": 1},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {"expected_capture": true, "required_assets": []}
+    },
+    {
+      "scenario_id": "parent-only-traffic",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": true},
+        "events": [
+          {
+            "event_id": "event-parent",
+            "branch": "fixture/parent",
+            "agent_id": "agent:sha256:2fbf067e9c68d7aa61a5891ba0cfe87619f81b8540a1450bff5a5f0481218754",
+            "agent_type": "orchestrator"
+          }
+        ],
+        "event_window": {"event_ids": ["event-parent"], "event_count": 1},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {
+        "expected_capture": true,
+        "expected_child_agent_id": "child-a",
+        "required_assets": []
+      }
+    },
+    {
+      "scenario_id": "teardown-loss",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": true},
+        "events": [
+          {
+            "event_id": "event-teardown",
+            "repository_identity": "sha256:repo",
+            "worktree_root": "<event-worktree>",
+            "branch": "fixture/teardown",
+            "head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "agent_id": "agent:sha256:child",
+            "agent_type": "Explore",
+            "parent_agent_id": "agent:sha256:parent"
+          }
+        ],
+        "event_window": {"event_ids": ["event-teardown"], "event_count": 1},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {
+        "expected_capture": true,
+        "post_teardown_event_ids": [],
+        "required_assets": []
+      }
+    },
+    {
+      "scenario_id": "codex-hook-surface-unsupported",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "codex", "hooks_loaded": null, "source_resolved": true},
+        "events": [],
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {
+        "expected_capture": false,
+        "surface_supported": false,
+        "required_assets": []
+      }
+    },
+    {
+      "scenario_id": "capture-complete",
+      "before": {
+        "event_window": {"event_ids": [], "event_count": 0},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "after": {
+        "assets": {},
+        "client": {"name": "claude", "hooks_loaded": true, "source_resolved": true},
+        "events": [
+          {
+            "event_id": "event-complete",
+            "repository_identity": "sha256:repo",
+            "worktree_root": "<event-worktree>",
+            "branch": "fixture/complete",
+            "head": "cccccccccccccccccccccccccccccccccccccccc",
+            "agent_id": "agent:sha256:child",
+            "agent_type": "Explore",
+            "parent_agent_id": "agent:sha256:parent"
+          }
+        ],
+        "event_window": {"event_ids": ["event-complete"], "event_count": 1},
+        "ledger": {"resolved_path": "<state-root>/repo/ledger.db"}
+      },
+      "metadata": {"expected_capture": true, "required_assets": []}
+    }
+  ]
+}
