@@ -2,7 +2,7 @@
 
 **Title:** Fix Autonomous Delivery Self-Gating Race
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 246 ✓
 
