@@ -518,6 +518,12 @@ def test_local_witness_records_and_projects_once(tmp_path: Path) -> None:
         ledger.close()
     assert len(witness_events) == 1
     assert witness_events[0]["extra"]["passed"] is True
+    assert witness_events[0]["extra"]["exit_class"] == "pass"
+    assert witness_events[0]["extra"]["process_exit_code"] == 0
+    assert witness_events[0]["paths"] == [
+        ".aegis/reports/witness-report.json",
+        ".aegis/reports/delivery-report.md",
+    ]
     for surface in surfaces:
         rendered = surface.read_text(encoding="utf-8")
         assert "Human content remains." in rendered

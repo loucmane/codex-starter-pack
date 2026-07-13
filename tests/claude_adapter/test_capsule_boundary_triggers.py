@@ -109,3 +109,35 @@ def test_witness_projection_failure_does_not_change_witness_verdict(
     assert payload["boundary_event"]["status"] == "warning"
     assert payload["boundary_event"]["reason"] == "projection unavailable"
     assert payload["legacy_projection"]["status"] == "skipped"
+
+
+def test_witness_cli_preserves_semantic_process_exit(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    class UnsupportedWitnessLib:
+        WITNESS_REPORT_REL = ".aegis/reports/witness-report.json"
+        DELIVERY_REPORT_REL = ".aegis/reports/delivery-report.md"
+
+        @staticmethod
+        def run_witness(_target_dir: str, *, base: str | None, ci_mode: bool):
+            return {
+                "passed": False,
+                "exit_class": "unsupported",
+                "process_exit_code": 2,
+                "base": base,
+                "mode": "ci" if ci_mode else "local",
+                "branch": "feat/task-241-quiet-witness",
+                "head_commit": "abc1234",
+                "checks": {},
+                "escalations": [],
+            }
+
+        @staticmethod
+        def render_report(_report: dict[str, object]) -> str:
+            return "witness unsupported\n"
+
+    monkeypatch.setattr(cli, "_refresh_capsule_if_stale", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli, "_load_witness_lib", lambda _source_root: UnsupportedWitnessLib)
+
+    assert cli.handle_witness(_args(tmp_path, ci=True)) == 2
