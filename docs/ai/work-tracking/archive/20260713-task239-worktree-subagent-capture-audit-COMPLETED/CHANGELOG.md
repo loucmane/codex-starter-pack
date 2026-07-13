@@ -8,3 +8,6 @@
   capture, and zero-loss teardown.
 - 2026-07-13 01:14 CEST — Passed full repository verification and recorded the
   pre-existing full-Ruff baseline without changing unrelated files.
+- 2026-07-13 09:58 CEST — Recorded green hosted checks, marked Taskmaster Task 239 done,
+  and archived the complete evidence bundle through the supported lifecycle.
+- 2026-07-13 09:57 CEST — Archived active work-tracking folder.

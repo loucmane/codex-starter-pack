@@ -75,5 +75,20 @@ ordinary distribution tests remain part of the 1,746 passing tests.
 
 ## Hosted Evidence
 
-Pending publication of the Task 239 implementation commit. Exact-head workflow URLs and
-results will be appended after hosted checks finish.
+Draft PR: `https://github.com/loucmane/codex-starter-pack/pull/264`
+
+Exact signed implementation head:
+`97663b30fb80b2ce454ec96cfd3fb4b72c5a5e33`
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Python tests (3.11) | passed in 6m09s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29233323111/job/86762214614` |
+| Python tests (3.12) | passed in 6m46s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29233323111/job/86762214635` |
+| Aegis witness | passed in 15s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29233323180/job/86762214795` |
+| evidence-gated delivery | passed in 10s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29233323038/job/86762214543` |
+| source guard | passed in 37s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29233323036/job/86762214551` |
+| meta-workflow guard | passed in 21s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29233323085/job/86762214598` |
+| baseline guard | passed in 27s | `https://github.com/loucmane/codex-starter-pack/actions/runs/29213174508/job/86704246910` |
+
+All checks passed at the exact implementation head. A final Taskmaster/archive lifecycle
+commit will receive a fresh exact-head matrix before delivery.

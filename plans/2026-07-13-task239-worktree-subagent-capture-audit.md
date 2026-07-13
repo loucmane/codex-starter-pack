@@ -5,7 +5,7 @@ handler_target: aegis_foundation/worktree_capture_audit.py
 task_ids: [239]
 branch_policy: feature-required
 evidence_summary:
-  - docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/
+  - docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/
   - aegis_foundation/worktree_capture_audit.py
   - .taskmaster/tasks/task_239.md
   - scripts/codex-task
@@ -21,20 +21,20 @@ emergency_bypass: false
 - **Handler Target (H)**: aegis_foundation/worktree_capture_audit.py
 - **Task IDs**: 239
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/, aegis_foundation/worktree_capture_audit.py, .taskmaster/tasks/task_239.md, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/, aegis_foundation/worktree_capture_audit.py, .taskmaster/tasks/task_239.md, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
-| plan-step-scope | Define the diagnostic-only cause taxonomy, secret-free evidence schema, live/fixture matrix, classification rules, and rollback boundary | docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/designs/worktree-capture-audit-contract.md | completed |
-| plan-step-implement | Implement deterministic collection/classification/replay and run disposable worktree/client scenarios without changing recorder behavior | aegis_foundation/worktree_capture_audit.py; docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/TRACKER.md | completed |
+| plan-step-scope | Define the diagnostic-only cause taxonomy, secret-free evidence schema, live/fixture matrix, classification rules, and rollback boundary | docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/designs/worktree-capture-audit-contract.md | completed |
+| plan-step-implement | Implement deterministic collection/classification/replay and run disposable worktree/client scenarios without changing recorder behavior | aegis_foundation/worktree_capture_audit.py; docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260713-task239-worktree-subagent-capture-audit-ACTIVE/`
+- `docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/`
 - `aegis_foundation/worktree_capture_audit.py`
 - `.taskmaster/tasks/task_239.md`
 - `scripts/codex-task`
@@ -56,7 +56,7 @@ emergency_bypass: false
   2. Review Taskmaster Task 239 and its subtasks.
   3. Review the worktree-capture audit contract before changing the harness.
   4. Run `python3 scripts/codex-task plan sync` after tracker updates.
-- Outstanding risks/todos: publish the exact Task 239 scope, collect hosted checks, then complete Taskmaster/archive lifecycle without selecting or implementing the Task 240 correction.
+- Outstanding risks/todos: push the signed terminal lifecycle commit, pass the fresh exact-head hosted matrix, and merge PR #264 before starting Task 240.
 
 ## Conflict & Scope Declaration
 - Related plans: Tasks 94-95 enforcement groundwork, Task 97 dashboard follow-on.

@@ -7917,13 +7917,13 @@
         "description": "Build a diagnostic evidence harness that identifies why child worktree activity is missing or misattributed before changing recorder behavior.",
         "details": "Implement roadmap workstream C3 as diagnostics only. Distinguish pre-install checkout age, missing tracked assets, unloaded client hooks, source-root resolution failure, Git-common-dir store mismatch, absent attribution, parent orchestration mistaken for child activity, and loss after ephemeral worktree removal. Record client/version, parent and child identity, worktree/branch/HEAD/common-dir, asset checksums, resolved ledger path, hook capabilities, before/after event IDs and counts, attribution fields, and supported/degraded/failed status. Exercise two linked worktrees, an actual Claude child, a Codex worktree or explicit unsupported result, success, command failure, verification, and teardown. Check in a secret-free coverage report and replay fixture. Do not select or implement a runtime fix in this task.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "236"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-07-12T22:35:56.099Z"
+        "updatedAt": "2026-07-13T07:57:17.695Z"
       },
       {
         "id": "240",
@@ -8033,9 +8033,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-12T22:35:56.099Z",
+      "lastModified": "2026-07-13T07:57:17.695Z",
       "taskCount": 245,
-      "completedCount": 235,
+      "completedCount": 236,
       "tags": [
         "master"
       ]

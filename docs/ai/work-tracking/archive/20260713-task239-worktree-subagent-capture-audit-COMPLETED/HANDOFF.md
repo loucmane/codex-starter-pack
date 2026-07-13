@@ -9,9 +9,12 @@
 - Focused Ruff/replay checks and all 1,746 repository tests pass; Taskmaster, guard,
   template-drift/scanner, capsule, and secret checks also pass.
 - Runtime, hooks, ledger schema, witness behavior, and installed assets remain unchanged.
+- Taskmaster Task 239 is done and the tracking bundle is archived under this COMPLETED
+  directory. The signed implementation head passed all hosted checks.
 
 ## Next Steps
-- Publish the exact Task 239 implementation scope, collect hosted checks, then complete
-  Taskmaster/archive lifecycle and merge through the normal evidence-gated path.
-- Use the checked-in evidence to scope Task 240 after Task 239 merges; do not infer child
+- Commit and push the terminal Taskmaster/archive lifecycle diff, then pass the fresh
+  exact-head checks and merge PR #264 through the normal evidence-gated path.
+- Start Task 240 from synchronized main using the checked-in evidence; do not infer child
   work from parent traffic or replace the already-working common-dir store.
+- Archived on 2026-07-13 09:57 CEST — Folder moved to archive and tracker marked COMPLETED.
