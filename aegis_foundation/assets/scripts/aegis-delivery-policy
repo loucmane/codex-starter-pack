@@ -426,7 +426,7 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
     mergeable_state = str(pull_request.get("mergeable_state") or "").lower()
     provisional_mergeability = False
     if policy["merge"]["require_clean_mergeability"]:
-        if mergeable is True and mergeable_state == "blocked":
+        if mergeable is True and mergeable_state in {"blocked", "unstable"}:
             provisional_mergeability = True
         elif mergeable is not True or mergeable_state != "clean":
             core_reasons.append(

@@ -27,6 +27,13 @@ PACKAGED_SCHEMA_PATH = (
 PR264_FIXTURE_PATH = (
     REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr264-autonomous-delivery-self-gating.json"
 )
+PR269_FIXTURE_PATH = (
+    REPO_ROOT
+    / "tests"
+    / "fixtures"
+    / "aegis"
+    / "pr269-autonomous-delivery-unstable.json"
+)
 HEAD_SHA = "a" * 40
 BASE_SHA = "b" * 40
 
@@ -168,6 +175,26 @@ def test_pr264_self_gating_replay_is_provisional_not_authorized() -> None:
     ]
 
 
+def test_pr269_unstable_replay_is_provisional_not_authorized() -> None:
+    fixture = json.loads(PR269_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    result = policy_module.evaluate(_policy(), fixture["evidence"])
+
+    assert fixture["replay_assumption"]["direct_telemetry"] is False
+    assert fixture["replay_assumption"]["confidence"] == "medium"
+    assert fixture["observed"]["post_run_mergeable_state"] == "clean"
+    assert fixture["expected_decision"] == "provisional"
+    assert result["decision"] == "provisional"
+    assert result["evidence"]["mergeability_recheck_required"] is True
+    assert result["reasons"] == [
+        {
+            "category": "mergeability-self-check-pending",
+            "mergeable": True,
+            "state": "unstable",
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     ("mergeable", "state"),
     [
@@ -177,7 +204,7 @@ def test_pr264_self_gating_replay_is_provisional_not_authorized() -> None:
         (True, "behind"),
     ],
 )
-def test_non_self_blocked_mergeability_remains_deferred(
+def test_non_provisional_mergeability_remains_deferred(
     mergeable: bool | None,
     state: str,
 ) -> None:
@@ -201,12 +228,14 @@ def test_non_self_blocked_mergeability_remains_deferred(
         ("thread", "unresolved-review-threads"),
     ],
 )
-def test_blocked_mergeability_never_masks_another_gate(
+@pytest.mark.parametrize("mergeability_state", ["blocked", "unstable"])
+def test_provisional_mergeability_never_masks_another_gate(
     mutation: str,
     category: str,
+    mergeability_state: str,
 ) -> None:
     evidence = _evidence()
-    evidence["pull_request"]["mergeable_state"] = "blocked"  # type: ignore[index]
+    evidence["pull_request"]["mergeable_state"] = mergeability_state  # type: ignore[index]
     if mutation == "workflow-pending":
         evidence["workflow_runs"][0]["status"] = "in_progress"  # type: ignore[index]
         evidence["workflow_runs"][0]["conclusion"] = None  # type: ignore[index]
@@ -223,6 +252,18 @@ def test_blocked_mergeability_never_masks_another_gate(
 
     assert result["decision"] == "defer"
     assert category in {reason["category"] for reason in result["reasons"]}
+
+
+def test_unstable_provisional_state_never_masks_attended_path() -> None:
+    evidence = _evidence(
+        files=[{"filename": ".github/workflows/ci.yml", "status": "modified"}]
+    )
+    evidence["pull_request"]["mergeable_state"] = "unstable"  # type: ignore[index]
+
+    result = policy_module.evaluate(_policy(), evidence)
+
+    assert result["decision"] == "attended"
+    assert any(reason["category"] == "attended-path" for reason in result["reasons"])
 
 
 @pytest.mark.parametrize(
