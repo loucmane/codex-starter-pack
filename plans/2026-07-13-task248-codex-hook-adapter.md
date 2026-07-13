@@ -29,8 +29,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Define the canonical Codex hook, parser, policy, evidence, installer, trust, and rollout contract | docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/designs/codex-hook-adapter-scope.md | completed |
-| plan-step-implement | Implement first-class apply_patch handling and the managed Codex adapter with source/package parity | .claude/scripts/gate_lib.py; aegis_foundation/assets/.claude/scripts/gate_lib.py; scripts/_aegis_installer.py; docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/TRACKER.md | pending |
+| plan-step-implement | Implement first-class apply_patch handling and the managed Codex adapter with source/package parity | .claude/scripts/gate_lib.py; aegis_foundation/assets/.claude/scripts/gate_lib.py; scripts/_aegis_installer.py; docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260713-task248-codex-hook-adapter-ACTIVE/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -47,7 +47,7 @@ emergency_bypass: false
 - Taskmaster Task `248`
 
 ## Branch Policy
-- Working branch: `feat/task-248-codex-hook-adapter-bootstrap`
+- Working branch: `feat/task-248-codex-hook-adapter`
 
 ## Amendments & Versioning
 - 2026-07-13 - Task 248 kickoff created via the guided wizard flow.
@@ -68,7 +68,7 @@ emergency_bypass: false
 ## Evidence Checklist
 - Canonical Codex hook adapter scope under `designs/`
 - Tracker/session entries for kickoff and implementation progress
-- Stored test and guard evidence once the wizard implementation lands
+- Stored runtime, installer, live-smoke, strict verification, witness, guard, and hosted-CI evidence
 
 ## Emergency Bypass Protocol
 - No bypass authorized.

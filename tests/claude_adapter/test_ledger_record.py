@@ -13,6 +13,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -125,6 +126,44 @@ def test_recorder_classifies_failure_fixture(tmp_path: Path) -> None:
     assert events[0]["event_type"] == "tool_failure"
     assert events[0]["outcome"] == "fail"
     assert "does not exist" in str(events[0]["extra"].get("error"))
+
+
+def test_recorder_keeps_atomic_codex_apply_patch_metadata(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    state = tmp_path / "state"
+    command = """*** Begin Patch
+*** Add File: src/first.py
++first = True
+*** Update File: src/old.py
+*** Move to: src/new.py
+@@
+-old
++new
+*** End Patch"""
+    hook_payload = {
+        "hook_event_name": "PostToolUse",
+        "tool_name": "apply_patch",
+        "tool_input": {"command": command},
+        "tool_response": {"success": True},
+        "session_id": "task248-live",
+        "tool_use_id": "apply-patch-1",
+        "cwd": repo.as_posix(),
+    }
+
+    assert run_record(repo, state, json.dumps(hook_payload)).returncode == 0
+
+    event = next(event for event in read_events(state) if event["tool_name"] == "apply_patch")
+    assert event["event_type"] == "mutation"
+    assert event["handler"] == "codex:apply_patch"
+    assert event["paths"] == ["src/first.py", "src/old.py", "src/new.py"]
+    assert event["extra"]["primary_evidence_path"] == "src/first.py"
+    assert event["extra"]["affected_paths"] == event["paths"]
+    assert [operation["operation"] for operation in event["extra"]["operations"]] == [
+        "add",
+        "move",
+    ]
+    assert event["extra"]["operations"][1]["content_operation"] == "update"
+    assert event["extra"]["patch_digest"] == sha256(command.encode("utf-8")).hexdigest()
 
 
 def test_recorder_keeps_subagent_attribution(tmp_path: Path) -> None:

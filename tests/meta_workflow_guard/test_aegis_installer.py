@@ -237,6 +237,27 @@ def simulate_claude_reload(target: Path) -> None:
     assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
 
 
+def simulate_codex_reload(target: Path) -> None:
+    """Run the installed canonical apply_patch hook once to prove Codex hooks are active."""
+    result = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "apply_patch",
+            "tool_input": {
+                "command": (
+                    "*** Begin Patch\n"
+                    "*** Add File: codex-hook-probe.txt\n"
+                    "+probe\n"
+                    "*** End Patch"
+                )
+            },
+        },
+    )
+    # Hook execution itself proves that Codex loaded and trusted the definition. The
+    # synthetic mutation may still receive the expected readiness denial on ``main``.
+    assert result.returncode in {0, 2}, result.stderr
+
+
 def run_target_posttooluse(target: Path, payload: dict) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["bash", str(target / ".claude" / "scripts" / "posttooluse-tracking.sh")],
@@ -1714,7 +1735,7 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
         },
     )
     assert completed_taskmaster_gate.returncode == 2
-    assert "Claude readiness is BLOCKED" in completed_taskmaster_gate.stderr
+    assert "Aegis readiness is BLOCKED" in completed_taskmaster_gate.stderr
     assert (
         "observation mode only permits observation tooling" not in completed_taskmaster_gate.stderr
     )
@@ -3150,6 +3171,14 @@ def test_codex_can_start_observation_while_claude_adapter_reload_is_pending(
         next_action(target, source_root=REPO_ROOT, invoking_agent="claude")["state"]
         == "client_reload_required"
     )
+    assert (
+        next_action(target, source_root=REPO_ROOT, invoking_agent="codex")["state"]
+        == "client_reload_required"
+    )
+
+    simulate_codex_reload(target)
+    marker_payload = json.loads(marker.read_text(encoding="utf-8"))
+    assert marker_payload["agents"] == ["claude"]
 
     codex_guidance = next_action(
         target,
@@ -3164,7 +3193,7 @@ def test_codex_can_start_observation_while_claude_adapter_reload_is_pending(
     assert pending_reload["blocks_invoking_agent"] is False
     assert pending_reload["marker_path"] == AEGIS_CLIENT_RELOAD_REL
     assert pending_reload["changed_paths"]
-    assert pending_reload["clearance"]["method"] == "installed_claude_pretooluse_hook"
+    assert pending_reload["clearance"]["method"] == "installed_agent_pretooluse_hook"
     assert codex_guidance["details"]["pending_adapter_reload"]["agent"] == "claude"
     codex_status = status(
         target,
@@ -3231,6 +3260,7 @@ def test_codex_primary_guidance_uses_explicit_agent_logs_and_normalized_task_slu
         agents=["codex"],
         apply=True,
     )
+    simulate_codex_reload(target)
 
     kickoff_report = kickoff(
         target,
@@ -4659,7 +4689,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         {"tool_name": "Bash", "tool_input": {"command": "aegis verify --target-dir ."}},
     )
     assert blocked_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_verify.stderr
 
     blocked_mcp_verify = run_target_pretooluse(
         target,
@@ -4669,7 +4699,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         },
     )
     assert blocked_mcp_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_mcp_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_mcp_verify.stderr
 
     bootstrap = run_target_pretooluse(
         target,
@@ -4915,7 +4945,7 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
         {"tool_name": "Bash", "tool_input": {"command": "touch source.txt"}},
     )
     assert ordinary_write.returncode == 2
-    assert "Claude readiness is BLOCKED" in ordinary_write.stderr
+    assert "Aegis readiness is BLOCKED" in ordinary_write.stderr
 
     blocked_verify = run_target_pretooluse(
         target,
@@ -4925,7 +4955,7 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
         },
     )
     assert blocked_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_verify.stderr
 
     pending_log = run_target_pretooluse(
         target,
