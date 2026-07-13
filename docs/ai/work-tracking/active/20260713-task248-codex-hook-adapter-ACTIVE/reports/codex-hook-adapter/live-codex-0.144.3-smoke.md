@@ -1,9 +1,9 @@
 # Live Codex 0.144.3 Hook Smoke
 
-**Run at:** 2026-07-13 21:38 CEST  
-**Codex binary:** `codex-cli 0.144.3`  
-**Adapter source commit:** `f2da51d2615ba198e4cf6825e6f42962c9c3be3d`  
-**Mode:** advisory  
+**Run at:** 2026-07-13 21:38 CEST
+**Codex binary:** `codex-cli 0.144.3`
+**Adapter source commit:** `f2da51d2615ba198e4cf6825e6f42962c9c3be3d`
+**Mode:** advisory
 **Result:** PASS
 
 ## Purpose
