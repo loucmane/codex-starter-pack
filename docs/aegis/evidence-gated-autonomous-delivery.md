@@ -168,6 +168,8 @@ The required `evidence-gated delivery` evaluator:
 5. Resolves exactly one open pull request for the triggering head.
 6. Fetches pull-request metadata, paginated files, exact-head workflow runs, and
    paginated review-thread state directly from GitHub.
+   Review pagination preserves a real final-page `hasNextPage=false`; only a missing
+   final page is treated as truncated and fails closed.
 7. Runs the evaluator from `trusted/scripts/aegis-delivery-policy` against
    `trusted/aegis.delivery-policy.json`.
 8. Has read-only permissions and never calls the merge or repository-dispatch endpoint.
@@ -256,6 +258,8 @@ Changes to this mechanism must preserve:
 - exact-head and current-base revalidation;
 - complete file and review-thread pagination before both evaluator and executor policy
   decisions;
+- executable review-pagination aggregation tests proving `hasNextPage=false` remains
+  false while missing page data fails closed;
 - protected-path self-authorization tests;
 - source completed-state tests on both task branches and synchronized `main`;
 - installer idempotence and backward-compatible attended behavior when policy is absent.

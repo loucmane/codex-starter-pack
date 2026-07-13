@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -9,10 +11,37 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "aegis-autonomous-delivery.yml"
+PR269_REVIEW_PAGES_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr269-review-pages.jsonl"
+)
 
 
 def _workflow() -> dict:
     return yaml.safe_load(WORKFLOW_PATH.read_text(encoding="utf-8"))
+
+
+def _review_aggregation_filters() -> list[str]:
+    workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    filters = re.findall(
+        r"jq -s '(\{\n\s+unresolved_threads:.*?\n\s+\})' "
+        r'"\$RUNNER_TEMP/review-pages\.jsonl"',
+        workflow_text,
+        flags=re.DOTALL,
+    )
+    assert len(filters) == 2
+    return filters
+
+
+def _run_review_filter(filter_text: str, payload: str) -> dict:
+    result = subprocess.run(
+        ["jq", "-s", filter_text],
+        input=payload,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
 
 
 def test_privileged_workflow_has_narrow_triggers_and_serial_delivery() -> None:
@@ -132,6 +161,29 @@ def test_each_policy_decision_uses_complete_current_evidence() -> None:
         assert "threads_truncated" in text
         assert "git -C trusted rev-parse HEAD" in text
         assert "aegis-delivery-evidence.json" in text
+
+
+def test_review_pagination_uses_the_real_final_page_in_both_jobs() -> None:
+    payload = PR269_REVIEW_PAGES_FIXTURE_PATH.read_text(encoding="utf-8")
+
+    for filter_text in _review_aggregation_filters():
+        assert "last.data" not in filter_text
+        assert ".[-1].data" in filter_text
+        assert "// true" not in filter_text
+        assert _run_review_filter(filter_text, payload) == {
+            "unresolved_threads": 0,
+            "threads_truncated": False,
+            "decision": "",
+        }
+
+
+def test_review_pagination_fails_closed_when_no_page_was_returned() -> None:
+    for filter_text in _review_aggregation_filters():
+        assert _run_review_filter(filter_text, "") == {
+            "unresolved_threads": 0,
+            "threads_truncated": True,
+            "decision": "",
+        }
 
 
 def test_provisional_result_cannot_authorize_a_merge() -> None:

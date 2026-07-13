@@ -154,8 +154,11 @@ jobs:
               .[].data.repository.pullRequest.reviewThreads.nodes[]
               | select(.isResolved != true)
             ] | length),
-            threads_truncated: (last.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage // true),
-            decision: (last.data.repository.pullRequest.reviewDecision // "")
+            threads_truncated: (
+              .[-1].data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage
+              | if . == null then true else . end
+            ),
+            decision: (.[-1].data.repository.pullRequest.reviewDecision // "")
           }' "$RUNNER_TEMP/review-pages.jsonl" > "$RUNNER_TEMP/review.json"
 
           current_default_sha="$(git -C trusted rev-parse HEAD)"
@@ -311,8 +314,11 @@ jobs:
               .[].data.repository.pullRequest.reviewThreads.nodes[]
               | select(.isResolved != true)
             ] | length),
-            threads_truncated: (last.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage // true),
-            decision: (last.data.repository.pullRequest.reviewDecision // "")
+            threads_truncated: (
+              .[-1].data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage
+              | if . == null then true else . end
+            ),
+            decision: (.[-1].data.repository.pullRequest.reviewDecision // "")
           }' "$RUNNER_TEMP/review-pages.jsonl" > "$RUNNER_TEMP/review.json"
 
           current_default_sha="$(git -C trusted rev-parse HEAD)"
