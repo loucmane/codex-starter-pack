@@ -175,6 +175,259 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "agents": {
+            "properties": {
+              "codex": {
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            },
+            "required": [
+              "codex"
+            ]
+          }
+        },
+        "required": [
+          "agents"
+        ]
+      },
+      "then": {
+        "properties": {
+          "entrypoints": {
+            "required": [
+              "codex"
+            ],
+            "properties": {
+              "codex": {
+                "const": "CODEX.md"
+              }
+            }
+          },
+          "agents": {
+            "properties": {
+              "codex": {
+                "properties": {
+                  "entrypoint": {
+                    "const": "CODEX.md"
+                  },
+                  "managed_files": {
+                    "allOf": [
+                      {
+                        "contains": {
+                          "const": ".codex/hooks.json"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": ".claude/scripts/gate_lib.py"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": ".claude/scripts/pretooluse-gate.sh"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": ".claude/scripts/posttooluse-tracking.sh"
+                        }
+                      }
+                    ]
+                  },
+                  "gate_ids": {
+                    "allOf": [
+                      {
+                        "contains": {
+                          "const": "codex.readiness"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.pretooluse"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.posttooluse_tracking"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.posttooluse_ledger"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.session_brief"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.stop_tracking"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.apply_patch"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.hook_trust"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.guard"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": "codex.work_tracking_audit"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "gates": {
+            "allOf": [
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.readiness"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.pretooluse"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.posttooluse_tracking"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.posttooluse_ledger"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.session_brief"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.stop_tracking"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.apply_patch"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.hook_trust"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.guard"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "properties": {
+                    "id": {
+                      "const": "codex.work_tracking_audit"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "$defs": {
