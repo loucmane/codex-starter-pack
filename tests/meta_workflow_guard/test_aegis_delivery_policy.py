@@ -24,6 +24,9 @@ SCHEMA_PATH = REPO_ROOT / "schemas" / "aegis" / "delivery-policy.schema.json"
 PACKAGED_SCHEMA_PATH = (
     REPO_ROOT / "aegis_foundation" / "assets" / "schemas" / "aegis" / "delivery-policy.schema.json"
 )
+PR264_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr264-autonomous-delivery-self-gating.json"
+)
 HEAD_SHA = "a" * 40
 BASE_SHA = "b" * 40
 
@@ -146,6 +149,80 @@ def test_routine_exact_head_with_complete_evidence_is_allowed() -> None:
     assert result["decision"] == "allow"
     assert result["reasons"] == []
     assert result["evidence"]["head_sha"] == HEAD_SHA
+
+
+def test_pr264_self_gating_replay_is_provisional_not_authorized() -> None:
+    fixture = json.loads(PR264_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    result = policy_module.evaluate(_policy(), fixture["evidence"])
+
+    assert fixture["expected_decision"] == "provisional"
+    assert result["decision"] == "provisional"
+    assert result["evidence"]["mergeability_recheck_required"] is True
+    assert result["reasons"] == [
+        {
+            "category": "mergeability-self-check-pending",
+            "mergeable": True,
+            "state": "blocked",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mergeable", "state"),
+    [
+        (False, "dirty"),
+        (True, "dirty"),
+        (None, "unknown"),
+        (True, "behind"),
+    ],
+)
+def test_non_self_blocked_mergeability_remains_deferred(
+    mergeable: bool | None,
+    state: str,
+) -> None:
+    evidence = _evidence()
+    evidence["pull_request"]["mergeable"] = mergeable  # type: ignore[index]
+    evidence["pull_request"]["mergeable_state"] = state  # type: ignore[index]
+
+    result = policy_module.evaluate(_policy(), evidence)
+
+    assert result["decision"] == "defer"
+    assert any(reason["category"] == "mergeability-not-clean" for reason in result["reasons"])
+
+
+@pytest.mark.parametrize(
+    ("mutation", "category"),
+    [
+        ("workflow-pending", "workflow-pending"),
+        ("workflow-failed", "workflow-not-successful"),
+        ("review-required", "review-required"),
+        ("changes-requested", "changes-requested"),
+        ("thread", "unresolved-review-threads"),
+    ],
+)
+def test_blocked_mergeability_never_masks_another_gate(
+    mutation: str,
+    category: str,
+) -> None:
+    evidence = _evidence()
+    evidence["pull_request"]["mergeable_state"] = "blocked"  # type: ignore[index]
+    if mutation == "workflow-pending":
+        evidence["workflow_runs"][0]["status"] = "in_progress"  # type: ignore[index]
+        evidence["workflow_runs"][0]["conclusion"] = None  # type: ignore[index]
+    elif mutation == "workflow-failed":
+        evidence["workflow_runs"][0]["conclusion"] = "failure"  # type: ignore[index]
+    elif mutation == "review-required":
+        evidence["review"]["decision"] = "REVIEW_REQUIRED"  # type: ignore[index]
+    elif mutation == "changes-requested":
+        evidence["review"]["decision"] = "CHANGES_REQUESTED"  # type: ignore[index]
+    else:
+        evidence["review"]["unresolved_threads"] = 1  # type: ignore[index]
+
+    result = policy_module.evaluate(_policy(), evidence)
+
+    assert result["decision"] == "defer"
+    assert category in {reason["category"] for reason in result["reasons"]}
 
 
 @pytest.mark.parametrize(
