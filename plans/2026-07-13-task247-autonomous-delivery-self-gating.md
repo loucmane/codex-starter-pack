@@ -42,6 +42,7 @@ emergency_bypass: false
 - `aegis_foundation/assets/scripts/aegis-delivery-policy`
 - `docs/aegis/evidence-gated-autonomous-delivery.md`
 - `tests/fixtures/aegis/pr264-autonomous-delivery-self-gating.json`
+- `tests/fixtures/aegis/pr269-autonomous-delivery-unstable.json`
 - `tests/meta_workflow_guard/test_aegis_delivery_policy.py`
 - `tests/meta_workflow_guard/test_aegis_autonomous_delivery_workflow.py`
 - `.taskmaster/tasks/task_247.md`
@@ -52,6 +53,10 @@ emergency_bypass: false
 
 ## Amendments & Versioning
 - 2026-07-13 - Task 247 kickoff created via the guided wizard flow.
+- 2026-07-13 - Live PR #269 exposed a second transient mergeability race after the first
+  governance merge. Scope now includes a provenance-bounded unstable-state replay,
+  non-authorizing handling, and evaluator reason output; the original canary acceptance
+  criterion is unchanged.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
