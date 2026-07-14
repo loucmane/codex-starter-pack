@@ -64,5 +64,11 @@
     "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
     "tracker_hash": "5d97ed999eb0ab02cdae1fb9bbd646a7440a6d0202caf974a884ec90d30c3fa8",
     "synced_at": "2026-07-14T18:13:23.721586+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "3d98a615543dfc85e4ae5bfe58605fb3d7749d6bcad2240983aad2ad1cf47e92",
+    "synced_at": "2026-07-14T18:30:37.450865+02:00"
   }
 ]

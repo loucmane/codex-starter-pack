@@ -38,8 +38,10 @@ with the already-merged Tasks 247–251 without restoring stale pre-adapter beha
 - Ruff, Black, source/package parity, Taskmaster health, plan sync, and diff checks pass.
 - Full `/tmp` suite: 2,030 passed, four opt-in skips, one known governed-checkout location
   assertion. The isolated assertion passes under a non-temp repository context.
-- Final complete-suite proof must run from an exact committed checkout outside `/tmp`, then
-  hosted protected CI and witness must pass.
+- Signed runtime tree `d29cea9793057340e9b4334cf94287b6300fbe4e` passed the complete suite
+  from a non-temp task-bearing checkout: 2,031 passed, four opt-in smokes skipped, zero failures
+  in 407.46 seconds. Hosted protected CI and witness must still pass on the final evidence-only
+  PR head.
 
 ## Delivery And Rollback
 

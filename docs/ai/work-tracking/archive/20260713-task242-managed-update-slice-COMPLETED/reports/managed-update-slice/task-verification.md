@@ -98,8 +98,10 @@ are older; both paths still exercise the same extracted classifier.
   one known governed-checkout location assertion failed after 431.99 seconds.
 - The exact location assertion passed when evaluated with a non-temp repository context, proving
   the failure is the documented worktree premise rather than the managed-update implementation.
-- Final exact-tree verification remains required from a real checkout outside `/tmp`, followed by
-  hosted protected CI and witness evidence.
+- Signed runtime tree `d29cea9793057340e9b4334cf94287b6300fbe4e` passed the complete suite
+  from a non-temp task-bearing checkout: **2,031 passed, four explicit opt-in smokes skipped,
+  zero failures** in 407.46 seconds.
+- Hosted protected CI and witness evidence remain required for the final evidence-only PR head.
 
 ## Disclosed Baseline-Specific Results
 

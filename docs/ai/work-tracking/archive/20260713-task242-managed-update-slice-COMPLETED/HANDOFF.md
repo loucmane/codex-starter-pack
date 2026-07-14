@@ -8,10 +8,11 @@
 - Focused current-main compatibility passes: 10 managed-update/golden tests, 49 Codex-hook/parity tests, and 155 installer/release tests with three explicit opt-in skips. Isolated Ruff/Black, mirror parity, and `git diff --check` pass.
 - The complete repository suite reports 1,765 passed, four opt-in smokes skipped, and one unchanged reconcile assertion whose source checkout location premise is invalid in a `/tmp` worktree. The exact assertion fails identically on untouched Task 240, so it is recorded rather than weakened.
 - The exit-zero local regression gate then passed 1,765 tests with four opt-in skips and only that proven baseline assertion deselected; hosted CI must execute it in a normal checkout.
+- Current-main signed runtime tree `d29cea9` passed the complete suite from a non-temp task-bearing checkout: 2,031 passed, four explicit opt-in smokes skipped, zero failures in 407.46 seconds.
 - The optional real-target wheel MCP lifecycle smoke also fails identically on Task 240 because the harness attempts kickoff before acknowledging the required client-reload marker. Basic wheel CLI and MCP stdio smokes pass.
 - Taskmaster Task 242 is `done`; full-graph health reports 250 tasks, 383 subtasks, 435 valid dependency references, and zero invalid references. This evidence bundle remains archived and a July 14 continuation session records mainline reconciliation.
 
 ## Next Steps
-- Commit the current-main reconciliation, verify the exact signed tree from a real checkout outside `/tmp`, retarget the existing draft PR to `main`, and require exact-head hosted Python/guard/witness checks.
+- Push the current-main reconciliation, retarget the existing draft PR to `main`, and require exact-head hosted Python/guard/witness checks for the final evidence-only head.
 - Rollback is a single reviewed revert and requires no downstream migration.
 - Archived on 2026-07-13 18:39 CEST — Folder moved to archive and tracker marked COMPLETED.
