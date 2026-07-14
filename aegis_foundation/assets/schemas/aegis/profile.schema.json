@@ -130,9 +130,92 @@
               }
             }
           },
+          "adapter_requirements": {
+            "required": [
+              "codex"
+            ],
+            "properties": {
+              "codex": {
+                "properties": {
+                  "entrypoint": {
+                    "const": "CODEX.md"
+                  },
+                  "required_files": {
+                    "allOf": [
+                      {
+                        "contains": {
+                          "const": ".codex/hooks.json"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": ".claude/scripts/gate_lib.py"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": ".claude/scripts/pretooluse-gate.sh"
+                        }
+                      },
+                      {
+                        "contains": {
+                          "const": ".claude/scripts/posttooluse-tracking.sh"
+                        }
+                      }
+                    ]
+                  },
+                  "required_hook_registrations": {
+                    "allOf": [
+                      {
+                        "contains": {
+                          "properties": {
+                            "settings_path": {
+                              "const": ".codex/hooks.json"
+                            },
+                            "event": {
+                              "const": "PreToolUse"
+                            },
+                            "matcher": {
+                              "pattern": "apply_patch"
+                            }
+                          },
+                          "required": [
+                            "settings_path",
+                            "event",
+                            "matcher"
+                          ]
+                        }
+                      },
+                      {
+                        "contains": {
+                          "properties": {
+                            "settings_path": {
+                              "const": ".codex/hooks.json"
+                            },
+                            "event": {
+                              "const": "PostToolUse"
+                            },
+                            "matcher": {
+                              "pattern": "apply_patch"
+                            }
+                          },
+                          "required": [
+                            "settings_path",
+                            "event",
+                            "matcher"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
           "conditional_gates": {
             "required": [
-              "agents.claude.enabled"
+              "agents.claude.enabled",
+              "agents.codex.enabled"
             ],
             "properties": {
               "agents.claude.enabled": {
@@ -155,6 +238,55 @@
                   {
                     "contains": {
                       "const": "claude.protected_path"
+                    }
+                  }
+                ]
+              },
+              "agents.codex.enabled": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "const": "codex.readiness"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.pretooluse"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.posttooluse_tracking"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.posttooluse_ledger"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.session_brief"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.stop_tracking"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.apply_patch"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.hook_trust"
+                    }
+                  },
+                  {
+                    "contains": {
+                      "const": "codex.guard"
                     }
                   }
                 ]

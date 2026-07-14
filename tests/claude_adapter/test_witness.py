@@ -142,14 +142,14 @@ def test_stale_verification_fails_and_after_head_passes(repo: Path) -> None:
     seed_verification(repo, old_head, ts="2000-01-01T00:00:00Z")
     commit_change(repo, "app/feature.py")
     report = witness_lib.run_witness(repo, base="main")
-    assert report["checks"]["verification_at_head"]["passed"] is False, (
-        "old-commit run with old ts is stale"
-    )
+    assert (
+        report["checks"]["verification_at_head"]["passed"] is False
+    ), "old-commit run with old ts is stale"
     seed_verification(repo, "unrelated", ts="2099-01-01T00:00:00Z")
     report = witness_lib.run_witness(repo, base="main")
-    assert report["checks"]["verification_at_head"]["passed"] is False, (
-        "a future timestamp cannot substitute for exact commit identity"
-    )
+    assert (
+        report["checks"]["verification_at_head"]["passed"] is False
+    ), "a future timestamp cannot substitute for exact commit identity"
     seed_verification(repo, head_short(repo), ts="2099-01-01T00:00:01Z")
     report = witness_lib.run_witness(repo, base="main")
     assert report["checks"]["verification_at_head"]["passed"] is True

@@ -15,14 +15,15 @@ from hashlib import sha1, sha256
 from pathlib import Path
 from typing import Any
 
-FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
+CODEX_APPLY_PATCH_TOOL = "apply_patch"
+FILE_MUTATION_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", CODEX_APPLY_PATCH_TOOL}
 HOOKABLE_TOOLS = FILE_MUTATION_TOOLS | {"Bash"}
 REQUIRED_TOOL_INPUT_FIELDS = {
     "Edit": ("file_path",),
     "Write": ("file_path",),
     "MultiEdit": ("file_path",),
     "NotebookEdit": ("notebook_path",),
-    "apply_patch": ("command",),
+    CODEX_APPLY_PATCH_TOOL: ("command",),
     "Bash": ("command",),
 }
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
@@ -33,6 +34,7 @@ AEGIS_ENFORCEMENT_REL = ".aegis/state/enforcement.json"
 AEGIS_GATE_DECISIONS_REL = ".aegis/reports/gate-decisions.jsonl"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
+PENDING_TRACKING_SAMPLE_LIMIT = 5
 
 PROTECTED_PREFIXES = ("templates/", ".codex/", ".aegis/", ".claude/")
 PROTECTED_EXACT = {"CODEX.md", "CLAUDE.md", "AGENTS.md"}
@@ -264,6 +266,34 @@ PATH_FIELD_NAMES = {
 }
 
 
+class ApplyPatchParseError(ValueError):
+    """Raised when a canonical Codex apply_patch payload cannot be classified safely."""
+
+
+@dataclass(frozen=True)
+class ApplyPatchOperation:
+    operation: str
+    source_path: str
+    destination_path: str | None = None
+
+    def as_event_record(self) -> dict[str, Any]:
+        record = {
+            "operation": "move" if self.destination_path is not None else self.operation,
+            "source_path": self.source_path,
+        }
+        if self.destination_path is not None:
+            record["destination_path"] = self.destination_path
+            record["content_operation"] = self.operation
+        return record
+
+
+@dataclass(frozen=True)
+class ParsedApplyPatch:
+    operations: tuple[ApplyPatchOperation, ...]
+    affected_paths: tuple[str, ...]
+    patch_digest: str
+
+
 @dataclass
 class Payload:
     tool_name: str
@@ -272,6 +302,7 @@ class Payload:
     # and test remains valid; populated by parse_payload from the hook stdin JSON.
     session_id: str | None = None
     cwd: str | None = None
+    parsed_apply_patch: ParsedApplyPatch | None = None
 
 
 @dataclass
@@ -730,6 +761,161 @@ def normalize_path(path_text: str, root: Path | None = None) -> str:
     return rel
 
 
+def apply_patch_command(payload: Payload) -> str:
+    command = payload.tool_input.get("command")
+    return command if isinstance(command, str) else ""
+
+
+def _normalize_apply_patch_path(path_text: str, root: Path) -> str:
+    if not path_text:
+        raise ApplyPatchParseError("patch path is empty")
+    if path_text != path_text.strip():
+        raise ApplyPatchParseError("patch path has ambiguous leading or trailing whitespace")
+    if any(ord(character) < 32 or ord(character) == 127 for character in path_text):
+        raise ApplyPatchParseError("patch path contains control characters")
+
+    root_resolved = root.resolve()
+    path = safe_expanduser(path_text)
+    if path.is_absolute():
+        raise ApplyPatchParseError("patch path must be repository-relative")
+    candidate = root_resolved / path
+    try:
+        resolved = candidate.resolve(strict=False)
+        relative = resolved.relative_to(root_resolved).as_posix()
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise ApplyPatchParseError(f"patch path escapes the governed project: {path_text}") from exc
+    if relative in {"", "."}:
+        raise ApplyPatchParseError("patch path resolves to the project root")
+    return relative
+
+
+def parse_apply_patch(command: str, root: Path) -> ParsedApplyPatch:
+    """Parse the canonical Codex apply_patch envelope without interpreting diff hunks.
+
+    Aegis needs the operation graph and every affected path, not a second patch
+    application engine. Structural directives are therefore strict while hunk bodies
+    remain opaque after the operation-specific minimum checks below.
+    """
+
+    if not command:
+        raise ApplyPatchParseError("apply_patch command is empty")
+    lines = command.splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if not lines or lines[0] != "*** Begin Patch":
+        raise ApplyPatchParseError("patch must begin with an exact *** Begin Patch marker")
+    if lines[-1] != "*** End Patch":
+        raise ApplyPatchParseError("patch must end with an exact *** End Patch marker")
+    if any(line == "*** Begin Patch" for line in lines[1:]):
+        raise ApplyPatchParseError("nested or duplicate *** Begin Patch marker")
+    if any(line == "*** End Patch" for line in lines[1:-1]):
+        raise ApplyPatchParseError("early or duplicate *** End Patch marker")
+
+    header_re = re.compile(r"^\*\*\* (Add|Update|Delete) File: (.+)$")
+    move_re = re.compile(r"^\*\*\* Move to: (.+)$")
+    operations: list[ApplyPatchOperation] = []
+    current_action: str | None = None
+    current_source: str | None = None
+    current_destination: str | None = None
+    current_body: list[str] = []
+
+    def finalize_current() -> None:
+        nonlocal current_action, current_source, current_destination, current_body
+        if current_action is None or current_source is None:
+            return
+        body_has_content = any(line.strip() for line in current_body)
+        if current_action == "add":
+            if not current_body or not all(line.startswith("+") for line in current_body):
+                raise ApplyPatchParseError("Add File requires one or more + content lines")
+        elif current_action == "update":
+            if not body_has_content and current_destination is None:
+                raise ApplyPatchParseError(
+                    "Update File requires a hunk body or Move to destination"
+                )
+        elif current_action == "delete" and body_has_content:
+            raise ApplyPatchParseError("Delete File does not accept a patch body")
+        operations.append(
+            ApplyPatchOperation(
+                operation=current_action,
+                source_path=current_source,
+                destination_path=current_destination,
+            )
+        )
+        current_action = None
+        current_source = None
+        current_destination = None
+        current_body = []
+
+    for line in lines[1:-1]:
+        header_match = header_re.fullmatch(line)
+        if header_match:
+            finalize_current()
+            current_action = header_match.group(1).lower()
+            current_source = _normalize_apply_patch_path(header_match.group(2), root)
+            continue
+
+        move_match = move_re.fullmatch(line)
+        if move_match:
+            if current_action != "update" or current_source is None:
+                raise ApplyPatchParseError("Move to is valid only inside an Update File operation")
+            if current_destination is not None:
+                raise ApplyPatchParseError("Update File contains more than one Move to directive")
+            if any(body_line.strip() for body_line in current_body):
+                raise ApplyPatchParseError("Move to must appear before the Update File hunk body")
+            current_destination = _normalize_apply_patch_path(move_match.group(1), root)
+            if current_destination == current_source:
+                raise ApplyPatchParseError("Move to destination must differ from its source path")
+            continue
+
+        if line.startswith("*** "):
+            raise ApplyPatchParseError(f"unsupported patch directive: {line}")
+        if current_action is None:
+            if line.strip():
+                raise ApplyPatchParseError("patch content appears outside an operation")
+            continue
+        current_body.append(line)
+
+    finalize_current()
+    if not operations:
+        raise ApplyPatchParseError("patch contains no file operations")
+
+    affected_paths: list[str] = []
+    seen_paths: set[str] = set()
+    for operation in operations:
+        for path in (operation.source_path, operation.destination_path):
+            if path is None:
+                continue
+            if path in seen_paths:
+                raise ApplyPatchParseError(f"patch affects path more than once: {path}")
+            seen_paths.add(path)
+            affected_paths.append(path)
+
+    return ParsedApplyPatch(
+        operations=tuple(operations),
+        affected_paths=tuple(affected_paths),
+        patch_digest=sha256(command.encode("utf-8")).hexdigest(),
+    )
+
+
+def parsed_apply_patch(payload: Payload, root: Path) -> ParsedApplyPatch:
+    if payload.tool_name != CODEX_APPLY_PATCH_TOOL:
+        raise ApplyPatchParseError(f"tool is not {CODEX_APPLY_PATCH_TOOL}")
+    if payload.parsed_apply_patch is None:
+        payload.parsed_apply_patch = parse_apply_patch(apply_patch_command(payload), root)
+    return payload.parsed_apply_patch
+
+
+def apply_patch_event_metadata(payload: Payload, root: Path) -> dict[str, Any]:
+    parsed = parsed_apply_patch(payload, root)
+    return {
+        "affected_paths": list(parsed.affected_paths),
+        "operations": [operation.as_event_record() for operation in parsed.operations],
+        "patch_digest": parsed.patch_digest,
+    }
+
+
 def is_protected_path(path_text: str, root: Path | None = None) -> bool:
     rel = normalize_path(path_text, root)
     if rel in PROTECTED_EXACT:
@@ -784,6 +970,8 @@ def is_hookable_tool(tool_name: str) -> bool:
 
 
 def file_paths_from_payload(payload: Payload, root: Path | None = None) -> list[str]:
+    if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+        return list(parsed_apply_patch(payload, root or project_root()).affected_paths)
     candidates = [
         payload.tool_input.get("file_path"),
         payload.tool_input.get("notebook_path"),
@@ -2141,17 +2329,32 @@ def current_work_branch_name(work: dict[str, Any]) -> str:
     return ""
 
 
-def clear_client_reload_marker(root: Path, *, agent: str | None = None) -> None:
+def hook_invoking_agent(payload: Payload) -> str | None:
+    explicit = str(os.environ.get("AEGIS_INVOKING_AGENT") or "").strip().lower()
+    if explicit in {"claude", "codex", "gemini"}:
+        return explicit
+    if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+        return "codex"
+    if os.environ.get("CLAUDE_PROJECT_DIR") or os.environ.get("CLAUDECODE"):
+        return "claude"
+    if os.environ.get("CODEX_THREAD_ID") or os.environ.get("CODEX_CI") == "1":
+        return "codex"
+    return None
+
+
+def clear_client_reload_marker(
+    root: Path,
+    invoking_agent: str | None = None,
+    *,
+    agent: str | None = None,
+) -> None:
     marker = root / AEGIS_CLIENT_RELOAD_REL
     if not marker.exists():
         return
-    normalized_agent = str(agent or "").strip().lower()
-    payload = read_json(marker)
-    if normalized_agent not in {"claude", "codex", "gemini"} or not isinstance(payload, dict):
-        marker.unlink()
-        return
-    raw_agents = payload.get("agents")
-    agents = (
+    state = _read_json_object(marker)
+    normalized_agent = str(agent or invoking_agent or "").strip().lower()
+    raw_agents = state.get("agents")
+    pending_agents = (
         [
             str(value).strip().lower()
             for value in raw_agents
@@ -2160,25 +2363,29 @@ def clear_client_reload_marker(root: Path, *, agent: str | None = None) -> None:
         if isinstance(raw_agents, list)
         else []
     )
-    legacy_agent = str(payload.get("agent") or "").strip().lower()
+    legacy_agent = str(state.get("agent") or "").strip().lower()
     if legacy_agent in {"claude", "codex", "gemini"}:
-        agents.append(legacy_agent)
-    agents = list(dict.fromkeys(agents))
-    if not agents or normalized_agent not in agents:
+        pending_agents.append(legacy_agent)
+    pending_agents = list(dict.fromkeys(pending_agents))
+    if not pending_agents:
+        # Backward-compatible marker written before per-agent reload tracking.
+        marker.unlink()
         return
-    remaining = [value for value in agents if value != normalized_agent]
+    if normalized_agent not in pending_agents:
+        return
+    remaining = [value for value in pending_agents if value != normalized_agent]
     if not remaining:
         marker.unlink()
         return
-    payload["agents"] = remaining
-    payload["agent"] = remaining[0]
-    changed_by_agent = payload.get("changed_paths_by_agent")
+    state["agents"] = remaining
+    state["agent"] = remaining[0] if len(remaining) == 1 else "multi"
+    changed_by_agent = state.get("changed_paths_by_agent")
     if isinstance(changed_by_agent, dict):
         changed_by_agent = {
             key: value for key, value in changed_by_agent.items() if key in remaining
         }
-        payload["changed_paths_by_agent"] = changed_by_agent
-        payload["changed_paths"] = sorted(
+        state["changed_paths_by_agent"] = changed_by_agent
+        state["changed_paths"] = sorted(
             {
                 str(path)
                 for paths in changed_by_agent.values()
@@ -2187,14 +2394,14 @@ def clear_client_reload_marker(root: Path, *, agent: str | None = None) -> None:
                 if isinstance(path, str) and path
             }
         )
-    clearance_by_agent = payload.get("clearance_by_agent")
+    clearance_by_agent = state.get("clearance_by_agent")
     if isinstance(clearance_by_agent, dict):
         clearance_by_agent = {
             key: value for key, value in clearance_by_agent.items() if key in remaining
         }
-        payload["clearance_by_agent"] = clearance_by_agent
-        payload["clearance"] = clearance_by_agent.get(remaining[0], {})
-    write_json(marker, payload)
+        state["clearance_by_agent"] = clearance_by_agent
+        state["clearance"] = clearance_by_agent.get(remaining[0], {})
+    write_json(marker, state)
 
 
 def pending_tracking_path(root: Path) -> Path:
@@ -2209,6 +2416,20 @@ def pending_tracking_events(root: Path) -> list[dict[str, Any]]:
     return (
         [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
     )
+
+
+def required_pending_tracking_events(root: Path) -> list[dict[str, Any]]:
+    """Return events that still require strict-mode reconciliation.
+
+    Advisory events are retained audit evidence. Missing or unknown provenance remains
+    required so strict enforcement never infers that an untrusted event is safe.
+    """
+
+    return [
+        event
+        for event in pending_tracking_events(root)
+        if str(event.get("mode") or "").strip().lower() != "advisory"
+    ]
 
 
 def write_pending_tracking_events(root: Path, events: list[dict[str, Any]]) -> None:
@@ -2326,6 +2547,8 @@ def _file_snapshot_location(root: Path, evidence: str, *, source: str) -> dict[s
 
 def payload_evidence_location(payload: Payload, root: Path, evidence: str) -> dict[str, Any] | None:
     path = _path_for_evidence(root, evidence)
+    if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+        return _file_snapshot_location(root, evidence, source="codex_apply_patch_file_snapshot")
     if payload.tool_name == "Edit" and path is not None:
         new_string = payload.tool_input.get("new_string")
         if isinstance(new_string, str):
@@ -2385,6 +2608,8 @@ def payload_evidence_location(payload: Payload, root: Path, evidence: str) -> di
 
 
 def payload_handler(payload: Payload) -> str:
+    if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+        return "codex:apply_patch"
     if payload.tool_name == "Bash":
         if bash_is_aegis_verify(bash_command(payload)):
             return "aegis:verify"
@@ -2681,7 +2906,7 @@ def mcp_is_post_closeout_taskmaster_completion(payload: Payload, task_id: str) -
 
 def payload_is_post_closeout_taskmaster_completion(root: Path, payload: Payload) -> bool:
     work = current_work_closeout_completed(root)
-    if work is None or pending_tracking_events(root):
+    if work is None or required_pending_tracking_events(root):
         return False
     task = work.get("task") if isinstance(work.get("task"), dict) else {}
     task_id = str(task.get("id") or "").strip()
@@ -2696,7 +2921,7 @@ def payload_is_post_closeout_taskmaster_completion(root: Path, payload: Payload)
 
 def payload_is_post_closeout_delivery(root: Path, payload: Payload) -> bool:
     work = current_work_closeout_completed(root)
-    if work is None or pending_tracking_events(root):
+    if work is None or required_pending_tracking_events(root):
         return False
     if payload.tool_name != "Bash":
         return False
@@ -2726,20 +2951,46 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
         or payload_is_codex_task_logging(payload)
     ):
         return
-    evidence = payload_evidence(payload, root)
     handler = payload_handler(payload)
-    evidence_location = payload_evidence_location(payload, root, evidence)
+    patch_metadata: dict[str, Any] | None = None
+    patch_parse_error: str | None = None
+    if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+        try:
+            patch_metadata = apply_patch_event_metadata(payload, root)
+            evidence = str(patch_metadata["affected_paths"][0])
+            evidence_location = payload_evidence_location(payload, root, evidence)
+        except ApplyPatchParseError as exc:
+            patch_parse_error = str(exc)
+            digest = sha256(apply_patch_command(payload).encode("utf-8")).hexdigest()
+            patch_metadata = {
+                "affected_paths": [],
+                "operations": [],
+                "patch_digest": digest,
+            }
+            evidence = f"apply_patch:{digest[:12]}"
+            evidence_location = None
+    else:
+        evidence = payload_evidence(payload, root)
+        evidence_location = payload_evidence_location(payload, root, evidence)
     now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     task = work.get("task") if isinstance(work.get("task"), dict) else {}
     task_id = str(task.get("id") or "")
     slug = str(task.get("slug") or "")
-    event_id = sha1(f"{now}|{payload.tool_name}|{handler}|{evidence}".encode("utf-8")).hexdigest()[
-        :12
-    ]
+    identity_suffix = str(patch_metadata.get("patch_digest")) if patch_metadata else evidence
+    event_id = sha1(
+        f"{now}|{payload.tool_name}|{handler}|{identity_suffix}".encode("utf-8")
+    ).hexdigest()[:12]
     events = pending_tracking_events(root)
     for event in events:
-        if event.get("evidence") == evidence and event.get("handler") == handler:
+        same_event = event.get("evidence") == evidence and event.get("handler") == handler
+        if patch_metadata is not None:
+            same_event = event.get("handler") == handler and event.get(
+                "patch_digest"
+            ) == patch_metadata.get("patch_digest")
+        if same_event:
             event["updated_at"] = now
+            if enforcement_mode(root) == "strict":
+                event["mode"] = "strict"
             if evidence_location:
                 event["evidence_location"] = evidence_location
             write_pending_tracking_events(root, events)
@@ -2760,13 +3011,17 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
     }
     if evidence_location:
         event["evidence_location"] = evidence_location
+    if patch_metadata is not None:
+        event.update(patch_metadata)
+    if patch_parse_error is not None:
+        event["parse_error"] = patch_parse_error
     events.append(event)
     write_pending_tracking_events(root, events)
 
 
 def format_pending_tracking(events: list[dict[str, Any]]) -> str:
     lines = []
-    for event in events:
+    for event in events[:PENDING_TRACKING_SAMPLE_LIMIT]:
         event_id = event.get("id", "<unknown>")
         lines.append(
             f"  - {event_id}: H={event.get('handler', '<unknown>')} E={event.get('evidence', '<unknown>')}"
@@ -2779,6 +3034,12 @@ def format_pending_tracking(events: list[dict[str, Any]]) -> str:
             "    repair: ./.aegis/bin/aegis log --pending-id "
             f'{event_id} --note "<past-tense note>" '
             "--plan-step <plan-step-id> --plan-status completed"
+        )
+    omitted = len(events) - min(len(events), PENDING_TRACKING_SAMPLE_LIMIT)
+    if omitted:
+        lines.append(
+            f"  ... {omitted} more pending events; inspect {AEGIS_PENDING_TRACKING_REL} "
+            f"for all {len(events)}."
         )
     return "\n".join(lines)
 
@@ -2868,6 +3129,25 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             return 0
         return block_unclassifiable_payload(required_field_issue)
 
+    if payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+        try:
+            parsed_apply_patch(payload, root)
+        except ApplyPatchParseError as exc:
+            reason = f"invalid_apply_patch: {exc}"
+            if advisory_enabled(root):
+                append_gate_decision(
+                    root,
+                    hook="pretooluse",
+                    payload=payload,
+                    verdict="would_block",
+                    reason=reason,
+                )
+                advisory_message("pretooluse", reason)
+                return 0
+            return block_unclassifiable_payload(
+                reason, raw_payload_preview(apply_patch_command(payload))
+            )
+
     if payload.tool_name == "Bash":
         try:
             hard_violations = hard_policy_violations(bash_command(payload), root)
@@ -2889,7 +3169,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
                 reason="destructive_git_operation",
             )
 
-    clear_client_reload_marker(root, agent="claude")
+    clear_client_reload_marker(root, hook_invoking_agent(payload))
     aegis_target_violations: list[str] = []
     if payload.tool_name == "Bash":
         aegis_target_violations = aegis_cli_target_dir_violations(bash_command(payload), root)
@@ -2948,7 +3228,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             payload,
             "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
             f"Tool: {payload.tool_name}\n"
-            "Reason: Claude readiness is BLOCKED, so hookable persistent mutations are refused.\n\n"
+            "Reason: Aegis readiness is BLOCKED, so hookable persistent mutations are refused.\n\n"
             f"{readiness.stdout.strip()}\n\n"
             "Run the kickoff workflow or repair task/session/plan/work-tracking state before mutating files, memory, Git, Taskmaster, or other persistent surfaces.",
             reason="readiness_blocked",
@@ -2966,7 +3246,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             readiness_state=readiness.stdout.strip(),
         )
 
-    pending_events = pending_tracking_events(root)
+    pending_events = required_pending_tracking_events(root)
     if pending_events and is_mutation and not payload_is_aegis_log(payload):
         return gate_block_or_record(
             root,
@@ -2995,7 +3275,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
                 "BLOCKED by .claude/scripts/pretooluse-gate.sh\n\n"
                 f"Tool: {payload.tool_name}\n"
                 f"Protected path(s):\n{paths}\n\n"
-                "Claude may not edit protected Aegis/Codex-owned paths from this task.",
+                "Task-scoped agents may not edit protected Aegis-owned or agent-owned paths.",
                 reason="protected_path",
             )
         workflow_owned = [
@@ -3501,7 +3781,24 @@ def ledger_record() -> int:
             if isinstance(tool_name, str) and isinstance(tool_input, dict)
             else None
         )
-        paths = file_paths_from_payload(payload, root) if payload is not None else []
+        patch_metadata: dict[str, Any] | None = None
+        patch_parse_error: str | None = None
+        if payload is not None and payload.tool_name == CODEX_APPLY_PATCH_TOOL:
+            try:
+                patch_metadata = apply_patch_event_metadata(payload, root)
+                paths = list(patch_metadata["affected_paths"])
+            except ApplyPatchParseError as exc:
+                patch_parse_error = str(exc)
+                paths = []
+                patch_metadata = {
+                    "affected_paths": [],
+                    "operations": [],
+                    "patch_digest": sha256(
+                        apply_patch_command(payload).encode("utf-8")
+                    ).hexdigest(),
+                }
+        else:
+            paths = file_paths_from_payload(payload, root) if payload is not None else []
         hook_event = str(data.get("hook_event_name") or "")
         outcome = _hook_outcome(data)
         agent_id, agent_type, parent_agent_id, attribution_source = _hook_agent_identity(data)
@@ -3523,6 +3820,12 @@ def ledger_record() -> int:
             extra["is_mutation"] = payload_is_mutation(payload)
             if payload.tool_name == "Bash":
                 extra["command"] = bash_command(payload)
+            if patch_metadata is not None:
+                extra.update(patch_metadata)
+                if paths:
+                    extra["primary_evidence_path"] = paths[0]
+            if patch_parse_error is not None:
+                extra["parse_error"] = patch_parse_error
         brief = load_brief(root)
         gates = brief.get("gates") if isinstance(brief.get("gates"), dict) else {}
         redact_extra = (
@@ -3691,7 +3994,7 @@ def session_start_hook() -> int:
 
 def stop_gate() -> int:
     root = project_root()
-    pending_events = pending_tracking_events(root)
+    pending_events = required_pending_tracking_events(root)
     if not pending_events:
         if advisory_enabled(root):
             append_gate_decision(

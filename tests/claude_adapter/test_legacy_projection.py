@@ -16,7 +16,6 @@ from pathlib import Path
 
 from aegis_foundation import cli, legacy_projection
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LEDGER_LIB = REPO_ROOT / ".claude" / "scripts" / "ledger_lib.py"
 

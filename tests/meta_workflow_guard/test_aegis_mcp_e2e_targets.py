@@ -824,7 +824,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
         {"tool_name": "Write", "tool_input": {"file_path": "claude-smoke-test.txt"}},
     )
     assert blocked_write.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_write.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_write.stderr
     assert not (target / "claude-smoke-test.txt").exists()
 
     blocked_bash = _run_target_pretooluse(
@@ -832,7 +832,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
         {"tool_name": "Bash", "tool_input": {"command": "printf 'should not land\\n' > claude-smoke-bash.txt"}},
     )
     assert blocked_bash.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_bash.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_bash.stderr
     assert not (target / "claude-smoke-bash.txt").exists()
 
     blocked_verify = _run_target_pretooluse(
@@ -840,7 +840,7 @@ def test_installed_real_target_claude_like_runtime_creates_scaffold_and_runs_tas
         {"tool_name": "Bash", "tool_input": {"command": "aegis verify --target-dir ."}},
     )
     assert blocked_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_verify.stderr
 
     kickoff_gate = _run_target_pretooluse(
         target,

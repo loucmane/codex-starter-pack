@@ -118,6 +118,24 @@ def test_e29_stop_gate_must_fire(report: dict[str, object]) -> None:
     assert results["OK-stop-clean"]["verdict"] == "allow", "clean stop must not fire"
 
 
+def test_advisory_pending_replay_allows_and_preserves_complete_queue(
+    report: dict[str, object],
+) -> None:
+    results = {result["id"]: result for result in report["results"]}
+    assert results["OK-advisory-pending-edit"]["verdict"] == "allow"
+    assert results["OK-advisory-pending-stop"]["verdict"] == "allow"
+
+    report_path = Path(str(report["report_path"]))
+    queue_path = (
+        report_path.parent / "ready_advisory_pending" / ".aegis" / "state" / "pending-tracking.json"
+    )
+    events = json.loads(queue_path.read_text(encoding="utf-8"))["events"]
+    assert len(events) == 97
+    assert {event["mode"] for event in events} == {"advisory"}
+    enforcement = json.loads((queue_path.parent / "enforcement.json").read_text(encoding="utf-8"))
+    assert enforcement["mode"] == "advisory"
+
+
 def test_e01_observe_stop_refuses_dirty_tree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

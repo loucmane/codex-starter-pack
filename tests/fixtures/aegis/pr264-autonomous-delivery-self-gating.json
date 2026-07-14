@@ -1,0 +1,107 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "pr264-autonomous-delivery-self-gating",
+  "observed": {
+    "pull_request": 264,
+    "ready_event_run": 29234285884,
+    "attempts": 2,
+    "merge_step_skipped": true,
+    "post_run_decision": "allow"
+  },
+  "expected_decision": "provisional",
+  "evidence": {
+    "repository": "loucmane/codex-starter-pack",
+    "expected_head_sha": "77b786d2acfbb1b40ee3c39809d8e065f50ed87c",
+    "current_default_sha": "8bf1f1871ff259987fa1b8d66d875b1adaf8d99e",
+    "pull_request": {
+      "number": 264,
+      "state": "open",
+      "draft": false,
+      "base": {
+        "ref": "main",
+        "sha": "8bf1f1871ff259987fa1b8d66d875b1adaf8d99e"
+      },
+      "head": {
+        "ref": "feat/task-239-worktree-subagent-capture-audit",
+        "sha": "77b786d2acfbb1b40ee3c39809d8e065f50ed87c",
+        "repo": {
+          "full_name": "loucmane/codex-starter-pack"
+        }
+      },
+      "mergeable": true,
+      "mergeable_state": "blocked",
+      "changed_files": 21,
+      "labels": []
+    },
+    "files": [
+      {"filename": ".serena/memories/2026-07-13_task239_worktree_subagent_capture_audit.md", "status": "added"},
+      {"filename": ".taskmaster/tasks/task_239.md", "status": "modified"},
+      {"filename": ".taskmaster/tasks/tasks.json", "status": "modified"},
+      {"filename": "aegis_foundation/worktree_capture_audit.py", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/CHANGELOG.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/DECISIONS.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/FINDINGS.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/HANDOFF.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/IMPLEMENTATION.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/TRACKER.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/designs/worktree-capture-audit-contract.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/reports/worktree-subagent-capture-audit/coverage-report.md", "status": "added"},
+      {"filename": "docs/ai/work-tracking/archive/20260713-task239-worktree-subagent-capture-audit-COMPLETED/reports/worktree-subagent-capture-audit/task-verification.md", "status": "added"},
+      {"filename": "plans/2026-07-13-task239-worktree-subagent-capture-audit.md", "status": "added"},
+      {"filename": "plans/current", "status": "modified"},
+      {"filename": "sessions/2026/07/2026-07-13-002-task239-worktree-subagent-capture-audit.md", "status": "added"},
+      {"filename": "sessions/current", "status": "modified"},
+      {"filename": "sessions/state.json", "status": "modified"},
+      {"filename": "tests/claude_adapter/test_worktree_capture_audit.py", "status": "added"},
+      {"filename": "tests/fixtures/aegis/worktree-capture-audit.json", "status": "added"},
+      {"filename": "tests/fixtures/aegis/worktree-subagent-live-coverage.json", "status": "added"}
+    ],
+    "workflow_runs": [
+      {
+        "id": 29233854824,
+        "name": "CI",
+        "event": "pull_request",
+        "head_sha": "77b786d2acfbb1b40ee3c39809d8e065f50ed87c",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T07:59:24Z"
+      },
+      {
+        "id": 29233854813,
+        "name": "Codex Guard",
+        "event": "pull_request",
+        "head_sha": "77b786d2acfbb1b40ee3c39809d8e065f50ed87c",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T07:59:24Z"
+      },
+      {
+        "id": 29233854873,
+        "name": "Meta Workflow Guard",
+        "event": "pull_request",
+        "head_sha": "77b786d2acfbb1b40ee3c39809d8e065f50ed87c",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T07:59:24Z"
+      },
+      {
+        "id": 29233854830,
+        "name": "aegis-witness",
+        "event": "pull_request",
+        "head_sha": "77b786d2acfbb1b40ee3c39809d8e065f50ed87c",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T07:59:24Z"
+      }
+    ],
+    "review": {
+      "decision": "",
+      "unresolved_threads": 0,
+      "threads_truncated": false
+    }
+  }
+}

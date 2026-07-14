@@ -2,7 +2,7 @@
 
 **Started**: 2026-07-13
 **Status**: COMPLETED
-**Last Updated**: 2026-07-13
+**Last Updated**: 2026-07-14
 
 ## Goals
 - [x] Define stable one-screen witness verdict and exit classes
@@ -21,6 +21,8 @@
 - **2026-07-13 15:17** — [S:20260713|W:task241-quiet-deterministic-witness|H:pytest+ruff|E:docs/ai/work-tracking/active/20260713-task241-quiet-deterministic-witness-ACTIVE/reports/quiet-deterministic-witness/task-verification.md] Completed plan-step-implement: 45 focused, 56 projection, 263 compatibility, and 1,912 network-excluded full-suite tests passed; Ruff lint/format and live/package parity passed.
 - **2026-07-13 16:21** — [S:20260713|W:task241-quiet-deterministic-witness|H:git:commit|E:commit`9fd71b5734c9ada5cea48942ad5f65d6ab588746`] Created and verified the signed 24-path Task 241 implementation commit with no unstaged or untracked task files.
 - **2026-07-13 16:41** — [S:20260713|W:task241-quiet-deterministic-witness|H:pytest+witness|E:docs/ai/work-tracking/active/20260713-task241-quiet-deterministic-witness-ACTIVE/reports/quiet-deterministic-witness/task-verification.md] Passed the exact registered gate with 1,772 tests and dogfooded the real witness at exact HEAD: pass/exit 0, 0.18 seconds, 17 lines, 797 bytes, 58/58 paths accounted, complete artifacts, and generated legacy projection; canonical ledger write denial is retained as an explicit Remote Control limitation.
+- **2026-07-14 16:45** — [S:20260714|W:task241-quiet-deterministic-witness|H:task-master:set-status|E:.taskmaster/tasks/tasks.json;.taskmaster/tasks/task_241.md] Reconciled Task 241's completed Taskmaster state onto current `main` during the non-rewriting merge; authoritative full-graph health reports 250 tasks, 383 subtasks, 435 valid dependency references, and zero invalid references.
+- **2026-07-14 16:45** — [S:20260714|W:task241-quiet-deterministic-witness|H:.serena/memories/2026-07-14_task241_mainline_reconciliation.md|E:.serena/memories/2026-07-14_task241_mainline_reconciliation.md] Captured the conflict-resolution boundary, current-main compatibility constraints, preserved Task 240/247–251 history, and the remaining exact-head verification and delivery sequence.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Stable classes, isolation, artifacts, CI honesty, and rollback defined in `designs/quiet-witness-contract.md`

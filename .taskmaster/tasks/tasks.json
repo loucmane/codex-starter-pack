@@ -7952,7 +7952,7 @@
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-07-13T14:44:04.147Z"
+        "updatedAt": "2026-07-14T14:39:59.387Z"
       },
       {
         "id": "242",
@@ -8031,13 +8031,83 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-07-12T12:01:41.631Z"
+      },
+      {
+        "id": "247",
+        "title": "Fix Autonomous Delivery Self-Gating Race",
+        "description": "Prevent the trusted evidence-gated delivery workflow from deferring an otherwise eligible PR solely because its own in-progress required check temporarily makes GitHub mergeability non-clean.",
+        "details": "Reproduce PR #264 at exact head 77b786d2acfbb1b40ee3c39809d8e065f50ed87c against base 8bf1f1871ff259987fa1b8d66d875b1adaf8d99e: all external required workflows, witness, exact head, current base, complete inventory, zero review threads, and routine path classification passed, but ready-event attempts 29234285884 skipped merge while the evidence-gated delivery check itself was running; identical post-run evidence evaluated allow. Implement a trusted-base, fail-closed correction that recognizes only this self-owned transient blocker and still rejects real conflicts, stale base, pending or failed external required workflows, unresolved reviews, attended paths/labels, incomplete inventory, forks, head movement, and policy changes. Never execute candidate PR code or artifacts, never weaken branch protection, and preserve normal exact-head protected fallback. Add deterministic policy/workflow tests, a secret-free PR #264 replay fixture, current-vs-in-flight mergeability cases, and an ordinary canary proving unattended squash merge plus post-merge dispatch. Document rollback to the current clean-only rule.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "246"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-13T18:42:30.630Z"
+      },
+      {
+        "id": "248",
+        "title": "Implement First-Class Codex Hook Adapter",
+        "description": "Add a managed, verified Codex hook adapter that treats canonical apply_patch invocations as first-class Aegis mutation events. The adapter must strictly parse Codex patch syntax, enforce existing Aegis readiness/path/pending/evidence policies, and install `.codex/hooks.json` independently from Claude hook configuration.",
+        "details": "Implement this in the existing Python Aegis installer/runtime architecture. Extend `scripts/_aegis_installer.py` where Codex assets, gates, profile metadata, manifests, verification, runtime reload guidance, and package/live asset parity are already managed (`CODEX_REQUIRED_FILES`, `_adapter_assets`, `_gates`, `plan_install`, `install`, `verify`, `runtime_update`, `list_profiles`, `explain_profile`). Add a Codex-only adapter surface alongside the existing Claude `.claude/settings.json` hook model: render and manage `.codex/hooks.json` plus any required `.codex/scripts/*` dispatcher assets, while keeping Claude settings/hooks fully independent. Add these new Codex assets to packaged assets under `aegis_foundation/assets/...` and keep `tests/meta_workflow_guard/test_assets_scripts_parity.py` green by mirroring live/package runtime bytes exactly.\n\nAdd a strict canonical apply_patch parser in the shared hook runtime, preferably by extending `.claude/scripts/gate_lib.py` only if it remains a shared Aegis hook library, or by introducing a Codex-specific sibling module that uses the same policy helpers. The parser must accept only the canonical structure: `*** Begin Patch`, one or more operations, and `*** End Patch`; supported operations are `*** Add File: <path>`, `*** Update File: <path>`, `*** Delete File: <path>`, and `*** Move to: <path>` inside a valid update block. Normalize every source and destination path to repo-relative POSIX form before policy checks and event emission. Reject malformed, empty, ambiguous, duplicate, path-traversing, absolute, unsupported, or partially parsed structures fail-closed, including duplicate affected paths and invalid move/update combinations.\n\nWire Codex hook execution through `.codex/hooks.json` to call the installed `.aegis/bin/aegis hook ...` runtime path where possible, matching the Claude dispatcher pattern in `_render_claude_runtime_dispatcher`. Codex hooks must apply the same Aegis policy stack already enforced for Claude in `gate_lib.py`: readiness state from `.aegis/state/current-work.json`, strict/advisory enforcement from `.aegis/state/enforcement.json`, degraded fail-closed behavior for mutating/unclassified payloads, protected path boundaries (`templates/`, `.codex/`, `.aegis/`, `.claude/`, `CODEX.md`, `CLAUDE.md`, `AGENTS.md`, `scripts/codex-*`, `scripts/template-*`), workflow-owned paths (`sessions/`, `plans/`, `docs/ai/work-tracking/` excluding allowed report evidence), pending tracking from `.aegis/state/pending-tracking.json`, and post-tool evidence behavior.\n\nEmit exactly one atomic Aegis pending/evidence event per accepted apply_patch payload. The event must use handler `codex:apply_patch`, include a deterministic digest of the normalized patch operations/content, choose a primary evidence path deterministically, include the complete sorted affected path set, and record operation metadata for add/update/delete/move. Ensure this integrates with existing pending tracking helpers (`_pending_tracking_events`, `_write_pending_tracking_events`, `record_pending_tracking_event`, `log_work`) so `aegis log --pending-id current` and MCP `aegis.log` can consume Codex-generated events the same way as Claude-generated events.\n\nUpdate installer planning/adoption rules so `.codex/hooks.json` is managed as a Codex adapter asset with manifest ownership, checksum baselines, manual-review refusal for unsafe adoption, and reload/trust guidance specific to Codex. Preserve the existing safe adoption behavior used by `CLAUDE.md`, `CODEX.md`, and `AGENTS.md`: exact managed content can be upgraded, local project context is preserved in entrypoints, but customized unmanaged hook files require manual review instead of overwrite. Add Codex gates to `_gates()` for hook presence, dispatcher executability, manifest ownership, and runtime verification; make `verify()` fail when required Codex hook paths are missing or drifted. Update `aegis_mcp/server.py` hard-stop/reload guidance so Codex-only installs and multi-agent installs report the correct client reload/trust action without saying Claude reload is required.\n\nKeep existing live/package runtime parity byte-identical. Any new live hook runtime file must be added to `pyproject.toml` package data if needed, mirrored under `aegis_foundation/assets`, included in release distribution tests, and covered by packaged install planning from `tests/meta_workflow_guard/test_aegis_release_distribution.py`. Maintain compatibility with current profile validation in MCP (`primary_agent` values `claude`, `codex`, `gemini`, `multi`, `none`) and make Codex profile/manifest/verification output explicit enough for safe adoption and manual-review refusal. Stop protected delivery rollout at exact hook hash approval for the upstream repository; roll out to Blog only as a separate post-merge task.",
+        "testStrategy": "Add focused parser unit tests for valid add/update/delete/move patches, multi-operation atomic patches, deterministic digest stability, path normalization, duplicate path rejection, empty patch rejection, malformed marker rejection, unsupported operation rejection, ambiguous move rejection, absolute/path traversal rejection, and unsupported Codex hook payload rejection.\n\nAdd runtime policy tests in `tests/meta_workflow_guard/test_aegis_installer.py` or a dedicated Codex hook test file that install Codex-only and multi-agent targets, simulate Codex 0.144.3 hook payload shapes, and assert: read-only hook events pass; canonical apply_patch mutations require readiness; strict mode blocks pending-tracking conflicts; advisory mode records would-block/degraded evidence without allowing unsafe protected/workflow-owned writes; degraded parser/runtime failures fail closed for mutations; protected `.codex`, `.aegis`, `.claude`, `CODEX.md`, workflow-owned, and scripts paths are refused unless invoked through sanctioned Aegis handlers; post-tool tracking creates exactly one event per patch with handler `codex:apply_patch`, primary evidence path, all affected paths, operations, and stable digest.\n\nAdd installer tests for `.codex/hooks.json` planning, install, verify, drift detection, reload/trust guidance, safe adoption, manual-review refusal for preexisting custom hooks, Codex-only profile behavior, and multi-agent behavior where Claude and Codex hooks are managed independently. Extend package/live parity tests to assert all new Codex hook scripts and `.codex/hooks.json` renderers are packaged byte-identically. Run targeted pytest for parser/policy/installer parity plus existing Aegis MCP/server tests, then run `python3 scripts/codex-task taskmaster health` and the existing guard validation before marking complete.",
+        "status": "done",
+        "dependencies": [
+          "247"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-13T20:57:00.997Z"
+      },
+      {
+        "id": "249",
+        "title": "Fix pre-adapter Codex manifest update migration",
+        "description": "Make Aegis update safely migrate existing Codex-enabled projects whose pre-adapter manifest lacks managed .codex/hooks.json, without weakening strict validation or overwriting divergent operator hook files.",
+        "details": "Reproduce the Blog rollout failure where update preview succeeds but update --apply calls runtime_update first and validates the old manifest against the new schema before installer migration. Reorder or stage validation so legacy installed manifests may pass only through the supported migration path, while final installed state must satisfy the current schema. Preserve manual-review refusal for divergent .codex/hooks.json; absent or semantically identical hook files remain safely creatable/adoptable. Add regression fixtures for pre-adapter Codex-only and multi-agent manifests, preview refusal on divergent hooks, successful apply when the conflict is explicitly absent/resolved, installer idempotence, current-schema final verification, source/package parity, and no regression to runtime update safety.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "248"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-14T05:33:24.473Z"
+      },
+      {
+        "id": "250",
+        "title": "Stabilize evidence-gated autonomous delivery executor",
+        "description": "Fix the trusted autonomous-delivery self-gating race reproduced by PR #276, where all required exact-head evidence is green but the non-required merge executor keeps GitHub mergeable_state unstable and can never obtain a fresh allow decision.",
+        "details": "Preserve fail-closed semantics and the rule that provisional never authorizes merge. Model required-context state directly from trusted GitHub evidence so the executor can distinguish its own in-progress or prior non-required check from genuinely failing required evidence. Add a sanitized PR #276 replay fixture, policy and workflow contract regressions, adversarial cases for real required-check failures and head/base drift, bounded retries, and a live ordinary canary. Do not weaken attended-path, review-thread, file-inventory, exact-head, same-repo, or protected-path gates. After the fix merges, retrigger PR #276 through the normal evidence-gated path and prove exact-merge-SHA post-merge checks.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [
+          "247"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-14T10:08:42.939Z"
+      },
+      {
+        "id": "251",
+        "title": "Fix Aegis Advisory Pending Delivery Closeout Semantics",
+        "description": "Correct Aegis so advisory-mode pending events are preserved and summarized without blocking strict delivery verification or closeout, while required strict pending-tracking failures still fail closed. Treat Blog Task 40 only as a downstream reproduction fixture and implement the behavior upstream in Aegis without modifying Blog or changing enforcement mode.",
+        "details": "Implement the correction in the Aegis source of truth, primarily `scripts/_aegis_installer.py`, and keep the packaged mirror `aegis_foundation/assets/scripts/_aegis_installer.py` byte-identical per `tests/meta_workflow_guard/test_assets_scripts_parity.py`. Audit the current pending-tracking path: `_pending_tracking_events`, `_pending_events_by_mode`, `_strict_pending_tracking_check`, `verify`, `closeout`, `next_action`, `doctor`, `enforcement_status`, and `_build_closeout_repair_guidance`. Introduce a single helper/classifier for pending-tracking state that distinguishes required strict events, advisory events, malformed queues, mixed required/advisory queues, missing/unknown provenance, and invalid event shape. Use that helper everywhere so status, verify, closeout, closeout_ready, doctor, and next-action guidance agree.\n\nRequired behavior: in advisory mode, advisory-only pending events remain in `.aegis/state/pending-tracking.json` as audit evidence, are counted and context-budget summarized, and do not make `aegis verify --strict`, `aegis closeout --dry-run`, or normal `aegis closeout` fail. Normal advisory delivery must not require `aegis repair --apply`, handoff repair ceremony, or manual pending queue draining. Strict enforcement must still fail closed when unresolved required tracking exists, the pending queue is malformed/invalid JSON or non-list, required and advisory state is mixed in a way that could hide required work, provenance is absent/unknown, or event mode cannot be trusted. Closeout dry-run must remain non-mutating: it may summarize advisory events and projected actions, but must not delete or rewrite pending tracking, current-work, reports, handoff, or work-tracking surfaces.\n\nPreserve complete evidence: do not discard advisory events during verification or closeout. Add report fields such as `pending_tracking.summary`, `pending_tracking.advisory_preserved`, `pending_tracking.required_unresolved`, and `pending_tracking.queue_valid` or equivalent, with bounded event samples and exact counts. Ensure `aegis_foundation/output_budget.py` rendering keeps large advisory queues within the default budget while retaining exact cardinality metadata and artifact paths. Update guidance text that currently suggests `aegis repair --apply` for advisory pending re-entry so advisory-only state points to normal delivery/closeout, while strict re-entry with unresolved required or suspicious queues remains fail-closed and actionable.\n\nAdd documentation under `docs/aegis/` and the packaged asset copy under `aegis_foundation/assets/docs/aegis/` describing the root cause, the advisory pending-event lifecycle, why Blog Task 40 is only the downstream reproduction, and the safe Blog retry procedure. Explicitly state that this task does not modify the Blog repository and does not switch Blog/Aegis enforcement mode as part of the fix. Include guidance that advisory pending queues are audit residue to preserve and summarize, not a cleanup backlog to manually drain.",
+        "testStrategy": "Add focused pytest coverage in `tests/meta_workflow_guard/test_aegis_installer.py` for advisory-only pending queues passing `verify(strict=True)`, `closeout(dry_run=True)`, and normal `closeout` while preserving the queue file and recording advisory counts/samples. Add negative tests proving strict/required pending events still fail `mutation.pending_tracking_empty`, malformed JSON or non-list queues fail closed, mixed required/advisory queues fail closed, and missing/unknown provenance fails closed. Assert dry-run closeout does not mutate pending tracking, current-work, reports, handoff, or work-tracking surfaces.\n\nAdd output-budget tests in `tests/claude_adapter/test_output_budget.py` using a large advisory pending fixture to prove one-screen default output preserves exact advisory counts and samples safely. Add replay/corpus coverage using `aegis_foundation.replay` or existing replay fixtures to prove advisory events remain retained in stored artifacts even when stdout is sampled. Add source/package parity checks through the existing asset parity suite and docs parity assertions for root-cause and Blog retry documentation. Add a downstream reproduction fixture for Blog Task 40 under `tests/fixtures/aegis/` and a test that reproduces the previous closeout/delivery failure against Aegis-only fixtures, without reading or modifying the Blog repository.\n\nRun focused verification: `python -m pytest tests/meta_workflow_guard/test_aegis_installer.py tests/claude_adapter/test_output_budget.py tests/meta_workflow_guard/test_assets_scripts_parity.py`, plus any new replay/documentation test files. Finish with `python3 scripts/codex-task taskmaster health`, `python3 scripts/codex-task plan sync`, `python3 scripts/codex-task work-tracking audit`, `python3 scripts/codex-guard validate --include-untracked`, and `git diff --check`.",
+        "status": "done",
+        "dependencies": [
+          "250"
+        ],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-14T11:21:23.540Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-13T14:44:04.147Z",
-      "taskCount": 245,
-      "completedCount": 238,
+      "lastModified": "2026-07-14T14:39:59.387Z",
+      "taskCount": 250,
+      "completedCount": 243,
       "tags": [
         "master"
       ]

@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "source": {
+    "captured_at": "2026-07-14",
+    "repository": "loucmane/blog",
+    "task_id": "40",
+    "branch": "feat/task-40-migrate-react-next-framework-build-system",
+    "redacted": true,
+    "description": "Sanitized downstream reproduction metadata. No Blog files or event payloads are imported into Aegis."
+  },
+  "reproduction": {
+    "enforcement_mode": "advisory",
+    "pending_event_count": 97,
+    "pending_event_mode": "advisory",
+    "strict_verify_failed_gate": "mutation.pending_tracking_empty",
+    "closeout_required_failures": 11,
+    "closeout_warnings": 0,
+    "closeout_required_clean_git": false
+  },
+  "expected": {
+    "classification": "advisory_only",
+    "queue_valid": true,
+    "provenance_trusted": true,
+    "delivery_allowed": true,
+    "advisory_preserved": true,
+    "required_unresolved": false,
+    "manual_drain_required": false,
+    "generic_repair_required": false,
+    "artifact": ".aegis/state/pending-tracking.json"
+  }
+}

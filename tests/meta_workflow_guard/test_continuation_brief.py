@@ -12,7 +12,6 @@ an irreversible action.
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +21,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts import _aegis_installer as inst  # noqa: E402
 from scripts._aegis_installer import install, kickoff, next_action  # noqa: E402
+from tests.meta_workflow_guard.test_aegis_installer import (  # noqa: E402
+    simulate_codex_reload,
+)
 
 REQUIRED_KEYS = {
     "workflow_phase",
@@ -36,33 +38,6 @@ REQUIRED_KEYS = {
 
 # next_safe_action must always be a single safe verb, never a raw irreversible git op.
 FORBIDDEN_ACTIONS = {"merge", "push", "force_push", "force-push", "reset", "reset_hard", "pr_merge"}
-
-
-def simulate_codex_reload(target: Path, state_home: Path) -> None:
-    result = subprocess.run(
-        [str(target / ".aegis" / "bin" / "aegis"), "hook", "sessionstart"],
-        cwd=target,
-        input=json.dumps(
-            {
-                "session_id": "continuation-brief-test",
-                "turn_id": "turn-1",
-                "cwd": target.as_posix(),
-                "source": "startup",
-                "model": "gpt-5-codex",
-                "hook_event_name": "SessionStart",
-            }
-        ),
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env={
-            **os.environ,
-            "CODEX_THREAD_ID": "continuation-brief-test",
-            "XDG_STATE_HOME": state_home.as_posix(),
-        },
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
 
 
 def all_table_briefs() -> dict[str, dict]:
@@ -168,7 +143,7 @@ def test_current_task_authority_threads_through_next_action(tmp_path: Path) -> N
     (target / "src").mkdir()
     (target / "src" / "main.ts").write_text("export const ready = true;\n", encoding="utf-8")
     install(target, source_root=REPO_ROOT, primary_agent="codex", agents=["codex"], apply=True)
-    simulate_codex_reload(target, tmp_path / "state")
+    simulate_codex_reload(target)
     kickoff(
         target,
         task_id="42",

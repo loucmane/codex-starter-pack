@@ -507,7 +507,7 @@ def test_live_acceptance_matrix_and_adapter_contract_are_packaged() -> None:
         assert snippet in live_matrix
     for snippet in (
         "Claude | implemented default",
-        "Codex | implemented passive-evidence adapter",
+        "Codex | implemented managed adapter",
         "Gemini | planned adapter",
         "mechanical for hookable mutations",
         "policy-only",
