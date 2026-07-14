@@ -50,6 +50,8 @@ AEGIS_BRIEF_REL = ".aegis/brief.json"
 AEGIS_CURRENT_WORK_REL = ".aegis/state/current-work.json"
 AEGIS_CLIENT_RELOAD_REL = ".aegis/state/client-reload-required.json"
 AEGIS_PENDING_TRACKING_REL = ".aegis/state/pending-tracking.json"
+AEGIS_PENDING_TRACKING_SAMPLE_LIMIT = 5
+AEGIS_PENDING_TRACKING_SAMPLE_TEXT_LIMIT = 240
 AEGIS_DEGRADED_EVENTS_REL = ".aegis/state/degraded-events.json"
 AEGIS_ENFORCEMENT_REL = ".aegis/state/enforcement.json"
 AEGIS_DELIVERY_POLICY_REL = "aegis.delivery-policy.json"
@@ -1789,14 +1791,6 @@ def _read_delivery_policy_state(target_root: Path) -> dict[str, Any]:
     }
 
 
-def _pending_events_by_mode(target_root: Path, mode: str) -> list[dict[str, Any]]:
-    return [
-        event
-        for event in _pending_tracking_events(target_root)
-        if isinstance(event, Mapping) and str(event.get("mode") or "strict") == mode
-    ]
-
-
 def enforcement_status(
     target_dir: str | Path,
     *,
@@ -1804,8 +1798,28 @@ def enforcement_status(
 ) -> dict[str, Any]:
     target_root = _resolve_target_root(target_dir)
     state = _read_enforcement_state(target_root)
-    advisory_pending = _pending_events_by_mode(target_root, "advisory")
+    pending = _classify_pending_tracking(target_root)
     mode = str(state.get("mode") or "strict")
+    advisory_count = int(pending["counts"]["advisory"])
+    strict_reentry: dict[str, Any] | None = None
+    if advisory_count:
+        strict_reentry = {
+            "advisory_pending_events": advisory_count,
+            "suggested_cli": None,
+            "message": (
+                "Advisory-era pending events are preserved audit evidence; they do not "
+                "require repair or draining before strict re-entry."
+            ),
+        }
+    if not pending["delivery_allowed"]:
+        strict_reentry = {
+            "advisory_pending_events": advisory_count,
+            "suggested_cli": "aegis doctor --target-dir .",
+            "message": (
+                "Pending tracking contains required or untrusted state; strict enforcement "
+                "remains fail-closed until the exact queue evidence is resolved."
+            ),
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "status": mode,
@@ -1814,8 +1828,13 @@ def enforcement_status(
         "read_only": True,
         "enforcement": state,
         "pending": {
-            "advisory": len(advisory_pending),
-            "advisory_event_ids": [str(event.get("id") or "") for event in advisory_pending],
+            **pending,
+            "advisory": advisory_count,
+            "advisory_event_ids": [
+                str(item.get("id") or "")
+                for item in pending["sample"]
+                if item.get("mode") == "advisory"
+            ],
         },
         "workflow_guidance": {
             "mode": mode,
@@ -1824,15 +1843,7 @@ def enforcement_status(
                 if mode == "advisory"
                 else "Aegis is in strict mode: gates block according to readiness, pending tracking, and protected-path policy."
             ),
-            "strict_reentry": (
-                {
-                    "advisory_pending_events": len(advisory_pending),
-                    "suggested_cli": "aegis repair --apply",
-                    "message": "Review or reconcile advisory-era pending events before relying on strict enforcement.",
-                }
-                if advisory_pending
-                else None
-            ),
+            "strict_reentry": strict_reentry,
         },
     }
 
@@ -3006,6 +3017,7 @@ def status(
         "migration_required": False,
         "status": "not_installed",
         "enforcement": _read_enforcement_state(target_root),
+        "pending_tracking": _classify_pending_tracking(target_root),
         "delivery_policy": _read_delivery_policy_state(target_root),
         "ledger": _ledger_status_block(target_root, source),
         "checks": [],
@@ -4067,11 +4079,13 @@ def _workflow_log_handler(target_root: Path, event_class: str) -> str:
 
 
 def _expects_pending_tracking(target_root: Path) -> bool:
-    """Return true when the installed primary workflow is expected to enqueue hook events."""
+    """Return true when the active workflow requires per-mutation reconciliation."""
 
     manifest = _read_json(target_root / AEGIS_MANIFEST_REL)
     if not isinstance(manifest, Mapping):
         return True
+    if _read_enforcement_state(target_root).get("mode") == "advisory":
+        return False
     primary = str(manifest.get("primary_agent") or "").strip()
     return primary == "claude" and "claude" in _enabled_agents_from_manifest(manifest)
 
@@ -4487,29 +4501,59 @@ def next_action(
     else:
         current_task_authority = "local-tracked-work"
 
-    pending_events = _pending_tracking_events(target_root)
-    if pending_events:
-        ids = [str(event.get("id") or "unknown") for event in pending_events]
+    pending_tracking = _classify_pending_tracking(target_root)
+    if not pending_tracking["delivery_allowed"]:
+        required_samples = [
+            item
+            for item in pending_tracking["sample"]
+            if isinstance(item, Mapping) and item.get("mode") == "strict"
+        ]
+        first_required_id = (
+            str(required_samples[0].get("id") or "") if required_samples else ""
+        )
+        required_event_action = bool(first_required_id)
+        pending_event_id = (
+            "current"
+            if pending_tracking["counts"]["total"] == 1
+            and pending_tracking["counts"]["required"] == 1
+            else first_required_id
+        )
+        suggested_cli = (
+            "./.aegis/bin/aegis log --target-dir . "
+            f"--pending-id {_quote_cli(pending_event_id)} "
+            "--note '<past-tense note>' --plan-step auto --plan-status completed"
+            if required_event_action
+            else "./.aegis/bin/aegis doctor --target-dir . --all --json"
+        )
         return _workflow_guidance_payload(
             phase="track",
             state="pending_tracking",
-            next_required_action="log the pending S:W:H:E event before any further mutation",
+            next_required_action=(
+                "log the unresolved required S:W:H:E event before any further mutation"
+                if required_event_action
+                else (
+                    "inspect the malformed, mixed, or unknown pending queue; Aegis is "
+                    "failing closed and will not invent a repair"
+                )
+            ),
             current_task_authority=current_task_authority,
-            suggested_cli="./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense note>' --plan-step auto --plan-status completed",
-            suggested_mcp_tool="aegis.log",
-            suggested_mcp_arguments={
-                "target_dir": ".",
-                "pending_event_id": "current",
-                "note": "<past-tense note>",
-                "plan_step": "auto",
-                "plan_status": "completed",
-                "apply": True,
-            },
+            suggested_cli=suggested_cli,
+            suggested_mcp_tool="aegis.log" if required_event_action else "aegis.doctor",
+            suggested_mcp_arguments=(
+                {
+                    "target_dir": ".",
+                    "pending_event_id": pending_event_id,
+                    "note": "<past-tense note>",
+                    "plan_step": "auto",
+                    "plan_status": "completed",
+                    "apply": True,
+                }
+                if required_event_action
+                else {"target_dir": "."}
+            ),
             missing_gates=["mutation.pending_tracking_empty"],
-            copyable_repairs=[
-                "./.aegis/bin/aegis log --target-dir . --pending-id current --note '<past-tense note>' --plan-step auto --plan-status completed"
-            ],
-            details={"pending_event_ids": ids},
+            copyable_repairs=[suggested_cli],
+            details={"pending_tracking": pending_tracking},
         )
 
     if (
@@ -8394,6 +8438,191 @@ def _update_plan_table(
     return True
 
 
+def _bounded_pending_value(value: Any) -> str:
+    text = str(value or "")
+    if len(text) <= AEGIS_PENDING_TRACKING_SAMPLE_TEXT_LIMIT:
+        return text
+    digest = hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()[:10]
+    suffix = f"…#{digest}"
+    return text[: AEGIS_PENDING_TRACKING_SAMPLE_TEXT_LIMIT - len(suffix)] + suffix
+
+
+def _pending_event_sample(event: Any, index: int) -> dict[str, Any]:
+    if not isinstance(event, Mapping):
+        return {
+            "index": index,
+            "valid": False,
+            "type": type(event).__name__,
+            "mode": "unknown",
+        }
+    affected_paths = event.get("affected_paths")
+    affected = (
+        [_bounded_pending_value(path) for path in affected_paths[:AEGIS_PENDING_TRACKING_SAMPLE_LIMIT]]
+        if isinstance(affected_paths, list)
+        else []
+    )
+    sample: dict[str, Any] = {
+        "index": index,
+        "valid": True,
+        "id": _bounded_pending_value(event.get("id")),
+        "mode": _bounded_pending_value(event.get("mode")),
+        "tool": _bounded_pending_value(event.get("tool")),
+        "handler": _bounded_pending_value(event.get("handler")),
+        "evidence": _bounded_pending_value(event.get("evidence")),
+    }
+    if isinstance(affected_paths, list):
+        sample["affected_path_count"] = len(affected_paths)
+        sample["affected_paths"] = affected
+        sample["affected_paths_truncated"] = len(affected_paths) > len(affected)
+    return sample
+
+
+def _classify_pending_tracking(target_root: Path) -> dict[str, Any]:
+    """Classify the complete pending queue without mutating or silently filtering it.
+
+    Advisory-only events are retained audit evidence and are delivery-safe. Explicit
+    strict events and every untrusted queue shape fail closed. The returned payload is
+    intentionally bounded; the queue artifact remains the complete source of evidence.
+    """
+
+    pending_path = target_root / AEGIS_PENDING_TRACKING_REL
+    base: dict[str, Any] = {
+        "path": AEGIS_PENDING_TRACKING_REL,
+        "file_exists": pending_path.exists() or pending_path.is_symlink(),
+        "queue_valid": True,
+        "provenance_trusted": True,
+        "classification": "absent",
+        "delivery_allowed": True,
+        "advisory_preserved": False,
+        "required_unresolved": False,
+        "untrusted_unresolved": False,
+        "counts": {
+            "total": 0,
+            "advisory": 0,
+            "required": 0,
+            "unknown": 0,
+        },
+        "sample": [],
+        "sample_limit": AEGIS_PENDING_TRACKING_SAMPLE_LIMIT,
+        "sample_truncated": False,
+        "reason": "pending tracking queue absent",
+    }
+    if not base["file_exists"]:
+        return base
+    if not pending_path.is_file() or pending_path.is_symlink():
+        return {
+            **base,
+            "queue_valid": False,
+            "provenance_trusted": False,
+            "classification": "malformed",
+            "delivery_allowed": False,
+            "untrusted_unresolved": True,
+            "reason": "pending tracking queue must be a regular file",
+        }
+    try:
+        raw = pending_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        return {
+            **base,
+            "queue_valid": False,
+            "provenance_trusted": False,
+            "classification": "malformed",
+            "delivery_allowed": False,
+            "untrusted_unresolved": True,
+            "reason": f"pending tracking queue is unreadable: {type(exc).__name__}",
+        }
+    try:
+        payload = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {
+            **base,
+            "queue_valid": False,
+            "provenance_trusted": False,
+            "classification": "malformed",
+            "delivery_allowed": False,
+            "untrusted_unresolved": True,
+            "reason": "pending tracking queue is invalid JSON",
+        }
+    if not isinstance(payload, Mapping):
+        return {
+            **base,
+            "queue_valid": False,
+            "provenance_trusted": False,
+            "classification": "malformed",
+            "delivery_allowed": False,
+            "untrusted_unresolved": True,
+            "reason": "pending tracking queue payload is not an object",
+        }
+    events = payload.get("events")
+    if not isinstance(events, list):
+        return {
+            **base,
+            "queue_valid": False,
+            "provenance_trusted": False,
+            "classification": "malformed",
+            "delivery_allowed": False,
+            "untrusted_unresolved": True,
+            "reason": "pending tracking queue events field is not a list",
+        }
+
+    advisory_count = 0
+    required_count = 0
+    unknown_count = 0
+    invalid_event_shape = False
+    sample: list[dict[str, Any]] = []
+    for index, event in enumerate(events):
+        if len(sample) < AEGIS_PENDING_TRACKING_SAMPLE_LIMIT:
+            sample.append(_pending_event_sample(event, index))
+        if not isinstance(event, Mapping):
+            invalid_event_shape = True
+            unknown_count += 1
+            continue
+        mode = str(event.get("mode") or "").strip().lower()
+        if mode == "advisory":
+            advisory_count += 1
+        elif mode == "strict":
+            required_count += 1
+        else:
+            unknown_count += 1
+
+    if not events:
+        classification = "empty"
+        reason = "pending tracking queue empty"
+    elif unknown_count:
+        classification = "unknown"
+        reason = "pending tracking queue contains invalid events or untrusted provenance"
+    elif advisory_count and required_count:
+        classification = "mixed"
+        reason = "pending tracking queue mixes advisory evidence with required strict events"
+    elif required_count:
+        classification = "required_only"
+        reason = "pending tracking queue contains unresolved required strict events"
+    else:
+        classification = "advisory_only"
+        reason = "advisory pending events are preserved audit evidence and do not block delivery"
+
+    delivery_allowed = classification in {"empty", "advisory_only"}
+    return {
+        **base,
+        "queue_valid": not invalid_event_shape,
+        "provenance_trusted": unknown_count == 0,
+        "classification": classification,
+        "delivery_allowed": delivery_allowed,
+        "advisory_preserved": classification == "advisory_only",
+        "required_unresolved": required_count > 0,
+        "untrusted_unresolved": unknown_count > 0,
+        "counts": {
+            "total": len(events),
+            "advisory": advisory_count,
+            "required": required_count,
+            "unknown": unknown_count,
+        },
+        "sample": sample,
+        "sample_truncated": len(events) > len(sample),
+        "reason": reason,
+    }
+
+
 def _pending_tracking_events(target_root: Path) -> list[dict[str, Any]]:
     payload = _read_json(target_root / AEGIS_PENDING_TRACKING_REL)
     if not payload:
@@ -8531,11 +8760,15 @@ def _resolve_pending_tracking_event(
     current_events = [
         event for event in events if _event_matches_current_work(event, task_id=task_id, slug=slug)
     ]
+    valid_ids = [str(event.get("id") or "unknown") for event in current_events]
+    valid = ", ".join(valid_ids[:AEGIS_PENDING_TRACKING_SAMPLE_LIMIT]) or "<none>"
+    if len(valid_ids) > AEGIS_PENDING_TRACKING_SAMPLE_LIMIT:
+        valid += (
+            f", ... {len(valid_ids) - AEGIS_PENDING_TRACKING_SAMPLE_LIMIT} more "
+            f"(inspect {AEGIS_PENDING_TRACKING_REL})"
+        )
     if clean in AEGIS_PENDING_EVENT_SENTINELS:
         if len(current_events) != 1:
-            valid = (
-                ", ".join(str(event.get("id") or "unknown") for event in current_events) or "<none>"
-            )
             raise AegisError(
                 f"pending event sentinel '{clean}' requires exactly one current-work event; valid ids: {valid}"
             )
@@ -8543,13 +8776,12 @@ def _resolve_pending_tracking_event(
     matches = [event for event in current_events if str(event.get("id") or "") == clean]
     if len(matches) == 1:
         return matches[0]
-    valid = ", ".join(str(event.get("id") or "unknown") for event in current_events) or "<none>"
     raise AegisError(f"unknown pending event id: {clean}; valid ids: {valid}")
 
 
 def _format_pending_tracking_for_error(events: Sequence[Mapping[str, Any]]) -> str:
     lines = []
-    for event in events:
+    for event in events[:AEGIS_PENDING_TRACKING_SAMPLE_LIMIT]:
         event_id = event.get("id", "unknown")
         lines.append(
             f"- {event_id}: "
@@ -8565,6 +8797,12 @@ def _format_pending_tracking_for_error(events: Sequence[Mapping[str, Any]]) -> s
             "  repair: aegis log --pending-id "
             f'{event_id} --note "<past-tense note>" '
             "--plan-step <plan-step-id> --plan-status completed"
+        )
+    omitted = len(events) - min(len(events), AEGIS_PENDING_TRACKING_SAMPLE_LIMIT)
+    if omitted:
+        lines.append(
+            f"... {omitted} more pending events; inspect {AEGIS_PENDING_TRACKING_REL} "
+            f"for all {len(events)}."
         )
     return "\n".join(lines)
 
@@ -9680,40 +9918,22 @@ def _strict_current_work_checks(
     return checks, current_work
 
 
-def _strict_pending_tracking_check(target_root: Path) -> dict[str, Any]:
-    pending_path = target_root / AEGIS_PENDING_TRACKING_REL
-    if not pending_path.exists():
-        return _strict_check(
-            "mutation.pending_tracking_empty",
-            category="mutation",
-            required=True,
-            passed=True,
-            message="pending tracking queue absent",
-            details={"path": AEGIS_PENDING_TRACKING_REL, "events": 0},
-        )
-    payload = _read_json(pending_path)
-    if payload is None:
-        return _strict_check(
-            "mutation.pending_tracking_empty",
-            category="mutation",
-            required=True,
-            passed=False,
-            message="pending tracking queue is invalid JSON",
-            details={"path": AEGIS_PENDING_TRACKING_REL},
-        )
-    events = payload.get("events")
-    event_count = len(events) if isinstance(events, list) else 0
+def _strict_pending_tracking_check(
+    target_root: Path,
+    pending_tracking: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    state = (
+        dict(pending_tracking)
+        if isinstance(pending_tracking, Mapping)
+        else _classify_pending_tracking(target_root)
+    )
     return _strict_check(
         "mutation.pending_tracking_empty",
         category="mutation",
         required=True,
-        passed=event_count == 0,
-        message=(
-            "pending tracking queue empty"
-            if event_count == 0
-            else "pending tracking queue has unlogged mutation events"
-        ),
-        details={"path": AEGIS_PENDING_TRACKING_REL, "events": event_count},
+        passed=bool(state.get("delivery_allowed")),
+        message=str(state.get("reason") or "pending tracking state unavailable"),
+        details=state,
     )
 
 
@@ -9943,7 +10163,10 @@ def _strict_integration_checks(
 
 
 def _strict_verification_checks(
-    target_root: Path, manifest: Mapping[str, Any]
+    target_root: Path,
+    manifest: Mapping[str, Any],
+    *,
+    pending_tracking: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = [
         _strict_managed_files_check(target_root, manifest),
@@ -9958,7 +10181,7 @@ def _strict_verification_checks(
     ]
     workflow_checks, current_work = _strict_current_work_checks(target_root)
     checks.extend(workflow_checks)
-    checks.append(_strict_pending_tracking_check(target_root))
+    checks.append(_strict_pending_tracking_check(target_root, pending_tracking))
     checks.extend(_strict_claude_checks(target_root, manifest))
     checks.extend(_strict_codex_checks(target_root, manifest))
     checks.extend(_strict_integration_checks(target_root, current_work))
@@ -10431,6 +10654,7 @@ def doctor(
     source = Path(source_root).resolve()
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest = _read_json(manifest_path)
+    pending_tracking = _classify_pending_tracking(target_root)
     checks: list[dict[str, Any]] = []
     current_work: dict[str, Any] | None = None
 
@@ -10469,7 +10693,11 @@ def doctor(
                     details={"path": AEGIS_MANIFEST_REL, "schema_path": list(exc.schema_path)},
                 )
             )
-        strict_checks = _strict_verification_checks(target_root, manifest)
+        strict_checks = _strict_verification_checks(
+            target_root,
+            manifest,
+            pending_tracking=pending_tracking,
+        )
         checks.extend(strict_checks)
         current_work_path = target_root / AEGIS_CURRENT_WORK_REL
         current_work = _read_json(current_work_path)
@@ -10560,6 +10788,7 @@ def doctor(
         "status": status_value,
         "current_state": current_state,
         "enforcement": enforcement,
+        "pending_tracking": pending_tracking,
         "checks": checks,
         "summary": _doctor_summary(checks),
         "repair_plan": {
@@ -11203,10 +11432,21 @@ def format_doctor_summary(report: Mapping[str, Any]) -> str:
     enforcement = (
         report.get("enforcement") if isinstance(report.get("enforcement"), Mapping) else {}
     )
+    pending = (
+        report.get("pending_tracking")
+        if isinstance(report.get("pending_tracking"), Mapping)
+        else {}
+    )
+    pending_counts = pending.get("counts") if isinstance(pending.get("counts"), Mapping) else {}
     return "\n".join(
         [
             f"Aegis doctor: {report.get('status')} ({report.get('current_state')})",
             f"Enforcement: {enforcement.get('mode', 'strict')}",
+            (
+                "Pending tracking: "
+                f"{pending_counts.get('total', 0)} "
+                f"({pending.get('classification', 'unknown')})"
+            ),
             f"Checks: {summary.get('total', 0)} total, {summary.get('failed_required', 0)} required failures, {summary.get('warnings', 0)} warnings",
             f"Repair plan: {repair_plan.get('safe', 0)} safe, {repair_plan.get('manual_review', 0)} manual-review",
             "",
@@ -11288,6 +11528,7 @@ def verify(
     manifest_path = target_root / AEGIS_MANIFEST_REL
     manifest = _read_json(manifest_path)
     enforcement = _read_enforcement_state(target_root)
+    pending_tracking = _classify_pending_tracking(target_root)
     mode = "strict" if strict else "standard"
     checks: list[dict[str, Any]] = []
     if manifest is None:
@@ -11307,6 +11548,7 @@ def verify(
             "target_root": str(target_root),
             "manifest_path": AEGIS_MANIFEST_REL,
             "enforcement": enforcement,
+            "pending_tracking": pending_tracking,
             "dry_run": dry_run,
             "report_written": False,
             "checks": [
@@ -11367,7 +11609,13 @@ def verify(
             checks.append(_verify_gate(target_root, gate))
 
     if strict:
-        checks.extend(_strict_verification_checks(target_root, manifest))
+        checks.extend(
+            _strict_verification_checks(
+                target_root,
+                manifest,
+                pending_tracking=pending_tracking,
+            )
+        )
     if enforcement.get("mode") == "advisory":
         checks.append(
             {
@@ -11424,6 +11672,7 @@ def verify(
         "target_root": str(target_root),
         "manifest_path": AEGIS_MANIFEST_REL,
         "enforcement": enforcement,
+        "pending_tracking": pending_tracking,
         "dry_run": dry_run,
         "report_written": False,
         "summary": {
@@ -12191,7 +12440,8 @@ def _build_closeout_repair_guidance(
     implementation_tokens: Sequence[str],
     verification_tokens: Sequence[str],
     strict_verify_rel: str,
-    pending_events: Sequence[Mapping[str, Any]],
+    pending_tracking: Mapping[str, Any],
+    target_root: Path,
     checks: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     entries_by_evidence = _swhe_entries_by_evidence(surface_texts)
@@ -12263,21 +12513,40 @@ def _build_closeout_repair_guidance(
                 item["command_template"] = command_template
             repair_items.append(item)
 
-    for event in pending_events:
-        event_id = str(event.get("id") or "")
-        repair_items.append(
-            {
-                "kind": "pending_tracking_event",
-                "pending_event_id": event_id,
-                "handler": event.get("handler"),
-                "evidence": event.get("evidence"),
-                "command_template": (
-                    "aegis log --pending-id "
-                    f'{_quote_cli(event_id)} --note "<past-tense note>" '
-                    "--plan-step <plan-step-id> --plan-status completed"
-                ),
-            }
-        )
+    if not pending_tracking.get("delivery_allowed"):
+        required_events = [
+            event
+            for event in _pending_tracking_events(target_root)
+            if str(event.get("mode") or "").strip().lower() == "strict"
+        ]
+        for event in required_events[:AEGIS_PENDING_TRACKING_SAMPLE_LIMIT]:
+            event_id = str(event.get("id") or "")
+            repair_items.append(
+                {
+                    "kind": "pending_tracking_event",
+                    "pending_event_id": event_id,
+                    "handler": event.get("handler"),
+                    "evidence": event.get("evidence"),
+                    "command_template": (
+                        "aegis log --pending-id "
+                        f'{_quote_cli(event_id)} --note "<past-tense note>" '
+                        "--plan-step <plan-step-id> --plan-status completed"
+                    ),
+                }
+            )
+        if pending_tracking.get("untrusted_unresolved"):
+            repair_items.append(
+                {
+                    "kind": "pending_tracking_manual_review",
+                    "classification": pending_tracking.get("classification"),
+                    "artifact": AEGIS_PENDING_TRACKING_REL,
+                    "command": "aegis doctor --target-dir . --all --json",
+                    "reason": (
+                        "Aegis cannot safely infer a mutation or deletion for malformed "
+                        "or unknown-provenance pending evidence."
+                    ),
+                }
+            )
 
     failing_gate_ids = [
         str(check.get("gate_id"))
@@ -12324,7 +12593,7 @@ def format_closeout_summary(report: Mapping[str, Any]) -> str:
         if isinstance(report.get("pending_tracking"), Mapping)
         else {}
     )
-    pending_events = pending.get("events") if isinstance(pending.get("events"), list) else []
+    pending_counts = pending.get("counts") if isinstance(pending.get("counts"), Mapping) else {}
     failed_gates = _closeout_failed_required_gate_ids(report)
     next_action = (
         report.get("next_action") if isinstance(report.get("next_action"), Mapping) else {}
@@ -12346,7 +12615,11 @@ def format_closeout_summary(report: Mapping[str, Any]) -> str:
         f"mode: {'dry-run' if dry_run else 'final'}",
         f"failed_required: {summary.get('failed_required', 0)}",
         f"warnings: {summary.get('warnings', 0)}",
-        f"pending_tracking: {len(pending_events)}",
+        (
+            "pending_tracking: "
+            f"{pending_counts.get('total', 0)} "
+            f"({pending.get('classification', 'unknown')})"
+        ),
         f"closeout_report: {AEGIS_CLOSEOUT_REPORT_REL} ({closeout_report_state})",
     ]
     if failed_gates:
@@ -12638,17 +12911,15 @@ def closeout(
         )
     )
 
-    pending_events = _pending_tracking_events(target_root)
+    pending_tracking = _classify_pending_tracking(target_root)
     checks.append(
         _closeout_check(
             "closeout.pending_tracking",
-            passed=not pending_events,
-            message=(
-                "pending tracking queue is empty"
-                if not pending_events
-                else "pending tracking queue has unlogged mutation events"
+            passed=bool(pending_tracking.get("delivery_allowed")),
+            message=str(
+                pending_tracking.get("reason") or "pending tracking state unavailable"
             ),
-            details={"path": AEGIS_PENDING_TRACKING_REL, "events": pending_events},
+            details=pending_tracking,
         )
     )
     degraded_events = _degraded_events(target_root)
@@ -12786,9 +13057,12 @@ def closeout(
         "would_update_surfaces": [],
         "skipped": [],
         "enabled": False,
-        "reason": "strict verification must pass and pending tracking must be empty before population",
+        "reason": (
+            "strict verification must pass and pending tracking must be delivery-safe "
+            "before population"
+        ),
     }
-    if not pending_events and strict_verify.get("status") == "passed":
+    if pending_tracking.get("delivery_allowed") and strict_verify.get("status") == "passed":
         populate_report = _populate_closeout_surfaces(
             target_root,
             current_work=current_work,
@@ -12873,7 +13147,8 @@ def closeout(
         implementation_tokens=implementation_tokens,
         verification_tokens=verification_tokens,
         strict_verify_rel=strict_verify_rel,
-        pending_events=pending_events,
+        pending_tracking=pending_tracking,
+        target_root=target_root,
         checks=checks,
     )
     report: dict[str, Any] = {
@@ -12896,10 +13171,7 @@ def closeout(
             "required_steps": {step: plan_rows.get(step) for step in required_steps},
             "tracker_steps": {step: tracker_steps.get(step) for step in required_steps},
         },
-        "pending_tracking": {
-            "path": AEGIS_PENDING_TRACKING_REL,
-            "events": pending_events,
-        },
+        "pending_tracking": pending_tracking,
         "degraded_events": {
             "path": AEGIS_DEGRADED_EVENTS_REL,
             "events": degraded_events,

@@ -12,6 +12,7 @@ import pytest
 from aegis_foundation import output_budget, replay
 from aegis_foundation import cli as aegis_cli
 from aegis_foundation.cli import build_arg_parser
+from scripts import _aegis_installer as aegis_installer
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -135,6 +136,54 @@ def test_hpfetcher_pending_cardinality_fixture_is_one_screen_without_losing_coun
     assert len(rendered.splitlines()) <= fixture["expected_default_max_lines"]
     assert len(rendered.encode("utf-8")) <= fixture["expected_default_max_bytes"]
     assert fixture["expected_artifact"] in metadata["artifact_paths"]
+
+
+def test_blog_task40_advisory_pending_summary_is_bounded_and_queue_stays_complete(
+    tmp_path: Path,
+) -> None:
+    fixture = json.loads(
+        (
+            REPO_ROOT
+            / "tests/fixtures/aegis/blog-task40-advisory-pending-closeout.json"
+        ).read_text(encoding="utf-8")
+    )
+    count = fixture["reproduction"]["pending_event_count"]
+    pending_path = tmp_path / fixture["expected"]["artifact"]
+    pending_path.parent.mkdir(parents=True)
+    events = [
+        {
+            "id": f"blog40-{index:03d}",
+            "mode": "advisory",
+            "tool": "apply_patch",
+            "handler": "codex:apply_patch",
+            "evidence": f"src/fixture-{index}.tsx",
+        }
+        for index in range(count)
+    ]
+    pending_path.write_text(
+        json.dumps({"schema_version": "1.0.0", "events": events}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    state = aegis_installer._classify_pending_tracking(tmp_path)
+    rendered = output_budget.render_json(
+        {"status": "passed", "pending_tracking": state},
+        command="closeout",
+        artifact_paths=[fixture["expected"]["artifact"]],
+    )
+    projected = json.loads(rendered)
+    pending = projected["pending_tracking"]
+
+    assert pending["classification"] == "advisory_only"
+    assert pending["counts"]["total"] == count
+    assert pending["advisory_preserved"] is True
+    assert pending["delivery_allowed"] is True
+    assert len(pending["sample"]) == output_budget.DEFAULT_SAMPLE_SIZE
+    assert pending["sample_truncated"] is True
+    assert len(rendered.splitlines()) <= output_budget.DEFAULT_MAX_LINES
+    assert len(rendered.encode("utf-8")) <= output_budget.DEFAULT_MAX_BYTES
+    assert len(json.loads(pending_path.read_text(encoding="utf-8"))["events"]) == count
+    assert fixture["expected"]["artifact"] in projected["_aegis_output"]["artifact_paths"]
 
 
 def test_text_preserves_primary_verdict_and_discloses_truncation() -> None:

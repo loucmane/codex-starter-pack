@@ -35,6 +35,7 @@ AEGIS_ENFORCEMENT_REL = ".aegis/state/enforcement.json"
 AEGIS_GATE_DECISIONS_REL = ".aegis/reports/gate-decisions.jsonl"
 AEGIS_VERIFY_REPORT_REL = ".aegis/reports/verification-report.json"
 AEGIS_LOCAL_BIN_REL = ".aegis/bin/aegis"
+PENDING_TRACKING_SAMPLE_LIMIT = 5
 
 PROTECTED_PREFIXES = ("templates/", ".codex/", ".aegis/", ".claude/")
 PROTECTED_EXACT = {"CODEX.md", "CLAUDE.md", "AGENTS.md"}
@@ -2271,6 +2272,20 @@ def pending_tracking_events(root: Path) -> list[dict[str, Any]]:
     return [event for event in events if isinstance(event, dict)] if isinstance(events, list) else []
 
 
+def required_pending_tracking_events(root: Path) -> list[dict[str, Any]]:
+    """Return events that still require strict-mode reconciliation.
+
+    Advisory events are retained audit evidence. Missing or unknown provenance remains
+    required so strict enforcement never infers that an untrusted event is safe.
+    """
+
+    return [
+        event
+        for event in pending_tracking_events(root)
+        if str(event.get("mode") or "").strip().lower() != "advisory"
+    ]
+
+
 def write_pending_tracking_events(root: Path, events: list[dict[str, Any]]) -> None:
     path = pending_tracking_path(root)
     if not events:
@@ -2738,7 +2753,7 @@ def mcp_is_post_closeout_taskmaster_completion(payload: Payload, task_id: str) -
 
 def payload_is_post_closeout_taskmaster_completion(root: Path, payload: Payload) -> bool:
     work = current_work_closeout_completed(root)
-    if work is None or pending_tracking_events(root):
+    if work is None or required_pending_tracking_events(root):
         return False
     task = work.get("task") if isinstance(work.get("task"), dict) else {}
     task_id = str(task.get("id") or "").strip()
@@ -2753,7 +2768,7 @@ def payload_is_post_closeout_taskmaster_completion(root: Path, payload: Payload)
 
 def payload_is_post_closeout_delivery(root: Path, payload: Payload) -> bool:
     work = current_work_closeout_completed(root)
-    if work is None or pending_tracking_events(root):
+    if work is None or required_pending_tracking_events(root):
         return False
     if payload.tool_name != "Bash":
         return False
@@ -2820,6 +2835,8 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
             )
         if same_event:
             event["updated_at"] = now
+            if enforcement_mode(root) == "strict":
+                event["mode"] = "strict"
             if evidence_location:
                 event["evidence_location"] = evidence_location
             write_pending_tracking_events(root, events)
@@ -2850,7 +2867,7 @@ def record_pending_tracking_event(root: Path, payload: Payload) -> None:
 
 def format_pending_tracking(events: list[dict[str, Any]]) -> str:
     lines = []
-    for event in events:
+    for event in events[:PENDING_TRACKING_SAMPLE_LIMIT]:
         event_id = event.get("id", "<unknown>")
         lines.append(
             f"  - {event_id}: H={event.get('handler', '<unknown>')} E={event.get('evidence', '<unknown>')}"
@@ -2863,6 +2880,12 @@ def format_pending_tracking(events: list[dict[str, Any]]) -> str:
             "    repair: ./.aegis/bin/aegis log --pending-id "
             f"{event_id} --note \"<past-tense note>\" "
             "--plan-step <plan-step-id> --plan-status completed"
+        )
+    omitted = len(events) - min(len(events), PENDING_TRACKING_SAMPLE_LIMIT)
+    if omitted:
+        lines.append(
+            f"  ... {omitted} more pending events; inspect {AEGIS_PENDING_TRACKING_REL} "
+            f"for all {len(events)}."
         )
     return "\n".join(lines)
 
@@ -3060,7 +3083,7 @@ def pretooluse_gate(raw_payload: str | None = None) -> int:
             readiness_state=readiness.stdout.strip(),
         )
 
-    pending_events = pending_tracking_events(root)
+    pending_events = required_pending_tracking_events(root)
     if pending_events and is_mutation and not payload_is_aegis_log(payload):
         return gate_block_or_record(
             root,
@@ -3681,7 +3704,7 @@ def session_start_hook() -> int:
 
 def stop_gate() -> int:
     root = project_root()
-    pending_events = pending_tracking_events(root)
+    pending_events = required_pending_tracking_events(root)
     if not pending_events:
         if advisory_enabled(root):
             append_gate_decision(

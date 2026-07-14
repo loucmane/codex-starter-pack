@@ -11,7 +11,8 @@ Corpus entry schema (JSONL, one object per line):
       "label": "fp_workflow_state" | "ceremony_interior" | "must_allow"
                | "must_fire" | "adversarial_must_block" | "recorded",
       "state": "blocked_strict" | "ready_strict" | "ready_strict_pending"
-               | "observation_strict" | "blocked_advisory" | "ready_advisory",
+               | "ready_advisory_pending" | "observation_strict"
+               | "blocked_advisory" | "ready_advisory",
       "hook": "pretooluse" | "stop",
       "payload": {"tool_name": ..., "tool_input": {...}},   # omitted for stop
       "expected_gap": false,            # adversarial entries the CURRENT policy misses
@@ -52,6 +53,7 @@ STATES = (
     "blocked_strict",
     "ready_strict",
     "ready_strict_pending",
+    "ready_advisory_pending",
     "observation_strict",
     "blocked_advisory",
     "ready_advisory",
@@ -77,7 +79,11 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
     repo = base_dir / state
     repo.mkdir(parents=True, exist_ok=True)
     assert _run(["git", "init", "-q"], repo).returncode == 0
-    advisory = state.endswith("_advisory")
+    advisory = state in {
+        "blocked_advisory",
+        "ready_advisory",
+        "ready_advisory_pending",
+    }
     if advisory:
         _write(
             repo / ".aegis" / "state" / "enforcement.json",
@@ -127,7 +133,7 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
                 }
             ),
         )
-    if state == "ready_strict_pending":
+    if state in {"ready_strict_pending", "ready_advisory_pending"}:
         _write(
             repo / ".aegis" / "state" / "current-work.json",
             json.dumps(
@@ -138,22 +144,25 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
                 }
             ),
         )
+        pending_mode = "advisory" if state == "ready_advisory_pending" else "strict"
+        pending_count = 97 if pending_mode == "advisory" else 1
         _write(
             repo / ".aegis" / "state" / "pending-tracking.json",
             json.dumps(
                 {
                     "events": [
                         {
-                            "id": "replayp",
+                            "id": f"replayp-{index:03d}",
                             "created_at": "2026-06-10T00:00:00Z",
                             "updated_at": "2026-06-10T00:00:00Z",
                             "tool": "Bash",
                             "handler": "bash:rg",
                             "evidence": "cmd`rg -n pattern file`",
                             "task": {"id": "103", "slug": "claude-runtime-adapter"},
-                            "mode": "strict",
+                            "mode": pending_mode,
                             "reason": "replay pending fixture",
                         }
+                        for index in range(pending_count)
                     ]
                 }
             ),

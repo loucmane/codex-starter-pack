@@ -1218,7 +1218,10 @@ def handle_verify(args: argparse.Namespace) -> int:
         payload,
         args,
         command="verify",
-        artifact_paths=(_aegis_installer.AEGIS_VERIFY_REPORT_REL,),
+        artifact_paths=(
+            _aegis_installer.AEGIS_VERIFY_REPORT_REL,
+            _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+        ),
         next_action="./.aegis/bin/aegis next --target-dir .",
     )
     if payload.get("status") == "failed":
@@ -1242,7 +1245,10 @@ def handle_closeout(args: argparse.Namespace) -> int:
             payload,
             args,
             command="closeout",
-            artifact_paths=(_aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,),
+            artifact_paths=(
+                _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+            ),
         )
     else:
         _print_budgeted_text(
@@ -1250,7 +1256,10 @@ def handle_closeout(args: argparse.Namespace) -> int:
             payload,
             args,
             command="closeout",
-            artifact_paths=(_aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,),
+            artifact_paths=(
+                _aegis_installer.AEGIS_CLOSEOUT_REPORT_REL,
+                _aegis_installer.AEGIS_PENDING_TRACKING_REL,
+            ),
         )
     if payload.get("status") == "failed":
         print("Aegis closeout failed", file=sys.stderr)
