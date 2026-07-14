@@ -67,6 +67,32 @@
 3. Hosted CI remains authoritative for its own checkout-location premise, Black,
    Python matrix, source guard, and delivery-policy checks.
 
+## Current-Main Reconciliation — 2026-07-14
+
+- Task 241 was reconciled with current `main` by signed, non-rewriting merge commit
+  `960893aad47843ac18d985acc7cc13a4e5d1c0f1`, with parents `1aea172` and
+  `0a8b3b6`. The main-relative semantic diff remains limited to Task 241's witness,
+  CLI, contracts, regressions, Taskmaster status, and lifecycle evidence.
+- Focused witness/capsule/legacy projection matrix: **40 passed**.
+- Current-main installer, distribution, delivery-policy, ledger, replay, output,
+  continuation, repair, and witness compatibility matrix: **422 passed, 3
+  documented opt-in certification/wheel smokes skipped**.
+- Repository-pinned Ruff `0.15.12` passed. Repository-pinned Black `26.3.1`
+  normalized two Task 241 regression files and then passed all six scoped files;
+  the focused 40-test matrix remained green afterward.
+- The exact registered gate passed from a non-`/tmp`, Task-241-identified linked
+  worktree at the signed merge commit: **1,876 passed, 4 documented opt-in
+  certification/wheel/MCP smokes skipped** in **394.29 seconds**.
+- Two earlier full-run failures were verified as checkout-premise failures without
+  changing source or tests: a `/tmp`-hosted worktree invalidated the governed-target
+  isolation test, and a detached verification checkout lacked the branch identity
+  needed for completed-source guard derivation. The unchanged individual tests and
+  full suite passed once those premises were restored.
+- Live and packaged `witness_lib.py` remain byte-identical; Taskmaster full-graph
+  health reports 250 tasks, 383 subtasks, 435 valid dependency references, and zero
+  invalid references. Readiness, plan parity, work-tracking audit, S:W:H:E guard,
+  and `git diff --check` pass in the source worktree.
+
 ## Still Required Before Delivery
 
 - refresh the tracked plan, tracker, session, handoff, and Taskmaster terminal state;
