@@ -10,6 +10,7 @@
 - Generalized reload markers to multiple agents so Claude and Codex prove activation independently.
 - Added four required Codex mechanical gates and documented trust/reload behavior in the adapter contract and release matrix.
 - Preserved byte-identical runtime/package mirrors and advisory enforcement.
+- Made source-guard status provenance merge-aware for normal non-rewriting delivery: clean staged paths inherited unchanged from MERGE_HEAD are historical, while every current-task, worktree, untracked, renamed, or inspection-uncertain path remains guarded.
 
 ## Acceptance Coverage
 

@@ -8,9 +8,10 @@
 - Signed implementation head `b4110a85a5622230f571abb166c2ae44f71be878` passed hosted Python 3.11/3.12, witness, evidence-delivery, source guard, and meta-workflow guard checks on PR #266.
 - Taskmaster Task 240 is `done`, this complete evidence bundle is archived, completed-source readiness is `READY`, and Taskmaster/plan/guard validation passes.
 - Task 247 remains independently hosted-green at its attended governance merge boundary.
+- Current main through Task 251 is semantically composed without rebasing or rewriting Task 240. The exact local merged tree passes 1,862 repository tests with four explicit opt-in certification/distribution smokes skipped, plus Black, Ruff, and live/package parity.
 
 ## Next Steps
-- Commit and push only the Task 240 terminal lifecycle delta, then require a fresh exact-head hosted matrix.
+- Create and push the normal non-rewriting Task 240 merge commit, then require a fresh exact-head hosted matrix.
 - Deliver PR #266 through the repository's evidence-gated exact-head policy without bypassing its governance classification.
 - After delivery, continue the active program with context-budgeted agent-facing outputs.
 - Archived on 2026-07-13 12:29 CEST — Folder moved to archive and tracker marked COMPLETED.

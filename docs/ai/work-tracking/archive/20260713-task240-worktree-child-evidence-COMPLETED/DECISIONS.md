@@ -10,3 +10,6 @@
 - 2026-07-13 — Use ledger `seq`, not random event IDs, when lifecycle order is semantically relevant.
 - 2026-07-13 — Do not install or fabricate Aegis mutable workflow state in the source worktree solely to make installed-target verification green. Use the established source-repository lifecycle and require hosted witness/CI before completion.
 - 2026-07-13 — Keep the temp-path reconcile test unchanged and disclose the local environment mismatch; do not weaken its governed-repository safety assertion to obtain a cosmetic all-green local run.
+- 2026-07-14 — Compose Task 240's worktree/child evidence with current-main Codex adapter behavior in one normal merge commit; do not rebase, force-push, fabricate installed source-worktree state, or rewrite historical Task 247-251 evidence.
+- 2026-07-14 — Treat fresh exact-head hosted CI as the authoritative resolution for merge-context guard noise after local Task 240 evidence and compatibility tests pass.
+- 2026-07-14 — Make guard provenance merge-aware instead of bypassing hooks or rewriting history: exclude only clean staged paths absent from the index-to-MERGE_HEAD diff, retain every other status entry, and return the unfiltered set if Git inspection fails.

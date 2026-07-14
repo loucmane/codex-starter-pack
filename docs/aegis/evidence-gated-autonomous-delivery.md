@@ -134,9 +134,13 @@ GitHub's normal protected merge API without `--admin` or any bypass.
 
 ## Decision Classes
 
-`scripts/aegis-delivery-policy evaluate` emits one of four decisions:
+`scripts/aegis-delivery-policy evaluate` emits one of five decisions:
 
 - `allow`: all routine evidence is complete and current; trusted CI may merge.
+- `provisional`: every non-mergeability gate is complete and current, but GitHub reports
+  `mergeable=true` with `mergeable_state=blocked` or `mergeable_state=unstable` while
+  the required evaluator or GitHub's mergeability recomputation is still settling. This
+  result may complete the required check but never authorizes a merge.
 - `attended`: the change is valid but requires an owner decision because its category
   can alter authority, security, deployment, destructive behavior, or governance.
 - `defer`: evidence is incomplete, pending, stale, conflicted, or not green; do not
@@ -152,7 +156,9 @@ An attended decision is not a failed test. It is a deliberate authority boundary
 workflow definition. It is triggered after relevant pull-request state changes and
 after each required workflow completes.
 
-The privileged job:
+The workflow separates the required decision from the privileged operation.
+
+The required `evidence-gated delivery` evaluator:
 
 1. Checks out only the current default branch into `trusted/`.
 2. Does not persist checkout credentials.
@@ -162,13 +168,30 @@ The privileged job:
 5. Resolves exactly one open pull request for the triggering head.
 6. Fetches pull-request metadata, paginated files, exact-head workflow runs, and
    paginated review-thread state directly from GitHub.
+   Review pagination preserves a real final-page `hasNextPage=false`; only a missing
+   final page is treated as truncated and fails closed.
 7. Runs the evaluator from `trusted/scripts/aegis-delivery-policy` against
    `trusted/aegis.delivery-policy.json`.
-8. Re-fetches head and base immediately before merge.
-9. Calls the normal squash-merge endpoint only for `decision: allow` and only with the
-   exact expected head SHA.
+8. Has read-only permissions and never calls the merge or repository-dispatch endpoint.
+9. May emit `provisional` only for the bounded `blocked`/`unstable` mergeability race
+   after every independent gate passes, and records the deterministic reasons in the job
+   summary.
 
-The job is serialized per repository. GitHub branch protection remains the final
+The downstream `policy-authorized merge` executor:
+
+1. Runs only after an evaluator result of `allow` or `provisional`.
+2. Checks out and validates the current trusted default-branch policy independently.
+3. Waits a bounded interval for GitHub to recompute mergeability after the required
+   evaluator check completes.
+4. Re-fetches the complete pull-request, file, exact-head workflow, and review-thread
+   evidence set instead of consuming evaluator artifacts.
+5. Requires the fresh trusted policy result to be exactly `allow`; `provisional` cannot
+   merge.
+6. Re-fetches head and base immediately before merge.
+7. Calls the normal squash-merge endpoint only for the unchanged exact head and clean
+   current base, then dispatches the exact merge SHA to post-merge guards.
+
+The workflow is serialized per repository. GitHub branch protection remains the final
 server-side enforcement layer and rejects merges that no longer satisfy protected-
 branch requirements.
 
@@ -227,12 +250,16 @@ records or rewrite history as rollback.
 
 Changes to this mechanism must preserve:
 
-- deterministic policy tests for allow, attended, defer, and deny;
+- deterministic policy tests for allow, provisional, attended, defer, and deny;
 - source/packaged script and schema byte parity;
-- workflow contract tests proving trusted-default checkout and no pull-request code
-  execution;
+- workflow contract tests proving trusted-default checkout, a read-only required
+  evaluator, write permission isolated to the downstream executor, no pull-request code
+  execution, and no direct merge path from `provisional`;
 - exact-head and current-base revalidation;
-- complete file and review-thread pagination;
+- complete file and review-thread pagination before both evaluator and executor policy
+  decisions;
+- executable review-pagination aggregation tests proving `hasNextPage=false` remains
+  false while missing page data fails closed;
 - protected-path self-authorization tests;
 - source completed-state tests on both task branches and synchronized `main`;
 - installer idempotence and backward-compatible attended behavior when policy is absent.

@@ -14,6 +14,12 @@ from typing import Any, Mapping, Sequence
 
 SCHEMA_VERSION = "1.0.0"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+RUN_ID_PATTERN = re.compile(r"^[1-9][0-9]*$")
+EXECUTOR_CHECK_NAME = "policy-authorized merge"
+EXECUTOR_WORKFLOW_NAME = "Aegis Autonomous Delivery"
+EXECUTOR_WORKFLOW_PATH = ".github/workflows/aegis-autonomous-delivery.yml"
+EXECUTOR_EVENTS = {"pull_request_target", "workflow_run"}
+SAFE_CHECK_CONCLUSIONS = {"success", "neutral", "skipped"}
 TEST_PATH_PATTERN = re.compile(
     r"(?:^|/)(?:__tests__|tests?|specs?)(?:/|$)|"
     r"(?:^|/)[^/]+\.(?:test|spec)\.[^/]+$|"
@@ -325,9 +331,7 @@ def _latest_required_workflows(
         status = str(run.get("status") or "").lower()
         conclusion = str(run.get("conclusion") or "").lower()
         if status != "completed":
-            reasons.append(
-                {"category": "workflow-pending", "workflow": name, "status": status}
-            )
+            reasons.append({"category": "workflow-pending", "workflow": name, "status": status})
         elif conclusion != "success":
             reasons.append(
                 {
@@ -339,8 +343,309 @@ def _latest_required_workflows(
     return selected, reasons
 
 
-def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
+def _executor_check_inventory(
+    raw_checks: Any,
+    raw_statuses: Any,
+    *,
+    repository: str,
+    head_sha: str,
+    checks_complete: Any,
+    statuses_complete: Any,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Validate exact-head statuses while excluding trusted delivery-executor checks.
+
+    The current executor is validated separately from its own Actions run and jobs.
+    Candidate-head inventory can contain earlier executor attempts, but a
+    ``workflow_run`` executor is attached to the trusted default branch and therefore
+    cannot appear here.  Keeping those two evidence sets independent avoids both the
+    circular mergeability dependency and accidental trust in a candidate-head check.
+    """
+
+    if checks_complete is not True:
+        return ([{"category": "check-run-inventory-incomplete"}], {})
+    if statuses_complete is not True:
+        return ([{"category": "status-context-inventory-incomplete"}], {})
+    if not isinstance(raw_checks, list):
+        raise PolicyError("check_runs must be an array")
+    if not isinstance(raw_statuses, list):
+        raise PolicyError("status_contexts must be an array")
+
+    trusted_executor_url = re.compile(
+        rf"^https://github\.com/{re.escape(repository)}/actions/runs/"
+        r"[1-9][0-9]*/job/[1-9][0-9]*$"
+    )
+    reasons: list[dict[str, Any]] = []
+    independent_checks = 0
+    ignored_self_checks = 0
+
+    for raw_check in raw_checks:
+        check = _object(raw_check, "check run")
+        name = _string(check.get("name"), "check run name")
+        check_head = _string(check.get("head_sha"), f"check run {name} head_sha")
+        status = _string(check.get("status"), f"check run {name} status").lower()
+        conclusion = str(check.get("conclusion") or "").lower()
+        app = _object(check.get("app"), f"check run {name} app")
+        app_slug = _string(app.get("slug"), f"check run {name} app.slug")
+        details_url = str(check.get("details_url") or "")
+        check_id = check.get("id")
+
+        if check_head != head_sha:
+            reasons.append(
+                {
+                    "category": "check-run-head-mismatch",
+                    "check": name,
+                    "actual": check_head,
+                }
+            )
+            continue
+
+        is_trusted_executor_check = (
+            name == EXECUTOR_CHECK_NAME
+            and app_slug == "github-actions"
+            and trusted_executor_url.fullmatch(details_url) is not None
+        )
+        if is_trusted_executor_check:
+            ignored_self_checks += 1
+            continue
+
+        independent_checks += 1
+        if status != "completed":
+            reasons.append(
+                {
+                    "category": "check-run-pending",
+                    "check": name,
+                    "status": status,
+                    "id": check_id,
+                }
+            )
+        elif conclusion not in SAFE_CHECK_CONCLUSIONS:
+            reasons.append(
+                {
+                    "category": "check-run-not-successful",
+                    "check": name,
+                    "conclusion": conclusion,
+                    "id": check_id,
+                }
+            )
+
+    latest_statuses: dict[str, Mapping[str, Any]] = {}
+    for raw_status in raw_statuses:
+        status_entry = _object(raw_status, "status context")
+        context = _string(status_entry.get("context"), "status context name")
+        status_sha = _string(status_entry.get("sha"), f"status context {context} sha")
+        if status_sha != head_sha:
+            reasons.append(
+                {
+                    "category": "status-context-head-mismatch",
+                    "context": context,
+                    "actual": status_sha,
+                }
+            )
+            continue
+        rank = (
+            str(status_entry.get("created_at") or status_entry.get("updated_at") or ""),
+            int(status_entry.get("id") or 0),
+        )
+        current = latest_statuses.get(context)
+        if current is None:
+            latest_statuses[context] = status_entry
+            continue
+        current_rank = (
+            str(current.get("created_at") or current.get("updated_at") or ""),
+            int(current.get("id") or 0),
+        )
+        if rank > current_rank:
+            latest_statuses[context] = status_entry
+
+    for context, status_entry in sorted(latest_statuses.items()):
+        state = str(status_entry.get("state") or "").lower()
+        if state != "success":
+            reasons.append(
+                {
+                    "category": "status-context-not-successful",
+                    "context": context,
+                    "state": state,
+                }
+            )
+
+    return reasons, {
+        "ignored_self_checks": ignored_self_checks,
+        "independent_checks": independent_checks,
+        "status_contexts": len(latest_statuses),
+    }
+
+
+def _executor_run_inventory(
+    raw_run: Any,
+    raw_jobs: Any,
+    *,
+    repository: str,
+    default_branch: str,
+    current_default_sha: str,
+    candidate_head_ref: str,
+    candidate_head_sha: str,
+    executor_run_id: str,
+    jobs_complete: Any,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Bind authorization to the active trusted workflow run and merge job.
+
+    GitHub exposes trigger-specific run heads: ``workflow_run`` uses the trusted
+    default branch while ``pull_request_target`` identifies the candidate.  In
+    both cases the workflow and policy execute from the trusted default-branch
+    checkout, and current identity comes from the Actions run/jobs APIs rather
+    than the candidate commit's check-run inventory.
+    """
+
+    if jobs_complete is not True:
+        return ([{"category": "executor-job-inventory-incomplete"}], {})
+    run = _object(raw_run, "executor_run")
+    if not isinstance(raw_jobs, list):
+        raise PolicyError("executor_jobs must be an array")
+
+    reasons: list[dict[str, Any]] = []
+    run_id = str(run.get("id") or "")
+    run_name = str(run.get("name") or "")
+    run_path = str(run.get("path") or "")
+    run_event = str(run.get("event") or "")
+    run_status = str(run.get("status") or "").lower()
+    run_conclusion = str(run.get("conclusion") or "").lower()
+    run_head_branch = str(run.get("head_branch") or "")
+    run_head_sha = str(run.get("head_sha") or "")
+    run_attempt = run.get("run_attempt")
+    run_repository = _object(run.get("repository"), "executor_run.repository")
+    run_head_repository = _object(
+        run.get("head_repository"),
+        "executor_run.head_repository",
+    )
+
+    if run_id != executor_run_id:
+        reasons.append(
+            {
+                "category": "executor-run-id-mismatch",
+                "expected": executor_run_id,
+                "actual": run_id,
+            }
+        )
+    if run_name != EXECUTOR_WORKFLOW_NAME:
+        reasons.append({"category": "executor-run-name-mismatch", "actual": run_name})
+    if run_path != EXECUTOR_WORKFLOW_PATH:
+        reasons.append({"category": "executor-run-path-mismatch", "actual": run_path})
+    if run_event not in EXECUTOR_EVENTS:
+        reasons.append({"category": "executor-run-event-untrusted", "actual": run_event})
+    if run_status != "in_progress" or run_conclusion:
+        reasons.append(
+            {
+                "category": "executor-run-not-active",
+                "status": run_status,
+                "conclusion": run_conclusion,
+            }
+        )
+    if run_event == "workflow_run":
+        expected_run_branch = default_branch
+        expected_run_sha = current_default_sha
+    else:
+        expected_run_branch = candidate_head_ref
+        expected_run_sha = candidate_head_sha
+    if run_head_branch != expected_run_branch or run_head_sha != expected_run_sha:
+        reasons.append(
+            {
+                "category": "executor-run-trusted-head-mismatch",
+                "expected_branch": expected_run_branch,
+                "actual_branch": run_head_branch,
+                "expected_sha": expected_run_sha,
+                "actual_sha": run_head_sha,
+            }
+        )
+    if str(run_repository.get("full_name") or "") != repository:
+        reasons.append({"category": "executor-run-repository-mismatch"})
+    if str(run_head_repository.get("full_name") or "") != repository:
+        reasons.append({"category": "executor-run-head-repository-mismatch"})
+    if not isinstance(run_attempt, int) or run_attempt < 1:
+        reasons.append({"category": "executor-run-attempt-invalid", "actual": run_attempt})
+
+    executor_jobs: list[Mapping[str, Any]] = []
+    for raw_job in raw_jobs:
+        job = _object(raw_job, "executor job")
+        if str(job.get("name") or "") == EXECUTOR_CHECK_NAME:
+            executor_jobs.append(job)
+
+    current_executor_job = False
+    if len(executor_jobs) != 1:
+        reasons.append(
+            {
+                "category": "executor-job-ambiguous" if executor_jobs else "executor-job-missing",
+                "count": len(executor_jobs),
+            }
+        )
+    else:
+        job = executor_jobs[0]
+        job_id = str(job.get("id") or "")
+        job_run_id = str(job.get("run_id") or "")
+        job_attempt = job.get("run_attempt")
+        job_status = str(job.get("status") or "").lower()
+        job_conclusion = str(job.get("conclusion") or "").lower()
+        job_head_branch = str(job.get("head_branch") or "")
+        job_head_sha = str(job.get("head_sha") or "")
+        workflow_name = str(job.get("workflow_name") or "")
+        html_url = str(job.get("html_url") or "")
+        expected_job_url = (
+            f"https://github.com/{repository}/actions/runs/{executor_run_id}/job/{job_id}"
+        )
+        job_valid = True
+        if job_run_id != executor_run_id:
+            reasons.append({"category": "executor-job-run-mismatch", "actual": job_run_id})
+            job_valid = False
+        if job_attempt != run_attempt:
+            reasons.append(
+                {
+                    "category": "executor-job-attempt-mismatch",
+                    "expected": run_attempt,
+                    "actual": job_attempt,
+                }
+            )
+            job_valid = False
+        if job_status != "in_progress" or job_conclusion:
+            reasons.append(
+                {
+                    "category": "executor-job-not-active",
+                    "status": job_status,
+                    "conclusion": job_conclusion,
+                }
+            )
+            job_valid = False
+        if job_head_branch != expected_run_branch or job_head_sha != expected_run_sha:
+            reasons.append({"category": "executor-job-trusted-head-mismatch"})
+            job_valid = False
+        if workflow_name != EXECUTOR_WORKFLOW_NAME:
+            reasons.append({"category": "executor-job-workflow-mismatch"})
+            job_valid = False
+        if not RUN_ID_PATTERN.fullmatch(job_id) or html_url != expected_job_url:
+            reasons.append({"category": "executor-job-url-mismatch"})
+            job_valid = False
+        current_executor_job = job_valid
+
+    run_verified = not any(reason["category"].startswith("executor-run-") for reason in reasons)
+    return reasons, {
+        "current_executor_job": current_executor_job,
+        "executor_run_verified": run_verified,
+        "executor_run_id": executor_run_id,
+        "executor_jobs": len(executor_jobs),
+    }
+
+
+def evaluate(
+    policy_input: Any,
+    evidence_input: Any,
+    *,
+    phase: str = "evaluator",
+    executor_run_id: str | None = None,
+) -> dict[str, Any]:
     policy = validate_policy(policy_input)
+    if phase not in {"evaluator", "executor"}:
+        raise PolicyError("phase must be 'evaluator' or 'executor'")
+    if phase == "executor":
+        if executor_run_id is None or not RUN_ID_PATTERN.fullmatch(executor_run_id):
+            raise PolicyError("executor phase requires a numeric executor_run_id")
     evidence = _object(evidence_input, "evidence")
     pull_request = _object(evidence.get("pull_request"), "pull_request")
     repository = _string(evidence.get("repository"), "repository")
@@ -413,16 +718,20 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
     if review.get("threads_truncated"):
         core_reasons.append({"category": "review-threads-truncated"})
     if policy["merge"]["require_no_unresolved_threads"] and unresolved_threads:
-        core_reasons.append(
-            {"category": "unresolved-review-threads", "count": unresolved_threads}
-        )
-    if str(review.get("decision") or "").upper() == "CHANGES_REQUESTED":
+        core_reasons.append({"category": "unresolved-review-threads", "count": unresolved_threads})
+    review_decision = str(review.get("decision") or "").upper()
+    if review_decision == "CHANGES_REQUESTED":
         core_reasons.append({"category": "changes-requested"})
+    elif review_decision == "REVIEW_REQUIRED":
+        core_reasons.append({"category": "review-required"})
 
     mergeable = pull_request.get("mergeable")
     mergeable_state = str(pull_request.get("mergeable_state") or "").lower()
+    provisional_mergeability = False
     if policy["merge"]["require_clean_mergeability"]:
-        if mergeable is not True or mergeable_state != "clean":
+        if mergeable is True and mergeable_state in {"blocked", "unstable"}:
+            provisional_mergeability = True
+        elif mergeable is not True or mergeable_state != "clean":
             core_reasons.append(
                 {
                     "category": "mergeability-not-clean",
@@ -437,6 +746,31 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
         head_sha=head_sha,
     )
     core_reasons.extend(workflow_reasons)
+
+    executor_check_evidence: dict[str, Any] = {}
+    if phase == "executor":
+        check_reasons, check_evidence = _executor_check_inventory(
+            evidence.get("check_runs"),
+            evidence.get("status_contexts"),
+            repository=repository,
+            head_sha=head_sha,
+            checks_complete=evidence.get("check_runs_complete"),
+            statuses_complete=evidence.get("status_contexts_complete"),
+        )
+        executor_reasons, executor_evidence = _executor_run_inventory(
+            evidence.get("executor_run"),
+            evidence.get("executor_jobs"),
+            repository=repository,
+            default_branch=policy["repository"]["default_branch"],
+            current_default_sha=current_default_sha,
+            candidate_head_ref=head_ref,
+            candidate_head_sha=head_sha,
+            executor_run_id=str(executor_run_id),
+            jobs_complete=evidence.get("executor_jobs_complete"),
+        )
+        executor_check_evidence = {**check_evidence, **executor_evidence}
+        core_reasons.extend(check_reasons)
+        core_reasons.extend(executor_reasons)
 
     attended_labels = set(policy["attended"]["labels"])
     for label in labels:
@@ -465,9 +799,7 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
             and entry["status"] in {"removed", "deleted"}
             and TEST_PATH_PATTERN.search(entry["filename"])
         ):
-            attended_reasons.append(
-                {"category": "test-deletion", "path": entry["filename"]}
-            )
+            attended_reasons.append({"category": "test-deletion", "path": entry["filename"]})
 
     if attended_reasons:
         return _result(
@@ -489,6 +821,39 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
             files=len(files),
             labels=labels,
         )
+    if provisional_mergeability:
+        if phase == "executor" and executor_check_evidence.get("current_executor_job"):
+            return _result(
+                policy,
+                "allow",
+                [],
+                head_sha=head_sha,
+                base_sha=base_sha,
+                files=len(files),
+                labels=labels,
+                required_workflows=policy["merge"]["required_workflows"],
+                evaluation_phase=phase,
+                mergeability_self_check_verified=True,
+                check_inventory=executor_check_evidence,
+            )
+        return _result(
+            policy,
+            "provisional",
+            [
+                {
+                    "category": "mergeability-self-check-pending",
+                    "mergeable": mergeable,
+                    "state": mergeable_state,
+                }
+            ],
+            head_sha=head_sha,
+            base_sha=base_sha,
+            files=len(files),
+            labels=labels,
+            required_workflows=policy["merge"]["required_workflows"],
+            mergeability_recheck_required=True,
+            evaluation_phase=phase,
+        )
     return _result(
         policy,
         "allow",
@@ -498,6 +863,9 @@ def evaluate(policy_input: Any, evidence_input: Any) -> dict[str, Any]:
         files=len(files),
         labels=labels,
         required_workflows=policy["merge"]["required_workflows"],
+        evaluation_phase=phase,
+        mergeability_self_check_verified=False,
+        check_inventory=executor_check_evidence,
     )
 
 
@@ -511,6 +879,12 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate trusted PR evidence")
     evaluate_parser.add_argument("--policy", required=True, type=Path)
     evaluate_parser.add_argument("--input", required=True, type=Path)
+    evaluate_parser.add_argument(
+        "--phase",
+        choices=("evaluator", "executor"),
+        default="evaluator",
+    )
+    evaluate_parser.add_argument("--executor-run-id")
     return parser
 
 
@@ -526,7 +900,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "mode": policy["mode"],
             }
         else:
-            payload = evaluate(policy, load_json(args.input))
+            payload = evaluate(
+                policy,
+                load_json(args.input),
+                phase=args.phase,
+                executor_run_id=args.executor_run_id,
+            )
     except PolicyError as exc:
         print(
             json.dumps(

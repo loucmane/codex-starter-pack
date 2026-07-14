@@ -89,3 +89,28 @@ Exact signed implementation head:
 Hosted Python executed the unchanged governed-repository temp-isolation safety test in
 the normal non-temp checkout, closing the sole local environment exception. All required
 checks passed at the exact implementation head before Taskmaster completion/archive.
+
+## Current-Main Compatibility Verification — 2026-07-14
+
+Task 240 was merged non-rewriting with current main through Task 251 before final delivery.
+The semantic resolution preserves Task 240's worktree/child attribution and current main's
+first-class Codex `apply_patch`, managed hook lifecycle, installer-adoption safety,
+per-agent reload state, autonomous-delivery, and advisory-pending closeout behavior.
+
+| Check | Result |
+| --- | --- |
+| exact-tree full repository suite, sequential Git-isolated temp harness | 1,862 passed, 4 explicit opt-in certification/distribution smokes skipped |
+| affected adapter/installer/replay rerun after static cleanup | 214 passed, 1 explicit certification smoke skipped |
+| Black across all 20 changed Python files | passed |
+| Ruff across all 20 changed Python files | passed |
+| Python compilation of changed runtime modules | passed |
+| live/package installer parity | byte-identical |
+| live/package gate runtime parity | byte-identical |
+| Taskmaster full-graph health | 250 tasks, 383 subtasks, 435 dependency references, 0 invalid |
+| completed-source readiness | READY, 8/8 |
+| plan/tracker parity | passed |
+| merge-aware source guard regression suite | 85 passed |
+| live/package source guard parity | byte-identical |
+
+Fresh hosted evidence is still required at the final merge head. Historical Task 247-251
+files are current-main history and were not re-dated or rewritten as Task 240 work.

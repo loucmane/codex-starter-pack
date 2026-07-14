@@ -55,3 +55,17 @@ def test_no_new_unmirrored_py_under_assets_scripts() -> None:
                 f"assets/scripts/{asset.name} mirrors a live script but is not guarded; "
                 "add it to MIRRORED_ASSET_SCRIPTS."
             )
+
+
+def test_advisory_pending_lifecycle_doc_matches_packaged_asset() -> None:
+    name = "advisory-pending-lifecycle.md"
+    live = REPO_ROOT / "docs" / "aegis" / name
+    asset = REPO_ROOT / "aegis_foundation" / "assets" / "docs" / "aegis" / name
+    assert live.is_file()
+    assert asset.is_file()
+    assert asset.read_bytes() == live.read_bytes()
+    text = live.read_text(encoding="utf-8")
+    assert "Blog Task 40" in text
+    assert "advisory-only" in text.lower()
+    assert "Do not drain" in text
+    assert "aegis update --target-dir ." in text
