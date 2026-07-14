@@ -9,3 +9,10 @@
   strictness, and divergent-hook no-write regressions.
 - 2026-07-13 23:38 CEST — Replayed the patched updater against a disposable snapshot of
   Blog Task 40; update and all 42 strict checks passed without modifying live Blog.
+- 2026-07-14 00:04 CEST — Merged PR #275 through the protected exact-head squash path as
+  `d7ffce5eff8df92d08def1e4e2b7aeef2860a81d` after all required checks passed.
+- 2026-07-14 00:12 CEST — Passed exact-merge-SHA CI and guards, marked Task 249 done, and
+  prepared its complete evidence bundle for supported archival.
+- 2026-07-14 00:16 CEST — Archived active work-tracking folder.
+- 2026-07-14 00:18 CEST — Passed 316 terminal closeout regressions and all final source
+  workflow checks on the isolated closeout branch.

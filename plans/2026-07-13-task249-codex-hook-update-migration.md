@@ -5,9 +5,9 @@ handler_target: scripts/_aegis_installer.py
 task_ids: [249]
 branch_policy: feature-required
 evidence_summary:
-  - docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/
+  - docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/
   - scripts/_aegis_installer.py
-  - .taskmaster/tasks/task_249.txt
+  - .taskmaster/tasks/task_249.md
   - scripts/codex-task
 plan_version: v1
 emergency_bypass: false
@@ -21,22 +21,22 @@ emergency_bypass: false
 - **Handler Target (H)**: scripts/_aegis_installer.py
 - **Task IDs**: 249
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/, scripts/_aegis_installer.py, .taskmaster/tasks/task_249.txt, scripts/codex-task
+- **Evidence Summary (E)**: docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/, scripts/_aegis_installer.py, .taskmaster/tasks/task_249.md, scripts/codex-task
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
 ## Plan Table
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
-| plan-step-scope | Define the migration-order invariant and fail-closed boundaries for pre-adapter Codex manifests | docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/designs/update-migration-order.md | completed |
-| plan-step-implement | Reorder project update apply, preserve manual-review refusal, and add Blog-shaped regression coverage | scripts/_aegis_installer.py; tests/meta_workflow_guard/test_codex_hook_adapter.py; docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/HANDOFF.md; docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/TRACKER.md | in-progress |
+| plan-step-scope | Define the migration-order invariant and fail-closed boundaries for pre-adapter Codex manifests | docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/designs/update-migration-order.md | completed |
+| plan-step-implement | Reorder project update apply, preserve manual-review refusal, and add Blog-shaped regression coverage | scripts/_aegis_installer.py; tests/meta_workflow_guard/test_codex_hook_adapter.py; docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/IMPLEMENTATION.md | completed |
+| plan-step-verify | Store evidence, refresh handoff docs, and confirm Taskmaster status | docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/TRACKER.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
-- `docs/ai/work-tracking/active/20260713-task249-codex-hook-update-migration-ACTIVE/`
+- `docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/`
 - `scripts/_aegis_installer.py`
-- `.taskmaster/tasks/task_249.txt`
+- `.taskmaster/tasks/task_249.md`
 - `scripts/codex-task`
 - `tests/`
 - Taskmaster Task `249`
@@ -63,7 +63,8 @@ emergency_bypass: false
 ## Evidence Checklist
 - Migration-order design note under `designs/`
 - Tracker/session entries for kickoff and implementation progress
-- Stored test and guard evidence once the wizard implementation lands
+- Stored runtime, migration replay, strict verification, source workflow, protected delivery,
+  and exact-merge-SHA CI evidence
 
 ## Emergency Bypass Protocol
 - No bypass authorized.

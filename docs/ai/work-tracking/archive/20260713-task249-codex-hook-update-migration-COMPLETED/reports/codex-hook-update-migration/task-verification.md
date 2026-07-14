@@ -58,6 +58,37 @@ The Aegis source worktree is intentionally not an installed Aegis target, so str
 installed-target verification is represented by the migrated Blog snapshot above rather
 than by fabricating `.aegis` installation state inside this worktree.
 
+## Hosted delivery and exact-merge verification
+
+- PR: `#275`
+- Exact signed head: `d3cbed1f6712a77f15329dee155c3025f67e41c9`
+- Protected squash merge: `d7ffce5eff8df92d08def1e4e2b7aeef2860a81d`
+- Reviewed tree and merged tree: `a777c9325638183242e0d39a1722c4c7667fad9f`
+- Pre-merge CI: Python 3.11 and 3.12 passed in run `29287969663`.
+- Pre-merge witness and guards: runs `29287969631`, `29287969592`, and `29287969591`
+  passed.
+- Exact-merge-SHA CI: Python 3.11 and 3.12 passed in run `29288646422`.
+- Exact-merge-SHA guards: runs `29288646417` and `29288646426` passed.
+- GitHub state at merge: `CLEAN`, `MERGEABLE`, zero unresolved review threads.
+- Merge method: normal protected squash; no admin bypass, force operation, or evidence-policy
+  bypass was used.
+
+Hosted CI exercised the full, unfiltered repository suite from a normal checkout and passed
+the location-sensitive safety assertion that was not meaningful in the `/tmp` implementation
+worktree.
+
+## Terminal closeout verification
+
+- Completed-source readiness: `READY | task=249`.
+- Closeout, guard-rule, and source-helper regressions: `316 passed`.
+- Plan/tracker sync: passed after archival.
+- Work-tracking audit: passed with only the expected terminal notice that no ACTIVE folder
+  remains.
+- Taskmaster health and dependency validation: passed with 239 done tasks and zero invalid
+  dependency references.
+- S:W:H:E source guard with untracked-scope inspection: passed.
+- `git diff --check`: passed.
+
 ## Hook manual-review evidence
 
 | File | Raw SHA-256 | Semantic SHA-256 |

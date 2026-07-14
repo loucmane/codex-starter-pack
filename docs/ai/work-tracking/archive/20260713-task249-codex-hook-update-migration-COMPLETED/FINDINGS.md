@@ -19,3 +19,6 @@
 - 2026-07-13 — The complete local suite passed 1,957 tests with four opt-in skips. Its one
   failure is the established location-sensitive isolation test whose premise excludes a
   repository rooted under `/tmp`; hosted CI must provide the unfiltered non-`/tmp` proof.
+- 2026-07-14 — Hosted Python 3.11 and 3.12 matrices passed before merge and again at the
+  exact merge SHA. This resolves the sole local environment limitation without weakening,
+  deselecting, or rewriting the location-sensitive safety assertion.

@@ -9,3 +9,6 @@
   Task 249 does not add overwrite, force-adoption, or hook-trust bypass behavior.
 - 2026-07-13 — Treat the Blog checkout as read-only while Task 40 is active. Reproduce and
   verify only in a disposable snapshot until Blog reaches a safe checkpoint.
+- 2026-07-14 — Close Task 249 only after both pre-merge and exact-merge-SHA Python matrices
+  passed. Keep the live Blog rollout deferred to its safe Task 40 checkpoint and retain the
+  attended installer/manual-hook and `/hooks` exact-hash trust boundaries.

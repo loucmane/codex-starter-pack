@@ -1,6 +1,6 @@
 # Task 249 Fix pre-adapter Codex manifest update migration – Implementation Notes
 
-## Planned Workstreams
+## Completed Workstreams
 - **Apply ordering:** move managed `install(..., apply=True)` ahead of
   `runtime_update(..., apply=True)` after preview safety has passed.
 - **Failure reporting:** if install refuses, report it without claiming runtime apply; if
