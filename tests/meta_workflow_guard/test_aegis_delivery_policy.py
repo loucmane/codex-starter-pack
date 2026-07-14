@@ -33,6 +33,7 @@ PR269_FIXTURE_PATH = (
 PR276_FIXTURE_PATH = (
     REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr276-executor-self-unstable.json"
 )
+PR278_FIXTURE_PATH = REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr278-workflow-run-executor.json"
 HEAD_SHA = "a" * 40
 BASE_SHA = "b" * 40
 
@@ -212,7 +213,38 @@ def test_pr276_live_executor_replay_allows_only_the_verified_self_check() -> Non
     assert executor["evidence"]["evaluation_phase"] == "executor"
     assert executor["evidence"]["mergeability_self_check_verified"] is True
     assert executor["evidence"]["check_inventory"] == {
-        "current_self_check": True,
+        "current_executor_job": True,
+        "executor_run_verified": True,
+        "executor_run_id": fixture["executor_run_id"],
+        "executor_jobs": 1,
+        "ignored_self_checks": 1,
+        "independent_checks": 4,
+        "status_contexts": 0,
+    }
+
+
+def test_pr278_workflow_run_executor_is_bound_outside_candidate_checks() -> None:
+    fixture = json.loads(PR278_FIXTURE_PATH.read_text(encoding="utf-8"))
+    candidate_urls = [check["details_url"] for check in fixture["evidence"]["check_runs"]]
+
+    evaluator = policy_module.evaluate(_policy(), fixture["evidence"])
+    executor = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert fixture["observed"]["candidate_contains_current_executor"] is False
+    assert all(f"/runs/{fixture['executor_run_id']}/" not in url for url in candidate_urls)
+    assert evaluator["decision"] == fixture["expected_evaluator_decision"]
+    assert executor["decision"] == fixture["expected_executor_decision"]
+    assert executor["reasons"] == []
+    assert executor["evidence"]["check_inventory"] == {
+        "current_executor_job": True,
+        "executor_run_verified": True,
+        "executor_run_id": fixture["executor_run_id"],
+        "executor_jobs": 1,
         "ignored_self_checks": 1,
         "independent_checks": 4,
         "status_contexts": 0,
@@ -232,7 +264,7 @@ def test_executor_clean_mergeability_still_requires_complete_check_inventory() -
 
     assert result["decision"] == "allow"
     assert result["evidence"]["mergeability_self_check_verified"] is False
-    assert result["evidence"]["check_inventory"]["current_self_check"] is True
+    assert result["evidence"]["check_inventory"]["current_executor_job"] is True
 
 
 @pytest.mark.parametrize(
@@ -240,12 +272,27 @@ def test_executor_clean_mergeability_still_requires_complete_check_inventory() -
     [
         ("independent-pending", "check-run-pending"),
         ("independent-failed", "check-run-not-successful"),
-        ("self-app-spoof", "executor-self-check-missing"),
-        ("self-run-mismatch", "executor-self-check-missing"),
-        ("self-already-completed", "executor-self-check-missing"),
+        ("candidate-self-app-spoof", "check-run-pending"),
+        ("candidate-self-url-spoof", "check-run-pending"),
         ("checks-incomplete", "check-run-inventory-incomplete"),
         ("statuses-incomplete", "status-context-inventory-incomplete"),
         ("legacy-status-failed", "status-context-not-successful"),
+        ("executor-run-id-mismatch", "executor-run-id-mismatch"),
+        ("executor-run-path-spoof", "executor-run-path-mismatch"),
+        ("executor-run-event-spoof", "executor-run-event-untrusted"),
+        ("executor-run-repository-spoof", "executor-run-repository-mismatch"),
+        ("executor-run-head-repository-spoof", "executor-run-head-repository-mismatch"),
+        ("executor-run-completed", "executor-run-not-active"),
+        ("executor-run-head-mismatch", "executor-run-trusted-head-mismatch"),
+        ("executor-job-missing", "executor-job-missing"),
+        ("executor-job-duplicate", "executor-job-ambiguous"),
+        ("executor-job-run-mismatch", "executor-job-run-mismatch"),
+        ("executor-job-attempt-mismatch", "executor-job-attempt-mismatch"),
+        ("executor-job-head-mismatch", "executor-job-trusted-head-mismatch"),
+        ("executor-job-workflow-spoof", "executor-job-workflow-mismatch"),
+        ("executor-job-url-spoof", "executor-job-url-mismatch"),
+        ("executor-job-completed", "executor-job-not-active"),
+        ("executor-jobs-incomplete", "executor-job-inventory-incomplete"),
     ],
 )
 def test_executor_self_exception_never_masks_other_status_evidence(
@@ -259,20 +306,15 @@ def test_executor_self_exception_never_masks_other_status_evidence(
         evidence["check_runs"][0]["conclusion"] = None
     elif mutation == "independent-failed":
         evidence["check_runs"][0]["conclusion"] = "failure"
-    elif mutation == "self-app-spoof":
+    elif mutation == "candidate-self-app-spoof":
         evidence["check_runs"][1]["app"]["slug"] = "untrusted-app"
-    elif mutation == "self-run-mismatch":
-        evidence["check_runs"][1]["details_url"] = (
-            "https://github.com/loucmane/codex-starter-pack/actions/runs/999/job/1"
-        )
-    elif mutation == "self-already-completed":
-        evidence["check_runs"][1]["status"] = "completed"
-        evidence["check_runs"][1]["conclusion"] = "failure"
+    elif mutation == "candidate-self-url-spoof":
+        evidence["check_runs"][1]["details_url"] = "https://example.invalid/actions/runs/999/job/1"
     elif mutation == "checks-incomplete":
         evidence["check_runs_complete"] = False
     elif mutation == "statuses-incomplete":
         evidence["status_contexts_complete"] = False
-    else:
+    elif mutation == "legacy-status-failed":
         evidence["status_contexts"] = [
             {
                 "id": 1,
@@ -282,6 +324,40 @@ def test_executor_self_exception_never_masks_other_status_evidence(
                 "created_at": "2026-07-14T05:16:00Z",
             }
         ]
+    elif mutation == "executor-run-id-mismatch":
+        evidence["executor_run"]["id"] = 999
+    elif mutation == "executor-run-path-spoof":
+        evidence["executor_run"]["path"] = ".github/workflows/untrusted.yml"
+    elif mutation == "executor-run-event-spoof":
+        evidence["executor_run"]["event"] = "repository_dispatch"
+    elif mutation == "executor-run-repository-spoof":
+        evidence["executor_run"]["repository"]["full_name"] = "attacker/fork"
+    elif mutation == "executor-run-head-repository-spoof":
+        evidence["executor_run"]["head_repository"]["full_name"] = "attacker/fork"
+    elif mutation == "executor-run-completed":
+        evidence["executor_run"]["status"] = "completed"
+        evidence["executor_run"]["conclusion"] = "success"
+    elif mutation == "executor-run-head-mismatch":
+        evidence["executor_run"]["head_sha"] = "f" * 40
+    elif mutation == "executor-job-missing":
+        evidence["executor_jobs"] = [evidence["executor_jobs"][0]]
+    elif mutation == "executor-job-duplicate":
+        evidence["executor_jobs"].append(dict(evidence["executor_jobs"][1]))
+    elif mutation == "executor-job-run-mismatch":
+        evidence["executor_jobs"][1]["run_id"] = 999
+    elif mutation == "executor-job-attempt-mismatch":
+        evidence["executor_jobs"][1]["run_attempt"] = 99
+    elif mutation == "executor-job-head-mismatch":
+        evidence["executor_jobs"][1]["head_sha"] = "f" * 40
+    elif mutation == "executor-job-workflow-spoof":
+        evidence["executor_jobs"][1]["workflow_name"] = "Untrusted Workflow"
+    elif mutation == "executor-job-url-spoof":
+        evidence["executor_jobs"][1]["html_url"] = "https://example.invalid/job/1"
+    elif mutation == "executor-job-completed":
+        evidence["executor_jobs"][1]["status"] = "completed"
+        evidence["executor_jobs"][1]["conclusion"] = "failure"
+    else:
+        evidence["executor_jobs_complete"] = False
 
     result = policy_module.evaluate(
         _policy(),
@@ -292,6 +368,23 @@ def test_executor_self_exception_never_masks_other_status_evidence(
 
     assert result["decision"] == "defer"
     assert category in {reason["category"] for reason in result["reasons"]}
+
+
+def test_completed_prior_candidate_executor_does_not_mask_current_trusted_executor() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    prior_executor = fixture["evidence"]["check_runs"][1]
+    prior_executor["status"] = "completed"
+    prior_executor["conclusion"] = "failure"
+
+    result = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "allow"
+    assert result["evidence"]["check_inventory"]["ignored_self_checks"] == 1
 
 
 def test_executor_self_exception_never_masks_an_attended_path() -> None:

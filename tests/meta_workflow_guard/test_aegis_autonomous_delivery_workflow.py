@@ -163,11 +163,43 @@ def test_each_policy_decision_uses_complete_current_evidence() -> None:
     assert "commits/${EXPECTED_HEAD}/check-runs?" not in evaluator_text
     assert executor_text.count("commits/${EXPECTED_HEAD}/check-runs?") == 2
     assert executor_text.count("commits/${EXPECTED_HEAD}/statuses?") == 2
+    assert executor_text.count('"repos/${REPOSITORY}/actions/runs/${EXECUTOR_RUN_ID}"') == 2
+    assert executor_text.count('"repos/${REPOSITORY}/actions/runs/${EXECUTOR_RUN_ID}/jobs?') == 2
     assert executor_text.count("--phase executor") == 2
     assert executor_text.count('--executor-run-id "$EXECUTOR_RUN_ID"') == 2
     assert "check_runs_complete: true" in executor_text
     assert "status_contexts_complete: true" in executor_text
+    assert executor_text.count("executor_jobs_complete") == 2
+    assert "executor_run: $executor_run[0]" in executor_text
+    assert ".executor_run = $executor_run[0]" in executor_text
+    assert "executor_jobs: $executor_jobs[0]" in executor_text
+    assert ".executor_jobs = $executor_jobs[0]" in executor_text
     assert "final-aegis-delivery-evidence.json" in executor_text
+
+
+def test_executor_identity_comes_from_its_trusted_run_not_candidate_checks() -> None:
+    workflow = _workflow()
+    executor = workflow["jobs"]["merge"]
+    text = "\n".join(str(step.get("run", "")) for step in executor["steps"])
+    recollect = next(
+        step
+        for step in executor["steps"]
+        if step.get("name") == "Recollect exact-head repository evidence after required check"
+    )
+    merge = next(
+        step
+        for step in executor["steps"]
+        if step.get("name") == "Squash-merge freshly authorized exact head"
+    )
+
+    assert executor["permissions"]["actions"] == "read"
+    assert recollect["env"]["EXECUTOR_RUN_ID"] == "${{ github.run_id }}"
+    assert merge["env"]["EXECUTOR_RUN_ID"] == "${{ github.run_id }}"
+    assert "actions/runs/${EXECUTOR_RUN_ID}/jobs?per_page=100&filter=latest" in text
+    assert "--jq '.jobs | map({" in text
+    assert "head_repository: {full_name: .head_repository.full_name}" in text
+    assert "executor_jobs_complete: true" in text
+    assert "commits/${EXPECTED_HEAD}/check-runs?" in text
 
 
 def test_review_pagination_uses_the_real_final_page_in_both_jobs() -> None:
