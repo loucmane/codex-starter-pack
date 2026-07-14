@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aegis_foundation import legacy_projection, mcp_registration, output_budget
+from aegis_foundation import legacy_projection, mcp_registration, obsidian_vault, output_budget
 from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
@@ -1052,6 +1052,91 @@ def handle_ledger(args: argparse.Namespace) -> int:
                         print(result.section, end="")
             return 0
     raise _aegis_installer.AegisError("unknown ledger subcommand")
+
+
+def _vault_inputs(
+    source_root: Path,
+    target_dir: str | Path,
+) -> tuple[Any, dict[str, Any], str]:
+    """Read a stable vault snapshot without creating or changing ledger state."""
+
+    ledger_lib = _load_ledger_lib(source_root)
+    try:
+        ledger = ledger_lib.open_ledger(cwd=target_dir, read_only=True)
+    except ledger_lib.LedgerError as exc:
+        if "does not exist" not in str(exc):
+            raise _aegis_installer.AegisError(f"unable to read Aegis ledger: {exc}") from exc
+        events: list[dict[str, Any]] = []
+        ledger_status = "absent"
+    else:
+        try:
+            events = ledger.read()
+        finally:
+            ledger.close()
+        ledger_status = "available"
+    try:
+        context = ledger_lib.repository_context(target_dir)
+        identity = context.get("repository_identity")
+    except ledger_lib.LedgerError as exc:
+        raise _aegis_installer.AegisError(f"unable to resolve repository identity: {exc}") from exc
+    try:
+        snapshot = obsidian_vault.collect_snapshot(
+            target_dir,
+            events,
+            repository_identity=str(identity or "") or None,
+        )
+    except obsidian_vault.VaultError as exc:
+        raise _aegis_installer.AegisError(str(exc)) from exc
+    return ledger_lib, snapshot, ledger_status
+
+
+def _vault_output_path(ledger_lib: Any, target_dir: str | Path, output: str | None) -> Path:
+    if output:
+        return Path(output).expanduser().resolve()
+    try:
+        store = Path(ledger_lib.store_path(cwd=target_dir))
+    except ledger_lib.LedgerError as exc:
+        raise _aegis_installer.AegisError(f"unable to resolve vault destination: {exc}") from exc
+    return obsidian_vault.default_vault_path(store.parent)
+
+
+def handle_vault(args: argparse.Namespace) -> int:
+    """Build or verify the disposable Obsidian-compatible evidence view."""
+
+    with _resolve_source_root(args.source_root) as source_root:
+        ledger_lib = _load_ledger_lib(source_root)
+        output = _vault_output_path(ledger_lib, args.target_dir, getattr(args, "output", None))
+        if args.vault_subcommand == "path":
+            print(output.as_posix())
+            return 0
+        ledger_lib, snapshot, ledger_status = _vault_inputs(source_root, args.target_dir)
+        output = _vault_output_path(ledger_lib, args.target_dir, getattr(args, "output", None))
+        if args.vault_subcommand == "build":
+            try:
+                result = obsidian_vault.build_vault(
+                    snapshot,
+                    output,
+                    target_dir=args.target_dir,
+                )
+            except obsidian_vault.VaultError as exc:
+                raise _aegis_installer.AegisError(str(exc)) from exc
+            _dump_json(
+                {
+                    **result,
+                    "authority": "derived-read-only",
+                    "ledger": ledger_status,
+                    "next_action": "open the generated directory in Obsidian or run aegis vault check",
+                }
+            )
+            return 0
+        if args.vault_subcommand == "check":
+            result = obsidian_vault.check_vault(
+                output,
+                expected_source_digest=snapshot["source_digest"],
+            )
+            _dump_json({**result, "authority": "derived-read-only", "ledger": ledger_status})
+            return 0 if result["ok"] else 1
+    raise _aegis_installer.AegisError("unknown vault subcommand")
 
 
 def handle_next(args: argparse.Namespace) -> int:
@@ -2087,6 +2172,42 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--json", action="store_true", help="Print structured result JSON."
     )
     ledger_project_parser.set_defaults(func=handle_ledger)
+
+    vault_parser = subparsers.add_parser(
+        "vault",
+        help="Build or verify a disposable Obsidian-compatible view of Aegis evidence.",
+    )
+    vault_sub = vault_parser.add_subparsers(dest="vault_subcommand", required=True)
+    vault_path_parser = vault_sub.add_parser(
+        "path",
+        help="Print the default out-of-repository vault path beside the passive ledger.",
+    )
+    vault_path_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    vault_path_parser.add_argument(
+        "--output",
+        help="Optional explicit out-of-repository vault directory.",
+    )
+    vault_path_parser.set_defaults(func=handle_vault)
+    vault_build_parser = vault_sub.add_parser(
+        "build",
+        help="Atomically build the read-only derived vault without modifying source files.",
+    )
+    vault_build_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    vault_build_parser.add_argument(
+        "--output",
+        help="Optional explicit out-of-repository vault directory.",
+    )
+    vault_build_parser.set_defaults(func=handle_vault)
+    vault_check_parser = vault_sub.add_parser(
+        "check",
+        help="Verify vault ownership, hashes, exact inventory, and source freshness.",
+    )
+    vault_check_parser.add_argument("--target-dir", default=".", help="Target repository root.")
+    vault_check_parser.add_argument(
+        "--output",
+        help="Optional explicit out-of-repository vault directory.",
+    )
+    vault_check_parser.set_defaults(func=handle_vault)
 
     next_parser = subparsers.add_parser(
         "next",

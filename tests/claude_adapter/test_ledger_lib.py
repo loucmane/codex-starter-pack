@@ -426,6 +426,42 @@ def test_sqlite_additive_migration_preserves_old_rows_and_read_only_compatibilit
     assert migrated["parent_agent_id"] == "parent-after-migration"
 
 
+def test_read_only_reader_resolves_immutable_columns_before_building_query(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db_path = tmp_path / "ledger.db"
+    writer = ledger_lib.SQLiteLedger(db_path)
+    writer.append(
+        {
+            "event_id": "sandbox-visible-event",
+            "event_type": "witness",
+            "outcome": "pass",
+            "extra": {"passed": True},
+        }
+    )
+    writer.close()
+
+    original = ledger_lib.SQLiteLedger._table_columns
+    calls = 0
+
+    def fail_wal_metadata_probe_once(instance):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return set()
+        return original(instance)
+
+    monkeypatch.setattr(ledger_lib.SQLiteLedger, "_table_columns", fail_wal_metadata_probe_once)
+    reader = ledger_lib.SQLiteLedger(db_path, read_only=True)
+    events = reader.read()
+    reader.close()
+
+    assert calls >= 2
+    assert events[0]["event_id"] == "sandbox-visible-event"
+    assert events[0]["event_type"] == "witness"
+    assert events[0]["outcome"] == "pass"
+
+
 def test_sqlite_writer_waits_for_transient_lock(tmp_path: Path) -> None:
     db_path = tmp_path / "ledger.db"
     ledger = ledger_lib.SQLiteLedger(db_path)
