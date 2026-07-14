@@ -2,7 +2,7 @@
 
 **Title:** Stabilize evidence-gated autonomous delivery executor
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 247 ✓
 

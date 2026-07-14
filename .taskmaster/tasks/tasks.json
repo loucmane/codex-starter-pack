@@ -8078,20 +8078,20 @@
         "description": "Fix the trusted autonomous-delivery self-gating race reproduced by PR #276, where all required exact-head evidence is green but the non-required merge executor keeps GitHub mergeable_state unstable and can never obtain a fresh allow decision.",
         "details": "Preserve fail-closed semantics and the rule that provisional never authorizes merge. Model required-context state directly from trusted GitHub evidence so the executor can distinguish its own in-progress or prior non-required check from genuinely failing required evidence. Add a sanitized PR #276 replay fixture, policy and workflow contract regressions, adversarial cases for real required-check failures and head/base drift, bounded retries, and a live ordinary canary. Do not weaken attended-path, review-thread, file-inventory, exact-head, same-repo, or protected-path gates. After the fix merges, retrigger PR #276 through the normal evidence-gated path and prove exact-merge-SHA post-merge checks.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "247"
         ],
         "priority": "high",
         "subtasks": [],
-        "updatedAt": "2026-07-14T05:18:41.369Z"
+        "updatedAt": "2026-07-14T10:08:42.939Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-14T05:33:24.474Z",
+      "lastModified": "2026-07-14T10:08:42.939Z",
       "taskCount": 249,
-      "completedCount": 239,
+      "completedCount": 240,
       "tags": [
         "master"
       ]
