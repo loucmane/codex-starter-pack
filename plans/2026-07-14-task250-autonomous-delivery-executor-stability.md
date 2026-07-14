@@ -11,7 +11,9 @@ evidence_summary:
   - .github/workflows/aegis-autonomous-delivery.yml
   - scripts/aegis-delivery-policy
   - tests/fixtures/aegis/pr276-executor-self-unstable.json
+  - tests/fixtures/aegis/pr278-workflow-run-executor.json
   - docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/task-verification.md
+  - docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/pr278-executor-run-evidence.md
 plan_version: v1
 emergency_bypass: false
 ---
@@ -24,7 +26,7 @@ emergency_bypass: false
 - **Handler Target (H)**: .github/workflows/aegis-autonomous-delivery.yml
 - **Task IDs**: 250
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/, docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/, .serena/memories/2026-07-14_task250_autonomous_delivery_executor_stability.md, .github/workflows/aegis-autonomous-delivery.yml, scripts/aegis-delivery-policy, tests/fixtures/aegis/pr276-executor-self-unstable.json, docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/task-verification.md
+- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/, docs/ai/work-tracking/archive/20260713-task249-codex-hook-update-migration-COMPLETED/, .serena/memories/2026-07-14_task250_autonomous_delivery_executor_stability.md, .github/workflows/aegis-autonomous-delivery.yml, scripts/aegis-delivery-policy, tests/fixtures/aegis/pr276-executor-self-unstable.json, tests/fixtures/aegis/pr278-workflow-run-executor.json, docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/task-verification.md, docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/pr278-executor-run-evidence.md
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
@@ -47,7 +49,9 @@ emergency_bypass: false
 - `tests/meta_workflow_guard/test_aegis_delivery_policy.py`
 - `tests/meta_workflow_guard/test_aegis_autonomous_delivery_workflow.py`
 - `tests/fixtures/aegis/pr276-executor-self-unstable.json`
+- `tests/fixtures/aegis/pr278-workflow-run-executor.json`
 - `docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/task-verification.md`
+- `docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/reports/autonomous-delivery-executor-stability/pr278-executor-run-evidence.md`
 - `.taskmaster/tasks/task_250.md`
 - `.taskmaster/tasks/task_249.md`
 - `.taskmaster/tasks/tasks.json`
@@ -58,6 +62,7 @@ emergency_bypass: false
 
 ## Amendments & Versioning
 - 2026-07-14 - Task 250 kickoff created via the guided wizard flow.
+- 2026-07-14 - Live canary PR #278 showed that `workflow_run` executor jobs are anchored to trusted `main` and cannot appear in candidate-head checks. The verification step now includes a separate trusted Actions run/job evidence model and a second hosted canary attempt before closeout.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)
@@ -76,6 +81,7 @@ emergency_bypass: false
 - Executor self-status contract under `designs/`
 - Tracker/session entries for kickoff and implementation progress
 - Direct-telemetry PR #276 replay and adversarial regressions
+- Direct-telemetry PR #278 `workflow_run` replay and trusted run/job regressions
 - Stored local, hosted, canary, and post-merge verification evidence
 
 ## Emergency Bypass Protocol

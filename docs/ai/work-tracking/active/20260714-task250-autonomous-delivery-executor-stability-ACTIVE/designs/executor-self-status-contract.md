@@ -19,6 +19,15 @@ check, and failed earlier attempts with the same check name, can themselves keep
 the pull request `unstable`. Requiring `clean` from inside that check is therefore
 circular.
 
+The post-merge canary PR #278 exposed a second provenance shape. Its ordinary
+candidate checks were complete and green, but the merge-capable retry was
+triggered by `workflow_run`. GitHub anchored that executor run and both of its
+jobs to trusted `main` at `0088fff`, not to candidate head `eb7933b`. The old
+implementation searched only the candidate-head Checks API and therefore failed
+closed with `executor-self-check-missing`, even though run `29320216830` and its
+active merge job were available from the trusted Actions run/jobs APIs. A current
+`workflow_run` executor can never satisfy a candidate-head self-check lookup.
+
 ## Invariants
 
 The remediation does not make `blocked` or `unstable` generally mergeable.
@@ -29,33 +38,39 @@ The remediation does not make `blocked` or `unstable` generally mergeable.
 2. Only the trusted default-branch executor may request executor-phase evaluation.
    It passes GitHub's numeric `run_id`; candidate code and candidate policy are
    never executed.
-3. Executor phase fetches the complete latest exact-head Checks API inventory and
-   every legacy commit-status context.
-4. The circular status is recognized only when a check is named
-   `policy-authorized merge`, belongs to the `github-actions` app, resolves under
-   this repository's Actions URL, and the current trusted run has a queued or
-   in-progress instance.
-5. Every non-self check must be completed with `success`, `neutral`, or `skipped`.
+3. Executor phase fetches two independent complete inventories: latest
+   candidate-head checks/status contexts, and the current trusted Actions run
+   plus all jobs for its exact numeric run ID.
+4. Prior candidate-head checks named `policy-authorized merge` are excluded from
+   independent status accounting only when they belong to `github-actions` and
+   have a canonical repository Actions run/job URL. Current executor identity is
+   never inferred from those checks.
+5. The current executor must be the sole active `policy-authorized merge` job in
+   the exact trusted run, with matching run ID, attempt, workflow name, workflow
+   path, repository/head-repository, canonical job URL, and trigger-specific head:
+   `pull_request_target` binds to the candidate; `workflow_run` binds to the
+   current trusted default branch.
+6. Every non-self check must be completed with `success`, `neutral`, or `skipped`.
    Every latest legacy status context must be `success`. Missing, truncated,
    spoofed, pending, failed, cancelled, stale-head, or malformed evidence fails
    closed.
-6. Required workflow runs, exact head, current base, same-repository head,
+7. Required workflow runs, exact head, current base, same-repository head,
    task-branch shape, complete file inventory, reviews, labels, attended paths,
    and test-deletion checks remain independently binding.
-7. Immediately before merge, the executor recollects PR metadata, workflow runs,
-   check runs, status contexts, and review threads; it reruns trusted policy and
-   requires a second ordinary `allow` decision.
-8. The merge request remains a SHA-pinned squash through GitHub's normal protected
+8. Immediately before merge, the executor recollects PR metadata, workflow runs,
+   check runs, status contexts, review threads, and its own run/jobs; it reruns
+   trusted policy and requires a second ordinary `allow` decision.
+9. The merge request remains a SHA-pinned squash through GitHub's normal protected
    API. There is no admin bypass, force operation, candidate checkout, artifact
    execution, or policy override.
 
 ## Executor Decision Table
 
-| Mergeability | Current trusted self check | Independent checks/statuses | Result |
+| Mergeability | Current trusted run/job | Independent candidate checks/statuses | Result |
 |---|---|---|---|
 | `clean` | present | all green and complete | `allow` |
 | `blocked` / `unstable` | present | all green and complete | `allow` with `mergeability_self_check_verified=true` |
-| `blocked` / `unstable` | missing, completed, or spoofed | any | `defer` |
+| `blocked` / `unstable` | missing, completed, ambiguous, or mismatched | any | `defer` |
 | `blocked` / `unstable` | present | pending/failed/incomplete | `defer` |
 | `dirty`, `behind`, `unknown`, or `mergeable=false` | any | any | `defer` |
 | any | any | attended path/label/fork/test deletion | `attended` |
@@ -64,9 +79,13 @@ The remediation does not make `blocked` or `unstable` generally mergeable.
 
 - Preserve PR #264 and PR #269 evaluator replays as `provisional`.
 - Add direct-telemetry PR #276 replay: evaluator remains `provisional`; trusted
-  executor phase becomes `allow` only with the exact current-run self check and
-  complete green independent inventories.
-- Reject self-name spoofing, wrong run IDs, already-completed self checks,
+  executor phase becomes `allow` only with the exact current run/job and complete
+  green independent inventories.
+- Add direct-telemetry PR #278 replay: the current `workflow_run` executor is
+  absent from candidate checks but binds exactly to trusted `main` through its
+  own run/jobs APIs.
+- Reject self-name spoofing, wrong run IDs, workflow path/event/repository/head
+  mismatches, duplicate or completed executor jobs,
   independent pending/failing checks, failed legacy statuses, incomplete
   inventories, attended paths, stale head/base, and review failures.
 - Prove the workflow has only `checks: read` in addition to its existing executor
