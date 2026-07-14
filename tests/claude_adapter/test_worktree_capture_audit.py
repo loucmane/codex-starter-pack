@@ -11,9 +11,7 @@ from aegis_foundation import worktree_capture_audit as audit
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "aegis" / "worktree-capture-audit.json"
-LIVE_FIXTURE = (
-    REPO_ROOT / "tests" / "fixtures" / "aegis" / "worktree-subagent-live-coverage.json"
-)
+LIVE_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "aegis" / "worktree-subagent-live-coverage.json"
 
 
 def run(arguments: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -74,10 +72,13 @@ def test_two_linked_worktrees_share_repository_identity_and_ledger_path(tmp_path
     repo = make_repo(tmp_path)
     worktree = tmp_path / "linked-worktree"
     state_home = tmp_path / "state"
-    assert run(
-        ["git", "worktree", "add", "-q", "-b", "fixture/worktree-a", worktree.as_posix()],
-        repo,
-    ).returncode == 0
+    assert (
+        run(
+            ["git", "worktree", "add", "-q", "-b", "fixture/worktree-a", worktree.as_posix()],
+            repo,
+        ).returncode
+        == 0
+    )
     try:
         parent = audit.collect_snapshot(
             repo,
@@ -113,18 +114,21 @@ def test_concurrent_worktree_writers_survive_teardown(tmp_path: Path) -> None:
     worktrees = [tmp_path / "worktree-a", tmp_path / "worktree-b"]
     state_home = tmp_path / "state"
     for index, worktree in enumerate(worktrees, start=1):
-        assert run(
-            [
-                "git",
-                "worktree",
-                "add",
-                "-q",
-                "-b",
-                f"fixture/concurrent-{index}",
-                worktree.as_posix(),
-            ],
-            repo,
-        ).returncode == 0
+        assert (
+            run(
+                [
+                    "git",
+                    "worktree",
+                    "add",
+                    "-q",
+                    "-b",
+                    f"fixture/concurrent-{index}",
+                    worktree.as_posix(),
+                ],
+                repo,
+            ).returncode
+            == 0
+        )
 
     ledger_lib = audit.load_ledger_module(REPO_ROOT)
 
@@ -234,11 +238,12 @@ def test_snapshot_reads_existing_ledger_without_leaking_live_identifiers(tmp_pat
                 "outcome": "pass",
                 "agent_id": "live-child-id",
                 "agent_type": "Explore",
+                "repository_identity": "sha256:fixture",
+                "worktree_root": repo.as_posix(),
+                "head": "a" * 40,
+                "parent_agent_id": "live-parent-id",
                 "extra": {
-                    "repository_identity": "sha256:fixture",
-                    "worktree_root": repo.as_posix(),
-                    "head": "a" * 40,
-                    "parent_agent_id": "live-parent-id",
+                    "fixture": True,
                 },
             }
         )
@@ -289,7 +294,9 @@ def test_secret_free_validator_rejects_unsafe_checked_in_evidence(
 
 def test_replay_cli_writes_only_the_requested_output(tmp_path: Path) -> None:
     output = tmp_path / "report.json"
-    assert audit.main(["replay", "--fixture", FIXTURE.as_posix(), "--output", output.as_posix()]) == 0
+    assert (
+        audit.main(["replay", "--fixture", FIXTURE.as_posix(), "--output", output.as_posix()]) == 0
+    )
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["summary"]["scenario_count"] == 10
     assert sorted(path.name for path in tmp_path.iterdir()) == ["report.json"]

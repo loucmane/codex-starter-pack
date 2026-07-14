@@ -12,7 +12,6 @@ from jsonschema import Draft202012Validator, ValidationError
 
 from scripts import _aegis_installer as installer
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HOOKS_REL = Path(".codex/hooks.json")
 
@@ -65,9 +64,7 @@ def _write_pre_adapter_codex_manifest(target: Path) -> bytes:
         or gate["id"] in {"codex.guard", "codex.work_tracking_audit"}
     ]
     manifest["managed_files"] = [
-        record
-        for record in manifest["managed_files"]
-        if record["path"] != HOOKS_REL.as_posix()
+        record for record in manifest["managed_files"] if record["path"] != HOOKS_REL.as_posix()
     ]
     payload = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
     manifest_path.write_bytes(payload)
@@ -78,7 +75,14 @@ def test_rendered_codex_hooks_use_canonical_apply_patch_and_git_root_dispatch() 
     payload = json.loads(installer._render_codex_hooks())
     hooks = payload["hooks"]
 
-    assert set(hooks) == {"PreToolUse", "PostToolUse", "SessionStart", "Stop"}
+    assert set(hooks) == {
+        "PreToolUse",
+        "PostToolUse",
+        "SessionStart",
+        "Stop",
+        "SubagentStart",
+        "SubagentStop",
+    }
     assert hooks["PreToolUse"][0]["matcher"] == installer.CODEX_HOOK_MATCHER
     assert hooks["PostToolUse"][0]["matcher"] == installer.CODEX_HOOK_MATCHER
     assert "apply_patch" in installer.CODEX_HOOK_MATCHER
@@ -88,9 +92,33 @@ def test_rendered_codex_hooks_use_canonical_apply_patch_and_git_root_dispatch() 
         installer.CODEX_POSTTOOLUSE_COMMAND,
         installer.CODEX_LEDGER_RECORD_COMMAND,
     ]
+    assert [hook["command"] for hook in hooks["SessionStart"][0]["hooks"]] == [
+        installer.CODEX_SESSION_BRIEF_COMMAND,
+        installer.CODEX_SESSION_START_COMMAND,
+    ]
+    assert hooks["SubagentStart"][0]["hooks"][0]["command"] == (
+        installer.CODEX_SUBAGENT_START_COMMAND
+    )
+    assert hooks["SubagentStop"][0]["hooks"][0]["command"] == (
+        installer.CODEX_SUBAGENT_STOP_COMMAND
+    )
+    shell_dispatch_commands = {
+        installer.CODEX_PRETOOLUSE_COMMAND,
+        installer.CODEX_POSTTOOLUSE_COMMAND,
+        installer.CODEX_LEDGER_RECORD_COMMAND,
+        installer.CODEX_SESSION_BRIEF_COMMAND,
+        installer.CODEX_STOP_TRACKING_COMMAND,
+    }
+    lifecycle_commands = {
+        installer.CODEX_SESSION_START_COMMAND,
+        installer.CODEX_SUBAGENT_START_COMMAND,
+        installer.CODEX_SUBAGENT_STOP_COMMAND,
+    }
     for hook in _hook_commands(payload):
         command = str(hook["command"])
-        assert "AEGIS_INVOKING_AGENT=codex" in command
+        assert command in shell_dispatch_commands | lifecycle_commands
+        if command in shell_dispatch_commands:
+            assert "AEGIS_INVOKING_AGENT=codex" in command
         assert "$(git rev-parse --show-toplevel)" in command
         assert "async" not in hook
 
@@ -133,17 +161,13 @@ def test_codex_only_and_multi_agent_installs_are_managed_and_idempotent(
         assert (target / "CLAUDE.md").is_file()
         assert (target / ".claude/settings.json").is_file()
 
-    manifest = json.loads(
-        (target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
-    )
+    manifest = json.loads((target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
     codex = manifest["agents"]["codex"]
     assert codex["enabled"] is True
     assert manifest["entrypoints"]["codex"] == "CODEX.md"
     assert HOOKS_REL.as_posix() in codex["managed_files"]
     assert set(installer.CODEX_GATE_IDS).issubset(codex["gate_ids"])
-    assert set(installer.CODEX_GATE_IDS).issubset(
-        {gate["id"] for gate in manifest["gates"]}
-    )
+    assert set(installer.CODEX_GATE_IDS).issubset({gate["id"] for gate in manifest["gates"]})
 
     managed_paths = [item["path"] for item in manifest["managed_files"]]
     assert len(managed_paths) == len(set(managed_paths))
@@ -245,9 +269,7 @@ def test_modified_managed_codex_hooks_require_manual_review_and_update_refuses(
 
     report = installer.project_update(target, source_root=REPO_ROOT, apply=True)
     assert report["status"] == "refused"
-    assert report["product_file_safety"]["manual_review_paths"] == [
-        HOOKS_REL.as_posix()
-    ]
+    assert report["product_file_safety"]["manual_review_paths"] == [HOOKS_REL.as_posix()]
     assert hooks_path.read_bytes() == customized
 
 
@@ -273,9 +295,7 @@ def test_project_update_migrates_pre_adapter_codex_manifest_before_runtime_refre
     (target / HOOKS_REL).unlink()
 
     current_schema = json.loads(
-        (REPO_ROOT / "schemas/aegis/foundation-manifest.schema.json").read_text(
-            encoding="utf-8"
-        )
+        (REPO_ROOT / "schemas/aegis/foundation-manifest.schema.json").read_text(encoding="utf-8")
     )
     legacy_manifest = json.loads(
         (target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
@@ -298,14 +318,10 @@ def test_project_update_migrates_pre_adapter_codex_manifest_before_runtime_refre
     assert report["install"]["applied"]["status"] == "applied"
     assert report["runtime"]["applied"]["status"] == "applied"
     assert (target / HOOKS_REL).read_bytes() == installer._render_codex_hooks()
-    migrated = json.loads(
-        (target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
-    )
+    migrated = json.loads((target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
     Draft202012Validator(current_schema).validate(migrated)
     assert HOOKS_REL.as_posix() in migrated["agents"]["codex"]["managed_files"]
-    assert set(installer.CODEX_GATE_IDS).issubset(
-        migrated["agents"]["codex"]["gate_ids"]
-    )
+    assert set(installer.CODEX_GATE_IDS).issubset(migrated["agents"]["codex"]["gate_ids"])
 
     second_preview = installer.project_update(target, source_root=REPO_ROOT, apply=False)
     assert second_preview["status"] == "preview"
@@ -341,9 +357,7 @@ def test_pre_adapter_divergent_codex_hooks_refuse_before_any_update_write(
     assert report["status"] == "refused"
     assert hook_operation["classification"] == "manual-review"
     assert hook_operation["managed"] is False
-    assert report["product_file_safety"]["manual_review_paths"] == [
-        HOOKS_REL.as_posix()
-    ]
+    assert report["product_file_safety"]["manual_review_paths"] == [HOOKS_REL.as_posix()]
     assert hooks_path.read_bytes() == customized
     assert manifest_path.read_bytes() == manifest_before
     assert runtime_path.read_bytes() == runtime_before
@@ -421,13 +435,9 @@ def test_schemas_reject_incomplete_first_class_codex_records(tmp_path: Path) -> 
         agents=["codex"],
         apply=True,
     )
-    manifest = json.loads(
-        (target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8")
-    )
+    manifest = json.loads((target / installer.AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
     manifest_schema = json.loads(
-        (REPO_ROOT / "schemas/aegis/foundation-manifest.schema.json").read_text(
-            encoding="utf-8"
-        )
+        (REPO_ROOT / "schemas/aegis/foundation-manifest.schema.json").read_text(encoding="utf-8")
     )
     Draft202012Validator(manifest_schema).validate(manifest)
 
@@ -444,8 +454,6 @@ def test_schemas_reject_incomplete_first_class_codex_records(tmp_path: Path) -> 
     )
     Draft202012Validator(profile_schema).validate(profile)
     incomplete_profile = copy.deepcopy(profile)
-    incomplete_profile["conditional_gates"]["agents.codex.enabled"].remove(
-        "codex.apply_patch"
-    )
+    incomplete_profile["conditional_gates"]["agents.codex.enabled"].remove("codex.apply_patch")
     with pytest.raises(ValidationError):
         Draft202012Validator(profile_schema).validate(incomplete_profile)

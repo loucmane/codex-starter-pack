@@ -2,9 +2,9 @@
 
 **Title:** Make Worktree And Child-Agent Evidence First-Class
 
-**Status:** pending
+**Status:** done
 
-**Dependencies:** 239
+**Dependencies:** 239 ✓
 
 **Priority:** high
 

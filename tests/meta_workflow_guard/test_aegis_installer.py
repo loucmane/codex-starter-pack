@@ -8,10 +8,12 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tarfile
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -91,10 +93,9 @@ def load_blog_completed_delivery_fixture() -> dict[str, Any]:
 
 def load_blog_task40_advisory_pending_fixture() -> dict[str, Any]:
     return json.loads(
-        (
-            REPO_ROOT
-            / "tests/fixtures/aegis/blog-task40-advisory-pending-closeout.json"
-        ).read_text(encoding="utf-8")
+        (REPO_ROOT / "tests/fixtures/aegis/blog-task40-advisory-pending-closeout.json").read_text(
+            encoding="utf-8"
+        )
     )
 
 
@@ -246,9 +247,48 @@ def simulate_claude_reload(target: Path) -> None:
     assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
 
 
+def run_target_codex_sessionstart(
+    target: Path, state_home: Path | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run the installed Codex SessionStart command after its hook has been trusted."""
+
+    resolved_state_home = state_home or (target / ".test-xdg-state")
+    return subprocess.run(
+        [str(target / ".aegis" / "bin" / "aegis"), "hook", "sessionstart"],
+        cwd=target,
+        input=json.dumps(
+            {
+                "session_id": "codex-session-1",
+                "turn_id": "codex-turn-1",
+                "cwd": target.as_posix(),
+                "source": "startup",
+                "model": "gpt-5-codex",
+                "hook_event_name": "SessionStart",
+            }
+        ),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={
+            **os.environ,
+            "CODEX_THREAD_ID": "codex-session-1",
+            "XDG_STATE_HOME": resolved_state_home.as_posix(),
+        },
+        check=False,
+    )
+
+
 def simulate_codex_reload(target: Path) -> None:
-    """Run the installed canonical apply_patch hook once to prove Codex hooks are active."""
-    result = run_target_pretooluse(
+    """Prove trusted Codex SessionStart and canonical apply_patch hooks are active."""
+
+    session_result = run_target_codex_sessionstart(target)
+    assert session_result.returncode == 0, session_result.stderr
+    marker = target / AEGIS_CLIENT_RELOAD_REL
+    if marker.exists():
+        payload = json.loads(marker.read_text(encoding="utf-8"))
+        assert "codex" not in payload.get("agents", [])
+
+    patch_result = run_target_pretooluse(
         target,
         {
             "tool_name": "apply_patch",
@@ -262,9 +302,26 @@ def simulate_codex_reload(target: Path) -> None:
             },
         },
     )
-    # Hook execution itself proves that Codex loaded and trusted the definition. The
+    # Hook execution proves that Codex loaded and trusted the definition. The
     # synthetic mutation may still receive the expected readiness denial on ``main``.
-    assert result.returncode in {0, 2}, result.stderr
+    assert patch_result.returncode in {0, 2}, patch_result.stderr
+
+
+def configured_hook_commands(payload: dict[str, Any]) -> list[str]:
+    commands: list[str] = []
+    hooks = payload.get("hooks")
+    if not isinstance(hooks, dict):
+        return commands
+    for groups in hooks.values():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+                continue
+            for handler in group["hooks"]:
+                if isinstance(handler, dict) and isinstance(handler.get("command"), str):
+                    commands.append(handler["command"])
+    return commands
 
 
 def run_target_posttooluse(target: Path, payload: dict) -> subprocess.CompletedProcess[str]:
@@ -926,9 +983,7 @@ def test_blog_task40_advisory_pending_replay_allows_delivery_and_preserves_queue
         reason="Task 251 fixture",
         set_by="pytest",
     )
-    current_work = json.loads(
-        (target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8")
-    )
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
     work_rel = current_work["paths"]["work_tracking"]
     implementation_evidence = f"{current_work['paths']['reports']}/implementation.txt"
     (target / implementation_evidence).write_text("implementation\n", encoding="utf-8")
@@ -1018,8 +1073,7 @@ def test_blog_task40_advisory_pending_replay_allows_delivery_and_preserves_queue
     assert len(dry_run["pending_tracking"]["sample"]) == 5
     assert dry_run["pending_tracking"]["sample_truncated"] is True
     assert not any(
-        item["kind"] == "pending_tracking_event"
-        for item in dry_run["repair_guidance"]["items"]
+        item["kind"] == "pending_tracking_event" for item in dry_run["repair_guidance"]["items"]
     )
 
     completed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
@@ -2406,14 +2460,10 @@ def test_install_verify_and_second_plan_are_idempotent(tmp_path: Path) -> None:
     assert manifest["primary_agent"] == "claude"
     assert manifest["agents"]["claude"]["enabled"] is True
     managed_records = {
-        record["path"]: record
-        for record in manifest["managed_files"]
-        if isinstance(record, dict)
+        record["path"]: record for record in manifest["managed_files"] if isinstance(record, dict)
     }
     assert managed_records[".claude/scripts/gate_lib.py"]["checksum"] == (
-        aegis_installer._content_checksum(
-            (target / ".claude/scripts/gate_lib.py").read_bytes()
-        )
+        aegis_installer._content_checksum((target / ".claude/scripts/gate_lib.py").read_bytes())
     )
     assert {gate["id"] for gate in manifest["gates"] if gate["required"]} >= {
         "claude.readiness",
@@ -2440,6 +2490,415 @@ def test_install_verify_and_second_plan_are_idempotent(tmp_path: Path) -> None:
     assert second_plan["summary"]["manual_reviews"] == 0
     assert second_plan["summary"]["conflicts"] == 0
     assert {operation["classification"] for operation in second_plan["operations"]} == {"skip"}
+
+
+def test_codex_install_merges_passive_hooks_and_uninstall_preserves_project_hooks(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "codex-hook-merge"
+    (target / ".codex").mkdir(parents=True)
+    project_command = "python3 tools/project_hook.py"
+    project_hooks = {
+        "projectMetadata": {"owner": "target-repo"},
+        "hooks": {
+            "PostToolUse": [
+                {
+                    "matcher": "^Read$",
+                    "hooks": [{"type": "command", "command": project_command, "async": True}],
+                }
+            ],
+            "Stop": [
+                {
+                    "hooks": [{"type": "command", "command": "echo project-stop"}],
+                }
+            ],
+        },
+    }
+    hooks_path = target / aegis_installer.CODEX_HOOKS_REL
+    hooks_path.write_text(json.dumps(project_hooks), encoding="utf-8")
+
+    preview = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+    )
+    hook_operation = next(
+        operation
+        for operation in preview["operations"]
+        if operation["path"] == aegis_installer.CODEX_HOOKS_REL
+    )
+    assert hook_operation["classification"] == "modify"
+    assert hook_operation["safe_to_apply"] is True
+
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    assert report["status"] == "applied"
+    assert report["client_reload"]["agents"] == ["codex"]
+    assert "/hooks" in report["client_reload"]["instructions"]
+    installed_hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+    assert installed_hooks["projectMetadata"] == {"owner": "target-repo"}
+    commands = configured_hook_commands(installed_hooks)
+    assert project_command in commands
+    assert set(aegis_installer.CODEX_MANAGED_HOOK_COMMANDS) <= set(commands)
+    assert commands.count(aegis_installer.CODEX_SESSION_START_COMMAND) == 1
+    assert commands.count(aegis_installer.CODEX_POSTTOOLUSE_COMMAND) == 1
+    assert commands.count(aegis_installer.CODEX_LEDGER_RECORD_COMMAND) == 1
+    assert commands.count(aegis_installer.CODEX_SUBAGENT_START_COMMAND) == 1
+    assert commands.count(aegis_installer.CODEX_SUBAGENT_STOP_COMMAND) == 1
+    managed_handlers = [
+        handler
+        for groups in installed_hooks["hooks"].values()
+        if isinstance(groups, list)
+        for group in groups
+        if isinstance(group, dict) and isinstance(group.get("hooks"), list)
+        for handler in group["hooks"]
+        if isinstance(handler, dict)
+        and handler.get("command") in aegis_installer.CODEX_MANAGED_HOOK_COMMANDS
+    ]
+    assert managed_handlers
+    assert all("async" not in handler for handler in managed_handlers)
+
+    manifest = json.loads((target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
+    assert aegis_installer.CODEX_HOOKS_REL in manifest["agents"]["codex"]["managed_files"]
+    required_gate_ids = {gate["id"] for gate in manifest["gates"] if gate["required"]}
+    assert set(aegis_installer.CODEX_GATE_IDS) - {"codex.hook_trust"} <= required_gate_ids
+    hook_trust_gate = next(gate for gate in manifest["gates"] if gate["id"] == "codex.hook_trust")
+    assert hook_trust_gate["required"] is False
+    verification = verify(target, source_root=REPO_ROOT)
+    assert verification["summary"]["failed_required"] == 0
+
+    second = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+    )
+    assert second["summary"]["modifies"] == 0
+    assert second["summary"]["manual_reviews"] == 0
+
+    removed = uninstall(target, source_root=REPO_ROOT, apply=True)
+    assert removed["status"] == "applied"
+    preserved = json.loads(hooks_path.read_text(encoding="utf-8"))
+    preserved_commands = configured_hook_commands(preserved)
+    assert project_command in preserved_commands
+    assert "echo project-stop" in preserved_commands
+    assert not set(aegis_installer.CODEX_MANAGED_HOOK_COMMANDS) & set(preserved_commands)
+
+
+def test_codex_install_refuses_invalid_project_hooks_without_overwrite(tmp_path: Path) -> None:
+    target = tmp_path / "invalid-codex-hooks"
+    hooks_path = target / aegis_installer.CODEX_HOOKS_REL
+    hooks_path.parent.mkdir(parents=True)
+    original = b'{"hooks":'
+    hooks_path.write_bytes(original)
+
+    preview = plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+    )
+    operation = next(
+        item for item in preview["operations"] if item["path"] == aegis_installer.CODEX_HOOKS_REL
+    )
+    assert operation["classification"] == "manual-review"
+    assert operation["safe_to_apply"] is False
+    refused = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    assert refused["status"] == "refused"
+    assert hooks_path.read_bytes() == original
+
+
+def test_codex_sessionstart_clears_own_reload_marker_and_records_context(tmp_path: Path) -> None:
+    target = tmp_path / "codex-sessionstart"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    marker = target / AEGIS_CLIENT_RELOAD_REL
+    assert report["client_reload"]["agents"] == ["codex"]
+    assert marker.is_file()
+    assert (
+        next_action(target, source_root=REPO_ROOT, invoking_agent="codex")["state"]
+        == "client_reload_required"
+    )
+
+    result = run_target_codex_sessionstart(target)
+    assert result.returncode == 0, result.stderr
+    assert not marker.exists()
+    ledger_paths = list((target / ".test-xdg-state").rglob("ledger.db"))
+    assert len(ledger_paths) == 1
+    with sqlite3.connect(ledger_paths[0]) as connection:
+        row = connection.execute(
+            "SELECT event_type, agent_type, repository_identity, worktree_root, head "
+            "FROM events WHERE event_type = 'session_begin' ORDER BY ts DESC, event_id DESC LIMIT 1"
+        ).fetchone()
+    assert row is not None
+    assert row[0] == "session_begin"
+    assert row[1] == "codex-session"
+    assert row[2]
+    assert row[3] == target.resolve().as_posix()
+
+
+def test_installed_codex_hooks_capture_linked_worktree_and_child_lifecycle(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "codex-hook-repo"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    (target / "README.md").write_text("# hook fixture\n", encoding="utf-8")
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "add",
+            "README.md",
+            ".aegis/bin/aegis",
+            ".aegis/runtime.env",
+            aegis_installer.CODEX_HOOKS_REL,
+            *aegis_installer.CODEX_SHARED_RUNTIME_FILES,
+        ],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=test",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-qm",
+            "seed installed hooks",
+        ],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    sibling = tmp_path / "codex-hook-child"
+    subprocess.run(
+        ["git", "worktree", "add", "-q", "-b", "feat/task-2-child", str(sibling)],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    sibling_two = tmp_path / "codex-hook-child-two"
+    subprocess.run(
+        ["git", "worktree", "add", "-q", "-b", "feat/task-3-child", str(sibling_two)],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    state_home = tmp_path / "shared-state"
+    hook_payload = json.loads(
+        (target / aegis_installer.CODEX_HOOKS_REL).read_text(encoding="utf-8")
+    )
+
+    def command_for(event: str) -> str:
+        groups = hook_payload["hooks"][event]
+        assert isinstance(groups, list) and groups
+        handlers = groups[-1]["hooks"]
+        if event == "PostToolUse":
+            return next(
+                handler["command"]
+                for handler in handlers
+                if handler.get("command") == aegis_installer.CODEX_LEDGER_RECORD_COMMAND
+            )
+        return handlers[0]["command"]
+
+    def run_hook(
+        root: Path, event: str, payload: dict[str, Any]
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            command_for(event),
+            cwd=root,
+            input=json.dumps(payload),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            executable="/bin/bash",
+            env={
+                **os.environ,
+                "CODEX_THREAD_ID": "parent-session",
+                "XDG_STATE_HOME": state_home.as_posix(),
+            },
+            check=False,
+        )
+
+    main_post = {
+        "session_id": "parent-session",
+        "turn_id": "turn-main",
+        "cwd": target.as_posix(),
+        "hook_event_name": "PostToolUse",
+        "model": "gpt-5-codex",
+        "tool_name": "Bash",
+        "tool_use_id": "call-main",
+        "tool_input": {"command": "git status --short"},
+        "tool_response": {"metadata": {"exit_code": 0}, "output": ""},
+    }
+    child_post = {
+        "session_id": "parent-session",
+        "turn_id": "turn-child",
+        "cwd": sibling.as_posix(),
+        "hook_event_name": "PostToolUse",
+        "model": "gpt-5-codex",
+        "agent_id": "child-agent-1",
+        "agent_type": "worker",
+        "tool_name": "apply_patch",
+        "tool_use_id": "call-child",
+        "tool_input": {"command": "*** Begin Patch\n*** Update File: README.md\n*** End Patch"},
+        "tool_response": {"metadata": {"exit_code": 0}, "output": "Done!"},
+    }
+    child_base = {
+        "session_id": "parent-session",
+        "turn_id": "turn-child",
+        "cwd": sibling.as_posix(),
+        "model": "gpt-5-codex",
+        "agent_id": "child-agent-1",
+        "agent_type": "worker",
+    }
+    second_child_failure = {
+        "session_id": "parent-session",
+        "turn_id": "turn-child-two",
+        "cwd": sibling_two.as_posix(),
+        "hook_event_name": "PostToolUse",
+        "model": "gpt-5-codex",
+        "agent_id": "child-agent-2",
+        "agent_type": "worker",
+        "tool_name": "Bash",
+        "tool_use_id": "call-child-two",
+        "tool_input": {"command": "false"},
+        "tool_response": {"metadata": {"exit_code": 1}, "output": "failed"},
+    }
+    started = run_hook(target, "PostToolUse", main_post)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        patched_future = executor.submit(run_hook, sibling, "PostToolUse", child_post)
+        failed_future = executor.submit(
+            run_hook,
+            sibling_two,
+            "PostToolUse",
+            second_child_failure,
+        )
+        patched = patched_future.result(timeout=30)
+        failed = failed_future.result(timeout=30)
+    child_started = run_hook(
+        sibling,
+        "SubagentStart",
+        {**child_base, "hook_event_name": "SubagentStart"},
+    )
+    child_stopped = run_hook(
+        sibling,
+        "SubagentStop",
+        {
+            **child_base,
+            "hook_event_name": "SubagentStop",
+            "agent_transcript_path": "/tmp/child.jsonl",
+            "last_assistant_message": "done",
+        },
+    )
+    for result in (started, patched, failed, child_started, child_stopped):
+        assert result.returncode == 0, result.stderr
+    assert json.loads(child_stopped.stdout) == {}
+    assert not (sibling / ".aegis" / "state").exists()
+    assert not (sibling_two / ".aegis" / "state").exists()
+
+    ledger_paths = list(state_home.rglob("ledger.db"))
+    assert len(ledger_paths) == 1
+    with sqlite3.connect(ledger_paths[0]) as connection:
+        rows_before_teardown = connection.execute(
+            "SELECT event_type, branch, repository_identity, worktree_root, head, "
+            "agent_id, agent_type, parent_agent_id FROM events ORDER BY seq"
+        ).fetchall()
+    assert len(rows_before_teardown) == 6
+    assert {row[1] for row in rows_before_teardown} >= {
+        "main",
+        "feat/task-2-child",
+        "feat/task-3-child",
+    }
+    assert len({row[2] for row in rows_before_teardown}) == 1
+    assert {row[3] for row in rows_before_teardown} >= {
+        target.resolve().as_posix(),
+        sibling.resolve().as_posix(),
+        sibling_two.resolve().as_posix(),
+    }
+    assert all(row[4] for row in rows_before_teardown)
+    assert all(row[5] for row in rows_before_teardown)
+    assert all(row[6] for row in rows_before_teardown)
+    assert all(
+        row[7] == "session:parent-session" for row in rows_before_teardown if row[1] != "main"
+    )
+    root_event = next(row for row in rows_before_teardown if row[1] == "main")
+    assert root_event[7] is None
+    failure = next(row for row in rows_before_teardown if row[0] == "tool_failure")
+    assert failure[1] == "feat/task-3-child"
+    assert failure[5] == "child-agent-2"
+    assert failure[6] == "worker"
+    lifecycle = [row for row in rows_before_teardown if row[0].startswith("subagent_")]
+    assert [row[0] for row in lifecycle] == ["subagent_begin", "subagent_end"]
+    assert all(row[5] == "child-agent-1" for row in lifecycle)
+    assert all(row[6] == "worker" for row in lifecycle)
+    assert all(row[7] == "session:parent-session" for row in lifecycle)
+
+    subprocess.run(
+        ["git", "worktree", "remove", str(sibling)],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    subprocess.run(
+        ["git", "worktree", "remove", str(sibling_two)],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    with sqlite3.connect(ledger_paths[0]) as connection:
+        rows_after_teardown = connection.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+    assert rows_after_teardown == len(rows_before_teardown)
 
 
 def test_install_uses_runtime_dispatchers_and_update_without_reinstall(tmp_path: Path) -> None:
@@ -2524,9 +2983,7 @@ def test_install_upgrades_existing_manifest_owned_bootstrap_files(tmp_path: Path
         "schemas/aegis/foundation-manifest.schema.json",
     ]
     for rel_path in stale_paths:
-        write_managed_baseline(
-            target, rel_path, b"# old Aegis-managed bootstrap content\n"
-        )
+        write_managed_baseline(target, rel_path, b"# old Aegis-managed bootstrap content\n")
 
     plan = plan_install(
         target,
@@ -2761,9 +3218,7 @@ def test_legacy_manifest_recovers_source_backed_checksum_from_recorded_commit(
         text=True,
     ).stdout.strip()
 
-    checksum = aegis_installer._legacy_managed_checksum(
-        manifest, REPO_ROOT, "scripts/codex-guard"
-    )
+    checksum = aegis_installer._legacy_managed_checksum(manifest, REPO_ROOT, "scripts/codex-guard")
 
     expected = subprocess.run(
         [
@@ -2815,9 +3270,7 @@ def test_project_update_apply_keeps_pre_runtime_legacy_baseline(
         observed_commits.append(runtime.get("source_commit"))
         return aegis_installer._content_checksum(stale_content)
 
-    monkeypatch.setattr(
-        aegis_installer, "_legacy_managed_checksum", fake_legacy_checksum
-    )
+    monkeypatch.setattr(aegis_installer, "_legacy_managed_checksum", fake_legacy_checksum)
 
     report = project_update(target, source_root=REPO_ROOT, apply=True)
 
@@ -3429,7 +3882,7 @@ def test_invoking_agent_detection_is_explicit_and_conservative() -> None:
     )
 
 
-def test_codex_can_start_observation_while_claude_adapter_reload_is_pending(
+def test_multi_agent_reload_markers_clear_independently_before_codex_observation(
     tmp_path: Path,
 ) -> None:
     target = tmp_path / "multi-agent-codex-start"
@@ -3451,6 +3904,7 @@ def test_codex_can_start_observation_while_claude_adapter_reload_is_pending(
 
     marker = target / AEGIS_CLIENT_RELOAD_REL
     assert marker.is_file()
+    assert json.loads(marker.read_text(encoding="utf-8"))["agents"] == ["claude", "codex"]
     assert next_action(target, source_root=REPO_ROOT)["state"] == "client_reload_required"
     assert (
         next_action(target, source_root=REPO_ROOT, invoking_agent="claude")["state"]
@@ -3464,6 +3918,16 @@ def test_codex_can_start_observation_while_claude_adapter_reload_is_pending(
     simulate_codex_reload(target)
     marker_payload = json.loads(marker.read_text(encoding="utf-8"))
     assert marker_payload["agents"] == ["claude"]
+
+    assert (
+        next_action(target, source_root=REPO_ROOT, invoking_agent="codex")["state"]
+        == "no_taskmaster"
+    )
+
+    simulate_codex_reload(target)
+    marker_payload = json.loads(marker.read_text(encoding="utf-8"))
+    assert marker_payload["agents"] == ["claude"]
+    assert marker_payload["changed_paths_by_agent"].keys() == {"claude"}
 
     codex_guidance = next_action(
         target,
@@ -3819,9 +4283,7 @@ def test_status_surfaces_fail_closed_delivery_policy_state(
     if policy_state == "invalid":
         policy_path.write_text("{not-json}\n", encoding="utf-8")
     elif policy_state in {"schema-invalid", "revoked", "active"}:
-        policy = json.loads(
-            (REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8")
-        )
+        policy = json.loads((REPO_ROOT / "aegis.delivery-policy.json").read_text(encoding="utf-8"))
         if policy_state == "revoked":
             policy["authority"]["status"] = "revoked"
         elif policy_state == "schema-invalid":
@@ -3838,9 +4300,7 @@ def test_status_surfaces_fail_closed_delivery_policy_state(
     assert set(delivery_policy["routine_authority"]) == set(
         aegis_installer.AEGIS_ROUTINE_AUTHORITY_FIELDS
     )
-    assert all(delivery_policy["routine_authority"].values()) is (
-        expected_mode == "evidence-gated"
-    )
+    assert all(delivery_policy["routine_authority"].values()) is (expected_mode == "evidence-gated")
     assert report["workflow_guidance"]["delivery_policy"] == delivery_policy
 
 
@@ -3864,7 +4324,9 @@ def test_post_closeout_delivery_guidance_recognizes_blog_task67_on_synchronized_
             "--symbolic-full-name",
             "@{u}",
         ):
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="origin/main\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="origin/main\n", stderr=""
+            )
         if args == (
             "merge-base",
             "--is-ancestor",
@@ -3949,7 +4411,9 @@ def test_next_action_replays_blog_task67_as_complete_on_synchronized_main(
             "--symbolic-full-name",
             "@{u}",
         ):
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="origin/main\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="origin/main\n", stderr=""
+            )
         if args == (
             "merge-base",
             "--is-ancestor",
@@ -4008,7 +4472,9 @@ def test_post_closeout_delivery_guidance_fails_closed_without_complete_merged_ma
             "--symbolic-full-name",
             "@{u}",
         ):
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout="origin/main\n", stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout="origin/main\n", stderr=""
+            )
         if args[:2] == ("merge-base", "--is-ancestor"):
             return subprocess.CompletedProcess(
                 args=args,
@@ -4017,7 +4483,9 @@ def test_post_closeout_delivery_guidance_fails_closed_without_complete_merged_ma
                 stderr="",
             )
         if args == ("rev-list", "--left-right", "--count", "HEAD...@{u}"):
-            return subprocess.CompletedProcess(args=args, returncode=0, stdout=sync_output, stderr="")
+            return subprocess.CompletedProcess(
+                args=args, returncode=0, stdout=sync_output, stderr=""
+            )
         raise AssertionError(f"unexpected git invocation: {args!r}")
 
     monkeypatch.setattr(aegis_installer, "_run_target_git", fake_git)

@@ -32,9 +32,12 @@ ${XDG_STATE_HOME:-~/.local/state}/aegis/<sha1-of-git-common-dir>/ledger.db
 | `schema_version` | TEXT | no | `"1"` |
 | `event_id` | TEXT UNIQUE | no | uuid4 hex, generated at append when absent |
 | `ts` | TEXT | no | UTC ISO-8601 (`...Z`), second precision, set at append when absent |
-| `session_id` | TEXT | yes | Claude Code session id from the hook payload |
-| `branch` | TEXT | yes | git branch at record time |
-| `cwd` | TEXT | yes | working directory at record time |
+| `session_id` | TEXT | yes | client session/thread id from the hook payload or `AEGIS_SESSION_ID` bridge |
+| `repository_identity` | TEXT | yes | `sha256:` digest of the canonical Git common-directory path; identical for linked worktrees |
+| `worktree_root` | TEXT | yes | canonical `git rev-parse --show-toplevel` path at ledger-open time |
+| `branch` | TEXT | yes | git branch at ledger-open time |
+| `head` | TEXT | yes | full observed `HEAD` object id at ledger-open time |
+| `cwd` | TEXT | yes | working directory at ledger-open time |
 | `event_type` | TEXT | no | see vocabulary below; `"unknown"` when uninferable |
 | `tool_name` | TEXT | yes | e.g. `Bash`, `Edit`, `mcp__playwright__browser_click` |
 | `handler` | TEXT | yes | normalized handler, e.g. `bash:rg`, `claude:Edit` |
@@ -44,11 +47,21 @@ ${XDG_STATE_HOME:-~/.local/state}/aegis/<sha1-of-git-common-dir>/ledger.db
 | `duration_ms` | INTEGER | yes | from the hook payload when present |
 | `agent_id` | TEXT | yes | subagent attribution when present in the payload |
 | `agent_type` | TEXT | yes | subagent type when present |
+| `parent_agent_id` | TEXT | yes | client-provided or explicitly bridged parent identifier; never inferred from unrelated traffic |
 | `payload_digest` | TEXT | yes | sha256 over the tool payload (advisory-recorder convention) |
 | `extra` | TEXT (JSON object) | no (`{}`) | backend-specific detail; **redacted at write time**; unknown top-level keys on input events are preserved here |
 
-Missing payload fields degrade to NULL — the recorder never crashes on payload shape
-(spec §2 payload reality check).
+Repository/worktree context is computed once per `open_ledger()` call and fills only
+absent fields. Explicit event values win. `AEGIS_AGENT_ID`, `AEGIS_AGENT_TYPE`,
+`AEGIS_PARENT_AGENT_ID`, and `AEGIS_SESSION_ID` provide an adapter bridge when a client
+launcher can propagate identity. Missing fields degrade to NULL — the recorder never
+crashes on payload shape (spec §2 payload reality check).
+
+Writable SQLite opens migrate old v1 databases additively with nullable columns and
+indexes. Read-only opens select only columns present in an old database and return NULL
+for the new fields. JSONL readers apply the same in-memory defaults. Existing rows are
+never rewritten, and the schema version remains `"1"` because this is backward-compatible
+enrichment rather than a new event meaning.
 
 ## `event_type` vocabulary (v1)
 
@@ -66,13 +79,19 @@ the rows:
 | `checkpoint` | PR-3 Stop hook | deterministic per-turn checkpoint (turn index, mutation count, dirty files) |
 | `scope` | PR-1d | inferred/confirmed scope record for a branch (spec §2.1) |
 | `session_begin` | PR-2b | falsifier stamp: session start + capsule on/off flag |
+| `subagent_begin` | Task 240 Codex `SubagentStart` | child lifecycle start with `agent_id`, `agent_type`, and supported parent attribution |
+| `subagent_end` | Task 240 Codex `SubagentStop` | child lifecycle completion; transcript metadata is retained in redacted `extra` |
 | `unknown` | any | unclassifiable input; preserved, never dropped |
 
 ## Exit-class mapping (decided, spec §2)
 
-`PostToolUse` (success event) → `pass` · `PostToolUseFailure` → `fail` ·
-`tool_response.interrupted` → `interrupted` · anything else → `unknown`.
-Bash `tool_response` has **no documented exit-code field** — do not pretend otherwise.
+`PostToolUseFailure`, an explicit error status, `success/ok=false`, or a recursively
+observed nonzero response exit code → `fail` · interruption flags/status →
+`interrupted` · successful mutation/delivery/task/verification evidence → `pass` ·
+anything else → `unknown`. Codex emits `PostToolUse` after supported Bash calls even
+when Bash exits nonzero, so classification cannot assume the hook event name itself
+means success. Unknown provider response shapes remain `unknown`; they are not promoted
+to `pass` by optimism.
 
 ## Redaction (record-time layer)
 
@@ -116,4 +135,28 @@ ledger.append({...})                                    # normalize + redact + a
 ledger.read(session_id=..., event_type=..., since_ts=..., agent_id=..., limit=...)
 ```
 
-`read()` returns events ordered by `(ts, event_id)`; `limit` keeps the most recent N.
+Additional exact-match filters are `repository_identity`, `worktree_root`, `branch`,
+`head`, and `parent_agent_id`. `read()` returns events ordered by `(ts, event_id)`;
+`limit` keeps the most recent N.
+
+## Worktree and branch isolation
+
+- The delivery witness reads current-repository/current-branch events and requires
+  verification evidence at the current full `HEAD`. A newer sibling-branch run cannot
+  satisfy the current branch merely because it shares the same database.
+- Replay ingestion defaults to the current repository and branch. Corpus work must opt
+  into another branch or `all_branches=True` explicitly.
+- Legacy rows with NULL repository identity remain readable from the repository-specific
+  store for compatibility, but branchless rows do not satisfy branch-scoped verification.
+- Removing a linked worktree removes no ledger rows: ownership belongs to the Git common
+  directory, while `worktree_root` preserves where each event occurred.
+
+## Codex capture boundary
+
+The Codex adapter installs synchronous, passive handlers for `SessionStart`,
+`PostToolUse`, `SubagentStart`, and `SubagentStop` in `.codex/hooks.json`. Installation
+merges only exact Aegis handlers and preserves unrelated project hooks. Codex requires
+project-hook trust by definition hash; a trusted `SessionStart` proves adapter activation.
+Current lifecycle payloads identify a child and the parent session root, but do not expose
+an arbitrary nested parent-agent chain. Aegis records the factual session-root parent and
+does not fabricate deeper ancestry.

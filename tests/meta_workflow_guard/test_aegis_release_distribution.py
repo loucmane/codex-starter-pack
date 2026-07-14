@@ -30,7 +30,6 @@ from aegis_mcp import server as aegis_mcp_server
 from aegis_mcp.server import PROMPT_NAMES, RESOURCE_URIS, V1_TOOL_NAMES
 from scripts import _aegis_installer
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 INVOCATION_DOC = REPO_ROOT / "docs" / "aegis" / "invocation-contract.md"
@@ -171,7 +170,9 @@ def test_aegis_status_reports_current_and_migration_without_writes(
     manifest_path = target / _aegis_installer.AEGIS_MANIFEST_REL
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["foundation_version"] = "0.0.0"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     before_migration_check = _snapshot_files(target)
     with packaged_asset_root() as asset_root:
         migration = _aegis_installer.status(target, source_root=asset_root)
@@ -295,7 +296,7 @@ def test_packaged_asset_root_can_drive_install_plan_without_checkout(tmp_path: P
             source_root=asset_root,
             primary_agent="claude",
             agents=["claude"],
-    )
+        )
 
     assert payload["mode"] == "dry_run"
     planned_paths = {entry["path"] for entry in payload["operations"]}
@@ -350,18 +351,16 @@ def test_distribution_doc_includes_public_and_local_install_snippets() -> None:
     assert "docs/aegis/mcp-client-setup.md" in text
     assert "docs/aegis/live-acceptance-matrix.md" in text
     assert "docs/aegis/agent-adapter-contract.md" in text
-    assert "docs/aegis/public-adoption-flow.md" in text or (REPO_ROOT / "docs" / "aegis" / "public-adoption-flow.md").exists()
+    assert (
+        "docs/aegis/public-adoption-flow.md" in text
+        or (REPO_ROOT / "docs" / "aegis" / "public-adoption-flow.md").exists()
+    )
 
 
 def test_mcp_client_setup_doc_covers_cross_agent_release_candidate_configs() -> None:
     text = MCP_CLIENT_SETUP_DOC.read_text(encoding="utf-8")
     asset_text = (
-        REPO_ROOT
-        / "aegis_foundation"
-        / "assets"
-        / "docs"
-        / "aegis"
-        / "mcp-client-setup.md"
+        REPO_ROOT / "aegis_foundation" / "assets" / "docs" / "aegis" / "mcp-client-setup.md"
     ).read_text(encoding="utf-8")
 
     assert asset_text == text
@@ -580,7 +579,16 @@ def test_local_wheel_cli_smoke_when_enabled(tmp_path: Path) -> None:
         for args in (
             ["inspect", "--target-dir", "."],
             ["plan-install", "--target-dir", ".", "--primary-agent", "claude", "--agent", "claude"],
-            ["install", "--target-dir", ".", "--primary-agent", "claude", "--agent", "claude", "--apply"],
+            [
+                "install",
+                "--target-dir",
+                ".",
+                "--primary-agent",
+                "claude",
+                "--agent",
+                "claude",
+                "--apply",
+            ],
             ["status", "--target-dir", "."],
             ["verify", "--target-dir", "."],
         ):

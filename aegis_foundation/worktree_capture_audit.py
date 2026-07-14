@@ -146,10 +146,18 @@ def _event_summary(event: Mapping[str, Any]) -> dict[str, Any]:
         "outcome": str(event.get("outcome") or "unknown"),
         "agent_id": _opaque(event.get("agent_id"), kind="agent"),
         "agent_type": str(event.get("agent_type") or "") or None,
-        "repository_identity": str(extra.get("repository_identity") or "") or None,
-        "worktree_root": "<event-worktree>" if extra.get("worktree_root") else None,
-        "head": str(extra.get("head") or extra.get("commit") or "") or None,
-        "parent_agent_id": _opaque(extra.get("parent_agent_id"), kind="agent"),
+        "repository_identity": str(
+            event.get("repository_identity") or extra.get("repository_identity") or ""
+        )
+        or None,
+        "worktree_root": (
+            "<event-worktree>" if event.get("worktree_root") or extra.get("worktree_root") else None
+        ),
+        "head": str(event.get("head") or extra.get("head") or extra.get("commit") or "") or None,
+        "parent_agent_id": _opaque(
+            event.get("parent_agent_id") or extra.get("parent_agent_id"),
+            kind="agent",
+        ),
         "hook_event_name": str(extra.get("hook_event_name") or "") or None,
     }
 
@@ -275,7 +283,9 @@ def collect_snapshot(
 
 
 def _new_events(before: Mapping[str, Any], after: Mapping[str, Any]) -> list[dict[str, Any]]:
-    before_window = before.get("event_window") if isinstance(before.get("event_window"), Mapping) else {}
+    before_window = (
+        before.get("event_window") if isinstance(before.get("event_window"), Mapping) else {}
+    )
     before_ids = {str(item) for item in before_window.get("event_ids", [])}
     after_events = after.get("events") if isinstance(after.get("events"), list) else []
     return [
@@ -289,7 +299,9 @@ def _missing_attribution(events: Sequence[Mapping[str, Any]]) -> dict[str, str]:
     result: dict[str, str] = {}
     for field in ATTRIBUTION_FIELDS:
         result[field] = (
-            "present" if events and all(event.get(field) not in (None, "") for event in events) else "missing"
+            "present"
+            if events and all(event.get(field) not in (None, "") for event in events)
+            else "missing"
         )
     return result
 
@@ -308,9 +320,7 @@ def classify_scenario(record: Mapping[str, Any]) -> dict[str, Any]:
     assets = after.get("assets") if isinstance(after.get("assets"), Mapping) else {}
     required_asset_names = metadata.get("required_assets", tuple(REQUIRED_ASSETS))
     missing_assets = [
-        str(name)
-        for name in required_asset_names
-        if assets.get(str(name)) != "present"
+        str(name) for name in required_asset_names if assets.get(str(name)) != "present"
     ]
     if missing_assets and not metadata.get("pre_install_checkout"):
         causes.append("tracked_assets_missing")
@@ -325,7 +335,9 @@ def classify_scenario(record: Mapping[str, Any]) -> dict[str, Any]:
 
     before_ledger = before.get("ledger") if isinstance(before.get("ledger"), Mapping) else {}
     after_ledger = after.get("ledger") if isinstance(after.get("ledger"), Mapping) else {}
-    parent_ledger_path = str(metadata.get("parent_ledger_path") or before_ledger.get("resolved_path") or "")
+    parent_ledger_path = str(
+        metadata.get("parent_ledger_path") or before_ledger.get("resolved_path") or ""
+    )
     child_ledger_path = str(after_ledger.get("resolved_path") or "")
     if parent_ledger_path and child_ledger_path and parent_ledger_path != child_ledger_path:
         causes.append("ledger_store_mismatch")
@@ -342,7 +354,9 @@ def classify_scenario(record: Mapping[str, Any]) -> dict[str, Any]:
 
     attribution = _missing_attribution(child_events)
     required_attribution = tuple(metadata.get("required_attribution", ATTRIBUTION_FIELDS))
-    if child_events and any(attribution.get(str(field)) != "present" for field in required_attribution):
+    if child_events and any(
+        attribution.get(str(field)) != "present" for field in required_attribution
+    ):
         causes.append("attribution_missing")
 
     post_teardown_ids = metadata.get("post_teardown_event_ids")
@@ -488,7 +502,9 @@ def build_parser() -> argparse.ArgumentParser:
     snapshot.add_argument("--worktree-label", required=True)
     snapshot.add_argument("--state-home")
     snapshot.add_argument("--hooks-loaded", choices=("true", "false", "unknown"), default="unknown")
-    snapshot.add_argument("--source-resolved", choices=("true", "false", "unknown"), default="unknown")
+    snapshot.add_argument(
+        "--source-resolved", choices=("true", "false", "unknown"), default="unknown"
+    )
     snapshot.add_argument("--output")
 
     replay = subparsers.add_parser("replay", help="Replay and classify a secret-free fixture")

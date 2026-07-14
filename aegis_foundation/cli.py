@@ -674,9 +674,9 @@ def handle_delivery(args: argparse.Namespace) -> int:
                     "reason": "boundary event was not recorded",
                 }
         payload = {
-            "status": "synced"
-            if boundary.get("status") in {"recorded", "unchanged"}
-            else "no_change",
+            "status": (
+                "synced" if boundary.get("status") in {"recorded", "unchanged"} else "no_change"
+            ),
             "snapshot": snapshot,
             "boundary_event": boundary,
             "legacy_projection": projection,
@@ -2317,6 +2317,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "configchange",
             "readiness",
             "record",
+            "recordjson",
             "posttoolusefailure",
             "sessionstart",
             "sessionend",

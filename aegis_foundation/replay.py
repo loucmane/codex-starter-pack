@@ -60,7 +60,9 @@ STATES = (
 )
 
 
-def _run(cmd: list[str], cwd: Path, *, input_text: str = "", env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _run(
+    cmd: list[str], cwd: Path, *, input_text: str = "", env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd, cwd=str(cwd), input=input_text, text=True, capture_output=True, env=env, check=False
     )
@@ -87,7 +89,14 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
     if advisory:
         _write(
             repo / ".aegis" / "state" / "enforcement.json",
-            json.dumps({"mode": "advisory", "set_at": "2026-06-10T00:00:00Z", "set_by": "replay", "reason": "replay"}),
+            json.dumps(
+                {
+                    "mode": "advisory",
+                    "set_at": "2026-06-10T00:00:00Z",
+                    "set_by": "replay",
+                    "reason": "replay",
+                }
+            ),
         )
     if state.startswith("blocked"):
         _run(["git", "checkout", "-q", "-b", "main"], repo)
@@ -97,14 +106,24 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
     _run(["git", "checkout", "-q", "-b", branch], repo)
     _write(
         repo / ".taskmaster" / "tasks" / "tasks.json",
-        json.dumps({"master": {"tasks": [{"id": 103, "title": "Claude Runtime Adapter", "status": "in-progress"}]}}),
+        json.dumps(
+            {
+                "master": {
+                    "tasks": [
+                        {"id": 103, "title": "Claude Runtime Adapter", "status": "in-progress"}
+                    ]
+                }
+            }
+        ),
     )
     session_rel = Path("2026/06/2026-06-10-001-task103-claude-runtime-adapter.md")
     _write(repo / "sessions" / session_rel, "# Task 103 Session\n")
     (repo / "sessions" / "current").symlink_to(session_rel)
     _write(
         repo / "sessions" / "state.json",
-        json.dumps({"current": session_rel.name, "paused": [], "updated_at": "2026-06-10T00:00:00+00:00"}),
+        json.dumps(
+            {"current": session_rel.name, "paused": [], "updated_at": "2026-06-10T00:00:00+00:00"}
+        ),
     )
     plan_rel = Path("2026-06-10-task103-claude-runtime-adapter.md")
     _write(
@@ -117,7 +136,13 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
     )
     (repo / "plans" / "current").symlink_to(plan_rel)
     _write(
-        repo / "docs" / "ai" / "work-tracking" / "active" / "20260610-task103-claude-runtime-adapter-ACTIVE" / "TRACKER.md",
+        repo
+        / "docs"
+        / "ai"
+        / "work-tracking"
+        / "active"
+        / "20260610-task103-claude-runtime-adapter-ACTIVE"
+        / "TRACKER.md",
         "# Task 103 Tracker\n\n## Plan Compliance Checklist\n"
         "- [x] plan-step-scope - Scope\n- [ ] plan-step-implement - Implement\n- [ ] plan-step-verify - Verify\n",
     )
@@ -129,7 +154,11 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
                     "schema_version": "1",
                     "status": "in-progress",
                     "mode": "observation",
-                    "task": {"id": "103", "slug": "claude-runtime-adapter", "status": "in-progress"},
+                    "task": {
+                        "id": "103",
+                        "slug": "claude-runtime-adapter",
+                        "status": "in-progress",
+                    },
                 }
             ),
         )
@@ -140,7 +169,11 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
                 {
                     "schema_version": "1",
                     "status": "in-progress",
-                    "task": {"id": "103", "slug": "claude-runtime-adapter", "status": "in-progress"},
+                    "task": {
+                        "id": "103",
+                        "slug": "claude-runtime-adapter",
+                        "status": "in-progress",
+                    },
                 }
             ),
         )
@@ -170,7 +203,9 @@ def build_state_fixture(base_dir: Path, state: str) -> Path:
     return repo
 
 
-def run_entry(entry: dict[str, Any], source_root: Path, fixtures_dir: Path, fixture_cache: dict[str, Path]) -> dict[str, Any]:
+def run_entry(
+    entry: dict[str, Any], source_root: Path, fixtures_dir: Path, fixture_cache: dict[str, Path]
+) -> dict[str, Any]:
     state = str(entry.get("state") or "ready_strict")
     if state not in fixture_cache:
         fixture_cache[state] = build_state_fixture(fixtures_dir, state)
@@ -252,8 +287,7 @@ def run_corpus(
     fixtures_dir.mkdir(parents=True, exist_ok=True)
     fixture_cache: dict[str, Path] = {}
     results = [
-        run_entry(entry, source, fixtures_dir, fixture_cache)
-        for entry in load_corpus(corpus_paths)
+        run_entry(entry, source, fixtures_dir, fixture_cache) for entry in load_corpus(corpus_paths)
     ]
     report = evaluate(results)
     report["results"] = results
@@ -266,7 +300,12 @@ def run_corpus(
     return report
 
 
-def ingest_ledger(root: str | Path) -> tuple[list[dict[str, Any]], int]:
+def ingest_ledger(
+    root: str | Path,
+    *,
+    branch: str | None = None,
+    all_branches: bool = False,
+) -> tuple[list[dict[str, Any]], int]:
     """Convert this repo's live ledger into replay-corpus candidates.
 
     Bash commands and file-tool paths survive in the recorded events, so those are
@@ -282,11 +321,20 @@ def ingest_ledger(root: str | Path) -> tuple[list[dict[str, Any]], int]:
         return [], 0
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    ledger = module.open_ledger(cwd=Path(root))
+    target = Path(root).resolve()
+    context = module.repository_context(target)
+    selected_branch = branch or context.get("branch")
+    ledger = module.open_ledger(cwd=target)
     try:
-        events = ledger.read()
+        events = ledger.read() if all_branches else ledger.read(branch=selected_branch)
     finally:
         ledger.close()
+    repository = context.get("repository_identity")
+    events = [
+        event
+        for event in events
+        if not event.get("repository_identity") or event.get("repository_identity") == repository
+    ]
     candidates: list[dict[str, Any]] = []
     skipped = 0
     for event in events:
@@ -308,7 +356,10 @@ def ingest_ledger(root: str | Path) -> tuple[list[dict[str, Any]], int]:
                 "state": "ready_advisory",
                 "hook": "pretooluse",
                 "payload": payload,
-                "notes": f"ingested from ledger ts={event.get('ts')} type={event.get('event_type')}",
+                "notes": (
+                    f"ingested from ledger ts={event.get('ts')} "
+                    f"type={event.get('event_type')} branch={event.get('branch')}"
+                ),
             }
         )
     return candidates, skipped
@@ -320,9 +371,13 @@ def render_report(report: dict[str, Any]) -> str:
         lines.append(f"- {label}: allow={counts.get('allow', 0)} block={counts.get('block', 0)}")
     lines.append(f"- FP baseline (historical blocks still blocking): {report.get('fp_baseline')}")
     for improvement in report.get("improvements", []):
-        lines.append(f"- IMPROVEMENT: {improvement.get('id')} now allows ({improvement.get('notes')})")
+        lines.append(
+            f"- IMPROVEMENT: {improvement.get('id')} now allows ({improvement.get('notes')})"
+        )
     for gap in report.get("standing_gaps", []):
-        lines.append(f"- STANDING GAP (expected): {gap.get('id')} still allowed — {gap.get('notes')}")
+        lines.append(
+            f"- STANDING GAP (expected): {gap.get('id')} still allowed — {gap.get('notes')}"
+        )
     for regression in report.get("regressions", []):
         lines.append(
             f"- REGRESSION: {regression.get('id')} [{regression.get('label')}] verdict={regression.get('verdict')} — {regression.get('notes')}"
