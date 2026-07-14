@@ -92,9 +92,11 @@ def test_rendered_codex_hooks_use_canonical_apply_patch_and_git_root_dispatch() 
         installer.CODEX_POSTTOOLUSE_COMMAND,
         installer.CODEX_LEDGER_RECORD_COMMAND,
     ]
+    # One target-local SessionStart invocation both records the lifecycle event and
+    # injects the capsule. Registering the now-identical commands twice would duplicate
+    # evidence and violate the profile schema's unique registration contract.
     assert [hook["command"] for hook in hooks["SessionStart"][0]["hooks"]] == [
         installer.CODEX_SESSION_BRIEF_COMMAND,
-        installer.CODEX_SESSION_START_COMMAND,
     ]
     assert hooks["SubagentStart"][0]["hooks"][0]["command"] == (
         installer.CODEX_SUBAGENT_START_COMMAND

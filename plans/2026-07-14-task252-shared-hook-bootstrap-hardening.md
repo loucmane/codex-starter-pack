@@ -7,6 +7,8 @@ branch_policy: feature-required
 evidence_summary:
   - docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/
   - scripts/_aegis_installer.py
+  - aegis_foundation/cli.py
+  - .claude/scripts/gate_lib.py
   - aegis_foundation/managed_update.py
   - tests/meta_workflow_guard/test_codex_hook_bootstrap.py
   - .taskmaster/tasks/task_252.md
@@ -22,7 +24,7 @@ emergency_bypass: false
 - **Handler Target (H)**: scripts/_aegis_installer.py
 - **Task IDs**: 252
 - **Branch Policy**: feature-required
-- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/, scripts/_aegis_installer.py, aegis_foundation/managed_update.py, tests/meta_workflow_guard/test_codex_hook_bootstrap.py, .taskmaster/tasks/task_252.md
+- **Evidence Summary (E)**: docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/, scripts/_aegis_installer.py, aegis_foundation/cli.py, .claude/scripts/gate_lib.py, aegis_foundation/managed_update.py, tests/meta_workflow_guard/test_codex_hook_bootstrap.py, .taskmaster/tasks/task_252.md
 - **Plan Version**: v1
 - **Emergency Bypass**: false
 
@@ -30,8 +32,8 @@ emergency_bypass: false
 | Step ID             | Description | Evidence | Status |
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Define the shared-hook failure model, stable bootstrap seam, migration boundary, degraded behavior, and rollback | docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/designs/shared-hook-bootstrap.md | completed |
-| plan-step-implement | Harden managed Codex hook dispatch and update materialization without changing the local untracked hook definition | scripts/_aegis_installer.py; aegis_foundation/managed_update.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/IMPLEMENTATION.md | pending |
-| plan-step-verify | Prove bounded failure, exact migration, source/package parity, multi-project isolation, and normal installer behavior | tests/meta_workflow_guard/test_codex_hook_adapter.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/HANDOFF.md | pending |
+| plan-step-implement | Harden managed Codex hook dispatch and update materialization without changing the local untracked hook definition | scripts/_aegis_installer.py; aegis_foundation/managed_update.py; aegis_foundation/cli.py; .claude/scripts/gate_lib.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/IMPLEMENTATION.md | completed |
+| plan-step-verify | Prove bounded failure, exact migration, source/package parity, multi-project isolation, and normal installer behavior | tests/meta_workflow_guard/test_codex_hook_bootstrap.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/reports/shared-hook-bootstrap/verification.md | in-progress |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope
@@ -51,6 +53,7 @@ emergency_bypass: false
 
 ## Amendments & Versioning
 - 2026-07-14 - Task 252 kickoff created via the guided wizard flow.
+- 2026-07-14 - Expanded the implementation evidence surface to include the CLI's target-local dispatch and the live/packaged gate runtime; no local operator hook file entered scope.
 
 ## Continuation & Handoff
 - Next owner: loucmane (default)

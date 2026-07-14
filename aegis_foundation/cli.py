@@ -13,6 +13,8 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -1397,10 +1399,90 @@ def handle_observe(args: argparse.Namespace) -> int:
     raise _aegis_installer.AegisError("unknown observe subcommand")
 
 
+_REQUIRED_HOOK_PHASES = frozenset(
+    {"pretooluse", "path", "bash", "configchange", "readiness"}
+)
+
+
+def _hook_target_root() -> Path | None:
+    """Resolve the repository whose local runtime owns the current hook."""
+
+    for key in ("AEGIS_TARGET_ROOT", "CLAUDE_PROJECT_DIR"):
+        value = os.environ.get(key)
+        if value:
+            candidate = Path(value).expanduser().resolve()
+            if candidate.is_dir():
+                return candidate
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        candidate = Path(result.stdout.strip()).resolve()
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _hook_degraded_marker(target_root: Path, phase: str) -> Path:
+    safe_phase = re.sub(r"[^a-z0-9_-]+", "-", phase.lower()).strip("-") or "unknown"
+    return target_root / ".aegis" / "state" / f"hook-bootstrap-{safe_phase}.warned"
+
+
+def _clear_hook_degraded_marker(target_root: Path, phase: str) -> None:
+    marker = _hook_degraded_marker(target_root, phase)
+    try:
+        marker.rmdir()
+    except OSError:
+        pass
+
+
+def _handle_missing_target_hook_runtime(target_root: Path, phase: str) -> int:
+    marker = _hook_degraded_marker(target_root, phase)
+    first_report = False
+    try:
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.mkdir()
+        first_report = True
+    except FileExistsError:
+        pass
+    except OSError:
+        # A read-only or damaged state directory must not turn diagnostics into
+        # another hook exception. The exit class below remains authoritative.
+        first_report = True
+    if first_report:
+        print(
+            "target-local Aegis hook runtime is unavailable for "
+            f"{phase}; {'refusing mutation' if phase in _REQUIRED_HOOK_PHASES else 'passive evidence capture is degraded'}",
+            file=sys.stderr,
+        )
+    return 2 if phase in _REQUIRED_HOOK_PHASES else 0
+
+
 def handle_hook(args: argparse.Namespace) -> int:
+    phase = str(args.phase)
+    target_root = _hook_target_root()
+    if target_root is not None and phase != "readiness":
+        local_script = target_root / ".claude" / "scripts" / "gate_lib.py"
+        if local_script.is_file():
+            _clear_hook_degraded_marker(target_root, phase)
+            os.execv(
+                sys.executable,
+                [sys.executable, "-B", local_script.as_posix(), phase],
+            )
+        if (
+            (target_root / ".aegis" / "foundation-manifest.json").is_file()
+            or (target_root / ".aegis" / "bin" / "aegis").is_file()
+        ):
+            return _handle_missing_target_hook_runtime(target_root, phase)
+
     with _resolve_source_root(args.source_root) as source_root:
-        phase = str(args.phase)
         if phase == "readiness":
+            if target_root is not None:
+                _clear_hook_degraded_marker(target_root, phase)
             script = source_root / ".claude" / "scripts" / "readiness.sh"
             os.execv(script.as_posix(), [script.as_posix(), *list(args.hook_args or [])])
         script = source_root / ".claude" / "scripts" / "gate_lib.py"
@@ -2344,6 +2426,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "posttoolusefailure",
             "sessionstart",
             "sessionend",
+            "subagentstart",
         ),
         help="Hook phase to execute from the active runtime source.",
     )
