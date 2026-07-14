@@ -7,8 +7,8 @@
 ## Goals
 - [x] Eliminate mutable-source coupling from Codex hook dispatch
 - [x] Make missing and partial hook runtimes fail safely with bounded diagnostics
-- [ ] Prove installer migration, update ordering, worktree behavior, and cross-project independence
-- [ ] Document incident root cause, recovery, rollback, and parity evidence
+- [x] Prove installer migration, update ordering, worktree behavior, and cross-project independence
+- [x] Document incident root cause, recovery, rollback, and parity evidence
 
 ## Progress Log
 - **2026-07-14 19:04** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-07-14 19:04 CEST`
@@ -20,11 +20,12 @@
 - **2026-07-14 19:33** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:installer:target-local-hook-bootstrap|E:scripts/_aegis_installer.py] Routed generated Codex hooks through each target's shim, dispatched policy hooks from target-local runtime bytes, bounded missing-runtime diagnostics, and retained fail-closed mutation phases
 - **2026-07-14 19:33** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:installer:transaction|E:tests/meta_workflow_guard/test_codex_hook_bootstrap.py] Added atomic writes, dependency-first activation, exact legacy-hook adoption, unknown-hook refusal, and byte-for-byte rollback after injected mid-install failure
 - **2026-07-14 19:33** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:pytest:focused|E:docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/reports/shared-hook-bootstrap/verification.md] Passed 169 installer/adapter tests plus the seven incident regressions; repository-wide run passed 2,037 tests with four opt-in skips and one confirmed `/tmp` worktree assumption requiring a non-temp verification rerun
+- **2026-07-14 19:43** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:pytest:full-exact-commit|E:commit`bf1c6fb`;docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/reports/shared-hook-bootstrap/verification.md] Re-ran the complete suite from a detached non-temp verification worktree at the exact implementation commit: 2,038 passed, four explicit opt-in smokes skipped, zero failed
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define failure model, stable bootstrap seam, migration boundary, and rollback
 - [x] plan-step-implement — Target-local dispatch, transactional install, migration, and regression coverage implemented
-- [ ] plan-step-verify — Focused evidence is green; non-temp full-suite rerun and delivery verification remain
+- [x] plan-step-verify — Exact-commit non-temp full suite, parity, health, guards, and focused incident tests passed
 - [ ] plan-step-emergency (if applicable)
 
 ## Dependencies & Notes

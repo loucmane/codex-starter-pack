@@ -25,11 +25,12 @@
 - `git diff --check` — **passed**.
 - Source/package byte comparisons for `_aegis_installer.py` and `gate_lib.py` — **passed**.
 
-## Repository-Wide Provisional Result
+## Repository-Wide Result
 
 - `pytest -q` from `/tmp/codex-task252-commit` — **2,037 passed, 4 opt-in smokes skipped, 1 failed**.
-- The single failure is `test_test_enabled_apply_refuses_governed_repo_target_before_validation`. It deliberately decides whether `REPO_ROOT` is under `/tmp`; this implementation worktree is under `/tmp`, so the fixture is treated as an allowed isolated target and reaches the live Task 42 freshness check. The tested production module is unchanged by Task 252.
-- Required final action: rerun the full suite from a committed detached worktree below `.git/aegis-verification/`, where `REPO_ROOT` has the non-temp location the test contract expects.
+- The single provisional failure was `test_test_enabled_apply_refuses_governed_repo_target_before_validation`. It deliberately decides whether `REPO_ROOT` is under `/tmp`; the implementation worktree is under `/tmp`, so the fixture was treated as an allowed isolated target and reached the live Task 42 freshness check. The tested production module is unchanged by Task 252.
+- `pytest -q` from `/home/loucmane/codex/.git/aegis-verification/task252-bf1c6fb` at exact implementation commit `bf1c6fb` — **2,038 passed, 4 explicit opt-in smokes skipped, 0 failed** in 376.74 seconds.
+- The non-temp rerun exercised the test's intended governed-repository branch and removed the only provisional ambiguity.
 
 ## Rollback
 

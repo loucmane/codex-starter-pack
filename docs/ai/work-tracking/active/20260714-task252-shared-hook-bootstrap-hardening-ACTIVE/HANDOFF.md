@@ -6,12 +6,11 @@
 - Installer apply is atomic, dependency-ordered, and rolls back modified prior bytes after injected failure.
 - Exact legacy Aegis handlers migrate; unknown Aegis-like handlers remain manual-review.
 - Live/package installer and gate runtime mirrors are byte-identical.
-- Full-suite provisional result is 2,037 passed / 4 opt-in skipped / 1 environment-specific failure because the implementation worktree is under `/tmp`.
+- Exact-commit full-suite result from a non-temp detached verification worktree is 2,038 passed / 4 explicit opt-in smokes skipped / 0 failed.
 - Enforcement remains advisory. Primary-checkout operator drift and the Blog checkout remain untouched.
 
 ## Next Steps
-1. Commit the implementation and evidence through normal pre-commit hooks.
-2. Create a detached verification worktree under `.git/aegis-verification/` at the exact commit and rerun `pytest -q` so the reconcile isolation test sees a non-temp repository root.
-3. Run Taskmaster health, plan sync, source/package parity, guards, strict Aegis verification, and exact-head witness.
-4. Complete Task 252 tracking, closeout, push, and deliver through the evidence-governed PR path.
-5. After upstream merge, resume the hardening goal with the read-only Obsidian vault projection and Task 243 coexistence audit; do not begin Gas Town migration without explicit owner instruction.
+1. Commit the final exact-commit verification evidence through normal pre-commit hooks.
+2. Run strict Aegis verification, closeout preview/repair only if deterministic, exact-head witness, and delivery checks.
+3. Complete Task 252 tracking, closeout, push, and deliver through the evidence-governed PR path.
+4. After upstream merge, resume the hardening goal with the read-only Obsidian vault projection and Task 243 coexistence audit; do not begin Gas Town migration without explicit owner instruction.

@@ -33,7 +33,7 @@ emergency_bypass: false
 |---------------------|-------------|----------|--------|
 | plan-step-scope | Define the shared-hook failure model, stable bootstrap seam, migration boundary, degraded behavior, and rollback | docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/designs/shared-hook-bootstrap.md | completed |
 | plan-step-implement | Harden managed Codex hook dispatch and update materialization without changing the local untracked hook definition | scripts/_aegis_installer.py; aegis_foundation/managed_update.py; aegis_foundation/cli.py; .claude/scripts/gate_lib.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/IMPLEMENTATION.md | completed |
-| plan-step-verify | Prove bounded failure, exact migration, source/package parity, multi-project isolation, and normal installer behavior | tests/meta_workflow_guard/test_codex_hook_bootstrap.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/reports/shared-hook-bootstrap/verification.md | in-progress |
+| plan-step-verify | Prove bounded failure, exact migration, source/package parity, multi-project isolation, and normal installer behavior | tests/meta_workflow_guard/test_codex_hook_bootstrap.py; docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/reports/shared-hook-bootstrap/verification.md | completed |
 | plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
 
 ## Scope

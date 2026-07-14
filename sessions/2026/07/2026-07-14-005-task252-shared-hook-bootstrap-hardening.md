@@ -22,7 +22,7 @@ title: Task 252 - Harden Shared Codex Hook Bootstrap Against Mutable Runtime Out
 - [x] Repoint `sessions/current` and `plans/current` to Task 252.
 - [x] Mark Taskmaster Task 252 in progress and update its generated task file.
 - [x] Review the design baseline and implementation boundary for Harden Shared Codex Hook Bootstrap Against Mutable Runtime Outages.
-- [ ] Capture implementation and verification evidence.
+- [x] Capture implementation and verification evidence.
 
 ### Starting Context
 Task 252 was kicked off via `python3 scripts/codex-task wizard kickoff`, which created the session, plan, work-tracking scaffolding, and targeted generated task-file update in a guard-compliant state before implementation began.
@@ -34,3 +34,4 @@ Task 252 was kicked off via `python3 scripts/codex-task wizard kickoff`, which c
 - **[19:04]** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:sessions/current|E:sessions/current] Repointed `sessions/current`, `plans/current`, and `sessions/state.json` to the new Task 252 kickoff
 - **[19:33]** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:installer:target-local-bootstrap|E:scripts/_aegis_installer.py] Implemented target-local hook dispatch, bounded degraded behavior, atomic dependency-ordered install, and rollback of prior managed bytes
 - **[19:33]** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:pytest:compatibility|E:docs/ai/work-tracking/active/20260714-task252-shared-hook-bootstrap-hardening-ACTIVE/reports/shared-hook-bootstrap/verification.md] Passed the focused incident and 169-test installer/adapter suites; recorded the `/tmp`-specific full-suite rerun requirement
+- **[19:43]** — [S:20260714|W:task252-shared-hook-bootstrap-hardening|H:pytest:full-exact-commit|E:commit`bf1c6fb`] Passed all 2,038 repository tests from a non-temp detached verification worktree; four explicit opt-in smokes skipped and no failures remained
