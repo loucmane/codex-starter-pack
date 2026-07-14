@@ -288,7 +288,58 @@ def collect_git_status_entries(include_untracked: bool) -> List[tuple[str, str]]
         status = line[:2]
         path_fragment = line[3:] if len(line) > 3 else ""
         entries.append((status, path_fragment.strip()))
-    return entries
+    return _exclude_merge_parent_inherited_entries(entries)
+
+
+def _status_entry_paths(path_fragment: str) -> Set[str]:
+    if "->" not in path_fragment:
+        return {path_fragment}
+    before, after = path_fragment.split("->", 1)
+    return {before.strip(), after.strip()}
+
+
+def _exclude_merge_parent_inherited_entries(
+    entries: List[tuple[str, str]],
+) -> List[tuple[str, str]]:
+    """Hide clean index entries inherited unchanged from an in-progress merge parent.
+
+    During a normal non-rewriting merge, git status reports every path introduced by
+    MERGE_HEAD relative to the first parent. Those paths are repository history, not
+    current-session edits, and date-sensitive validation must not demand that they be
+    re-authored. Entries that differ from MERGE_HEAD, have worktree changes, or are
+    untracked remain visible. Any Git inspection failure returns the original entries so
+    the guard fails closed.
+    """
+
+    merge_head = subprocess.run(
+        ["git", "rev-parse", "--verify", "-q", "MERGE_HEAD"],
+        cwd=str(REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if merge_head.returncode != 0:
+        return entries
+
+    diff = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "-z", "MERGE_HEAD", "--"],
+        cwd=str(REPO_ROOT),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if diff.returncode != 0:
+        return entries
+    changed_from_merge_head = {path for path in diff.stdout.split("\0") if path}
+
+    filtered: List[tuple[str, str]] = []
+    for status, path_fragment in entries:
+        if status == "??" or len(status) < 2 or status[1] != " ":
+            filtered.append((status, path_fragment))
+            continue
+        if _status_entry_paths(path_fragment) & changed_from_merge_head:
+            filtered.append((status, path_fragment))
+    return filtered
 
 
 def compute_changed_files(entries: List[tuple[str, str]], include_untracked: bool) -> List[Path]:

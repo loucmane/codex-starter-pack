@@ -1,0 +1,198 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "pr278-workflow-run-executor",
+  "observed": {
+    "pull_request": 278,
+    "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+    "workflow_run": 29320216830,
+    "workflow_run_head_sha": "0088fff82337fb428740db42a8146c5bef92186d",
+    "executor_failure": "executor-self-check-missing",
+    "candidate_contains_current_executor": false,
+    "direct_telemetry": true
+  },
+  "executor_run_id": "29320216830",
+  "expected_evaluator_decision": "allow",
+  "expected_executor_decision": "allow",
+  "evidence": {
+    "repository": "loucmane/codex-starter-pack",
+    "expected_head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+    "current_default_sha": "0088fff82337fb428740db42a8146c5bef92186d",
+    "pull_request": {
+      "number": 278,
+      "state": "open",
+      "draft": false,
+      "base": {
+        "ref": "main",
+        "sha": "0088fff82337fb428740db42a8146c5bef92186d"
+      },
+      "head": {
+        "ref": "feat/task-250-autonomous-delivery-canary",
+        "sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "repo": {
+          "full_name": "loucmane/codex-starter-pack"
+        }
+      },
+      "mergeable": true,
+      "mergeable_state": "clean",
+      "changed_files": 1,
+      "labels": []
+    },
+    "files": [
+      {
+        "filename": "docs/ai/work-tracking/active/20260714-task250-autonomous-delivery-executor-stability-ACTIVE/AUTONOMOUS_DELIVERY_CANARY.md",
+        "status": "added"
+      }
+    ],
+    "workflow_runs": [
+      {
+        "id": 29319770628,
+        "name": "CI",
+        "event": "pull_request",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-14T08:55:13Z"
+      },
+      {
+        "id": 29319770676,
+        "name": "Codex Guard",
+        "event": "pull_request",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-14T08:55:14Z"
+      },
+      {
+        "id": 29319770639,
+        "name": "Meta Workflow Guard",
+        "event": "pull_request",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-14T08:55:14Z"
+      },
+      {
+        "id": 29319770655,
+        "name": "aegis-witness",
+        "event": "pull_request",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-14T08:55:13Z"
+      }
+    ],
+    "check_runs_complete": true,
+    "check_runs": [
+      {
+        "id": 87042056391,
+        "name": "evidence-gated delivery",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "details_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29319770397/job/87042056391",
+        "app": {
+          "slug": "github-actions"
+        }
+      },
+      {
+        "id": 87042091860,
+        "name": "policy-authorized merge",
+        "status": "completed",
+        "conclusion": "skipped",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "details_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29319770397/job/87042091860",
+        "app": {
+          "slug": "github-actions"
+        }
+      },
+      {
+        "id": 87042056545,
+        "name": "Python tests (3.11)",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "details_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29319770628/job/87042056545",
+        "app": {
+          "slug": "github-actions"
+        }
+      },
+      {
+        "id": 87042056599,
+        "name": "Python tests (3.12)",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "details_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29319770628/job/87042056599",
+        "app": {
+          "slug": "github-actions"
+        }
+      },
+      {
+        "id": 87042056496,
+        "name": "aegis-witness",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "eb7933bf771738ef3d13dc18921dce2141df1a54",
+        "details_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29319770655/job/87042056496",
+        "app": {
+          "slug": "github-actions"
+        }
+      }
+    ],
+    "status_contexts_complete": true,
+    "status_contexts": [],
+    "executor_run": {
+      "id": 29320216830,
+      "name": "Aegis Autonomous Delivery",
+      "path": ".github/workflows/aegis-autonomous-delivery.yml",
+      "event": "workflow_run",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_branch": "main",
+      "head_sha": "0088fff82337fb428740db42a8146c5bef92186d",
+      "run_attempt": 1,
+      "repository": {
+        "full_name": "loucmane/codex-starter-pack"
+      },
+      "head_repository": {
+        "full_name": "loucmane/codex-starter-pack"
+      }
+    },
+    "executor_jobs_complete": true,
+    "executor_jobs": [
+      {
+        "id": 87043502015,
+        "name": "evidence-gated delivery",
+        "status": "completed",
+        "conclusion": "success",
+        "head_branch": "main",
+        "head_sha": "0088fff82337fb428740db42a8146c5bef92186d",
+        "run_attempt": 1,
+        "run_id": 29320216830,
+        "html_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29320216830/job/87043502015",
+        "workflow_name": "Aegis Autonomous Delivery"
+      },
+      {
+        "id": 87043549277,
+        "name": "policy-authorized merge",
+        "status": "in_progress",
+        "conclusion": null,
+        "head_branch": "main",
+        "head_sha": "0088fff82337fb428740db42a8146c5bef92186d",
+        "run_attempt": 1,
+        "run_id": 29320216830,
+        "html_url": "https://github.com/loucmane/codex-starter-pack/actions/runs/29320216830/job/87043549277",
+        "workflow_name": "Aegis Autonomous Delivery"
+      }
+    ],
+    "review": {
+      "decision": "",
+      "unresolved_threads": 0,
+      "threads_truncated": false
+    }
+  }
+}

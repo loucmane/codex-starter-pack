@@ -12,6 +12,7 @@ execution call the same implementation without copying mutable state into target
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -46,6 +47,7 @@ class AssetBuildPolicy:
     claude_support_files: tuple[str, ...]
     claude_runtime_hook_phases: Mapping[str, str]
     codex_required_files: tuple[str, ...]
+    codex_shared_runtime_files: tuple[str, ...]
     codex_hooks_rel: str
 
 
@@ -245,6 +247,29 @@ def build_adapter_assets(
                     )
                 )
                 continue
+            if rel_path in policy.codex_shared_runtime_files:
+                if "claude" in enabled_agents:
+                    continue
+                phase = policy.claude_runtime_hook_phases.get(rel_path)
+                if phase is not None:
+                    assets.append(
+                        Asset(
+                            rel_path,
+                            renderers.render_claude_runtime_dispatcher(phase),
+                            executable=True,
+                            kind="adapter",
+                        )
+                    )
+                    continue
+                assets.append(
+                    asset_from_source(
+                        source_root,
+                        rel_path,
+                        read_bytes=renderers.read_bytes,
+                        kind="adapter",
+                    )
+                )
+                continue
             assets.append(
                 asset_from_source(
                     source_root,
@@ -326,6 +351,26 @@ def materialize_assets_for_target(
     baseline_manifest = materializers.read_json(target_root / manifest_rel)
     materialized: list[Asset] = []
     for asset in assets:
+        if asset.path == codex_hooks_rel:
+            target = target_root / asset.path
+            if target.exists() and target.is_file():
+                existing = target.read_bytes()
+                try:
+                    existing_payload = json.loads(existing.decode("utf-8"))
+                    desired_payload = json.loads(asset.content.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    pass
+                else:
+                    if existing_payload == desired_payload:
+                        materialized.append(
+                            Asset(
+                                path=asset.path,
+                                content=existing,
+                                executable=asset.executable,
+                                kind=asset.kind,
+                            )
+                        )
+                        continue
         if asset.path == "CLAUDE.md" and asset.kind == "adapter":
             target = target_root / asset.path
             if target.exists() and target.is_file():
@@ -384,9 +429,24 @@ def materialize_assets_for_target(
         if asset.path == codex_hooks_rel and asset.kind == "adapter":
             target = target_root / asset.path
             if target.exists() and target.is_file():
-                merged = materializers.merge_codex_hooks(
-                    target.read_bytes(),
-                    asset.content,
+                existing = target.read_bytes()
+                managed_paths = (
+                    manifest_path_set(baseline_manifest, "managed_files")
+                    if isinstance(baseline_manifest, Mapping)
+                    else set()
+                )
+                recorded_checksum = (
+                    recorded_managed_checksum(baseline_manifest, asset.path)
+                    if isinstance(baseline_manifest, Mapping)
+                    else None
+                )
+                may_structurally_merge = not isinstance(baseline_manifest, Mapping) or (
+                    asset.path in managed_paths and recorded_checksum == content_checksum(existing)
+                )
+                merged = (
+                    materializers.merge_codex_hooks(existing, asset.content)
+                    if may_structurally_merge
+                    else None
                 )
                 if merged is not None:
                     materialized.append(
@@ -652,7 +712,40 @@ def plan_operations(
             )
             continue
         if asset.path == policy.codex_hooks_rel and asset.kind == "adapter":
-            if merge_codex_hooks(target.read_bytes(), render_codex_hooks()) is None:
+            mergeable = merge_codex_hooks(target.read_bytes(), render_codex_hooks()) is not None
+            if installed_manifest:
+                baseline_checksum, _baseline_source = resolve_baseline(
+                    installed_manifest,
+                    source_root,
+                    asset.path,
+                )
+                installed_checksum = content_checksum(target.read_bytes())
+                managed_and_unchanged = (
+                    asset.path in managed_paths
+                    and asset.path not in customized_paths
+                    and baseline_checksum is not None
+                    and installed_checksum == baseline_checksum
+                )
+                if not managed_and_unchanged:
+                    operations.append(
+                        {
+                            "action": "manual-review",
+                            "path": asset.path,
+                            "classification": "manual-review",
+                            "safe_to_apply": False,
+                            "managed": asset.path in managed_paths,
+                            "reason": (
+                                "Existing Codex hooks differ from their recorded "
+                                "Aegis-managed baseline; refusing to reinterpret local "
+                                "hook changes as safe structural adoption."
+                                if asset.path in managed_paths
+                                else "An existing Aegis installation does not own this "
+                                "divergent Codex hook file; refusing automatic adoption."
+                            ),
+                        }
+                    )
+                    continue
+            if not mergeable:
                 operations.append(
                     {
                         "action": "manual-review",

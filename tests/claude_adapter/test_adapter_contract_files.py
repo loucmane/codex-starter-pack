@@ -181,3 +181,17 @@ def test_tool_mapping_preserves_shared_files() -> None:
     assert "Do not edit shared handlers or templates to rename tools" in text
     assert "scripts/codex-task" in text
     assert "scripts/codex-guard" in text
+
+
+def test_codex_adapter_contract_is_implemented_and_canonical() -> None:
+    source = read("docs/aegis/agent-adapter-contract.md")
+    packaged = read("aegis_foundation/assets/docs/aegis/agent-adapter-contract.md")
+
+    assert source == packaged
+    assert "| Codex | implemented managed adapter |" in source
+    assert "`.codex/hooks.json`" in source
+    assert '`tool_name: "apply_patch"`' in source
+    assert '`tool_input.command`' in source
+    assert "safe-first/protected-later" in source
+    assert "exact command-definition hash" in source
+    assert "opens `/hooks`" in source

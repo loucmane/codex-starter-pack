@@ -91,7 +91,8 @@ def test_generic_profile_installs_verifies_and_stays_idempotent_for_fixture_shap
 
     verification = aegis.verify(target, source_root=REPO_ROOT)
     assert verification["status"] == "passed"
-    assert verification["summary"]["unsupported"] == 1
+    expected_unsupported = 1 + int("codex" in agents)
+    assert verification["summary"]["unsupported"] == expected_unsupported
 
     second_plan = aegis.plan_install(
         target,

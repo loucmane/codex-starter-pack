@@ -30,6 +30,9 @@ from scripts._aegis_installer import (  # noqa: E402
     kickoff,
     next_action,
 )
+from tests.meta_workflow_guard.test_aegis_installer import (  # noqa: E402
+    simulate_codex_reload,
+)
 
 
 def _simulate_codex_reload(target: Path, state_home: Path) -> None:
@@ -66,7 +69,7 @@ def _kickoff_target(tmp_path: Path) -> Path:
     (target / "src").mkdir()
     (target / "src" / "main.ts").write_text("export const ready = true;\n", encoding="utf-8")
     install(target, source_root=REPO_ROOT, primary_agent="codex", agents=["codex"], apply=True)
-    _simulate_codex_reload(target, tmp_path / "state")
+    simulate_codex_reload(target)
     kickoff(target, task_id="42", slug="task-42-x", title="X", source_root=REPO_ROOT)
     return target
 

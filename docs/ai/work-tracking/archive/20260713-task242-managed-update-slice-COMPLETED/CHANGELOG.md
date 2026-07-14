@@ -9,3 +9,6 @@
 - 2026-07-13 CEST — Ran 1,765 passing repository tests with four opt-in skips; retained and documented one unchanged `/tmp`-specific baseline assertion instead of weakening it.
 - 2026-07-13 CEST — Re-ran the full local regression gate with only that proven baseline assertion deselected: 1,765 passed, four opt-in skips, one deselected, exit zero in 363.77 seconds.
 - 2026-07-13 18:39 CEST — Archived active work-tracking folder.
+- 2026-07-14 18:08 CEST — Continued Task 242 from its completed archive for current-main reconciliation and protected delivery.
+- 2026-07-14 18:10 CEST — Integrated Tasks 247–251 and preserved current Codex shared-runtime, hook-adoption, and local-divergence safety semantics inside the extracted managed-update core.
+- 2026-07-14 18:10 CEST — Updated the Codex golden plan for the first-class adapter surface; focused managed-update, Codex-hook, installer, release, Ruff, Black, parity, and diff checks pass.

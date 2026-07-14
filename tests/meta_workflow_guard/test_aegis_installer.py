@@ -91,6 +91,14 @@ def load_blog_completed_delivery_fixture() -> dict[str, Any]:
     )
 
 
+def load_blog_task40_advisory_pending_fixture() -> dict[str, Any]:
+    return json.loads(
+        (REPO_ROOT / "tests/fixtures/aegis/blog-task40-advisory-pending-closeout.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
 def load_task_module():
     name = "codex_task_aegis_test_module"
     if name in sys.modules:
@@ -239,9 +247,12 @@ def simulate_claude_reload(target: Path) -> None:
     assert not (target / AEGIS_CLIENT_RELOAD_REL).exists()
 
 
-def run_target_codex_sessionstart(target: Path) -> subprocess.CompletedProcess[str]:
+def run_target_codex_sessionstart(
+    target: Path, state_home: Path | None = None
+) -> subprocess.CompletedProcess[str]:
     """Run the installed Codex SessionStart command after its hook has been trusted."""
 
+    resolved_state_home = state_home or (target / ".test-xdg-state")
     return subprocess.run(
         [str(target / ".aegis" / "bin" / "aegis"), "hook", "sessionstart"],
         cwd=target,
@@ -261,19 +272,39 @@ def run_target_codex_sessionstart(target: Path) -> subprocess.CompletedProcess[s
         env={
             **os.environ,
             "CODEX_THREAD_ID": "codex-session-1",
-            "XDG_STATE_HOME": str(target / ".test-xdg-state"),
+            "XDG_STATE_HOME": resolved_state_home.as_posix(),
         },
         check=False,
     )
 
 
 def simulate_codex_reload(target: Path) -> None:
-    result = run_target_codex_sessionstart(target)
-    assert result.returncode == 0, result.stderr
+    """Prove trusted Codex SessionStart and canonical apply_patch hooks are active."""
+
+    session_result = run_target_codex_sessionstart(target)
+    assert session_result.returncode == 0, session_result.stderr
     marker = target / AEGIS_CLIENT_RELOAD_REL
     if marker.exists():
         payload = json.loads(marker.read_text(encoding="utf-8"))
         assert "codex" not in payload.get("agents", [])
+
+    patch_result = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "apply_patch",
+            "tool_input": {
+                "command": (
+                    "*** Begin Patch\n"
+                    "*** Add File: codex-hook-probe.txt\n"
+                    "+probe\n"
+                    "*** End Patch"
+                )
+            },
+        },
+    )
+    # Hook execution proves that Codex loaded and trusted the definition. The
+    # synthetic mutation may still receive the expected readiness denial on ``main``.
+    assert patch_result.returncode in {0, 2}, patch_result.stderr
 
 
 def configured_hook_commands(payload: dict[str, Any]) -> list[str]:
@@ -779,7 +810,280 @@ def test_enforce_mode_writes_state_and_surfaces_in_diagnostics(tmp_path: Path) -
     )
     assert strict["enforcement"]["mode"] == "strict"
     assert strict["pending"]["advisory"] == 1
-    assert strict["workflow_guidance"]["strict_reentry"]["suggested_cli"] == "aegis repair --apply"
+    assert strict["pending"]["classification"] == "advisory_only"
+    assert strict["pending"]["delivery_allowed"] is True
+    assert strict["workflow_guidance"]["strict_reentry"]["suggested_cli"] is None
+    assert "preserved audit evidence" in strict["workflow_guidance"]["strict_reentry"]["message"]
+
+    first_strict_payload = {
+        "tool_name": "Write",
+        "tool_input": {"file_path": "src/strict-reentry.txt", "content": "first\n"},
+    }
+    first_strict_gate = run_target_pretooluse(target, first_strict_payload)
+    assert first_strict_gate.returncode == 0, first_strict_gate.stderr
+    first_strict_tracking = run_target_posttooluse(target, first_strict_payload)
+    assert first_strict_tracking.returncode == 0, first_strict_tracking.stderr
+    mixed = aegis_installer._classify_pending_tracking(target)
+    assert mixed["classification"] == "mixed"
+    assert mixed["counts"] == {
+        "total": 2,
+        "advisory": 1,
+        "required": 1,
+        "unknown": 0,
+    }
+
+    second_strict_gate = run_target_pretooluse(
+        target,
+        {
+            "tool_name": "Write",
+            "tool_input": {"file_path": "src/strict-reentry-2.txt", "content": "second\n"},
+        },
+    )
+    assert second_strict_gate.returncode == 2
+    assert "pending S:W:H:E tracking" in second_strict_gate.stderr
+
+
+def test_pending_tracking_classifier_is_fail_closed_and_provenance_aware(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "pending-classifier"
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.parent.mkdir(parents=True)
+
+    cases: list[tuple[str, str, str, bool, bool, int, int, int]] = [
+        ("empty", '{"events": []}\n', "empty", True, True, 0, 0, 0),
+        (
+            "advisory",
+            '{"events": [{"id": "adv-1", "mode": "advisory"}]}\n',
+            "advisory_only",
+            True,
+            True,
+            1,
+            0,
+            0,
+        ),
+        (
+            "required",
+            '{"events": [{"id": "req-1", "mode": "strict"}]}\n',
+            "required_only",
+            True,
+            False,
+            0,
+            1,
+            0,
+        ),
+        (
+            "mixed",
+            (
+                '{"events": [{"id": "adv-1", "mode": "advisory"}, '
+                '{"id": "req-1", "mode": "strict"}]}\n'
+            ),
+            "mixed",
+            True,
+            False,
+            1,
+            1,
+            0,
+        ),
+        (
+            "missing provenance",
+            '{"events": [{"id": "unknown-1"}]}\n',
+            "unknown",
+            True,
+            False,
+            0,
+            0,
+            1,
+        ),
+        (
+            "unknown provenance",
+            '{"events": [{"id": "unknown-1", "mode": "shadow"}]}\n',
+            "unknown",
+            True,
+            False,
+            0,
+            0,
+            1,
+        ),
+        (
+            "invalid event shape",
+            '{"events": [42]}\n',
+            "unknown",
+            False,
+            False,
+            0,
+            0,
+            1,
+        ),
+        (
+            "non-list queue",
+            '{"events": {}}\n',
+            "malformed",
+            False,
+            False,
+            0,
+            0,
+            0,
+        ),
+        ("invalid json", "{", "malformed", False, False, 0, 0, 0),
+        ("non-object payload", "[]\n", "malformed", False, False, 0, 0, 0),
+    ]
+
+    for (
+        label,
+        raw,
+        classification,
+        queue_valid,
+        delivery_allowed,
+        advisory_count,
+        required_count,
+        unknown_count,
+    ) in cases:
+        pending_path.write_text(raw, encoding="utf-8")
+        state = aegis_installer._classify_pending_tracking(target)
+        assert state["classification"] == classification, label
+        assert state["queue_valid"] is queue_valid, label
+        assert state["delivery_allowed"] is delivery_allowed, label
+        assert state["counts"]["advisory"] == advisory_count, label
+        assert state["counts"]["required"] == required_count, label
+        assert state["counts"]["unknown"] == unknown_count, label
+        check = aegis_installer._strict_pending_tracking_check(target)
+        assert (check["status"] == "pass") is delivery_allowed, label
+        assert check["details"]["classification"] == classification, label
+
+    pending_path.unlink()
+    absent = aegis_installer._classify_pending_tracking(target)
+    assert absent["classification"] == "absent"
+    assert absent["queue_valid"] is True
+    assert absent["delivery_allowed"] is True
+
+
+def test_blog_task40_advisory_pending_replay_allows_delivery_and_preserves_queue(
+    tmp_path: Path,
+) -> None:
+    fixture = load_blog_task40_advisory_pending_fixture()
+    target = tmp_path / "blog-task40-replay"
+    target.mkdir()
+    git_init = subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert git_init.returncode == 0, git_init.stderr
+    install(target, source_root=REPO_ROOT, primary_agent="claude", agents=["claude"], apply=True)
+    simulate_claude_reload(target)
+    kickoff(target, task_id="40", slug="blog-task40-replay", title="Blog Task 40 Replay")
+    enforce_mode(
+        target,
+        source_root=REPO_ROOT,
+        mode="advisory",
+        reason="Task 251 fixture",
+        set_by="pytest",
+    )
+    current_work = json.loads((target / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    implementation_evidence = f"{current_work['paths']['reports']}/implementation.txt"
+    (target / implementation_evidence).write_text("implementation\n", encoding="utf-8")
+    log_work(
+        target,
+        handler="claude:scope",
+        evidence=f"{work_rel}/FINDINGS.md",
+        note="Confirmed Blog Task 40 replay scope",
+        plan_step="plan-step-scope",
+        plan_status="completed",
+    )
+    log_work(
+        target,
+        handler="claude:Write",
+        evidence=implementation_evidence,
+        note="Recorded fixture implementation evidence",
+        plan_step="plan-step-implement",
+        plan_status="completed",
+    )
+    initial_verify = verify(target, source_root=REPO_ROOT, strict=True)
+    assert initial_verify["status"] == "passed"
+    log_work(
+        target,
+        handler="aegis:verify",
+        evidence=AEGIS_VERIFY_REPORT_REL,
+        note="Recorded strict verification evidence",
+        plan_step="plan-step-verify",
+        plan_status="completed",
+    )
+    repaired = repair_handoff(target, source_root=REPO_ROOT)
+    assert repaired["status"] == "repaired"
+    assert closeout(target, source_root=REPO_ROOT, dry_run=True)["status"] == "passed"
+
+    count = fixture["reproduction"]["pending_event_count"]
+    events = [
+        {
+            "id": f"blog40-advisory-{index:03d}",
+            "created_at": "2026-07-14T00:00:00Z",
+            "updated_at": "2026-07-14T00:00:00Z",
+            "tool": "Bash" if index % 2 == 0 else "apply_patch",
+            "handler": "codex:Bash" if index % 2 == 0 else "codex:apply_patch",
+            "evidence": f"fixture/path-{index}.txt",
+            "task": {"id": "40", "slug": "blog-task40-replay"},
+            "mode": fixture["reproduction"]["pending_event_mode"],
+        }
+        for index in range(count)
+    ]
+    pending_path = target / AEGIS_PENDING_TRACKING_REL
+    pending_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "updated_at": "2026-07-14T00:00:00Z",
+                "events": events,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    pending_before = pending_path.read_bytes()
+
+    strict = verify(target, source_root=REPO_ROOT, strict=True, dry_run=True)
+    assert strict["status"] == "passed"
+    pending_check = next(
+        check for check in strict["checks"] if check["gate_id"] == "mutation.pending_tracking_empty"
+    )
+    assert pending_check["status"] == "pass"
+    assert pending_check["details"]["classification"] == fixture["expected"]["classification"]
+    assert pending_check["details"]["counts"]["total"] == count
+    assert pending_path.read_bytes() == pending_before
+
+    diagnosis = doctor(target, source_root=REPO_ROOT)
+    assert diagnosis["current_state"] != "pending_tracking"
+    guidance = next_action(target, source_root=REPO_ROOT)
+    assert guidance["state"] != "pending_tracking"
+
+    before_dry_run = snapshot_whole_tree(target)
+    dry_run = closeout(target, source_root=REPO_ROOT, update_handoff=True, dry_run=True)
+    after_dry_run = snapshot_whole_tree(target)
+    before_dry_run.assert_matches(after_dry_run)
+    assert dry_run["status"] == "passed"
+    assert dry_run["pending_tracking"]["classification"] == "advisory_only"
+    assert dry_run["pending_tracking"]["counts"]["total"] == count
+    assert dry_run["pending_tracking"]["advisory_preserved"] is True
+    assert dry_run["pending_tracking"]["required_unresolved"] is False
+    assert len(dry_run["pending_tracking"]["sample"]) == 5
+    assert dry_run["pending_tracking"]["sample_truncated"] is True
+    assert not any(
+        item["kind"] == "pending_tracking_event" for item in dry_run["repair_guidance"]["items"]
+    )
+
+    completed = closeout(target, source_root=REPO_ROOT, update_handoff=True)
+    assert completed["status"] == "passed"
+    assert completed["pending_tracking"]["classification"] == "advisory_only"
+    assert completed["pending_tracking"]["counts"]["total"] == count
+    assert pending_path.read_bytes() == pending_before
+    assert json.loads((target / AEGIS_ENFORCEMENT_REL).read_text(encoding="utf-8"))["mode"] == (
+        "advisory"
+    )
 
 
 def test_reconcile_reports_git_merged_task_that_taskmaster_has_not_marked_done(
@@ -1770,7 +2074,7 @@ def test_observation_mode_allows_pre_task_app_audit_without_task_branch(
         },
     )
     assert completed_taskmaster_gate.returncode == 2
-    assert "Claude readiness is BLOCKED" in completed_taskmaster_gate.stderr
+    assert "Aegis readiness is BLOCKED" in completed_taskmaster_gate.stderr
     assert (
         "observation mode only permits observation tooling" not in completed_taskmaster_gate.stderr
     )
@@ -2243,7 +2547,9 @@ def test_codex_install_merges_passive_hooks_and_uninstall_preserves_project_hook
     assert project_command in commands
     assert set(aegis_installer.CODEX_MANAGED_HOOK_COMMANDS) <= set(commands)
     assert commands.count(aegis_installer.CODEX_SESSION_START_COMMAND) == 1
-    assert commands.count(aegis_installer.CODEX_POSTTOOLUSE_COMMAND) == 2
+    assert commands.count(aegis_installer.CODEX_POSTTOOLUSE_COMMAND) == 1
+    assert commands.count(aegis_installer.CODEX_LEDGER_RECORD_COMMAND) == 1
+    assert commands.count(aegis_installer.CODEX_SUBAGENT_START_COMMAND) == 1
     assert commands.count(aegis_installer.CODEX_SUBAGENT_STOP_COMMAND) == 1
     managed_handlers = [
         handler
@@ -2260,9 +2566,10 @@ def test_codex_install_merges_passive_hooks_and_uninstall_preserves_project_hook
 
     manifest = json.loads((target / AEGIS_MANIFEST_REL).read_text(encoding="utf-8"))
     assert aegis_installer.CODEX_HOOKS_REL in manifest["agents"]["codex"]["managed_files"]
-    assert set(aegis_installer.CODEX_GATE_IDS) <= {
-        gate["id"] for gate in manifest["gates"] if gate["required"]
-    }
+    required_gate_ids = {gate["id"] for gate in manifest["gates"] if gate["required"]}
+    assert set(aegis_installer.CODEX_GATE_IDS) - {"codex.hook_trust"} <= required_gate_ids
+    hook_trust_gate = next(gate for gate in manifest["gates"] if gate["id"] == "codex.hook_trust")
+    assert hook_trust_gate["required"] is False
     verification = verify(target, source_root=REPO_ROOT)
     assert verification["summary"]["failed_required"] == 0
 
@@ -2383,6 +2690,7 @@ def test_installed_codex_hooks_capture_linked_worktree_and_child_lifecycle(
             ".aegis/bin/aegis",
             ".aegis/runtime.env",
             aegis_installer.CODEX_HOOKS_REL,
+            *aegis_installer.CODEX_SHARED_RUNTIME_FILES,
         ],
         cwd=target,
         check=True,
@@ -2431,7 +2739,14 @@ def test_installed_codex_hooks_capture_linked_worktree_and_child_lifecycle(
     def command_for(event: str) -> str:
         groups = hook_payload["hooks"][event]
         assert isinstance(groups, list) and groups
-        return groups[-1]["hooks"][0]["command"]
+        handlers = groups[-1]["hooks"]
+        if event == "PostToolUse":
+            return next(
+                handler["command"]
+                for handler in handlers
+                if handler.get("command") == aegis_installer.CODEX_LEDGER_RECORD_COMMAND
+            )
+        return handlers[0]["command"]
 
     def run_hook(
         root: Path, event: str, payload: dict[str, Any]
@@ -3595,10 +3910,18 @@ def test_multi_agent_reload_markers_clear_independently_before_codex_observation
         next_action(target, source_root=REPO_ROOT, invoking_agent="claude")["state"]
         == "client_reload_required"
     )
-
     assert (
         next_action(target, source_root=REPO_ROOT, invoking_agent="codex")["state"]
         == "client_reload_required"
+    )
+
+    simulate_codex_reload(target)
+    marker_payload = json.loads(marker.read_text(encoding="utf-8"))
+    assert marker_payload["agents"] == ["claude"]
+
+    assert (
+        next_action(target, source_root=REPO_ROOT, invoking_agent="codex")["state"]
+        == "no_taskmaster"
     )
 
     simulate_codex_reload(target)
@@ -3619,7 +3942,7 @@ def test_multi_agent_reload_markers_clear_independently_before_codex_observation
     assert pending_reload["blocks_invoking_agent"] is False
     assert pending_reload["marker_path"] == AEGIS_CLIENT_RELOAD_REL
     assert pending_reload["changed_paths"]
-    assert pending_reload["clearance"]["method"] == "installed_claude_pretooluse_hook"
+    assert pending_reload["clearance"]["method"] == "installed_agent_pretooluse_hook"
     assert codex_guidance["details"]["pending_adapter_reload"]["agent"] == "claude"
     codex_status = status(
         target,
@@ -5119,7 +5442,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         {"tool_name": "Bash", "tool_input": {"command": "aegis verify --target-dir ."}},
     )
     assert blocked_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_verify.stderr
 
     blocked_mcp_verify = run_target_pretooluse(
         target,
@@ -5129,7 +5452,7 @@ def test_kickoff_creates_native_ready_state_without_taskmaster_or_serena(tmp_pat
         },
     )
     assert blocked_mcp_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_mcp_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_mcp_verify.stderr
 
     bootstrap = run_target_pretooluse(
         target,
@@ -5375,7 +5698,7 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
         {"tool_name": "Bash", "tool_input": {"command": "touch source.txt"}},
     )
     assert ordinary_write.returncode == 2
-    assert "Claude readiness is BLOCKED" in ordinary_write.stderr
+    assert "Aegis readiness is BLOCKED" in ordinary_write.stderr
 
     blocked_verify = run_target_pretooluse(
         target,
@@ -5385,7 +5708,7 @@ def test_blocked_branch_deadlock_allows_pending_log_and_uninstall_recovery(tmp_p
         },
     )
     assert blocked_verify.returncode == 2
-    assert "Claude readiness is BLOCKED" in blocked_verify.stderr
+    assert "Aegis readiness is BLOCKED" in blocked_verify.stderr
 
     pending_log = run_target_pretooluse(
         target,
@@ -6672,6 +6995,7 @@ def test_closeout_populate_does_not_mask_pending_tracking_or_strict_verify(
                         "handler": "claude:Edit",
                         "evidence": "src/example.py",
                         "task": {"id": "42", "slug": "populate-negative"},
+                        "mode": "strict",
                     }
                 ],
             },
@@ -6694,6 +7018,8 @@ def test_closeout_populate_does_not_mask_pending_tracking_or_strict_verify(
     assert "closeout.handoff.implementation_evidence" not in failing
     assert "closeout.handoff.verification_evidence" not in failing
     assert result["populate"]["enabled"] is False
+    assert result["pending_tracking"]["classification"] == "required_only"
+    assert result["pending_tracking"]["required_unresolved"] is True
     assert json.loads(pending_path.read_text(encoding="utf-8"))["events"][0]["id"] == "pending-pop"
 
 

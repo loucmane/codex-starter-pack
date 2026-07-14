@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_id": "pr269-autonomous-delivery-unstable",
+  "observed": {
+    "pull_request": 269,
+    "workflow_run": 29270554173,
+    "evaluator_completed": true,
+    "merge_step_skipped": true,
+    "post_run_mergeable": true,
+    "post_run_mergeable_state": "clean"
+  },
+  "replay_assumption": {
+    "mergeable_state": "unstable",
+    "confidence": "medium",
+    "direct_telemetry": false,
+    "basis": "minimal replay consistent with the live skipped executor; the ephemeral evaluator input was not persisted"
+  },
+  "expected_decision": "provisional",
+  "evidence": {
+    "repository": "loucmane/codex-starter-pack",
+    "expected_head_sha": "2f01675029765e6e99a6a784ce9d397f1388dcdf",
+    "current_default_sha": "f65bf35b11f4d38dc8a0d72edad5c8b4ba2ca763",
+    "pull_request": {
+      "number": 269,
+      "state": "open",
+      "draft": false,
+      "base": {
+        "ref": "main",
+        "sha": "f65bf35b11f4d38dc8a0d72edad5c8b4ba2ca763"
+      },
+      "head": {
+        "ref": "feat/task-247-autonomous-delivery-canary",
+        "sha": "2f01675029765e6e99a6a784ce9d397f1388dcdf",
+        "repo": {
+          "full_name": "loucmane/codex-starter-pack"
+        }
+      },
+      "mergeable": true,
+      "mergeable_state": "unstable",
+      "changed_files": 1,
+      "labels": []
+    },
+    "files": [
+      {
+        "filename": "docs/ai/work-tracking/active/20260713-task247-autonomous-delivery-self-gating-ACTIVE/AUTONOMOUS_DELIVERY_CANARY.md",
+        "status": "added"
+      }
+    ],
+    "workflow_runs": [
+      {
+        "id": 29270058383,
+        "name": "CI",
+        "event": "pull_request",
+        "head_sha": "2f01675029765e6e99a6a784ce9d397f1388dcdf",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T17:20:48Z"
+      },
+      {
+        "id": 29270058023,
+        "name": "Codex Guard",
+        "event": "pull_request",
+        "head_sha": "2f01675029765e6e99a6a784ce9d397f1388dcdf",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T17:20:48Z"
+      },
+      {
+        "id": 29270057957,
+        "name": "Meta Workflow Guard",
+        "event": "pull_request",
+        "head_sha": "2f01675029765e6e99a6a784ce9d397f1388dcdf",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T17:20:48Z"
+      },
+      {
+        "id": 29270057602,
+        "name": "aegis-witness",
+        "event": "pull_request",
+        "head_sha": "2f01675029765e6e99a6a784ce9d397f1388dcdf",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "run_started_at": "2026-07-13T17:20:48Z"
+      }
+    ],
+    "review": {
+      "decision": "",
+      "unresolved_threads": 0,
+      "threads_truncated": false
+    }
+  }
+}

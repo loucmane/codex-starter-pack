@@ -24,6 +24,16 @@ SCHEMA_PATH = REPO_ROOT / "schemas" / "aegis" / "delivery-policy.schema.json"
 PACKAGED_SCHEMA_PATH = (
     REPO_ROOT / "aegis_foundation" / "assets" / "schemas" / "aegis" / "delivery-policy.schema.json"
 )
+PR264_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr264-autonomous-delivery-self-gating.json"
+)
+PR269_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr269-autonomous-delivery-unstable.json"
+)
+PR276_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr276-executor-self-unstable.json"
+)
+PR278_FIXTURE_PATH = REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr278-workflow-run-executor.json"
 HEAD_SHA = "a" * 40
 BASE_SHA = "b" * 40
 
@@ -146,6 +156,334 @@ def test_routine_exact_head_with_complete_evidence_is_allowed() -> None:
     assert result["decision"] == "allow"
     assert result["reasons"] == []
     assert result["evidence"]["head_sha"] == HEAD_SHA
+
+
+def test_pr264_self_gating_replay_is_provisional_not_authorized() -> None:
+    fixture = json.loads(PR264_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    result = policy_module.evaluate(_policy(), fixture["evidence"])
+
+    assert fixture["expected_decision"] == "provisional"
+    assert result["decision"] == "provisional"
+    assert result["evidence"]["mergeability_recheck_required"] is True
+    assert result["reasons"] == [
+        {
+            "category": "mergeability-self-check-pending",
+            "mergeable": True,
+            "state": "blocked",
+        }
+    ]
+
+
+def test_pr269_unstable_replay_is_provisional_not_authorized() -> None:
+    fixture = json.loads(PR269_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    result = policy_module.evaluate(_policy(), fixture["evidence"])
+
+    assert fixture["replay_assumption"]["direct_telemetry"] is False
+    assert fixture["replay_assumption"]["confidence"] == "medium"
+    assert fixture["observed"]["post_run_mergeable_state"] == "clean"
+    assert fixture["expected_decision"] == "provisional"
+    assert result["decision"] == "provisional"
+    assert result["evidence"]["mergeability_recheck_required"] is True
+    assert result["reasons"] == [
+        {
+            "category": "mergeability-self-check-pending",
+            "mergeable": True,
+            "state": "unstable",
+        }
+    ]
+
+
+def test_pr276_live_executor_replay_allows_only_the_verified_self_check() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    evaluator = policy_module.evaluate(_policy(), fixture["evidence"])
+    executor = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert fixture["observed"]["direct_telemetry"] is True
+    assert evaluator["decision"] == fixture["expected_evaluator_decision"]
+    assert executor["decision"] == fixture["expected_executor_decision"]
+    assert executor["reasons"] == []
+    assert executor["evidence"]["evaluation_phase"] == "executor"
+    assert executor["evidence"]["mergeability_self_check_verified"] is True
+    assert executor["evidence"]["check_inventory"] == {
+        "current_executor_job": True,
+        "executor_run_verified": True,
+        "executor_run_id": fixture["executor_run_id"],
+        "executor_jobs": 1,
+        "ignored_self_checks": 1,
+        "independent_checks": 4,
+        "status_contexts": 0,
+    }
+
+
+def test_pr278_workflow_run_executor_is_bound_outside_candidate_checks() -> None:
+    fixture = json.loads(PR278_FIXTURE_PATH.read_text(encoding="utf-8"))
+    candidate_urls = [check["details_url"] for check in fixture["evidence"]["check_runs"]]
+
+    evaluator = policy_module.evaluate(_policy(), fixture["evidence"])
+    executor = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert fixture["observed"]["candidate_contains_current_executor"] is False
+    assert all(f"/runs/{fixture['executor_run_id']}/" not in url for url in candidate_urls)
+    assert evaluator["decision"] == fixture["expected_evaluator_decision"]
+    assert executor["decision"] == fixture["expected_executor_decision"]
+    assert executor["reasons"] == []
+    assert executor["evidence"]["check_inventory"] == {
+        "current_executor_job": True,
+        "executor_run_verified": True,
+        "executor_run_id": fixture["executor_run_id"],
+        "executor_jobs": 1,
+        "ignored_self_checks": 1,
+        "independent_checks": 4,
+        "status_contexts": 0,
+    }
+
+
+def test_executor_clean_mergeability_still_requires_complete_check_inventory() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    fixture["evidence"]["pull_request"]["mergeable_state"] = "clean"
+
+    result = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "allow"
+    assert result["evidence"]["mergeability_self_check_verified"] is False
+    assert result["evidence"]["check_inventory"]["current_executor_job"] is True
+
+
+@pytest.mark.parametrize(
+    ("mutation", "category"),
+    [
+        ("independent-pending", "check-run-pending"),
+        ("independent-failed", "check-run-not-successful"),
+        ("candidate-self-app-spoof", "check-run-pending"),
+        ("candidate-self-url-spoof", "check-run-pending"),
+        ("checks-incomplete", "check-run-inventory-incomplete"),
+        ("statuses-incomplete", "status-context-inventory-incomplete"),
+        ("legacy-status-failed", "status-context-not-successful"),
+        ("executor-run-id-mismatch", "executor-run-id-mismatch"),
+        ("executor-run-path-spoof", "executor-run-path-mismatch"),
+        ("executor-run-event-spoof", "executor-run-event-untrusted"),
+        ("executor-run-repository-spoof", "executor-run-repository-mismatch"),
+        ("executor-run-head-repository-spoof", "executor-run-head-repository-mismatch"),
+        ("executor-run-completed", "executor-run-not-active"),
+        ("executor-run-head-mismatch", "executor-run-trusted-head-mismatch"),
+        ("executor-job-missing", "executor-job-missing"),
+        ("executor-job-duplicate", "executor-job-ambiguous"),
+        ("executor-job-run-mismatch", "executor-job-run-mismatch"),
+        ("executor-job-attempt-mismatch", "executor-job-attempt-mismatch"),
+        ("executor-job-head-mismatch", "executor-job-trusted-head-mismatch"),
+        ("executor-job-workflow-spoof", "executor-job-workflow-mismatch"),
+        ("executor-job-url-spoof", "executor-job-url-mismatch"),
+        ("executor-job-completed", "executor-job-not-active"),
+        ("executor-jobs-incomplete", "executor-job-inventory-incomplete"),
+    ],
+)
+def test_executor_self_exception_never_masks_other_status_evidence(
+    mutation: str,
+    category: str,
+) -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    evidence = fixture["evidence"]
+    if mutation == "independent-pending":
+        evidence["check_runs"][0]["status"] = "in_progress"
+        evidence["check_runs"][0]["conclusion"] = None
+    elif mutation == "independent-failed":
+        evidence["check_runs"][0]["conclusion"] = "failure"
+    elif mutation == "candidate-self-app-spoof":
+        evidence["check_runs"][1]["app"]["slug"] = "untrusted-app"
+    elif mutation == "candidate-self-url-spoof":
+        evidence["check_runs"][1]["details_url"] = "https://example.invalid/actions/runs/999/job/1"
+    elif mutation == "checks-incomplete":
+        evidence["check_runs_complete"] = False
+    elif mutation == "statuses-incomplete":
+        evidence["status_contexts_complete"] = False
+    elif mutation == "legacy-status-failed":
+        evidence["status_contexts"] = [
+            {
+                "id": 1,
+                "context": "external/security",
+                "state": "failure",
+                "sha": evidence["expected_head_sha"],
+                "created_at": "2026-07-14T05:16:00Z",
+            }
+        ]
+    elif mutation == "executor-run-id-mismatch":
+        evidence["executor_run"]["id"] = 999
+    elif mutation == "executor-run-path-spoof":
+        evidence["executor_run"]["path"] = ".github/workflows/untrusted.yml"
+    elif mutation == "executor-run-event-spoof":
+        evidence["executor_run"]["event"] = "repository_dispatch"
+    elif mutation == "executor-run-repository-spoof":
+        evidence["executor_run"]["repository"]["full_name"] = "attacker/fork"
+    elif mutation == "executor-run-head-repository-spoof":
+        evidence["executor_run"]["head_repository"]["full_name"] = "attacker/fork"
+    elif mutation == "executor-run-completed":
+        evidence["executor_run"]["status"] = "completed"
+        evidence["executor_run"]["conclusion"] = "success"
+    elif mutation == "executor-run-head-mismatch":
+        evidence["executor_run"]["head_sha"] = "f" * 40
+    elif mutation == "executor-job-missing":
+        evidence["executor_jobs"] = [evidence["executor_jobs"][0]]
+    elif mutation == "executor-job-duplicate":
+        evidence["executor_jobs"].append(dict(evidence["executor_jobs"][1]))
+    elif mutation == "executor-job-run-mismatch":
+        evidence["executor_jobs"][1]["run_id"] = 999
+    elif mutation == "executor-job-attempt-mismatch":
+        evidence["executor_jobs"][1]["run_attempt"] = 99
+    elif mutation == "executor-job-head-mismatch":
+        evidence["executor_jobs"][1]["head_sha"] = "f" * 40
+    elif mutation == "executor-job-workflow-spoof":
+        evidence["executor_jobs"][1]["workflow_name"] = "Untrusted Workflow"
+    elif mutation == "executor-job-url-spoof":
+        evidence["executor_jobs"][1]["html_url"] = "https://example.invalid/job/1"
+    elif mutation == "executor-job-completed":
+        evidence["executor_jobs"][1]["status"] = "completed"
+        evidence["executor_jobs"][1]["conclusion"] = "failure"
+    else:
+        evidence["executor_jobs_complete"] = False
+
+    result = policy_module.evaluate(
+        _policy(),
+        evidence,
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "defer"
+    assert category in {reason["category"] for reason in result["reasons"]}
+
+
+def test_completed_prior_candidate_executor_does_not_mask_current_trusted_executor() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    prior_executor = fixture["evidence"]["check_runs"][1]
+    prior_executor["status"] = "completed"
+    prior_executor["conclusion"] = "failure"
+
+    result = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "allow"
+    assert result["evidence"]["check_inventory"]["ignored_self_checks"] == 1
+
+
+def test_executor_self_exception_never_masks_an_attended_path() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    fixture["evidence"]["files"] = [{"filename": ".github/workflows/ci.yml", "status": "modified"}]
+
+    result = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "attended"
+    assert any(reason["category"] == "attended-path" for reason in result["reasons"])
+
+
+@pytest.mark.parametrize("executor_run_id", [None, "", "0", "not-a-run"])
+def test_executor_phase_requires_a_trusted_numeric_run_id(
+    executor_run_id: str | None,
+) -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    with pytest.raises(policy_module.PolicyError, match="numeric executor_run_id"):
+        policy_module.evaluate(
+            _policy(),
+            fixture["evidence"],
+            phase="executor",
+            executor_run_id=executor_run_id,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mergeable", "state"),
+    [
+        (False, "dirty"),
+        (True, "dirty"),
+        (None, "unknown"),
+        (True, "behind"),
+    ],
+)
+def test_non_provisional_mergeability_remains_deferred(
+    mergeable: bool | None,
+    state: str,
+) -> None:
+    evidence = _evidence()
+    evidence["pull_request"]["mergeable"] = mergeable  # type: ignore[index]
+    evidence["pull_request"]["mergeable_state"] = state  # type: ignore[index]
+
+    result = policy_module.evaluate(_policy(), evidence)
+
+    assert result["decision"] == "defer"
+    assert any(reason["category"] == "mergeability-not-clean" for reason in result["reasons"])
+
+
+@pytest.mark.parametrize(
+    ("mutation", "category"),
+    [
+        ("workflow-pending", "workflow-pending"),
+        ("workflow-failed", "workflow-not-successful"),
+        ("review-required", "review-required"),
+        ("changes-requested", "changes-requested"),
+        ("thread", "unresolved-review-threads"),
+    ],
+)
+@pytest.mark.parametrize("mergeability_state", ["blocked", "unstable"])
+def test_provisional_mergeability_never_masks_another_gate(
+    mutation: str,
+    category: str,
+    mergeability_state: str,
+) -> None:
+    evidence = _evidence()
+    evidence["pull_request"]["mergeable_state"] = mergeability_state  # type: ignore[index]
+    if mutation == "workflow-pending":
+        evidence["workflow_runs"][0]["status"] = "in_progress"  # type: ignore[index]
+        evidence["workflow_runs"][0]["conclusion"] = None  # type: ignore[index]
+    elif mutation == "workflow-failed":
+        evidence["workflow_runs"][0]["conclusion"] = "failure"  # type: ignore[index]
+    elif mutation == "review-required":
+        evidence["review"]["decision"] = "REVIEW_REQUIRED"  # type: ignore[index]
+    elif mutation == "changes-requested":
+        evidence["review"]["decision"] = "CHANGES_REQUESTED"  # type: ignore[index]
+    else:
+        evidence["review"]["unresolved_threads"] = 1  # type: ignore[index]
+
+    result = policy_module.evaluate(_policy(), evidence)
+
+    assert result["decision"] == "defer"
+    assert category in {reason["category"] for reason in result["reasons"]}
+
+
+def test_unstable_provisional_state_never_masks_attended_path() -> None:
+    evidence = _evidence(files=[{"filename": ".github/workflows/ci.yml", "status": "modified"}])
+    evidence["pull_request"]["mergeable_state"] = "unstable"  # type: ignore[index]
+
+    result = policy_module.evaluate(_policy(), evidence)
+
+    assert result["decision"] == "attended"
+    assert any(reason["category"] == "attended-path" for reason in result["reasons"])
 
 
 @pytest.mark.parametrize(

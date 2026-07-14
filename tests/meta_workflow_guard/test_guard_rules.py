@@ -8,6 +8,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -38,6 +39,55 @@ def load_guard_module():
     sys.modules[loader.name] = module
     loader.exec_module(module)
     return module
+
+
+def test_merge_parent_inherited_entries_are_not_current_work(monkeypatch) -> None:
+    module = load_guard_module()
+    entries = [
+        ("A ", "sessions/2026/07/historical.md"),
+        ("M ", "scripts/current-task.py"),
+        (" M", "docs/worktree-edit.md"),
+        ("??", "notes/untracked.md"),
+        ("R ", "old-name.md -> new-name.md"),
+    ]
+
+    def fake_run(command, **_kwargs):
+        if command[:4] == ["git", "rev-parse", "--verify", "-q"]:
+            return SimpleNamespace(returncode=0, stdout="merge-head\n", stderr="")
+        if command[:4] == ["git", "diff", "--cached", "--name-only"]:
+            return SimpleNamespace(
+                returncode=0,
+                stdout="scripts/current-task.py\0new-name.md\0",
+                stderr="",
+            )
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module._exclude_merge_parent_inherited_entries(entries) == [
+        ("M ", "scripts/current-task.py"),
+        (" M", "docs/worktree-edit.md"),
+        ("??", "notes/untracked.md"),
+        ("R ", "old-name.md -> new-name.md"),
+    ]
+
+
+def test_merge_parent_filter_fails_closed_when_diff_inspection_fails(
+    monkeypatch,
+) -> None:
+    module = load_guard_module()
+    entries = [("A ", "sessions/2026/07/historical.md")]
+
+    def fake_run(command, **_kwargs):
+        if command[:4] == ["git", "rev-parse", "--verify", "-q"]:
+            return SimpleNamespace(returncode=0, stdout="merge-head\n", stderr="")
+        if command[:4] == ["git", "diff", "--cached", "--name-only"]:
+            return SimpleNamespace(returncode=1, stdout="", stderr="failed")
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    assert module._exclude_merge_parent_inherited_entries(entries) == entries
 
 
 def test_validate_session_edit_dates_flags_legacy_session() -> None:

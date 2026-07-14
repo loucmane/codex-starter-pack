@@ -9,7 +9,7 @@
       ],
       "expected_summary": {
         "conflicts": 0,
-        "creates": 26,
+        "creates": 38,
         "manual_reviews": 0,
         "modifies": 2,
         "skips": 0
@@ -18,7 +18,7 @@
         "CODEX.md": "modify",
         ".codex/hooks.json": "modify"
       },
-      "operations_sha256": "fa94284a05f90f51fbf23ed8b9a59c1a595bbbf1cb6f8d156a2c9808b79e7c10"
+      "operations_sha256": "4367457a215ea7d0c08321e8fa5cddb51b52da107a3e8e3784a9a8be4c7f57d3"
     },
     "hp-fetcher": {
       "kind": "known_stale_update",

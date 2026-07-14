@@ -2,7 +2,7 @@
 
 **Started**: 2026-07-13
 **Status**: COMPLETED
-**Last Updated**: 2026-07-13
+**Last Updated**: 2026-07-14
 
 ## Goals
 - [x] Define the managed-update extraction seam, compatibility boundary, and rollback
@@ -23,6 +23,14 @@
 - **2026-07-13 18:36** — [S:20260713|W:task242-managed-update-slice|H:source-guard-pipeline|E:cmd`python3 scripts/template-ssot-scanner/run_all_scanners.py --profile ci`] Passed plan sync, work-tracking audit, Taskmaster health, readiness, S:W:H:E, five timestamp regressions, zero-drift, six scanners, no-reference-fix, monitoring, Phase 0, performance, cost, and migration checks
 - **2026-07-13 18:39** — [S:20260713|W:task242-managed-update-slice|H:pytest:local-regression-gate|E:docs/ai/work-tracking/archive/20260713-task242-managed-update-slice-COMPLETED/reports/managed-update-slice/task-verification.md] Passed the exit-zero local suite with 1,765 tests, four opt-in skips, and only the proven `/tmp`-invalid baseline assertion deselected
 - **2026-07-13 18:39** — [S:20260713|W:task242-managed-update-slice|H:task-master:set-status|E:.taskmaster/tasks/tasks.json] Marked Taskmaster Task 242 done after all scoped local verification and preserved hosted CI as the final delivery proof.
+- **2026-07-14 18:08** — [S:20260714|W:task242-managed-update-slice|H:shell:date|E:cmd`date "+%Y-%m-%d %H:%M %Z"`] Confirmed current timestamp as `2026-07-14 18:08 CEST`
+- **2026-07-14 18:08** — [S:20260714|W:task242-managed-update-slice|H:scripts/codex-task:sessions-continue|E:sessions/2026/07/2026-07-14-004-task242-managed-update-slice.md] Created a fresh daily Task 242 continuation session while reusing the existing completed source archive
+- **2026-07-14 18:08** — [S:20260714|W:task242-managed-update-slice|H:plans/current|E:plans/2026-07-13-task242-managed-update-slice.md] Reused the existing Task 242 plan for continuation
+- **2026-07-14 18:08** — [S:20260714|W:task242-managed-update-slice|H:sessions/state.json|E:sessions/state.json] Repointed session state to the Task 242 continuation session
+- **2026-07-14 18:10** — [S:20260714|W:task242-managed-update-slice|H:task-master:set-status|E:.taskmaster/tasks/tasks.json;.taskmaster/tasks/task_242.md] Reconciled Task 242's completed state through the supported Taskmaster CLI; authoritative health reports 250 tasks, 383 subtasks, 435 valid dependency references, and zero invalid references.
+- **2026-07-14 18:10** — [S:20260714|W:task242-managed-update-slice|H:git:merge-main|E:scripts/_aegis_installer.py;aegis_foundation/assets/scripts/_aegis_installer.py;aegis_foundation/managed_update.py] Ported the managed-update extraction onto current main without replacing later Tasks 247–251; live and packaged installers remain byte-identical.
+- **2026-07-14 18:10** — [S:20260714|W:task242-managed-update-slice|H:pytest:current-main-compatibility|E:tests/meta_workflow_guard/test_aegis_managed_update.py;tests/meta_workflow_guard/test_codex_hook_adapter.py;tests/meta_workflow_guard/test_aegis_installer.py] Passed 10 managed-update/golden, 49 Codex-hook/parity, and 155 installer/release tests with three explicit opt-in skips; Ruff, Black, and `git diff --check` pass.
+- **2026-07-14 18:10** — [S:20260714|W:task242-managed-update-slice|H:serena/memory|E:.serena/memories/2026-07-14_task242_mainline_reconciliation.md] Captured the current-main authority boundary, shared-runtime and Codex hook compatibility decisions, verification evidence, and exact-tree delivery sequence for compaction-safe continuation.
 
 ## Plan Compliance Checklist
 - [x] plan-step-scope — Define extraction seam, compatibility invariants, and rollback

@@ -1,0 +1,86 @@
+---
+session_id: 2026-07-13-003
+work_context: task247-autonomous-delivery-self-gating
+handler_target: scripts/aegis-delivery-policy
+task_ids: [247]
+branch_policy: feature-required
+evidence_summary:
+  - docs/ai/work-tracking/archive/20260713-task247-autonomous-delivery-self-gating-COMPLETED/
+  - scripts/aegis-delivery-policy
+  - .github/workflows/aegis-autonomous-delivery.yml
+  - tests/fixtures/aegis/pr264-autonomous-delivery-self-gating.json
+  - tests/meta_workflow_guard/test_aegis_delivery_policy.py
+  - tests/meta_workflow_guard/test_aegis_autonomous_delivery_workflow.py
+plan_version: v1
+emergency_bypass: false
+---
+
+# Plan - Task 247 Fix Autonomous Delivery Self-Gating Race
+
+## Header
+- **Session ID (S)**: 2026-07-13-003
+- **Work Context (W)**: task247-autonomous-delivery-self-gating
+- **Handler Target (H)**: scripts/aegis-delivery-policy
+- **Task IDs**: 247
+- **Branch Policy**: feature-required
+- **Evidence Summary (E)**: Task 247 design/tracking, source and packaged policy, trusted delivery workflow, PR #264 replay fixture, and policy/workflow contract tests
+- **Plan Version**: v1
+- **Emergency Bypass**: false
+
+## Plan Table
+| Step ID             | Description | Evidence | Status |
+|---------------------|-------------|----------|--------|
+| plan-step-scope | Reproduce PR #264 and bind a fail-closed evaluator/executor contract | docs/ai/work-tracking/archive/20260713-task247-autonomous-delivery-self-gating-COMPLETED/designs/self-gating-delivery-contract.md | completed |
+| plan-step-implement | Add the non-authorizing provisional policy result, split trusted workflow, replay fixture, docs, and regression contracts | scripts/aegis-delivery-policy; aegis_foundation/assets/scripts/aegis-delivery-policy; .github/workflows/aegis-autonomous-delivery.yml; tests/fixtures/aegis/pr264-autonomous-delivery-self-gating.json | completed |
+| plan-step-verify | Run focused and full suites, repository guards, hosted CI, exact-head delivery, live ordinary canary, and post-merge dispatch verification | docs/ai/work-tracking/archive/20260713-task247-autonomous-delivery-self-gating-COMPLETED/HANDOFF.md; docs/ai/work-tracking/archive/20260713-task247-autonomous-delivery-self-gating-COMPLETED/TRACKER.md | completed |
+| plan-step-emergency | _Optional_ - only if bypass required | Waiver + post-mortem plan | n/a |
+
+## Scope
+- `docs/ai/work-tracking/archive/20260713-task247-autonomous-delivery-self-gating-COMPLETED/`
+- `.github/workflows/aegis-autonomous-delivery.yml`
+- `scripts/aegis-delivery-policy`
+- `aegis_foundation/assets/scripts/aegis-delivery-policy`
+- `docs/aegis/evidence-gated-autonomous-delivery.md`
+- `tests/fixtures/aegis/pr264-autonomous-delivery-self-gating.json`
+- `tests/fixtures/aegis/pr269-autonomous-delivery-unstable.json`
+- `tests/fixtures/aegis/pr269-review-pages.jsonl`
+- `tests/meta_workflow_guard/test_aegis_delivery_policy.py`
+- `tests/meta_workflow_guard/test_aegis_autonomous_delivery_workflow.py`
+- `.taskmaster/tasks/task_247.md`
+- Taskmaster Task `247`
+
+## Branch Policy
+- Working branch: `feat/task-247-autonomous-delivery-self-gating`
+
+## Amendments & Versioning
+- 2026-07-13 - Task 247 kickoff created via the guided wizard flow.
+- 2026-07-13 - Live PR #269 exposed a second transient mergeability race after the first
+  governance merge. Scope now includes a provenance-bounded unstable-state replay,
+  non-authorizing handling, and evaluator reason output; the original canary acceptance
+  criterion is unchanged.
+- 2026-07-13 - Exact replay after the first remediation falsified unstable mergeability
+  as the causal blocker and isolated jq false/null coalescing in review pagination.
+  Scope now includes both trusted collectors and executable complete/missing-page tests;
+  the original live autonomous-merge acceptance criterion remains unchanged.
+
+## Continuation & Handoff
+- Next owner: loucmane (default)
+- Context reload steps:
+  1. Read `sessions/current` and this plan.
+  2. Review Taskmaster Task 247 and its subtasks.
+  3. Review the self-gating delivery contract before changing policy or workflow behavior.
+  4. Run `python3 scripts/codex-task plan sync` after tracker updates.
+- Outstanding risks/todos: none for Task 247. The ordinary canary and exact-merge-SHA
+  dispatch acceptance passed; future policy changes remain attended by design.
+
+## Conflict & Scope Declaration
+- Related plans: Task 246 evidence-gated autonomy bootstrap and Task 239 PR #264 dogfood evidence.
+- Guard cross-check: the required evaluator must remain read-only; attended paths and labels remain non-autonomous.
+
+## Evidence Checklist
+- Secret-free PR #264 replay fixture and self-gating contract under `designs/`
+- Source/packaged policy byte parity and workflow trust-boundary contract tests
+- Focused, meta-workflow, repository-wide, guard, hosted-CI, and live-canary evidence
+
+## Emergency Bypass Protocol
+- No bypass authorized.
