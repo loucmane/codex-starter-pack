@@ -182,6 +182,12 @@ CLAUDE_GATE_IDS = (
     "claude.protected_path",
 )
 CODEX_HOOKS_REL = ".codex/hooks.json"
+CODEX_HOOK_TRUST_REVIEW_COMMAND = "/hooks"
+CODEX_HOOK_TRUST_HASH_SCOPE = "exact_hook_definition"
+CODEX_HOOK_TRUST_UNSUPPORTED_REASON = (
+    "Codex records trust outside the project against the exact hook-definition hash; "
+    "review the generated definitions with /hooks after reconnecting."
+)
 CODEX_SESSION_START_MATCHER = "startup|resume|clear|compact"
 CODEX_HOOK_MATCHER = "^(Bash|apply_patch|mcp__.*)$"
 CODEX_POSTTOOLUSE_MATCHER = CODEX_HOOK_MATCHER
@@ -1782,10 +1788,7 @@ def _gates(enabled_agents: Sequence[str]) -> list[dict[str, Any]]:
                     scope="adapter",
                     adapter="codex",
                     path=CODEX_HOOKS_REL,
-                    unsupported_reason=(
-                        "Codex records trust outside the project against the exact hook-definition hash; "
-                        "review the generated definitions with /hooks after reconnecting."
-                    ),
+                    unsupported_reason=CODEX_HOOK_TRUST_UNSUPPORTED_REASON,
                     method="manual",
                     failure_mode="unsupported",
                     expected=None,
@@ -10313,6 +10316,42 @@ def _strict_claude_checks(target_root: Path, manifest: Mapping[str, Any]) -> lis
     return checks
 
 
+def _tracked_codex_hook_trust_guidance(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    gates = manifest.get("gates")
+    if not isinstance(gates, list):
+        return {}
+    matching = [
+        gate
+        for gate in gates
+        if isinstance(gate, Mapping) and gate.get("id") == "codex.hook_trust"
+    ]
+    if len(matching) != 1:
+        return {}
+    gate = matching[0]
+    verification = gate.get("verification")
+    if not isinstance(verification, Mapping):
+        return {}
+    if not (
+        gate.get("required") is False
+        and gate.get("enforcement") == "policy"
+        and gate.get("scope") == "adapter"
+        and gate.get("adapter") == "codex"
+        and gate.get("path") == CODEX_HOOKS_REL
+        and gate.get("unsupported_reason") == CODEX_HOOK_TRUST_UNSUPPORTED_REASON
+        and verification.get("method") == "manual"
+        and verification.get("failure_mode") == "unsupported"
+        and verification.get("expected") is None
+    ):
+        return {}
+    return {
+        "settings_path": CODEX_HOOKS_REL,
+        "review_command": CODEX_HOOK_TRUST_REVIEW_COMMAND,
+        "hash_scope": CODEX_HOOK_TRUST_HASH_SCOPE,
+        "bypass_allowed": False,
+        "source": "manifest_gate",
+    }
+
+
 def _strict_codex_checks(target_root: Path, manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
     required = _agent_enabled(manifest, "codex")
     if not required:
@@ -10379,21 +10418,11 @@ def _strict_codex_checks(target_root: Path, manifest: Mapping[str, Any]) -> list
         )
     )
 
-    install_report = _read_json(target_root / AEGIS_INSTALL_REPORT_REL) or {}
-    reload_report = (
-        install_report.get("client_reload")
-        if isinstance(install_report.get("client_reload"), Mapping)
-        else {}
-    )
-    hook_trust = (
-        reload_report.get("hook_trust")
-        if isinstance(reload_report.get("hook_trust"), Mapping)
-        else {}
-    )
+    hook_trust = _tracked_codex_hook_trust_guidance(manifest)
     trust_guidance_ok = (
         hook_trust.get("settings_path") == CODEX_HOOKS_REL
-        and hook_trust.get("review_command") == "/hooks"
-        and hook_trust.get("hash_scope") == "exact_hook_definition"
+        and hook_trust.get("review_command") == CODEX_HOOK_TRUST_REVIEW_COMMAND
+        and hook_trust.get("hash_scope") == CODEX_HOOK_TRUST_HASH_SCOPE
         and hook_trust.get("bypass_allowed") is False
     )
     checks.append(
@@ -10412,6 +10441,7 @@ def _strict_codex_checks(target_root: Path, manifest: Mapping[str, Any]) -> list
                 "review_command": hook_trust.get("review_command"),
                 "hash_scope": hook_trust.get("hash_scope"),
                 "bypass_allowed": hook_trust.get("bypass_allowed"),
+                "source": hook_trust.get("source"),
             },
         )
     )

@@ -8159,13 +8159,25 @@
         "priority": "high",
         "subtasks": [],
         "updatedAt": "2026-07-14T17:46:03.756Z"
+      },
+      {
+        "id": "253",
+        "title": "Make Codex Hook Trust Verification Reproducible from Tracked State",
+        "description": "Eliminate strict verification's dependency on ignored install reports by deriving the exact no-bypass Codex hook-trust contract from the tracked manifest gate.",
+        "details": "Update only the root installer, packaged installer asset, focused installer regression tests, and required task/Aegis evidence. Require strict verification to pass in a clean checkout without .aegis/reports/install-report.json, fail closed when the tracked codex.hook_trust manifest gate is missing, duplicated, or semantically altered, preserve advisory enforcement, and retain root/asset parity.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [],
+        "updatedAt": "2026-07-14T19:05:07.469Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-14T18:45:00.625Z",
-      "taskCount": 251,
-      "completedCount": 246,
+      "lastModified": "2026-07-14T19:05:07.470Z",
+      "taskCount": 252,
+      "completedCount": 247,
       "tags": [
         "master"
       ]

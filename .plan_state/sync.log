@@ -144,10 +144,28 @@
     "synced_at": "2026-07-14T20:16:51.399356+02:00"
   },
   {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "a52d768b059fc75bc4a632b0ac914083dc45f8b8bf999ea6c59da2bdf251d528",
+    "tracker_hash": "8ba288f6dad3c88709efcbe726a6a9fe35a3ff96acee3082416f09698f98cc2d",
+    "synced_at": "2026-07-14T20:22:21.366413+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "a5fd7b54322cfdf92cda6cacb99fe2e3d18f0ae5e6a25314edf009e386043efc",
+    "tracker_hash": "b5cd232d8a82e995827f051440e7d20db2a0483d952edd867af773762d092df8",
+    "synced_at": "2026-07-14T20:26:41.748199+02:00"
+  },
+  {
     "plan": "plans/2026-07-14-task243-pr4-parity-and-obsidian-vault.md",
     "plan_hash": "b60bb971c0ad3319b2ea79018e835ae120344311e8534cbcf7c3bcad2b9d3c65",
     "tracker_hash": "3db5003eb7d3c9c81d0a753937e9d5d7ec0474be6bd057c8b673ff4671983585",
     "synced_at": "2026-07-14T20:27:12.673010+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "29fc9b6739c2ededde078db5dbcb53ea064afba0ff9010d09f85241d60a58355",
+    "tracker_hash": "aa349bff946e3fd2f0d6abeb6dc911466c858dcb423c8999886b85b3f4a0e30e",
+    "synced_at": "2026-07-14T20:27:36.859012+02:00"
   },
   {
     "plan": "plans/2026-07-14-task243-pr4-parity-and-obsidian-vault.md",
@@ -162,6 +180,18 @@
     "synced_at": "2026-07-14T20:43:28.711137+02:00"
   },
   {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "a686be22a80dbfef6723094edbc118ad835a553268784d28ae6677f5bd5b16d7",
+    "tracker_hash": "5e0addf071c911ddab3608775393508b37dce48e636b3c1d3c084490f848c482",
+    "synced_at": "2026-07-14T20:44:15.990383+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "d37c534733bedeb1868d4e46636854daaae0fc01863b0b490f9bd3160d73e22e",
+    "tracker_hash": "38c8ce7f16628d85d8ace0411eb35f7def76432742df14949f2e00cde547693f",
+    "synced_at": "2026-07-14T20:44:28.846290+02:00"
+  },
+  {
     "plan": "plans/2026-07-14-task243-pr4-parity-and-obsidian-vault.md",
     "plan_hash": "796f4fc814922851e1b4e45c88654daf16637ff24033a487617520b4c56b7a51",
     "tracker_hash": "63f6704da6aac3f6810e12b2c787d78f58b97dc80ec07814e8519a50badef8b6",
@@ -172,5 +202,17 @@
     "plan_hash": "4ec6966df6599464fa961024cf3dce7cd9b59be6fae1278eae0afb10c0383a66",
     "tracker_hash": "738049dbf5db5f08d814317cf97a66ed064ae9e25baceae2a53d208de36c5094",
     "synced_at": "2026-07-14T20:45:09.978144+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "d37c534733bedeb1868d4e46636854daaae0fc01863b0b490f9bd3160d73e22e",
+    "tracker_hash": "38c8ce7f16628d85d8ace0411eb35f7def76432742df14949f2e00cde547693f",
+    "synced_at": "2026-07-14T20:45:16.750416+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "d37c534733bedeb1868d4e46636854daaae0fc01863b0b490f9bd3160d73e22e",
+    "tracker_hash": "38c8ce7f16628d85d8ace0411eb35f7def76432742df14949f2e00cde547693f",
+    "synced_at": "2026-07-14T21:07:05.328568+02:00"
   }
 ]
