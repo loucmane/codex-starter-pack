@@ -28,11 +28,10 @@ PR264_FIXTURE_PATH = (
     REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr264-autonomous-delivery-self-gating.json"
 )
 PR269_FIXTURE_PATH = (
-    REPO_ROOT
-    / "tests"
-    / "fixtures"
-    / "aegis"
-    / "pr269-autonomous-delivery-unstable.json"
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr269-autonomous-delivery-unstable.json"
+)
+PR276_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "aegis" / "pr276-executor-self-unstable.json"
 )
 HEAD_SHA = "a" * 40
 BASE_SHA = "b" * 40
@@ -195,6 +194,136 @@ def test_pr269_unstable_replay_is_provisional_not_authorized() -> None:
     ]
 
 
+def test_pr276_live_executor_replay_allows_only_the_verified_self_check() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    evaluator = policy_module.evaluate(_policy(), fixture["evidence"])
+    executor = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert fixture["observed"]["direct_telemetry"] is True
+    assert evaluator["decision"] == fixture["expected_evaluator_decision"]
+    assert executor["decision"] == fixture["expected_executor_decision"]
+    assert executor["reasons"] == []
+    assert executor["evidence"]["evaluation_phase"] == "executor"
+    assert executor["evidence"]["mergeability_self_check_verified"] is True
+    assert executor["evidence"]["check_inventory"] == {
+        "current_self_check": True,
+        "ignored_self_checks": 1,
+        "independent_checks": 4,
+        "status_contexts": 0,
+    }
+
+
+def test_executor_clean_mergeability_still_requires_complete_check_inventory() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    fixture["evidence"]["pull_request"]["mergeable_state"] = "clean"
+
+    result = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "allow"
+    assert result["evidence"]["mergeability_self_check_verified"] is False
+    assert result["evidence"]["check_inventory"]["current_self_check"] is True
+
+
+@pytest.mark.parametrize(
+    ("mutation", "category"),
+    [
+        ("independent-pending", "check-run-pending"),
+        ("independent-failed", "check-run-not-successful"),
+        ("self-app-spoof", "executor-self-check-missing"),
+        ("self-run-mismatch", "executor-self-check-missing"),
+        ("self-already-completed", "executor-self-check-missing"),
+        ("checks-incomplete", "check-run-inventory-incomplete"),
+        ("statuses-incomplete", "status-context-inventory-incomplete"),
+        ("legacy-status-failed", "status-context-not-successful"),
+    ],
+)
+def test_executor_self_exception_never_masks_other_status_evidence(
+    mutation: str,
+    category: str,
+) -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    evidence = fixture["evidence"]
+    if mutation == "independent-pending":
+        evidence["check_runs"][0]["status"] = "in_progress"
+        evidence["check_runs"][0]["conclusion"] = None
+    elif mutation == "independent-failed":
+        evidence["check_runs"][0]["conclusion"] = "failure"
+    elif mutation == "self-app-spoof":
+        evidence["check_runs"][1]["app"]["slug"] = "untrusted-app"
+    elif mutation == "self-run-mismatch":
+        evidence["check_runs"][1]["details_url"] = (
+            "https://github.com/loucmane/codex-starter-pack/actions/runs/999/job/1"
+        )
+    elif mutation == "self-already-completed":
+        evidence["check_runs"][1]["status"] = "completed"
+        evidence["check_runs"][1]["conclusion"] = "failure"
+    elif mutation == "checks-incomplete":
+        evidence["check_runs_complete"] = False
+    elif mutation == "statuses-incomplete":
+        evidence["status_contexts_complete"] = False
+    else:
+        evidence["status_contexts"] = [
+            {
+                "id": 1,
+                "context": "external/security",
+                "state": "failure",
+                "sha": evidence["expected_head_sha"],
+                "created_at": "2026-07-14T05:16:00Z",
+            }
+        ]
+
+    result = policy_module.evaluate(
+        _policy(),
+        evidence,
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "defer"
+    assert category in {reason["category"] for reason in result["reasons"]}
+
+
+def test_executor_self_exception_never_masks_an_attended_path() -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+    fixture["evidence"]["files"] = [{"filename": ".github/workflows/ci.yml", "status": "modified"}]
+
+    result = policy_module.evaluate(
+        _policy(),
+        fixture["evidence"],
+        phase="executor",
+        executor_run_id=fixture["executor_run_id"],
+    )
+
+    assert result["decision"] == "attended"
+    assert any(reason["category"] == "attended-path" for reason in result["reasons"])
+
+
+@pytest.mark.parametrize("executor_run_id", [None, "", "0", "not-a-run"])
+def test_executor_phase_requires_a_trusted_numeric_run_id(
+    executor_run_id: str | None,
+) -> None:
+    fixture = json.loads(PR276_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    with pytest.raises(policy_module.PolicyError, match="numeric executor_run_id"):
+        policy_module.evaluate(
+            _policy(),
+            fixture["evidence"],
+            phase="executor",
+            executor_run_id=executor_run_id,
+        )
+
+
 @pytest.mark.parametrize(
     ("mergeable", "state"),
     [
@@ -255,9 +384,7 @@ def test_provisional_mergeability_never_masks_another_gate(
 
 
 def test_unstable_provisional_state_never_masks_attended_path() -> None:
-    evidence = _evidence(
-        files=[{"filename": ".github/workflows/ci.yml", "status": "modified"}]
-    )
+    evidence = _evidence(files=[{"filename": ".github/workflows/ci.yml", "status": "modified"}])
     evidence["pull_request"]["mergeable_state"] = "unstable"  # type: ignore[index]
 
     result = policy_module.evaluate(_policy(), evidence)
