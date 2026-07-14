@@ -259,6 +259,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ needs.delivery.outputs.pr_number }}
           EXPECTED_HEAD: ${{ needs.delivery.outputs.expected_head }}
+          EXECUTOR_RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -307,6 +308,26 @@ jobs:
           jq -s 'add // []' "$RUNNER_TEMP/status-context-pages.jsonl" \
             > "$RUNNER_TEMP/status-contexts.json"
 
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs/${EXECUTOR_RUN_ID}" \
+            --jq '{
+              id, name, path, event, status, conclusion, head_branch, head_sha, run_attempt,
+              repository: {full_name: .repository.full_name},
+              head_repository: {full_name: .head_repository.full_name}
+            }' \
+            > "$RUNNER_TEMP/executor-run.json"
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs/${EXECUTOR_RUN_ID}/jobs?per_page=100&filter=latest" \
+            --jq '.jobs | map({
+              id, name, status, conclusion, head_branch, head_sha, run_attempt, run_id,
+              html_url, workflow_name
+            })' \
+            > "$RUNNER_TEMP/executor-job-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/executor-job-pages.jsonl" \
+            > "$RUNNER_TEMP/executor-jobs.json"
+
           owner="${REPOSITORY%%/*}"
           name="${REPOSITORY#*/}"
           gh api graphql --paginate \
@@ -347,6 +368,8 @@ jobs:
             --slurpfile runs "$RUNNER_TEMP/workflow-runs.json" \
             --slurpfile checks "$RUNNER_TEMP/check-runs.json" \
             --slurpfile statuses "$RUNNER_TEMP/status-contexts.json" \
+            --slurpfile executor_run "$RUNNER_TEMP/executor-run.json" \
+            --slurpfile executor_jobs "$RUNNER_TEMP/executor-jobs.json" \
             --slurpfile review "$RUNNER_TEMP/review.json" \
             '{
               repository: $repository,
@@ -377,6 +400,9 @@ jobs:
               check_runs_complete: true,
               status_contexts: $statuses[0],
               status_contexts_complete: true,
+              executor_run: $executor_run[0],
+              executor_jobs: $executor_jobs[0],
+              executor_jobs_complete: true,
               review: $review[0]
             }' > "$RUNNER_TEMP/aegis-delivery-evidence.json"
 
@@ -445,6 +471,26 @@ jobs:
           jq -s 'add // []' "$RUNNER_TEMP/final-status-context-pages.jsonl" \
             > "$RUNNER_TEMP/final-status-contexts.json"
 
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs/${EXECUTOR_RUN_ID}" \
+            --jq '{
+              id, name, path, event, status, conclusion, head_branch, head_sha, run_attempt,
+              repository: {full_name: .repository.full_name},
+              head_repository: {full_name: .head_repository.full_name}
+            }' \
+            > "$RUNNER_TEMP/final-executor-run.json"
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs/${EXECUTOR_RUN_ID}/jobs?per_page=100&filter=latest" \
+            --jq '.jobs | map({
+              id, name, status, conclusion, head_branch, head_sha, run_attempt, run_id,
+              html_url, workflow_name
+            })' \
+            > "$RUNNER_TEMP/final-executor-job-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/final-executor-job-pages.jsonl" \
+            > "$RUNNER_TEMP/final-executor-jobs.json"
+
           owner="${REPOSITORY%%/*}"
           name="${REPOSITORY#*/}"
           gh api graphql --paginate \
@@ -480,6 +526,8 @@ jobs:
             --slurpfile runs "$RUNNER_TEMP/final-workflow-runs.json" \
             --slurpfile checks "$RUNNER_TEMP/final-check-runs.json" \
             --slurpfile statuses "$RUNNER_TEMP/final-status-contexts.json" \
+            --slurpfile executor_run "$RUNNER_TEMP/final-executor-run.json" \
+            --slurpfile executor_jobs "$RUNNER_TEMP/final-executor-jobs.json" \
             --slurpfile review "$RUNNER_TEMP/final-review.json" \
             '.pull_request = {
               number: $pr[0].number,
@@ -501,6 +549,9 @@ jobs:
             | .check_runs_complete = true
             | .status_contexts = $statuses[0]
             | .status_contexts_complete = true
+            | .executor_run = $executor_run[0]
+            | .executor_jobs = $executor_jobs[0]
+            | .executor_jobs_complete = true
             | .review = $review[0]' \
             "$RUNNER_TEMP/aegis-delivery-evidence.json" \
             > "$RUNNER_TEMP/final-aegis-delivery-evidence.json"

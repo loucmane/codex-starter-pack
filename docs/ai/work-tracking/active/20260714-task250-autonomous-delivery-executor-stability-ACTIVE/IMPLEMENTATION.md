@@ -15,3 +15,6 @@
 - Added a second final evidence recollection and trusted policy evaluation before merge.
 - Added the sanitized PR #276 replay plus spoof, failure, pending, completeness, attended-path, and run-id negatives.
 - Carried Task 249's signed, reviewed closeout projection into this governance PR through supported archival plus exact byte comparison, leaving Task 250 as the only ACTIVE work authority.
+- After PR #278 exposed the `workflow_run` provenance gap, separated candidate-head check/status validation from current executor identity.
+- Added minimized, paginated current Actions run/job evidence before both executor policy evaluations and bound it to trigger-specific head semantics, trusted workflow path, repository, run attempt, job URL, and active status.
+- Added a sanitized PR #278 replay and adversarial run/job mismatch coverage while preserving the original PR #276 `pull_request_target` replay.
