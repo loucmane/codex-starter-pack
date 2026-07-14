@@ -79,6 +79,7 @@ class TargetMaterializers:
     merge_codex_hooks: Callable[[bytes, bytes | None], bytes | None]
     merge_agents_entrypoint: Callable[[bytes, bytes], bytes | None]
     wrap_agents_entrypoint: Callable[[bytes], bytes]
+    codex_hooks_adoptable: Callable[[bytes], bool] = lambda _content: False
 
 
 @dataclass(frozen=True)
@@ -440,8 +441,13 @@ def materialize_assets_for_target(
                     if isinstance(baseline_manifest, Mapping)
                     else None
                 )
-                may_structurally_merge = not isinstance(baseline_manifest, Mapping) or (
-                    asset.path in managed_paths and recorded_checksum == content_checksum(existing)
+                may_structurally_merge = (
+                    not isinstance(baseline_manifest, Mapping)
+                    or (
+                        asset.path in managed_paths
+                        and recorded_checksum == content_checksum(existing)
+                    )
+                    or materializers.codex_hooks_adoptable(existing)
                 )
                 merged = (
                     materializers.merge_codex_hooks(existing, asset.content)
@@ -601,6 +607,7 @@ def plan_operations(
     read_json: Callable[[Path], dict[str, Any] | None],
     render_codex_hooks: Callable[[], bytes],
     merge_codex_hooks: Callable[[bytes, bytes | None], bytes | None],
+    codex_hooks_adoptable_fn: Callable[[bytes], bool] | None = None,
     managed_baseline_checksum_fn: (
         Callable[[Mapping[str, Any], Path, str], tuple[str | None, str | None]] | None
     ) = None,
@@ -628,6 +635,7 @@ def plan_operations(
     resolve_source_path = source_path_for_managed_asset_fn or (
         lambda path: source_path_for_managed_asset(path, policy=policy)
     )
+    codex_hooks_adoptable = codex_hooks_adoptable_fn or (lambda _content: False)
     operations: list[dict[str, Any]] = []
     for asset in all_assets:
         target = target_root / asset.path
@@ -713,6 +721,7 @@ def plan_operations(
             continue
         if asset.path == policy.codex_hooks_rel and asset.kind == "adapter":
             mergeable = merge_codex_hooks(target.read_bytes(), render_codex_hooks()) is not None
+            recognized_legacy = codex_hooks_adoptable(target.read_bytes())
             if installed_manifest:
                 baseline_checksum, _baseline_source = resolve_baseline(
                     installed_manifest,
@@ -726,7 +735,7 @@ def plan_operations(
                     and baseline_checksum is not None
                     and installed_checksum == baseline_checksum
                 )
-                if not managed_and_unchanged:
+                if not managed_and_unchanged and not recognized_legacy:
                     operations.append(
                         {
                             "action": "manual-review",

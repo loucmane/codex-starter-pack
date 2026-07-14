@@ -2204,6 +2204,13 @@ def bash_guard() -> int:
 
 def run_readiness(root: Path) -> subprocess.CompletedProcess[str]:
     readiness = script_dir() / "readiness.sh"
+    if not readiness.is_file():
+        return subprocess.CompletedProcess(
+            ["bash", str(readiness), "--quick", "--root", str(root)],
+            2,
+            stdout="BLOCKED | readiness runtime is missing\n",
+            stderr="",
+        )
     return subprocess.run(
         ["bash", str(readiness), "--quick", "--root", str(root)],
         text=True,
@@ -4161,7 +4168,7 @@ def main() -> int:
         return config_change_guard()
     if command == "sessionstart":
         return session_start_hook()
-    if command in {"record", "posttoolusefailure", "sessionend"}:
+    if command in {"record", "posttoolusefailure", "sessionend", "subagentstart"}:
         return ledger_record()
     if command == "recordjson":
         result = ledger_record()
