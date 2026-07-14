@@ -2,9 +2,9 @@
 
 **Title:** Capsule PR-4: retirement (codex + companion target-repo PR)
 
-**Status:** pending
+**Status:** deferred
 
-**Dependencies:** 209 ✓, 229 ✓, 233 ✓, 243
+**Dependencies:** 209 ✓, 229 ✓, 233 ✓, 243 ✓
 
 **Priority:** medium
 

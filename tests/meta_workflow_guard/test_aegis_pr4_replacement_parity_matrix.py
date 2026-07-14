@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MATRIX = REPO_ROOT / "docs" / "aegis" / "pr-4-replacement-parity-matrix.md"
 TASKS_JSON = REPO_ROOT / ".taskmaster" / "tasks" / "tasks.json"
@@ -21,7 +20,8 @@ REQUIRED_HEADERS = [
     "Current owner",
     "Replacement surface",
     "Proof required for equal-or-better behavior",
-    "Dogfood evidence required",
+    "Dogfood evidence",
+    "Remaining unique legacy content",
     "Rollback path",
     "Retirement state",
     "PR-4 go/no-go",
@@ -39,15 +39,15 @@ REQUIRED_SURFACES = [
     ".aegis/state/pending-tracking.json",
     "posttooluse-tracking.sh",
     "tracking-stop-gate.sh",
-    "Closeout/handoff semantic gates",
-    "Strict readiness/current-work blocks",
+    "Closeout and handoff semantic gates",
+    "Strict readiness and current-work blocks",
     "aegis kickoff",
     "aegis closeout",
     "Protected workflow path rules",
     "Target-repo ceremony scaffolding",
     "Packaged workflow templates",
     "Installed ceremony guidance docs",
-    "Doctor/repair of old surfaces",
+    "Doctor and repair of old surfaces",
 ]
 
 ALLOWED_STATES = {"keep", "shadow", "demote", "retire"}
@@ -73,9 +73,15 @@ def _matrix_rows(text: str) -> list[dict[str, str]]:
 
 def test_pr4_replacement_parity_matrix_is_complete() -> None:
     text = MATRIX.read_text(encoding="utf-8")
+    normalized_text = " ".join(text.split())
     assert "PR-4 MUST NOT remove, demote, stop validating, or stop generating" in text
-    assert "design-only prerequisite" in text
-    assert "Big-bang retirement is rejected" in text
+    assert (
+        "passive Aegis evidence and legacy S:W:H:E scaffolding complement one another"
+        in normalized_text
+    )
+    assert "Task 210 is **NO-GO**" in text
+    assert "reports/coexistence-audit.md" in text
+    assert "15,463, 2,506, and 45,473 ledger rows" in text
 
     rows = _matrix_rows(text)
     assert rows
@@ -92,8 +98,23 @@ def test_pr4_replacement_parity_matrix_is_complete() -> None:
             assert "TBD" not in value
             assert "TODO" not in value
             assert "placeholder" not in value.lower()
-        if state in {"demote", "retire"}:
-            assert not row["PR-4 go/no-go"].startswith("NO-GO")
+        assert state in {"keep", "shadow"}
+        assert row["PR-4 go/no-go"].startswith("NO-GO")
+        assert len(row["Remaining unique legacy content"]) >= 40
+        assert any(
+            marker in row["Dogfood evidence"]
+            for marker in (
+                "Task 243",
+                "Tasks 237",
+                "Tasks 239",
+                "Tasks 241",
+                "Tasks 244",
+                "Tasks 248",
+                "Task 251",
+                "Blog",
+                "HP-Fetcher",
+            )
+        )
 
 
 def test_pr4_task_depends_on_parity_matrix_task() -> None:
@@ -107,3 +128,5 @@ def test_pr4_task_depends_on_parity_matrix_task() -> None:
     assert "229" in {str(dep) for dep in tasks["210"].get("dependencies", [])}
     assert "233" in tasks
     assert "233" in {str(dep) for dep in tasks["210"].get("dependencies", [])}
+    assert "243" in tasks
+    assert "243" in {str(dep) for dep in tasks["210"].get("dependencies", [])}

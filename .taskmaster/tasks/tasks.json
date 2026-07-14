@@ -7539,7 +7539,7 @@
         "id": "210",
         "title": "Capsule PR-4: retirement (codex + companion target-repo PR)",
         "description": "Spec: docs/aegis/AEGIS_CAPSULE_SPEC.md section 5.2. Ships LAST. HARD GATE (do not start before all five hold): (a) witness v0 live as a required PR check, (b) ledger live, (c) capsule in real use, (d) resume-drift evidence shows the capsule/witness can replace old scaffolding without losing delivery discipline, and (e) Task #229's PR-4 replacement parity matrix is complete and reviewed for every surface PR-4 may remove, demote, stop validating, or stop generating. PR-4 is not \"delete old workflow\"; it is \"prove the capsule + ledger + witness stack fully replaces each old workflow responsibility, then retire only duplicated load-bearing parts.\" Every retirement change must cite the corresponding #229 matrix row, including current job, replacement surface, proof required, dogfood evidence, rollback path, and retirement state. If parity is not proven, the surface remains keep or shadow. Cold-start A/B remains a secondary deployment-specific gate for headless, scheduled, new-user, or cold-start-heavy repos; it is not a blocker for the owner HP-Coach interactive/resume-heavy workflow. Scope, codex side remains per-surface and evidence-gated: default enforcement for fresh installs may become advisory only where #229 proves parity; PreToolUse readiness/current-work gate class may become advisory-only only for rows whose boundary discipline is replaced by capsule/ledger/witness proof, while strict mode still hard-blocks protected-path denylist plus settings/hook config integrity; tracking-stop-gate, posttooluse-tracking.sh pending-tracking machinery, closeout handoff semantic gates, WORKFLOW_LINK_PREFIXES protections, voluntary kickoff HANDOFF/TRACKER requirements, and client_reload_required state removal must each be retired/demoted only through a cited parity row. Doctor: pin minimum CLI version (Stop/SubagentStop additionalContext needs 2.1.163+) via claude --version on PATH (absent = warn, never fail); verify both PostToolUse hooks plus injection wiring; shrink sentinel scope per section 3.2 only when matrix parity says the old check is vacuous by replacement, not rot. Companion PR in each deployed repo retires ceremony scaffolding per that repo's deployment doc and the same #229 parity rows. Replace, do not stack; retire per surface, not by big-bang removal.",
-        "status": "pending",
+        "status": "deferred",
         "dependencies": [
           "209",
           "229",
@@ -7549,7 +7549,8 @@
         "priority": "medium",
         "details": "Align the implementation with the current capsule spec and resume-drift decision, not the older section 7 HP-Coach cold-start A/B gate. Codebase analysis found the binding language in docs/aegis/AEGIS_CAPSULE_SPEC.md sections 5.1, 5.2, and 7; the 2026-07-03 decision record in docs/aegis/decisions/2026-07-03-capsule-resume-drift-gate.md; the program-level summary in docs/aegis/AEGIS_VNEXT_PROGRAM.md; and Task #229 in .taskmaster/tasks/tasks.json, which defines the design-only replacement parity matrix. Treat those as the task's gate source of truth, with #229 as an explicit hard prerequisite and reviewer gate.\n\nBefore removing any ceremony path, collect and cite resume-drift evidence from real owner resumes/compactions showing stale assumptions corrected or validated with low noise: verification state after HEAD moved, branch/PR state, Taskmaster/task truth, uncommitted/unshipped work, risk-register resurfacing, drift sentinel findings, and next-action correction/validation. This evidence replaces the old mandatory two-week HP-Coach A/B falsifier window. Keep tests and docs for cold-start A/B support where they already exist (for example aegis_foundation/replay_coldstart.py and tests/claude_adapter/test_replay_coldstart.py), but do not make them a blocker for this owner workflow.\n\nAdd the PR-4 replacement parity matrix as the required change-control layer for this task. Before removing, demoting, stopping validation of, or stopping generation of any old workflow surface, cite the exact Task #229 matrix row for that surface. The row must define: old surface, current job performed, current enforcement/advisory owner, replacement surface in the capsule/ledger/witness stack, proof required for equal-or-better behavior, dogfood evidence required, rollback path, retirement state (`keep`, `shadow`, `demote`, or `retire`), and PR-4 go/no-go decision. If the row is missing, incomplete, marked `keep`/`shadow`, or lacks proof/dogfood/rollback evidence, PR-4 must preserve the surface or keep it in shadow mode. No broad deletion pass is allowed; implement PR-4 as a sequence of small reversible per-surface changes.\n\nCodex-side retirement should touch the existing surfaces rather than adding parallel machinery, but each touched surface must be backed by a #229 row: .claude/scripts/gate_lib.py and aegis_foundation/assets/.claude/scripts/gate_lib.py for advisory-only readiness/current-work behavior, protected-path/settings integrity hard blocks, WORKFLOW_LINK_PREFIXES removal, closeout alias behavior, Stop/PostToolUse handling, pending-tracking behavior, and sentinel scope; scripts/_aegis_installer.py plus aegis_foundation/assets/scripts/_aegis_installer.py for installer defaults, generated settings/hooks, managed files, doctor output, client_reload_required removal, CLI-version checks, and any guidance that still requires ceremony; aegis_foundation/cli.py for command surface changes such as closeout printing the witness delivery report; .claude/scripts/witness_lib.py and aegis_foundation/assets/.claude/scripts/witness_lib.py for the delivery-report source that replaces hand-fed closeout; .claude/scripts/ledger-record.sh and ledger_lib.py for the remaining PostToolUse recorder path.\n\nUpdate docs that still describe retired ceremony as required, including CLAUDE.md, .claude/AGENTS.md, .claude/engine/runtime-contract.md, docs/aegis/invocation-contract.md, docs/aegis/live-acceptance-matrix.md, aegis_foundation/assets/docs/aegis/invocation-contract.md, and aegis_foundation/assets/docs/aegis/live-acceptance-matrix.md. The new wording should say kickoff may still generate HANDOFF/TRACKER as voluntary projections only for surfaces whose #229 rows say generation remains useful; no required gate may check or repair them after PR-4 unless the matrix marks that surface `keep` or `shadow`.\n\nCompanion target-repo PRs should remove that repo's old ceremony scaffolding and hand-maintained computed-facts docs only where the deployment doc and #229 matrix row prove parity and define rollback. Slim CLAUDE.md/AGENTS.md to point at the compiled capsule/witness path, keep only repo-specific deployment facts, and leave unproven surfaces in keep or shadow state. For HP-Coach specifically, the blocker is resume-drift dogfood evidence plus required witness plus approved #229 parity rows, not a fixed cold-start A/B window.",
         "testStrategy": "Run focused regression suites that cover the retired surfaces and replacement boundary check: tests/claude_adapter/test_witness.py, tests/claude_adapter/test_ledger_record.py, tests/claude_adapter/test_ledger_lib.py, tests/claude_adapter/test_capsule_injection.py, tests/claude_adapter/test_brief_lib.py, tests/claude_adapter/test_pretooluse_gates.py, tests/claude_adapter/test_pending_tracking_churn.py, tests/meta_workflow_guard/test_aegis_installer.py, tests/meta_workflow_guard/test_aegis_mcp_server.py, tests/meta_workflow_guard/test_aegis_mcp_e2e_targets.py, tests/meta_workflow_guard/test_aegis_schemas.py, tests/meta_workflow_guard/test_aegis_release_distribution.py, and the Task #229 matrix guard test (expected as tests/meta_workflow_guard/test_aegis_pr4_replacement_parity_matrix.py or equivalent). Add or update tests asserting that readiness/current-work blocks become advisory records only for matrix-approved rows, strict mode still blocks protected-path and hook/settings integrity violations, tracking-stop-gate and pending-tracking are no longer required paths only where parity is proven, closeout resolves to the witness delivery report only after its replacement row is approved, WORKFLOW_LINK_PREFIXES no longer protects sessions/plans only where replacement proof exists, client_reload_required states are gone only after the doctor min-version gate covers the old responsibility, and doctor warns rather than fails when claude --version is absent.\n\nAdd a PR-4 reviewer/CI guard that fails if a diff removes, demotes, stops validating, or stops generating an old workflow surface without citing a valid #229 matrix row marked `demote` or `retire` with non-placeholder proof, dogfood evidence, and rollback path. Include negative tests where a row is missing, marked `keep`/`shadow`, or lacks evidence, and assert the old surface remains active or shadowed.\n\nAdd acceptance evidence that aegis witness is wired as a required GitHub check on a real PR and that ledger/capsule data are live. Add a resume-drift evidence fixture or documented report for the owner workflow showing old scaffolding retirement preserves delivery discipline. For each retired or demoted surface, record the matrix row citation, dogfood proof, rollback command/path, and final retirement state. Keep cold-start A/B tests green as a supported secondary deployment track, but do not require a HP-Coach two-week A/B decision for PR-4.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-14T18:35:10.662Z"
       },
       {
         "id": "211",
@@ -7977,7 +7978,7 @@
         "description": "Re-evaluate every legacy workflow surface after convergence dogfood and issue explicit keep, shadow, demote, or retire decisions without changing runtime retirement behavior.",
         "details": "Implement roadmap workstream C7 after Tasks 237-242. Refresh the parity matrix with HP-Fetcher post-update capsule, ledger, bounded-status, and residue evidence; Blog merged-state, denial, recovery, dependency, controlled-auto-merge, and semantic-manifest evidence; an ordinary autonomous-delivery canary; worktree capture and attribution results; unique-content comparisons; interrupted-session and teardown recovery; positive and negative witness cases; and an explicit advisory-pending lifecycle. Every row must name current job, replacement owner, proof, dogfood, remaining unique legacy content, rollback, final state, and Task 210 go/no-go. Add guards for missing proof, placeholder dogfood, missing rollback, and unsupported coverage. No runtime surface may be retired in this task.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "237",
           "238",
@@ -7989,7 +7990,46 @@
           "252"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement read-only derived Obsidian vault projection",
+            "description": "Build a deterministic, disposable Obsidian-compatible knowledge view from authoritative Aegis ledger/capsule/task truth and preserved legacy workflow evidence without writeback.",
+            "details": "Add a stdlib-only projection module and CLI surface for path, build, and check. Generate YAML-frontmatter Markdown notes, path-qualified wikilinks, Obsidian Bases, and an ownership manifest into an out-of-repo destination. Aggregate low-level traffic, redact sensitive values, preserve source files, reject non-owned/manual output, use atomic replacement, and prove byte-stable rebuilds and bounded output.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 243,
+            "updatedAt": "2026-07-14T18:26:11.019Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Refresh PR-4 coexistence and unique-content parity evidence",
+            "description": "Audit every legacy S:W:H:E surface against the capsule, ledger, witness, and derived vault using current Blog and HP-Fetcher dogfood.",
+            "details": "Add deterministic unique-content inventory and matrix validation. Preserve legacy human narrative. Update each row with replacement owner, proof, dogfood evidence, remaining unique content, rollback, keep/shadow/demote/retire state, and Task 210 go/no-go. No runtime retirement in this task.",
+            "status": "done",
+            "dependencies": [
+              "243.1"
+            ],
+            "parentTaskId": 243,
+            "parentId": "undefined",
+            "updatedAt": "2026-07-14T18:32:34.173Z"
+          },
+          {
+            "id": 3,
+            "title": "Complete read-only cross-repository audit and stopping checkpoint",
+            "description": "Reconcile source, Blog, and HP-Fetcher evidence into a final hardening checkpoint without mutating downstream repositories.",
+            "details": "Verify merged source state, derived-vault behavior, advisory-mode evidence lifecycle, worktree attribution, and coexistence conclusions. Produce explicit remaining risks and a reviewed stopping point before any Taskmaster-to-Gas-Town migration; do not begin that migration.",
+            "status": "done",
+            "dependencies": [
+              "243.2"
+            ],
+            "parentTaskId": 243,
+            "parentId": "undefined",
+            "updatedAt": "2026-07-14T18:35:04.899Z"
+          }
+        ],
+        "updatedAt": "2026-07-14T18:45:00.624Z"
       },
       {
         "id": "244",
@@ -8123,9 +8163,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-14T17:46:03.756Z",
+      "lastModified": "2026-07-14T18:45:00.625Z",
       "taskCount": 251,
-      "completedCount": 245,
+      "completedCount": 246,
       "tags": [
         "master"
       ]

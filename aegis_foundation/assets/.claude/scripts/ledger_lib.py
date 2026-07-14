@@ -493,6 +493,19 @@ class SQLiteLedger(_BaseLedger):
                 raise LedgerError(f"ledger store does not exist: {self.path}")
             self.connection = self._open_read_only_connection(immutable=False)
             self._columns = self._table_columns()
+            # Sandboxed readers may open the database file but be unable to create or
+            # access SQLite's WAL shared-memory sidecar.  ``_table_columns`` intentionally
+            # converts that probe failure to an empty set; establish the immutable
+            # fallback *before* read() constructs its SELECT list, otherwise every real
+            # column is projected as ``NULL AS <field>`` and valid events appear empty.
+            if not self._columns:
+                self.connection.close()
+                self.connection = self._open_read_only_connection(immutable=True)
+                self._read_only_immutable = True
+                self._columns = self._table_columns()
+            if not self._columns:
+                self.connection.close()
+                raise LedgerError(f"ledger schema is unreadable: {self.path}")
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(self.path.as_posix(), timeout=BUSY_TIMEOUT_MS / 1000)
