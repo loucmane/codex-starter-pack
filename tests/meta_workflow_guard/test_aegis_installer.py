@@ -6599,6 +6599,85 @@ def test_strict_verify_requires_current_work_and_validates_runtime_surfaces(tmp_
     )
 
 
+def test_strict_verify_uses_tracked_codex_hook_trust_without_install_report(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "clean-checkout-codex-trust"
+    target.mkdir()
+    subprocess.run(
+        ["git", "init", "-b", "main"],
+        cwd=target,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    install_report = install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="multi",
+        agents=["claude", "codex"],
+        apply=True,
+    )
+    assert install_report["status"] == "applied"
+
+    simulate_codex_reload(target)
+    simulate_claude_reload(target)
+    kickoff(
+        target,
+        task_id="70",
+        slug="clean-checkout-codex-trust",
+        title="Clean Checkout Codex Trust",
+        goals=["Prove strict verification uses tracked hook-trust policy"],
+    )
+    (target / aegis_installer.AEGIS_INSTALL_REPORT_REL).unlink()
+
+    strict_report = verify(target, source_root=REPO_ROOT, strict=True)
+    trust_check = next(
+        check
+        for check in strict_report["checks"]
+        if check["gate_id"] == "codex.hook_trust_guidance"
+    )
+    assert trust_check["status"] == "pass"
+    assert trust_check["details"]["source"] == "manifest_gate"
+    assert strict_report["summary"]["failed_required"] == 0
+
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    trust_gate = next(gate for gate in manifest["gates"] if gate["id"] == "codex.hook_trust")
+    trust_gate["unsupported_reason"] = "Review hooks manually."
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    tampered_report = verify(target, source_root=REPO_ROOT, strict=True)
+    tampered_trust_check = next(
+        check
+        for check in tampered_report["checks"]
+        if check["gate_id"] == "codex.hook_trust_guidance"
+    )
+    assert tampered_trust_check["status"] == "fail"
+    assert tampered_trust_check["details"]["source"] is None
+
+
+def test_tracked_codex_hook_trust_guidance_rejects_missing_or_duplicate_gate() -> None:
+    gates = aegis_installer._gates(["codex"])
+    trust_gate = next(gate for gate in gates if gate["id"] == "codex.hook_trust")
+    manifest = {"gates": gates}
+
+    assert aegis_installer._tracked_codex_hook_trust_guidance(manifest)["source"] == (
+        "manifest_gate"
+    )
+
+    missing_gate_manifest = {
+        "gates": [gate for gate in gates if gate["id"] != "codex.hook_trust"]
+    }
+    assert aegis_installer._tracked_codex_hook_trust_guidance(missing_gate_manifest) == {}
+
+    duplicate_gate_manifest = {"gates": [*gates, dict(trust_gate)]}
+    assert aegis_installer._tracked_codex_hook_trust_guidance(duplicate_gate_manifest) == {}
+
+
 def test_local_cli_shim_resolves_packaged_asset_source_root(tmp_path: Path) -> None:
     target = tmp_path / "packaged-shim-repo"
     target.mkdir()

@@ -130,5 +130,41 @@
     "plan_hash": "106ef6187f58adc254119cea0a099c9fba3f99685c39920db123b9bca8638847",
     "tracker_hash": "491fce35faca32b0666c027d3ec94fe0caf0ff419c38a750b994e793182ad59a",
     "synced_at": "2026-07-14T19:47:38.337498+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "a52d768b059fc75bc4a632b0ac914083dc45f8b8bf999ea6c59da2bdf251d528",
+    "tracker_hash": "8ba288f6dad3c88709efcbe726a6a9fe35a3ff96acee3082416f09698f98cc2d",
+    "synced_at": "2026-07-14T20:22:21.366413+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "a5fd7b54322cfdf92cda6cacb99fe2e3d18f0ae5e6a25314edf009e386043efc",
+    "tracker_hash": "b5cd232d8a82e995827f051440e7d20db2a0483d952edd867af773762d092df8",
+    "synced_at": "2026-07-14T20:26:41.748199+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "29fc9b6739c2ededde078db5dbcb53ea064afba0ff9010d09f85241d60a58355",
+    "tracker_hash": "aa349bff946e3fd2f0d6abeb6dc911466c858dcb423c8999886b85b3f4a0e30e",
+    "synced_at": "2026-07-14T20:27:36.859012+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "a686be22a80dbfef6723094edbc118ad835a553268784d28ae6677f5bd5b16d7",
+    "tracker_hash": "5e0addf071c911ddab3608775393508b37dce48e636b3c1d3c084490f848c482",
+    "synced_at": "2026-07-14T20:44:15.990383+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "d37c534733bedeb1868d4e46636854daaae0fc01863b0b490f9bd3160d73e22e",
+    "tracker_hash": "38c8ce7f16628d85d8ace0411eb35f7def76432742df14949f2e00cde547693f",
+    "synced_at": "2026-07-14T20:44:28.846290+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task253-tracked-codex-hook-trust-verification.md",
+    "plan_hash": "d37c534733bedeb1868d4e46636854daaae0fc01863b0b490f9bd3160d73e22e",
+    "tracker_hash": "38c8ce7f16628d85d8ace0411eb35f7def76432742df14949f2e00cde547693f",
+    "synced_at": "2026-07-14T20:45:16.750416+02:00"
   }
 ]
