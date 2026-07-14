@@ -21,6 +21,7 @@
       "docs/",
       "sessions/",
       "plans/",
+      ".plan_state/",
       ".taskmaster/",
       ".serena/",
       ".github/",

@@ -101,7 +101,11 @@ are older; both paths still exercise the same extracted classifier.
 - Signed runtime tree `d29cea9793057340e9b4334cf94287b6300fbe4e` passed the complete suite
   from a non-temp task-bearing checkout: **2,031 passed, four explicit opt-in smokes skipped,
   zero failures** in 407.46 seconds.
-- Hosted protected CI and witness evidence remain required for the final evidence-only PR head.
+- Hosted protected CI's first witness run accounted for 23 of 24 paths and rejected only the
+  required `.plan_state/sync.log` plan/tracker hash ledger. The repository brief now declares
+  `.plan_state/` as an always-in-scope governance surface, with a focused policy regression test;
+  no wildcard or witness bypass was added.
+- Fresh hosted protected CI and witness evidence remain required for the corrected PR head.
 
 ## Disclosed Baseline-Specific Results
 

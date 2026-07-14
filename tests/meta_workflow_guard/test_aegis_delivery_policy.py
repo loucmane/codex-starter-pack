@@ -147,6 +147,7 @@ def test_witness_scope_accounts_for_delivery_authority_surfaces() -> None:
     always_in_scope = set(brief["witness"]["always_in_scope"])
 
     assert ".codex/" in always_in_scope
+    assert ".plan_state/" in always_in_scope
     assert "aegis.delivery-policy.json" in always_in_scope
 
 
