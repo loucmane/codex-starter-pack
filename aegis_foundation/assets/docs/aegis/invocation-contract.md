@@ -68,6 +68,15 @@ The corresponding MCP tools apply the budget to the complete MCP response envelo
 Their `detail` argument accepts `default`, `verbose`, or `all`; `detail=all` is the
 MCP equivalent of CLI `--all --json`.
 
+`aegis witness` persists the complete structured
+`.aegis/reports/witness-report.json` and PR-ready
+`.aegis/reports/delivery-report.md` artifacts while keeping default stdout bounded.
+Its stable semantic classes are `pass` (exit 0), `fail` (exit 1),
+`unsupported` (exit 2), and `not_derivable_in_ci` (exit 0). The CI-only class is
+process-success because native required checks own CI greenness, but it remains
+semantically distinct from a fully derivable local pass. Git-derivable failures always
+take precedence.
+
 Start tracked local work without requiring Taskmaster or Serena:
 
 ```bash

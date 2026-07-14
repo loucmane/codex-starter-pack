@@ -7945,13 +7945,14 @@
         "description": "Make aegis witness the concise canonical local pre-delivery command for scope, diff, verification-at-HEAD, task containment, and native-CI delegation.",
         "details": "Implement roadmap workstream C5 using the Task 238 output contract and Task 240 branch/worktree attribution. Default output must fit one screen and expose stable pass, fail, unsupported, and not-derivable-in-CI exit classes. Filter to the intended branch/worktree, account for every diff path, escalate test deletion, require verification at HEAD, validate task-flip containment, and delegate native CI honestly. Generate a complete delivery report artifact suitable for PR bodies or CI attachments without LLM calls or prose reconciliation. Dogfood a real dispatch-wave shipping step and seed stale-verification, out-of-scope, test-deletion, and stranded-done-flip failures. Record latency, output size, false results, and rollback.",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "238",
           "240"
         ],
         "priority": "high",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-14T14:39:59.387Z"
       },
       {
         "id": "242",
@@ -8104,9 +8105,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-07-14T11:21:23.541Z",
+      "lastModified": "2026-07-14T14:39:59.387Z",
       "taskCount": 250,
-      "completedCount": 242,
+      "completedCount": 243,
       "tags": [
         "master"
       ]

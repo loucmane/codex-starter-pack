@@ -477,15 +477,25 @@ def _record_witness_boundary(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     checks = _normalized_witness_checks(report)
     passed = bool(report.get("passed"))
+    artifact_paths = [
+        str(artifact.get("path"))
+        for artifact in report.get("artifacts", [])
+        if isinstance(artifact, Mapping) and artifact.get("path")
+    ]
+    if report_path not in artifact_paths:
+        artifact_paths.insert(0, report_path)
     extra = {
         "action": "witness",
         "base": report.get("base"),
         "checks": checks,
+        "exit_class": report.get("exit_class"),
         "escalations": list(report.get("escalations") or []),
         "head_commit": report.get("head_commit"),
         "mode": report.get("mode"),
         "passed": passed,
+        "process_exit_code": report.get("process_exit_code"),
         "report_path": report_path,
+        "artifact_paths": artifact_paths,
     }
     ledger_lib, boundary = _record_boundary_event(
         source_root,
@@ -495,7 +505,7 @@ def _record_witness_boundary(
         outcome="pass" if passed else "fail",
         handler="aegis:witness",
         extra=extra,
-        paths=[report_path],
+        paths=artifact_paths,
     )
     return boundary, _project_boundary_event(ledger_lib, target)
 
@@ -605,6 +615,13 @@ def handle_witness(args: argparse.Namespace) -> int:
             report["legacy_projection"] = projection
         artifact_paths = (
             str(getattr(witness_lib, "WITNESS_REPORT_REL", ".aegis/reports/witness-report.json")),
+            str(
+                getattr(
+                    witness_lib,
+                    "DELIVERY_REPORT_REL",
+                    ".aegis/reports/delivery-report.md",
+                )
+            ),
         )
         if args.json:
             _print_budgeted_json(
@@ -626,6 +643,12 @@ def handle_witness(args: argparse.Namespace) -> int:
                 artifact_paths=artifact_paths,
                 next_action="git status --short",
             )
+        exit_code = getattr(witness_lib, "exit_code", None)
+        if callable(exit_code):
+            return int(exit_code(report))
+        process_exit = report.get("process_exit_code")
+        if isinstance(process_exit, int):
+            return process_exit
         return 0 if report.get("passed") else 1
 
 
