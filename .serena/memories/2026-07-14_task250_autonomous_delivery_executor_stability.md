@@ -2,9 +2,10 @@
 
 ## Current state
 
-- Task 250 is active on `feat/task-250-autonomous-delivery-stability` in the isolated worktree `/tmp/codex-task250-autonomous-delivery-stability`.
-- PR #275 merged normally as `d7ffce5eff8df92d08def1e4e2b7aeef2860a81d`; primary `main` is synchronized and its unrelated local `.codex`, `.agents`, and `.aegis` drift remains untouched.
-- PR #276 is open and green but intentionally unmerged. Its trusted merge executor reproduced a self-gating loop twice: the running non-required `policy-authorized merge` check leaves GitHub mergeability `unstable`, so the old clean-only executor can never authorize itself.
+- Task 250 is in terminal closeout on `feat/task-250-autonomous-delivery-closeout`.
+- Final remediation PR #279 merged normally as `89ea3a4538e659992b5685b3cc3b3b8116a76c39`.
+- Ordinary canary PR #278 autonomously merged through trusted run `29323250166` as `c3daa484932292bc25f0f58d51fb96e63c0200f4`; exact-merge-SHA CI and guards passed.
+- PR #276 is superseded: its durable Task 249 terminal state is preserved, while its stale Taskmaster/session pointers must not be merged. The one omitted archived verification report is restored in Task 250 closeout.
 
 ## Selected design
 
@@ -24,8 +25,7 @@
 
 ## Next steps
 
-1. Rerun work-tracking audit and source guard after logging this memory in the tracker/session.
-2. Run the broader and full repository verification matrix, action/workflow validation available locally, source/package parity, and diff checks.
-3. Complete Task 250 evidence, sign and publish its governance PR, and validate hosted CI.
-4. After the attended governance merge, prove an ordinary autonomous canary plus exact-merge-SHA dispatch.
-5. Close PR #276 as superseded only after that proof and verify Task 249 terminal on synchronized `main`.
+1. Run terminal readiness, Taskmaster health, work-tracking audit, plan sync, source guard, strict Aegis verification, witness, and closeout.
+2. Close PR #276 as superseded after committing the missing durable report; do not merge its stale projections.
+3. Deliver and merge Task 250 closeout, synchronize `main`, and preserve unrelated local drift.
+4. Begin the dedicated upstream advisory-pending/closeout correction reproduced by Blog Task 40.

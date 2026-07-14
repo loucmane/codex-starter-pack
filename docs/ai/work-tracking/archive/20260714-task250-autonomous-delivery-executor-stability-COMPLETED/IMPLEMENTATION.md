@@ -18,3 +18,5 @@
 - After PR #278 exposed the `workflow_run` provenance gap, separated candidate-head check/status validation from current executor identity.
 - Added minimized, paginated current Actions run/job evidence before both executor policy evaluations and bound it to trigger-specific head semantics, trusted workflow path, repository, run attempt, job URL, and active status.
 - Added a sanitized PR #278 replay and adversarial run/job mismatch coverage while preserving the original PR #276 `pull_request_target` replay.
+- Proved the final contract in hosted execution: trusted run `29323250166` autonomously merged PR #278 and all repository-dispatch checks passed against exact merge SHA `c3daa484`.
+- Reconciled obsolete PR #276 by retaining current Task 250 projections and restoring only the omitted durable Task 249 verification report from signed closeout commit `9553859`.

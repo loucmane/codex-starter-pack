@@ -63,9 +63,11 @@ as isolated and returned `candidate_already_done` instead of
 `target_not_isolated_temp`. The exact assertion passed from
 `/home/loucmane/codex`; it is not caused by this delivery-policy change.
 
-## Hosted Acceptance Still Required
+## Hosted Acceptance Completed
 
-This governance remediation must pass protected GitHub checks and receive an
-attended exact-head merge. After it lands, PR #278 must be retriggered at a
-current base and autonomously squash-merge. The resulting exact merge SHA must
-then pass the repository-dispatch post-merge checks before Task 250 can close.
+The governance remediation passed protected checks and merged at reviewed head
+`6d679245` as `89ea3a4`. PR #278 was then updated to current base through a signed,
+non-rewriting merge and autonomously squash-merged by trusted run `29323250166`
+as `c3daa484`. Repository-dispatch CI and guards all passed against that exact
+merge SHA. See `hosted-canary-acceptance.md` for the complete run inventory and
+tree-equality evidence.
