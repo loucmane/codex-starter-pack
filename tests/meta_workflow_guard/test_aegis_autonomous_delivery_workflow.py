@@ -24,11 +24,11 @@ def _review_aggregation_filters() -> list[str]:
     workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
     filters = re.findall(
         r"jq -s '(\{\n\s+unresolved_threads:.*?\n\s+\})' "
-        r'"\$RUNNER_TEMP/review-pages\.jsonl"',
+        r'"\$RUNNER_TEMP/(?:final-)?review-pages\.jsonl"',
         workflow_text,
         flags=re.DOTALL,
     )
-    assert len(filters) == 2
+    assert len(filters) == 3
     return filters
 
 
@@ -71,6 +71,7 @@ def test_privileged_workflow_uses_only_required_permissions() -> None:
     }
     assert executor["permissions"] == {
         "actions": "read",
+        "checks": "read",
         "contents": "write",
         "pull-requests": "write",
     }
@@ -88,9 +89,7 @@ def test_privileged_workflow_shell_steps_are_syntactically_valid() -> None:
                 capture_output=True,
                 check=False,
             )
-            assert result.returncode == 0, (
-                f"{job_name}/{step.get('name')}: {result.stderr}"
-            )
+            assert result.returncode == 0, f"{job_name}/{step.get('name')}: {result.stderr}"
 
 
 def test_privileged_workflow_executes_only_trusted_default_branch_code() -> None:
@@ -161,6 +160,14 @@ def test_each_policy_decision_uses_complete_current_evidence() -> None:
         assert "threads_truncated" in text
         assert "git -C trusted rev-parse HEAD" in text
         assert "aegis-delivery-evidence.json" in text
+    assert "commits/${EXPECTED_HEAD}/check-runs?" not in evaluator_text
+    assert executor_text.count("commits/${EXPECTED_HEAD}/check-runs?") == 2
+    assert executor_text.count("commits/${EXPECTED_HEAD}/statuses?") == 2
+    assert executor_text.count("--phase executor") == 2
+    assert executor_text.count('--executor-run-id "$EXECUTOR_RUN_ID"') == 2
+    assert "check_runs_complete: true" in executor_text
+    assert "status_contexts_complete: true" in executor_text
+    assert "final-aegis-delivery-evidence.json" in executor_text
 
 
 def test_review_pagination_uses_the_real_final_page_in_both_jobs() -> None:
@@ -199,6 +206,8 @@ def test_provisional_result_cannot_authorize_a_merge() -> None:
     assert "jq -c '.reasons'" in evaluator_text
     assert 'if [[ "$decision" != "allow" ]]' in executor_text
     assert "Fresh executor decision was ${decision}; refusing merge." in executor_text
+    assert "Final executor decision was ${final_decision}; refusing merge." in executor_text
+    assert executor_text.count("aegis-delivery-policy evaluate") == 2
     assert executor_text.index("aegis-delivery-policy evaluate") < executor_text.index(
         'if [[ "$decision" != "allow" ]]'
     )
@@ -212,9 +221,7 @@ def test_workflow_merges_only_allow_at_unchanged_head_and_base() -> None:
     evaluator_text = "\n".join(
         str(step.get("run", "")) for step in workflow["jobs"]["delivery"]["steps"]
     )
-    text = "\n".join(
-        str(step.get("run", "")) for step in workflow["jobs"]["merge"]["steps"]
-    )
+    text = "\n".join(str(step.get("run", "")) for step in workflow["jobs"]["merge"]["steps"])
 
     assert "pulls/${PR_NUMBER}/merge" not in evaluator_text
     assert 'if [[ "$decision" != "allow" ]]' in text
@@ -224,6 +231,12 @@ def test_workflow_merges_only_allow_at_unchanged_head_and_base() -> None:
     assert "(.draft | not)" in text
     assert ".mergeable == true" in text
     assert '.mergeable_state == "clean"' in text
+    assert '.mergeable_state == "blocked"' in text
+    assert '.mergeable_state == "unstable"' in text
+    assert 'if [[ "$final_decision" != "allow" ]]' in text
+    assert text.rindex('if [[ "$final_decision" != "allow" ]]') < text.index(
+        '"repos/${REPOSITORY}/pulls/${PR_NUMBER}/merge"'
+    )
     assert '"repos/${REPOSITORY}/pulls/${PR_NUMBER}/merge"' in text
     assert "-f merge_method=squash" in text
     assert '-f sha="$EXPECTED_HEAD"' in text

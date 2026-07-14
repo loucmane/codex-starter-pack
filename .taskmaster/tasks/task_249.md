@@ -2,7 +2,7 @@
 
 **Title:** Fix pre-adapter Codex manifest update migration
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 248 ✓
 

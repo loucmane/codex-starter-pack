@@ -236,6 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      checks: read
       contents: write
       pull-requests: write
     steps:
@@ -291,6 +292,21 @@ jobs:
           jq -s 'add // []' "$RUNNER_TEMP/workflow-run-pages.jsonl" \
             > "$RUNNER_TEMP/workflow-runs.json"
 
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/commits/${EXPECTED_HEAD}/check-runs?per_page=100&filter=latest" \
+            --jq '.check_runs' \
+            > "$RUNNER_TEMP/check-run-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/check-run-pages.jsonl" \
+            > "$RUNNER_TEMP/check-runs.json"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/commits/${EXPECTED_HEAD}/statuses?per_page=100" \
+            > "$RUNNER_TEMP/status-context-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/status-context-pages.jsonl" \
+            > "$RUNNER_TEMP/status-contexts.json"
+
           owner="${REPOSITORY%%/*}"
           name="${REPOSITORY#*/}"
           gh api graphql --paginate \
@@ -329,6 +345,8 @@ jobs:
             --slurpfile pr "$RUNNER_TEMP/pull-request.json" \
             --slurpfile files "$RUNNER_TEMP/files.json" \
             --slurpfile runs "$RUNNER_TEMP/workflow-runs.json" \
+            --slurpfile checks "$RUNNER_TEMP/check-runs.json" \
+            --slurpfile statuses "$RUNNER_TEMP/status-contexts.json" \
             --slurpfile review "$RUNNER_TEMP/review.json" \
             '{
               repository: $repository,
@@ -355,6 +373,10 @@ jobs:
                 previous_filename: (.previous_filename // "")
               })),
               workflow_runs: $runs[0],
+              check_runs: $checks[0],
+              check_runs_complete: true,
+              status_contexts: $statuses[0],
+              status_contexts_complete: true,
               review: $review[0]
             }' > "$RUNNER_TEMP/aegis-delivery-evidence.json"
 
@@ -362,12 +384,15 @@ jobs:
         env:
           PR_NUMBER: ${{ needs.delivery.outputs.pr_number }}
           EXPECTED_HEAD: ${{ needs.delivery.outputs.expected_head }}
+          EXECUTOR_RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
           set -euo pipefail
           python3 trusted/scripts/aegis-delivery-policy evaluate \
             --policy trusted/aegis.delivery-policy.json \
             --input "$RUNNER_TEMP/aegis-delivery-evidence.json" \
+            --phase executor \
+            --executor-run-id "$EXECUTOR_RUN_ID" \
             > "$RUNNER_TEMP/aegis-delivery-result.json"
           decision="$(jq -r '.decision' "$RUNNER_TEMP/aegis-delivery-result.json")"
           if [[ "$decision" != "allow" ]]; then
@@ -388,6 +413,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ needs.delivery.outputs.pr_number }}
           EXPECTED_HEAD: ${{ needs.delivery.outputs.expected_head }}
+          EXECUTOR_RUN_ID: ${{ github.run_id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -395,6 +421,103 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "repos/${REPOSITORY}/pulls/${PR_NUMBER}" \
             > "$RUNNER_TEMP/final-pull-request.json"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/actions/runs?event=pull_request&head_sha=${EXPECTED_HEAD}&per_page=100" \
+            --jq '.workflow_runs' \
+            > "$RUNNER_TEMP/final-workflow-run-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/final-workflow-run-pages.jsonl" \
+            > "$RUNNER_TEMP/final-workflow-runs.json"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/commits/${EXPECTED_HEAD}/check-runs?per_page=100&filter=latest" \
+            --jq '.check_runs' \
+            > "$RUNNER_TEMP/final-check-run-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/final-check-run-pages.jsonl" \
+            > "$RUNNER_TEMP/final-check-runs.json"
+
+          gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${REPOSITORY}/commits/${EXPECTED_HEAD}/statuses?per_page=100" \
+            > "$RUNNER_TEMP/final-status-context-pages.jsonl"
+          jq -s 'add // []' "$RUNNER_TEMP/final-status-context-pages.jsonl" \
+            > "$RUNNER_TEMP/final-status-contexts.json"
+
+          owner="${REPOSITORY%%/*}"
+          name="${REPOSITORY#*/}"
+          gh api graphql --paginate \
+            -f query='query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $number) {
+                  reviewDecision
+                  reviewThreads(first: 100, after: $endCursor) {
+                    nodes { isResolved }
+                    pageInfo { hasNextPage endCursor }
+                  }
+                }
+              }
+            }' \
+            -F owner="$owner" \
+            -F name="$name" \
+            -F number="$PR_NUMBER" \
+            > "$RUNNER_TEMP/final-review-pages.jsonl"
+          jq -s '{
+            unresolved_threads: ([
+              .[].data.repository.pullRequest.reviewThreads.nodes[]
+              | select(.isResolved != true)
+            ] | length),
+            threads_truncated: (
+              .[-1].data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage
+              | if . == null then true else . end
+            ),
+            decision: (.[-1].data.repository.pullRequest.reviewDecision // "")
+          }' "$RUNNER_TEMP/final-review-pages.jsonl" > "$RUNNER_TEMP/final-review.json"
+
+          jq \
+            --slurpfile pr "$RUNNER_TEMP/final-pull-request.json" \
+            --slurpfile runs "$RUNNER_TEMP/final-workflow-runs.json" \
+            --slurpfile checks "$RUNNER_TEMP/final-check-runs.json" \
+            --slurpfile statuses "$RUNNER_TEMP/final-status-contexts.json" \
+            --slurpfile review "$RUNNER_TEMP/final-review.json" \
+            '.pull_request = {
+              number: $pr[0].number,
+              state: $pr[0].state,
+              draft: $pr[0].draft,
+              labels: $pr[0].labels,
+              changed_files: $pr[0].changed_files,
+              mergeable: $pr[0].mergeable,
+              mergeable_state: $pr[0].mergeable_state,
+              base: {ref: $pr[0].base.ref, sha: $pr[0].base.sha},
+              head: {
+                ref: $pr[0].head.ref,
+                sha: $pr[0].head.sha,
+                repo: {full_name: $pr[0].head.repo.full_name}
+              }
+            }
+            | .workflow_runs = $runs[0]
+            | .check_runs = $checks[0]
+            | .check_runs_complete = true
+            | .status_contexts = $statuses[0]
+            | .status_contexts_complete = true
+            | .review = $review[0]' \
+            "$RUNNER_TEMP/aegis-delivery-evidence.json" \
+            > "$RUNNER_TEMP/final-aegis-delivery-evidence.json"
+
+          python3 trusted/scripts/aegis-delivery-policy evaluate \
+            --policy trusted/aegis.delivery-policy.json \
+            --input "$RUNNER_TEMP/final-aegis-delivery-evidence.json" \
+            --phase executor \
+            --executor-run-id "$EXECUTOR_RUN_ID" \
+            > "$RUNNER_TEMP/final-aegis-delivery-result.json"
+          final_decision="$(jq -r '.decision' "$RUNNER_TEMP/final-aegis-delivery-result.json")"
+          if [[ "$final_decision" != "allow" ]]; then
+            echo "Final executor decision was ${final_decision}; refusing merge." >&2
+            jq -c '.reasons' "$RUNNER_TEMP/final-aegis-delivery-result.json" >&2
+            exit 1
+          fi
+
           final_head="$(jq -r '.head.sha' "$RUNNER_TEMP/final-pull-request.json")"
           final_base="$(jq -r '.base.sha' "$RUNNER_TEMP/final-pull-request.json")"
           trusted_base="$(git -C trusted rev-parse HEAD)"
@@ -406,9 +529,11 @@ jobs:
             .state == "open" and
             (.draft | not) and
             .mergeable == true and
-            .mergeable_state == "clean"
+            (.mergeable_state == "clean" or
+             .mergeable_state == "blocked" or
+             .mergeable_state == "unstable")
           ' "$RUNNER_TEMP/final-pull-request.json" > /dev/null; then
-            echo "Pull request stopped being clean and mergeable; refusing merge." >&2
+            echo "Pull request stopped being policy-eligible and mergeable; refusing merge." >&2
             exit 1
           fi
           gh api \
