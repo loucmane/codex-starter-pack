@@ -190,6 +190,30 @@ def test_aegis_log_both_forms_still_excluded() -> None:
         assert gate_lib.payload_is_aegis_log(gate_lib.Payload("Bash", {"command": command})) is True
 
 
+def test_pending_tracking_gate_output_is_bounded_without_hiding_total() -> None:
+    events = [
+        {
+            "id": f"strict-{index:03d}",
+            "handler": "codex:apply_patch",
+            "evidence": f"src/fixture-{index}.tsx",
+            "mode": "strict",
+        }
+        for index in range(97)
+    ]
+
+    rendered = gate_lib.format_pending_tracking(events)
+
+    assert rendered.count("repair: ./.aegis/bin/aegis log") == 5
+    assert "strict-000" in rendered
+    assert "strict-004" in rendered
+    assert "strict-005" not in rendered
+    assert (
+        "... 92 more pending events; inspect .aegis/state/pending-tracking.json for all 97."
+        in rendered
+    )
+    assert len(rendered.splitlines()) == 11
+
+
 def test_logging_chained_with_read_only_stays_excluded() -> None:
     # A sanctioned logging command plus a genuinely read-only companion is still pure
     # logging and must remain excluded (whole-payload-AND, not single-segment-only).
