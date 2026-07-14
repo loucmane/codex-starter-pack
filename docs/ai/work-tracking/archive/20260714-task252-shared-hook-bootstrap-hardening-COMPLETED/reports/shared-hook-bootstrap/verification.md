@@ -37,3 +37,12 @@
 - Before merge: close the Task 252 PR; installed projects are unchanged.
 - After merge: revert the Task 252 squash commit through a reviewed PR.
 - After a downstream update: the installer transaction itself restores the previous managed bytes if apply fails. A successful downstream update can be rolled back by updating to the prior reviewed source commit through the supported runtime/update flow.
+
+## Source-Checkout Terminal State
+
+- Taskmaster Task 252 status: **done**.
+- Taskmaster health: **251 tasks, 383 subtasks, 439 valid dependency references, 0 invalid**.
+- Task 243 generated dependency state: Task 252 **satisfied**.
+- `python3 scripts/codex-task work-tracking archive --folder 20260714-task252-shared-hook-bootstrap-hardening-ACTIVE` — **passed**.
+- `.claude/scripts/readiness.sh` after archive — **READY, 8/8 checks**, derived from the completed source archive.
+- No installed manifest, `.aegis/state/current-work.json`, generic repair, or fabricated target state was introduced into the source checkout.

@@ -2,7 +2,7 @@
 
 **Title:** Harden Shared Codex Hook Bootstrap Against Mutable Runtime Outages
 
-**Status:** in-progress
+**Status:** done
 
 **Dependencies:** 242 ✓, 248 ✓, 249 ✓
 

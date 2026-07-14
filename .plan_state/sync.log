@@ -112,5 +112,23 @@
     "plan_hash": "5b8f5b7c2c7db97277ceb72d609c9338ac4f086883b0f86cd3b75f67da62a9f1",
     "tracker_hash": "dfdffc1cd6b9711df52dc74dba7c1c8fceb09dab7d112aa0276bcdbc35b613ef",
     "synced_at": "2026-07-14T19:43:55.347731+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task252-shared-hook-bootstrap-hardening.md",
+    "plan_hash": "106ef6187f58adc254119cea0a099c9fba3f99685c39920db123b9bca8638847",
+    "tracker_hash": "8f6be21b3cad8cf37baf1a0ffd73a9ba3506c12d83226259f496f59c9a1d6f5e",
+    "synced_at": "2026-07-14T19:46:50.208533+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task252-shared-hook-bootstrap-hardening.md",
+    "plan_hash": "106ef6187f58adc254119cea0a099c9fba3f99685c39920db123b9bca8638847",
+    "tracker_hash": "8f6be21b3cad8cf37baf1a0ffd73a9ba3506c12d83226259f496f59c9a1d6f5e",
+    "synced_at": "2026-07-14T19:46:55.066339+02:00"
+  },
+  {
+    "plan": "plans/2026-07-14-task252-shared-hook-bootstrap-hardening.md",
+    "plan_hash": "106ef6187f58adc254119cea0a099c9fba3f99685c39920db123b9bca8638847",
+    "tracker_hash": "491fce35faca32b0666c027d3ec94fe0caf0ff419c38a750b994e793182ad59a",
+    "synced_at": "2026-07-14T19:47:38.337498+02:00"
   }
 ]
