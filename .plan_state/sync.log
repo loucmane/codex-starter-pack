@@ -1,0 +1,80 @@
+[
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "2f92bb646a32a9da4233890c1e42456cc5617e2b118efcb5643cc27dce18d49d",
+    "tracker_hash": "b19ca692f1d16e2552b3fa5dcd2e89aea5396f3ad53f4b8346dafb49fb74d95e",
+    "synced_at": "2026-07-13T18:03:54.151977+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "fe241b44109d72a5a9031b31d8523e8be6cd97ffca2bf82a2e78512dc8fcafe0",
+    "tracker_hash": "37b599534b86a4027c503b4d02d539ee4d76fcfb2ce32c023c5cd194a814b081",
+    "synced_at": "2026-07-13T18:29:08.132158+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "fe241b44109d72a5a9031b31d8523e8be6cd97ffca2bf82a2e78512dc8fcafe0",
+    "tracker_hash": "b77239f5c00414276cbb82362bbe0e21f15f6baf6c4b4ec610a992c069375a7f",
+    "synced_at": "2026-07-13T18:30:03.067545+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "fe241b44109d72a5a9031b31d8523e8be6cd97ffca2bf82a2e78512dc8fcafe0",
+    "tracker_hash": "cdb250029e5534ede782819d34887dfbf62a15b36148f7b5aeba23e829c83210",
+    "synced_at": "2026-07-13T18:39:07.409423+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "fe241b44109d72a5a9031b31d8523e8be6cd97ffca2bf82a2e78512dc8fcafe0",
+    "tracker_hash": "16f5569147389b0df308323957b6fb3a5457e67201b0302cb5bfee584176703a",
+    "synced_at": "2026-07-13T18:39:34.166081+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "fc44cfcae545ebe6da227e73d2f26e85495843b3acdc6825ccc78919e4d9631f",
+    "synced_at": "2026-07-13T18:39:34.367515+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "2874eff8da8ab432801b4817db0c5ac3a58060da4205536224435924c9f55a44",
+    "synced_at": "2026-07-13T18:40:29.669649+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "2874eff8da8ab432801b4817db0c5ac3a58060da4205536224435924c9f55a44",
+    "synced_at": "2026-07-14T18:06:36.973067+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "dd643629e263cdd217d3a4fb08a8dbbc501d3672fc4adb68255413d1c4dbce70",
+    "synced_at": "2026-07-14T18:08:28.319451+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "e40855fbbd297c489799423ddae7b98207a1e9be2a21ea0510a6f4c053a8739f",
+    "synced_at": "2026-07-14T18:12:37.856363+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "5d97ed999eb0ab02cdae1fb9bbd646a7440a6d0202caf974a884ec90d30c3fa8",
+    "synced_at": "2026-07-14T18:13:23.721586+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "3d98a615543dfc85e4ae5bfe58605fb3d7749d6bcad2240983aad2ad1cf47e92",
+    "synced_at": "2026-07-14T18:30:37.450865+02:00"
+  },
+  {
+    "plan": "plans/2026-07-13-task242-managed-update-slice.md",
+    "plan_hash": "f23286fa844abd8f87f4483b748398ea21ed1858713fcbd38fe17474f7cfa397",
+    "tracker_hash": "6fe35ebfecfe4e628f0c41394d195733074907361841d52604d937dc251b2d0f",
+    "synced_at": "2026-07-14T18:37:42.309055+02:00"
+  }
+]

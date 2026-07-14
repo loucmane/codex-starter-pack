@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "cases": {
+    "codex": {
+      "kind": "fresh_install",
+      "primary_agent": "codex",
+      "agents": [
+        "codex"
+      ],
+      "expected_summary": {
+        "conflicts": 0,
+        "creates": 38,
+        "manual_reviews": 0,
+        "modifies": 2,
+        "skips": 0
+      },
+      "expected_non_skip": {
+        "CODEX.md": "modify",
+        ".codex/hooks.json": "modify"
+      },
+      "operations_sha256": "4367457a215ea7d0c08321e8fa5cddb51b52da107a3e8e3784a9a8be4c7f57d3"
+    },
+    "hp-fetcher": {
+      "kind": "known_stale_update",
+      "primary_agent": "claude",
+      "agents": [
+        "claude"
+      ],
+      "stale_path": ".claude/scripts/gate_lib.py",
+      "stale_content": "# known old HP-Fetcher gate\n",
+      "expected_summary": {
+        "conflicts": 0,
+        "creates": 0,
+        "manual_reviews": 0,
+        "modifies": 2,
+        "skips": 30
+      },
+      "expected_non_skip": {
+        ".aegis/foundation-manifest.json": "modify",
+        ".claude/scripts/gate_lib.py": "modify"
+      },
+      "operations_sha256": "0be616403ea8b4d6c614d12de8153726e6daa456b0da8244bc394d5ad37b2a66"
+    },
+    "blog": {
+      "kind": "known_stale_update",
+      "primary_agent": "multi",
+      "agents": [
+        "claude",
+        "codex"
+      ],
+      "stale_path": ".claude/scripts/ledger_lib.py",
+      "stale_content": "# known old Blog ledger\n",
+      "expected_summary": {
+        "conflicts": 0,
+        "creates": 0,
+        "manual_reviews": 0,
+        "modifies": 2,
+        "skips": 40
+      },
+      "expected_non_skip": {
+        ".aegis/foundation-manifest.json": "modify",
+        ".claude/scripts/ledger_lib.py": "modify"
+      },
+      "operations_sha256": "314290cb214c29b5f4aaaa36d538bf73725495cecae84eb1258e15541bb97ba1"
+    }
+  }
+}
