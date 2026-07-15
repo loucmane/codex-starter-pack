@@ -9,4 +9,3 @@ The current release contract supports:
 - packaged asset resolution for the Aegis schemas, agent gates, helper scripts, and MCP diagnostics.
 
 See `docs/aegis/invocation-contract.md` for the command contract and current release-hardening status.
-See `docs/aegis/codex-remote-control-trust.md` for the host-scoped Remote Control project-trust and `/hooks` review model.

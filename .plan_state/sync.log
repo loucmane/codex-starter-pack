@@ -316,5 +316,11 @@
     "plan_hash": "aa46e66a527f58048541cc836455e61f37232177a05e516d154e22f4e68f59ea",
     "tracker_hash": "047dec344d62b1a9a6dc78a00f9b85d570f6c8456319fd4fbbb9990d965ce2c1",
     "synced_at": "2026-07-15T17:28:47.645194+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "aa46e66a527f58048541cc836455e61f37232177a05e516d154e22f4e68f59ea",
+    "tracker_hash": "3d782bd773d59570bee10aaed15e7cc9ada66fcab3723a04f43849a936fc4345",
+    "synced_at": "2026-07-15T17:32:50.892377+02:00"
   }
 ]
