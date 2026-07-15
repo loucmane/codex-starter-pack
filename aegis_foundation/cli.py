@@ -19,7 +19,13 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aegis_foundation import legacy_projection, mcp_registration, obsidian_vault, output_budget
+from aegis_foundation import (
+    codex_remote_trust,
+    legacy_projection,
+    mcp_registration,
+    obsidian_vault,
+    output_budget,
+)
 from aegis_foundation.resources import packaged_asset_root
 from aegis_foundation.version import __version__
 from scripts import _aegis_installer
@@ -61,6 +67,24 @@ def _add_output_budget_arguments(
     )
     if add_json:
         parser.add_argument("--json", action="store_true", help=json_help)
+
+
+def _add_codex_bridge_home_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--normal-codex-home",
+        help=(
+            "Attended Codex home used only for comparison diagnostics. Defaults to "
+            "CODEX_GLOBAL_DIR, a non-Remote active CODEX_HOME, or ~/.codex."
+        ),
+    )
+    parser.add_argument(
+        "--remote-codex-home",
+        help=(
+            "Autonomous Remote Control Codex home to inspect or manage. Defaults to "
+            "AEGIS_REMOTE_CONTROL_HOME, an active remote-control CODEX_HOME, or the "
+            "Aegis source checkout's hidden bridge home."
+        ),
+    )
 
 
 def _print_budgeted_json(
@@ -1231,6 +1255,62 @@ def handle_enforce(args: argparse.Namespace) -> int:
     return 0
 
 
+def _codex_bridge_paths(args: argparse.Namespace) -> codex_remote_trust.BridgePaths:
+    with _resolve_source_root(args.source_root) as source_root:
+        return codex_remote_trust.resolve_bridge_paths(
+            normal_codex_home=args.normal_codex_home,
+            remote_codex_home=args.remote_codex_home,
+            source_root=source_root,
+            environment=os.environ,
+        )
+
+
+def handle_codex_bridge(args: argparse.Namespace) -> int:
+    paths = _codex_bridge_paths(args)
+    if args.codex_bridge_action == "status":
+        payload = codex_remote_trust.bridge_status(
+            paths,
+            project=args.project,
+            environment=os.environ,
+        )
+    elif args.codex_bridge_action == "plan":
+        payload = codex_remote_trust.bridge_plan(paths)
+    elif args.codex_bridge_action == "apply":
+        payload = codex_remote_trust.bridge_apply(paths, timeout=args.lock_timeout)
+    else:  # pragma: no cover - argparse constrains this branch.
+        raise codex_remote_trust.RemoteTrustValidationError(
+            f"unsupported codex bridge action: {args.codex_bridge_action}"
+        )
+    _dump_json(payload)
+    return 0
+
+
+def handle_codex_trust(args: argparse.Namespace) -> int:
+    paths = _codex_bridge_paths(args)
+    if args.codex_trust_action == "status":
+        payload = codex_remote_trust.project_status(
+            paths,
+            project=args.project,
+            environment=os.environ,
+        )
+    elif args.codex_trust_action in {"add", "remove"}:
+        payload = codex_remote_trust.trust_change(
+            paths,
+            action=args.codex_trust_action,
+            project=args.project,
+            reason=args.reason,
+            approved_by=args.approved_by,
+            apply=args.apply,
+            timeout=args.lock_timeout,
+        )
+    else:  # pragma: no cover - argparse constrains this branch.
+        raise codex_remote_trust.RemoteTrustValidationError(
+            f"unsupported codex trust action: {args.codex_trust_action}"
+        )
+    _dump_json(payload)
+    return 0
+
+
 def handle_reconcile(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.reconcile(
@@ -1930,6 +2010,101 @@ def build_arg_parser() -> argparse.ArgumentParser:
         json_help="Accepted for cross-command consistency; update output is structured JSON.",
     )
     update_parser.set_defaults(func=handle_update)
+
+    codex_parser = subparsers.add_parser(
+        "codex",
+        help="Inspect and manage host-scoped Codex integration state.",
+    )
+    codex_sub = codex_parser.add_subparsers(dest="codex_group", required=True)
+
+    codex_bridge_parser = codex_sub.add_parser(
+        "bridge",
+        help="Inspect, plan, or apply the Remote Control project-trust projection.",
+    )
+    codex_bridge_sub = codex_bridge_parser.add_subparsers(
+        dest="codex_bridge_action",
+        required=True,
+    )
+    codex_bridge_status = codex_bridge_sub.add_parser(
+        "status",
+        help="Diagnose effective Codex homes and Remote Control trust without writing.",
+    )
+    _add_codex_bridge_home_arguments(codex_bridge_status)
+    codex_bridge_status.add_argument(
+        "--project",
+        help="Optional absolute project path for trust and hook-review diagnostics.",
+    )
+    codex_bridge_status.set_defaults(func=handle_codex_bridge)
+
+    codex_bridge_plan = codex_bridge_sub.add_parser(
+        "plan",
+        help="Preview the deterministic managed Remote Control config projection.",
+    )
+    _add_codex_bridge_home_arguments(codex_bridge_plan)
+    codex_bridge_plan.set_defaults(func=handle_codex_bridge)
+
+    codex_bridge_apply = codex_bridge_sub.add_parser(
+        "apply",
+        help="Apply the current allowlist projection atomically with rollback protection.",
+    )
+    _add_codex_bridge_home_arguments(codex_bridge_apply)
+    codex_bridge_apply.add_argument(
+        "--lock-timeout",
+        type=float,
+        default=codex_remote_trust.DEFAULT_LOCK_TIMEOUT,
+        help="Seconds to wait for the host-scoped trust lock.",
+    )
+    codex_bridge_apply.set_defaults(func=handle_codex_bridge)
+
+    codex_trust_parser = codex_sub.add_parser(
+        "trust",
+        help="Inspect or explicitly authorize one Remote Control project.",
+    )
+    codex_trust_sub = codex_trust_parser.add_subparsers(
+        dest="codex_trust_action",
+        required=True,
+    )
+    codex_trust_status = codex_trust_sub.add_parser(
+        "status",
+        help="Report attended trust, Remote trust, and hook-review state separately.",
+    )
+    _add_codex_bridge_home_arguments(codex_trust_status)
+    codex_trust_status.add_argument("--project", required=True, help="Absolute project path.")
+    codex_trust_status.set_defaults(func=handle_codex_trust)
+
+    for action in ("add", "remove"):
+        trust_mutation = codex_trust_sub.add_parser(
+            action,
+            help=(
+                "Explicitly authorize a Remote Control project."
+                if action == "add"
+                else "Remove a Remote Control project authorization."
+            ),
+        )
+        _add_codex_bridge_home_arguments(trust_mutation)
+        trust_mutation.add_argument("--project", required=True, help="Absolute project path.")
+        trust_mutation.add_argument(
+            "--reason",
+            required=True,
+            help="Operator rationale recorded in the plan and durable authorization.",
+        )
+        trust_mutation.add_argument(
+            "--approved-by",
+            default=os.environ.get("USER") or os.environ.get("LOGNAME") or "local-operator",
+            help="Operator identity recorded with an added authorization.",
+        )
+        trust_mutation.add_argument(
+            "--apply",
+            action="store_true",
+            help="Apply the transaction; omitted means a side-effect-free preview.",
+        )
+        trust_mutation.add_argument(
+            "--lock-timeout",
+            type=float,
+            default=codex_remote_trust.DEFAULT_LOCK_TIMEOUT,
+            help="Seconds to wait for the host-scoped trust lock when applying.",
+        )
+        trust_mutation.set_defaults(func=handle_codex_trust)
 
     replay_parser = subparsers.add_parser(
         "replay",
@@ -2798,7 +2973,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except _aegis_installer.AegisError as exc:
+    except (_aegis_installer.AegisError, codex_remote_trust.RemoteTrustError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
 

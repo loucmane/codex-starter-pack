@@ -244,5 +244,77 @@
     "plan_hash": "15fe512c32d5c8ab3cb97e67cb91f43e2c471d1edb84d58a9a20f55a075b0de1",
     "tracker_hash": "cc009399dc3ff552f85324b03ae124cebe1be2c8c71f33c55f37be8abfb84b92",
     "synced_at": "2026-07-15T13:40:49.010222+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "f57788257039f14bd18ad14aa179f7f118ca8e9fb8b31cb626e566a0a927d0c5",
+    "tracker_hash": "b1792fa93ade713055f6b686ff7f12e5896dfd29b54274be7853c84fb6a29ea5",
+    "synced_at": "2026-07-15T16:44:02.864484+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "f57788257039f14bd18ad14aa179f7f118ca8e9fb8b31cb626e566a0a927d0c5",
+    "tracker_hash": "b1792fa93ade713055f6b686ff7f12e5896dfd29b54274be7853c84fb6a29ea5",
+    "synced_at": "2026-07-15T16:44:17.980980+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "83f2b6fd534108f035583c357af0b8569525faff348376fe66abb4e2d8cdd752",
+    "tracker_hash": "2cb2ff68f20efcf616ad2e97dacf75b5d0107185fc438bf92ad6245bc74c74d2",
+    "synced_at": "2026-07-15T16:48:52.442269+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "83f2b6fd534108f035583c357af0b8569525faff348376fe66abb4e2d8cdd752",
+    "tracker_hash": "2cb2ff68f20efcf616ad2e97dacf75b5d0107185fc438bf92ad6245bc74c74d2",
+    "synced_at": "2026-07-15T17:06:38.622658+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "7f0f0a33a2055604e2e6986c12770a71a874a799c64bb9eacdf192d1c872e6cd",
+    "tracker_hash": "fbacbe7ff9ee59385a714ddb091bc39c0c8f71267c413fc268ec29ea8d89b157",
+    "synced_at": "2026-07-15T17:08:17.335357+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "7f0f0a33a2055604e2e6986c12770a71a874a799c64bb9eacdf192d1c872e6cd",
+    "tracker_hash": "969817cf16a0739b5878dfa41f4464b539496425dcc3c5eaf1995d1dab05a8fe",
+    "synced_at": "2026-07-15T17:09:01.668659+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "7f0f0a33a2055604e2e6986c12770a71a874a799c64bb9eacdf192d1c872e6cd",
+    "tracker_hash": "fb73615d407b0ea68824e85c55ceb634bab3e841d6649d5998221223da8ceb8d",
+    "synced_at": "2026-07-15T17:10:16.111179+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "7f0f0a33a2055604e2e6986c12770a71a874a799c64bb9eacdf192d1c872e6cd",
+    "tracker_hash": "fb73615d407b0ea68824e85c55ceb634bab3e841d6649d5998221223da8ceb8d",
+    "synced_at": "2026-07-15T17:10:25.208728+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "7f0f0a33a2055604e2e6986c12770a71a874a799c64bb9eacdf192d1c872e6cd",
+    "tracker_hash": "260f10393945c4bf495bf65c24532a68d2f5f00514b426260a0c469295333116",
+    "synced_at": "2026-07-15T17:24:53.683065+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "41c3d6b8b85307f10fdf5dec8b9f453a17d873f390a0be9418e2e2296fd37058",
+    "tracker_hash": "38da9889b6a562f163f60f233d0aa80329ca687a2060721a614b4ff6faea0973",
+    "synced_at": "2026-07-15T17:27:06.430024+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "aa46e66a527f58048541cc836455e61f37232177a05e516d154e22f4e68f59ea",
+    "tracker_hash": "ab4693bf23177cf1c424155b12ce254dbf654e00175b8a7053381a7a3dc1fd8a",
+    "synced_at": "2026-07-15T17:27:17.762561+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task255-codex-remote-trust-bridge.md",
+    "plan_hash": "aa46e66a527f58048541cc836455e61f37232177a05e516d154e22f4e68f59ea",
+    "tracker_hash": "047dec344d62b1a9a6dc78a00f9b85d570f6c8456319fd4fbbb9990d965ce2c1",
+    "synced_at": "2026-07-15T17:28:47.645194+02:00"
   }
 ]

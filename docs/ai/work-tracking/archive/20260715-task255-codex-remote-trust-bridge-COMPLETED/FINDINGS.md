@@ -1,0 +1,11 @@
+# Findings
+
+- 2026-07-15 — `/home/loucmane/.codex/config.toml` already marks `/home/loucmane/dev/blog` trusted, but the active session exports `CODEX_HOME=/home/loucmane/codex/.codex/remote-control`; that generated config contains only the Aegis source-root project entry.
+- 2026-07-15 — The current generated Remote Control config contains autonomous permissions, connector approval modes, and Remote Control-local hook hashes. Whole-file symlinking would collapse materially different security contexts.
+- 2026-07-15 — `/home/loucmane/.local/bin/codex-wrapper` routes Aegis Remote Control commands to the hidden home but is host-installed and absent from upstream Aegis management. The upstream fix therefore needs a package CLI that can safely adopt and maintain the trust projection without hot-patching project repositories.
+- 2026-07-15 — Codex has no documented TOML include mechanism for sharing only `[projects]`. Aegis must compose that narrow state itself rather than sharing an entire writable config.
+- 2026-07-15 — The primary source checkout contains unrelated modified `.codex` files and local runtime directories. Task 255 is isolated in `/tmp/codex-task255`; Blog remains untouched.
+- 2026-07-15 — Live Task 255 status output reproduces the operator-visible failure precisely: `/home/loucmane/.codex/config.toml` trusts Blog, `/home/loucmane/codex/.codex/remote-control/config.toml` does not, and the latter is the context that decides whether Blog's project-local `.codex/` loads.
+- 2026-07-15 — Blog currently has a real `.codex/hooks.json` definition with digest `3334c040bd46a92bd542d53e2919a43b14ba1bf001fa79883a5385dc5ba487d5`, but the live managed manifest's `codex.hook_trust` gate does not yet carry the current explicit guidance fields. The later managed runtime refresh must correct guidance before the owner performs `/hooks` review; neither fact can be inferred as client trust.
+- 2026-07-15 — Empty authorization is a first-class durable state (`projects = []`), which allows revocation to complete without deleting the authority contract or synthesizing trust.
+- 2026-07-15 — Existing exact unmanaged `trusted` entries can satisfy an authorization without adoption. Any non-trusted value or canonical alias remains an attended conflict because Aegis may not overwrite operator-owned policy.
