@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aegis.local/schemas/codex-topology-status.schema.json",
+  "title": "Aegis Codex Topology Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation",
+    "status",
+    "read_only",
+    "canonical_architecture",
+    "active_work",
+    "homes",
+    "commands",
+    "process_inventory",
+    "projects",
+    "threads",
+    "split_brain",
+    "issues",
+    "limits",
+    "security"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "operation": { "const": "codex_topology_status" },
+    "status": { "enum": ["healthy", "attention_required", "split_brain"] },
+    "read_only": { "const": true },
+    "canonical_architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "codex_home",
+        "codex_sqlite_home",
+        "home_count",
+        "server_count",
+        "session_store_count",
+        "hook_trust_store_count"
+      ],
+      "properties": {
+        "codex_home": { "$ref": "#/$defs/absolutePath" },
+        "codex_sqlite_home": { "$ref": "#/$defs/absolutePath" },
+        "home_count": { "const": 1 },
+        "server_count": { "const": 1 },
+        "session_store_count": { "const": 1 },
+        "hook_trust_store_count": { "const": 1 }
+      }
+    },
+    "active_work": { "$ref": "#/$defs/fact" },
+    "homes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/home" }
+    },
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "process_inventory": { "$ref": "#/$defs/processInventory" },
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/project" }
+    },
+    "threads": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/thread" }
+    },
+    "split_brain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detected", "indicators"],
+      "properties": {
+        "detected": { "type": "boolean" },
+        "indicators": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/indicator" }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/issue" }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_files_per_store",
+        "processes",
+        "command_candidates",
+        "session_metadata_bytes"
+      ],
+      "properties": {
+        "session_files_per_store": { "type": "integer", "minimum": 1 },
+        "processes": { "type": "integer", "minimum": 1 },
+        "command_candidates": { "type": "integer", "minimum": 1 },
+        "session_metadata_bytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_nonsecret_config_values_emitted",
+        "unrequested_config_values_emitted",
+        "auth_read",
+        "transcript_text_read",
+        "hook_trust_store_read",
+        "hook_trust_asserted",
+        "process_arguments_emitted",
+        "lifecycle_contacted"
+      ],
+      "properties": {
+        "selected_nonsecret_config_values_emitted": { "const": true },
+        "unrequested_config_values_emitted": { "const": false },
+        "auth_read": { "const": false },
+        "transcript_text_read": { "const": false },
+        "hook_trust_store_read": { "const": false },
+        "hook_trust_asserted": { "const": false },
+        "process_arguments_emitted": { "const": false },
+        "lifecycle_contacted": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "state", "source", "observed", "detail"],
+      "properties": {
+        "value": {},
+        "state": { "enum": ["known", "unknown", "invalid", "not_applicable"] },
+        "source": { "type": "string", "minLength": 1 },
+        "observed": { "type": "boolean" },
+        "detail": { "type": "string", "maxLength": 2048 }
+      }
+    },
+    "sessionStore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "kind",
+        "resolved",
+        "scan_state",
+        "jsonl_count",
+        "count_truncated"
+      ],
+      "properties": {
+        "path": { "$ref": "#/$defs/absolutePath" },
+        "kind": { "type": "string" },
+        "resolved": { "$ref": "#/$defs/fact" },
+        "scan_state": { "enum": ["known", "unknown", "invalid"] },
+        "jsonl_count": { "type": "integer", "minimum": 0 },
+        "count_truncated": { "type": "boolean" }
+      }
+    },
+    "sqlite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effective_home", "selection_explicit", "roots_with_state", "files"],
+      "properties": {
+        "effective_home": { "$ref": "#/$defs/fact" },
+        "selection_explicit": { "$ref": "#/$defs/fact" },
+        "roots_with_state": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/absolutePath" }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "resolved", "name", "size"],
+            "properties": {
+              "path": { "$ref": "#/$defs/absolutePath" },
+              "resolved": { "$ref": "#/$defs/absolutePath" },
+              "name": { "type": "string", "pattern": "^state_[^/]+\\.sqlite$" },
+              "size": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "home": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "canonical_path",
+        "role",
+        "exists",
+        "config",
+        "allowlist_authority",
+        "session_stores",
+        "requested_threads",
+        "sqlite",
+        "package",
+        "lifecycle"
+      ],
+      "properties": {
+        "path": { "$ref": "#/$defs/absolutePath" },
+        "canonical_path": { "$ref": "#/$defs/absolutePath" },
+        "role": { "enum": ["canonical", "candidate"] },
+        "exists": { "type": "boolean" },
+        "config": { "type": "object" },
+        "allowlist_authority": { "type": "object" },
+        "session_stores": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/sessionStore" }
+        },
+        "requested_threads": { "type": "array", "items": { "type": "object" } },
+        "sqlite": { "$ref": "#/$defs/sqlite" },
+        "package": { "type": "object" },
+        "lifecycle": { "type": "object" }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "source",
+        "resolved",
+        "resolve_error",
+        "version",
+        "executable",
+        "wrapper"
+      ],
+      "properties": {
+        "path": { "$ref": "#/$defs/absolutePath" },
+        "source": { "enum": ["explicit", "home", "PATH"] },
+        "resolved": {
+          "oneOf": [{ "$ref": "#/$defs/absolutePath" }, { "type": "null" }]
+        },
+        "resolve_error": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "executable": { "type": "boolean" },
+        "wrapper": {
+          "type": "object",
+          "required": ["wrapper", "signals", "sha256"],
+          "properties": {
+            "wrapper": { "type": "boolean" },
+            "home_routing": { "type": "boolean" },
+            "signals": { "type": "array", "items": { "type": "string" } },
+            "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+          }
+        }
+      }
+    },
+    "processInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "source",
+        "scope",
+        "processes",
+        "scanned_pid_count",
+        "scan_truncated",
+        "detail"
+      ],
+      "properties": {
+        "state": { "enum": ["known", "unknown"] },
+        "source": { "$ref": "#/$defs/absolutePath" },
+        "scope": { "$ref": "#/$defs/fact" },
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pid",
+              "ppid",
+              "role",
+              "executable",
+              "version",
+              "home",
+              "home_source",
+              "endpoint",
+              "open_sqlite_paths"
+            ],
+            "properties": {
+              "pid": { "type": "integer", "minimum": 1 },
+              "ppid": { "type": ["integer", "null"], "minimum": 0 },
+              "role": { "type": "string" },
+              "executable": { "$ref": "#/$defs/absolutePath" },
+              "version": { "type": ["string", "null"] },
+              "home": {
+                "oneOf": [{ "$ref": "#/$defs/absolutePath" }, { "type": "null" }]
+              },
+              "home_source": { "type": ["string", "null"] },
+              "endpoint": { "type": ["string", "null"] },
+              "open_sqlite_paths": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/absolutePath" }
+              }
+            }
+          }
+        },
+        "scanned_pid_count": { "type": "integer", "minimum": 0 },
+        "scan_truncated": { "type": "boolean" },
+        "detail": { "type": "string" }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project",
+        "tracked_hook_guidance",
+        "hook_definition",
+        "client_hook_trust"
+      ],
+      "properties": {
+        "project": { "$ref": "#/$defs/absolutePath" },
+        "tracked_hook_guidance": { "type": "object" },
+        "hook_definition": { "type": "object" },
+        "client_hook_trust": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "asserted", "source", "detail"],
+          "properties": {
+            "state": { "const": "unknown" },
+            "asserted": { "const": false },
+            "source": { "const": "/hooks" },
+            "detail": { "type": "string" }
+          }
+        }
+      }
+    },
+    "thread": {
+      "type": "object",
+      "required": [
+        "thread_id",
+        "ownership",
+        "owner_home",
+        "freshness",
+        "message",
+        "hook_execution_asserted",
+        "hook_trust_asserted"
+      ],
+      "properties": {
+        "thread_id": { "type": "string" },
+        "ownership": { "enum": ["canonical", "other_home", "missing", "ambiguous"] },
+        "owner_home": { "type": ["string", "null"] },
+        "project": { "type": "string" },
+        "freshness": { "enum": ["stale", "not_predating_trust", "unknown"] },
+        "message": { "type": "string" },
+        "trust_effective_at": { "type": ["string", "null"] },
+        "thread_started_at": { "type": ["string", "null"] },
+        "hook_execution_asserted": { "const": false },
+        "hook_trust_asserted": { "const": false }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "freshness": { "const": "stale" } } },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "Project is trusted on disk; this session predates the trust change and requires a fresh session."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "indicator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "detail", "evidence"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "source"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

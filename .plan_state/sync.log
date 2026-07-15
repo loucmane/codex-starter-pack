@@ -322,5 +322,47 @@
     "plan_hash": "aa46e66a527f58048541cc836455e61f37232177a05e516d154e22f4e68f59ea",
     "tracker_hash": "3d782bd773d59570bee10aaed15e7cc9ada66fcab3723a04f43849a936fc4345",
     "synced_at": "2026-07-15T17:32:50.892377+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "226920c32a0a5366ebfe8dde629a8702466a3dc001ac17f9cfa63cb7fd0ab643",
+    "tracker_hash": "b051482f2b978788dfe57154b5af3cc6a484163a2e43e1cc9f594a87a38aa6d4",
+    "synced_at": "2026-07-15T20:55:27.465442+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "7c8ccb5205bd3f8e7d895ba7bc35d63ab15032a607af9054ef2f96c551efddf3",
+    "tracker_hash": "0098d95cd95fb7775587f5b41324aa8775a9b3126d3cb64c58cc39e558abad5b",
+    "synced_at": "2026-07-15T21:00:11.479480+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "b93ac0e531d776ba095ab1f3c3e69c73d7ae273b3445ed38adcee2c91c4fcc6f",
+    "tracker_hash": "e195e5a46cb358d1e979ed2eb3617be23fc0d19b5738d4ebc1a4ce21f0e237a2",
+    "synced_at": "2026-07-15T22:14:54.580812+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "b93ac0e531d776ba095ab1f3c3e69c73d7ae273b3445ed38adcee2c91c4fcc6f",
+    "tracker_hash": "8f802464e5f6c7da39307a34227fa3c663a7f8bf949e52392ed0b98f898e5b34",
+    "synced_at": "2026-07-15T22:16:13.436947+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "5f0cd637bac988aadfef7a6fc9c860856a4602716f1c048976f5b15ba02313ca",
+    "tracker_hash": "4820623e33ce9b439f8f0a7aa32255a5faf7ba545ba0660a25d94bab08af262c",
+    "synced_at": "2026-07-15T22:22:25.371566+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "5cb51ab160ea234db93d1247e448e4522e2068f80bc3f4fa4626fb175109efad",
+    "tracker_hash": "06e03fdade49521b038f237ce6e9fb9f18ad9791dd6abb5920a4011bf16666fc",
+    "synced_at": "2026-07-15T22:24:04.120081+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task256-canonical-codex-home-topology.md",
+    "plan_hash": "a18e14dfc88b629814b2a676d873dccbf31f24fa0a17d2225d2abcead4f97dde",
+    "tracker_hash": "5c63598cd96d85eb7ecf61368b02c34067615e05be4c20f50df7a6747fd7238d",
+    "synced_at": "2026-07-15T22:24:15.783417+02:00"
   }
 ]

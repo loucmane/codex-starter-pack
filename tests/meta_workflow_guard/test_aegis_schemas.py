@@ -450,6 +450,8 @@ def valid_install_plan() -> dict:
         "profile.schema.json",
         "install-plan.schema.json",
         "delivery-policy.schema.json",
+        "codex-topology-status.schema.json",
+        "codex-topology-plan.schema.json",
     ],
 )
 def test_aegis_schemas_are_valid_draft_2020_12(schema_name: str) -> None:

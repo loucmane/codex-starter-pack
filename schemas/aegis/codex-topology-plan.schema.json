@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aegis.local/schemas/codex-topology-plan.schema.json",
+  "title": "Aegis Codex Topology Migration Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation",
+    "status",
+    "read_only",
+    "source_status_sha256",
+    "canonical_codex_home",
+    "canonical_codex_sqlite_home",
+    "blockers",
+    "phases",
+    "hard_prohibitions",
+    "rollback_principle"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "operation": { "const": "codex_topology_plan" },
+    "status": { "enum": ["blocked", "ready_for_task257"] },
+    "read_only": { "const": true },
+    "source_status_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "canonical_codex_home": { "$ref": "#/$defs/absolutePath" },
+    "canonical_codex_sqlite_home": { "$ref": "#/$defs/absolutePath" },
+    "blockers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/blocker" }
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": { "$ref": "#/$defs/phase" }
+    },
+    "hard_prohibitions": {
+      "type": "array",
+      "minItems": 5,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "rollback_principle": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "blocked" } } },
+      "then": { "properties": { "blockers": { "minItems": 1 } } }
+    },
+    {
+      "if": { "properties": { "status": { "const": "ready_for_task257" } } },
+      "then": { "properties": { "blockers": { "maxItems": 0 } } }
+    }
+  ],
+  "$defs": {
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "required_action"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "required_action": { "type": "string", "minLength": 1 }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "task256_execute",
+        "task257_mutates_host",
+        "attended_boundary",
+        "preconditions",
+        "actions",
+        "verification",
+        "rollback"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^257\\.[0-9]-[a-z0-9-]+$" },
+        "title": { "type": "string", "minLength": 1 },
+        "task256_execute": { "const": false },
+        "task257_mutates_host": { "type": "boolean" },
+        "attended_boundary": { "type": "boolean" },
+        "preconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "verification": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "rollback": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
