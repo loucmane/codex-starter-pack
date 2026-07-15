@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from aegis_foundation import (
+    codex_topology,
     codex_remote_trust,
     legacy_projection,
     mcp_registration,
@@ -84,6 +85,64 @@ def _add_codex_bridge_home_arguments(parser: argparse.ArgumentParser) -> None:
             "AEGIS_REMOTE_CONTROL_HOME, an active remote-control CODEX_HOME, or the "
             "Aegis source checkout's hidden bridge home."
         ),
+    )
+
+
+def _add_codex_topology_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--canonical-codex-home",
+        help="Intended single CODEX_HOME. Defaults to CODEX_HOME or ~/.codex.",
+    )
+    parser.add_argument(
+        "--canonical-sqlite-home",
+        help="Intended single CODEX_SQLITE_HOME. Defaults to the canonical Codex home.",
+    )
+    parser.add_argument(
+        "--candidate-codex-home",
+        action="append",
+        default=[],
+        help="Additional existing Codex home to inspect; repeatable.",
+    )
+    parser.add_argument(
+        "--project",
+        action="append",
+        default=[],
+        help="Absolute project path for trust and thread diagnostics; repeatable.",
+    )
+    parser.add_argument(
+        "--thread",
+        dest="thread_ids",
+        action="append",
+        default=[],
+        help="Thread/session ID whose owning home and trust freshness should be diagnosed.",
+    )
+    parser.add_argument(
+        "--codex-command",
+        action="append",
+        default=[],
+        help="Explicit Codex executable or wrapper candidate; repeatable.",
+    )
+    parser.add_argument(
+        "--proc-root",
+        default="/proc",
+        help="Read-only procfs root. Override only for deterministic fixtures.",
+    )
+    parser.add_argument(
+        "--process-scope",
+        choices=("unknown", "host"),
+        default="unknown",
+        help="Whether the procfs view is proven to cover the host; unknown fails closed.",
+    )
+    parser.add_argument(
+        "--active-work-state",
+        choices=sorted(codex_topology.ACTIVE_WORK_STATES),
+        default="unknown",
+        help="Operator-observed drain state; unknown fails closed in the migration plan.",
+    )
+    _add_output_budget_arguments(
+        parser,
+        add_json=True,
+        json_help="Accepted for consistency; topology output is structured JSON.",
     )
 
 
@@ -1311,6 +1370,40 @@ def handle_codex_trust(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_codex_topology(args: argparse.Namespace) -> int:
+    status = codex_topology.topology_status(
+        canonical_codex_home=args.canonical_codex_home,
+        canonical_sqlite_home=args.canonical_sqlite_home,
+        candidate_codex_homes=args.candidate_codex_home,
+        projects=args.project,
+        thread_ids=args.thread_ids,
+        codex_commands=args.codex_command,
+        proc_root=args.proc_root,
+        process_scope=args.process_scope,
+        active_work_state=args.active_work_state,
+        environment=os.environ,
+    )
+    if args.codex_topology_action == "status":
+        payload = status
+        next_action = "Run `aegis codex topology plan` to render the Task 257 migration plan."
+    elif args.codex_topology_action == "plan":
+        payload = codex_topology.topology_migration_plan(status)
+        next_action = (
+            "Resolve every blocker before creating Task 257; Task 256 never applies this plan."
+        )
+    else:  # pragma: no cover - argparse constrains this branch.
+        raise codex_topology.CodexTopologyError(
+            f"unsupported codex topology action: {args.codex_topology_action}"
+        )
+    _print_budgeted_json(
+        payload,
+        args,
+        command=f"codex topology {args.codex_topology_action}",
+        next_action=next_action,
+    )
+    return 0
+
+
 def handle_reconcile(args: argparse.Namespace) -> int:
     with _resolve_source_root(args.source_root) as source_root:
         payload = _aegis_installer.reconcile(
@@ -2105,6 +2198,22 @@ def build_arg_parser() -> argparse.ArgumentParser:
             help="Seconds to wait for the host-scoped trust lock when applying.",
         )
         trust_mutation.set_defaults(func=handle_codex_trust)
+
+    codex_topology_parser = codex_sub.add_parser(
+        "topology",
+        help="Diagnose canonical-home topology or render a no-mutation Task 257 plan.",
+    )
+    codex_topology_sub = codex_topology_parser.add_subparsers(
+        dest="codex_topology_action",
+        required=True,
+    )
+    for action, help_text in (
+        ("status", "Inspect homes, state ownership, split brain, and thread freshness."),
+        ("plan", "Render the deterministic drain-first Task 257 migration plan."),
+    ):
+        topology_action = codex_topology_sub.add_parser(action, help=help_text)
+        _add_codex_topology_arguments(topology_action)
+        topology_action.set_defaults(func=handle_codex_topology)
 
     replay_parser = subparsers.add_parser(
         "replay",
@@ -2973,7 +3082,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.func(args))
-    except (_aegis_installer.AegisError, codex_remote_trust.RemoteTrustError) as exc:
+    except (
+        _aegis_installer.AegisError,
+        codex_remote_trust.RemoteTrustError,
+        codex_topology.CodexTopologyError,
+    ) as exc:
         print(str(exc), file=sys.stderr)
         return 1
 
