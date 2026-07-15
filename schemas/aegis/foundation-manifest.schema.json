@@ -714,6 +714,17 @@
           "type": "string",
           "minLength": 1
         },
+        "review_command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hash_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bypass_allowed": {
+          "type": "boolean"
+        },
         "verification": {
           "$ref": "#/$defs/gate_verification"
         }
@@ -785,6 +796,40 @@
                 "required": [
                   "failure_mode"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "id": {
+                "const": "codex.hook_trust"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          },
+          "then": {
+            "required": [
+              "settings_path",
+              "review_command",
+              "hash_scope",
+              "bypass_allowed"
+            ],
+            "properties": {
+              "settings_path": {
+                "const": ".codex/hooks.json"
+              },
+              "review_command": {
+                "const": "/hooks"
+              },
+              "hash_scope": {
+                "const": "exact_hook_definition"
+              },
+              "bypass_allowed": {
+                "const": false
               }
             }
           }

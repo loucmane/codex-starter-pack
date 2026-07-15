@@ -2570,6 +2570,10 @@ def test_codex_install_merges_passive_hooks_and_uninstall_preserves_project_hook
     assert set(aegis_installer.CODEX_GATE_IDS) - {"codex.hook_trust"} <= required_gate_ids
     hook_trust_gate = next(gate for gate in manifest["gates"] if gate["id"] == "codex.hook_trust")
     assert hook_trust_gate["required"] is False
+    assert hook_trust_gate["settings_path"] == aegis_installer.CODEX_HOOKS_REL
+    assert hook_trust_gate["review_command"] == (aegis_installer.CODEX_HOOK_TRUST_REVIEW_COMMAND)
+    assert hook_trust_gate["hash_scope"] == aegis_installer.CODEX_HOOK_TRUST_HASH_SCOPE
+    assert hook_trust_gate["bypass_allowed"] is False
     verification = verify(target, source_root=REPO_ROOT)
     assert verification["summary"]["failed_required"] == 0
 
@@ -6639,6 +6643,14 @@ def test_strict_verify_uses_tracked_codex_hook_trust_without_install_report(
     )
     assert trust_check["status"] == "pass"
     assert trust_check["details"]["source"] == "manifest_gate"
+    assert trust_check["details"]["client_trust_asserted"] is False
+    assert trust_check["details"]["supplemental_install_evidence"] == {
+        "install_report_present": False,
+        "install_report_parsed": False,
+        "hook_trust_guidance_present": False,
+        "matches_tracked_contract": False,
+        "client_trust_asserted": False,
+    }
     assert strict_report["summary"]["failed_required"] == 0
 
     manifest_path = target / AEGIS_MANIFEST_REL
@@ -6660,6 +6672,264 @@ def test_strict_verify_uses_tracked_codex_hook_trust_without_install_report(
     assert tampered_trust_check["details"]["source"] is None
 
 
+def test_strict_verify_treats_install_report_hook_trust_as_supplemental(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "install-report-supplemental"
+    init_git_repo(target)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    simulate_codex_reload(target)
+    kickoff(
+        target,
+        task_id="71",
+        slug="install-report-supplemental",
+        title="Install Report Supplemental",
+    )
+
+    strict_report = verify(target, source_root=REPO_ROOT, strict=True)
+    trust_check = next(
+        check
+        for check in strict_report["checks"]
+        if check["gate_id"] == "codex.hook_trust_guidance"
+    )
+
+    assert strict_report["summary"]["failed_required"] == 0
+    assert trust_check["status"] == "pass"
+    assert trust_check["details"]["source"] == "manifest_gate"
+    assert trust_check["details"]["client_trust_asserted"] is False
+    assert trust_check["details"]["supplemental_install_evidence"] == {
+        "install_report_present": True,
+        "install_report_parsed": True,
+        "hook_trust_guidance_present": True,
+        "matches_tracked_contract": True,
+        "client_trust_asserted": False,
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("__missing_gate__", None),
+        ("review_command", None),
+        ("review_command", {"command": "/hooks"}),
+        ("bypass_allowed", True),
+        ("settings_path", ".codex/untrusted-hooks.json"),
+        ("review_command", "/hooks --trust-all"),
+        ("hash_scope", "settings_file"),
+    ],
+)
+def test_tracked_codex_hook_trust_contract_fails_closed(
+    tmp_path: Path,
+    field: str,
+    invalid_value: object,
+) -> None:
+    target = tmp_path / "invalid-tracked-guidance"
+    init_git_repo(target)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if field == "__missing_gate__":
+        manifest["gates"] = [
+            gate for gate in manifest["gates"] if gate.get("id") != "codex.hook_trust"
+        ]
+    else:
+        trust_gate = next(gate for gate in manifest["gates"] if gate["id"] == "codex.hook_trust")
+        if invalid_value is None:
+            trust_gate.pop(field)
+        else:
+            trust_gate[field] = invalid_value
+
+    schema = json.loads(
+        (SCHEMA_ROOT / "foundation-manifest.schema.json").read_text(encoding="utf-8")
+    )
+    assert list(Draft202012Validator(schema).iter_errors(manifest))
+    trust_check = next(
+        check
+        for check in aegis_installer._strict_codex_checks(target, manifest)
+        if check["gate_id"] == "codex.hook_trust_guidance"
+    )
+    assert trust_check["status"] == "fail"
+    assert trust_check["required"] is True
+    assert trust_check["details"]["source"] is None
+    assert trust_check["details"]["client_trust_asserted"] is False
+
+
+def test_stale_install_report_cannot_override_invalid_tracked_hook_trust(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "stale-install-report"
+    init_git_repo(target)
+    install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    manifest_path = target / AEGIS_MANIFEST_REL
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    trust_gate = next(gate for gate in manifest["gates"] if gate["id"] == "codex.hook_trust")
+    trust_gate["bypass_allowed"] = True
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    strict_report = verify(target, source_root=REPO_ROOT, strict=True)
+    trust_check = next(
+        check
+        for check in strict_report["checks"]
+        if check["gate_id"] == "codex.hook_trust_guidance"
+    )
+
+    assert trust_check["status"] == "fail"
+    assert trust_check["details"]["source"] is None
+    assert trust_check["details"]["supplemental_install_evidence"] == {
+        "install_report_present": True,
+        "install_report_parsed": True,
+        "hook_trust_guidance_present": True,
+        "matches_tracked_contract": True,
+        "client_trust_asserted": False,
+    }
+    assert strict_report["summary"]["failed_required"] > 0
+
+
+def test_clean_secondary_worktree_passes_strict_verify_and_closeout_dry_run(
+    tmp_path: Path,
+) -> None:
+    primary = tmp_path / "primary"
+    secondary = tmp_path / "secondary"
+    init_git_repo(primary)
+    (primary / ".gitignore").write_text(
+        ".aegis/reports/\n.aegis/state/\n.aegis/capsule/\n",
+        encoding="utf-8",
+    )
+    install(
+        primary,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    git(primary, "add", "-A")
+    git(primary, "commit", "-m", "install tracked Aegis runtime")
+    git(
+        primary,
+        "worktree",
+        "add",
+        "-b",
+        "feat/task-72-clean-hook-trust-worktree",
+        secondary.as_posix(),
+    )
+
+    assert not (secondary / aegis_installer.AEGIS_INSTALL_REPORT_REL).exists()
+    kickoff(
+        secondary,
+        task_id="72",
+        slug="clean-hook-trust-worktree",
+        title="Clean Hook Trust Worktree",
+        goals=["Prove clean-worktree strict verification and closeout portability"],
+    )
+    current_work = json.loads((secondary / AEGIS_CURRENT_WORK_REL).read_text(encoding="utf-8"))
+    work_rel = current_work["paths"]["work_tracking"]
+    report_rel = f"{current_work['paths']['reports']}/portability-evidence.txt"
+    evidence_path = secondary / report_rel
+    evidence_path.parent.mkdir(parents=True, exist_ok=True)
+    evidence_path.write_text("clean secondary worktree portability evidence\n", encoding="utf-8")
+
+    assert (
+        log_work(
+            secondary,
+            handler="codex:scope",
+            evidence=f"{work_rel}/FINDINGS.md",
+            note="Confirmed clean-worktree portability scope",
+            surfaces=["findings", "decisions"],
+            plan_step="plan-step-scope",
+            plan_status="completed",
+        )["status"]
+        == "logged"
+    )
+    assert (
+        log_work(
+            secondary,
+            handler="codex:apply_patch",
+            evidence=report_rel,
+            note="Recorded clean-worktree portability implementation evidence",
+            plan_step="plan-step-implement",
+            plan_status="completed",
+        )["status"]
+        == "logged"
+    )
+    assert (
+        log_work(
+            secondary,
+            handler="verify:inspection",
+            evidence="cmd`test -f portability-evidence.txt`",
+            note="Verified clean-worktree portability evidence",
+            plan_step="plan-step-verify",
+            plan_status="completed",
+        )["status"]
+        == "logged"
+    )
+
+    strict = verify(secondary, source_root=REPO_ROOT, strict=True)
+    trust_check = next(
+        check for check in strict["checks"] if check["gate_id"] == "codex.hook_trust_guidance"
+    )
+    assert strict["status"] == "passed"
+    assert strict["summary"]["failed_required"] == 0
+    assert trust_check["status"] == "pass"
+    assert trust_check["details"]["source"] == "manifest_gate"
+    assert (
+        trust_check["details"]["supplemental_install_evidence"]["install_report_present"] is False
+    )
+    assert (
+        log_work(
+            secondary,
+            handler="aegis:verify",
+            evidence=AEGIS_VERIFY_REPORT_REL,
+            note="Recorded strict clean-worktree verification evidence",
+            plan_step="plan-step-verify",
+            plan_status="completed",
+        )["status"]
+        == "logged"
+    )
+
+    repaired = repair_handoff(secondary, source_root=REPO_ROOT)
+    assert repaired["status"] == "repaired"
+    manifest_before = (secondary / AEGIS_MANIFEST_REL).read_bytes()
+    handoff_path = secondary / work_rel / "HANDOFF.md"
+    handoff_before = handoff_path.read_bytes()
+    dry_run = closeout(
+        secondary,
+        source_root=REPO_ROOT,
+        update_handoff=True,
+        dry_run=True,
+    )
+
+    assert dry_run["status"] == "passed"
+    assert dry_run["summary"]["failed_required"] == 0
+    assert dry_run["dry_run"] is True
+    assert dry_run["report_written"] is False
+    assert dry_run["state_updated"] is False
+    assert not (secondary / AEGIS_CLOSEOUT_REPORT_REL).exists()
+    assert (secondary / AEGIS_MANIFEST_REL).read_bytes() == manifest_before
+    assert handoff_path.read_bytes() == handoff_before
+    assert not (secondary / aegis_installer.AEGIS_INSTALL_REPORT_REL).exists()
+
+
 def test_tracked_codex_hook_trust_guidance_rejects_missing_or_duplicate_gate() -> None:
     gates = aegis_installer._gates(["codex"])
     trust_gate = next(gate for gate in gates if gate["id"] == "codex.hook_trust")
@@ -6669,9 +6939,7 @@ def test_tracked_codex_hook_trust_guidance_rejects_missing_or_duplicate_gate() -
         "manifest_gate"
     )
 
-    missing_gate_manifest = {
-        "gates": [gate for gate in gates if gate["id"] != "codex.hook_trust"]
-    }
+    missing_gate_manifest = {"gates": [gate for gate in gates if gate["id"] != "codex.hook_trust"]}
     assert aegis_installer._tracked_codex_hook_trust_guidance(missing_gate_manifest) == {}
 
     duplicate_gate_manifest = {"gates": [*gates, dict(trust_gate)]}

@@ -193,9 +193,7 @@ CODEX_HOOK_MATCHER = "^(Bash|apply_patch|mcp__.*)$"
 CODEX_POSTTOOLUSE_MATCHER = CODEX_HOOK_MATCHER
 CODEX_SUBAGENT_MATCHER = ".*"
 CODEX_HOOK_ROOT = "$(git rev-parse --show-toplevel)"
-CODEX_HOOK_COMMAND_PREFIX = (
-    f'AEGIS_INVOKING_AGENT=codex "{CODEX_HOOK_ROOT}/.aegis/bin/aegis" hook'
-)
+CODEX_HOOK_COMMAND_PREFIX = f'AEGIS_INVOKING_AGENT=codex "{CODEX_HOOK_ROOT}/.aegis/bin/aegis" hook'
 CODEX_SESSION_START_COMMAND = f"{CODEX_HOOK_COMMAND_PREFIX} sessionstart"
 CODEX_SUBAGENT_START_COMMAND = f"{CODEX_HOOK_COMMAND_PREFIX} subagentstart"
 CODEX_SUBAGENT_STOP_COMMAND = f"{CODEX_HOOK_COMMAND_PREFIX} recordjson"
@@ -975,10 +973,7 @@ def _classify_codex_hook_command(command: object) -> str:
             }
         ):
             return "legacy"
-    if any(
-        "/.claude/scripts/" in token or "/.aegis/bin/aegis" in token
-        for token in tokens
-    ):
+    if any("/.claude/scripts/" in token or "/.aegis/bin/aegis" in token for token in tokens):
         return "aegis-unknown"
     return "project"
 
@@ -1125,13 +1120,13 @@ def _render_local_cli_shim(source_root: Path) -> bytes:
             "  fi",
             "}",
             "",
-            '# Hook dispatch is deliberately target-local. A central source checkout may be',
-            '# unavailable or mid-update while hooks are firing in other repositories.',
+            "# Hook dispatch is deliberately target-local. A central source checkout may be",
+            "# unavailable or mid-update while hooks are firing in other repositories.",
             'AEGIS_HOOK_PHASE=""',
             'if [ "${1:-}" = "hook" ]; then',
             '  AEGIS_HOOK_PHASE="${2:-}"',
             '  case "$AEGIS_HOOK_PHASE" in',
-            '    pretooluse|posttooluse|stop|path|bash|configchange|readiness|record|recordjson|posttoolusefailure|sessionstart|sessionend|subagentstart)',
+            "    pretooluse|posttooluse|stop|path|bash|configchange|readiness|record|recordjson|posttoolusefailure|sessionstart|sessionend|subagentstart)",
             "      ;;",
             "    *)",
             '      echo "unsupported Aegis hook phase: ${AEGIS_HOOK_PHASE:-<missing>}" >&2',
@@ -1578,6 +1573,9 @@ def _gate(
     hook_event: str | None = None,
     hook_matcher: str | None = None,
     unsupported_reason: str | None = None,
+    review_command: str | None = None,
+    hash_scope: str | None = None,
+    bypass_allowed: bool | None = None,
     method: str,
     failure_mode: str,
     expected: str | bool | None = True,
@@ -1601,6 +1599,9 @@ def _gate(
         "hook_event": hook_event,
         "hook_matcher": hook_matcher,
         "unsupported_reason": unsupported_reason,
+        "review_command": review_command,
+        "hash_scope": hash_scope,
+        "bypass_allowed": bypass_allowed,
     }.items():
         if value is not None:
             payload[key] = value
@@ -1788,7 +1789,11 @@ def _gates(enabled_agents: Sequence[str]) -> list[dict[str, Any]]:
                     scope="adapter",
                     adapter="codex",
                     path=CODEX_HOOKS_REL,
+                    settings_path=CODEX_HOOKS_REL,
                     unsupported_reason=CODEX_HOOK_TRUST_UNSUPPORTED_REASON,
+                    review_command=CODEX_HOOK_TRUST_REVIEW_COMMAND,
+                    hash_scope=CODEX_HOOK_TRUST_HASH_SCOPE,
+                    bypass_allowed=False,
                     method="manual",
                     failure_mode="unsupported",
                     expected=None,
@@ -9686,9 +9691,11 @@ def install(
         _atomic_write_bytes(
             install_report_path,
             _dump_json(report).encode("utf-8"),
-            mode=(install_report_path.stat().st_mode & 0o7777)
-            if install_report_path.exists()
-            else 0o644,
+            mode=(
+                (install_report_path.stat().st_mode & 0o7777)
+                if install_report_path.exists()
+                else 0o644
+            ),
         )
         return report
     except Exception as exc:
@@ -10321,9 +10328,7 @@ def _tracked_codex_hook_trust_guidance(manifest: Mapping[str, Any]) -> dict[str,
     if not isinstance(gates, list):
         return {}
     matching = [
-        gate
-        for gate in gates
-        if isinstance(gate, Mapping) and gate.get("id") == "codex.hook_trust"
+        gate for gate in gates if isinstance(gate, Mapping) and gate.get("id") == "codex.hook_trust"
     ]
     if len(matching) != 1:
         return {}
@@ -10337,18 +10342,54 @@ def _tracked_codex_hook_trust_guidance(manifest: Mapping[str, Any]) -> dict[str,
         and gate.get("scope") == "adapter"
         and gate.get("adapter") == "codex"
         and gate.get("path") == CODEX_HOOKS_REL
+        and gate.get("settings_path") == CODEX_HOOKS_REL
         and gate.get("unsupported_reason") == CODEX_HOOK_TRUST_UNSUPPORTED_REASON
+        and gate.get("review_command") == CODEX_HOOK_TRUST_REVIEW_COMMAND
+        and gate.get("hash_scope") == CODEX_HOOK_TRUST_HASH_SCOPE
+        and gate.get("bypass_allowed") is False
         and verification.get("method") == "manual"
         and verification.get("failure_mode") == "unsupported"
         and verification.get("expected") is None
     ):
         return {}
     return {
-        "settings_path": CODEX_HOOKS_REL,
-        "review_command": CODEX_HOOK_TRUST_REVIEW_COMMAND,
-        "hash_scope": CODEX_HOOK_TRUST_HASH_SCOPE,
-        "bypass_allowed": False,
+        "settings_path": gate.get("settings_path"),
+        "review_command": gate.get("review_command"),
+        "hash_scope": gate.get("hash_scope"),
+        "bypass_allowed": gate.get("bypass_allowed"),
         "source": "manifest_gate",
+    }
+
+
+def _supplemental_codex_hook_trust_evidence(target_root: Path) -> dict[str, Any]:
+    """Describe generated install guidance without treating it as trust authority."""
+
+    report_path = target_root / AEGIS_INSTALL_REPORT_REL
+    install_report = _read_json(report_path)
+    reload_report = (
+        install_report.get("client_reload")
+        if isinstance(install_report, Mapping)
+        and isinstance(install_report.get("client_reload"), Mapping)
+        else {}
+    )
+    hook_trust = (
+        reload_report.get("hook_trust")
+        if isinstance(reload_report, Mapping)
+        and isinstance(reload_report.get("hook_trust"), Mapping)
+        else {}
+    )
+    matches_contract = bool(hook_trust) and (
+        hook_trust.get("settings_path") == CODEX_HOOKS_REL
+        and hook_trust.get("review_command") == CODEX_HOOK_TRUST_REVIEW_COMMAND
+        and hook_trust.get("hash_scope") == CODEX_HOOK_TRUST_HASH_SCOPE
+        and hook_trust.get("bypass_allowed") is False
+    )
+    return {
+        "install_report_present": report_path.is_file(),
+        "install_report_parsed": isinstance(install_report, Mapping),
+        "hook_trust_guidance_present": bool(hook_trust),
+        "matches_tracked_contract": matches_contract,
+        "client_trust_asserted": False,
     }
 
 
@@ -10419,6 +10460,7 @@ def _strict_codex_checks(target_root: Path, manifest: Mapping[str, Any]) -> list
     )
 
     hook_trust = _tracked_codex_hook_trust_guidance(manifest)
+    supplemental_hook_trust = _supplemental_codex_hook_trust_evidence(target_root)
     trust_guidance_ok = (
         hook_trust.get("settings_path") == CODEX_HOOKS_REL
         and hook_trust.get("review_command") == CODEX_HOOK_TRUST_REVIEW_COMMAND
@@ -10442,6 +10484,8 @@ def _strict_codex_checks(target_root: Path, manifest: Mapping[str, Any]) -> list
                 "hash_scope": hook_trust.get("hash_scope"),
                 "bypass_allowed": hook_trust.get("bypass_allowed"),
                 "source": hook_trust.get("source"),
+                "client_trust_asserted": False,
+                "supplemental_install_evidence": supplemental_hook_trust,
             },
         )
     )
