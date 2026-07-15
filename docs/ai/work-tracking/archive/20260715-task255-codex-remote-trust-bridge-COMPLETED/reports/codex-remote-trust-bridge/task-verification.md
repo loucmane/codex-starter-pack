@@ -1,8 +1,8 @@
 # Task 255 Verification Evidence
 
-**Task:** 255 — Host-Scoped Codex Remote Control Trust Management  
-**Branch:** `feat/task-255-codex-remote-trust-bridge`  
-**Date:** 2026-07-15  
+**Task:** 255 — Host-Scoped Codex Remote Control Trust Management
+**Branch:** `feat/task-255-codex-remote-trust-bridge`
+**Date:** 2026-07-15
 **Result:** implementation and source-workflow verification passed; hosted delivery verification remains pending
 
 ## Verified contract
