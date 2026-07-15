@@ -214,5 +214,35 @@
     "plan_hash": "d37c534733bedeb1868d4e46636854daaae0fc01863b0b490f9bd3160d73e22e",
     "tracker_hash": "38c8ce7f16628d85d8ace0411eb35f7def76432742df14949f2e00cde547693f",
     "synced_at": "2026-07-14T21:07:05.328568+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task254-strict-codex-hook-trust-portability.md",
+    "plan_hash": "6da5d47632eb3466cc40353d77a27a554ef439b73828dcafcc39d26778d8e213",
+    "tracker_hash": "f9fb23a739a45ee97b56ecb9a17587ff732bc54aec48b12cd5b6ac035cc72389",
+    "synced_at": "2026-07-15T13:22:21.022278+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task254-strict-codex-hook-trust-portability.md",
+    "plan_hash": "6da5d47632eb3466cc40353d77a27a554ef439b73828dcafcc39d26778d8e213",
+    "tracker_hash": "f9fb23a739a45ee97b56ecb9a17587ff732bc54aec48b12cd5b6ac035cc72389",
+    "synced_at": "2026-07-15T13:36:26.536364+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task254-strict-codex-hook-trust-portability.md",
+    "plan_hash": "a32c3b37b0dd714e6707bf3dfa5e3d38de0559ade1e4123c8fa72fcee8b9e6c5",
+    "tracker_hash": "9e6e1b4c729596306ff1950ba783313a6eaac9b8a21576e81b830c3e9aa8b1d2",
+    "synced_at": "2026-07-15T13:38:30.986842+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task254-strict-codex-hook-trust-portability.md",
+    "plan_hash": "ad843deacf46fcda52058519ea0c4bfc1dd5d5fe65b2d87052a0e7f7b21298ac",
+    "tracker_hash": "529b0d30235f31ddb1a120895059e2f26198c60ca60f8f6ea60f3608c125ea11",
+    "synced_at": "2026-07-15T13:40:22.872003+02:00"
+  },
+  {
+    "plan": "plans/2026-07-15-task254-strict-codex-hook-trust-portability.md",
+    "plan_hash": "15fe512c32d5c8ab3cb97e67cb91f43e2c471d1edb84d58a9a20f55a075b0de1",
+    "tracker_hash": "cc009399dc3ff552f85324b03ae124cebe1be2c8c71f33c55f37be8abfb84b92",
+    "synced_at": "2026-07-15T13:40:49.010222+02:00"
   }
 ]

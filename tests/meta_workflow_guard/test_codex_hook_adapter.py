@@ -332,6 +332,52 @@ def test_project_update_migrates_pre_adapter_codex_manifest_before_runtime_refre
     assert second_preview["install"]["summary"]["manual_reviews"] == 0
 
 
+def test_project_update_migrates_task253_hook_trust_gate_to_explicit_contract(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "task253-hook-trust-migration"
+    target.mkdir()
+    installer.install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    manifest_path = target / installer.AEGIS_MANIFEST_REL
+    legacy_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    trust_gate = next(gate for gate in legacy_manifest["gates"] if gate["id"] == "codex.hook_trust")
+    for field in ("settings_path", "review_command", "hash_scope", "bypass_allowed"):
+        trust_gate.pop(field)
+    manifest_path.write_text(
+        json.dumps(legacy_manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    schema = json.loads(
+        (REPO_ROOT / "schemas/aegis/foundation-manifest.schema.json").read_text(encoding="utf-8")
+    )
+    with pytest.raises(ValidationError):
+        Draft202012Validator(schema).validate(legacy_manifest)
+
+    preview = installer.project_update(target, source_root=REPO_ROOT, apply=False)
+    assert preview["status"] == "preview"
+    assert preview["install"]["summary"]["manual_reviews"] == 0
+    assert preview["product_file_safety"]["safe"] is True
+
+    applied = installer.project_update(target, source_root=REPO_ROOT, apply=True)
+    assert applied["status"] == "applied"
+    migrated = json.loads(manifest_path.read_text(encoding="utf-8"))
+    Draft202012Validator(schema).validate(migrated)
+    migrated_trust_gate = next(
+        gate for gate in migrated["gates"] if gate["id"] == "codex.hook_trust"
+    )
+    assert migrated_trust_gate["settings_path"] == installer.CODEX_HOOKS_REL
+    assert migrated_trust_gate["review_command"] == installer.CODEX_HOOK_TRUST_REVIEW_COMMAND
+    assert migrated_trust_gate["hash_scope"] == installer.CODEX_HOOK_TRUST_HASH_SCOPE
+    assert migrated_trust_gate["bypass_allowed"] is False
+
+
 def test_pre_adapter_divergent_codex_hooks_refuse_before_any_update_write(
     tmp_path: Path,
 ) -> None:
@@ -402,6 +448,70 @@ def test_new_codex_reload_requirement_preserves_existing_claude_marker(
         installer.CODEX_HOOKS_REL,
     ]
     assert report["hook_trust"]["required"] is True
+
+
+def test_changed_hook_definition_hash_requires_renewed_manual_codex_trust(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "changed-hook-definition"
+    target.mkdir()
+    first = installer.install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    assert first["status"] == "applied"
+    original_hooks = (target / HOOKS_REL).read_bytes()
+    original_hash = installer._content_checksum(original_hooks)
+
+    # The marker is client-local generated state. Removing it models a completed
+    # reconnect/review cycle without claiming that repository content can assert trust.
+    (target / installer.AEGIS_CLIENT_RELOAD_REL).unlink()
+    monkeypatch.setattr(
+        installer,
+        "CODEX_PRETOOLUSE_COMMAND",
+        installer.CODEX_PRETOOLUSE_COMMAND + " ",
+    )
+
+    preview = installer.plan_install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+    )
+    hook_operation = _operation(preview, HOOKS_REL.as_posix())
+    assert hook_operation["classification"] == "modify"
+    assert hook_operation["safe_to_apply"] is True
+
+    second = installer.install(
+        target,
+        source_root=REPO_ROOT,
+        primary_agent="codex",
+        agents=["codex"],
+        apply=True,
+    )
+    changed_hooks = (target / HOOKS_REL).read_bytes()
+    assert installer._content_checksum(changed_hooks) != original_hash
+    assert second["client_reload"]["required"] is True
+    assert installer.CODEX_HOOKS_REL in second["client_reload"]["changed_paths"]
+    assert second["client_reload"]["hook_trust"] == {
+        "required": True,
+        "settings_path": installer.CODEX_HOOKS_REL,
+        "review_command": installer.CODEX_HOOK_TRUST_REVIEW_COMMAND,
+        "hash_scope": installer.CODEX_HOOK_TRUST_HASH_SCOPE,
+        "bypass_allowed": False,
+        "instructions": (
+            "Review and trust the exact project hook hashes with /hooks; changed hashes "
+            "remain skipped until trusted."
+        ),
+    }
+    marker = json.loads((target / installer.AEGIS_CLIENT_RELOAD_REL).read_text(encoding="utf-8"))
+    assert marker["hook_trust"]["required"] is True
+    assert marker["hook_trust"]["review_command"] == "/hooks"
+    assert "trusted" not in marker
 
 
 def test_codex_runtime_and_schema_sources_match_packaged_assets() -> None:
